@@ -1,2 +1,3 @@
-# Mon Projet
+<<<<<<< HEAD
 # lescaramagnols.com
+>>>>>>> origin/main

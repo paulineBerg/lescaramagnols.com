@@ -65,6 +65,7 @@
 <!-- Canonical URL -->
 <link rel="canonical" href="https://www.lescaramagnols.com/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php" />
 
+
 <!-- InstanceEndEditable -->
 
 <!-- Balise meta canonical spécifique à chaque page --> 
