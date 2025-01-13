@@ -1,0 +1,44 @@
+			CE QUI CHANGE D UN SITE A L AUTRE TRADUIT
+
+			FICHIER MODELE ACCUEIL.DWT:
+			
+	Mettre le bon lien sur le rel canonique :
+<link rel="canonical" href="https://lescaramagnols.com/" />
+
+	Mettre le lien sur le fichier de langue du site :
+
+<!-- script insere les fichiers d'écrits-->
+<?php
+require("/home/data/web/lescaramagnols/www/structure/langue/frLangue.php");
+?>
+
+ <!-- l'icone qui s'affiche sur le navigateur -->
+<link rel="shortcut icon" href="https://lescaramagnols.com/structure/images/icone.ico">
+	 
+	balises meta :
+	
+ language, mot clefs, url site
+ 
+	Balises pour facebook
+	
+Mettre le lien bon lien
+<!-- Dynamic Meta -->
+<meta property="og:image" content="https://lescaramagnols.com/structure/banniere.jpg" /> 
+ 
+ 
+			ROBOTS.TXT :
+	
+Mettre le bon lien :
+Sitemap: https://lescaramagnols.com/sitemap.xml
+
+
+			HTACCESS.TXT : à la racine du site
+			
+Mettre le bon lien :
+Options +FollowSymlinks
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^lescaramagnols.com$
+RewriteRule ^(.*) https://lescaramagnols.com/$1 [QSA,L,R=301]
+
+et ensuite placer le fichier à la racine du site en .htaccess
+			

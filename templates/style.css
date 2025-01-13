@@ -1,0 +1,2022 @@
+/* CSS Document de style */
+
+
+/* EN GENERAL
+pour definir un threme general qui s'applique e toute page ouverte, utiliser les commandes css*/
+
+/*-- Les commandes Div permettent de definir chaque partie de la page en bloc (debut du nom par div)--*/
+/*-- Les commandes span permettent de donner un format e la structure (debut du nom par un point)--*/
+
+	/* EN GENERAL
+  pour definir un threme general qui s'applique e toute page ouverte, utiliser les commandes css*/
+/*Taille ecran ordinateur pour plus petit voir ci-dessous en responsive design xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx*/
+
+/* la page par defaut*/
+
+body{
+	/*ensremble de la page, avec image en fond, txt couleur blanc*/
+	
+		background-color:#1BA1E2; /*Fond de page bleu avec image*/
+		background-image:url('https://lescaramagnols.com/structure/images/menu/mer.jpg');
+		background-position:50% 50%;
+		background-attachment:fixed; 
+	
+		font-family: "Segoe UI Sremilight";
+		font-size:100%;
+		font-size: 1.188rem; /*19px transforme en %*/
+		font-weight : normal;
+		font-style: normal;
+		line-height: normal;
+		font-variant: normal;
+		text-transform: none;
+		color: #FFFFFF;
+		text-align : justify;
+		height:auto;
+		margin:0;
+		padding:0;	
+	
+	}
+
+/************/
+/* les liens */
+/************/
+
+a:link{
+/* lien non visite : couleur police jaune #E3C800*/
+	color: #E3C800;
+	text-decoration:underline;
+	font-style: normal;
+	font-size: 1.188rem; /*19px transforme en %*/
+	font-weight : bold;
+}
+a:visited{
+/* lien visite : couleur police jaune #E3C800*/
+	color: #E3C800;
+	font-style: normal;
+	font-size: 1.188rem; /*19px transforme en %*/
+	font-weight : bold;
+	text-decoration: none; 
+}
+a:hover{
+/* lien survole couleur police rouge*/
+	color: #A20025;
+	font-size: 1.188rem; /*19px transforme en %*/
+	font-weight : bold;
+	font-style: italic;
+	text-decoration: none;
+	background: #E3C800;
+}
+a:focus{
+/* lien : etat d'un element qui a reeu el'attentione rouge*/
+	color: #A20025;
+	font-size: 1.188rem; /*19px transforme en %*/
+	font-weight : bold;
+	font-style: italic;
+	text-decoration: none;
+	}
+a:active{
+/* lien clique rouge*/
+	color: #A20025;
+	font-size: 1.188rem; /*19px transforme en %*/
+	font-weight : bold;
+	font-style: normal;
+	text-decoration: none;
+	}
+
+/* legendes des tableaux*/
+
+caption {
+/* couleur police blanc*/
+	color: #ffffff;
+	font : Segoe UI;
+	font-size: 0.625rem; /*10px transforme en %*/
+	font-weight : bold;
+}
+
+img, object, rembed, canvas, video, audio, picture {
+	   max-width:100%;
+	   max-height:auto;
+	   vertical-align:central;
+	   text-align:center;
+} 
+
+h1
+{
+	/* couleur police blanc*/
+	font : Segoe UI Light;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : center;
+	font-size: 2.1rem; /*42px transforme en %*/
+}
+h2{
+	/* couleur police blanc*/
+	font : Segoe UI Light ;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : center;
+	font-size: 1.5rem; /*30px transforme en %*/
+}
+h3{
+/* couleur police blanc*/
+	font : Segoe UI Light ;
+	font-weight : bold;
+	color:#ffffff;
+	font-size:1.375rem; /*22px transforme en %*/
+}
+
+input:invalid {
+  border: 2px dashed red;
+}
+
+input:valid {
+  border: 1px solid black;
+}
+
+/****XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*******/
+/* COMMANDES PREDEFINIES
+pour creer une commande, commencer son nom par un "." puis donner un titre*/
+/****************************/
+
+.avecbordure {	
+	margin:0.313rem;
+    border:double;
+	width:auto;
+}	
+.border {
+ /* cree une bordure dans les div */  
+	border-width:0.125rem;
+	border-style:inset;
+	border-color:#F472D0;		
+}	
+#blink{
+    animation: blink 2s infinite;
+	color:#9D181A;
+	font-weight : bold;
+	font-size:1.5rem;
+}
+@keyframes blink{
+    0%{opacity: 0.40;}
+    50%{opacity: 0.70;}
+    100%{opacity: 1;}
+}
+
+.flottedroite {	
+	float:right;
+	}	
+.flottegauche {	
+	float:left;
+	}
+.flottecentre {	
+	float:none;
+	}	
+.fond {
+/* fond en bleu*/
+	background-color:#00ABA9;
+}
+.img {
+  max-width:100%; /* les images seront limitees e la largeur de leur parent */  
+  max-height:auto;
+  overflow:hidden;/* rempeche les images de sortir et ne met pas de scrollbar") */
+  display:block;
+  object-fit:cover;
+}
+.ImgCarrremoyen{
+/* dimension des images*/
+	width:15.7rem;
+	height:15.7rem;
+	overflow:hidden;/* rempeche les images de sortir et ne met pas de scrollbar") */
+}
+.imggrand{
+/* dimension des images*/
+	max-width:31.25rem;
+	max-height:21.875rem;
+	overflow:hidden;/* rempeche les images de sortir et ne met pas de scrollbar") */
+}
+.imgmoyen{
+/* dimension des images*/
+	max-width:18.75rem;
+	max-height:14.063rem;
+	overflow:hidden;/* rempeche les images de sortir et ne met pas de scrollbar") */
+}
+.imgpetit{
+/* dimension des images*/
+	max-width:15.625rem;
+	max-height:9.375rem;
+	overflow:hidden;/* rempeche les images de sortir et ne met pas de scrollbar") */
+}
+
+.inline{
+/* mettre en ligne*/
+    display:inline;
+}
+
+/* LES TITRES*/
+
+.TitreCentrePoliceGrosse {	
+	/* couleur police blanc*/
+	font : Segoe UI Light;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : center;
+	font-size: 2.1rem; /*42px transforme en %*/
+}
+.TitreCentrePolicremoyenne {	
+	/* couleur police blanc*/
+	font : Segoe UI Light;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : center;
+	font-size: 1.5rem; /*30px transforme en %*/
+}
+.TitreCentrePolicePetite{	
+	/* couleur police blanc*/
+	font : Segoe UI Light;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : center;
+	font-size: 1.5rem; /*30px transforme en %*/
+}	
+.TitreGauchePoliceGrosse {
+	
+	/* couleur police blanc*/
+	font : Segoe UI Light;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : left;
+	font-size: 2.1rem; /*42px transforme en %*/
+}
+.TitreGauchePolicremoyenne {
+	
+	/* couleur police blanc*/
+	font : Segoe UI Light ;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : left;
+	vertical-align : top;
+	font-size: 1.5rem; /*30px transforme en %*/
+}
+.TitreGauchePolicePetite {
+/* couleur police blanc*/
+	font : Segoe UI Light ;
+	font-weight : bold;
+	color:#ffffff;
+	font-size:1.375rem; /*22px transforme en %*/
+	text-align: left;		
+}
+.TitreDroitePoliceGrosse {
+	
+	/* couleur police blanc*/
+	font : Segoe UI Light;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : right;
+	vertical-align : top;
+	font-size: 2.1rem; /*42px transforme en %*/
+}
+.TitreDroitePolicremoyenne {
+	
+	/* couleur police blanc*/
+	font : Segoe UI Light ;
+	color: #ffffff;
+	font-weight : bold;
+	text-align : right;
+	vertical-align : top;
+	font-size: 1.5rem; /*30px transforme en %*/
+}
+.TitreDroitePolicePetite {
+/* couleur police blanc*/
+	font : Segoe UI Light ;
+	font-weight : bold;
+	color:#ffffff;
+	font-size:1.375rem; /*22px transforme en %*/
+	text-align:right;		
+}
+.inputform {
+	font-size:1rem;
+}
+
+/* LES LEGENDES ET AUTRES MENUS*/
+
+.MenuLegende {
+/* blanc pour les legendes en petit*/	
+	font : Segoe UI;
+	font-weight : bold;
+	color:#ffffff;
+	font-size:0.625rem; /*10px transforme en %*/
+}
+ 
+
+ 
+/*****************************/
+/*-- lES DIV OU BLOCS-- */
+/*****************************/
+
+div{
+/* par defaut : pour toute la page */
+	text-align:justify;
+	width:auto;
+	height:auto;
+	margin:0.05rem;
+	padding:0.05rem;
+	}
+div#img{
+/* image */
+	text-align:center;
+	width:auto;
+	height:auto;
+	margin:0.05rem;
+	padding:0.05rem;
+	overflow:hidden;/* rempeche les images de sortir et ne met pas de scrollbar") */
+	}
+	
+	 
+/***************************************************************************************/
+/*-- HAUT DE PAGE -- */
+/***************************************************************************************/	
+
+
+div#entete {
+	width:99%;
+	height:auto;
+	display:block;
+	position:fixed;
+	top:0.5rem;	
+	z-index:10;
+	background-color:#0050EF;/* fond bleu */
+	background-position:50% 50%;
+	line-height:50%; /* centrage du texte vertical */
+	overflow:initial;/* rempeche les images de sortir et ne met pas de scrollbar") */	
+	text-align:center;
+	margin-right:auto;
+	margin-left:0.5%;
+	}
+div#menu1 {
+	padding-bottom:0.5rem;
+	text-align:center;
+	display:inline;
+	width:95%;
+	margin-right:auto;
+	margin-left:auto;
+	}
+	
+			/*NAVIGATION Menu1*/
+			#navMenu1 {
+                height: 0.8rem;
+				list-style: none ;	
+				margin:0;
+				padding-right:0;
+				padding-left: 0;
+				vertical-align:middle;
+				line-height:normal;									
+				}
+			#navMenu1 img {
+				width:1rem;
+				height:1rem;
+				margin:0;
+				}
+			#navMenu1 li {
+				display: inline ;
+				padding-right:1rem;
+
+				}
+			#navMenu1 li a {
+				line-height: normal;
+				text-align: center;
+				text-decoration: none ;
+				margin-right:1rem;
+				}
+			#navMenu1 li a:hover, #nav li a:focus, #nav li a:active {				
+				text-decoration: underline ;
+				text-decoration : none; /* on supprime le style par defaut des liens (la plupart du tremps = souligne) */
+				}
+				
+			Li.bouton_gauche{
+			float:left;
+			}			
+			Li.bouton_droite{
+			float:right;
+			}
+			Li.bouton_centre{
+			float:center;
+			}
+div#menureseau {
+	width:auto;
+	height:auto;
+	}
+div#googletraduction {
+	width:auto;
+	height:auto;
+	}
+	
+/* BANNIERE*/
+div#Banniere {
+	width:100%;
+	height:3rem; 
+	margin-right:auto;
+	margin-left:auto;	
+	background-image: url('https://lescaramagnols.com/structure/images/menu/banniere.gif');	
+	line-height: auto; /* hauteur de ligne (identique) */
+	background-repeat:repeat;
+	background-size:auto 3rem;
+}
+
+.defilement {
+  line-height: 3rem; /* hauteur de ligne (identique) */
+  white-space: nowrap; /* interdiction de passer e la ligne */
+}
+	
+/* 	 Menu2	*/
+
+/* remplacement fixe du menu ainsi que ses caracteristiques */	
+
+/* --- Conteneurs principaux --- */
+div#menu2position {
+    width: auto;
+    height: auto;
+    padding: 0;
+    display: inline-block;
+    text-align: center;
+}
+
+div#menuDeroulant {
+    width: auto;
+    margin: 0 auto;
+    height: auto;
+    text-align: center;
+    line-height: 50%; /* Centrage vertical du texte */
+}
+
+/* --- Style des menus et sous-menus --- */
+#menu2, #menu2 ul {
+    padding: 0; /* Suppression des marges intérieures */
+    margin: 0; /* Suppression des marges extérieures */
+    list-style: none; /* Suppression des puces */
+    line-height: 1.6rem; /* Hauteur par élément */
+    text-align: center; /* Texte centré */
+}
+
+#menu2 a {
+    display: block; /* Les liens deviennent des blocs */
+    padding: 0;
+    background-color: #0050EF; /* Fond bleu */
+    text-decoration: none; /* Suppression du soulignement */
+    width: 13rem;
+    margin: 0 auto; /* Centrage horizontal */
+    color: white; /* Texte blanc */
+    cursor: pointer; /* Indicateur interactif */
+    transition: background-color 0.3s ease; /* Animation au survol */
+}
+
+#menu2 a:hover {
+    background: #E3C800; /* Fond jaune au survol */
+}
+
+#menu2 span {
+    display: block; /* Les liens deviennent des blocs */
+    padding: 0;
+    background-color: #0050EF; /* Fond bleu */
+    text-decoration: none; /* Suppression du soulignement */
+    width: 13rem;
+    margin: 0 auto; /* Centrage horizontal */
+    color: white; /* Texte blanc */
+    cursor: default; /* Pas de curseur pointer, car ce n'est pas cliquable */
+    text-align: center; /* Alignement du texte */
+    line-height: 1.6rem; /* Hauteur par élément */
+}
+
+
+/* --- Style des éléments de liste --- */
+#menu2 li {
+    display: inline-block; /* Affichage en ligne pour les éléments de premier niveau */
+    position: relative; /* Position relative pour gérer les sous-menus */
+}
+
+/* --- Sous-menus cachés --- */
+#menu2 li ul {
+    position: absolute;
+    width: 13rem;
+    left: -999rem; /* Hors de la vue par défaut */
+    background-color: #0050EF; /* Même couleur que les liens principaux */
+    padding: 0;
+    margin: 0;
+    z-index: 100; /* Assure que les sous-menus apparaissent au-dessus */
+    transition: all 0.3s ease; /* Animation fluide */
+}
+
+#menu2 li ul ul {
+    margin: -1.5rem 0 0 13rem; /* Décalage pour les sous-sous-menus */
+    border-style: double;
+    border-color: white;
+}
+
+/* --- Affichage des sous-menus au survol (bureau) --- */
+#menu2 li:hover > ul, #menu2 li li:hover > ul {
+    left: 0; /* Affiche le sous-menu */
+}
+
+/* --- Gestion des sous-menus sur mobile --- */
+#menu2 li.active > ul {
+    left: 0; /* Affiche le sous-menu lorsqu'il est actif */
+}
+
+/* --- Bouton ou élément spécifique --- */
+li.bouton_fond_violet {
+    background-color: #95ff00; /* Fond vert clair pour cet élément */
+}
+
+/* --- Indicateurs visuels pour les sous-menus --- */
+#menu2 li > a::after {
+    content: "▼"; /* Ajout d'une flèche pour les sous-menus */
+    font-size: 0.8rem;
+    margin-left: 0.2rem;
+    display: inline-block;
+    color: white;
+}
+
+#menu2 li.active > a::after, #menu2 li:hover > a::after {
+    content: "▲"; /* Change la flèche lorsqu'il est ouvert */
+}
+
+		
+/*****************************/
+/*-- CORPS DE PAGE -- */
+/*****************************/	
+								
+
+/*  menu Gauche	*/
+/* bloc rose */
+
+div#menuGauche {
+	width:auto;
+	height:auto;
+	background-color:RGB(216, 0, 115);
+	margin-left:1%;
+	margin-right:auto;
+	margin-top:6rem;
+	padding:0.5%;
+	text-align:center;
+	display:center;
+	overflow:initial;/* rempeche les images de sortir et ne met pas de scrollbar") */
+	position:fixed;
+	}		
+div#menuGauche:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton grand/btgrd rose selection.png');
+}
+div#menuGauche:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton grand/btgrd rose clic.png');
+}
+
+
+/*  menu droit	*/	
+/* bloc orange  */
+
+div#menuDroit {	
+	width:auto;
+	height:auto;
+	background-color:#FA6800; /* fond orange  */
+	margin-left:89%;
+	margin-right:auto;
+	margin-top:10rem;
+	padding:0.5%;
+	text-align:center;
+	display:center;
+	overflow:initial;/* rempeche les images de sortir et ne met pas de scrollbar") */
+	position:fixed;
+	} 
+	
+		
+/*  menu Remonter	*/	
+	
+div#remonter {	
+	width:auto;
+	height:auto;
+	text-align:center;
+	overflow:initial;/* rempeche les images de sortir et ne met pas de scrollbar") */
+	zoom: 1; /* Idrem pour IE 6-7 (active l'etat "hasLayout") */
+	position: fixed;
+    bottom: 1rem;
+    left:1%;
+	float:left;
+	z-index:11;
+	display:true;	
+}		
+
+/****************************************************************************************/
+/*-- CONTENU -- */
+/****************************************************************************************/	
+	
+		
+div#contenu {
+	width:65%;
+	height:auto;	
+	background-color: rgba(27,161,226,0.66); /* determine le fond bleu transparent */
+	margin-left:auto;
+    margin-right:auto;
+	word-break:normal;
+	z-index:9;
+	position:relative;
+	display:block;
+	margin-top:12rem;
+	margin-bottom:2rem;
+	overflow:hidden;
+	}
+/*les div qui forme la page avec deux menus dans contenu*/	
+
+div#blocHaut {	/* 1ere div qui contient le titre */
+	width:auto;
+	height:auto;
+	margin-left:auto;
+	margin-right:auto;
+	padding:0.2rem;
+	text-align:center;	
+	}
+div#colonneJustifie40 {	
+	height:auto;
+	width: 35%;
+	padding:0.2rem;
+	text-align:justify;
+	float:right;
+	text-decoration: none;
+	font-weight : bold;
+	background-position:50% 50%;
+	}
+div#colonneJustifie25{	
+	height:auto;
+	width: 15%;
+	padding:0.2rem; /*10px transforme en %*/
+	margin-top: 30px;
+	background-position:50% 50%;
+	text-align:justify;
+	float:left;
+
+	}
+div#blocCentre {	
+	background-position:50% 50%;
+	width:auto;
+	height:auto;
+	margin-left:auto;
+	margin-right:auto;
+	margin-top:1%;
+	padding:0.2rem;
+	text-align:justify;
+	text-decoration: none;
+
+	}
+	div#blocbascentre{	
+	height:auto;
+	width: auto;
+	padding:0.2rem;
+	margin-left: auto;
+    margin-right: auto;
+	text-align:justify;
+	}
+	
+/*les trois div de presentation pour le bas de page dans contenu*/	
+div#blocbaspetitgauche{	
+	background-position:50% 50%;
+	width:25%;
+	height:auto;
+	margin-left:0;
+	margin-right:auto;
+	margin-top:0.625rem;
+	padding-left:auto;
+	padding-right:auto;
+	float:left;
+	text-decoration: none;
+	} 
+div#blocbaspetitdroit{	
+	background-position:50% 50%;
+	width:25%;
+	height:auto;
+	margin-left:auto;
+	margin-right:auto;
+	margin-top:0.625rem;
+	padding-left:auto;
+	padding-right:auto;
+	text-decoration: none;
+	float:right;
+	}
+div#blocbaspetitcentre{
+	background-position:50% 50%;
+	height:auto;
+	margin-left:auto;
+	margin-right:auto;
+	margin-top:0.625rem;
+	padding-left:auto;
+	padding-right:auto;
+	text-decoration: none;
+	text-align:center;
+	float:none;
+	}		
+	#blocbaspetitcentre img {  
+	max-width:49%;    /* largeur */	
+	max-height:auto;    /* hauteur */
+	}	
+	#blocbaspetitcentre txt {  
+	width:auto;
+	padding:0.2rem;
+	}	
+
+
+/***********************************************************************************/
+/*-- PIED DE PAGE -- */
+/**********************************************************************************/	
+
+div#piedpage {
+	width:99%;
+	height:auto;
+	z-index:10;	
+	background-color:#51596C;/*fond gris*/
+    margin-right:auto;
+	margin-left:auto;
+}
+
+div#MenuPiedpage {
+/* blanc pour les legendes centre*/	
+	width:95%;
+	font : Segoe UI;
+	color:#ffffff;
+	font-size:0.625rem; /*10px transforme en %*/
+	margin-right:auto;
+	margin-left:auto;
+}	
+	
+	
+div#menu3 {
+	width:95%;
+	height:auto;
+	margin-left:auto;
+	margin-right:auto;
+	padding:0;
+	line-height:50%; /* centrage du texte vertical */
+	}	
+			/*NAVIGATION Menu3*/
+			#navMenu3 {
+        padding : 0; /* pas de marge interieure */
+        margin : 0; /* ni exterieure */
+        list-style : none; /* on supprime le style par defaut de la liste */
+        line-height : 1.563rem; /* on definit une hauteur pour chaque element */
+        text-align : center; /* on centre le texte qui se trouve dans la liste */
+		}
+			#navMenu3 li {
+				margin-right:1rem;
+				margin-left:1rem;
+				display:inline;
+				}
+			#navMenu3 li a {
+				line-height: normal;
+				text-decoration: none ;
+				text-align:center;
+				}
+			#navMenu3 li a:hover, #nav li a:focus, #nav li a:active {				
+				text-decoration: underline ;
+				text-decoration : none; /* on supprime le style par defaut des liens (la plupart du tremps = souligne) */
+				}			
+
+div#bloccenter {
+	text-align:center;
+	width:auto;
+	height:auto;
+	margin-left:auto;
+	margin-right:auto;
+	margin-top:1%;
+	padding:0.5%;
+	}	
+	
+div#blocfondcouleur {
+	background-color :#ffffff;/*fond blanc*/
+	text-align:center;
+	width:auto;
+	height:auto;
+	margin-left:auto;
+	margin-right:auto;
+	margin-top:1%;
+	padding-left:0.5%;
+	padding-right:0.5%;
+	padding-bottom:0.5%;
+}		
+	
+div#avecbordure {
+/* sans marge du tout*/
+	text-decoration: none ;
+	border:double;
+	width:auto;
+	height:auto;
+	margin-top:2rem;
+	margin-left:auto;
+	margin-right:auto;
+	text-align:center;
+	background-position:50% 50%;
+	padding:0.1rem;
+	overflow:hidden;/* et/ou rempeche les images de sortir, ne met pas de scrollbar") */
+}
+
+div#inputform {
+	width:20%;
+	margin-right:auto;
+	margin-left:auto;
+	text-align:center;
+	border:double;
+}
+
+/****************************/
+/* definition des images de la page le golfe de st tropez afin qu'elles se modifient au survol de la souris*/
+/****************************/
+div#diaporamaSurvol {
+	width:100%;
+	height:auto;
+	margin-left:auto;
+	margin-right:auto;
+    padding:0;
+	overflow:hidden;
+	position:relative;
+	margin-top:auto;
+}
+	#diaporamaSurvol img {  
+	max-width:100%;    /* largeur */	
+	max-height:auto;    /* hauteur */
+	}	
+
+    #diaporamaSurvol .diaporamaSurvolDeuximg1 {    
+	width:auto;    /* largeur */	
+	height:auto;    /* hauteur */
+	text-align:center;
+	}	
+	#diaporamaSurvol .diaporamaSurvolDeuximg2 {    
+	width:auto;    /* largeur */	
+	height:auto;    /* hauteur */
+	text-align:center;
+	}	
+
+
+   #diaporamaSurvol .diaporamaSurvolimg1 {
+    background-image:url('https://lescaramagnols.com/images/accueil/automne/St-Tropez.jpg');
+    background-position:center;
+	width:15rem;
+	height:11rem;
+	display:inline-block;
+    }
+    #diaporamaSurvol .diaporamaSurvolimg1:hover {
+    background-image:url('https://lescaramagnols.com/images/accueil/printremps/st-tropez.jpg');
+    }
+
+    #diaporamaSurvol .diaporamaSurvolimg2 {
+	width:15rem;
+	height:11rem;
+    background-image:url('https://lescaramagnols.com/images/accueil/printremps/balladeNature.jpg');
+	background-position:center;
+	display:inline-block;
+    }
+    #diaporamaSurvol .diaporamaSurvolimg2:hover {
+    background-image:url('https://lescaramagnols.com/images/accueil/automne/BalladeNature.jpg');
+    }
+    #diaporamaSurvol .diaporamaSurvolimg3 {
+	width:15rem;
+	height:11rem;
+    background-image:url('https://lescaramagnols.com/images/accueil/automne/PlagremerSoleil.jpg');
+	background-position:center;
+	display:inline-block;
+    }
+    #diaporamaSurvol .diaporamaSurvolimg3:hover {
+    background-image:url('https://lescaramagnols.com/images/accueil/hivers/ballade.jpg');
+    }
+    #diaporamaSurvol .diaporamaSurvolimg4 {
+    background-image:url('https://lescaramagnols.com/images/accueil/automne/Animations.jpg');
+	background-position:center;
+	width:15rem;
+	height:11rem;
+	display:inline-block;
+    }
+    #diaporamaSurvol .diaporamaSurvolimg4:hover {
+    background-image:url('https://lescaramagnols.com/images/accueil/printremps/animations.jpg');
+    }
+
+/*************    IFRAME   *****************/
+div#googleiframe {
+    width:40rem;
+	height:25rem;
+	margin:auto;
+	padding:auto;
+	overflow:hidden;
+}
+div#facebookiframe {
+	 width:50%;
+	 height:50%;
+	 margin-top:3rem;
+     margin-left:auto;
+	 margin-right:auto;
+	 padding-left:auto;
+	 padding-right:auto;
+     overflow:hidden;
+	 background-position:50% 50%;
+	 text-align:center;
+ }
+
+    /*   div#googleiframe {
+    width: 95%;
+	height:18rem;
+	margin-left:auto;
+	margin-right:auto;
+    }
+	div#facebookiframe {
+	 width:95%;
+	 height:30rem;
+	 margin-left:auto;
+	 margin-right:auto;
+ }
+
+   div#googleiframe {
+   width: 38rem;	
+   height:30rem;  
+}*/
+
+
+div#conteneurMoyen{
+	width:25rem;
+	height:18.75rem;
+	max-width:31.25rem;
+	margin-left:auto;
+	margin-right:auto;
+	padding:0.313rem;
+	background-position:50% 50%;
+	overflow:initial;/* rempeche les images de sortir et ne met pas de scrollbar") */
+}	
+
+/****************************/
+/* LES MENUS UI WINDOWS*/
+/****************************/
+
+div#menuwindows {
+	width:auto;
+	height:auto; 
+	display:block;
+	margin-right:auto;
+	margin-left:auto;
+	text-align:center;
+}
+div#menurectanglewindows {
+	width:15rem;
+	height:8rem; 
+	margin-right:0.2rem;
+	margin-left:0.2rem;
+	padding-right:auto;
+	padding-left:auto;
+	display:inline-block;
+	background:center;
+	overflow:inherit;
+	text-align:center;
+}
+
+div#boutonrectanglebleu { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleu.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+     #boutonrectanglebleu img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+    #boutonrectanglebleu:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleu selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+    #boutonrectanglebleu:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleu clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+
+div#boutonrectanglejaune { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle jaune.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+   #boutonrectanglejaune img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+
+   #boutonrectanglejaune:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle jaune selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+   #boutonrectanglejaune:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle jaune clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+div#boutonrectanglevertfonce { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle vertfonce.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+   #boutonrectanglevertfonce img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+   #boutonrectanglevertfonce:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle vertfonce selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+   #boutonrectanglevertfonce:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle vertfonce clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+div#boutonrectanglerouge { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle rouge.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+   #boutonrectanglerouge img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+   #boutonrectanglerouge:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle rouge selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+   #boutonrectanglerouge:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle rouge clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+
+div#boutonrectanglebleuturquoise { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleuturquoise.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+   #boutonrectanglebleuturquoise img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+   #boutonrectanglebleuturquoise:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleuturquoise selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+   #boutonrectanglebleuturquoise:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleuturquoise clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+div#boutonrectangleorange { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle orange.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+   #boutonrectangleorange img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+   #boutonrectangleorange:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle orange selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+   #boutonrectangleorange:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle orange clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+div#boutonrectangleviolet { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle violet.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+   #boutonrectangleviolet img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+   #boutonrectangleviolet:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle violet selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+   #boutonrectangleviolet:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle violet clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+div#boutonrectanglebleuvert { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleuvert.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+   #boutonrectanglebleuvert img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+   #boutonrectanglebleuvert:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleuvert selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+   #boutonrectanglebleuvert:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleuvert clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+
+div#boutonrectangleblanc { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle blanc.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+     #boutonrectangleblanc img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+    #boutonrectangleblanc:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle blanc selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+    #boutonrectangleblanc:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle blanc clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+div#boutonrectanglebleufonce { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleufonce.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+     #boutonrectanglebleufonce img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+    #boutonrectanglebleufonce:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleufonce selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+    #boutonrectanglebleufonce:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleufonce clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+div#boutonrectanglegris { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle gris.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+     #boutonrectanglegris img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+    #boutonrectanglegris:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle gris selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+    #boutonrectanglegris:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle gris clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+div#boutonrectanglenoir { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle noir.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+     #boutonrectanglenoir img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+    #boutonrectanglenoir:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle noir selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+    #boutonrectanglenoir:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle noir clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+div#boutonrectanglevioletfonce { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle violetfonce.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+     #boutonrectanglevioletfonce img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+    #boutonrectanglevioletfonce:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle violetfonce selection.png');
+width:14rem; /* largeur de ton image */
+height:7rem
+
+}
+    #boutonrectanglevioletfonce:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle violetfonce clic.png');
+width:17rem; /* largeur de ton image */
+height:7rem; /* hauteur de ton image */
+}
+
+
+div#menugrandwindows {	
+	width:18rem;;
+	height:18rem; 
+	margin-right:auto;
+	margin-left:auto;
+	padding:0.5rem;
+	display:inline-block;
+	background:center;
+	overflow:hidden;
+}
+
+div#boutongrandbleuturquoise { /* vue normal */
+display:block;
+width:14rem; /* largeur de ton image */
+height:14rem; /* hauteur de ton image */
+background-image:url('../structure/images/menu/bouton rectangle/boutonrectangle bleuturquoise.png');
+background:50% 50%;
+background-position:center;
+margin:0.125rem;
+padding-bottom:0.625rem;
+padding-left:0.250rem;
+padding-right:0.250rem;
+padding-top:0.250rem;
+text-align:center;
+}
+   #boutongrandbleuturquoise img {
+width: 99%;
+background-position:center;
+height:80%;
+}
+   #boutongrandbleuturquoise:hover { /* vue survole*/
+background-image:url('../structure/images/menu/bouton grand/btgrd bleuturquoise selection.png');
+width:14rem; /* largeur de ton image */
+height:14rem
+
+}
+   #boutongrandbleuturquoise:active { /* vue sur clic */
+background-image:url('../structure/images/menu/bouton grand/btgrd bleuturquoise clic.png');
+width:17rem; /* largeur de ton image */
+height:17rem; /* hauteur de ton image */
+}
+/****************************/
+/* LE DIAPORAMA DES APPARTremENTS*/
+/****************************/
+
+
+div#diaporama {
+/* sans marge du tout*/
+	width:45rem;
+	height:29rem;
+	margin-left:auto;
+	margin-right:auto;
+	margin-top:auto;
+	margin-bottom:5%;
+	overflow:hidden;
+	
+}
+
+	   #diaporamaAppt {    /* dimension et placrement du diaporama en totalite*/
+		width:44.35rem;    /* largeur totale du diaporama */			
+		height:28.126rem;     /* hauteur totale du diaporama */
+        position:relative;
+        left:50%;       /* On pousse le diaporamaAppt e droite de la moitie de la largeur de la fenetre */
+        margin-left:-21.875rem; /* puis on le rapproche de la gauche de la moitie de sa propre largeur. */
+        top:50%;        /* On pousse le diaporamaAppt en bas de la moitie de la hauteur de la fenetre */
+        margin-top:-14.063rem;  /* puis on le rapproche du haut de la moitie de sa propre hauteur. */
+
+	    }
+		
+	    #diaporamaAppt div img + .diaporamaApptgrande {	/* On utilise ici le selecteur de frere adjacent */
+		display:none;			/* pour rendre tous nos agrandissrements invisibles. */
+	    }
+	    #diaporamaAppt div img:hover + .diaporamaApptgrande {     /* dimension et placrement de la photo agrandie */
+		display:inline;			/* Au survol de la souris, l'image adjacente e la miniature, notre agrandissrement, devient visible */
+		position:absolute;		/* et on le place au centre de la page pour qu'il se loge au centre du diaporamaAppt. */
+		width:31.25rem;			/* Les dimensions de l'agrandissrement sont les memes que celles de notre div.centre. */
+		left:50%;
+		margin-left:-15.625rem;		/* On centre l'agrandissrement par rapport e sa propre largeur. */
+		height:18.75rem;
+		top:51.15%	;			/* On pousse le diaporamaAppt en bas de la moitie de la hauteur de la fenetre */
+		margin-top:-9.375rem;
+		z-index:1;
+	    }
+	    #diaporamaAppt img {     /* les images de bases sont en miniatures*/
+		float:left;
+		width:6.3rem;    /* largeur de chaque miniature */	
+		height:4.688rem;    /* hauteur de chaque miniature */
+	    }
+	    #diaporamaAppt .diaporamaAppthaut {/* dimension des div entourant l'image centrale */
+		width:44.35rem;    /* largeur de la div */
+		height:4.688rem;    /* hauteur de la div */		
+
+	    }
+	    #diaporamaAppt .diaporamaApptbas {    /* dimension des div entourant l'image centrale */
+		width:44.35rem;    /* largeur de la div */
+		height:4.688rem;    /* hauteur de la div */
+ 
+	    }
+	    #diaporamaAppt .diaporamaApptgauche {/* dimension de la div entourant l'image centrale */
+		float:left;
+		width:6.25rem;    /* largeur de la div */
+		height:18.75rem;    /* hauteur de la div */
+
+	    }
+	    #diaporamaAppt .diaporamaApptdroite {/* dimension de la div entourant l'image centrale */
+		float:right;
+		width:6.25rem;    /* largeur de la div */
+		height:18.75rem;    /* hauteur de la div */
+	    }
+	    #diaporamaAppt .diaporamaApptcentre {
+		float:left;
+		width:31.25rem;    /* largeur de l'image agrandie */
+		height:18.75rem;    /* hauteur de l'image agrandie */
+
+	    }
+		#diaporamaAppt .diaporamaApptouverture{     /* dimension de la photo d'ouverture du diaporama */
+		float:left;
+		width:31.25rem;
+		height:18.75rem;
+	    }
+
+
+/********************************************/
+/* LES TABLEAUX*/
+/*******************************************/
+
+Div#table1 {
+	width:90%;
+	margin-top:2rem;
+	margin-bottom:2rem;
+	margin-left:auto;
+	margin-right:auto;
+	height:auto;
+	background:#07A7F5;	
+}
+
+    #table1res {     /***** le formulaire de reservation*****/
+    width:90%;
+    margin:auto;
+}
+   #table1res .caption {   
+	font-size:1.5rem;
+}
+
+   #table1res .box {   
+	display:inline;
+	margin:1rem;
+}
+    #table1res .th {      /***** cellule entete*****/
+	clear:inherit;
+	padding:1rem;
+    background-color:transparent;
+    width:30%;
+	height:auto;
+	margin:left;
+	text-align:left;
+}
+    #table1res .td {    /***** cellule *****/      
+	width:100%;
+	height:auto;
+	margin:left;
+	text-align:left;
+}
+    #table1res .tr {
+	margin-top:3rem;
+	width:100%;
+	height:auto;
+}
+    #table1res .input {
+   	 width:60%;
+	}
+     #table1res .textarea {
+	 width:100%;
+}
+
+ #table1gard {     /***** le tableau tarif du gardiennage*****/
+    width:60%;
+	margin:auto;
+	border:double;
+}
+   #table1gard .caption {   
+	font-size:1.5rem;
+	margin-bottom:2rem;
+}
+    #table1gard .th {      /***** cellule entete*****/
+    background-color:#2406E4;
+	height:auto;
+	text-align:center;
+}
+    #table1gard .td {          /***** cellule *****/
+	width:50%;
+	height:auto;
+}
+    #table1gard .tr {
+	width:auto;
+	height:auto;
+	text-align:left;
+}
+   #table1gard .box {   
+	text-align:center;
+	margin-left:auto;
+	margin-right:auto;
+}
+
+
+
+    #table1loc {     /***** le tableau tarif locations*****/
+    width:80%;
+	margin:auto;
+	border:double;
+}
+   #table1loc .caption {   
+	font-size:1.5rem;
+	margin-bottom:2rem;
+}
+
+   #table1loc .box {   
+	text-align:center;
+	margin-left:auto;
+	margin-right:auto;
+
+}
+    #table1loc .th {      /***** cellule entete*****/
+	width:25%;
+    background-color:#2406E4;
+	height:auto;
+	text-align:center;
+}
+    #table1loc .td {          /***** cellule *****/
+	width:auto;
+	height:auto;
+}
+    #table1loc .tr {
+	width:100%;
+	height:auto;
+	text-align:left;
+}
+
+ #table1promo {     /***** le tableau des promotions*****/
+    width:80%;
+    margin-left:auto;
+    margin-right:auto;
+}
+   #table1promo .caption {   
+	font-size:1.5rem;
+	margin-bottom:2rem;
+	margin-left:auto;
+	margin-right:auto;
+	text-align:center;
+}
+    #table1promo .th {      /***** cellule entete*****/
+    background-color:#2406E4;
+	height:auto;
+	width:10rem;
+	text-align:center;
+}
+    #table1promo .td {          /***** cellule *****/
+	width:auto;
+	height:auto;
+}
+    #table1promo .tr {
+	width:auto;
+	height:auto;
+	text-align:left;
+}
+
+
+/****************************/
+/* LES LEGENDES ET AUTRES MENUS*/
+/****************************/
+
+.MenuLegendeFondTransparent {
+/* blanc pour les legendes centre*/	
+	font : Segoe UI;
+	font-weight : bold;
+	color:#ffffff;
+	font-size:0.625rem; /*10px transforme en %*/
+}
+
+
+/*****XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX******/
+/* RESPONSIVE DESIGN*/
+/****************************/
+
+/* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx*/
+
+/*-- menu mobile -- */
+
+/* Rendre le breadcrumb invisible*/
+#breadcrumb-mobile {
+  display: none;
+}
+.menu-header {
+  display: flex;
+  align-items: center; /* Aligne verticalement les éléments */
+  justify-content: space-between; /* Espace entre les éléments */
+}
+/* Masquer les sous-menus par défaut */
+.submenu {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.submenu li {
+  padding: 5px 10px;
+}
+
+.submenu li a {
+  text-decoration: none;
+  color: #007bff;
+}
+
+.submenu li a:hover {
+  text-decoration: underline;
+}
+
+/* taille ecran telephone*/
+/* Affichage -768px*/
+
+@media screen and (max-width:768px){
+	body{
+	font-size:140%;
+	}
+   /* Styles pour le conteneur du menu */
+#breadcrumb-mobile {
+    display: block;
+    position: fixed; /* Menu fixe */
+    top: 0; /* Collé en haut de la page */
+    left: 0;
+    width: 95%;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #ddd;
+    z-index: 1000; /* S'assurer qu'il reste au-dessus des autres éléments */
+  }
+
+    
+/* Affichage des sous-menus au clic */
+.breadcrumb-menu .has-submenu.open > .submenu {
+  display: block;
+}
+
+/* Style pour différencier les liens de niveau 1 */
+.breadcrumb-menu > li > a {
+  font-weight: bold;
+  padding: 10px;
+  display: block;
+  color: #000;
+}
+
+.breadcrumb-menu > li > a:hover {
+  color: #007bff;
+}    
+   /* Icône du menu hamburger */
+  #hamburger-icon {
+    width: 30px;
+    height: 30px;
+    flex-direction: column;
+    justify-content: space-between;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  margin-right: 20px; /* Espace entre le hamburger et la bannière */
+  }
+
+  #hamburger-icon span {
+    display: block;
+    height: 4px;
+    background-color: #555;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    margin: 3px 0;
+   height: 10px; /* Épaisseur des traits */
+  }
+#Banniere {
+  flex-grow: 1; /* La bannière occupe l'espace restant */
+  overflow: hidden; /* Empêche le débordement */
+    width: 50%;
+   margin-right: 10px; 
+}
+    .defilement marquee {
+  font-size: 14px;
+  color: #000;
+  font-weight: bold;
+  white-space: nowrap; /* Empêche le texte de se casser */
+}
+  /* Menu déroulant masqué par défaut */
+  .breadcrumb-menu {
+    list-style: none;
+    margin: 0;
+    padding: 10px 0;
+    display: none;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+
+  .breadcrumb-menu li {
+    padding: 5px 10px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  .breadcrumb-menu li:last-child {
+    border-bottom: none;
+  }
+
+  .breadcrumb-menu li a {
+    text-decoration: none;
+    color: #007bff;
+  }
+
+  .breadcrumb-menu li a:hover {
+    text-decoration: underline;
+  }   
+
+  /* Ajouter un espace en haut du contenu pour éviter le chevauchement */
+  body {
+    margin-top: 60px; /* Ajustez cette valeur en fonction de la hauteur du menu */
+  }
+
+		
+	div#entete {
+    display:none;
+	}	
+	div#menuGauche {
+	display:none;
+	}
+	div#menuDroit {	
+	display:none;
+	} 
+	div#rremonter {	
+	display:block;	
+
+}	
+	div#contenu {
+    width:97%;
+	margin-top:5rem;
+	padding-top:auto;
+	margin-bottom:auto;
+	margin-left:auto;
+	margin-right:auto;
+
+	}
+	div#colonneJustifie25{	
+	height:auto;
+	width:95%;
+	float:none;
+	margin-left:auto;
+	margin-right:auto;
+	}
+	div#colonneJustifie40{	
+	height:auto;
+	width:95%;
+	float:none;
+	margin-left:auto;
+	margin-right:auto;
+	}
+	
+
+	div#blocbascentrepetit{
+	width:95%;
+	overflow:auto;/* rempeche les images de sortir et ne met pas de scrollbar") */
+	position:relative;
+	text-align:center;
+	margin-left:auto;
+	margin-right:auto;
+	}	
+	
+
+/******************** DIAPORAMA EN SURVOL******************/
+
+    #diaporamaSurvol .diaporamaSurvolimg2 {
+    display:none;
+}
+
+    #diaporamaSurvol .diaporamaSurvolimg4 {
+	display:none;
+}
+
+
+
+/******************** DIAPORAMA PHOTO******************/
+div#diaporama {
+/* sans marge du tout*/
+	width:14rem;
+	height:15rem;
+}
+
+	   #diaporamaAppt {    /* dimension et placrement du diaporama en totalite*/
+		width:18.75rem;    /* largeur totale du diaporama */			
+		height:14.418rem;     /* hauteur totale du diaporama */
+
+        margin-left:-9.375rem; /* puis on le rapproche de la gauche de la moitie de sa propre largeur. */
+
+        margin-top:-7.209rem;  /* puis on le rapproche du haut de la moitie de sa propre hauteur. */
+
+	    }
+		
+	    #diaporamaAppt div img:hover + .diaporamaApptgrande {     /* dimension et placrement de la photo agrandie */
+
+		width:18.75rem;			/* Les dimensions de l'agrandissrement sont les memes que celles de notre div.centre. */
+	
+		margin-left:-9.375rem;		/* On centre l'agrandissrement par rapport e sa propre largeur. */
+		height:9.73rem;
+				/* On pousse le diaporamaAppt en bas de la moitie de la hauteur de la fenetre */
+		margin-top:-4.865rem;
+	
+	    }
+	    #diaporamaAppt img {     /* les images de bases sont en miniatures*/
+		float:left;
+		width:2.678rem;    /* largeur de chaque miniature */	
+		height:2.344rem;    /* hauteur de chaque miniature */
+	    }
+	    #diaporamaAppt .diaporamaAppthaut {/* dimension des div entourant l'image centrale */
+
+		width:18.75rem;    /* largeur de la div */
+		height:2.344rem;    /* hauteur de la div */
+	    }
+	    #diaporamaAppt .diaporamaApptbas {    /* dimension des div entourant l'image centrale */
+
+ 		width:18.75rem;    /* largeur de la div */
+		height:2.344rem;    /* hauteur de la div */
+	    }
+	    #diaporamaAppt .diaporamaApptgauche {/* dimension de la div entourant l'image centrale */
+       display:none;
+
+	    }
+	    #diaporamaAppt .diaporamaApptdroite {/* dimension de la div entourant l'image centrale */
+      display:none;
+	    }
+	    #diaporamaAppt .diaporamaApptcentre {
+
+		width:18.75rem;    /* largeur de l'image agrandie */
+		height:9.73rem;    /* hauteur de l'image agrandie */
+
+	    }
+		#diaporamaAppt .diaporamaApptouverture{     /* dimension de la photo d'ouverture du diaporama */
+		float:left;
+		width:18.75rem;
+		height:9.73rem;
+	    }
+
+/************** Les tableaux********************/
+
+Div#table1 {
+	width:100%;
+	overflow:hidden;
+	}
+    #table1res {     /***** le tableau*****/
+    width:100%;
+	overflow:hidden;
+}
+    #table1res .th {      /***** cellule entete*****/
+	padding:0.2rem;
+	width:20%;
+    border-top:double;
+	border-bottom:double;
+}
+    #table1res .td {          /***** cellule *****/
+	border-top:double;
+	width:100%;
+}
+    #table1res .tr {      /***** ligne *****/
+    margin-top:2rem;
+
+}
+    #table1res .input {
+   	 width:100%;
+ 	}
+     #table1res .textarea {
+	 width:100%;
+}
+
+
+ #table1gard {     /***** le tableau tarif du gardiennage*****/
+    width:100%;
+}
+
+    #table1loc {     /***** le tableau tarif locations*****/
+    width:100%;
+}
+
+div#menuwindows {
+	display:block;
+	
+}
+
+} /********************* Fin taille ecran telephone************************/
+
+
+/* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx */
+/* taille ecran tablette*/
+/* Affichage de 568px e 1024px*/
+
+@media screen and (min-width: 568px) and (max-width: 1024px) {
+	
+	body{
+		font-size:110%;
+	}
+	
+	div#MenuGauche{
+		margin-left:0;	
+		margin-top:58%;
+		position:absolute;
+	}
+	div#MenuDroit{
+		margin-left:0;
+		margin-top:35%;
+		position:absolute;
+	} 
+	
+	div#entete {
+	top:0;
+	position:relative;
+	width:99%;
+	margin-right:auto;
+	margin-left:auto;
+	}	
+   div#rremonter {	
+	display:block;	
+
+   }	
+	div#contenu{
+	width:85%;
+	margin-right:0;
+	margin-top:0;
+	}
+
+	div#blocbascentrepetit{
+		width:100%;
+		overflow:auto;/* rempeche les images de sortir) */
+		position:relative;
+		text-align:center;
+	}
+	
+
+
+
+}	
+	

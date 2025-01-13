@@ -1,0 +1,8 @@
+ User-agent: *
+ 
+Allow: /
+ 
+Disallow: /structure/
+Disallow: /tarteaucitron/
+Disallow: /templates/
+Sitemap: https://www.lescaramagnols.com/sitemap.xml

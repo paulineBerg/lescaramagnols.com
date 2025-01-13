@@ -1,0 +1,181 @@
+### ### ### ### ### ### 
+# CHOISIR LA VERSION PHP
+### ### ### ### ### ### 
+SetEnv PHP_VER 7_4
+
+### ### ### ### ### ### 
+# POLITIQUE DE SECURITE SUR LA PROVENANCE DES RESSOURCES
+### ### ### ### ### ###
+
+<IfModule mod_headers.c>
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.tarteaucitron.io https://www.instagram.com https://www.googletagmanager.com https://www.google-analytics.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://lescaramagnols.com https://www.instagram.com https://www.googletagmanager.com https://www.google-analytics.com data:; font-src 'self'; connect-src 'self' https://www.googletagmanager.com https://www.google-analytics.com; frame-src https://www.instagram.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+</IfModule>
+
+
+### ### ### ### ### ### 
+# PARTIE DE GESTION DU SITE INTERNE
+### ### ### ### ### ###
+
+# Activer la compression Gzip/Deflate
+<IfModule mod_deflate.c>
+    # Activer la compression pour les types de fichiers les plus courants
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/ld+json
+    AddOutputFilterByType DEFLATE application/vnd.ms-fontobject
+    AddOutputFilterByType DEFLATE application/x-font-ttf
+    AddOutputFilterByType DEFLATE font/opentype
+    AddOutputFilterByType DEFLATE font/woff
+    AddOutputFilterByType DEFLATE font/woff2
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/atom+xml
+</IfModule>
+
+# Ajoutez le header Vary pour les navigateurs
+<IfModule mod_headers.c>
+    Header append Vary Accept-Encoding
+</IfModule>
+
+
+# Activer le HTTPS
+RewriteEngine On
+
+# Redirection no-www vers www
+RewriteCond %{HTTP_HOST} !^www\. [NC]
+RewriteRule ^ https://www.%{HTTP_HOST}%{REQUEST_URI} [R=301,L,NE,QSA]
+
+# Redirection HTTP vers HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L,NE,QSA]
+
+# Redirection des erreurs vers un fichier unique
+ErrorDocument 401 /structure/erreur/erreur.php
+ErrorDocument 403 /structure/erreur/erreur.php
+ErrorDocument 404 /structure/erreur/erreur.php
+ErrorDocument 500 /structure/erreur/erreur.php
+
+# Forcer le type MIME pour les fichiers JavaScript
+AddType application/javascript .js
+
+### ### ### ### ### ### 
+# PARTIE POUR LA PROTECTION SECURITE
+### ### ### ### ### ###
+
+# Protéger le fichier .htaccess
+<Files .htaccess>
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Empêcher l'accès au répertoire
+Options -Indexes
+
+# Filtres de protection contre XSS, redirections HTTP, base64_encode, variables PHP globals via URL, injections SQL simples
+RewriteEngine On
+
+# Bloquer les scripts malveillants dans la requête
+RewriteCond %{REQUEST_METHOD} (GET|POST) [NC]
+RewriteCond %{QUERY_STRING} ^(.*)(%3C|<)/?script(.*)$ [NC,OR]
+RewriteCond %{QUERY_STRING} ^(.*)(%3D|=)?javascript(%3A|:)(.*)$ [NC,OR]
+RewriteCond %{QUERY_STRING} ^(.*)document\.location\.href(.*)$ [NC,OR]
+RewriteCond %{QUERY_STRING} ^.*(%24&x).* [NC,OR]
+RewriteCond %{QUERY_STRING} ^.*(127\.0).* [NC,OR]
+RewriteCond %{QUERY_STRING} ^(.*)(%3D|=)(https?|ftp|mosConfig)(%3A|:)//(.*)$ [NC,OR]
+RewriteCond %{QUERY_STRING} ^.*(_encode|localhost|loopback).* [NC,OR]
+RewriteCond %{QUERY_STRING} ^(.*)GLOBALS(=|[|%[0-9A-Z]{0,2})(.*)$ [NC,OR]
+RewriteCond %{QUERY_STRING} ^(.*)_REQUEST(=|[|%[0-9A-Z]{0,2})(.*)$ [NC,OR]
+RewriteCond %{QUERY_STRING} ^(.*)(SELECT(%20|\+)|UNION(%20|\+)ALL|INSERT(%20|\+)|DELETE(%20|\+)|CHAR\(|UPDATE(%20|\+)|REPLACE(%20|\+)|LIMIT(%20|\+)|CONCAT(%20|\+)|DECLARE(%20|\+))(.*)$ [NC]
+RewriteRule (.*) - [F]
+
+# Protection contre les attaques XSS
+<IfModule mod_headers.c>
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Protection contre le MIME-Type sniffing
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+</IfModule>
+
+# Protection contre le clickjacking (X-Frame-Options)
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "DENY"
+</IfModule>
+
+# Désactiver l'affichage de la signature du serveur
+ServerSignature Off
+
+### ### ### ### ### ### 
+# POLITIQUE DE SECURITE SUR LA PROVENANCE DES RESSOURCES
+### ### ### ### ### ###
+
+
+### ### ### ### ### ###
+# PARTIE POUR LA GESTION DE LA RAPIDITE DE CHARGEMENT
+### ### ### ### ### ###
+
+# POUR LA MISE EN CACHE DES FICHIERS HTML ET CSS chaque format de fichier peut avoir ses propres règles
+### Caching mod_headers + mod_expires
+
+<IfModule mod_expires.c>
+    # Turn on Expires and set default to now
+    ExpiresActive On
+    ExpiresDefault "now"
+    
+    # Set up caching on media files for 1 month
+    <FilesMatch "\.(flv|ico|pdf|avi|mov|ppt|doc|mp3|wmv|wav|swf)$">
+        ExpiresDefault "access plus 1 month"
+    </FilesMatch>
+    
+    # Set up caching on images, CSS and JS files for 1 week
+    <FilesMatch "\.(gif|jpg|jpeg|png|js|css)$">
+        ExpiresDefault "access plus 1 week"
+    </FilesMatch>
+    
+    # Set up 1 hour caching on commonly updated files
+    <FilesMatch "\.(xml|xsl|html|htm|txt)$">
+        ExpiresDefault "access plus 1 hour"
+    </FilesMatch>
+    
+    # Force no caching for dynamic files
+    <FilesMatch "\.(php|cgi|pl)$">
+        ExpiresActive Off
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_headers.c>
+    # Remote ETag from headers
+    Header unset ETag
+    
+    # Disable ETag for files
+    FileETag None
+    
+    # Media files are cacheable
+    <FilesMatch "\.(flv|ico|pdf|avi|mov|ppt|doc|mp3|wmv|wav|swf)$">
+        Header append Cache-Control "public"
+    </FilesMatch>
+    
+    # Images, css and javascript files are cacheable
+    <FilesMatch "\.(gif|jpg|jpeg|png|js|css)$">
+        Header append Cache-Control "public"
+    </FilesMatch>
+    
+    # Commonly updated files are cacheable
+    <FilesMatch "\.(xml|html|htm|txt)$">
+        Header append Cache-Control "public"
+    </FilesMatch>
+    
+    # Force no caching for dynamic files
+    <FilesMatch "\.(php|cgi|pl|htm)$">
+        Header set Cache-Control "private, no-cache, no-store, proxy-revalidate, no-transform"
+        Header set Pragma "no-cache"
+    </FilesMatch>
+</IfModule>
