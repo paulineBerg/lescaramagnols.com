@@ -15,9 +15,9 @@
 <file name="carte-touristique.pdf" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316980000000" remote="133561316980000000" Dst="1" />
 <file name="moulin-de-paillas.pdf" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316950000000" remote="133561316950000000" Dst="1" />
 <file name="plages-et-criques-secretes.pdf" server="ssh.cluster003.ovh.net/caramagnols/" local="133561317010000000" remote="133561317010000000" Dst="1" />
-<file name="carte-touristique.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316980000000" remote="133561316980000000" Dst="1" />
-<file name="moulin-de-paillas.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316950000000" remote="133561316950000000" Dst="1" />
-<file name="plages-et-criques-secretes.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561317010000000" remote="133561317010000000" Dst="1" />
+<file name="carte-touristique.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467060000000" remote="133813189570000000" Dst="1" />
+<file name="moulin-de-paillas.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467060000000" remote="133813189580000000" Dst="1" />
+<file name="plages-et-criques-secretes.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467060000000" remote="133813189620000000" Dst="1" />
 <file name="carte-touristique.pdf" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807467060000000" remote="133807467060000000" Dst="1" />
 <file name="moulin-de-paillas.pdf" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807467060000000" remote="133807467060000000" Dst="1" />
 <file name="plages-et-criques-secretes.pdf" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807467060000000" remote="133807467060000000" Dst="1" />

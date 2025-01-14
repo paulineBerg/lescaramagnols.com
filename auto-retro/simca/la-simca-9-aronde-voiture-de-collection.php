@@ -436,7 +436,7 @@
 <!-- MENU UI DE WINDOWS-->
   
 				<div id="bloccenter"><div id="menurectanglewindows">
-						<div id="boutonrectanglerouge"><a href="../la-simca-aronde-1300-voiture-de-collection.php"><?php echo MENU_UI_HISTOIREARONDE1300; ?><img src="../../structure/images/menu/uisimca.jpg" alt="<?php echo MENU_UI_HISTOIREARONDE1300; ?>" title="<?php echo MENU_UI_HISTOIREARONDE1300; ?>"></a></div>		
+						<div id="boutonrectanglerouge"><a href="../simca/la-simca-aronde-1300-voiture-de-collection.php"><?php echo MENU_UI_HISTOIREARONDE1300; ?><img src="../../structure/images/menu/uisimca.jpg" alt="<?php echo MENU_UI_HISTOIREARONDE1300; ?>" title="<?php echo MENU_UI_HISTOIREARONDE1300; ?>"></a></div>		
 					</div>	<div id="menurectanglewindows">
 						<div id="boutonrectangleorange"><a href="../panhard/une-dyna-dans-le-golfe-de-sttropez.php"><?php echo MENU_UI_DYNA; ?><img src="../../structure/images/menu/uipanhard.jpg" alt="<?php echo MENU_UI_DYNA; ?>" title="<?php echo MENU_UI_DYNA; ?>"></a></div>					
 					</div>	  
@@ -620,17 +620,20 @@ document.addEventListener("DOMContentLoaded", function () {
 </script> 
 
 <!--tous les scripts pour faire fonctionner latarteaucitron gestion des cookies rgpd --> 
-
 <script type="text/javascript">
-        tarteaucitron.user.googletagmanagerId = 'GTM-5GVWHFG';
-        (tarteaucitron.job = tarteaucitron.job || []).push('googletagmanager');
-</script> 
+// Google tag manager
+tarteaucitron.user.googletagmanagerId = 'GTM-5GVWHFG';
+(tarteaucitron.job = tarteaucitron.job || []).push('googletagmanager');
+</script>  
+<!-- end Google Tag manager -->
+<!-- Google Analytics -->
 <script type="text/javascript">
-        tarteaucitron.user.gtagUa = 'G-QGZNFCRTEZ';
-        //tarteaucitron.user.gtagCrossdomain = ['lescaramagnols.com'];
-        tarteaucitron.user.gtagMore = function () { /* add here your optionnal gtag() */ };
-        (tarteaucitron.job = tarteaucitron.job || []).push('gtag');
-</script> 
+tarteaucitron.user.gtagUa = 'G-QGZNFCRTEZ';
+//tarteaucitron.user.gtagCrossdomain = ['boulyetcailloux.com'];
+tarteaucitron.user.gtagMore = function () { /* add here your optionnal gtag() */ };
+(tarteaucitron.job = tarteaucitron.job || []).push('gtag');
+</script>  
+        
 <!-- InstanceBeginEditable name="EditRegion12" -->
     <!-- Permet de modifier un modele dreamweaver avec une région modifiable -->
 <!-- InstanceEndEditable --> 

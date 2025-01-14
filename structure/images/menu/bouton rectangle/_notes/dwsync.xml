@@ -258,7 +258,7 @@
 <file name="boutonrectangle violetfonce clic.png" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316260000000" remote="133561316260000000" Dst="1" />
 <file name="boutonrectangle violetfonce selection.png" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316260000000" remote="133561316260000000" Dst="1" />
 <file name="boutonrectangle violetfonce.png" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316270000000" remote="133561316270000000" Dst="1" />
-<file name="Thumbs.db" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133570551930000000" remote="133570551930000000" Dst="1" />
+<file name="Thumbs.db" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133813188430000000" Dst="1" />
 <file name="boutonrectangle bleu.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138320000000" Dst="1" />
 <file name="boutonrectangle bleu selection.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138320000000" Dst="1" />
 <file name="boutonrectangle bleu clic.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138320000000" Dst="1" />
@@ -295,9 +295,9 @@
 <file name="boutonrectangle noir.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138360000000" Dst="1" />
 <file name="boutonrectangle noir selection.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138360000000" Dst="1" />
 <file name="boutonrectangle noir clic.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138360000000" Dst="1" />
-<file name="boutonrectangle violetfonce.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316270000000" remote="133561316270000000" Dst="1" />
-<file name="boutonrectangle violetfonce selection.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316260000000" remote="133561316260000000" Dst="1" />
-<file name="boutonrectangle violetfonce clic.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316260000000" remote="133561316260000000" Dst="1" />
+<file name="boutonrectangle violetfonce.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133813188430000000" Dst="1" />
+<file name="boutonrectangle violetfonce selection.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133813188430000000" Dst="1" />
+<file name="boutonrectangle violetfonce clic.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133813188420000000" Dst="1" />
 <file name="boutonrectangle rougefonce clic.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138380000000" Dst="1" />
 <file name="boutonrectangle rougefonce selection.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138380000000" Dst="1" />
 <file name="boutonrectangle rougefonce.png" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467160000000" remote="133810138380000000" Dst="1" />

@@ -10,8 +10,8 @@
 <file name="ficherandonnee-leplandelatour.pdf" server="ftp.cluster003.ovh.net/caramagnols/" local="133561280400000000" remote="133561280400000000" Dst="2" />
 <file name="balade-leplandelatour.pdf" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316860000000" remote="133561316860000000" Dst="1" />
 <file name="ficherandonnee-leplandelatour.pdf" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316880000000" remote="133561316880000000" Dst="1" />
-<file name="balade-leplandelatour.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316860000000" remote="133561316860000000" Dst="1" />
-<file name="ficherandonnee-leplandelatour.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316880000000" remote="133561316880000000" Dst="1" />
+<file name="balade-leplandelatour.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467090000000" remote="133813189440000000" Dst="1" />
+<file name="ficherandonnee-leplandelatour.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467100000000" remote="133813189460000000" Dst="1" />
 <file name="balade-leplandelatour.pdf" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807467090000000" remote="133807467090000000" Dst="1" />
 <file name="ficherandonnee-leplandelatour.pdf" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807467100000000" remote="133807467100000000" Dst="1" />
 </dwsync>

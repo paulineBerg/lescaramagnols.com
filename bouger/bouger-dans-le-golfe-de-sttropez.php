@@ -624,17 +624,20 @@ document.addEventListener("DOMContentLoaded", function () {
 </script> 
 
 <!--tous les scripts pour faire fonctionner latarteaucitron gestion des cookies rgpd --> 
-
 <script type="text/javascript">
-        tarteaucitron.user.googletagmanagerId = 'GTM-5GVWHFG';
-        (tarteaucitron.job = tarteaucitron.job || []).push('googletagmanager');
-</script> 
+// Google tag manager
+tarteaucitron.user.googletagmanagerId = 'GTM-5GVWHFG';
+(tarteaucitron.job = tarteaucitron.job || []).push('googletagmanager');
+</script>  
+<!-- end Google Tag manager -->
+<!-- Google Analytics -->
 <script type="text/javascript">
-        tarteaucitron.user.gtagUa = 'G-QGZNFCRTEZ';
-        //tarteaucitron.user.gtagCrossdomain = ['lescaramagnols.com'];
-        tarteaucitron.user.gtagMore = function () { /* add here your optionnal gtag() */ };
-        (tarteaucitron.job = tarteaucitron.job || []).push('gtag');
-</script> 
+tarteaucitron.user.gtagUa = 'G-QGZNFCRTEZ';
+//tarteaucitron.user.gtagCrossdomain = ['boulyetcailloux.com'];
+tarteaucitron.user.gtagMore = function () { /* add here your optionnal gtag() */ };
+(tarteaucitron.job = tarteaucitron.job || []).push('gtag');
+</script>  
+        
 <!-- InstanceBeginEditable name="EditRegion12" -->
     <!-- Permet de modifier un modele dreamweaver avec une région modifiable -->
 <!-- InstanceEndEditable --> 

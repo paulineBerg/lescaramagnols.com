@@ -36,16 +36,16 @@
 <file name="sitemap.xml" server="ssh.cluster003.ovh.net/caramagnols/" local="133570551850000000" remote="133570551850000000" Dst="1" />
 <file name="arrhes.htm" server="ssh.cluster003.ovh.net/caramagnols/" local="133787531322670213" remote="133787532010000000" Dst="1" />
 <file name="arrhesfin.htm" server="ssh.cluster003.ovh.net/caramagnols/" local="133787531322826497" remote="133787532020000000" Dst="1" />
-<file name="arrhes.htm" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133810007616046005" remote="133810138420000000" Dst="1" />
-<file name="arrhesfin.htm" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133810007616151816" remote="133810138420000000" Dst="1" />
-<file name="index.php" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133810007616251972" remote="133810138430000000" Dst="1" />
-<file name="robots.txt" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133800455690276499" remote="133800455750000000" Dst="1" />
-<file name="sitemap.xml" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133800458340002630" remote="133800458400000000" Dst="1" />
-<file name="README.md" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133801084850950742" remote="133801394640000000" Dst="1" />
-<file name=".htpasswd" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561315180000000" remote="133561315180000000" Dst="1" />
-<file name=".ovhconfig" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561315180000000" remote="133561315180000000" Dst="1" />
-<file name="ads.txt" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561315180000000" remote="133561315180000000" Dst="1" />
-<file name="web.bin" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561317200000000" remote="133561317200000000" Dst="1" />
+<file name="arrhes.htm" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133813187573086413" remote="133813190160000000" Dst="1" />
+<file name="arrhesfin.htm" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133813187573952501" remote="133813190170000000" Dst="1" />
+<file name="index.php" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133813187574920567" remote="133813190170000000" Dst="1" />
+<file name="robots.txt" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807466730000000" remote="133813190170000000" Dst="1" />
+<file name="sitemap.xml" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807466730000000" remote="133813190170000000" Dst="1" />
+<file name="README.md" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133812694335286028" remote="133813190170000000" Dst="1" />
+<file name=".htpasswd" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807466730000000" remote="133813190160000000" Dst="1" />
+<file name=".ovhconfig" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807466730000000" remote="133813190160000000" Dst="1" />
+<file name="ads.txt" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807466730000000" remote="133813190160000000" Dst="1" />
+<file name="web.bin" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807466730000000" remote="133813190180000000" Dst="1" />
 <file name=".htaccess" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133809780439841628" remote="133810138420000000" Dst="1" />
 <file name="arrhes.htm" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133810834743997996" remote="133810834740000000" Dst="1" />
 <file name="arrhesfin.htm" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133810834745540868" remote="133810834740000000" Dst="1" />
@@ -60,4 +60,6 @@
 <file name="web.bin" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807466730000000" remote="133807466730000000" Dst="1" />
 <file name=".gitattributes" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133812441671640285" remote="133812441670000000" Dst="1" />
 <file name=".gitignore" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133812422847524007" remote="133812422840000000" Dst="1" />
+<file name=".gitattributes" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133812441671640285" remote="133813190160000000" Dst="1" />
+<file name=".gitignore" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133812422847524007" remote="133813190160000000" Dst="1" />
 </dwsync>

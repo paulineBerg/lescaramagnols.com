@@ -25,11 +25,11 @@
 <file name="sentiers_randonnee.pdf" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316370000000" remote="133561316370000000" Dst="1" />
 <file name="tourisme_-_cavalaire_en_famille.pdf" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316390000000" remote="133561316390000000" Dst="1" />
 <file name="tourisme_-_parcours_decouverte.pdf" server="ssh.cluster003.ovh.net/caramagnols/" local="133561316410000000" remote="133561316410000000" Dst="1" />
-<file name="cavalaire_-_plan_de_ville.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316330000000" remote="133561316330000000" Dst="1" />
-<file name="cavalaire_-_plan_du_centre-ville.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316330000000" remote="133561316330000000" Dst="1" />
-<file name="sentiers_randonnee.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316370000000" remote="133561316370000000" Dst="1" />
-<file name="tourisme_-_cavalaire_en_famille.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316390000000" remote="133561316390000000" Dst="1" />
-<file name="tourisme_-_parcours_decouverte.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133561316410000000" remote="133561316410000000" Dst="1" />
+<file name="cavalaire_-_plan_de_ville.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467080000000" remote="133813188570000000" Dst="1" />
+<file name="cavalaire_-_plan_du_centre-ville.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467080000000" remote="133813188580000000" Dst="1" />
+<file name="sentiers_randonnee.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467080000000" remote="133813188600000000" Dst="1" />
+<file name="tourisme_-_cavalaire_en_famille.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467090000000" remote="133813188630000000" Dst="1" />
+<file name="tourisme_-_parcours_decouverte.pdf" server="ssh.cluster003.hosting.ovh.net/caramagnols/" local="133807467080000000" remote="133813188670000000" Dst="1" />
 <file name="cavalaire_-_plan_de_ville.pdf" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807467080000000" remote="133807467080000000" Dst="1" />
 <file name="cavalaire_-_plan_du_centre-ville.pdf" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807467080000000" remote="133807467080000000" Dst="1" />
 <file name="sentiers_randonnee.pdf" server="//Dellinspiron23/c/wamp64/www/lescaramagnolscom/" local="133807467080000000" remote="133807467080000000" Dst="1" />
