@@ -1,0 +1,188 @@
+site www.lescaramagnols.com : npm vite composer php js
+npm :      gestionnaire de paquets (ou gestionnaire de modules) par défaut pour pour l'écosystème JavaScript et Node.js.
+vite :     accélérateur pour développement web front-end et optimiseur pour le code de production
+Composer : gestionnaire de dépendances pour PHP, il s'assure que toutes les bibliothèques et tous les outils dont votre application a besoin sont là,
+           dans les bonnes versions, et qu'ils fonctionnent harmonieusement ensemble.
+langage :  php js
+gestion lang via api et js i18n.js
+
+caramagnols/
+├── package-lock.json
+├── package.json
+├── vite.config.mjs
+├── README.txt
+├── config/
+│   ├── config.php
+│   └── menu_data.php
+├── core/
+│   ├── admin/
+│   │   ├── dashboard.php
+│   │   └── moderate.php
+│   ├── api/
+│   │   └── lang.php
+│   ├── auth/
+│   │   ├── login.php
+│   │   ├── logout.php
+│   │   ├── register.php
+│   │   └── session.php
+│   ├── blog/
+│   │   └── save_article.php
+│   ├── bootstrap.php
+│   ├── helpers.php
+│   ├── i18n.php
+│   ├── mailer.php
+│   └── router.php
+│   ├── data/
+│   │   ├── blog/
+│   │   │   └── propositions/           ← gestion articles comments json
+│   │   └── propositions/
+│   ├── dist/                           ← dossier gere par Vite
+├── docs/
+│   ├── menu.txt
+│   ├── note.txt
+│   └── structure.php
+├── lang/
+│   ├── fr.php 
+│   └── en.php
+├── node_modules/                       ← etc... 
+├── public/                             ← dossier disponible en direct
+├── sql/                                ← pour la base de donnée
+│   └── install.sql
+├── src/
+
+├── assets/                             ← dossiers des éléments du site
+│   ├── images/
+│   │   ├── accueil/
+│   │   │   ├── automne/
+│   │   │   ├── hivers/
+│   │   │   ├── partenaire/
+│   │   │   └── printemps/
+│   │   ├── autoretro/
+│   │   │   ├── austin/
+│   │   │   │   └── mayfair/
+│   │   │   ├── citroen/
+│   │   │   │   └── 2cvaza/
+│   │   │   ├── mercedes/
+│   │   │   │   └── slkr170/
+│   │   │   ├── panhard/
+│   │   │   │   └── dynaz12/
+│   │   │   ├── renault/
+│   │   │   │   └── twingohelios/
+│   │   │   └── simca/
+│   │   │       └── aronde/
+│   │   ├── bouger/
+│   │   │   ├── animations/
+│   │   │   │   └── voileslatines/
+│   │   │   ├── communes/
+│   │   │   │   ├── cavalaire/
+│   │   │   │   ├── cogolin/
+│   │   │   │   ├── gassin/
+│   │   │   │   ├── grimaud/
+│   │   │   │   ├── la-croix-valmer/
+│   │   │   │   ├── la-garde-freinet/
+│   │   │   │   ├── la-mole/
+│   │   │   │   ├── plan-de-la-tour/
+│   │   │   │   ├── ramatuelle/
+│   │   │   │   ├── rayol-canadel/
+│   │   │   │   ├── st-tropez/
+│   │   │   │   └── ste-maxime/
+│   │   │   └── golfe/
+│   │   └── structure/
+│   │       ├── menu/
+│   │       │   ├── auto-retro/
+│   │       │   ├── bouger/
+│   │       │   ├── boutongrand/
+│   │       │   ├── boutonmoyen/
+│   │       │   ├── boutonpetit/
+│   │       │   ├── boutonrectangle/
+│   │       │   └── sava/
+│   │       └── reseaux-sociaux/
+│   ├── pdf/
+│   └── videos/
+├── dist/                               ← généré automatiquement par Vite
+│   ├── assets/                         ← généré automatiquement par Vite
+│   │   ├── images
+│   │   ├── pdf
+│   │   ├── videos
+├── docs/
+│   ├── menu.pgsql                      ← page détails des menus
+│   ├── note.txt                        ← page concernat mes notes et rappel
+│   └── structure.pgsql                 ← page détails de la structure du site (cette page)
+├── includes/
+│   └── functions.php
+
+├── node_modules/                       ← etc... 
+├── src/
+│   ├── main.js 
+│   ├── scss/
+│   │   ├── _components.scss            ← composants réutilisables          
+│   │   ├── _layout.scss                ← Mises en page générales
+│   │   ├── _menu-header.scss           ← Styles des menus (header, nav…)
+│   │   ├── _mixins.scss                ← Contient tes mixins @mixin (petit bloc de styles réutilisable)
+│   │   ├── _responsive.scss            ← Styles adaptatifs @media
+│   │   ├── _variables.scss             ← Définit les couleurs, tailles, etc.
+│   │   └── style.scss                  ← Point d'entrée compilé par Vite
+│   └── js/
+│       ├── hamburger.js
+│       ├── i18n.js
+│       └── menus.js                     ← ton script principal
+├── templates/
+│   ├── body_haut.php
+│   ├── header.php
+│   ├── layout.php                      ← modèle principal (comme .dwt)
+│   ├── menus_footer.php
+│   ├── menus_header.php
+│   ├── scripts_body_bas.php
+│   └── scripts_head.php
+└── pages/
+    ├── auto-retro/
+    │   ├── austin/
+    │   │   ├── histoire-de-austin.php
+    │   │   ├── aventure-mini-austin.php
+    │   │   └── une-mini-dans-le-golfe-de-sttropez.php
+    │   ├── citroen/
+    │   │   ├── histoire-de-citroen.php
+    │   │   ├── la-deuche-voiture-mythique-2cv.php
+    │   │   └── notre-2cv.php
+    │   ├── mercedes-benz/
+    │   │   ├── histoire-de-mercedes-benz.php
+    │   │   ├── la-slk-roadster-compact-et-leger.php
+    │   │   └── une-slk-dans-le-golfe-de-sttropez.php
+    │   ├── panhard/
+    │   │   ├── histoire-de-panhard.php
+    │   │   ├── une-dyna-icone-automobile.php
+    │   │   └── une-dyna-dans-le-golfe-de-sttropez.php
+    │   ├── renault/
+    │   │   ├── histoire-de-renault.php
+    │   │   ├── la-twingo-une-voiture-a-succes.php
+    │   │   └── une-twingo-dans-le-golfe-de-sttropez.php
+    │   └── simca/
+    │       ├── histoire-de-simca.php
+    │       ├── histoire-simca-aronde-icone-francaise.php
+    │       ├── la-simca-9-aronde-voiture-de-collection.php
+    │       ├── la-simca-aronde-1300-voiture-de-collection.php
+    │       ├── la-simca-P60-voiture-de-collection.php
+    │       ├── une-aronde-dans-le-golfe-de-sttropez.php
+    │       └── une-simca-aronde-en-restauration-chez-sava-rioz.php
+    ├── bouger/
+    │   ├── le-golfe-de-sttropez.php
+    │   ├── les-animations-golfe-de-sttropez.php
+    │   └── villages/
+    │       ├── cavalaire.php
+    │       ├── cogolin.php
+    │       ├── gassin.php
+    │       ├── grimaud.php
+    │       ├── la-croix-valmer.php
+    │       ├── la-garde-freinet.php
+    │       ├── la-mole.php
+    │       ├── plan-de-la-tour.php
+    │       ├── ramatuelle.php
+    │       ├── rayol-canadel.php
+    │       ├── st-tropez.php
+    │       └── ste-maxime.php
+    ├── blog/
+    │   └── le-blog-on-en-parle.php
+    ├── sava/
+    │   └── garage-sava-auto-retro-rioz.php
+    └── bc-bijoux/
+        └── bc-bijoux-faits-main-en-ligne.php

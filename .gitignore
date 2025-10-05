@@ -1,0 +1,41 @@
+# Node.js / Vite
+node_modules/
+frontend/dist/
+frontend/.cache/
+frontend/.vite/
+.vite/
+*.log
+npm-debug.log*
+npm-error.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build artefacts backend
+backend/public/assets/
+backend/public/.vite/
+backend/data/search_index*.json
+backend/data/*.cache
+
+# Environnements
+**/.env
+**/.env.local
+**/.env.*
+
+# IDE / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Composer / PHP caches (si utilises plus tard)
+vendor/
+composer.lock
+
+# Python venv (au cas ou)
+.venv/
+
+# Misc
+*.bak
+*.tmp

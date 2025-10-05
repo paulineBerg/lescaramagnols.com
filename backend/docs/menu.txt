@@ -1,0 +1,117 @@
++---------------------------------------------------------------------------------------+
+|                                    Entete - (tout horizontal)                                         |
+|  +---------------------------------------------------------------------------------+  |
+|  | Menu 1 (haut) : réseaux sociaux alignés à gauche - lang aligné à droite              |  | 
+|  +---------------------------------------------------------------------------------+  |
+|  | Bannière (image répétée horizontalement + texte défilant sans cesse)                        |  |
+|  +---------------------------------------------------------------------------------+  |
+|  | Menu 2 : navigation principale avec dropdowns verticaux - centré        |  |
+|  +---------------------------------------------------------------------------------+  |  
+|                                                                                       |  
++---------------------------------------------------------------------------------------+
+Menus horizontaux en haut de page largeur de l'écran
+
+caramagnols-MENUS HEADER - menu1/
+├── class="bouton_gauche" "https://www.facebook.com/lescaramagnols" "assets/images/structure/reseaux-sociaux/facebooklogomini.jpg"
+├── class="bouton_gauche" "https://www.flickr.com/photos/130851617@N05" src="assets/images/structure/reseaux-sociaux/flickrlogomini.jpg" 
+├── class="bouton_gauche" "https://instagram.com/paulineetnoel/" src="assets/images/structure/reseaux-sociaux/instagramlogomini.jpg"
+├── class="bouton_gauche" "https://www.pinterest.fr/lescaramagnols/" src="assets/images/structure/reseaux-sociaux/pinterestlogomini.jpg"
+├── class="bouton_gauche" "https://www.tumblr.com/lescaramagnols/" src="assets/images/structure/reseaux-sociaux/tumblrlogomini.jpg"
+├── class="bouton_droite" : prévoir changement de langue
+caramagnols-MENU HEADER - banniere/
+├── Insertion de la "Banniere" - autant d'images que la largeur de l'écran
+    et par dessus defilement de la phrase : BALLADE DE NOS VOITURES DE COLLECTION DANS LE GOLFE DE SAINT-TROPEZ - sans arret
+caramagnols-MENU HEADER - menu2/ - clic et ouvre sous-menu
+├── Accueil : index.php
+├── Auto-retro/
+│   ├── Austin/
+│   │   └── Austin : pages/auto-retro/austin/histoire-de-austin.php
+│   │   └── Histoire de la mini : pages/auto-retro/austin/aventure-mini-austin.php
+│   │   └── Notre mini : pages/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php
+│   ├── Citroen/ non créé, à prévoir pour plus tard
+│   │   └── Citroen : non créé, à prévoir pour plus tard : pages/auto-retro/citroen/histoire-de-citroen.php
+│   │   └── Histoire de la 2CV : non créé, à prévoir pour plus tard : pages/auto-retro/citroen/la-deuche-une-voiture-et-des-oeufs.php
+│   │   └── Notre 2CV : non créé, à prévoir pour plus tard : pages/auto-retro/citroen/une-2cv-aza-dans-le-golfe-de-sttropez.php
+│   ├── Mercedes-Benz/ non créé, à prévoir pour plus tard 
+│   │   └── Mercedes-Benz : non créé, à prévoir pour plus tard : pages/auto-retro/mercedes-benz/histoire-de-mercedes-benz.php
+│   │   └── Histoire de la SLK : non créé, à prévoir pour plus tard : pages/auto-retro/mercedes-benz/la-slk-compacte-et-sportive.php
+│   │   └── Notre SLK r170 : non créé, à prévoir pour plus tard : pages/auto-retro/mercedes-benz/une-mercedes-slkr170-dans-le-golfe-de-sttropez.php
+│   ├── Panhard/
+│   │   └── Panhard : pages/auto-retro/panhard/histoire-de-panhard.php
+│   │   └── Histoire de la Dyna : pages/auto-retro/panhard/une-dyna-icone-automobile.php
+│   │   └── Notre Dyna Z12 : non créé, à prévoir pour plus tard vers pages/auto-retro/panhard/une-dyna-z12-dans-le-golfe-de-sttropez.php
+│   ├── Renault/
+│   │   └── Renault : pages/auto-retro/renault/histoire-de-renault.php
+│   │   └── Histoire de la twingo : pages/auto-retro/renault/la-twingo-une-voiture-a-succes.php
+│   │   └── Notre Twingo Helios : non créé, à prévoir pour plus tard vers pages/auto-retro/renault/une-twingo-helios-dans-le-golfe-de-sttropez.php
+│   ├── Simca/
+│       └── Simca : pages/auto-retro/simca/histoire-de-simca.php
+│       └── Histoire de l'Aronde : pages/auto-retro/simca/histoire-simca-aronde-icone-francaise.php
+│       └── La simca 9 : pages/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php
+│       └── L'Aronde 1300 : pages/auto-retro/simca/la-simca-aronde-1300-voiture-de-collection.php
+│       └── La P60 : pages/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php
+│       └── Notre Elysée 1300 : pages/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php
+│       └── Restauration Aronde : pages/auto-retro/simca/une-simca-aronde-en-restauration-chez-sava-rioz.php
+├── Bouger/
+│   ├── Le Golfe : pages/bouger/villages/se-promener-dans-le-golfe-de-sttropez.php
+│   ├── Les Villages/
+│   │   ├── Cavalaire : non créé, à prévoir pour plus tard 
+│   │   ├── Cogolin : pages/bouger/villages/se-promener-a-Cogolin-golfe-de-sttropez.php
+│   │   ├── Gassin : non créé, à prévoir pour plus tard 
+│   │   ├── Grimaud : non créé, à prévoir pour plus tard 
+│   │   ├── La Croix-Valmer : non créé, à prévoir pour plus tard 
+│   │   ├── La Garde-Freinet : pages/bouger/villages/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php
+│   │   ├── La Mole : non créé, à prévoir pour plus tard 
+│   │   ├── Le Plan-de-la Tour : non créé, à prévoir pour plus tard 
+│   │   ├── Ramatuelle : pages/bouger/villages/se-promener-a-Ramatuelle-golfe-de-sttropez.php
+│   │   ├── Rayol-Canadel : non créé, à prévoir pour plus tard 
+│   │   ├── St-Tropez : pages/bouger/villages/se-promener-a-sttropez.php
+│   │   └── Ste-Maxime : non créé, à prévoir pour plus tard 
+│   └── Les Animations : pages/bouger/animations/les-animations-dans-le-golfe-de-sttropez.php
+│       ├── Les brocantes : / non créé, à prévoir pour plus tard, module en react
+│       ├── Les marchés : / non créé, à prévoir pour plus tard, module en react
+│       ├── Les cinémas : / non créé, à prévoir pour plus tard, module en react
+│       ├── Les festivals : / non créé, à prévoir pour plus tard, module en react
+│       ├── Les musées : / non créé, à prévoir pour plus tard, module en react
+│       ├── Les concerts : / non créé, à prévoir pour plus tard, module en react
+│       └── Les ballades : / non créé, à prévoir pour plus tard, module en react
+├── Le Blog/ non créé, à prévoir pour plus tard, module en react
+├── SAVA : pages/sava/sava-auto-retro-rioz.php
+└── B&C Bijoux :  non créé, à prévoir pour plus tard : pages/bc-bijoux/les-bijoux-en-ligne-de-bouly-et-cailloux-dans-le-golfe-de-sttropez.php
+
++---------------------------------------------------------------------------------------+
+|                                   Bas de page                                         |
+|  +---------------------------------------------------------------------------------+  |
+|  | Menu 3 (bas) :  centré                                                          |  | 
+|  +---------------------------------------------------------------------------------+  |
+|                                                                                       |  
++---------------------------------------------------------------------------------------+
+Menus horizontaux en bas de la page largeur de l'écran
+
+caramagnols-MENUS FOOTER - menu3/
+├── Mentions légales: sites/accueil/toutes-les-mentions-legales.php
+└── Sommaire :  sites/accueil/le-plan-du-site-des-caramagnols.php
+
++---------------------------------------------------------------------------------------+
+|                                   LES MENUS FIXES                                     |
+|  +---------------------------------------------------------------------------------+  |
+|  | Menu_droit :  aligné à droite de l'écran                                        |  | 
+|  +---------------------------------------------------------------------------------+  |
+|  +---------------------------------------------------------------------------------+  |
+|  | Menu_gauche :  aligné à gauche  de l'écran                                      |  | 
+|  +---------------------------------------------------------------------------------+  |
+|                                                                                       |  
++---------------------------------------------------------------------------------------+
+Menus horizontaux en bas de la page largeur de l'écran
+
+caramagnols-MENU DROIT - menuDroit/
+├── pages/auto-retro/simca/histoire-de-simca.php
+├── pages/auto-retro/panhard/histoire-de-panhard.php
+├── pages/auto-retro/austin/histoire-de-austin.php
+└── pages/auto-retro/renault/histoire-de-renault.php
+
+caramagnols-MENU GAUCHE - menuGauche/
+├── pages/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php
+├── pages/auto-retro/panhard/une-dyna-dans-le-golfe-de-sttropez.php
+├── pages/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php
+└── pages/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php

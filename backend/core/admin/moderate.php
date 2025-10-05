@@ -1,0 +1,1 @@
+<?php // Modération des commentaires

@@ -1,0 +1,115 @@
+# Commandes utiles pour Apache sous WSL
+
+sudo service apache2 start     # Démarrer Apache
+sudo service apache2 stop      # Arrêter Apache
+sudo service apache2 restart   # Redémarrer Apache
+sudo service apache2 status    # Vérifier statut Apache
+
+# Supprimer un dossier
+sudo rm -rf ~/www/prestashop/modules/sql
+
+# se positionner sur caramagnols
+cd ~/www/caramagnols
+
+#commande linux
+>                               # creer un fichier ou ecrase par fichier vide
+mkdir                           # creer un dossier
+pwd                             : affiche le chemin du dossier actuel.
+ls                              : liste les fichiers et dossiers.
+cd nom_dossier                  : change de dossier.
+cd ..                           : remonte d’un niveau.
+📁 Gestion des fichiers et dossiers
+touch fichier.txt               : crée un fichier vide.
+mkdir mon_dossier               : crée un dossier.
+rm fichier.txt                  : supprime un fichier.
+rm -r mon_dossier               : supprime un dossier et son contenu.
+cp source.txt destination.txt   : copie un fichier.
+mv ancien.txt nouveau.txt       : déplace ou renomme un fichier
+
+activer npm mode developper: npm run dev
+construire npm et vite mode production : npm run build
+
+pour generer le fichier de recherche : php core/tools/generate_search_index.php
+
+--------------------------------------------------------------------------
+lors d'une réinstallation : 
+--------------------------------------------------------------------------
+cd ~/www/caramagnols
+npm init -y
+npm install --save-dev vite sass vite-plugin-static-copy
+chmod +x ./node_modules/.bin/vite
+chmod +x node_modules/@esbuild/linux-x64/bin/esbuild
+
+---------------
+Ouvre package.json et ajoute dans "scripts" :
+"scripts": {
+  "dev": "vite --host localhost",
+  "build": "vite build",
+  "preview": "vite preview"
+},
+
+---------------
+fichier vite.config.mjs :
+import { defineConfig } from 'vite';
+import path from 'path';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
+export default defineConfig({
+  base: '/',
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    manifest: true,
+    rollupOptions: {
+      input: path.resolve(__dirname, 'src/main.js'),
+      output: {
+        assetFileNames: ({ name }) => {
+          if (!name) return 'assets/[name].[hash][extname]';
+          const parts = name.split('/');
+          const idx = parts.indexOf('assets');
+          const subPath = idx >= 0 ? parts.slice(idx + 1, -1).join('/') : '';
+          return subPath
+            ? `assets/${subPath}/[name].[hash][extname]`
+            : `assets/[name].[hash][extname]`;
+        },
+        entryFileNames: 'assets/[name].[hash].js'
+      }
+    },
+    cssCodeSplit: true,
+    minify: true
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+      '~assets': path.resolve(__dirname, 'assets')
+    }
+  },
+  css: {
+    preprocessorOptions: {
+      scss: {}
+    }
+  },
+  plugins: [
+    viteStaticCopy({
+      targets: [
+        {
+          src: 'assets/images',
+          dest: 'assets',
+          keepHierarchyStructure: true
+        },
+        {
+          src: 'assets/pdf',
+          dest: 'assets',
+          keepHierarchyStructure: true
+        }
+      ]
+    })
+  ]
+});
+
+---------------------
+npm run build
+
+
+
+
+

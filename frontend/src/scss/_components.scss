@@ -1,0 +1,627 @@
+// Site LesCaramagnols
+// /src/scss/_components.scss
+
+@use 'variables' as vars;
+@use 'mixins';
+
+// BORDURES & UTILITAIRES
+
+.avecbordure {
+  margin: 0.313rem;
+  border: double;
+  width: auto;
+}
+
+.border {
+  border-width: 0.125rem;
+  border-style: inset;
+  border-color: vars.$color-rose-clair;
+}
+
+.inline {
+  display: inline;
+}
+
+.fond {
+  background-color: vars.$color-turquoise;
+}
+
+.flottegauche {
+  float: left;
+}
+
+.flottedroite {
+  float: right;
+}
+
+.flottecentre {
+  float: none;
+}
+
+// ANIMATION
+
+#blink {
+  animation: blink 2s infinite;
+  color: vars.$color-rouge-clair;
+  font-weight: bold;
+  font-size: vars.$font-size-medium;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+// IMAGES
+
+.img {
+  @include mixins.img-responsive;
+  text-align: center;
+}
+
+.ImgCarrremoyen {
+  width: 15.7rem;
+  height: 15.7rem;
+  overflow: hidden;
+}
+
+.imggrand {
+  max-width: 31.25rem;
+  max-height: 21.875rem;
+  overflow: hidden;
+}
+
+.imgmoyen {
+  max-width: 18.75rem;
+  max-height: 14.063rem;
+  overflow: hidden;
+}
+
+.imgpetit {
+  max-width: 15.625rem;
+  max-height: 9.375rem;
+  overflow: hidden;
+}
+
+.ImgLargeurContenu img {
+  width: 1000px;
+  height: 562px;
+}
+
+// VIDEO RESPONSIVE
+
+.video-container {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  max-width: 100%;
+  background: vars.$color-noir;
+
+  iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// FORMULAIRES
+
+.inputform {
+  font-size: 1rem;
+}
+
+// TITRES — CENTRÉS
+
+.TitreCentrePoliceGrosse {
+  @include mixins.titre(center, vars.$font-size-large);
+}
+
+.TitreCentrePolicremoyenne {
+  @include mixins.titre(center, vars.$font-size-medium);
+}
+
+.TitreCentrePolicePetite {
+  @include mixins.titre(center, vars.$font-size-medium);
+}
+
+// TITRES — GAUCHE
+
+.TitreGauchePoliceGrosse {
+  @include mixins.titre(left, vars.$font-size-large);
+}
+
+.TitreGauchePolicremoyenne {
+  @include mixins.titre(left, vars.$font-size-medium);
+  vertical-align: top;
+}
+
+.TitreGauchePolicePetite {
+  @include mixins.titre(left, vars.$font-size-intermediate);
+}
+
+// TITRES — DROITE
+
+.TitreDroitePoliceGrosse {
+  @include mixins.titre(right, vars.$font-size-large);
+  vertical-align: top;
+}
+
+.TitreDroitePolicremoyenne {
+  @include mixins.titre(right, vars.$font-size-medium);
+  vertical-align: top;
+}
+
+.TitreDroitePolicePetite {
+  @include mixins.titre(right, vars.$font-size-intermediate);
+}
+
+// MENUS / LÉGENDES
+
+.MenuLegende {
+  font-family: vars.$font-segoe-ui;
+  font-weight: bold;
+  color: vars.$color-blanc;
+  font-size: vars.$font-size-small;
+}
+
+// DIAPORAMA SURVOL
+#diaporamaSurvol {
+  width: 100%;
+  margin: auto;
+  overflow: hidden;
+  position: relative;
+
+  .diaporamaSurvolDeuximg1,
+  .diaporamaSurvolDeuximg2 {
+    text-align: center;
+    margin: 1rem 0;
+  }
+
+  // Image 1 : printemps → automne
+  .diaporamaSurvolimg1 {
+    width: 15rem;
+    height: 11rem;
+    margin: 0.5rem;
+    display: inline-block;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url('/assets/images/accueil/automne/St-Tropez.jpg');
+    border-radius: 0.75rem;
+    transition: 
+      transform 0.4s ease-in-out, 
+      background-image 0.3s ease-in-out, 
+      box-shadow 0.4s ease-in-out;
+
+    &:hover {
+      background-image: url('/assets/images/accueil/printemps/st-tropez.jpg');
+      transform: scale(1.05);
+    }
+  }
+
+  // Image 2 : automne → printemps
+  .diaporamaSurvolimg2 {
+    width: 15rem;
+    height: 11rem;
+    margin: 0.5rem;
+    display: inline-block;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url('/assets/images/accueil/automne/PlageMerSoleil.jpg');
+    border-radius: 0.75rem;
+    transition: 
+      transform 0.4s ease-in-out, 
+      background-image 0.3s ease-in-out, 
+      box-shadow 0.4s ease-in-out;
+
+    &:hover {
+      background-image: url('/assets/images/accueil/printemps/balladeNature.jpg');
+      transform: scale(1.05);
+    }
+  }
+
+  // Images 3 & 4 (préparées, mais masquées)
+  .diaporamaSurvolimg3,
+  .diaporamaSurvolimg4 {
+    width: 15rem;
+    height: 11rem;
+    margin: 0.5rem;
+    display: none;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-radius: 0.75rem;
+  }
+}
+
+// IFRAMES GOOGLE / FACEBOOK
+
+#googleiframe {
+  width: vars.$iframe-width;
+  height: vars.$iframe-height;
+  margin: auto;
+  padding: auto;
+  overflow: hidden;
+}
+
+#facebookiframe {
+  width: 50%;
+  height: 50%;
+  margin: 3rem auto 0;
+  padding: 0 auto;
+  overflow: hidden;
+  background-position: vars.$background-position-center;
+  text-align: center;
+}
+
+// CONTENEURS DIVERS
+
+#conteneurMoyen {
+  width: 25rem;
+  height: 18.75rem;
+  max-width: 31.25rem;
+  margin: auto;
+  padding: 0.313rem;
+  background-position: vars.$background-position-center;
+  overflow: initial;
+}
+
+
+// DIAPORAMA (ajouter ici ou dans _layout.scss selon structure)
+
+#diaporama {
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: auto;
+  margin-bottom: 5%;
+  overflow: hidden;
+
+  #diaporamaAppt {
+    position: relative;
+    left: 50%;
+    margin-left: -21.875rem;
+    top: 50%;
+    margin-top: -14.063rem;
+    width: 44.35rem;
+    height: 28.126rem;
+
+    div img + .diaporamaApptgrande {
+      display: none;
+    }
+
+    div img:hover + .diaporamaApptgrande {
+      display: inline;
+      position: absolute;
+      width: vars.$centered-img-width;
+      left: 50%;
+      margin-left: calc(-1 * (#{vars.$centered-img-width} / 2));
+      height: vars.$centered-img-height;
+      top: 51.15%;
+      margin-top: calc(-1 * (#{vars.$centered-img-height} / 2));
+      z-index: 1;
+    }
+
+    img {
+      float: left;
+      width: vars.$thumbnail-width;
+      height: vars.$thumbnail-height;
+    }
+
+    .diaporamaAppthaut,
+    .diaporamaApptbas {
+      width: 44.35rem;
+      height: vars.$thumbnail-height;
+    }
+
+    .diaporamaApptgauche,
+    .diaporamaApptdroite {
+      float: left;
+      width: vars.$side-block-width;
+      height: vars.$centered-img-height;
+    }
+
+    .diaporamaApptdroite {
+      float: right;
+    }
+
+    .diaporamaApptcentre,
+    .diaporamaApptouverture {
+      float: left;
+      width: vars.$centered-img-width;
+      height: vars.$centered-img-height;
+    }
+  }
+}
+
+// TABLEAUX PRINCIPAUX
+
+div#table1,
+#table1res,
+#table1gard,
+#table1loc,
+#table1promo {
+  box-sizing: border-box;
+}
+
+#table1res .caption,
+#table1gard .caption,
+#table1loc .caption,
+#table1promo .caption {
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+#table1res .box,
+#table1gard .box,
+#table1loc .box {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+#table1res .th,
+#table1gard .th,
+#table1loc .th,
+#table1promo .th {
+  padding: 1rem;
+  color: white;
+}
+
+#table1res .th {
+  background-color: transparent;
+  width: 30%;
+  text-align: left;
+}
+
+#table1gard .th,
+#table1loc .th,
+#table1promo .th {
+  background-color: vars.$table-header-bg;
+  text-align: center;
+}
+
+#table1res .td,
+#table1gard .td,
+#table1loc .td,
+#table1promo .td {
+  text-align: left;
+}
+
+#table1res .td {
+  width: 100%;
+}
+
+#table1gard .td {
+  width: 50%;
+}
+
+#table1loc .td {
+  width: auto;
+}
+
+#table1promo .td {
+  width: auto;
+}
+
+#table1res .tr,
+#table1gard .tr,
+#table1loc .tr,
+#table1promo .tr {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+#table1res .input {
+  width: 60%;
+}
+
+#table1res .textarea {
+  width: 100%;
+}
+
+// MENU LÉGENDE FOND TRANSPARENT
+
+.MenuLegendeFondTransparent {
+  @include mixins.font-bold(vars.$font-size-legend);
+}
+
+// MEDIA QUERIES
+
+// Mobile (max-width: 768px)
+@media screen and (max-width: vars.$bp-mobile-max) {
+  body {
+    font-size: vars.$font-size-mobile;
+    margin-top: vars.$breadcrumb-margin-top;
+  }
+
+  #breadcrumb-mobile {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 95%;
+    padding: vars.$breadcrumb-padding;
+    background-color: vars.$color-breadcrumb-bg;
+    border-bottom: 1px solid vars.$color-menu-border;
+    z-index: 1000;
+  }
+
+  .breadcrumb-menu {
+    list-style: none;
+    margin: 0;
+    padding: 10px 0;
+    display: none;
+    background-color: vars.$color-white;
+    border: 1px solid vars.$color-menu-border;
+    border-radius: 5px;
+  }
+
+  .breadcrumb-menu li {
+    padding: 5px 10px;
+    border-bottom: 1px solid vars.$color-menu-border;
+  }
+
+  .breadcrumb-menu li:last-child {
+    border-bottom: none;
+  }
+
+  .breadcrumb-menu li a {
+    text-decoration: none;
+    color: vars.$color-link;
+  }
+
+  .breadcrumb-menu li a:hover {
+    text-decoration: underline;
+  }
+
+  .breadcrumb-menu > li > a {
+    font-weight: bold;
+    padding: 10px;
+    display: block;
+    color: vars.$color-breadcrumb-text;
+  }
+
+  .breadcrumb-menu > li > a:hover {
+    color: vars.$color-link;
+  }
+
+  .breadcrumb-menu .has-submenu.open > .submenu {
+    display: block;
+  }
+
+  #hamburger-icon {
+    width: vars.$hamburger-size;
+    height: vars.$hamburger-size;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    margin-right: 20px;
+  }
+
+  #hamburger-icon span {
+    @include mixins.hamburger-bar;
+  }
+
+  div#entete,
+  div#menuGauche,
+  div#menuDroit {
+    display: none;
+  }
+
+  div#remonter {
+    display: block;
+  }
+
+  div#contenu,
+  div#colonneJustifie25,
+  div#colonneJustifie40,
+  div#blocbascentrepetit {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    float: none;
+  }
+
+  div#contenu {
+    margin-top: 5rem;
+    padding-top: auto;
+    margin-bottom: auto;
+  }
+
+  div#blocbascentrepetit {
+    overflow: auto;
+    position: relative;
+    text-align: center;
+  }
+}
+
+// Tablette (min-width: 568px and max-width: 1024px)
+@media screen and (min-width: vars.$bp-tablet-min) and (max-width: vars.$bp-tablet-max) {
+  body {
+    font-size: vars.$font-size-tablet;
+  }
+
+  div#MenuGauche {
+    margin-left: 0;
+    margin-top: 58%;
+    position: absolute;
+  }
+
+  div#MenuDroit {
+    margin-left: 0;
+    margin-top: 35%;
+    position: absolute;
+  }
+
+  div#entete {
+    top: 0;
+    position: relative;
+    width: 99%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  div#contenu {
+    width: 85%;
+    margin-right: 0;
+    margin-top: 0;
+  }
+
+  div#blocbascentrepetit {
+    width: 100%;
+    overflow: auto;
+    position: relative;
+    text-align: center;
+  }
+}
+
+div#remonter {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 9999;
+  margin-left: 0;
+  margin-right: auto;
+}
+#remonter.fleche {
+  text-align: left;
+  margin-top: 0;
+  margin-bottom: 0;
+
+  a {
+    text-decoration: none;
+    display: inline-block;
+
+    .remonter-texte {
+      display: block;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 0;
+      color: vars.$color-violet; // ← utilise une variable définie dans _variables.scss
+    }
+
+    img {
+      width: 40px;
+      height: auto;
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: translateY(-5px);
+      }
+    }
+  }
+}
+

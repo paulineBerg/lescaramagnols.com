@@ -1,0 +1,212 @@
+/* RESPONSIVE DESIGN */
+/****************************/
+@use 'variables' as vars;
+
+// Menu windows visible uniquement sur mobile/tablette
+div#menuwindows {
+  display: block;
+}
+
+/* Menu mobile (masqué par défaut sur desktop) */
+#breadcrumb-mobile {
+  display: none;
+  width: 100%;
+}
+
+/* En-tête du menu mobile */
+.menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Responsive ≤ 768px */
+@media screen and (max-width: 768px) {
+  body {
+    font-size: 140%;
+    margin-top: 60px; /* pour le menu fixe */
+  }
+/* Autoriser le scroll dans le menu mobile */
+#breadcrumb-mobile.open {
+  height: 100vh;
+  overflow-y: auto;
+}
+body.menu-open {
+  overflow: hidden;
+}
+/* Cacher le bouton remonter quand le menu mobile est ouvert */
+#breadcrumb-mobile.open ~ #remonter {
+  display: none;
+}
+  /* Affiche le menu mobile */
+  #breadcrumb-mobile {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px;
+    background-color: #{vars.$color-blanc};
+    border-bottom: 1px solid #{vars.$color-gris};
+    z-index: 1000;
+  }
+
+  /* Structure du menu mobile */
+  .breadcrumb-menu {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 10px 0;
+    background-color: #{vars.$color-blanc};
+    border: 1px solid #{vars.$color-gris};
+    border-radius: 5px;
+  }
+
+  .banniere-mobile-header {
+    flex: 1;
+    margin-left: 10px;
+
+    #banniere {
+      display: flex !important;
+      height: 2.5rem;
+      background-repeat: repeat-x;
+      background-size: auto 2.5rem;
+      background-position: center top;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .banniere-texte {
+      font-size: 120%;
+      padding: 0 0.5rem;
+      animation: defilement 15s linear infinite;
+      color: #{vars.$color-blanc};
+    }
+  }
+
+  .breadcrumb-menu.open {
+    display: block;
+  }
+
+  .breadcrumb-menu li ul {
+    display: none;
+  }
+
+  .breadcrumb-menu li.open > ul {
+    display: block;
+  }
+
+  .breadcrumb-menu > li {
+    border-bottom: 1px solid #{vars.$color-gris};
+  }
+
+  .breadcrumb-menu > li:last-child {
+    border-bottom: none;
+  }
+
+  .breadcrumb-menu > li > a {
+    font-weight: bold;
+    padding: 10px;
+    display: block;
+    color: #{vars.$color-noir};
+  }
+
+  .breadcrumb-menu > li > a:hover {
+    color: #{vars.$color-bleu-fonce};
+  }
+
+  .breadcrumb-menu li a {
+    text-decoration: none;
+    color: #{vars.$color-bleu-fonce};
+    text-align: left;
+  }
+
+  .breadcrumb-menu li a:hover {
+    text-decoration: underline;
+  }
+
+  #hamburger-icon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    margin-right: 20px;
+  }
+
+  #hamburger-icon span {
+    display: block;
+    height: 10px;
+    background-color: #{vars.$color-noir};
+    border-radius: 2px;
+    transition: all 0.3s ease;
+    margin: 3px 0;
+  }
+/* RECHERCHER */
+#menuRecherche {
+    margin-left: 0;
+
+}
+  #menuGauche,
+  #menuDroit {
+    display: none;
+  }
+
+  #entete {
+    display: flex;
+  }
+
+  #banniere {
+    display: flex !important;
+    height: 2.5rem;
+    background-image: url('@/assets/images/structure/banniere.gif');
+    background-repeat: repeat-x;
+    background-size: auto 2.5rem;
+    background-position: center top;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .banniere-texte {
+    font-size: 1.6rem;
+    padding: 0 0.5rem;
+    animation: defilement 15s linear infinite;
+    color: #{vars.$color-blanc};
+  }
+
+  .defilement marquee {
+    font-size: 14px;
+    color: #{vars.$color-noir};
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  #remonter {
+    display: block;
+  }
+
+  #contenu {
+    width: 97%;
+    margin: 5rem auto auto auto;
+  }
+
+  #colonneJustifie25,
+  #colonneJustifie40 {
+    height: auto;
+    width: 95%;
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #blocbascentrepetit {
+    width: 95%;
+    overflow: auto;
+    position: relative;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+}

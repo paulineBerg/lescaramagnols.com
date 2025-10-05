@@ -1,0 +1,636 @@
+// Site LesCaramagnols
+// /src/scss/_layout.scss
+
+@use 'variables' as vars;
+@use 'mixins';
+
+body{
+	/*ensemble de la page, avec image en fond, txt couleur blanc*/
+	
+		background-color:vars.$color-bleu-clair; /*Fond de page bleu avec image*/
+    background-image: url('/assets/images/structure/mer.jpg');
+		background-position:50% 50%;
+		background-attachment:fixed; 
+		font-family: vars.$font-segoe-ui-light;
+		font-size: vars.$font-size-base-legacy;
+		color: vars.$color-blanc; /*Couleur du texte blanc*/
+		text-align : justify;
+		height:auto;
+		margin:0;
+		padding:0;	
+	
+	}
+img, object, rembed, canvas, video, audio, picture {
+	   max-width:100%;
+	   max-height:auto;
+	   vertical-align:central;
+	   text-align:center;
+} 
+
+/************/
+/* les liens */
+/************/
+
+a:link{
+/* lien non visite : couleur police jaune #E3C800*/
+	color: vars.$color-jaune;
+	text-decoration:underline;
+	font-size: vars.$font-size-base-legacy;
+	font-weight : bold;
+}
+a:visited{
+/* lien visite : couleur police jaune #E3C800*/
+	color: vars.$color-jaune;
+	font-size: vars.$font-size-base-legacy;
+	font-weight : bold;
+	text-decoration: none; 
+}
+a:hover{
+/* lien survole couleur police rouge*/
+	color: vars.$color-rouge;
+	font-size: vars.$font-size-base-legacy;
+	font-weight : bold;
+	font-style: italic;
+	text-decoration: none;
+	background: vars.$color-jaune;
+}
+a:focus{
+/* lien : etat d'un element qui a reeu el'attentione rouge*/
+	color: vars.$color-rouge;
+	font-size: vars.$font-size-base-legacy;
+	font-weight : bold;
+	font-style: italic;
+	text-decoration: none;
+	}
+a:active{
+/* lien clique rouge*/
+	color: vars.$color-rouge;
+	font-size: vars.$font-size-base-legacy;
+	font-weight : bold;
+	text-decoration: none;
+	}
+
+h1
+{
+	text-align : center;
+	font-size: vars.$font-size-large;
+}
+h2{
+	text-align : center;
+	font-size: vars.$font-size-medium;
+}
+h3{
+	font-size:vars.$font-size-intermediate;
+}
+
+
+/*****************************/
+/*-- CONTENU CENTRAL -- */
+/*****************************/
+
+div#contenu {
+  width: 65%;
+  background-color: vars.$color-bleu-transparent;
+  margin: 12rem auto 2rem auto;
+  position: relative;
+  display: block;
+  overflow: hidden;
+  z-index: 9;
+}
+
+div#blocHaut {
+  width: auto;
+  height: auto;
+  text-align: center;
+  margin:0.5rem;
+      img {
+    max-width: 95%;
+    height: auto;
+    display: block;
+    margin: 0.5rem auto; // centrer l'image
+  }
+
+}
+
+div#colonneJustifie40 {
+  width: 35%;
+  height: auto;
+  padding: 0.2rem;
+  text-align: justify;
+  float: right;
+  font-weight: bold;
+  background-position: 50% 50%;
+    img {
+    max-width: 95%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+}
+
+div#colonneJustifie25 {
+  width: 15%;
+  height: auto;
+  padding: 0.2rem;
+  margin-top: 30px;
+  text-align: justify;
+  float: left;
+  background-position: 50% 50%;
+    img {
+    max-width: 95%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+}
+
+div#blocCentre {
+  width: auto;
+  height: auto;
+  margin: 1% auto;
+  padding: 0.2rem;
+  text-align: justify;
+}
+
+div#blocbascentre {
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  padding: 0.2rem;
+  text-align: justify;
+}
+
+div#blocbaspetitgauche,
+div#blocbaspetitdroit,
+div#blocbaspetitcentre {
+  height: auto;
+  margin-top: 0.625rem;
+  padding: 0;
+  background-position: 50% 50%;
+  text-decoration: none;
+}
+
+div#blocbaspetitgauche {
+  width: 25%;
+  margin-left: auto;
+  float: left;
+    img {
+    width: 99%;
+    height: auto;
+  }
+  txt {
+    width: auto;
+    padding: 0.2rem;
+  }
+}
+
+div#blocbaspetitdroit {
+  width: 25%;
+  margin-right: auto;
+  float: right;
+    img {
+    width: 99%;
+    height: auto;
+  }
+  txt {
+    width: auto;
+    padding: 0.2rem;
+  }
+}
+
+div#blocbaspetitcentre {
+  margin: 0 auto;
+  text-align: center;
+  float: none;
+
+  img {
+    max-width: 99%;
+    height: auto;
+  }
+
+  txt {
+    width: auto;
+    padding: 0.2rem;
+  }
+}
+
+/*****************************/
+/*-- PIED DE PAGE -- */
+/*****************************/
+
+div#piedpage {
+  width: 99%;
+  background-color: vars.$color-gris;
+  margin: 0 auto;
+  height: auto;
+  z-index: 10;
+}
+
+div#MenuPiedpage {
+  width: 95%;
+  font-size: vars.$font-size-small;
+  color: vars.$color-blanc;
+  margin: 0 auto;
+}
+
+div#menu3 {
+  width: 95%;
+  height: auto;
+  margin: 1% auto 0 auto;
+  padding: 0;
+  line-height: 50%;
+
+}
+
+#navMenu3 {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+  line-height: 1.563rem;
+
+  li {
+    margin: 0 1rem;
+    display: inline;
+
+    a {
+      text-align: center;
+      text-decoration: none;
+
+      &:hover,
+      &:focus,
+      &:active {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+div#bloccenter {
+  text-align: center;
+  width: auto;
+  height: auto;
+  margin: 1% auto;
+  padding: 0.5%;
+
+  img {
+    margin: 0 5px;
+  }
+}
+
+div#blocfondcouleur {
+  background-color: vars.$color-blanc;
+  text-align: center;
+  width: auto;
+  height: auto;
+  margin: 1% auto;
+  padding: 0 0.5% 0.5% 0.5%;
+}
+
+div#avecbordure {
+  text-decoration: none;
+  border: double;
+  width: auto;
+  height: auto;
+  margin: 2rem auto 0 auto;
+  text-align: center;
+  padding: 0.1rem;
+  overflow: hidden;
+  background-position: 50% 50%;
+}
+
+div#inputform {
+  width: 20%;
+  margin: 0 auto;
+  text-align: center;
+  border: double;
+}
+
+// Boutons avec mixin bouton-style
+#boutonrectanglebleu {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleu.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleu_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleu_clic.png'
+  );
+}
+
+#boutonrectanglejaune {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_jaune.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_jaune_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_jaune_clic.png'
+  );
+}
+
+#boutonrectanglevertfonce {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_vertfonce.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_vertfonce_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_vertfonce_clic.png'
+  );
+}
+
+#boutonrectanglerouge {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_rouge.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_rouge_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_rouge_clic.png'
+  );
+}
+
+#boutonrectanglebleuturquoise {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleuturquoise.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleuturquoise_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleuturquoise_clic.png'
+  );
+}
+
+#boutonrectangleorange {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_orange.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_orange_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_orange_clic.png'
+  );
+}
+
+#boutonrectangleviolet {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_violet.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_violet_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_violet_clic.png'
+  );
+}
+
+#boutonrectanglebleuvert {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleuvert.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleuvert_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleuvert_clic.png'
+  );
+}
+
+#boutonrectangleblanc {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_blanc.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_blanc_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_blanc_clic.png'
+  );
+}
+
+#boutonrectanglebleufonce {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleufonce.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleufonce_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleufonce_clic.png'
+  );
+}
+
+#boutonrectanglegris {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_gris.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_gris_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_gris_clic.png'
+  );
+}
+
+#boutonrectanglenoir {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_noir.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_noir_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_noir_clic.png'
+  );
+}
+
+#boutonrectanglevioletfonce {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_violetfonce.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_violetfonce_selection.png',
+    '@/assets/images/structure/menu/boutonrectangle/btrect_violetfonce_clic.png'
+  );
+}
+
+#boutongrandbleuturquoise {
+  @include mixins.bouton-style(
+    '@/assets/images/structure/menu/boutonrectangle/btrect_bleuturquoise.png',
+    '@/assets/images/structure/menu/boutongrand/btgrd_bleuturquoise_selection.png',
+    '@/assets/images/structure/menu/boutongrand/btgrd_bleuturquoise_clic.png',
+    grand
+  );
+}
+
+// Application du mixin diaporama appartements
+#diaporama {
+  @include mixins.diaporama-appt(
+    vars.$diaporama-width,
+    vars.$diaporama-height,
+    vars.$thumbnail-width,
+    vars.$thumbnail-height,
+    vars.$centered-img-width,
+    vars.$centered-img-height,
+    vars.$side-block-width
+  );
+}
+
+// Table 1
+div#table1 {
+  @include mixins.table-basic(vars.$table1-width, vars.$table-bg-main);
+}
+
+#table1res {
+  width: vars.$table1-width;
+  margin: auto;
+
+  .caption {
+    @include mixins.table-caption();
+  }
+
+  .box {
+    @include mixins.box-inline();
+  }
+
+  .th {
+    @include mixins.table-th(transparent, vars.$th-width-table1, left);
+    clear: inherit;
+  }
+
+  .td {
+    @include mixins.table-td(vars.$td-width-table1, left);
+  }
+
+  .tr {
+    @include mixins.table-tr(vars.$td-width-table1, left, 3rem);
+  }
+
+  .input {
+    width: 60%;
+  }
+
+  .textarea {
+    width: 100%;
+  }
+}
+
+// Table 1 Gard
+#table1gard {
+  @include mixins.table-basic(vars.$table1gard-width, null);
+  border: double;
+
+  .caption {
+    @include mixins.table-caption();
+  }
+
+  .th {
+    @include mixins.table-th(vars.$table-header-bg, auto, center);
+  }
+
+  .td {
+    @include mixins.table-td(vars.$td-width-table1gard);
+  }
+
+  .tr {
+    @include mixins.table-tr(auto, left);
+  }
+
+  .box {
+    @include mixins.box-inline(0 auto);
+  }
+}
+
+// Table 1 Locations
+#table1loc {
+  @include mixins.table-basic(vars.$table1loc-width, null);
+  border: double;
+
+  .caption {
+    @include mixins.table-caption();
+  }
+
+  .box {
+    @include mixins.box-inline(0 auto);
+  }
+
+  .th {
+    @include mixins.table-th(vars.$table-header-bg, vars.$th-width-table1loc, center);
+  }
+
+  .td {
+    @include mixins.table-td(auto);
+  }
+
+  .tr {
+    @include mixins.table-tr(100%, left);
+  }
+}
+
+// Table 1 Promotions
+#table1promo {
+  width: vars.$table1promo-width;
+  margin-left: auto;
+  margin-right: auto;
+
+  .caption {
+    @include mixins.table-caption();
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+
+  .th {
+    @include mixins.table-th(vars.$table-header-bg, vars.$th-width-table1promo, center);
+  }
+
+  .td {
+    @include mixins.table-td(auto);
+  }
+
+  .tr {
+    @include mixins.table-tr(auto, left);
+  }
+}
+
+
+// Diaporama survol styles (tu peux déplacer dans _components si besoin)
+#diaporamaSurvol .diaporamaSurvolimg2,
+#diaporamaSurvol .diaporamaSurvolimg4 {
+  display: none;
+}
+
+// Diaporama photo version mobile
+div#diaporama {
+  width: 14rem;
+  height: 15rem;
+}
+
+#diaporamaAppt {
+  width: 18.75rem;
+  height: 14.418rem;
+  margin-left: -9.375rem;
+  margin-top: -7.209rem;
+}
+
+#diaporamaAppt div img:hover + .diaporamaApptgrande {
+  width: 18.75rem;
+  margin-left: -9.375rem;
+  height: 9.73rem;
+  margin-top: -4.865rem;
+}
+
+#diaporamaAppt img {
+  float: left;
+  width: 2.678rem;
+  height: 2.344rem;
+}
+
+#diaporamaAppt .diaporamaAppthaut,
+#diaporamaAppt .diaporamaApptbas {
+  width: 18.75rem;
+  height: 2.344rem;
+}
+
+#diaporamaAppt .diaporamaApptgauche,
+#diaporamaAppt .diaporamaApptdroite {
+  display: none;
+}
+
+#diaporamaAppt .diaporamaApptcentre {
+  width: 18.75rem;
+  height: 9.73rem;
+}
+
+#diaporamaAppt .diaporamaApptouverture {
+  float: left;
+  width: 18.75rem;
+  height: 9.73rem;
+}
+
+// Tableaux version mobile
+div#table1,
+#table1res,
+#table1gard,
+#table1loc {
+  width: 100%;
+  overflow: hidden;
+}
+
+#table1res .th {
+  padding: 0.2rem;
+  width: 20%;
+  border-top: double;
+  border-bottom: double;
+}
+
+#table1res .td {
+  border-top: double;
+  width: 100%;
+}
+
+#table1res .tr {
+  margin-top: 2rem;
+}
+
+#table1res .input,
+#table1res .textarea {
+  width: 100%;
+}

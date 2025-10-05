@@ -1,0 +1,231 @@
+// Site LesCaramagnols
+// /src/scss/_mixins.scss
+
+@use 'variables' as vars;
+
+// Mixin pour les titres, alignement et taille paramétrables
+@mixin titre($align: center, $taille: vars.$font-size-medium) {
+  font-family: vars.$font-segoe-ui-light;
+  color: vars.$color-blanc;
+  font-weight: bold;
+  text-align: $align;
+  font-size: $taille;
+}
+
+// Mixin pour rendre une image responsive
+@mixin img-responsive {
+  max-width: 100%;
+  height: auto;
+  overflow: hidden;
+  object-fit: cover;
+  display: block;
+}
+
+// Mixin pour style de bouton avec différentes images d'état
+@mixin bouton-style(
+  $img-path,
+  $hover-path,
+  $active-path,
+  $size: normal
+) {
+  display: block;
+  width: if($size == normal, vars.$button-width, 14rem);
+  height: if($size == normal, vars.$button-height, 14rem);
+  background-image: url($img-path);
+  background-position: center;
+  margin: vars.$button-margin;
+  padding: vars.$button-padding;
+  padding-bottom: vars.$button-padding-bottom;
+  text-align: center;
+
+    a {
+    color: vars.$color-jaune;
+    font-weight: bold;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+  }
+
+  img {
+    width: vars.$button-img-width;
+    height: vars.$button-img-height;
+    object-fit: contain;
+    margin-top: 0.3rem;
+  }
+
+  &:hover {
+    background-image: url($hover-path);
+    width: vars.$button-hover-width;
+    height: vars.$button-hover-height;
+    transform: scale(1.05); // ✅ zoom léger
+  }
+
+  &:active {
+    background-image: url($active-path);
+    width: vars.$button-active-width;
+    height: vars.$button-active-height;
+  }
+}
+
+// Mixin pour diaporama appartement (taille dynamique)
+@mixin diaporama-appt(
+  $width,
+  $height,
+  $thumb-width,
+  $thumb-height,
+  $center-width,
+  $center-height,
+  $side-width
+) {
+  width: $width;
+  height: $height;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: auto;
+  margin-bottom: 5%;
+  overflow: hidden;
+
+  #diaporamaAppt {
+    width: 44.35rem; // valeur fixe, peut devenir variable
+    height: 28.126rem;
+    position: relative;
+    left: 50%;
+    margin-left: -21.875rem;
+    top: 50%;
+    margin-top: -14.063rem;
+
+    div img + .diaporamaApptgrande {
+      display: none;
+    }
+    div img:hover + .diaporamaApptgrande {
+      display: inline;
+      position: absolute;
+      width: $center-width;
+      left: 50%;
+      margin-left: calc(-1 * (#{$center-width} / 2));
+      height: $center-height;
+      top: 51.15%;
+      margin-top: calc(-1 * (#{$center-height} / 2));
+      z-index: 1;
+    }
+
+    img {
+      float: left;
+      width: $thumb-width;
+      height: $thumb-height;
+    }
+
+    .diaporamaAppthaut,
+    .diaporamaApptbas {
+      width: 44.35rem;
+      height: $thumb-height;
+    }
+
+    .diaporamaApptgauche,
+    .diaporamaApptdroite {
+      float: left;
+      width: $side-width;
+      height: $center-height;
+    }
+
+    .diaporamaApptdroite {
+      float: right;
+    }
+
+    .diaporamaApptcentre,
+    .diaporamaApptouverture {
+      float: left;
+      width: $center-width;
+      height: $center-height;
+    }
+  }
+}
+
+// Mixin table de base
+@mixin table-basic($width, $bg) {
+  width: $width;
+  margin: 2rem auto;
+  height: auto;
+  background: $bg;
+}
+
+// Mixin caption table
+@mixin table-caption() {
+  font-size: vars.$caption-font-size;
+  margin-bottom: 2rem;
+}
+
+// Mixin th table
+@mixin table-th($bg, $width: auto, $text-align: left) {
+  background-color: $bg;
+  width: $width;
+  height: auto;
+  text-align: $text-align;
+  padding: 1rem;
+}
+
+// Mixin td table
+@mixin table-td($width: auto, $text-align: left) {
+  width: $width;
+  height: auto;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: $text-align;
+}
+
+// Mixin tr table
+@mixin table-tr($width: auto, $text-align: left, $margin-top: 0) {
+  width: $width;
+  height: auto;
+  text-align: $text-align;
+  margin-top: $margin-top;
+}
+
+// Mixin boîte en ligne (inline box)
+@mixin box-inline($margin: vars.$margin-box, $display: inline) {
+  display: $display;
+  margin: $margin;
+  text-align: center;
+}
+
+// Mixin texte gras avec taille, famille, couleur paramétrables
+@mixin font-bold(
+  $size,
+  $family: vars.$font-family-main,
+  $color: vars.$color-white
+) {
+  font-family: $family;
+  font-weight: bold;
+  color: $color;
+  font-size: $size;
+}
+
+// Mixin flex container avec centrage et espace entre éléments
+@mixin flex-center-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// Mixin barre hamburger (menu mobile)
+@mixin hamburger-bar {
+  display: block;
+  height: vars.$hamburger-bar-height;
+  background-color: #555;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+  margin: vars.$hamburger-bar-margin 0;
+}
+
+// Mixin clearfix (pour clear floats)
+@mixin clearfix {
+  &::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+}

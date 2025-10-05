@@ -1,0 +1,176 @@
+# Les Caramagnols
+==================
+==================
+
+Site associatif qui combine un backend PHP procedural et un frontend moderne compile avec Vite. Le backend gere le routage, les gabarits et l'internationalisation serveur, tandis que le frontend fournit les interactions (menus responsive, traduction client) et les styles SCSS.
+
+## 📁 Apercu
+- 🔙 Backend PHP leger avec mini-routeur `backend/core/router.php` et systeme de gabarits `backend/templates`.
+- Internationalisation mixte : chargement serveur via `backend/core/lang_bootstrap.php` et API front a implementer `frontend/src/js/i18n.js`.
+- 🌐 Frontend Vite (JS/SCSS) pour le comportement responsive, les menus et l'enrichissement UX.
+- Donnees editoriales servies en PHP, moteur de recherche base sur un index JSON genere par CLI.
+
+## ⚙️ Stack technique
+- PHP 8.1+ (extensions standards) ; scripts CLI dans `backend/core/tools`.
+- Node.js 18+ et npm pour le bundler Vite et les assets front.
+- Base MySQL/MariaDB optionnelle (voir `backend/sql/install.sql`) pour la future fonctionnalite blog/commentaires.
+
+## 🌐 Divers
+- cache simple pour les traductions et le manifest Vite afin d'eviter des lectures disque repetitives.
+- Factorisation des doublons dans `frontend/src/js/menus.js` (listeners multiples sur `DOMContentLoaded`) pour limiter le travail DOM et les effets de bord.
+- Documenté un fichier `.env` et centralisé la configuration (BASE_URL, credentials BDD, mail) pour simplifier le deploiement multi-environnement.
+- Mise en place d'une tache `npm run lint` (ESLint/Stylelint) pour detecter les regressions avant le bundling final
+
+## Installation rapide
+1. Installer les dependances front :
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. (Optionnel) Provisionner la base :
+   ```bash
+   mysql -u <user> -p < backend/sql/install.sql
+   ```
+3. Dupliquer `backend/.env.example` en `backend/.env` puis ajuster `BASE_URL`, `DB_*` et `MAIL_*` selon votre environnement.
+
+## ⚙️ Configuration (.env)
+- Les variables `BASE_URL` et `DEFAULT_LANG` pilotent l'URL du site et la langue par defaut.
+- Les sections `DB_*` et `MAIL_*` permettent de centraliser les identifiants base de donnees et SMTP.
+- Les valeurs du fichier `.env` sont chargees au bootstrap (`core/bootstrap.php`) et disponibles via la fonction `app_config()` pour le code PHP.
+
+
+## Developpement local
+- **Frontend** : `cd frontend && npm run dev` (serveur Vite sur http://127.0.0.1:5173).
+- **Backend** : `cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php`.
+- Naviguer sur http://127.0.0.1:8000 et utiliser `?lang=en` ou `?lang=de` pour forcer une langue.
+
+> Astuce : en mode dev, Vite ne pousse pas automatiquement les assets dans `backend/public`. Les includes PHP attendent le manifest genere par `npm run build`.
+
+## Build & deploiement
+```bash
+cd frontend
+npm run build      # genere dist/ avec manifest et assets versionnes
+npm run postbuild  # recopie dist/assets et dist/.vite vers backend/public
+```
+Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la recherche) sur votre hebergement PHP.
+   php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php
+
+ tuer le processus qui occupe le port 
+   lister les ports : lsof -i
+   tuer le processus du PID : kill -9 <PID>
+   wsl : fuser -k 5173/tcp       fuser -k 5174/tcp        fuser -k 8000/tcp
+   PowerShell :  netstat -ano | findstr :5173 pour récupérer le PID.
+taskkill /PID <PID> /F pour le fermer, ex : taskkill /PID 17984 /F
+
+## ⚙️ Scripts utilitaires
+- `php backend/core/tools/generate_search_index.php` : construit `backend/data/search_index.json` et sa version minifiee.
+- `php backend/core/tools/generate_favicon.php` : regenere les favicons a partir de `frontend/src/assets/images/structure/logo.(jpg|png)`.
+- `php backend/replace_image_paths.php` : normalise les chemins d'images dans les fichiers de langues.
+
+## Internationalisation
+- Detection de la langue via URL, cookie ou en-tete navigateur `backend/core/lang_bootstrap.php`.
+- Fonctions serveur `t()` disponibles dans les gabarits `backend/core/i18n.php`.
+- Cote client, `frontend/src/js/i18n.js` prevoit l'appel `fetch('core/api/lang.php?lang=xx')` pour alimenter les elements `data-i18n` (endpoint a finaliser).
+
+## Structure des dossiers
+```
+backend/
+  config/         # Config globale, connexion BDD
+  core/           # Bootstrap, routeur, outils CLI, i18n
+  public/         # Point d'entree HTTP, assets exposes
+  templates/      # Layouts et pages thematiques
+  lang/           # Traductions PHP (fr/en/de)
+  data/           # Fichiers derives (index de recherche)
+frontend/
+  src/            # JS, SCSS, images sources
+  dist/           # Build Vite (genere)
+```
+
+### Propositions
+
+#### Optimisation
+- Remplacer les references d'images absolues par des imports Vite afin de profiter du hashing et d'eviter les avertissements de build.
+- Mutualiser les mixins SCSS communes pour reduire la duplication et simplifier la maintenance.
+
+#### Amelioration
+- Planifier un nettoyage progressif des fichiers SCSS pour respecter les regles Stylelint (kebab-case, espacements, doublons).
+- Documenter la convention de nommage CSS afin d'aligner les contributions futures.
+
+#### Correction
+- Supprimer ou encapsuler les appels `console.log` restants dans src/js/i18n.js et src/js/main.js.
+- Lancer `stylelint --fix` sur les fichiers corrigibles et traiter manuellement les cas restants avant la prochaine release.
+
+### 🔐 Securite
+- Mettre en place une validation/echappement systematique sur les champs commentaires, tags et contenus multilingues pour limiter XSS.
+- Durcir la configuration des cookies (`HttpOnly`, `SameSite=Strict`) lors de la selection de langue et prevoir des tokens CSRF pour le futur dashboard admin.
+- Ajouter un pare-feu basique (rate limiting ou captcha) autour du formulaire de commentaires pour bloquer le spam.
+
+### Ajout de fonctionnalites
+- Developper le module blog complet : themes fixes (villages, animations, story), categories enfants illimitees, tags et edition multilingue avec duplication d'articles.
+- Fournir un dashboard admin protege (URL aleatoire + notification email) pour gerer articles, categories, tags et moderation des commentaires.
+- Ajouter un moteur de recherche cote front qui consomme `backend/data/search_index.json` avec filtres par theme, categorie et langue.
+
+## ?? Blog et donnees
+- Le script `backend/sql/install.sql` installe les tables utilisateurs, articles, commentaires et taxonomies.
+- Les gabarits et menus existants imposent trois themes principaux (villages, animations, story) auxquels doivent se rattacher les contenus.
+- Les fichiers de langues et l API de traduction fournissent un socle pour publier en plusieurs langues et aligner front/backend.
+
+## ?? Fonction de Blog Participatif a developper
+
+### Feuille de route proposee
+1. **Phase 0 – Preparation technique**
+   - Finaliser le schema SQL (themes fixes, categories enfants uniques, table de tags sans doublons, table pivot articles/tags).
+   - Ajouter les variables d environnement necessaires (URL dashboard, email admin, SMTP definitif) dans `.env` et `app_config()`.
+   - Construire un jeu de donnees de demonstration et definir la strategie de migration/devops (dump, seeds, rollback).
+
+2. **Phase 1 – MVP edition/articles**
+   - CRUD complet sur les articles (brouillon, publication, duplication par langue en conservant la mise en forme).
+   - Editeur modulaire (texte/image/tableau) avec styles de base (gras, italic, h1/h2/h3/p) et gestion des medias (200/400/600px + alt/titre obligatoires).
+   - Gestion des themes et categories enfants (selection obligatoire d un theme principal, unicite des categories).
+
+3. **Phase 2 – Participation et moderation**
+   - Comptes auteurs invites (inscription, connexion, recuperation de mot de passe).
+   - Workflow de validation (brouillon > revue > publie) avec notifications email et journal des revisions.
+   - Module commentaires avec anti-spam (captcha ou rate limiting), moderation, et sanitisation systematique.
+
+4. **Phase 3 – Experience lecteur**
+   - Page blog publique avec filtres par theme, categorie et tags, recherche front sur `backend/data/search_index.json`.
+   - Navigation multilingue synchronisee (langue par defaut issue de la barre, duplication d article automatisee).
+   - Options newsletters / suivi thematique (opt-in par theme/auteur, exports mailing list).
+
+5. **Phase 4 – Operations & SEO**
+   - Planification des publications (cron ou planificateur interne) et historique des versions.
+   - Audit SEO (schema.org, metas dynamiques, plan de site, URLs propres) et optimisation performance (lazy-loading).
+   - Tableau de bord analytics (statistiques lectures, clics, inscriptions newsletter).
+
+### Ameliorations transverses
+- Factoriser les mixins SCSS et normaliser les classes (kebab-case) avant integration du blog pour limiter la dette CSS.
+- Prevoir des tests automatise (PHPUnit pour le backend, Vitest/Playwright pour le front) couvrant creation/article/commentaire.
+- Documenter les API et workflows (diagrammes de sequence, contrats JSON) pour favoriser l onboard des contributeurs.
+
+### Jalons et tickets proposes
+- **Milestone M0 – Socle technique** : tickets pour le schema SQL (B01), la configuration `.env` (B02) et les seeds de donnees (B03).
+- **Milestone M1 – Edition** : tickets CRUD articles (B10), editeur modulaire (B11), gestion themes/categories (B12).
+- **Milestone M2 – Participation** : tickets comptes auteurs (B20), workflow de validation (B21), module commentaires/anti-spam (B22).
+- **Milestone M3 – Experience lecteur** : tickets page blog + filtres (B30), recherche front (B31), newsletter/suivi thematique (B32).
+- **Milestone M4 – Operations & SEO** : tickets planification (B40), audit SEO/URL (B41), tableau de bord analytics (B42).
+- Chaque ticket doit etre lie a des tests (backend/front) et a une checklist accessibilite/securite correspondant au jalon.
+
+#### Tableau de suivi des milestones
+- Creer un tableau Kanban par milestone (M0 -> M4) avec les colonnes : `Backlog`, `En cours`, `Revue`, `Pret pour release`, `Termine`.
+- Chaque ticket Bxx est place dans le board du jalon correspondant et doit garder un lien vers la documentation README.
+- Ajouter une checklist par carte : exigences fonctionnelles, tests (unitaires/integres/end-to-end), accessibilite, securite.
+- Prevoir un point de synchronisation hebdomadaire pour passer en revue les colonnes `Revue` et `Pret pour release`.
+- Archiver le board dans `Termine` une fois le jalon livre et reporter les enseignements retrospectives dans la section Contribution.
+
+### Points de vigilance
+- Securite : tokens CSRF, gestion stricte des sessions, droits granulaires (admin vs auteurs), sanitation HTML riche.
+- Performance : cache des pages publiques, regeneration incremental du `search_index.json`, optimisations images.
+- Accessibilite : navigation clavier, alternatives textuelles obligatoires, contrastes valides pour les nouveaux composants.
+
+## Contribution
+- Utiliser des commits au format Conventional Commits (`type(scope): message`), en francais ou anglais selon le contexte.
+- Lancer `npm run lint` dans `frontend/` et executer `php -l` sur les fichiers PHP modifies avant revue.
+- Formater le code JS/SCSS avec ESLint/Stylelint et respecter les helpers PHP existants (`env()`, `app_config()`, `t()`).
+- Ouvrir une pull request avec un resume concis des changements, lister les tests executes et demander une revue a au moins une personne.
+- Repondre aux retours en poussant des commits supplementaires plutot qu'en reecrivant l'historique partage.

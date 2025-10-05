@@ -1,0 +1,1 @@
+<?php // Enregistrement d'un article JSON
