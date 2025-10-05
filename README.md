@@ -6,9 +6,9 @@ Site associatif qui combine un backend PHP procedural et un frontend moderne com
 
 ## 📁 Apercu
 - 🔙 Backend PHP leger avec mini-routeur `backend/core/router.php` et systeme de gabarits `backend/templates`.
-- Internationalisation mixte : chargement serveur via `backend/core/lang_bootstrap.php` et API front a implementer `frontend/src/js/i18n.js`.
+- 🔄 Internationalisation mixte : chargement serveur via `backend/core/lang_bootstrap.php` et API front a implementer `frontend/src/js/i18n.js`.
 - 🌐 Frontend Vite (JS/SCSS) pour le comportement responsive, les menus et l'enrichissement UX.
-- Donnees editoriales servies en PHP, moteur de recherche base sur un index JSON genere par CLI.
+- 📦 Donnees editoriales servies en PHP, moteur de recherche base sur un index JSON genere par CLI.
 
 ## ⚙️ Stack technique
 - PHP 8.1+ (extensions standards) ; scripts CLI dans `backend/core/tools`.
@@ -33,7 +33,7 @@ Site associatif qui combine un backend PHP procedural et un frontend moderne com
    ```
 3. Dupliquer `backend/.env.example` en `backend/.env` puis ajuster `BASE_URL`, `DB_*` et `MAIL_*` selon votre environnement.
 
-## ⚙️ Configuration (.env)
+## 🛠️ Configuration (.env)
 - Les variables `BASE_URL` et `DEFAULT_LANG` pilotent l'URL du site et la langue par defaut.
 - Les sections `DB_*` et `MAIL_*` permettent de centraliser les identifiants base de donnees et SMTP.
 - Les valeurs du fichier `.env` sont chargees au bootstrap (`core/bootstrap.php`) et disponibles via la fonction `app_config()` pour le code PHP.
@@ -61,6 +61,14 @@ Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la
    wsl : fuser -k 5173/tcp       fuser -k 5174/tcp        fuser -k 8000/tcp
    PowerShell :  netstat -ano | findstr :5173 pour récupérer le PID.
 taskkill /PID <PID> /F pour le fermer, ex : taskkill /PID 17984 /F
+
+Github :
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/paulineBerg/lescaramagnols.com.git
+git branch -M main
+git push -u origin main
+
 
 ## ⚙️ Scripts utilitaires
 - `php backend/core/tools/generate_search_index.php` : construit `backend/data/search_index.json` et sa version minifiee.
@@ -105,17 +113,17 @@ frontend/
 - Durcir la configuration des cookies (`HttpOnly`, `SameSite=Strict`) lors de la selection de langue et prevoir des tokens CSRF pour le futur dashboard admin.
 - Ajouter un pare-feu basique (rate limiting ou captcha) autour du formulaire de commentaires pour bloquer le spam.
 
-### Ajout de fonctionnalites
+### 🎯 Ajout de fonctionnalites
 - Developper le module blog complet : themes fixes (villages, animations, story), categories enfants illimitees, tags et edition multilingue avec duplication d'articles.
 - Fournir un dashboard admin protege (URL aleatoire + notification email) pour gerer articles, categories, tags et moderation des commentaires.
 - Ajouter un moteur de recherche cote front qui consomme `backend/data/search_index.json` avec filtres par theme, categorie et langue.
 
-## ?? Blog et donnees
+## 📊 Blog et donnees
 - Le script `backend/sql/install.sql` installe les tables utilisateurs, articles, commentaires et taxonomies.
 - Les gabarits et menus existants imposent trois themes principaux (villages, animations, story) auxquels doivent se rattacher les contenus.
 - Les fichiers de langues et l API de traduction fournissent un socle pour publier en plusieurs langues et aligner front/backend.
 
-## ?? Fonction de Blog Participatif a developper
+## 👥 Fonction de Blog Participatif a developper
 
 ### Feuille de route proposee
 1. **Phase 0 – Preparation technique**
