@@ -284,6 +284,18 @@ return [
 <p>En conclusion, l\'histoire de Renault est marquée par l\'innovation, le succès, et un engagement constant envers l\'excellence.
 <br>Avec un héritage riche et une vision tournée vers l\'avenir, Renault continue de jouer un rôle essentiel dans l\'évolution de l\'industrie automobile, prouvant que la passion pour l\'automobile ne fait que croître avec le temps.</p>',
 
+//===============================================================
+//===============================================================
+    //-------------------------------------------------------------
+    // page MERCEDES
+    //-------------------------------------------------------------
+    'TXT_TITREMERCEDES' => 'MERCEDES',
+    'IMAGE_ALT_mercedes' => '',
+    'TXT_MERCEDESINTRO' => '',
+    'TXT_MERCEDESDESCRIPT' => '
+    
+    
+',
 
 //===============================================================
     //-------------------------------------------------------------
@@ -547,6 +559,7 @@ En avril-mai 1957, une Aronde établit un exploit remarquable en battant plus de
 <p>Aujourd\'hui, l\'héritage de l\'Austin Mini perdure à travers de nouveaux modèles qui rendent hommage à la version originale tout en intégrant des technologies modernes. Des marques continuent de produire des voitures inspirées par cette icône, cherchant à capturer son esprit tout en répondant aux attentes contemporaines des conducteurs. La Mini moderne allie le charme rétro à des innovations avancées, garantissant que même les nouvelles générations peuvent apprécier ce petit bijou.</p>
 <div id="bloccenter"><img src="/assets/images/autoretro/austin/Mini_Cooper_Cabriolet_Sidewalk.jpg" title="Mini Cooper Cabriolet Sidewalk" alt="Mini Cooper Cabriolet Sidewalk"></div>',
 
+//-------------------------------------------------------------
 // page HISTOIRE TWINGO
 //-------------------------------------------------------------
 'TXT_TITREHISTOIRETWINGO' => 'LA TWINGO DE CHEZ RENAULT',
@@ -590,6 +603,16 @@ En avril-mai 1957, une Aronde établit un exploit remarquable en battant plus de
 <h3>Conclusion : la magie Twingo</h3>
 <p>La Twingo incarne l’ingéniosité française dans ce qu’elle a de plus joyeux. Ludique, fiable, inventive, elle démontre que la simplicité n’exclut ni le confort ni le style. Qu’elle roule au sans plomb ou à l’électrique, elle garde ce petit quelque chose qui fait sourire. Une voiture attachante, à l’image de celles et ceux qui l’ont conduite — et qui, sans nul doute, continueront à la chérir.</p>
 ',
+
+//-------------------------------------------------------------
+// page HISTOIRE SLK
+//-------------------------------------------------------------
+'TXT_TITREHISTOIRESLK' => 'LA SLK DE CHEZ MERCEDES',
+'IMAGE_ALT_histoiretslk' => '',
+'TXT_HISTOIRESLKINTRO' => '',
+'TXT_HISTOIRESLKDESCRIPT' => '
+',
+
 
 //=============================================================
 //=============================================================
@@ -1427,9 +1450,10 @@ Rien que d’y monter, on voyage dans le temps : du vrai, du solide, du pensé p
     ',
 
     //-------------------------------------------------------------
+    //-------------------------------------------------------------
 
 
-    // page MINI
+    // page NOTRE MINI
     //-------------------------------------------------------------
 
     'TXT_TITREMINI'         => 'MINI MAYFAIR',
@@ -1438,13 +1462,24 @@ Rien que d’y monter, on voyage dans le temps : du vrai, du solide, du pensé p
     'TXT_MINIDESCRIPT'      => 'En construction, revenez bientôt :)',
 
 
-    // page TWINGO
+    // page NOTRE TWINGO
+    //-------------------------------------------------------------
 
     'TXT_TITRETWINGO'       => 'TWINGO',
     'IMAGE_ALT_twingo'      => '', // Keeping this empty as in your original
     'TXT_TWINGOINTRO'       => '', // Keeping this empty as in your original
     'TXT_TWINGODESCRIPT'    => 'En construction, revenez bientôt :)',
 
+    // page NOTRE SLK
+    //-------------------------------------------------------------
+
+    'TXT_TITRESLK'       => 'SLK',
+    'IMAGE_ALT_slk'      => '', // Keeping this empty as in your original
+    'TXT_SLKINTRO'       => '', // Keeping this empty as in your original
+    'TXT_SLKDESCRIPT'    => 'En construction, revenez bientôt :)',
+
+    
+    //-------------------------------------------------------------
     //-------------------------------------------------------------
     //----------PAGES RESTAURATION
     //-------------------------------------------------------------

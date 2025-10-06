@@ -89,7 +89,7 @@ return [
                 'title'     => t('MENU_mercedes'),
                 'sous_menu' => [
                     ['titre' => t('MENU_mercedes'),    'chemin' => '/site/auto-retro/mercedes/histoire-de-mercedes.php'],
-                    ['titre' => t('MENU_histoireslk'), 'chemin' => '/site/auto-retro/mercedes/la-slk-une-voiture-compacte-et-rapide.php'],
+                    ['titre' => t('MENU_histoireslk'), 'chemin' => '/site/auto-retro/mercedes/la-slk-une-voiture-compacte-sportive.php'],
                     ['titre' => t('MENU_slk'),         'chemin' => '/site/auto-retro/mercedes/une-slk-dans-le-golfe-de-sttropez.php'],
                 ],
             ],   
@@ -202,51 +202,46 @@ return [
 // Menu fixe droite
 'menu_droit' => [
     [
-        'chemin'     => '/site/auto-retro/simca/histoire-de-simca.php',
-        'image'      => '/assets/images/structure/menu/auto-retro/btsimca.jpg',
-        'alt'        => t('MENU_simca'),
-        'title'      => t('MENU_simca'),
-        'titre'      => t('MENU_simca'),
-    ],
+        'chemin'     => '/site/auto-retro/austin/histoire-de-austin.php',
+        'image'      => '/assets/images/structure/menu/auto-retro/btaustin.jpg',
+        'alt'        => t('MENU_austin'),
+        'title'      => t('MENU_austin'),
+        'titre'      => t('MENU_austin'),
+    ],    
+  
+    [
+        'chemin'     => '/site/auto-retro/mercedes/histoire-de-mercedes.php',
+        'image'      => '/assets/images/structure/menu/auto-retro/btmercedes.jpg',
+        'alt'        => t('MENU_mercedes'),
+        'title'      => t('MENU_mercedes'),
+        'titre'      => t('MENU_mercedes'),
+    ],  
     [
         'chemin'     => '/site/auto-retro/panhard/histoire-de-panhard.php',
         'image'      => '/assets/images/structure/menu/auto-retro/btpanhard.jpg',
         'alt'        => t('MENU_panhard'),
         'title'      => t('MENU_panhard'),
         'titre    '  => t('MENU_panhard'),
-    ],
-    [
-        'chemin'     => '/site/auto-retro/austin/histoire-de-austin.php',
-        'image'      => '/assets/images/structure/menu/auto-retro/btaustin.jpg',
-        'alt'        => t('MENU_austin'),
-        'title'      => t('MENU_austin'),
-        'titre'      => t('MENU_austin'),
-    ],
+    ],        
     [
         'chemin'     => '/site/auto-retro/renault/histoire-de-renault.php',
         'image'      => '/assets/images/structure/menu/auto-retro/btrenault.jpg',
         'alt'        => t('MENU_renault'),
         'title'      => t('MENU_renault'),
         'titre'      => t('MENU_renault'),
+    ],    
+    [
+        'chemin'     => '/site/auto-retro/simca/histoire-de-simca.php',
+        'image'      => '/assets/images/structure/menu/auto-retro/btsimca.jpg',
+        'alt'        => t('MENU_simca'),
+        'title'      => t('MENU_simca'),
+        'titre'      => t('MENU_simca'),
     ],
+
 ],
 
 // Menu fixe gauche
 'menu_gauche' => [
-    [
-        'chemin'     => '/site/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php',
-        'image'      => '/assets/images/structure/menu/auto-retro/btsimca.jpg',
-        'alt'        => t('MENU_aronde'),
-        'title'      => t('MENU_aronde'),
-        'titre'      => t('MENU_aronde'),
-    ],
-    [
-        'chemin'     => '/site/auto-retro/panhard/une-dyna-dans-le-golfe-de-sttropez.php',
-        'image'      => '/assets/images/structure/menu/auto-retro/btpanhard.jpg',
-        'alt'        => t('MENU_dyna'),
-        'title'      => t('MENU_dyna'),
-        'titre'      => t('MENU_dyna'),
-    ],
     [
         'chemin'     => '/site/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php',
         'image'      => '/assets/images/structure/menu/auto-retro/btaustin.jpg',
@@ -255,12 +250,36 @@ return [
         'titre'      => t('MENU_mini'),
     ],
     [
+        'chemin'     => '/site/auto-retro/mercedes/une-slk-dans-le-golfe-de-sttropez.php',
+        'image'      => '/assets/images/structure/menu/auto-retro/btmercedes.jpg',
+        'alt'        => t('MENU_slk'),
+        'title'      => t('MENU_slk'),
+        'titre'      => t('MENU_slk'),
+    ],    
+    [
+        'chemin'     => '/site/auto-retro/panhard/une-dyna-dans-le-golfe-de-sttropez.php',
+        'image'      => '/assets/images/structure/menu/auto-retro/btpanhard.jpg',
+        'alt'        => t('MENU_dyna'),
+        'title'      => t('MENU_dyna'),
+        'titre'      => t('MENU_dyna'),
+    ], 
+    [
         'chemin'     => '/site/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php',
         'image'      => '/assets/images/structure/menu/auto-retro/btrenault.jpg',
         'alt'        => t('MENU_twingo'),
         'title'      => t('MENU_twingo'),
         'titre'      => t('MENU_twingo'),
+    ],       
+    [
+        'chemin'     => '/site/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php',
+        'image'      => '/assets/images/structure/menu/auto-retro/btsimca.jpg',
+        'alt'        => t('MENU_aronde'),
+        'title'      => t('MENU_aronde'),
+        'titre'      => t('MENU_aronde'),
     ],
+
+
+
 ],
 
     

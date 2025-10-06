@@ -22,53 +22,60 @@ $blocks['EditRegion8'] = '
 // === Texte principal ===
 $blocks['EditRegion3'] = t('TXT_SIMCADESCRIPT');
 
-// === Menu UI (en bas de page) à ne surtout pas modifier ===
+// === Bloc bas centre : menu UI Windows ===
 $blocks['EditRegion4'] = '
-<div id="bloccenter">
-    <div id="menurectanglewindows">
-        <div id="boutonrectanglerouge">
-            <a href="/site/auto-retro/simca/histoire-simca-aronde-icone-francaise">
-                ' . t('MENU_histoirearonde') . '
-                <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
-                     alt="' . t('MENU_histoirearonde') . '"
-                     title="' . t('MENU_histoirearonde') . '">
-            </a>
+    <div id="bloccenter">
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglevertfonce">
+                <a href="/site/auto-retro/austin/histoire-de-austin.php">
+                    ' . t("MENU_UI_AUSTIN") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_UI_AUSTIN") . '" title="' . t("MENU_UI_AUSTIN") . '">
+                </a>
+            </div>
         </div>
-    </div>
-    <div id="menurectanglewindows">
-        <div id="boutonrectangleorange">
-            <a href="/site/auto-retro/panhard/histoire-de-panhard.php">
-                ' . t('MENU_UI_PANHARD') . '
-                <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg"
-                     alt="' . t('MENU_UI_PANHARD') . '"
-                     title="' . t('MENU_UI_PANHARD') . '">
-            </a>
+        <div id="menurectanglewindows">
+            <div id="boutonrectangleblanc">
+                <a href="/site/auto-retro/mercedes/histoire-de-mercedes.php">
+                    ' . t("MENU_UI_MERCEDES") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uimercedes.jpg"
+                         alt="' . t("MENU_UI_MERCEDES") . '"
+                         title="' . t("MENU_UI_MERCEDES") . '">
+                </a>
+            </div>
+        </div>      
+        <div id="menurectanglewindows">
+            <div id="boutonrectangleorange">
+                <a href="/site/auto-retro/panhard/histoire-de-panhard.php">
+                    ' . t("MENU_UI_PANHARD") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_UI_PANHARD") . '" title="' . t("MENU_UI_PANHARD") . '">
+                </a>
+            </div>
         </div>
-    </div>
-</div>
-<div id="bloccenter">
-    <div id="menurectanglewindows">
-        <div id="boutonrectanglevertfonce">
-            <a href="/site/auto-retro/austin/histoire-de-austin.php">
-                ' . t('MENU_UI_AUSTIN') . '
-                <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg"
-                     alt="' . t('MENU_UI_AUSTIN') . '"
-                     title="' . t('MENU_UI_AUSTIN') . '">
-            </a>
+    </div> 
+    <div id="bloccenter">       
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglebleufonce">
+                <a href="/site/auto-retro/renault/histoire-de-renault.php">
+                    ' . t("MENU_UI_RENAULT") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
+                         alt="' . t("MENU_UI_RENAULT") . '"
+                         title="' . t("MENU_UI_RENAULT") . '">
+                </a>
+            </div>
+        </div>   
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglerouge">
+                <a href="/site/auto-retro/simca/histoire-simca-aronde-icone-francaise.php">
+                    ' . t("MENU_UI_HISTOIREARONDE") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
+                         alt="' . t("MENU_UI_HISTOIREARONDE") . '"
+                         title="' . t("MENU_UI_HISTOIREARONDE") . '">
+                </a>
+            </div>
         </div>
-    </div>
-    <div id="menurectanglewindows">
-        <div id="boutonrectanglebleuturquoise">
-            <a href="/site/auto-retro/renault/histoire-de-renault.php">
-                ' . t('MENU_UI_RENAULT') . '
-                <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
-                     alt="' . t('MENU_UI_RENAULT') . '"
-                     title="' . t('MENU_UI_RENAULT') . '">
-            </a>
-        </div>
-    </div>
-</div>
+    </div> 
 ';
+
 
 // === Bloc bas gauche ===
 $blocks['EditRegion5'] = '';

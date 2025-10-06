@@ -15,6 +15,20 @@ Site associatif qui combine un backend PHP procedural et un frontend moderne com
 - Node.js 18+ et npm pour le bundler Vite et les assets front.
 - Base MySQL/MariaDB optionnelle (voir `backend/sql/install.sql`) pour la future fonctionnalite blog/commentaires.
 
+## TODO
+| Priorite | Tache | Statut |
+| -------- | ----- | ------ |
+| Haute    | Finaliser l'API de traduction cote front (`frontend/src/js/i18n.js`) et lier `backend/core/api/lang.php`. | Termine |
+| Haute    | Documenter et securiser le chargement des variables sensibles (`backend/.env` → `app_config()`). | Termine |
+| Moyenne  | Rationaliser les mixins et composants SCSS partages pour reduire la duplication. | A planifier |
+| Moyenne  | Appliquer `stylelint`/`eslint` et corriger les avertissements restants avant le prochain build. | A faire |
+| Basse    | Etendre la feuille de route blog (workflow, moderation, analytics) en decoupant par livrable. | A planifier |
+
+Etendre la liste des variables critiques si d’autres services sont requis (ex. SMTP sécurisé, clés OAuth).
+1) installer les dépendances puis lancer npm run test:run et composer test, 
+2) décider si Thumbs.db doit être committé ou supprimé, 
+3) étendre la couverture test selon vos priorités (ex. modules backend supplémentaires).
+
 ## 🌐 Divers
 - cache simple pour les traductions et le manifest Vite afin d'eviter des lectures disque repetitives.
 - Factorisation des doublons dans `frontend/src/js/menus.js` (listeners multiples sur `DOMContentLoaded`) pour limiter le travail DOM et les effets de bord.
@@ -34,14 +48,24 @@ Site associatif qui combine un backend PHP procedural et un frontend moderne com
 3. Dupliquer `backend/.env.example` en `backend/.env` puis ajuster `BASE_URL`, `DB_*` et `MAIL_*` selon votre environnement.
 
 ## 🛠️ Configuration (.env)
-- Les variables `BASE_URL` et `DEFAULT_LANG` pilotent l'URL du site et la langue par defaut.
-- Les sections `DB_*` et `MAIL_*` permettent de centraliser les identifiants base de donnees et SMTP.
-- Les valeurs du fichier `.env` sont chargees au bootstrap (`core/bootstrap.php`) et disponibles via la fonction `app_config()` pour le code PHP.
+- `APP_ENV=development|production` pilote le niveau de verification. En production, l'absence de certaines variables bloque le bootstrap.
+- `BASE_URL` et `DEFAULT_LANG` pilotent l'URL du site et la langue par defaut.
+- Les sections `DB_*` et `MAIL_*` centralisent les identifiants base de donnees et SMTP.
+- Les valeurs sont chargees au bootstrap (`backend/core/bootstrap.php`) via `load_env()` qui valide les clefs (`A-Z0-9_`), supprime les retours de ligne et expose les booleens (`true`/`false`).
+- `app_config()` fournit un acces typé : par exemple `app_config('database.host')` ou `app_config('mail.smtp_password')` dans les scripts PHP.
+- Ne commitez jamais votre `.env` : la version d'exemple (`backend/.env.example`) doit rester publique, mais le vrai fichier appartient au serveur.
+- Verifiez les permissions (600) et gardez `.env` hors du dossier `public/` pour éviter toute fuite via le web serveur.
+- Automatisation : `php backend/core/tools/check_env.php [--path=backend/.env] [--env=production]` vérifie les permissions, la localisation du fichier et la présence des variables critiques (erreurs si clés manquantes, avertissements sinon).
+
+**Production**
+- `APP_ENV=production` impose la présence de `DB_HOST`, `DB_NAME`, `DB_USER`, `MAIL_SMTP_HOST` et `MAIL_FROM_ADDRESS`. Le bootstrap renvoie HTTP 500 (ou lève une exception en CLI) si ces clés manquent.
+- Ajoutez d'autres variables critiques dans `backend/core/bootstrap.php` si nécessaire.
 
 
 ## Developpement local
 - **Frontend** : `cd frontend && npm run dev` (serveur Vite sur http://127.0.0.1:5173).
 - **Backend** : `cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php`.
+- Le proxy Vite relaie `/core/*` vers http://127.0.0.1:8000 afin que `core/api/lang.php` soit accessible en mode dev.
 - Naviguer sur http://127.0.0.1:8000 et utiliser `?lang=en` ou `?lang=de` pour forcer une langue.
 
 > Astuce : en mode dev, Vite ne pousse pas automatiquement les assets dans `backend/public`. Les includes PHP attendent le manifest genere par `npm run build`.
@@ -62,6 +86,7 @@ Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la
    PowerShell :  netstat -ano | findstr :5173 pour récupérer le PID.
 taskkill /PID <PID> /F pour le fermer, ex : taskkill /PID 17984 /F
 
+```
 Github :
 git add .
 git commit -m "Initial commit"
@@ -69,6 +94,20 @@ git remote add origin https://github.com/paulineBerg/lescaramagnols.com.git
 git branch -M main
 git push -u origin main
 
+git push --force --set-upstream origin main     # ou pour ecraser tout
+
+## 🧪 Tests
+- **Frontend (Vitest)** :
+  - installation (une seule fois) : `cd frontend && npm install`
+  - exécution ponctuelle : `npm run test:run`
+  - mode watch : `npm run test:watch`
+  - un rapport de couverture est généré dans `frontend/coverage/`
+- **Backend (PHPUnit)** :
+  - installation : `composer install --working-dir=backend`
+  - exécution : `composer test` (cf. script dans `backend/composer.json`) ou `vendor/bin/phpunit`
+  - les tests se trouvent dans `backend/tests/`
+- `php backend/core/tools/check_env.php` est un hook utile à exécuter dans vos pipelines CI/CD avant déploiement pour valider la configuration.
+- (Optionnel) définissez une variable d’environnement `APP_ENV=testing` pour isoler les tests des environnements dev/prod.
 
 ## ⚙️ Scripts utilitaires
 - `php backend/core/tools/generate_search_index.php` : construit `backend/data/search_index.json` et sa version minifiee.

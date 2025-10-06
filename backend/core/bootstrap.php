@@ -17,6 +17,30 @@ load_env(ROOT_PATH . '/.env');
 // 3. Chargement de la configuration globale
 require_once ROOT_PATH . '/config/config.php';
 
+// 3bis. Verification des variables critiques en production
+if (APP_ENV === 'production') {
+    $requiredKeys = [
+        'DB_HOST',
+        'DB_NAME',
+        'DB_USER',
+        'MAIL_SMTP_HOST',
+        'MAIL_FROM_ADDRESS',
+    ];
+
+    try {
+        require_env($requiredKeys, 'production');
+    } catch (RuntimeException $exception) {
+        error_log('[bootstrap] ' . $exception->getMessage());
+
+        if (PHP_SAPI === 'cli') {
+            throw $exception;
+        }
+
+        http_response_code(500);
+        exit('Application misconfigured: missing environment variables.');
+    }
+}
+
 // 4. Chargement de la base de données si le fichier existe
 $dbFile = ROOT_PATH . '/config/db.php';
 if (file_exists($dbFile)) {

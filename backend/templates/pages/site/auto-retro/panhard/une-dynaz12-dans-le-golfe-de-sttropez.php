@@ -32,6 +32,44 @@ $blocks['EditRegion3'] = '
 $blocks['EditRegion4'] = '
     <div id="bloccenter">
         <div id="menurectanglewindows">
+            <div id="boutonrectanglevertfonce">
+                <a href="/site/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php">
+                    ' . t("MENU_UI_MINI") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_UI_MINI") . '" title="' . t("MENU_UI_MINI") . '">
+                </a>
+            </div>
+        </div>
+        <div id="menurectanglewindows">
+            <div id="boutonrectangleblanc">
+                <a href="/site/auto-retro/mercedes/une-slk-dans-le-golfe-de-sttropez.php">
+                    ' . t("MENU_UI_SLK") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uimercedes.jpg"
+                         alt="' . t("MENU_UI_SLK") . '"
+                         title="' . t("MENU_UI_SLK") . '">
+                </a>
+            </div>
+        </div>      
+        <div id="menurectanglewindows">
+            <div id="boutonrectangleorange">
+                <a href="/site/auto-retro/panhard/histoire-de-panhard.php">
+                    ' . t("MENU_UI_PANHARD") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_UI_PANHARD") . '" title="' . t("MENU_UI_PANHARD") . '">
+                </a>
+            </div>
+        </div>
+    </div> 
+    <div id="bloccenter">       
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglebleufonce">
+                <a href="/site/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php">
+                    ' . t("MENU_UI_TWINGO") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
+                         alt="' . t("MENU_UI_TWINGO") . '"
+                         title="' . t("MENU_UI_TWINGO") . '">
+                </a>
+            </div>
+        </div>   
+        <div id="menurectanglewindows">
             <div id="boutonrectanglerouge">
                 <a href="/site/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php">
                     ' . t("MENU_UI_ARONDE") . '
@@ -41,40 +79,7 @@ $blocks['EditRegion4'] = '
                 </a>
             </div>
         </div>
-        <div id="menurectanglewindows">
-            <div id="boutonrectangleorange">
-                <a href="/site/auto-retro/panhard/histoire-de-panhard.php">
-                    ' . t("MENU_UI_PANHARD") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg"
-                         alt="' . t("MENU_UI_PANHARD") . '"
-                         title="' . t("MENU_UI_PANHARD") . '">
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <div id="bloccenter">
-        <div id="menurectanglewindows">
-            <div id="boutonrectanglevertfonce">
-                <a href="/site/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php">
-                    ' . t("MENU_UI_MINI") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg"
-                         alt="' . t("MENU_UI_MINI") . '"
-                         title="' . t("MENU_UI_MINI") . '">
-                </a>
-            </div>
-        </div>
-        <div id="menurectanglewindows">
-            <div id="boutonrectanglebleuturquoise">
-                <a href="/site/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php">
-                    ' . t("MENU_UI_TWINGO") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
-                         alt="' . t("MENU_UI_TWINGO") . '"
-                         title="' . t("MENU_UI_TWINGO") . '">
-                </a>
-            </div>
-        </div>
-    </div>
+    </div> 
 ';
 
 // === Bloc bas gauche ===

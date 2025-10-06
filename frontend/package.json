@@ -9,11 +9,16 @@
     "preview": "vite preview",
     "lint:js": "eslint \"src/js/**/*.{js,mjs}\"",
     "lint:css": "stylelint \"src/**/*.{css,scss}\" --allow-empty-input",
-    "lint": "npm run lint:js && npm run lint:css"
+    "lint": "npm run lint:js && npm run lint:css",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest watch"
   },
   "devDependencies": {
     "eslint": "^9.13.0",
     "globals": "^15.15.0",
+    "@vitest/coverage-v8": "^2.1.5",
+    "jsdom": "^25.0.1",
     "sass": "^1.89.2",
     "stylelint": "^16.10.0",
     "stylelint-config-standard": "^36.0.0",
@@ -50,7 +55,8 @@
     "source-map-js": "^1.2.1",
     "tinyglobby": "^0.2.14",
     "to-regex-range": "^5.0.1",
-    "universalify": "^2.0.1"
+    "universalify": "^2.0.1",
+    "vitest": "^2.1.5"
   },
   "main": "index.js",
   "directories": {

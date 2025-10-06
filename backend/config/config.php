@@ -5,6 +5,7 @@ if (!defined('ROOT_PATH')) {
 }
 
 $appConfig = [
+    'env' => env('APP_ENV', 'development'),
     'base_url' => env('BASE_URL', '/'),
     'default_lang' => env('DEFAULT_LANG', 'fr'),
     'database' => [
@@ -26,6 +27,7 @@ $appConfig = [
     ],
 ];
 
+define('APP_ENV', $appConfig['env']);
 define('BASE_URL', $appConfig['base_url']);
 define('DEFAULT_LANG', $appConfig['default_lang']);
 define('TEMPLATES_PATH', ROOT_PATH . '/templates');

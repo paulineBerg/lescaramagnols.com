@@ -16,11 +16,14 @@ backend/public/assets/
 backend/public/.vite/
 backend/data/search_index*.json
 backend/data/*.cache
+frontend/coverage/
 
 # Environnements
 **/.env
 **/.env.local
 **/.env.*
+!backend/.env.example
+!backend/.env.testing
 
 # IDE / OS
 .DS_Store

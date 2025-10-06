@@ -23,49 +23,60 @@ $blocks['EditRegion8'] = '
 
 $blocks['EditRegion3'] = t("TXT_PANHARDDESCRIPT");
 
+// === Bloc bas centre : menu UI Windows ===
 $blocks['EditRegion4'] = '
     <div id="bloccenter">
         <div id="menurectanglewindows">
-            <div id="boutonrectanglerouge">
-                <a href="/site/auto-retro/simca/histoire-de-simca.php">' . t("MENU_UI_SIMCA") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
-                         alt="' . t("MENU_UI_SIMCA") . '"
-                         title="' . t("MENU_UI_SIMCA") . '">
+            <div id="boutonrectanglevertfonce">
+                <a href="/site/auto-retro/austin/histoire-de-austin.php">
+                    ' . t("MENU_UI_AUSTIN") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_UI_AUSTIN") . '" title="' . t("MENU_UI_AUSTIN") . '">
                 </a>
-            </div>					
-        </div>	
+            </div>
+        </div>
+        <div id="menurectanglewindows">
+            <div id="boutonrectangleblanc">
+                <a href="/site/auto-retro/mercedes/histoire-de-mercedes.php">
+                    ' . t("MENU_UI_MERCEDES") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uimercedes.jpg"
+                         alt="' . t("MENU_UI_MERCEDES") . '"
+                         title="' . t("MENU_UI_MERCEDES") . '">
+                </a>
+            </div>
+        </div>      
         <div id="menurectanglewindows">
             <div id="boutonrectangleorange">
-                <a href="/site/auto-retro/panhard/une-dyna-icone-automobile">' . t("MENU_UI_HISTOIREDYNA") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg"
-                         alt="' . t("MENU_UI_HISTOIREDYNA") . '"
-                         title="' . t("MENU_UI_HISTOIREDYNA") . '">
+                <a href="/site/auto-retro/panhard/une-dyna-icone-automobile.php">
+                    ' . t("MENU_UI_HISTOIREDYNA") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_UI_HISTOIREDYNA") . '" title="' . t("MENU_UI_HISTOIREDYNA") . '">
                 </a>
-            </div>					
-        </div>	
-    </div>
-
-    <div id="bloccenter">
+            </div>
+        </div>
+    </div> 
+    <div id="bloccenter">       
         <div id="menurectanglewindows">
-            <div id="boutonrectanglevertfonce">
-                <a href="/site/auto-retro/austin/histoire-de-austin.php">' . t("MENU_UI_AUSTIN") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg"
-                         alt="' . t("MENU_UI_AUSTIN") . '"
-                         title="' . t("MENU_UI_AUSTIN") . '">
-                </a>
-            </div>					
-        </div>	
-        <div id="menurectanglewindows">
-            <div id="boutonrectanglebleuturquoise">
-                <a href="/site/auto-retro/renault/histoire-de-renault.php">' . t("MENU_UI_RENAULT") . '
+            <div id="boutonrectanglebleufonce">
+                <a href="/site/auto-retro/renault/histoire-de-renault.php">
+                    ' . t("MENU_UI_RENAULT") . '
                     <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
                          alt="' . t("MENU_UI_RENAULT") . '"
                          title="' . t("MENU_UI_RENAULT") . '">
                 </a>
-            </div>					
-        </div>	
-    </div>
+            </div>
+        </div>   
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglerouge">
+                <a href="/site/auto-retro/simca/histoire-de-simca.php">
+                    ' . t("MENU_UI_SIMCA") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
+                         alt="' . t("MENU_UI_SIMCA") . '"
+                         title="' . t("MENU_UI_SIMCA") . '">
+                </a>
+            </div>
+        </div>
+    </div> 
 ';
+
 
 $blocks['EditRegion5'] = '';
 $blocks['EditRegion6'] = '';

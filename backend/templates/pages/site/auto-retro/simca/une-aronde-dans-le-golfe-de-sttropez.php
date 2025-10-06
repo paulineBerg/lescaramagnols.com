@@ -30,55 +30,59 @@ $blocks['EditRegion3'] = '
     ' . t("TXT_ARONDEDESCRIPT") . '
 ';
 
-// === Bloc bas centre : menus UI de navigation ===
+// === Bloc bas centre : menu UI Windows ===
 $blocks['EditRegion4'] = '
-<div id="bloccenter">
-    <div id="menurectanglewindows">
-        <div id="boutonrectanglerouge">
-            <a href="../simca/une-simca-aronde-en-restauration-chez-sava-rioz.php">
-                ' . t("MENU_UI_ARONDERESTAURATION") . '
-                <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
-                     alt="' . t("MENU_UI_ARONDERESTAURATION") . '"
-                     title="' . t("MENU_UI_ARONDERESTAURATION") . '">
-            </a>
+    <div id="bloccenter">
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglevertfonce">
+                <a href="/site/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php">
+                    ' . t("MENU_UI_MINI") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_UI_MINI") . '" title="' . t("MENU_UI_MINI") . '">
+                </a>
+            </div>
         </div>
-    </div>
-    <div id="menurectanglewindows">
-        <div id="boutonrectangleorange">
-            <a href="../panhard/une-dyna-dans-le-golfe-de-sttropez.php">
-                ' . t("MENU_UI_DYNA") . '
-                <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg"
-                     alt="' . t("MENU_UI_DYNA") . '"
-                     title="' . t("MENU_UI_DYNA") . '">
-            </a>
+        <div id="menurectanglewindows">
+            <div id="boutonrectangleblanc">
+                <a href="/site/auto-retro/mercedes/une-slk-dans-le-golfe-de-sttropez.php">
+                    ' . t("MENU_UI_SLK") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uimercedes.jpg"
+                         alt="' . t("MENU_UI_SLK") . '"
+                         title="' . t("MENU_UI_SLK") . '">
+                </a>
+            </div>
+        </div>      
+        <div id="menurectanglewindows">
+            <div id="boutonrectangleorange">
+                <a href="/site/auto-retro/panhard/une-dynaz12-dans-le-golfe-de-sttropez.php">
+                    ' . t("MENU_UI_DYNA") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_UI_DYNA") . '" title="' . t("MENU_UI_DYNA") . '">
+                </a>
+            </div>
         </div>
-    </div>
-</div>
-
-<div id="bloccenter">
-    <div id="menurectanglewindows">
-        <div id="boutonrectanglevertfonce">
-            <a href="../austin/une-mini-dans-le-golfe-de-sttropez.php">
-                ' . t("MENU_UI_MINI") . '
-                <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg"
-                     alt="' . t("MENU_UI_MINI") . '"
-                     title="' . t("MENU_UI_MINI") . '">
-            </a>
+    </div> 
+    <div id="bloccenter">       
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglebleufonce">
+                <a href="/site/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php">
+                    ' . t("MENU_UI_TWINGO") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
+                         alt="' . t("MENU_UI_TWINGO") . '"
+                         title="' . t("MENU_UI_TWINGO") . '">
+                </a>
+            </div>
+        </div>   
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglerouge">
+                <a href="/site/auto-retro/simca/une-simca-aronde-en-restauration-chez-sava-rioz.php">
+                    ' . t("MENU_UI_ARONDERESTAURATION") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
+                         alt="' . t("MENU_UI_ARONDERESTAURATION") . '"
+                         title="' . t("MENU_UI_ARONDERESTAURATION") . '">
+                </a>
+            </div>
         </div>
-    </div>
-    <div id="menurectanglewindows">
-        <div id="boutonrectanglebleuturquoise">
-            <a href="../renault/une-twingo-dans-le-golfe-de-sttropez.php">
-                ' . t("MENU_UI_TWINGO") . '
-                <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
-                     alt="' . t("MENU_UI_TWINGO") . '"
-                     title="' . t("MENU_UI_TWINGO") . '">
-            </a>
-        </div>
-    </div>
-</div>
+    </div> 
 ';
-
 // === Bloc bas gauche ===
 $blocks['EditRegion5'] = '';
 

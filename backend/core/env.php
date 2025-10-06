@@ -36,11 +36,22 @@ function load_env(string $filePath): void
         $key = trim($key);
         $value = trim($value);
 
-        // Nettoyage des guillemets eventuels
-        $value = trim($value, "\"'" );
-
         if ($key === '') {
             continue;
+        }
+
+        // Refuse les clefs avec caracteres non supportes (evite l injection)
+        if (!preg_match('/^[A-Z0-9_]+$/', $key)) {
+            continue;
+        }
+
+        // Nettoyage des guillemets et des retours a la ligne
+        $value = trim($value, "\"' ");
+        $value = preg_replace("/[\r\n]+/", '', $value);
+
+        // Normalisation basique des booleens
+        if (in_array(strtolower($value), ['true', 'false'], true)) {
+            $value = strtolower($value) === 'true';
         }
 
         if (!array_key_exists($key, $_ENV)) {
@@ -49,7 +60,9 @@ function load_env(string $filePath): void
         if (!array_key_exists($key, $_SERVER)) {
             $_SERVER[$key] = $value;
         }
-        putenv(sprintf('%s=%s', $key, $value));
+        if (!is_bool($value)) {
+            putenv(sprintf('%s=%s', $key, $value));
+        }
     }
 
     $loaded[$realPath] = true;
@@ -68,6 +81,33 @@ function env(string $key, mixed $default = null): mixed
     }
     $value = getenv($key);
     return $value !== false ? $value : $default;
+}
+
+/**
+ * Valide la presence de variables d'environnement critiques.
+ *
+ * @throws RuntimeException si une ou plusieurs variables manquent.
+ */
+function require_env(array $keys, string $context = 'application'): void
+{
+    $missing = [];
+
+    foreach ($keys as $key) {
+        $value = env($key, null);
+        if ($value === null || $value === '') {
+            $missing[] = $key;
+        }
+    }
+
+    if ($missing !== []) {
+        $message = sprintf(
+            'Missing required environment variables (%s) for %s.',
+            implode(', ', $missing),
+            $context
+        );
+
+        throw new RuntimeException($message);
+    }
 }
 
 /**

@@ -26,53 +26,58 @@ $blocks['EditRegion8'] = '
 // === Contenu principal
 $blocks['EditRegion3'] = t("TXT_HISTOIREDIANADESCRIPT");
 
-// === Menu UI bas (à ne pas modifier)
+// === Bloc bas centre : menu UI Windows ===
 $blocks['EditRegion4'] = '
     <div id="bloccenter">
         <div id="menurectanglewindows">
-            <div id="boutonrectanglerouge">
-                <a href="/site/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php">
-                    ' . t("MENU_UI_ARONDE") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
-                         alt="' . t("MENU_UI_ARONDE") . '"
-                         title="' . t("MENU_UI_ARONDE") . '">
+            <div id="boutonrectanglevertfonce">
+                <a href="/site/auto-retro/austin/aventure-mini-austin.php">
+                    ' . t("MENU_UI_HISTOIREMINI") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_UI_HISTOIREMINI") . '" title="' . t("MENU_UI_HISTOIREMINI") . '">
                 </a>
             </div>
         </div>
+        <div id="menurectanglewindows">
+            <div id="boutonrectangleblanc">
+                <a href="/site/auto-retro/mercedes/la-slk-une-voiture-compacte-sportive.php">
+                    ' . t("MENU_UI_HISTOIRESLK") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uimercedes.jpg"
+                         alt="' . t("MENU_UI_HISTOIRESLK") . '"
+                         title="' . t("MENU_UI_HISTOIRESLK") . '">
+                </a>
+            </div>
+        </div>      
         <div id="menurectanglewindows">
             <div id="boutonrectangleorange">
-                <a href="/site/auto-retro/panhard/une-dyna-dans-le-golfe-de-sttropez.php">
+                <a href="/site/auto-retro/panhard/une-dynaz12-dans-le-golfe-de-sttropez.php">
                     ' . t("MENU_UI_DYNA") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg"
-                         alt="' . t("MENU_UI_DYNA") . '"
-                         title="' . t("MENU_UI_DYNA") . '">
+                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_UI_DYNA") . '" title="' . t("MENU_UI_DYNA") . '">
                 </a>
             </div>
         </div>
-    </div>
-
-    <div id="bloccenter">
+    </div> 
+    <div id="bloccenter">       
         <div id="menurectanglewindows">
-            <div id="boutonrectanglevertfonce">
-                <a href="/site/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php">
-                    ' . t("MENU_UI_MINI") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg"
-                         alt="' . t("MENU_UI_MINI") . '"
-                         title="' . t("MENU_UI_MINI") . '">
-                </a>
-            </div>
-        </div>
-        <div id="menurectanglewindows">
-            <div id="boutonrectanglebleuturquoise">
-                <a href="/site/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php">
-                    ' . t("MENU_UI_TWINGO") . '
+            <div id="boutonrectanglebleufonce">
+                <a href="/site/auto-retro/renault/la-twingo-une-voiture-a-succes.php">
+                    ' . t("MENU_UI_HISTOIRETWINGO") . '
                     <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
-                         alt="' . t("MENU_UI_TWINGO") . '"
-                         title="' . t("MENU_UI_TWINGO") . '">
+                         alt="' . t("MENU_UI_HISTOIRETWINGO") . '"
+                         title="' . t("MENU_UI_HISTOIRETWINGO") . '">
+                </a>
+            </div>
+        </div>   
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglerouge">
+                <a href="/site/auto-retro/simca/simca-aronde-icone-francaise.php">
+                    ' . t("MENU_UI_HISTOIREARONDE") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
+                         alt="' . t("MENU_UI_HISTOIREARONDE") . '"
+                         title="' . t("MENU_UI_HISTOIREARONDE") . '">
                 </a>
             </div>
         </div>
-    </div>
+    </div> 
 ';
 
 // === Bas  ===

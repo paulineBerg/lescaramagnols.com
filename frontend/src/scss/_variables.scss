@@ -7,29 +7,31 @@
 // Couleurs principales
 // ----------------------------------
 $color-white: #ffffff;        // blanc standard
-$color-noir: #000000;         // noir
 $color-blanc: $color-white;   // alias blanc
-$color-gris: #DDD;
-
-
-$color-bleu-clair: #1BA1E2;
-$color-bleu-transparent: rgba(27, 160, 226, 0.825);
-$color-bleu-fonce: #0050EF;
-
-$color-jaune: #E3C800;
-$color-orange: #FA6800;
-
-$color-rouge: #A20025;
-$color-rouge-clair: #9D181A;
-
-$color-rose: #D80073;       // rgb(216, 0, 115) => hex #D80073
-$color-rose-clair: #F472D0;
-
+$color-noir: #000000;         // noir
+$color-citron:#A4C400;
+$color-vert: #60A917;
+$color-vert-fonce: #008A00;
 $color-turquoise: #00ABA9;
-$color-violet: #95FF00;
+$color-bleu-clair: #1BA1E2;   //cyan
+$color-bleu-fonce: #0050EF;  // bleu cobalt
+$color-indigo: #6A00FF;      // indigo
+$color-violet: #AA00FF;
+$color-rose-clair: #F472D0;   //rose
+$color-rose: #D80073;       //magenta rgb(216, 0, 115) => hex #D80073
+$color-rouge: #E51400;
+$color-rouge-fonce:#A20025;    // bordeau
+$color-orange: #FA6800;
+$color-amber: #F0A30A;
+$color-jaune: #E3C800;
+$color-marron: #825A2C;
+$color-olive: #6D8764;
+$color-gris: #647687;
+$color-mauve: #76608A;
+$color-taupe: #87794E;
 
-$color-gris: #51596C;
 
+$color-bleu-transparent: rgba(27, 160, 226, 0.825);
 $color-menu-border: #DDD;
 $color-link: #007BFF;
 $color-link-hover: color.adjust($color-link, $lightness: -10%);
