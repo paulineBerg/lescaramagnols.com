@@ -24,10 +24,11 @@ Site associatif qui combine un backend PHP procedural et un frontend moderne com
 | Moyenne  | Appliquer `stylelint`/`eslint` et corriger les avertissements restants avant le prochain build. | A faire |
 | Basse    | Etendre la feuille de route blog (workflow, moderation, analytics) en decoupant par livrable. | A planifier |
 
-Etendre la liste des variables critiques si d’autres services sont requis (ex. SMTP sécurisé, clés OAuth).
-1) installer les dépendances puis lancer npm run test:run et composer test, 
-2) décider si Thumbs.db doit être committé ou supprimé, 
-3) étendre la couverture test selon vos priorités (ex. modules backend supplémentaires).
+Automatiser un contrôle de permissions .env dans la chaîne de déploiement et étendre le monitoring de configuration selon les besoins, mettre a jour readme.md
+Etendre la liste des variables critiques si d’autres services sont requis (ex. SMTP sécurisé, clés OAuth), mettre a jour readme.md
+Installer les dépendances puis lancer npm run test:run et composer test, mettre a jour readme.md
+Décider si Thumbs.db doit être committé ou supprimé, mettre a jour readme.md
+Etendre la couverture test selon vos priorités (ex. modules backend supplémentaires), mettre a jour readme.md
 
 ## 🌐 Divers
 - cache simple pour les traductions et le manifest Vite afin d'eviter des lectures disque repetitives.
@@ -87,16 +88,17 @@ Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la
 taskkill /PID <PID> /F pour le fermer, ex : taskkill /PID 17984 /F
 
 ```
-Github :
+GITHUB
+Github : paulineBerg
 git add .
 git commit -m "Initial commit"
-git remote add origin https://github.com/paulineBerg/lescaramagnols.com.git
+# creation du repo git remote add origin https://github.com/paulineBerg/lescaramagnols.com.git
 git branch -M main
 git push -u origin main
 
 git push --force --set-upstream origin main     # ou pour ecraser tout
 
-## 🧪 Tests
+##  🧪 Tests
 - **Frontend (Vitest)** :
   - installation (une seule fois) : `cd frontend && npm install`
   - exécution ponctuelle : `npm run test:run`
@@ -136,21 +138,21 @@ frontend/
 ### Propositions
 
 #### Optimisation
-- Remplacer les references d'images absolues par des imports Vite afin de profiter du hashing et d'eviter les avertissements de build.
-- Mutualiser les mixins SCSS communes pour reduire la duplication et simplifier la maintenance.
+- Remplacer les references d'images absolues par des imports Vite afin de profiter du hashing et d'eviter les avertissements de build, mettre à jour readme.md
+- Mutualiser les mixins SCSS communes pour reduire la duplication et simplifier la maintenance., mettre à jour readme.md
 
 #### Amelioration
 - Planifier un nettoyage progressif des fichiers SCSS pour respecter les regles Stylelint (kebab-case, espacements, doublons).
-- Documenter la convention de nommage CSS afin d'aligner les contributions futures.
+- Documenter la convention de nommage CSS afin d'aligner les contributions futures., mettre à jour readme.md
 
 #### Correction
-- Supprimer ou encapsuler les appels `console.log` restants dans src/js/i18n.js et src/js/main.js.
-- Lancer `stylelint --fix` sur les fichiers corrigibles et traiter manuellement les cas restants avant la prochaine release.
+- Supprimer ou encapsuler les appels `console.log` restants dans src/js/i18n.js et src/js/main.js., mettre à jour readme.md
+- Lancer `stylelint --fix` sur les fichiers corrigibles et traiter manuellement les cas restants avant la prochaine release., mettre à jour readme.md
 
 ### 🔐 Securite
-- Mettre en place une validation/echappement systematique sur les champs commentaires, tags et contenus multilingues pour limiter XSS.
-- Durcir la configuration des cookies (`HttpOnly`, `SameSite=Strict`) lors de la selection de langue et prevoir des tokens CSRF pour le futur dashboard admin.
-- Ajouter un pare-feu basique (rate limiting ou captcha) autour du formulaire de commentaires pour bloquer le spam.
+- Mettre en place une validation/echappement systematique sur les champs commentaires, tags et contenus multilingues pour limiter XSS., mettre à jour readme.md
+- Durcir la configuration des cookies (`HttpOnly`, `SameSite=Strict`) lors de la selection de langue et prevoir des tokens CSRF pour le futur dashboard admin., mettre à jour readme.md
+- Ajouter un pare-feu basique (rate limiting ou captcha) autour du formulaire de commentaires pour bloquer le spam., mettre à jour readme.md
 
 ### 🎯 Ajout de fonctionnalites
 - Developper le module blog complet : themes fixes (villages, animations, story), categories enfants illimitees, tags et edition multilingue avec duplication d'articles.
