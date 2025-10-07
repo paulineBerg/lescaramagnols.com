@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+      - name: Install composer dependencies
+        run: composer install --no-interaction --prefer-dist
+        working-directory: backend
+      - name: Run PHPUnit
+        run: composer test --working-dir=backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+      - name: Run Vitest
+        run: npm run test:run
+        working-directory: frontend
+      - name: Build frontend
+        run: npm run build && npm run postbuild
+        working-directory: frontend

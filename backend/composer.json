@@ -15,7 +15,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "LesCaramagnols\Tests\\": "tests/"
+      "LesCaramagnols\\Tests\\": "tests/"
     }
   },
   "scripts": {

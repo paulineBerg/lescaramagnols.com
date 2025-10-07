@@ -11,26 +11,37 @@ final class RequireEnvTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Unset any existing env values we may affect
         putenv('FOO');
         putenv('BAR');
-        unset(['FOO'], ['BAR']);
-        unset(['FOO'], ['BAR']);
+        // Also clear from superglobals used by env()
+        unset($_ENV['FOO'], $_ENV['BAR']);
+        unset($_SERVER['FOO'], $_SERVER['BAR']);
     }
 
     public function testRequireEnvDoesNotThrowWhenVariablesPresent(): void
     {
-        ['FOO'] = 'value';
-        ['BAR'] = 'value';
+        putenv('FOO=value');
+        putenv('BAR=value');
+        $_ENV['FOO'] = 'value';
+        $_ENV['BAR'] = 'value';
 
+        // Should not throw
         require_env(['FOO', 'BAR']);
 
-        ->assertTrue(true); // If no exception, test passes
+        $this->assertTrue(true); // If no exception, test passes
     }
 
     public function testRequireEnvThrowsWhenVariableMissing(): void
     {
-        ->expectException(RuntimeException::class);
-        ->expectExceptionMessage('Missing required environment variables');
+        // Ensure variables are not present
+        putenv('FOO');
+        putenv('BAR');
+        unset($_ENV['FOO'], $_ENV['BAR']);
+        unset($_SERVER['FOO'], $_SERVER['BAR']);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Missing required environment variables');
 
         require_env(['FOO', 'BAR']);
     }
