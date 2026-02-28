@@ -8,12 +8,12 @@
     "src": "src/assets/images/structure/menu/boutongrand/btgrd_bleuturquoise_selection.png"
   },
   "src/js/main.js": {
-    "file": "assets/main.7GKyUDN3.js",
+    "file": "assets/main.nRk9e6fC.js",
     "name": "main",
     "src": "src/js/main.js",
     "isEntry": true,
     "css": [
-      "assets/style.DSnjFKXX.css"
+      "assets/style.B_8lEjqg.css"
     ],
     "assets": [
       "assets/banniere.C_sNX8ls.gif",
@@ -21,7 +21,7 @@
     ]
   },
   "src/scss/style.scss": {
-    "file": "assets/style.DSnjFKXX.css",
+    "file": "assets/style.B_8lEjqg.css",
     "src": "src/scss/style.scss",
     "isEntry": true,
     "names": [

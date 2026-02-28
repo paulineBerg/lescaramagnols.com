@@ -2,10 +2,7 @@
 <html lang="<?= CURRENT_LANG ?>">
 <head>
     <?php
-    // templates/partials/layout.php
-
-    // ✅ Chargement des traductions dynamiques dès le début
-    require_once ROOT_PATH . '/core/lang_bootstrap.php';
+    // file: backend/templates/partials/layout.php
 
     // ✅ Chargement des menus
     $menuConfig   = require ROOT_PATH . '/config/menu_data.php';

@@ -2,13 +2,25 @@
 // core/tools/generate_search_index.php
 
 define('ROOT_PATH', dirname(__DIR__, 2));
-define('LANG_PATH', ROOT_PATH . '/lang/fr.php');
 define('TEMPLATE_PATH', ROOT_PATH . '/templates/pages/');
-define('OUTPUT_FILE_FULL', ROOT_PATH . '/data/search_index.json');
-define('OUTPUT_FILE_MIN', ROOT_PATH . '/data/search_index.min.json');
 
-$lang = require LANG_PATH;
-$index = [];
+// 🌐 Langues à traiter
+$languages = ['fr', 'en', 'de'];
+
+foreach ($languages as $langCode) {
+    echo "--- Génération de l'index pour la langue : $langCode ---\n";
+
+    $langFilePath = ROOT_PATH . "/lang/{$langCode}.php";
+    if (!file_exists($langFilePath)) {
+        echo "❌ Fichier de langue non trouvé pour '$langCode', ignoré.\n";
+        continue;
+    }
+    $lang = require $langFilePath;
+
+    $outputFileFull = ROOT_PATH . "/data/search_index_{$langCode}.json";
+    $outputFileMin = ROOT_PATH . "/data/search_index_{$langCode}.min.json";
+    
+    $index = [];
 
 // ❌ Exclure ces fichiers
 $excludeFiles = ['404.php', 'search.php', 'index.php', 'test.php'];
@@ -16,10 +28,10 @@ $excludeFiles = ['404.php', 'search.php', 'index.php', 'test.php'];
 // ✅ Fonction pour exclure les blocs "menu UI"
 function isMenuUIBlock(string $blocContent): bool {
     return (
-        preg_match('/t\(["\']MENU_UI_/i', $blocContent) ||
+        preg_match('/t\([\"\\]MENU_UI_/i', $blocContent) ||
         preg_match('#/assets/images/structure/menu/#i', $blocContent) ||
-        preg_match('/id=["\']menurectanglewindows/i', $blocContent) ||
-        preg_match('/id=["\']boutonrectangle/i', $blocContent)
+        preg_match('/id=[\"\\]menurectanglewindows/i', $blocContent) ||
+        preg_match('/id=[\"\\]boutonrectangle/i', $blocContent)
     );
 }
 
@@ -40,7 +52,7 @@ foreach ($rii as $file) {
     $content = file_get_contents($filepath);
 
     // 🔍 Extraire tous les blocs de type $blocks['EditRegionX'] = '...';
-    preg_match_all('/\$blocks\[\'(EditRegion\d{1,2})\'\]\s*=\s*\'(.*?)\';/s', $content, $matches, PREG_SET_ORDER);
+    preg_match_all('/\\$blocks\\\[\\\' (EditRegion\\d{1,2})\\\' \\\]\\s*=\\s*\\\' (.*?) \\\';/s', $content, $matches, PREG_SET_ORDER);
 
     $titre = '';
     $texteTotal = '';
@@ -57,7 +69,7 @@ foreach ($rii as $file) {
         $blocs_utilises[] = $blocId;
 
         // 🔍 Cherche les traductions t("...")
-        if (preg_match_all('/t\([\'"]([^\'"]+)[\'"]\)/', $blocContent, $tMatches)) {
+        if (preg_match_all('/t\([\\\'\"]([^\\\'\"]+)[\\\'\"]\)/i', $blocContent, $tMatches)) {
             foreach ($tMatches[1] as $langKey) {
                 if (!isset($lang[$langKey])) continue;
 
@@ -72,7 +84,7 @@ foreach ($rii as $file) {
         }
 
         // 📷 Cherche une image directe dans le bloc
-        if (!$image && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/', $blocContent, $imgMatch)) {
+        if (!$image && preg_match('/<img[^>]+src=["\\]([^"\\]+)["\\]/', $blocContent, $imgMatch)) {
             $image = $imgMatch[1];
         }
     }
@@ -89,20 +101,21 @@ foreach ($rii as $file) {
 }
 
 // 🔠 Tri alphabétique
-foreach ($index as &$entries) {
-    usort($entries, fn($a, $b) => strcasecmp($a['titre'], $b['titre']));
+    foreach ($index as &$entries) {
+        usort($entries, fn($a, $b) => strcasecmp($a['titre'], $b['titre']));
+    }
+
+    // 📁 Dossier de sortie
+    $dataPath = dirname($outputFileFull);
+    if (!is_dir($dataPath)) mkdir($dataPath, 0755, true);
+
+    // 💾 Écriture des fichiers
+    file_put_contents($outputFileFull, json_encode($index, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    file_put_contents($outputFileMin, json_encode($index, JSON_UNESCAPED_UNICODE));
+
+    // ✅ Résumé
+    echo "✅ Index pour '$langCode' généré avec succès.\n";
+    echo "   - 📁 " . $outputFileFull . "\n";
+    echo "   - 📁 " . $outputFileMin . "\n";
+    echo "   - 📊 Catégories : " . count($index) . " — Total éléments : " . count($index, COUNT_RECURSIVE) . "\n";
 }
-
-// 📁 Dossier de sortie
-$dataPath = dirname(OUTPUT_FILE_FULL);
-if (!is_dir($dataPath)) mkdir($dataPath, 0755, true);
-
-// 💾 Écriture des fichiers
-file_put_contents(OUTPUT_FILE_FULL, json_encode($index, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-file_put_contents(OUTPUT_FILE_MIN, json_encode($index, JSON_UNESCAPED_UNICODE));
-
-// ✅ Résumé
-echo "✅ Index généré avec exclusion des menus UI\n";
-echo "📁 " . OUTPUT_FILE_FULL . "\n";
-echo "📁 " . OUTPUT_FILE_MIN . "\n";
-echo "📊 Catégories : " . count($index) . " — Total éléments : " . count($index, COUNT_RECURSIVE) . "\n";

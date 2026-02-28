@@ -1,4 +1,4 @@
-# Les Caramagnols
+# LesCaramagnols
 ==================
 ==================
 
@@ -15,21 +15,6 @@ Site associatif qui combine un backend PHP procedural et un frontend moderne com
 - Node.js 18+ et npm pour le bundler Vite et les assets front.
 - Base MySQL/MariaDB optionnelle (voir `backend/sql/install.sql`) pour la future fonctionnalite blog/commentaires.
 
-## TODO
-| Priorite | Tache | Statut |
-| -------- | ----- | ------ |
-| Haute    | Finaliser l'API de traduction cote front (`frontend/src/js/i18n.js`) et lier `backend/core/api/lang.php`. | Termine |
-| Haute    | Documenter et securiser le chargement des variables sensibles (`backend/.env` → `app_config()`). | Termine |
-| Moyenne  | Rationaliser les mixins et composants SCSS partages pour reduire la duplication. | A planifier |
-| Moyenne  | Appliquer `stylelint`/`eslint` et corriger les avertissements restants avant le prochain build. | A faire |
-| Basse    | Etendre la feuille de route blog (workflow, moderation, analytics) en decoupant par livrable. | A planifier |
-
-Automatiser un contrôle de permissions .env dans la chaîne de déploiement et étendre le monitoring de configuration selon les besoins, mettre a jour readme.md
-Etendre la liste des variables critiques si d’autres services sont requis (ex. SMTP sécurisé, clés OAuth), mettre a jour readme.md
-Installer les dépendances puis lancer npm run test:run et composer test, mettre a jour readme.md
-Décider si Thumbs.db doit être committé ou supprimé, mettre a jour readme.md
-Etendre la couverture test selon vos priorités (ex. modules backend supplémentaires), mettre a jour readme.md
-
 ## 🌐 Divers
 - cache simple pour les traductions et le manifest Vite afin d'eviter des lectures disque repetitives.
 - Factorisation des doublons dans `frontend/src/js/menus.js` (listeners multiples sur `DOMContentLoaded`) pour limiter le travail DOM et les effets de bord.
@@ -41,6 +26,7 @@ Etendre la couverture test selon vos priorités (ex. modules backend supplément
    ```bash
    cd frontend
    npm install
+   npm audit fix --force
    ```
 2. (Optionnel) Provisionner la base :
    ```bash
@@ -76,6 +62,8 @@ Etendre la couverture test selon vos priorités (ex. modules backend supplément
 cd frontend
 npm run build      # genere dist/ avec manifest et assets versionnes
 npm run postbuild  # recopie dist/assets et dist/.vite vers backend/public
+npm run build && npm run postbuild 
+
 ```
 Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la recherche) sur votre hebergement PHP.
    php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php
@@ -87,7 +75,6 @@ Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la
    PowerShell :  netstat -ano | findstr :5173 pour récupérer le PID.
 taskkill /PID <PID> /F pour le fermer, ex : taskkill /PID 17984 /F
 
-```
 GITHUB
 Github : paulineBerg
 git add .
@@ -97,6 +84,21 @@ git branch -M main
 git push -u origin main
 
 git push --force --set-upstream origin main     # ou pour ecraser tout
+
+## ⚙️ TODO
+| Priorite | Tache                                                                                                                  | Statut      |
+| -------- | ---------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Haute    | Finaliser l'API de traduction cote front (`frontend/src/js/i18n.js`) et lier `backend/core/api/lang.php`.              | Termine     |
+| Haute    | Documenter et securiser le chargement des variables sensibles (`backend/.env` → `app_config()`).                       | Termine     |
+| Moyenne  | Rationaliser les mixins et composants SCSS partages pour reduire la duplication, mettre a jour readme.md               | A planifier |
+| Moyenne  | Appliquer `stylelint`/`eslint` et corriger les avertissements restants avant le prochain build,mettre a jour readme.md | A faire     |
+| Basse    | Etendre la feuille de route blog (workflow, moderation, analytics) en decoupant par livrable,mettre a jour readme.md   | A planifier |
+
+Automatiser un contrôle de permissions .env dans la chaîne de déploiement et étendre le monitoring de configuration selon les besoins, mettre a jour readme.md
+Etendre la liste des variables critiques si d’autres services sont requis (ex. SMTP sécurisé, clés OAuth), mettre a jour readme.md
+Installer les dépendances puis lancer npm run test:run et composer test, mettre a jour readme.md
+Décider si Thumbs.db doit être committé ou supprimé, mettre a jour readme.md
+Etendre la couverture test selon vos priorités (ex. modules backend supplémentaires), mettre a jour readme.md
 
 ##  🧪 Tests
 - **Frontend (Vitest)** :

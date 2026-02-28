@@ -86,6 +86,7 @@ body.menu-open {
 
   .breadcrumb-menu.open {
     display: block;
+    pointer-events: auto; /* Réactive les clics sur le menu quand il est ouvert */
   }
 
   .breadcrumb-menu li ul {
@@ -125,15 +126,19 @@ body.menu-open {
     text-decoration: underline;
   }
 
-  #hamburger-icon {
-    width: 30px;
-    height: 30px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    cursor: pointer;
-    margin-right: 20px;
+  #menuLanguesMobile {
+    padding: 1rem 0; /* Espace vertical autour des drapeaux */
   }
+
+  #menuLanguesMobile .langues-mobiles {
+    display: flex;
+    justify-content: center; /* Centre les drapeaux horizontalement */
+    gap: 1.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  /* Les li et a à l'intérieur s'aligneront naturellement grâce au flex, pas besoin de styles additionnels. */
 
   #hamburger-icon span {
     display: block;

@@ -19,7 +19,7 @@ $blocks['EditRegion2'] = '
 // === ColonneJustifie25 (image de logo Austin) ===
 $blocks['EditRegion8'] = '
     <div id="bloccenter">
-
+<img src="/assets/images/autoretro/mercedes/mercedeslogos.jpg" title="les différents logos de la marque mercedes" alt="les différents logos de la marque mercedes">
     </div>
 ';
 
@@ -34,26 +34,26 @@ $blocks['EditRegion4'] = '
         <div id="menurectanglewindows">
             <div id="boutonrectanglevertfonce">
                 <a href="/site/auto-retro/austin/histoire-de-austin.php">
-                    ' . t("MENU_UI_AUSTIN") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_UI_AUSTIN") . '" title="' . t("MENU_UI_AUSTIN") . '">
+                    ' . t("MENU_AUSTIN") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_AUSTIN") . '" title="' . t("MENU_AUSTIN") . '">
                 </a>
             </div>
         </div>
         <div id="menurectanglewindows">
             <div id="boutonrectangleblanc">
                 <a href="/site/auto-retro/mercedes/la-slk-une-voiture-compacte-sportive.php">
-                    ' . t("MENU_UI_HISTOIRESLK") . '
+                    ' . t("MENU_HISTOIRESLK") . '
                     <img src="/assets/images/structure/menu/auto-retro/uimercedes.jpg"
-                         alt="' . t("MENU_UI_HISTOIRESLK") . '"
-                         title="' . t("MENU_UI_HISTOIRESLK") . '">
+                         alt="' . t("MENU_HISTOIRESLK") . '"
+                         title="' . t("MENU_HISTOIRESLK") . '">
                 </a>
             </div>
         </div>      
         <div id="menurectanglewindows">
             <div id="boutonrectangleorange">
                 <a href="/site/auto-retro/panhard/histoire-de-panhard.php">
-                    ' . t("MENU_UI_PANHARD") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_UI_PANHARD") . '" title="' . t("MENU_UI_PANHARD") . '">
+                    ' . t("MENU_PANHARD") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_PANHARD") . '" title="' . t("MENU_PANHARD") . '">
                 </a>
             </div>
         </div>
@@ -62,20 +62,20 @@ $blocks['EditRegion4'] = '
         <div id="menurectanglewindows">
             <div id="boutonrectanglebleufonce">
                 <a href="/site/auto-retro/renault/histoire-de-renault.php">
-                    ' . t("MENU_UI_RENAULT") . '
+                    ' . t("MENU_RENAULT") . '
                     <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
-                         alt="' . t("MENU_UI_RENAULT") . '"
-                         title="' . t("MENU_UI_RENAULT") . '">
+                         alt="' . t("MENU_RENAULT") . '"
+                         title="' . t("MENU_RENAULT") . '">
                 </a>
             </div>
         </div>   
         <div id="menurectanglewindows">
             <div id="boutonrectanglerouge">
                 <a href="/site/auto-retro/simca/histoire-de-simca.php">
-                    ' . t("MENU_UI_SIMCA") . '
+                    ' . t("MENU_SIMCA") . '
                     <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
-                         alt="' . t("MENU_UI_SIMCA") . '"
-                         title="' . t("MENU_UI_SIMCA") . '">
+                         alt="' . t("MENU_SIMCA") . '"
+                         title="' . t("MENU_SIMCA") . '">
                 </a>
             </div>
         </div>

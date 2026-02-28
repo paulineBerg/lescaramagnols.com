@@ -1,4 +1,5 @@
 <?php
+// file: backend/core/bootstrap.php
 // ============================================================================
 // Les Caramagnols - Initialisation globale (core/bootstrap.php)
 // ============================================================================
@@ -49,6 +50,7 @@ if (file_exists($dbFile)) {
 
 // 5. Chargement des traductions et de la fonction t()
 require_once ROOT_PATH . '/core/i18n.php';
+require_once ROOT_PATH . '/core/lang_bootstrap.php';
 
 // 6. Initialisation du mini-routeur
 require_once ROOT_PATH . '/core/router.php';

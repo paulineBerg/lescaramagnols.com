@@ -1,7 +1,6 @@
 
 <!DOCTYPE html>
-<html lang="fr">
-
+<html lang="<?php echo CURRENT_LANG; ?>">
 
     <div id="blocHaut">
         <?= $blocks['EditRegion1'] ?? '' ?>
@@ -38,7 +37,4 @@
     <div id="blocCentre">
         <?= $blocks['EditRegion11'] ?? '' ?>
     </div>
-
-
-
 

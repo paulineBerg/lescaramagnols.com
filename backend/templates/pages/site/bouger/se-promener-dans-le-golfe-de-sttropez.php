@@ -37,16 +37,16 @@ $blocks['EditRegion3'] = '
 <div id="menuwindows">
   <div id="menurectanglewindows">
     <div id="boutonrectangleorange">
-      <a href="site/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php">' . t('MENU_UI_VILLAGES') . '
-        <img src="/assets/images/structure/menu/bouger/uivillages.jpg" alt="' . t('MENU_UI_VILLAGESALT') . '" title="' . t('MENU_UI_VILLAGES') . '">
+      <a href="site/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php">' . t('MENU_LESVILLAGES') . '
+        <img src="/assets/images/structure/menu/bouger/uivillages.jpg" alt="' . t('MENU_LESVILLAGESALT') . '" title="' . t('MENU_LESVILLAGES') . '">
       </a>
     </div>
   </div>	
 
   <div id="menurectanglewindows">
     <div id="boutonrectanglebleuvert">
-      <a href="les-animations-dans-le-golfe-de-sttropez.php">' . t('MENU_UI_ANIMATIONS') . '
-        <img src="/assets/images/structure/menu/bouger/uianimations.jpg" alt="' . t('MENU_UI_ANIMATIONSALT') . '" title="' . t('MENU_UI_ANIMATIONS') . '">
+      <a href="les-animations-dans-le-golfe-de-sttropez.php">' . t('MENU_ANIMATIONS') . '
+        <img src="/assets/images/structure/menu/bouger/uianimations.jpg" alt="' . t('MENU_ANIMATIONSALT') . '" title="' . t('MENU_ANIMATIONS') . '">
       </a>
     </div>					
   </div>	

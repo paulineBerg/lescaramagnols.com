@@ -48,13 +48,13 @@ $blocks['EditRegion7'] = '
 $blocks['EditRegion11'] = '
 <div id="bloccenter">
     <div id="menurectanglewindows">
-        <div id="boutonrectanglegris"><a href="/site/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php">' . t('MENU_UI_VILLAGESCOGOLIN') . '<img src="/assets/images/structure/menu/bouger/uicogolin.jpg" alt="' . t('MENU_UI_VILLAGESCOGOLINALT') . '" title="' . t('MENU_UI_VILLAGESCOGOLIN') . '"></a></div>
+        <div id="boutonrectanglegris"><a href="/site/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php">' . t('MENU_LESVILLAGESCOGOLIN') . '<img src="/assets/images/structure/menu/bouger/uicogolin.jpg" alt="' . t('MENU_LESVILLAGESCOGOLINALT') . '" title="' . t('MENU_LESVILLAGESCOGOLIN') . '"></a></div>
     </div>
     <div id="menurectanglewindows">
-        <div id="boutonrectanglebleufonce"><a href="/site/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php">' . t('MENU_UI_VILLAGESRAMATUELLE') . '<img src="/assets/images/structure/menu/bouger/uiramatuelle.jpg" alt="' . t('MENU_UI_VILLAGESRAMATUELLEALT') . '" title="' . t('MENU_UI_VILLAGESRAMATUELLE') . '"></a></div>
+        <div id="boutonrectanglebleufonce"><a href="/site/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php">' . t('MENU_LESVILLAGESRAMATUELLE') . '<img src="/assets/images/structure/menu/bouger/uiramatuelle.jpg" alt="' . t('MENU_LESVILLAGESRAMATUELLEALT') . '" title="' . t('MENU_LESVILLAGESRAMATUELLE') . '"></a></div>
     </div>
     <div id="menurectanglewindows">
-        <div id="boutonrectanglenoir"><a href="/site/bouger/se-promener-a-sttropez.php">' . t('MENU_UI_VILLAGESSTTROPEZ') . '<img src="/assets/images/structure/menu/bouger/uisttropez.jpg" alt="' . t('MENU_UI_VILLAGESSTTROPEZALT') . '" title="' . t('MENU_UI_VILLAGESSTTROPEZ') . '"></a></div>
+        <div id="boutonrectanglenoir"><a href="/site/bouger/se-promener-a-sttropez.php">' . t('MENU_LESVILLAGESSTTROPEZ') . '<img src="/assets/images/structure/menu/bouger/uisttropez.jpg" alt="' . t('MENU_LESVILLAGESSTTROPEZALT') . '" title="' . t('MENU_LESVILLAGESSTTROPEZ') . '"></a></div>
     </div>
 </div>
 '; // Avant menu bas

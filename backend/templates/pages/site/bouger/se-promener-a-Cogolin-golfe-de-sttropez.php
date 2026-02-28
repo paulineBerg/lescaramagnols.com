@@ -36,13 +36,13 @@ $blocks['EditRegion3'] = '
 $blocks['EditRegion4'] = '
 <div id="bloccenter">
     <div id="menurectanglewindows">
-        <div id="boutonrectangleblanc"><a href="/site/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php">' . t("MENU_UI_VILLAGESGARDEFREINET") . '<img src="/assets/images/structure/menu/bouger/uigardefreinet.jpg" alt="' . t("MENU_UI_VILLAGESGARDEFREINETALT") . '" title="' . t("MENU_UI_VILLAGESGARDEFREINET") . '"></a></div>					
+        <div id="boutonrectangleblanc"><a href="/site/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php">' . t("MENU_LESVILLAGESGARDEFREINET") . '<img src="/assets/images/structure/menu/bouger/uigardefreinet.jpg" alt="' . t("MENU_LESVILLAGESGARDEFREINETALT") . '" title="' . t("MENU_LESVILLAGESGARDEFREINET") . '"></a></div>					
     </div>	
     <div id="menurectanglewindows">
-        <div id="boutonrectanglebleufonce"><a href="/site/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php">' . t("MENU_UI_VILLAGESRAMATUELLE") . '<img src="/assets/images/structure/menu/bouger/uiramatuelle.jpg" alt="' . t("MENU_UI_VILLAGESRAMATUELLEALT") . '" title="' . t("MENU_UI_VILLAGESRAMATUELLE") . '"></a></div>					
+        <div id="boutonrectanglebleufonce"><a href="/site/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php">' . t("MENU_LESVILLAGESRAMATUELLE") . '<img src="/assets/images/structure/menu/bouger/uiramatuelle.jpg" alt="' . t("MENU_LESVILLAGESRAMATUELLEALT") . '" title="' . t("MENU_LESVILLAGESRAMATUELLE") . '"></a></div>					
     </div>	
     <div id="menurectanglewindows">
-        <div id="boutonrectanglenoir"><a href="/site/bouger/se-promener-a-sttropez.php">' . t("MENU_UI_VILLAGESSTTROPEZ") . '<img src="/assets/images/structure/menu/bouger/uisttropez.jpg" alt="' . t("MENU_UI_VILLAGESSTTROPEZALT") . '" title="' . t("MENU_UI_VILLAGESSTTROPEZ") . '"></a></div>					
+        <div id="boutonrectanglenoir"><a href="/site/bouger/se-promener-a-sttropez.php">' . t("MENU_LESVILLAGESSTTROPEZ") . '<img src="/assets/images/structure/menu/bouger/uisttropez.jpg" alt="' . t("MENU_LESVILLAGESSTTROPEZALT") . '" title="' . t("MENU_LESVILLAGESSTTROPEZ") . '"></a></div>					
     </div>	
 </div>
 ';

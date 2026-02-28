@@ -7,10 +7,11 @@ function resolve_route(string $uri): string {
     $uri = trim($uri, '/');
     $segments = explode('/', $uri);
 
-    // 🌐 Détection de la langue via URL ou ?lang=xx
-    $lang = $_GET['lang'] ?? (in_array($segments[0], ['fr', 'en', 'de']) ? array_shift($segments) : DEFAULT_LANG);
-    $_GET['lang'] = $lang;
-    define('CURRENT_LANG', $lang);
+    // 🌐 Si la langue est dans l'URL, on la retire pour le routing.
+    // La détection complète (GET, URL, cookie, navigateur) est déjà faite dans lang_bootstrap.php.
+    if (isset($segments[0]) && in_array($segments[0], ['fr', 'en', 'de'])) {
+        array_shift($segments);
+    }
 
     // 🧭 Route nettoyée sans le préfixe de langue
     $route = implode('/', $segments);

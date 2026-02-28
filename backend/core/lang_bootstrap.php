@@ -7,6 +7,7 @@ $availableLangs = ['fr', 'en', 'de'];
 /**
  * Détecte la langue à utiliser :
  * 1. ?lang dans l'URL
+ * 1.5. Langue dans l'URL (ex: /en/page)
  * 2. cookie 'lang'
  * 3. HTTP_ACCEPT_LANGUAGE
  * 4. fallback 'fr'
@@ -23,6 +24,21 @@ function detectLang(array $available): string {
             'samesite' => 'Lax'
         ]);
         return $_GET['lang'];
+    }
+
+    // 1.5. Langue dans l'URL
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $segments = explode('/', trim($uri, '/'));
+    if (isset($segments[0]) && in_array($segments[0], $available, true)) {
+        $lang = $segments[0];
+        setcookie('lang', $lang, [
+            'expires' => time() + 365 * 24 * 3600,
+            'path' => '/',
+            'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
+            'httponly' => false,
+            'samesite' => 'Lax'
+        ]);
+        return $lang;
     }
 
     // 2. Cookie

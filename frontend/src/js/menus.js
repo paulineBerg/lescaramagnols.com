@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     breadcrumb.classList.remove('open');
     document.body.classList.remove('menu-open');
+    if (hamburger) {
+      hamburger.setAttribute('aria-expanded', 'false');
+    }
 
     if (mobileNav) {
       mobileNav.classList.remove('open');
@@ -63,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const shouldOpen = !breadcrumb.classList.contains('open');
       breadcrumb.classList.toggle('open', shouldOpen);
       document.body.classList.toggle('menu-open', shouldOpen);
+      hamburger.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
 
       if (mobileNav) {
         mobileNav.classList.toggle('open', shouldOpen);

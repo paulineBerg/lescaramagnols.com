@@ -37,6 +37,7 @@ function renderMenu1(array $menuItems): void {
             <!-- Recherche -->
             <div id="menuRecherche">
                 <form action="/site/search" method="get" role="search">
+                    <input type="hidden" name="lang" value="<?= CURRENT_LANG ?>">
                     <input type="text" name="q" placeholder="<?= t('MENU_RECHERCHER') ?>..." required aria-label="<?= t('MENU_RECHERCHE') ?>">
                     <button type="submit">🔍</button>
                 </form>
@@ -155,7 +156,7 @@ function renderMenuHamburger(array $menuItems, array $langTranslations): void {
         <div class="menu-header">
             <!-- Icône hamburger -->
             <div id="hamburger-icon" role="button" tabindex="0" aria-label="Ouvrir le menu mobile"
-                 onclick="document.getElementById('breadcrumb-mobile').classList.toggle('open')">
+                 aria-controls="mobile-menu" aria-expanded="false">
                 <span></span><span></span><span></span>
             </div>
 
@@ -168,21 +169,23 @@ function renderMenuHamburger(array $menuItems, array $langTranslations): void {
         </div>
 
         <!-- Menu mobile -->
-        <nav class="breadcrumb-menu" aria-label="Menu mobile">
+        <nav id="mobile-menu" class="breadcrumb-menu" aria-label="Menu mobile">
+
+            <!-- Recherche mobile -->
+            <div id="menuRecherche">
+                <form action="/site/search" method="get" role="search">
+                    <input type="hidden" name="lang" value="<?= CURRENT_LANG ?>">
+                    <input type="text" name="q" placeholder="<?= t('MENU_RECHERCHER') ?>..." required aria-label="<?= t('MENU_RECHERCHE') ?>">
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+            <!-- Menu principal (mobile) -->
             <div>
                 <ul>
                     <?php foreach ($menuItems as $item): ?>
                         <?php renderMenu2Item($item, $langTranslations); ?>
                     <?php endforeach; ?>
                 </ul>
-            </div>
-
-            <!-- Recherche mobile -->
-            <div id="menuRecherche">
-                <form action="/site/search" method="get" role="search">
-                    <input type="text" name="q" placeholder="<?= t('MENU_RECHERCHER') ?>..." required aria-label="<?= t('MENU_RECHERCHE') ?>">
-                    <button type="submit">🔍</button>
-                </form>
             </div>
 
             <!-- Langues (mobile) -->

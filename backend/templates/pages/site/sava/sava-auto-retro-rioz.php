@@ -46,10 +46,10 @@ $blocks['EditRegion4'] = '
         <div id="menurectanglewindows">
             <div id="boutonrectanglevertfonce">
                 <a href="https://www.instagram.com/histoires_de_vieilles/" target="_blank">
-                    ' . t('MENU_UI_INSTA_HISTOIRESDEVIEILLES') . '
+                    ' . t('MENU_INSTA_HISTOIRESDEVIEILLES') . '
                     <img src="/assets/images/structure/menu/sava/uihistoiresdevieilles.jpg"
-                         alt="' . t('MENU_UI_INSTA_HISTOIRESDEVIEILLES') . '"
-                         title="' . t('MENU_UI_INSTA_HISTOIRESDEVIEILLES') . '">
+                         alt="' . t('MENU_INSTA_HISTOIRESDEVIEILLES') . '"
+                         title="' . t('MENU_INSTA_HISTOIRESDEVIEILLES') . '">
                 </a>
             </div>
         </div>
@@ -57,10 +57,10 @@ $blocks['EditRegion4'] = '
         <div id="menurectanglewindows">
             <div id="boutonrectanglebleuvert">
                 <a href="https://www.facebook.com/histoiresdevieilles" target="_blank">
-                    ' . t('MENU_UI_FACE_HISTOIRESDEVIEILLES') . '
+                    ' . t('MENU_FACE_HISTOIRESDEVIEILLES') . '
                     <img src="/assets/images/structure/menu/sava/uihistoiresdevieilles.jpg"
-                         alt="' . t('MENU_UI_FACE_HISTOIRESDEVIEILLES') . '"
-                         title="' . t('MENU_UI_FACE_HISTOIRESDEVIEILLES') . '">
+                         alt="' . t('MENU_FACE_HISTOIRESDEVIEILLES') . '"
+                         title="' . t('MENU_FACE_HISTOIRESDEVIEILLES') . '">
                 </a>
             </div>
         </div>
@@ -68,10 +68,10 @@ $blocks['EditRegion4'] = '
         <div id="menurectanglewindows">
             <div id="boutonrectanglejaune">
                 <a href="https://www.sarl-sava.com" target="_blank">
-                    ' . t('MENU_UI_SAVA') . '
+                    ' . t('MENU_SAVASITE') . '
                     <img src="/assets/images/structure/menu/sava/uisava.jpg"
-                         alt="' . t('MENU_UI_SAVA') . '"
-                         title="' . t('MENU_UI_SAVA') . '">
+                         alt="' . t('MENU_SAVASITE') . '"
+                         title="' . t('MENU_SAVASITE') . '">
                 </a>
             </div>
         </div>

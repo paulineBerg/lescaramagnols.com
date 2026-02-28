@@ -34,20 +34,20 @@ $blocks['EditRegion4'] = '
     <div id="menurectanglewindows">
         <div id="boutonrectanglerouge">
             <a href="../simca/la-simca-P60-voiture-de-collection.php">
-                ' . t("MENU_UI_HISTOIREARONDEP60") . '
+                ' . t("MENU_HISTOIREARONDEP60") . '
                 <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
-                     alt="' . t("MENU_UI_HISTOIREARONDEP60") . '"
-                     title="' . t("MENU_UI_HISTOIREARONDEP60") . '">
+                     alt="' . t("MENU_HISTOIREARONDEP60") . '"
+                     title="' . t("MENU_HISTOIREARONDEP60") . '">
             </a>
         </div>
     </div>
     <div id="menurectanglewindows">
         <div id="boutonrectangleorange">
             <a href="../panhard/une-dyna-dans-le-golfe-de-sttropez.php">
-                ' . t("MENU_UI_DYNA") . '
+                ' . t("MENU_DYNA") . '
                 <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg"
-                     alt="' . t("MENU_UI_DYNA") . '"
-                     title="' . t("MENU_UI_DYNA") . '">
+                     alt="' . t("MENU_DYNA") . '"
+                     title="' . t("MENU_DYNA") . '">
             </a>
         </div>
     </div>
@@ -57,20 +57,20 @@ $blocks['EditRegion4'] = '
     <div id="menurectanglewindows">
         <div id="boutonrectanglevertfonce">
             <a href="une-mini-dans-le-golfe-de-sttropez.php">
-                ' . t("MENU_UI_MINI") . '
+                ' . t("MENU_MINI") . '
                 <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg"
-                     alt="' . t("MENU_UI_MINI") . '"
-                     title="' . t("MENU_UI_MINI") . '">
+                     alt="' . t("MENU_MINI") . '"
+                     title="' . t("MENU_MINI") . '">
             </a>
         </div>
     </div>
     <div id="menurectanglewindows">
         <div id="boutonrectanglebleuturquoise">
             <a href="../renault/une-twingo-dans-le-golfe-de-sttropez.php">
-                ' . t("MENU_UI_TWINGO") . '
+                ' . t("MENU_TWINGO") . '
                 <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
-                     alt="' . t("MENU_UI_TWINGO") . '"
-                     title="' . t("MENU_UI_TWINGO") . '">
+                     alt="' . t("MENU_TWINGO") . '"
+                     title="' . t("MENU_TWINGO") . '">
             </a>
         </div>
     </div>

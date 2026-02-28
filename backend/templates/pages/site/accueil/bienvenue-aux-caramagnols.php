@@ -1,5 +1,5 @@
 <?php
-// templates/pages/bienvenue-aux-caramagnols.php
+// templates/pages/site/accueil/bienvenue-aux-caramagnols.php
 
 // Initialisation des blocs (évite les erreurs si appelés)
 $blocks = [];

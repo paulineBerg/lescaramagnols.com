@@ -36,26 +36,26 @@ $blocks['EditRegion4'] = '
         <div id="menurectanglewindows">
             <div id="boutonrectanglevertfonce">
                 <a href="/site/auto-retro/austin/histoire-de-austin.php">
-                    ' . t("MENU_UI_AUSTIN") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_UI_AUSTIN") . '" title="' . t("MENU_UI_AUSTIN") . '">
+                    ' . t("MENU_AUSTIN") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uiaustin.jpg" alt="' . t("MENU_AUSTIN") . '" title="' . t("MENU_AUSTIN") . '">
                 </a>
             </div>
         </div>
         <div id="menurectanglewindows">
             <div id="boutonrectangleblanc">
                 <a href="/site/auto-retro/mercedes/histoire-de-mercedes.php">
-                    ' . t("MENU_UI_MERCEDES") . '
+                    ' . t("MENU_MERCEDES") . '
                     <img src="/assets/images/structure/menu/auto-retro/uimercedes.jpg"
-                         alt="' . t("MENU_UI_MERCEDES") . '"
-                         title="' . t("MENU_UI_MERCEDES") . '">
+                         alt="' . t("MENU_MERCEDES") . '"
+                         title="' . t("MENU_MERCEDES") . '">
                 </a>
             </div>
         </div>      
         <div id="menurectanglewindows">
             <div id="boutonrectangleorange">
                 <a href="/site/auto-retro/panhard/histoire-de-panhard.php">
-                    ' . t("MENU_UI_PANHARD") . '
-                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_UI_PANHARD") . '" title="' . t("MENU_UI_PANHARD") . '">
+                    ' . t("MENU_PANHARD") . '
+                    <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_PANHARD") . '" title="' . t("MENU_PANHARD") . '">
                 </a>
             </div>
         </div>
@@ -64,20 +64,20 @@ $blocks['EditRegion4'] = '
         <div id="menurectanglewindows">
             <div id="boutonrectanglebleufonce">
                 <a href="/site/auto-retro/renault/histoire-de-renault.php">
-                    ' . t("MENU_UI_RENAULT") . '
+                    ' . t("MENU_RENAULT") . '
                     <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"
-                         alt="' . t("MENU_UI_RENAULT") . '"
-                         title="' . t("MENU_UI_RENAULT") . '">
+                         alt="' . t("MENU_RENAULT") . '"
+                         title="' . t("MENU_RENAULT") . '">
                 </a>
             </div>
         </div>   
         <div id="menurectanglewindows">
             <div id="boutonrectanglerouge">
                 <a href="/site/auto-retro/simca/histoire-de-simca.php">
-                    ' . t("MENU_UI_SIMCA") . '
+                    ' . t("MENU_SIMCA") . '
                     <img src="/assets/images/structure/menu/auto-retro/uisimca.jpg"
-                         alt="' . t("MENU_UI_SIMCA") . '"
-                         title="' . t("MENU_UI_SIMCA") . '">
+                         alt="' . t("MENU_SIMCA") . '"
+                         title="' . t("MENU_SIMCA") . '">
                 </a>
             </div>
         </div>
