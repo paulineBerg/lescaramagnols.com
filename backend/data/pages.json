@@ -1,0 +1,51 @@
+{
+  "pages": [
+    {
+      "slug": "association",
+      "status": "published",
+      "translations": {
+        "fr": {
+          "title": "L'association Les Caramagnols",
+          "blocks": {
+            "EditRegion1": "<h1>L'association</h1>",
+            "EditRegion2": "<p>Les Caramagnols rassemblent des passionné·es d'automobiles anciennes et de virées dans le Golfe. Cette page est alimentée depuis <code>pages.json</code>.</p>",
+            "EditRegion3": "<p>Objectifs : organiser des balades, restaurer des modèles emblématiques et transmettre l'histoire locale. Contactez-nous pour rejoindre l'atelier mécanique ou proposer une sortie.</p>",
+            "EditRegion5": "<p><strong>Fondé :</strong> 2010<br><strong>Membres :</strong> 120+<br><strong>Garage partagé :</strong> Ramatuelle</p>",
+            "EditRegion7": "<p>Envie d'aider ? Rejoignez l'équipe bénévoles et participez aux prochaines expositions itinérantes.</p>",
+            "EditRegion9": "<div class=\"aligncenter\"><em>Contenu chargé dynamiquement</em></div>"
+          },
+          "meta": {
+            "description": "Présentation de l'association Les Caramagnols"
+          }
+        },
+        "en": {
+          "title": "About Les Caramagnols",
+          "blocks": {
+            "EditRegion1": "<h1>About the club</h1>",
+            "EditRegion2": "<p>Les Caramagnols gathers vintage-car lovers on the French Riviera. Content for this page comes from <code>pages.json</code>.</p>",
+            "EditRegion3": "<p>We organise drives, restore iconic cars and share local history. Join a workshop or suggest the next scenic route.</p>",
+            "EditRegion7": "<p>Want to help? Join the volunteer crew for upcoming pop-up exhibitions.</p>"
+          },
+          "meta": {
+            "description": "About Les Caramagnols club"
+          }
+        }
+      }
+    },
+    {
+      "slug": "balade-collective",
+      "status": "published",
+      "title": "Balade collective",
+      "blocks": {
+        "EditRegion1": "<h1>Balade collective</h1>",
+        "EditRegion2": "<p>Une page d'exemple alimentée par JSON pour annoncer une sortie.</p>",
+        "EditRegion3": "<p>Date provisoire : 12 avril. Roadbook : Ramatuelle \u2192 Gassin \u2192 Grimaud.</p>",
+        "EditRegion4": "<p>Inscription ouverte aux membres et aux curieux, dans la limite des places disponibles.</p>",
+        "EditRegion6": "<p>Contact : sorties@lescaramagnols.com</p>"
+      },
+      "meta": {
+        "description": "Annonce d'une balade collective"
+      }
+    }
+  ]
+}
