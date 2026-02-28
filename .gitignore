@@ -37,6 +37,7 @@ Thumbs.db
 # Composer / PHP caches (si utilises plus tard)
 vendor/
 composer.lock
+backend/var/
 
 # Python venv (au cas ou)
 .venv/

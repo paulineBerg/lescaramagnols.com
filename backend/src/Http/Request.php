@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Caramagnols\Http;
@@ -14,7 +15,6 @@ class Request
         private readonly array $get,
         private readonly array $post,
         private readonly array $cookies,
-        private readonly array $files,
         private readonly array $headers
     ) {
     }
@@ -26,7 +26,6 @@ class Request
             $_GET,
             $_POST,
             $_COOKIE,
-            $_FILES,
             self::collectHeaders()
         );
     }

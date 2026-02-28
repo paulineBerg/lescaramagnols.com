@@ -6,4 +6,6 @@ parameters:
     - config
   tmpDir: var/phpstan
   bootstrapFiles:
-    - core/env.php
+    - phpstan.bootstrap.php
+  treatPhpDocTypesAsCertain: false
+  reportUnmatchedIgnoredErrors: false

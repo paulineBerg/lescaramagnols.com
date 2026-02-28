@@ -212,6 +212,7 @@ npm run build:webp   # Sharp → WebP + tailles responsive
 ## Licence
 - Code sous licence MIT (voir fichier `LICENSE`).
 - Les assets (images, logos) doivent être utilisés uniquement si vous en détenez les droits ou l’autorisation explicite ; remplacer ou attribuer si nécessaire.
+- Rappel : à chaque modification significative (fonctionnalité, build, dépendance), mettre à jour ce README si nécessaire.
 
 ---
 
