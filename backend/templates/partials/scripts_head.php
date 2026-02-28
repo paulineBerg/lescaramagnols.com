@@ -10,15 +10,18 @@
   if (file_exists($manifestPath)) {
       $manifest = json_decode(file_get_contents($manifestPath), true);
 
-      if (isset($manifest['src/js/main.js'])) {
-          $entry = $manifest['src/js/main.js'];
+      $entryKey = $manifest['src/js/main.ts'] ?? $manifest['src/js/main.js'] ?? null;
+      if ($entryKey) {
+          $entry = $entryKey;
 
           if (!empty($entry['css'][0])) {
               echo '<link rel="stylesheet" href="/' . $entry['css'][0] . '">' . PHP_EOL;
           }
 
           if (!empty($entry['file'])) {
-              echo '<script type="module" src="/' . $entry['file'] . '"></script>' . PHP_EOL;
+              $nonce = $GLOBALS['csp_nonce'] ?? '';
+              $nonceAttr = $nonce !== '' ? " nonce=\"$nonce\"" : '';
+              echo '<script type="module"' . $nonceAttr . ' src="/' . $entry['file'] . '"></script>' . PHP_EOL;
           }
       } else {
           echo '<!-- ⚠️ "src/js/main.js" non trouvé dans le manifest -->' . PHP_EOL;

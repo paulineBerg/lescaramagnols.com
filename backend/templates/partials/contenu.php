@@ -2,19 +2,19 @@
 <!DOCTYPE html>
 <html lang="<?php echo CURRENT_LANG; ?>">
 
-    <div id="blocHaut">
+    <div id="bloc-haut">
         <?= $blocks['EditRegion1'] ?? '' ?>
     </div>
 
-    <div id="colonneJustifie40">
+    <div id="colonne-justifie-40">
         <?= $blocks['EditRegion2'] ?? '' ?>
     </div>
 
-    <div id="colonneJustifie25">
+    <div id="colonne-justifie-25">
         <?= $blocks['EditRegion8'] ?? '' ?>
     </div>
 
-    <div id="blocCentre">
+    <div id="bloc-centre">
         <?= $blocks['EditRegion3'] ?? '' ?>
     </div>
 
@@ -34,7 +34,7 @@
         <?= $blocks['EditRegion7'] ?? '' ?>
     </div>
 
-    <div id="blocCentre">
+    <div id="bloc-centre">
         <?= $blocks['EditRegion11'] ?? '' ?>
     </div>
 

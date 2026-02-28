@@ -58,12 +58,12 @@ if (file_exists(__DIR__ . '/menus_fixes.php')) {
 }
 ?>
 
-<div id="menuDroit">
-    <?php if (function_exists('renderMenuFixe')) renderMenuFixe($menuDroit, 'menuDroit', t('TXT_MENUDROIT')); ?>
+<div id="menu-droit">
+    <?php if (function_exists('renderMenuFixe')) renderMenuFixe($menuDroit, 'menu-droit', t('TXT_MENUDROIT')); ?>
 </div>
 
-<div id="menuGauche">
-    <?php if (function_exists('renderMenuFixe')) renderMenuFixe($menuGauche, 'menuGauche', t('TXT_MENUGAUCHE')); ?>
+<div id="menu-gauche">
+    <?php if (function_exists('renderMenuFixe')) renderMenuFixe($menuGauche, 'menu-gauche', t('TXT_MENUGAUCHE')); ?>
 </div>
 
 <div id="contenu">
@@ -93,7 +93,7 @@ if (file_exists(__DIR__ . '/menus_fixes.php')) {
         ?>
     </div>
 
-    <div id="MenuPiedpage">
+    <div id="menu-piedpage">
         <?php
         if (file_exists(__DIR__ . '/footer.php')) {
             include __DIR__ . '/footer.php';

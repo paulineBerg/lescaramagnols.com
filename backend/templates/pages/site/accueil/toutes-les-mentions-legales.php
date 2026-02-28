@@ -9,14 +9,14 @@ $blocks['EditRegion10'] = ''; // contenu supprimé volontairement
 
 // === Bloc haut avec image + titres ===
 $blocks['EditRegion1'] = '
-    <div id="BlocHaut"><h1>' . t('TXT_TITREMENTION') . '</h1></div>
+    <div id="bloc-haut"><h1>' . t('TXT_TITREMENTION') . '</h1></div>
 </span>
 <p></p>
 ';
 
 // === Introduction page (colonneJustifie40) ===
 $blocks['EditRegion2'] = '
-<div id="blocHaut" class="border">
+<div id="bloc-haut" class="border">
     ' . t('TXT_MENTIONINTRO') . '
 </div>
 ';
@@ -30,7 +30,7 @@ $blocks['EditRegion3'] = '
 
 ' . t('TXT_MENTIONCENTRE') . '
 
-<div id="blocHaut">
+<div id="bloc-haut">
     - Pour placer ma bannière sur votre site, merci de copier/coller le code ci-dessous<br>
     <textarea rows="3" name="S1" cols="70">
 <p align="center"><a href="https://www.lescaramagnols.com" target="_blank">

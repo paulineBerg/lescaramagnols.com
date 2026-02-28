@@ -10,7 +10,7 @@ $blocks['EditRegion1'] = '
 ';
 
 $blocks['EditRegion2'] = '
-    <div id="blocHaut" class="border">' . t("TXT_PANHARDINTRO") . '</div>
+    <div id="bloc-haut" class="border">' . t("TXT_PANHARDINTRO") . '</div>
 ';
 
 $blocks['EditRegion8'] = '

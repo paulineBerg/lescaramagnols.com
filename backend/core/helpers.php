@@ -42,3 +42,9 @@ function vite_css($entry) {
 
     return $manifest[$entry]['css'];
 }
+
+function db_table(string $name): string
+{
+    $prefix = defined('DB_TABLE_PREFIX') ? DB_TABLE_PREFIX : 'car_';
+    return $prefix . ltrim($name, '_');
+}

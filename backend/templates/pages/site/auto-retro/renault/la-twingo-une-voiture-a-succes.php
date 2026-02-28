@@ -13,7 +13,7 @@ $blocks['EditRegion1'] = '
 
 // === Introduction courte (colonne gauche)
 $blocks['EditRegion2'] = '
-    <div id="blocHaut" class="border">' . t("TXT_HISTOIRETWINGOINTRO") . '</div>
+    <div id="bloc-haut" class="border">' . t("TXT_HISTOIRETWINGOINTRO") . '</div>
 ';
 
 // === Image mascotte (colonne droite)

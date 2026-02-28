@@ -11,7 +11,7 @@ function renderMenu3(array $menuItems, array $langTranslations): void {
     if (empty($menuItems)) return;
     ?>
     <div id="menu3">
-        <ul id="navMenu3">
+        <ul id="nav-menu-3">
             <?php foreach ($menuItems as $item): ?>
                 <?php renderMenu3Item($item, $langTranslations); ?>
             <?php endforeach; ?>

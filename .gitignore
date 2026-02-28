@@ -1,6 +1,7 @@
 # Node.js / Vite
 node_modules/
 frontend/dist/
+frontend/dist_backup/
 frontend/.cache/
 frontend/.vite/
 .vite/
@@ -16,6 +17,7 @@ backend/public/assets/
 backend/public/.vite/
 backend/data/search_index*.json
 backend/data/*.cache
+backend/data/logs/
 frontend/coverage/
 
 # Environnements
@@ -42,3 +44,8 @@ composer.lock
 # Misc
 *.bak
 *.tmp
+backend/config/database.override.php
+backend/public/tmp_config/
+backend/config/db.php
+
+*:Zone.Identifier

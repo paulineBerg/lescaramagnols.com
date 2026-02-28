@@ -20,14 +20,15 @@ function detectLang(array $available): string {
             'expires' => time() + 365 * 24 * 3600,
             'path' => '/',
             'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-            'httponly' => false,
-            'samesite' => 'Lax'
+            'httponly' => true,
+            'samesite' => 'Strict'
         ]);
         return $_GET['lang'];
     }
 
     // 1.5. Langue dans l'URL
-    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+    $uri = parse_url($requestUri, PHP_URL_PATH);
     $segments = explode('/', trim($uri, '/'));
     if (isset($segments[0]) && in_array($segments[0], $available, true)) {
         $lang = $segments[0];
@@ -35,8 +36,8 @@ function detectLang(array $available): string {
             'expires' => time() + 365 * 24 * 3600,
             'path' => '/',
             'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
-            'httponly' => false,
-            'samesite' => 'Lax'
+            'httponly' => true,
+            'samesite' => 'Strict'
         ]);
         return $lang;
     }

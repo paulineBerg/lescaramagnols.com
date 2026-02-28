@@ -22,6 +22,10 @@ function load_translations_cached(string $lang): array {
     }
 
     $data = require $target;
+    if (is_array($data)) {
+        $data = sanitize_translation_array($data);
+    }
+
     $cache[$target] = [
         'mtime' => $mtime,
         'data'  => is_array($data) ? $data : []

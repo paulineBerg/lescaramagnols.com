@@ -3,6 +3,23 @@
 
 @use 'variables' as vars;
 
+@mixin image-set-with-fallback($fallback, $webp: null, $type-fallback: 'image/jpeg') {
+  @if $fallback {
+    background-image: url($fallback);
+
+    @if $webp {
+      background-image: image-set(
+        url($webp) type('image/webp'),
+        url($fallback) type($type-fallback)
+      );
+      background-image: image-set(
+        url($webp) 1x,
+        url($fallback) 1x
+      );
+    }
+  }
+}
+
 // Mixin pour les titres, alignement et taille paramétrables
 @mixin titre($align: center, $taille: vars.$font-size-medium) {
   font-family: vars.$font-segoe-ui-light;
@@ -21,13 +38,21 @@
   display: block;
 }
 
+// Mixin pour les conteneurs d'image avec taille configurable
+@mixin image-frame($width, $height, $enforce-size: false) {
+  @if $enforce-size {
+    width: $width;
+    height: $height;
+  } @else {
+    max-width: $width;
+    max-height: $height;
+  }
+
+  overflow: hidden;
+}
+
 // Mixin pour style de bouton avec différentes images d'état
-@mixin bouton-style(
-  $img-path,
-  $hover-path,
-  $active-path,
-  $size: normal
-) {
+@mixin bouton-style($img-path, $hover-path, $active-path, $size: normal) {
   display: block;
   width: if($size == normal, vars.$button-width, 14rem);
   height: if($size == normal, vars.$button-height, 14rem);
@@ -38,7 +63,7 @@
   padding-bottom: vars.$button-padding-bottom;
   text-align: center;
 
-    a {
+  a {
     color: vars.$color-jaune;
     font-weight: bold;
     text-decoration: none;
@@ -83,25 +108,23 @@
 ) {
   width: $width;
   height: $height;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: auto;
-  margin-bottom: 5%;
+  margin: auto auto 5%;
   overflow: hidden;
 
-  #diaporamaAppt {
-    width: 44.35rem; // valeur fixe, peut devenir variable
-    height: 28.126rem;
+  #diaporama-appt {
+    width: vars.$diaporama-appt-width;
+    height: vars.$diaporama-appt-height;
     position: relative;
     left: 50%;
     margin-left: -21.875rem;
     top: 50%;
     margin-top: -14.063rem;
 
-    div img + .diaporamaApptgrande {
+    div img + .diaporama-appt-grande {
       display: none;
     }
-    div img:hover + .diaporamaApptgrande {
+
+    div img:hover + .diaporama-appt-grande {
       display: inline;
       position: absolute;
       width: $center-width;
@@ -113,34 +136,68 @@
       z-index: 1;
     }
 
+    /* stylelint-disable no-descending-specificity */
     img {
       float: left;
       width: $thumb-width;
       height: $thumb-height;
     }
 
-    .diaporamaAppthaut,
-    .diaporamaApptbas {
-      width: 44.35rem;
+    .diaporama-appt-haut,
+    .diaporama-appt-bas {
+      width: vars.$diaporama-appt-width;
       height: $thumb-height;
     }
 
-    .diaporamaApptgauche,
-    .diaporamaApptdroite {
+    .diaporama-appt-gauche,
+    .diaporama-appt-droite {
       float: left;
       width: $side-width;
       height: $center-height;
     }
 
-    .diaporamaApptdroite {
+    .diaporama-appt-droite {
       float: right;
     }
 
-    .diaporamaApptcentre,
-    .diaporamaApptouverture {
+    .diaporama-appt-centre,
+    .diaporama-appt-ouverture {
       float: left;
       width: $center-width;
       height: $center-height;
+    }
+    /* stylelint-enable no-descending-specificity */
+  }
+}
+
+// Mixin pour les vignettes du diaporama survol
+@mixin diaporama-survol-image(
+  $default-bg: null,
+  $hover-bg: null,
+  $visible: true,
+  $default-webp: null,
+  $hover-webp: null
+) {
+  width: 15rem;
+  height: 11rem;
+  margin: 0.5rem;
+  display: if($visible, inline-block, none);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  border-radius: 0.75rem;
+  transition:
+    transform 0.4s ease-in-out,
+    background-image 0.3s ease-in-out,
+    box-shadow 0.4s ease-in-out;
+
+  @include image-set-with-fallback($default-bg, $default-webp);
+
+  @if $hover-bg {
+    &:hover {
+      @include image-set-with-fallback($hover-bg, $hover-webp);
+
+      transform: scale(1.05);
     }
   }
 }
@@ -193,11 +250,7 @@
 }
 
 // Mixin texte gras avec taille, famille, couleur paramétrables
-@mixin font-bold(
-  $size,
-  $family: vars.$font-family-main,
-  $color: vars.$color-white
-) {
+@mixin font-bold($size, $family: vars.$font-family-main, $color: vars.$color-white) {
   font-family: $family;
   font-weight: bold;
   color: $color;
@@ -224,8 +277,47 @@
 // Mixin clearfix (pour clear floats)
 @mixin clearfix {
   &::after {
-    content: "";
+    content: '';
     display: table;
     clear: both;
+  }
+}
+
+// Mixin pour une section de tableau générique
+@mixin table-group(
+  $selector,
+  $th-bg,
+  $td-width,
+  $th-align: left,
+  $td-align: left,
+  $th-width: auto
+) {
+  #{$selector} {
+    .caption {
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .box {
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+    }
+
+    .th {
+      @include table-th($th-bg, $th-width, $th-align);
+
+      color: vars.$color-white;
+    }
+
+    .td {
+      @include table-td($td-width, $td-align);
+    }
+
+    .tr {
+      @include table-tr(100%);
+
+      margin-top: 1rem;
+    }
   }
 }

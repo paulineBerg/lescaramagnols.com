@@ -2,13 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ '**' ]
   pull_request:
-    branches: [ '**' ]
 
 jobs:
-  backend:
-    name: Backend (PHPUnit)
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,28 +13,46 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
-      - name: Install composer dependencies
-        run: composer install --working-dir=backend --no-interaction --prefer-dist
-      - name: Run backend tests
-        run: composer test --working-dir=backend
+          extensions: mbstring, intl
+          tools: composer
+      - name: Cache composer
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.composer/cache
+            backend/vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('backend/composer.lock') }}
+      - name: Install backend deps
+        run: composer install --no-interaction --prefer-dist
+        working-directory: backend
 
-  frontend:
-    name: Frontend (Vitest + build)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - name: Install frontend dependencies
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
         run: npm ci
         working-directory: frontend
-      - name: Run frontend tests
-        run: npm run test:run
+
+      - name: PHP lint (phpstan)
+        run: composer phpstan
+        working-directory: backend
+
+      - name: PHPCS
+        run: composer phpcs
+        working-directory: backend
+
+      - name: PHPUnit
+        run: composer test
+        working-directory: backend
+
+      - name: Front lint
+        run: npm run lint
         working-directory: frontend
-      - name: Build frontend and postbuild
-        run: |
-          npm run build
-          npm run postbuild
+
+      - name: Vitest
+        run: npm run test:run
         working-directory: frontend

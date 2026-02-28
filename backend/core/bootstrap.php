@@ -9,11 +9,24 @@
  */
 
 // 1. Chemin racine du site
-define('ROOT_PATH', realpath(__DIR__ . '/../'));
+if (!defined('ROOT_PATH')) {
+    define('ROOT_PATH', realpath(__DIR__ . '/../'));
+}
+
+// 1bis. Autoload Composer (classes PSR-4, libs externes)
+$autoload = ROOT_PATH . '/vendor/autoload.php';
+if (file_exists($autoload)) {
+    require_once $autoload;
+}
 
 // 2. Chargement du gestionnaire .env
 require_once __DIR__ . '/env.php';
 load_env(ROOT_PATH . '/.env');
+
+// 2b. Helpers de validation
+require_once ROOT_PATH . '/core/validation.php';
+require_once ROOT_PATH . '/core/security.php';
+apply_security_headers();
 
 // 3. Chargement de la configuration globale
 require_once ROOT_PATH . '/config/config.php';

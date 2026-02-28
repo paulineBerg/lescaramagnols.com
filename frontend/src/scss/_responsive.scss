@@ -1,5 +1,6 @@
 /* RESPONSIVE DESIGN */
-/****************************/
+
+/***************************  */
 @use 'variables' as vars;
 
 // Menu windows visible uniquement sur mobile/tablette
@@ -21,23 +22,31 @@ div#menuwindows {
 }
 
 /* Responsive ≤ 768px */
-@media screen and (max-width: 768px) {
+@media screen and (width <= 768px) {
   body {
     font-size: 140%;
     margin-top: 60px; /* pour le menu fixe */
   }
-/* Autoriser le scroll dans le menu mobile */
-#breadcrumb-mobile.open {
-  height: 100vh;
-  overflow-y: auto;
-}
-body.menu-open {
-  overflow: hidden;
-}
-/* Cacher le bouton remonter quand le menu mobile est ouvert */
-#breadcrumb-mobile.open ~ #remonter {
-  display: none;
-}
+
+  #remonter {
+    display: block;
+  }
+
+  /* Autoriser le scroll dans le menu mobile */
+  #breadcrumb-mobile.open {
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  body.menu-open {
+    overflow: hidden;
+  }
+
+  /* Cacher le bouton remonter quand le menu mobile est ouvert */
+  #breadcrumb-mobile.open ~ #remonter {
+    display: none;
+  }
+
   /* Affiche le menu mobile */
   #breadcrumb-mobile {
     display: block;
@@ -62,25 +71,38 @@ body.menu-open {
     border-radius: 5px;
   }
 
+  #banniere {
+    display: flex !important;
+    height: 2.5rem;
+    background-image: url('@/assets/images/structure/banniere.gif');
+    background-repeat: repeat-x;
+    background-size: auto 2.5rem;
+    background-position: center top;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .banniere-texte {
+    font-size: 1.6rem;
+    padding: 0 0.5rem;
+    animation: defilement 15s linear infinite;
+    color: #{vars.$color-blanc};
+  }
+
   .banniere-mobile-header {
     flex: 1;
     margin-left: 10px;
+  }
 
-    #banniere {
-      display: flex !important;
-      height: 2.5rem;
-      background-repeat: repeat-x;
-      background-size: auto 2.5rem;
-      background-position: center top;
-      align-items: center;
-      justify-content: center;
-    }
+  .mobile-home-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 10px;
 
-    .banniere-texte {
-      font-size: 120%;
-      padding: 0 0.5rem;
-      animation: defilement 15s linear infinite;
-      color: #{vars.$color-blanc};
+    img {
+      width: 32px;
+      height: 32px;
     }
   }
 
@@ -105,17 +127,6 @@ body.menu-open {
     border-bottom: none;
   }
 
-  .breadcrumb-menu > li > a {
-    font-weight: bold;
-    padding: 10px;
-    display: block;
-    color: #{vars.$color-noir};
-  }
-
-  .breadcrumb-menu > li > a:hover {
-    color: #{vars.$color-bleu-fonce};
-  }
-
   .breadcrumb-menu li a {
     text-decoration: none;
     color: #{vars.$color-bleu-fonce};
@@ -126,11 +137,11 @@ body.menu-open {
     text-decoration: underline;
   }
 
-  #menuLanguesMobile {
+  #menu-langues-mobile {
     padding: 1rem 0; /* Espace vertical autour des drapeaux */
   }
 
-  #menuLanguesMobile .langues-mobiles {
+  #menu-langues-mobile .langues-mobiles {
     display: flex;
     justify-content: center; /* Centre les drapeaux horizontalement */
     gap: 1.5rem;
@@ -138,6 +149,7 @@ body.menu-open {
     margin: 0;
     padding: 0;
   }
+
   /* Les li et a à l'intérieur s'aligneront naturellement grâce au flex, pas besoin de styles additionnels. */
 
   #hamburger-icon span {
@@ -148,36 +160,19 @@ body.menu-open {
     transition: all 0.3s ease;
     margin: 3px 0;
   }
-/* RECHERCHER */
-#menuRecherche {
-    margin-left: 0;
 
-}
-  #menuGauche,
-  #menuDroit {
+  /* RECHERCHER */
+  #menu-recherche {
+    margin-left: 0;
+  }
+
+  #menu-gauche,
+  #menu-droit {
     display: none;
   }
 
   #entete {
     display: flex;
-  }
-
-  #banniere {
-    display: flex !important;
-    height: 2.5rem;
-    background-image: url('@/assets/images/structure/banniere.gif');
-    background-repeat: repeat-x;
-    background-size: auto 2.5rem;
-    background-position: center top;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .banniere-texte {
-    font-size: 1.6rem;
-    padding: 0 0.5rem;
-    animation: defilement 15s linear infinite;
-    color: #{vars.$color-blanc};
   }
 
   .defilement marquee {
@@ -187,17 +182,13 @@ body.menu-open {
     white-space: nowrap;
   }
 
-  #remonter {
-    display: block;
-  }
-
   #contenu {
     width: 97%;
-    margin: 5rem auto auto auto;
+    margin: 5rem auto auto;
   }
 
-  #colonneJustifie25,
-  #colonneJustifie40 {
+  #colonne-justifie-25,
+  #colonne-justifie-40 {
     height: auto;
     width: 95%;
     float: none;
@@ -213,5 +204,15 @@ body.menu-open {
     margin-left: auto;
     margin-right: auto;
   }
-  
+}
+
+.breadcrumb-menu > li > a {
+  font-weight: bold;
+  padding: 10px;
+  display: block;
+  color: #{vars.$color-noir};
+}
+
+.breadcrumb-menu > li > a:hover {
+  color: #{vars.$color-bleu-fonce};
 }

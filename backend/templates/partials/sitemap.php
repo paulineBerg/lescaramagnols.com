@@ -6,7 +6,7 @@
 <tr valign="top">
     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
     <td colspan="99">
-        <div class="TitreCentrePoliceMoyenne"><?= t('TXT_SOMMAIRECENTRE') ?></div>
+        <div class="titre-centre-police-moyenne"><?= t('TXT_SOMMAIRECENTRE') ?></div>
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr>
                 <td><a href="https://www.lescaramagnols.com/" title="Lescaramagnols">La page d'accueil</a></td>
@@ -18,7 +18,7 @@
 <tr valign="top">
     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
     <td colspan="99">
-        <div class="TitreCentrePoliceMoyenne">Le Menu d'accueil<br><span>2 pages</span></div>
+        <div class="titre-centre-police-moyenne">Le Menu d'accueil<br><span>2 pages</span></div>
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr>
                 <td><a href="/accueil/toutes-les-mentions-legales.php" title="Mentions légales">Les mentions légales des Caramagnols</a></td>
@@ -33,7 +33,7 @@
 <tr valign="top">
     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
     <td colspan="99">
-        <div class="TitreCentrePoliceMoyenne">Auto-rétro<br><span>1 page</span></div>
+        <div class="titre-centre-police-moyenne">Auto-rétro<br><span>1 page</span></div>
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr>
                 <td><a href="/auto-retro/simca/histoire-de-simca.php" title="Simca">Simca</a> : histoire de la marque.</td>
@@ -45,7 +45,7 @@
 <tr valign="top">
     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
     <td colspan="99">
-        <div class="TitreCentrePoliceMoyenne">Bouger<br><span>6 pages</span></div>
+        <div class="titre-centre-police-moyenne">Bouger<br><span>6 pages</span></div>
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr><td><a href="/bouger/se-promener-dans-le-golfe-de-sttropez.php">Le Golfe de Saint-Tropez</a> : ses légendes... ses villages... ses plages</td></tr>
             <tr><td><a href="/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php">Visitez Cogolin</a> : Tout savoir sur Cogolin</td></tr>
@@ -60,7 +60,7 @@
 <tr valign="top">
     <td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
     <td colspan="99">
-        <div class="TitreCentrePoliceMoyenne">Communiquer<br><span>4 pages</span></div>
+        <div class="titre-centre-police-moyenne">Communiquer<br><span>4 pages</span></div>
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr><td><a href="/communiquer/comment-joindre-les-caramagnols-golfe-de-sttropez">Contacter les Caramagnols</a></td></tr>
             <tr><td><a href="/communiquer/les-reseaux-sociaux-de-paulineetnoel-facebook-twitter-google-pinterest-instagram-flickr.php">Réseaux sociaux</a></td></tr>

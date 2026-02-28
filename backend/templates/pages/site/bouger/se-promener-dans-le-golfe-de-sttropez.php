@@ -12,21 +12,21 @@ $blocks['EditRegion10'] = '';
 $blocks['EditRegion1'] = '
 <span><h1>' . t('TITREBOUGER') . '</h1></span>
 
-<div id="diaporamaSurvol">
-  <div class="diaporamaSurvolDeuximg1">
-    <div class="diaporamaSurvolimg1"><a href="#" title="' . t('IMAGE_ALT_indexsttropez') . '" alt="' . t('IMAGE_ALT_indexsttropez') . '"></a>' . t('TXT_INDEXSTTROPEZ') . '</div>
-    <div class="diaporamaSurvolimg2"><a href="#" title="' . t('IMAGE_ALT_indexnature') . '" alt="' . t('IMAGE_ALT_indexnature') . '"></a>' . t('TXT_INDEXNATURE') . '</div>
+<div id="diaporama-survol">
+  <div class="diaporama-survol-deux-img-1">
+    <div class="diaporama-survol-img-1"><a href="#" title="' . t('IMAGE_ALT_indexsttropez') . '" alt="' . t('IMAGE_ALT_indexsttropez') . '"></a>' . t('TXT_INDEXSTTROPEZ') . '</div>
+    <div class="diaporama-survol-img-2"><a href="#" title="' . t('IMAGE_ALT_indexnature') . '" alt="' . t('IMAGE_ALT_indexnature') . '"></a>' . t('TXT_INDEXNATURE') . '</div>
   </div>
-  <div class="diaporamaSurvolDeuximg2">
-    <div class="diaporamaSurvolimg3"><a href="#" title="' . t('IMAGE_ALT_indexanimations') . '" alt="' . t('IMAGE_ALT_indexanimations') . '"></a>' . t('TXT_INDEXANIMATIONS') . '</div>
-    <div class="diaporamaSurvolimg4"><a href="#" title="' . t('IMAGE_ALT_indexplage') . '" alt="' . t('IMAGE_ALT_indexplage') . '"></a>' . t('TXT_INDEXPLAGE') . '</div>
+  <div class="diaporama-survol-deux-img-2">
+    <div class="diaporama-survol-img-3"><a href="#" title="' . t('IMAGE_ALT_indexanimations') . '" alt="' . t('IMAGE_ALT_indexanimations') . '"></a>' . t('TXT_INDEXANIMATIONS') . '</div>
+    <div class="diaporama-survol-img-4"><a href="#" title="' . t('IMAGE_ALT_indexplage') . '" alt="' . t('IMAGE_ALT_indexplage') . '"></a>' . t('TXT_INDEXPLAGE') . '</div>
   </div>
 </div>
 
 ';
 
 $blocks['EditRegion2'] = '
-<div id="blocHaut" class="border">
+<div id="bloc-haut" class="border">
   ' . t('TXT_GOLFEINTRO') . '
 </div>
 ';

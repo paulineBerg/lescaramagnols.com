@@ -1,10 +1,10 @@
-import { defineConfig } from 'vite'
-import path from 'path'
-import { fileURLToPath } from 'node:url'
-import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { defineConfig } from 'vite';
+import path from 'path';
+import { fileURLToPath } from 'node:url';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   plugins: [
@@ -27,12 +27,12 @@ export default defineConfig({
     manifest: true,
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'src/js/main.js'),
-        style: path.resolve(__dirname, 'src/scss/style.scss'),
+        main: path.resolve(__dirname, 'src/js/main.ts'),
+        style: path.resolve(__dirname, 'src/scss/style.scss')
       },
       output: {
         assetFileNames: 'assets/[name].[hash][extname]',
-        entryFileNames: 'assets/[name].[hash].js',
+        entryFileNames: 'assets/[name].[hash].js'
       }
     }
   },
@@ -45,8 +45,8 @@ export default defineConfig({
     proxy: {
       '/core/': {
         target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
+        changeOrigin: true
       }
     }
   }
-})
+});

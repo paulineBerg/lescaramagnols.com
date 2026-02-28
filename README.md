@@ -1,227 +1,367 @@
-# LesCaramagnols
-==================
-==================
+# Les Caramagnols – documentation projet
 
-Site associatif qui combine un backend PHP procedural et un frontend moderne compile avec Vite. Le backend gere le routage, les gabarits et l'internationalisation serveur, tandis que le frontend fournit les interactions (menus responsive, traduction client) et les styles SCSS.
+Site associatif mêlant un backend PHP procédural (routage, templates, i18n serveur, sécurité) et un frontend Vite (JS/SCSS) pour l’interactivité et le responsive.  
+Ce document décrit l’architecture, les langages, les dépendances, les commandes utiles et les points clés de mise en production.
 
-## 📁 Apercu
-- 🔙 Backend PHP leger avec mini-routeur `backend/core/router.php` et systeme de gabarits `backend/templates`.
-- 🔄 Internationalisation mixte : chargement serveur via `backend/core/lang_bootstrap.php` et API front a implementer `frontend/src/js/i18n.js`.
-- 🌐 Frontend Vite (JS/SCSS) pour le comportement responsive, les menus et l'enrichissement UX.
-- 📦 Donnees editoriales servies en PHP, moteur de recherche base sur un index JSON genere par CLI.
+## Quick start (2 min)
+- Prérequis : PHP 8.1+, Composer, Node.js 20+, npm
+- Installer backend : `composer install --working-dir=backend`
+- Installer frontend : `cd frontend && npm install`
+- Lancer en dev :
+  - Terminal 1 : `cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php`
+  - Terminal 2 : `cd frontend && npm run dev`
+- Ouvrir : http://127.0.0.1:8000?lang=fr (proxy Vite sur /core)
+- Pas de CSS/JS ? Vérifier `backend/public/.vite/manifest.json` (généré par `npm run build && npm run postbuild`) ou que Vite affiche “ready in …” dans le terminal.
 
-## ⚙️ Stack technique
-- PHP 8.1+ (extensions standards) ; scripts CLI dans `backend/core/tools`.
-- Node.js 18+ et npm pour le bundler Vite et les assets front.
-- Base MySQL/MariaDB optionnelle (voir `backend/sql/install.sql`) pour la future fonctionnalite blog/commentaires.
+---
 
-## 🌐 Divers
-- cache simple pour les traductions et le manifest Vite afin d'eviter des lectures disque repetitives.
-- Factorisation des doublons dans `frontend/src/js/menus.js` (listeners multiples sur `DOMContentLoaded`) pour limiter le travail DOM et les effets de bord.
-- Documenté un fichier `.env` et centralisé la configuration (BASE_URL, credentials BDD, mail) pour simplifier le deploiement multi-environnement.
-- Mise en place d'une tache `npm run lint` (ESLint/Stylelint) pour detecter les regressions avant le bundling final
+## Architecture générale
+- **Entrée HTTP** : `backend/public/index.php` charge `core/bootstrap.php`, applique les en-têtes de sécurité, détecte la langue, résout la route via le mini-routeur (`core/router.php`) puis rend la page avec le layout PHP (`templates/partials/layout.php`).
+- **Templating** : pages PHP dans `backend/templates/pages/**` structurées autour des blocs `EditRegion*`; menus/header/footer dans `backend/templates/partials/*`.
+- **Internationalisation (serveur)** : détection langue (`core/lang_bootstrap.php`), chargement et sanitisation des traductions (`core/i18n.php`, fichiers `backend/lang/{fr,en,de}.php`), cookie `lang` sécurisé.
+- **Internationalisation (client)** : module `frontend/src/js/i18n.js` (fetch `core/api/lang.php`, cache in-memory + localStorage, application sur `data-i18n`).
+- **Frontend build** : Vite 7 (ESM) + SCSS. Entrées `src/js/main.js` et `src/scss/style.scss`; manifest généré dans `backend/public/.vite/manifest.json` puis injecté côté PHP (`partials/scripts_head.php`). Images copiées via `vite-plugin-static-copy`.
+- **Assets runtime** : en production, les bundles sont copiés dans `backend/public/assets` et `backend/public/.vite` par `npm run postbuild`. En dev, Vite sert les assets, le proxy `/core/*` cible `http://127.0.0.1:8000`.
+- **Sécurité** : en-têtes CSP/anti-clickjacking (`core/security.php`), cookies HttpOnly + `SameSite=Strict`, session renommée (`caramagnols_session`), tokens CSRF (`csrf_token()` / `csrf_validate()`), rate limiting session (`core/rate_limiter.php`), sanitisation centralisée (`core/validation.php`).
+- **Admin blog (MVP)** : espace protégé sous `/site/<ADMIN_LOGIN_PATH>/` (défaut `adminFtyhik5642sZ`) avec login email/mot de passe (`core/auth/admin.php`). Layout admin : `backend/public/site/adminFtyhik5642sZ/layout.php`, pages dashboard & login.
+- **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir des templates). Dossier `backend/data/` pour les fichiers dérivés (index, brouillons blog…).
+- **Base de données (optionnelle pour l’instant)** : schéma MySQL minimal dans `backend/sql/install.sql` avec préfixe `car_`. Fichier `config/database.override.php` permet de surcharger les paramètres issus de `.env`.
 
-## Installation rapide
-1. Installer les dependances front :
-   ```bash
-   cd frontend
-   npm install
-   npm audit fix --force
-   ```
-2. (Optionnel) Provisionner la base :
-   ```bash
-   mysql -u <user> -p < backend/sql/install.sql
-   ```
-3. Dupliquer `backend/.env.example` en `backend/.env` puis ajuster `BASE_URL`, `DB_*` et `MAIL_*` selon votre environnement.
+---
 
-## 🛠️ Configuration (.env)
-- `APP_ENV=development|production` pilote le niveau de verification. En production, l'absence de certaines variables bloque le bootstrap.
-- `BASE_URL` et `DEFAULT_LANG` pilotent l'URL du site et la langue par defaut.
-- Les sections `DB_*` et `MAIL_*` centralisent les identifiants base de donnees et SMTP.
-- Les valeurs sont chargees au bootstrap (`backend/core/bootstrap.php`) via `load_env()` qui valide les clefs (`A-Z0-9_`), supprime les retours de ligne et expose les booleens (`true`/`false`).
-- `app_config()` fournit un acces typé : par exemple `app_config('database.host')` ou `app_config('mail.smtp_password')` dans les scripts PHP.
-- Ne commitez jamais votre `.env` : la version d'exemple (`backend/.env.example`) doit rester publique, mais le vrai fichier appartient au serveur.
-- Verifiez les permissions (600) et gardez `.env` hors du dossier `public/` pour éviter toute fuite via le web serveur.
-- Automatisation : `php backend/core/tools/check_env.php [--path=backend/.env] [--env=production]` vérifie les permissions, la localisation du fichier et la présence des variables critiques (erreurs si clés manquantes, avertissements sinon).
+## Périmètre technique
+- **Langages** : PHP 8.1+, JavaScript ES Modules, SCSS (Sass).
+- **Outils** : Composer, Vite 7, Vitest, ESLint, Stylelint, Sharp (conversion WebP), PHPUnit 10.
+- **Cibles d’exécution** : hébergement PHP (Apache/Nginx) sans serveur Node en production ; Node utilisé uniquement pour builder les assets.
 
-**Production**
-- `APP_ENV=production` impose la présence de `DB_HOST`, `DB_NAME`, `DB_USER`, `MAIL_SMTP_HOST` et `MAIL_FROM_ADDRESS`. Le bootstrap renvoie HTTP 500 (ou lève une exception en CLI) si ces clés manquent.
-- Ajoutez d'autres variables critiques dans `backend/core/bootstrap.php` si nécessaire.
+---
 
-
-## Developpement local
-- **Frontend** : `cd frontend && npm run dev` (serveur Vite sur http://127.0.0.1:5173).
-- **Backend** : `cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php`.
-- Le proxy Vite relaie `/core/*` vers http://127.0.0.1:8000 afin que `core/api/lang.php` soit accessible en mode dev.
-- Naviguer sur http://127.0.0.1:8000 et utiliser `?lang=en` ou `?lang=de` pour forcer une langue.
-
-> Astuce : en mode dev, Vite ne pousse pas automatiquement les assets dans `backend/public`. Les includes PHP attendent le manifest genere par `npm run build`.
-
-## Build & deploiement
-```bash
-cd frontend
-npm run build      # genere dist/ avec manifest et assets versionnes
-npm run postbuild  # recopie dist/assets et dist/.vite vers backend/public
-npm run build && npm run postbuild 
-
-```
-Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la recherche) sur votre hebergement PHP.
-   php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php
-
- tuer le processus qui occupe le port 
-   lister les ports : lsof -i
-   tuer le processus du PID : kill -9 <PID>
-   wsl : fuser -k 5173/tcp       fuser -k 5174/tcp        fuser -k 8000/tcp
-   PowerShell :  netstat -ano | findstr :5173 pour récupérer le PID.
-taskkill /PID <PID> /F pour le fermer, ex : taskkill /PID 17984 /F
-
-GITHUB
-Github : paulineBerg
-git add .
-git commit -m "Initial commit"
-# creation du repo git remote add origin https://github.com/paulineBerg/lescaramagnols.com.git
-git branch -M main
-git push -u origin main
-
-git push --force --set-upstream origin main     # ou pour ecraser tout
-
-## ⚙️ TODO
-| Priorite | Tache                                                                                                                  | Statut      |
-| -------- | ---------------------------------------------------------------------------------------------------------------------- | ----------- |
-| Haute    | Finaliser l'API de traduction cote front (`frontend/src/js/i18n.js`) et lier `backend/core/api/lang.php`.              | Termine     |
-| Haute    | Documenter et securiser le chargement des variables sensibles (`backend/.env` → `app_config()`).                       | Termine     |
-| Moyenne  | Rationaliser les mixins et composants SCSS partages pour reduire la duplication, mettre a jour readme.md               | A planifier |
-| Moyenne  | Appliquer `stylelint`/`eslint` et corriger les avertissements restants avant le prochain build,mettre a jour readme.md | A faire     |
-| Basse    | Etendre la feuille de route blog (workflow, moderation, analytics) en decoupant par livrable,mettre a jour readme.md   | A planifier |
-
-Automatiser un contrôle de permissions .env dans la chaîne de déploiement et étendre le monitoring de configuration selon les besoins, mettre a jour readme.md
-Etendre la liste des variables critiques si d’autres services sont requis (ex. SMTP sécurisé, clés OAuth), mettre a jour readme.md
-Installer les dépendances puis lancer npm run test:run et composer test, mettre a jour readme.md
-Décider si Thumbs.db doit être committé ou supprimé, mettre a jour readme.md
-Etendre la couverture test selon vos priorités (ex. modules backend supplémentaires), mettre a jour readme.md
-
-##  🧪 Tests
-- **Frontend (Vitest)** :
-  - installation (une seule fois) : `cd frontend && npm install`
-  - exécution ponctuelle : `npm run test:run`
-  - mode watch : `npm run test:watch`
-  - un rapport de couverture est généré dans `frontend/coverage/`
-- **Backend (PHPUnit)** :
-  - installation : `composer install --working-dir=backend`
-  - exécution : `composer test` (cf. script dans `backend/composer.json`) ou `vendor/bin/phpunit`
-  - les tests se trouvent dans `backend/tests/`
-- `php backend/core/tools/check_env.php` est un hook utile à exécuter dans vos pipelines CI/CD avant déploiement pour valider la configuration.
-- (Optionnel) définissez une variable d’environnement `APP_ENV=testing` pour isoler les tests des environnements dev/prod.
-
-## ⚙️ Scripts utilitaires
-- `php backend/core/tools/generate_search_index.php` : construit `backend/data/search_index.json` et sa version minifiee.
-- `php backend/core/tools/generate_favicon.php` : regenere les favicons a partir de `frontend/src/assets/images/structure/logo.(jpg|png)`.
-- `php backend/replace_image_paths.php` : normalise les chemins d'images dans les fichiers de langues.
-
-## Internationalisation
-- Detection de la langue via URL, cookie ou en-tete navigateur `backend/core/lang_bootstrap.php`.
-- Fonctions serveur `t()` disponibles dans les gabarits `backend/core/i18n.php`.
-- Cote client, `frontend/src/js/i18n.js` prevoit l'appel `fetch('core/api/lang.php?lang=xx')` pour alimenter les elements `data-i18n` (endpoint a finaliser).
-
-## Structure des dossiers
+## Structure des dossiers (racine)
 ```
 backend/
-  config/         # Config globale, connexion BDD
-  core/           # Bootstrap, routeur, outils CLI, i18n
-  public/         # Point d'entree HTTP, assets exposes
-  templates/      # Layouts et pages thematiques
-  lang/           # Traductions PHP (fr/en/de)
-  data/           # Fichiers derives (index de recherche)
+  public/            # point d’entrée HTTP, manifest + assets buildés
+  core/              # bootstrap, sécurité, i18n, router, API lang, outils CLI
+  templates/         # layouts et pages (blocs EditRegion*)
+  config/            # config app + overrides DB (hors webroot)
+  lang/              # traductions PHP (fr/en/de)
+  data/              # index de recherche, données dérivées
+  sql/               # install.sql (schéma MySQL)
 frontend/
-  src/            # JS, SCSS, images sources
-  dist/           # Build Vite (genere)
+  src/               # JS, SCSS, images sources
+  dist/              # sortie Vite (générée)
 ```
 
-### Propositions
+## Schéma : flux de rendu d’une page
+```
+public/index.php
+  -> core/bootstrap.php (env, config, sécurité)
+  -> lang_bootstrap (détection langue)
+  -> router (FastRoute puis fallback fichiers)
+  -> template page (templates/pages/…)
+  -> partials/layout.php
+       -> scripts_head.php (charge manifest Vite)
+```
 
-#### Optimisation
-- Remplacer les references d'images absolues par des imports Vite afin de profiter du hashing et d'eviter les avertissements de build, mettre à jour readme.md
-- Mutualiser les mixins SCSS communes pour reduire la duplication et simplifier la maintenance., mettre à jour readme.md
+## Contrat PHP <-> Vite
+- **Dev** : Vite sur http://127.0.0.1:5173, proxy `/core` vers PHP. Pas de manifest utilisé, assets en HMR.
+- **Prod** : `backend/public/assets/**` et `backend/public/.vite/manifest.json` doivent exister (créés par `npm run build && npm run postbuild`).
+- Symptômes + solutions :
+  - Page sans CSS/JS : manifest manquant ou `/assets/...` en 404 → relancer `npm run build && npm run postbuild`.
+  - 404 sur `/core/...` en dev : vérifier que `npm run dev` tourne et que le proxy cible bien 127.0.0.1:8000.
 
-#### Amelioration
-- Planifier un nettoyage progressif des fichiers SCSS pour respecter les regles Stylelint (kebab-case, espacements, doublons).
-- Documenter la convention de nommage CSS afin d'aligner les contributions futures., mettre à jour readme.md
+## Mises à jour récentes
+- Suppression du menu principal « COMMUNIQUER » et de ses sous-entrées (desktop et mobile).
+- Modernisation progressive (févr. 2026) :
+  - Autoload PSR-4 (`Caramagnols\\`) et FastRoute ajouté en front-controller avec fallback legacy.
+  - CSP avec nonce (fin de `unsafe-inline`), support Vite dev, frame-ancestors 'none'.
+  - API langue : ETag/Cache-Control → 304 si inchangé.
+  - Mailer basculé sur Symfony Mailer + logs Monolog (`backend/data/logs`).
+  - Script `composer check-i18n` pour aligner les clés fr/en/de.
+  - Frontend : entrée `main.ts`, modules i18n/menus/logger en TypeScript, autoprefixer+browserslist.
+  - CI GitHub Actions : phpunit, phpstan, phpcs, lint JS/CSS, vitest.
+  - Sécurité repo public : `.env`, `config/db.php`, `config/database.override.php`, logs et `public/tmp_config` sont ignorés (`.gitignore`).
 
-#### Correction
-- Supprimer ou encapsuler les appels `console.log` restants dans src/js/i18n.js et src/js/main.js., mettre à jour readme.md
-- Lancer `stylelint --fix` sur les fichiers corrigibles et traiter manuellement les cas restants avant la prochaine release., mettre à jour readme.md
+## Mise en œuvre des optimisations (plan d’action)
 
-### 🔐 Securite
-- Mettre en place une validation/echappement systematique sur les champs commentaires, tags et contenus multilingues pour limiter XSS., mettre à jour readme.md
-- Durcir la configuration des cookies (`HttpOnly`, `SameSite=Strict`) lors de la selection de langue et prevoir des tokens CSRF pour le futur dashboard admin., mettre à jour readme.md
-- Ajouter un pare-feu basique (rate limiting ou captcha) autour du formulaire de commentaires pour bloquer le spam., mettre à jour readme.md
+| Axe | Tâches | Priorité | Statut |
+| --- | --- | --- | --- |
+| Sécurité | CSP par nonce, frame-ancestors, cookies lang SameSite=Lax | Haute | En place (à valider en prod) |
+| Performance | ETag/Cache-Control sur API langue | Haute | En place |
+| Qualité code | PSR-4, FastRoute, tests router/i18n/CSRF/API | Haute | En place, à étendre |
+| Frontend | Passage TypeScript modules clés, autoprefixer, tests menus | Moyenne | En place |
+| Observabilité | Monolog (logs app), Symfony Mailer | Moyenne | En place |
+| CI | Workflow GitHub Actions (lint+tests) | Haute | En place |
+| Dette restante | Étendre la couverture tests, migration TS progressive, nettoyage assets obsolètes | Moyenne | À faire |
 
-### 🎯 Ajout de fonctionnalites
-- Developper le module blog complet : themes fixes (villages, animations, story), categories enfants illimitees, tags et edition multilingue avec duplication d'articles.
-- Fournir un dashboard admin protege (URL aleatoire + notification email) pour gerer articles, categories, tags et moderation des commentaires.
-- Ajouter un moteur de recherche cote front qui consomme `backend/data/search_index.json` avec filtres par theme, categorie et langue.
+### Backlog priorisé
+1) **Tests & lint** : augmenter la couverture (pages, router avancé, i18n).  
+2) **TS progressif** : migrer le reste des modules JS et typer les menus complexes.  
+3) **Nettoyage assets** : retirer les assets non référencés, automatiser la purge des hash anciens en postbuild.  
+4) **Middlewares** : étendre la pile (CSRF POST, rate-limit par endpoint).  
+5) **Search index** : tester/garder à jour la génération multi-langues en CI.
 
-## 📊 Blog et donnees
-- Le script `backend/sql/install.sql` installe les tables utilisateurs, articles, commentaires et taxonomies.
-- Les gabarits et menus existants imposent trois themes principaux (villages, animations, story) auxquels doivent se rattacher les contenus.
-- Les fichiers de langues et l API de traduction fournissent un socle pour publier en plusieurs langues et aligner front/backend.
+### Checklist rapide
+- [ ] `composer install` (backend) et `npm install` (frontend, Node 20+).
+- [ ] `composer lint && npm run lint`.
+- [ ] `composer test && npm run test:run`.
+- [ ] `composer check-i18n`.
+- [ ] `npm run build && npm run postbuild` (puis vérifier `backend/public/.vite/manifest.json` et `/assets`).
+- [ ] Démarrer PHP (`php -S 127.0.0.1:8000 -t public public/dev-router.php`) + Vite (`npm run dev`) pour valider le rendu.
+- [ ] Vérifier CSP dans DevTools (aucun blocage), API langue renvoie 304 avec ETag.
 
-## 👥 Fonction de Blog Participatif a developper
+## Conventions i18n
+- Clés en notation pointée : `menu.home`, `hero.title`.
+- Chaque clé doit exister en `fr`, `en`, `de`.
+- Script de vérification : `composer check-i18n` ou `php backend/core/tools/check_i18n_keys.php` (échoue si une clé manque).
 
-### Feuille de route proposee
-1. **Phase 0 – Preparation technique**
-   - Finaliser le schema SQL (themes fixes, categories enfants uniques, table de tags sans doublons, table pivot articles/tags).
-   - Ajouter les variables d environnement necessaires (URL dashboard, email admin, SMTP definitif) dans `.env` et `app_config()`.
-   - Construire un jeu de donnees de demonstration et definir la strategie de migration/devops (dump, seeds, rollback).
+## Admin (sécurité)
+- **Exemple démo** : URL `/site/adminFtyhik5642sZ/`, email `pauline@lescaramagnols.com`, mot de passe hashé dans `.env.example` (à changer).
+- En production :
+  - Changer `ADMIN_LOGIN_PATH`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`.
+  - Ne jamais laisser les valeurs de démo.
+  - `.env` doit rester hors `public/` et en permissions 600/640.
 
-2. **Phase 1 – MVP edition/articles**
-   - CRUD complet sur les articles (brouillon, publication, duplication par langue en conservant la mise en forme).
-   - Editeur modulaire (texte/image/tableau) avec styles de base (gras, italic, h1/h2/h3/p) et gestion des medias (200/400/600px + alt/titre obligatoires).
-   - Gestion des themes et categories enfants (selection obligatoire d un theme principal, unicite des categories).
+---
 
-3. **Phase 2 – Participation et moderation**
-   - Comptes auteurs invites (inscription, connexion, recuperation de mot de passe).
-   - Workflow de validation (brouillon > revue > publie) avec notifications email et journal des revisions.
-   - Module commentaires avec anti-spam (captcha ou rate limiting), moderation, et sanitisation systematique.
+## Backend (PHP)
+- **Bootstrap** : `core/bootstrap.php` charge `.env`, config (`config/config.php`), sécurité, i18n, router. Vérification des variables critiques en prod (DB & SMTP).
+- **Routage** : `core/router.php` mappe l’URI vers un fichier de page sous `templates/pages/`, avec prise en compte du préfixe langue (`/fr`, `/en`, `/de`).
+- **API** : `core/api/lang.php` sert les traductions JSON au frontend (`?lang=fr|en|de`), avec fallback `DEFAULT_LANG`.
+- **Validation & sécurité** :
+  - `core/validation.php` : sanitation texte, email, tags, commentaires, traductions (whitelist de balises).
+  - `core/security.php` : en-têtes, session sécurisée, CSRF tokens.
+  - `core/rate_limiter.php` : limiteur de requêtes basé session (utilisé pour `blog/save_article.php`).
+- **Admin** :
+  - Authentification email+password (`core/auth/admin.php`), clés dans `.env` (`ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`).
+  - Tableau de bord & connexion : `backend/public/site/<ADMIN_LOGIN_PATH>/{index,dashboard,logout}.php`.
+- **Blog (MVP JSON)** : endpoint `core/blog/save_article.php` nettoie et retourne l’article/les commentaires ; la persistance BDD reste à brancher.
+- **Installateur SQL (legacy)** : `backend/public/installsql.php` pour provisionner MySQL et déposer `config/db.php` si nécessaire.
 
-4. **Phase 3 – Experience lecteur**
-   - Page blog publique avec filtres par theme, categorie et tags, recherche front sur `backend/data/search_index.json`.
-   - Navigation multilingue synchronisee (langue par defaut issue de la barre, duplication d article automatisee).
-   - Options newsletters / suivi thematique (opt-in par theme/auteur, exports mailing list).
+---
 
-5. **Phase 4 – Operations & SEO**
-   - Planification des publications (cron ou planificateur interne) et historique des versions.
-   - Audit SEO (schema.org, metas dynamiques, plan de site, URLs propres) et optimisation performance (lazy-loading).
-   - Tableau de bord analytics (statistiques lectures, clics, inscriptions newsletter).
+## Frontend (Vite + SCSS)
+- **Entrée** : `src/js/main.js` importe `menus.js`, `i18n.js` et `src/scss/style.scss`.
+- **Menus & UI** : `src/js/menus.js` gère le menu desktop (hover) et mobile (hamburger), bouton “remonter”.
+- **i18n client** : `src/js/i18n.js` (cache `Map`, persistance localStorage, `changeLanguage`, `applyTranslations` sur `data-i18n`).
+- **Logger** : `src/js/logger.js` centralise `console` en dev.
+- **Styles** :
+  - SCSS modulaires : `_variables.scss`, `_utilities.scss`, `_layout.scss`, `_menus.scss`, `_responsive.scss`, `_components.scss`.
+  - Conventions : classes nouvelles en `kebab-case`, utilitaires préfixés `.u-`, hooks JS préfixés `js-`, placeholders `%` pour factoriser.
+- **Images** :
+  - Imports Vite (`@/assets/...`) pour hashing.
+  - Script `npm run build:webp` (`frontend/tools/convert-webp.js`) génère WebP + variantes `@480w/@960w` avec cache simple.
 
-### Ameliorations transverses
-- Factoriser les mixins SCSS et normaliser les classes (kebab-case) avant integration du blog pour limiter la dette CSS.
-- Prevoir des tests automatise (PHPUnit pour le backend, Vitest/Playwright pour le front) couvrant creation/article/commentaire.
-- Documenter les API et workflows (diagrammes de sequence, contrats JSON) pour favoriser l onboard des contributeurs.
+---
 
-### Jalons et tickets proposes
-- **Milestone M0 – Socle technique** : tickets pour le schema SQL (B01), la configuration `.env` (B02) et les seeds de donnees (B03).
-- **Milestone M1 – Edition** : tickets CRUD articles (B10), editeur modulaire (B11), gestion themes/categories (B12).
-- **Milestone M2 – Participation** : tickets comptes auteurs (B20), workflow de validation (B21), module commentaires/anti-spam (B22).
-- **Milestone M3 – Experience lecteur** : tickets page blog + filtres (B30), recherche front (B31), newsletter/suivi thematique (B32).
-- **Milestone M4 – Operations & SEO** : tickets planification (B40), audit SEO/URL (B41), tableau de bord analytics (B42).
-- Chaque ticket doit etre lie a des tests (backend/front) et a une checklist accessibilite/securite correspondant au jalon.
+## Pré-requis
+- PHP 8.1+ avec extensions standard.
+- Composer.
+- Node.js 20+ / npm.
+- (Optionnel) MySQL 5.7+/MariaDB 10+ si vous activez le blog ou l’installateur SQL.
+- Secrets : rester dans `.env` hors `public/`, non versionné (voir `.gitignore`).
 
-#### Tableau de suivi des milestones
-- Creer un tableau Kanban par milestone (M0 -> M4) avec les colonnes : `Backlog`, `En cours`, `Revue`, `Pret pour release`, `Termine`.
-- Chaque ticket Bxx est place dans le board du jalon correspondant et doit garder un lien vers la documentation README.
-- Ajouter une checklist par carte : exigences fonctionnelles, tests (unitaires/integres/end-to-end), accessibilite, securite.
-- Prevoir un point de synchronisation hebdomadaire pour passer en revue les colonnes `Revue` et `Pret pour release`.
-- Archiver le board dans `Termine` une fois le jalon livre et reporter les enseignements retrospectives dans la section Contribution.
+---
 
-### Points de vigilance
-- Securite : tokens CSRF, gestion stricte des sessions, droits granulaires (admin vs auteurs), sanitation HTML riche.
-- Performance : cache des pages publiques, regeneration incremental du `search_index.json`, optimisations images.
-- Accessibilite : navigation clavier, alternatives textuelles obligatoires, contrastes valides pour les nouveaux composants.
+## Installation & scripts
+```bash
+# Dépendances backend
+composer install --working-dir=backend
 
-## Contribution
-- Utiliser des commits au format Conventional Commits (`type(scope): message`), en francais ou anglais selon le contexte.
-- Lancer `npm run lint` dans `frontend/` et executer `php -l` sur les fichiers PHP modifies avant revue.
-- Formater le code JS/SCSS avec ESLint/Stylelint et respecter les helpers PHP existants (`env()`, `app_config()`, `t()`).
-- Ouvrir une pull request avec un resume concis des changements, lister les tests executes et demander une revue a au moins une personne.
-- Repondre aux retours en poussant des commits supplementaires plutot qu'en reecrivant l'historique partage.
+# Dépendances frontend
+cd frontend
+npm install
+```
+
+### Développement local
+```bash
+# Terminal 1 : serveur PHP
+cd backend
+php -S 127.0.0.1:8000 -t public public/dev-router.php
+
+# Terminal 2 : Vite + proxy /core
+cd frontend
+npm run dev   # http://127.0.0.1:5173
+```
+Visiter http://127.0.0.1:8000 (langue forçable avec `?lang=en`). Le proxy Vite relaie `/core/*` vers le serveur PHP.
+
+### Build & copie des assets
+```bash
+cd frontend
+npm run build
+npm run postbuild   # copie dist/assets et dist/.vite vers backend/public
+# ou enchaîné :
+npm run build && npm run postbuild
+```
+
+### Tests
+- **Frontend** : `cd frontend && npm run test:run` (Vitest, jsdom).
+- **Backend** : `composer test` ou `vendor/bin/phpunit` (tests sous `backend/tests/`).
+- Couverture Vitest : `frontend/coverage/`.
+
+### Outils CLI utiles (backend/core/tools)
+- `php backend/core/tools/check_env.php [--env=production|... --json --require=KEY1,KEY2]` : valide la présence/permissions des variables d’env et des clés critiques.
+- `php backend/core/tools/generate_search_index.php` : construit `backend/data/search_index*.json` à partir des templates.
+- `php backend/core/tools/generate_favicon.php` : régénère les favicons depuis `frontend/src/assets/images/structure/logo.*`.
+
+### Conversion images
+```bash
+cd frontend
+npm run build:webp   # Sharp → WebP + tailles responsive
+```
+
+## Licence
+- Code sous licence MIT (voir fichier `LICENSE`).
+- Les assets (images, logos) doivent être utilisés uniquement si vous en détenez les droits ou l’autorisation explicite ; remplacer ou attribuer si nécessaire.
+
+---
+
+## Configuration (.env)
+Copier `backend/.env.example` vers `backend/.env`, puis ajuster :
+- `APP_ENV` (`development`/`production`…), `BASE_URL`, `DEFAULT_LANG`.
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_TABLE_PREFIX`.
+- SMTP : `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT`, `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD`, `MAIL_SMTP_ENCRYPTION`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
+- Admin : `ADMIN_LOGIN_PATH`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`.
+- Vérifier les permissions du `.env` (600 ou 640, hors `public/`).  
+Commande de contrôle : `composer check-env --working-dir=backend` (option `--env=production` pour forcer les clés prod).
+
+---
+
+## Base de données
+- Schéma de base dans `backend/sql/install.sql` (tables `car_users`, `car_articles`, `car_comments` avec contraintes FK).
+- Préfixe configurable via `DB_TABLE_PREFIX` (défaut `car_`) et helper `db_table()` en PHP.
+- Surcharge des paramètres de connexion via `backend/config/database.override.php` (généré par le module admin, ignoré par Git).
+- Script installateur web héritage : `backend/public/installsql.php` (création DB, import SQL, utilisateur admin, fallback `public/tmp_config` si `config/` n’est pas inscriptible).
+
+---
+
+## Internationalisation
+- **Serveur** : détection URL (`/fr/`), paramètre `?lang`, cookie `lang`, header `HTTP_ACCEPT_LANGUAGE`; fallback `DEFAULT_LANG`. Chargement des fichiers `backend/lang/{code}.php`.
+- **Client** : sélection ou persistance de la langue via `i18n.js` ; attributs `data-i18n` et `data-i18n-attr` dans le HTML pour hydrater les textes/attrs ; fallback sur les contenus existants.
+
+---
+
+## Sécurité & conformité
+- En-têtes : CSP restrictive, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`; HSTS si HTTPS détecté.
+- Sessions : cookie `caramagnols_session`, `HttpOnly`, `SameSite=Strict`, `Secure` en HTTPS.
+- CSRF : helpers génériques (`csrf_token`, `csrf_validate`) + variantes admin.
+- Rate limiting : `SessionRateLimiter` (clé + capacité + fenêtre).
+- Sanitisation : textes, emails, tags, commentaires, traductions (HTML autorisé limité) dans `core/validation.php`.
+- Audit config : `core/tools/check_env.php` pour vérifier présence des secrets et permissions.
+
+---
+
+## Accès admin (démo)
+- URL : `/site/<ADMIN_LOGIN_PATH>/` (défaut `/site/adminFtyhik5642sZ/`).
+- Identifiants par défaut : email `pauline@lescaramagnols.com`, mot de passe correspondant au hash dans `.env.example` (`admin`). **À changer avant toute mise en ligne** via `ADMIN_PASSWORD_HASH`.
+
+---
+
+## Convention de code & qualité
+- **PHP** : style procédural, helpers dédiés (`env()`, `app_config()`, `t()`). Tests PHPUnit requis pour nouvelles fonctions critiques.
+- **JS/SCSS** : lint via `npm run lint` (`lint:js` + `lint:css`). Préférer les imports Vite pour les assets (`@/assets/...`). Pas de `console` hors logger centralisé.
+- **CSS** : nouvelles classes en `kebab-case`; utilitaires `.u-` depuis `_utilities.scss`; hooks JS préfixés `js-`; placeholders `%` pour factoriser. Anciennes classes PascalCase conservées pour compatibilité mais à éviter.
+
+---
+
+## Roadmap (extrait)
+- M3 : Moteur de recherche front complet sur `backend/data/search_index.json`, filtres et UX.
+- M3 : Dashboard admin enrichi (logs, gestion BDD : création/écrasement contrôlé, vérification tables).
+- M4 : Module blog complet (CRUD multi-langue, workflow brouillon→publication, modération commentaires, anti-spam), analytics/SEO.
+
+---
+
+## Déploiement (rappel)
+1) Builder le front : `npm run build && npm run postbuild` (copie dans `backend/public`).  
+2) Déployer `backend/public/` + `backend/data/` (index recherche) sur l’hébergement PHP.  
+3) Mettre en place `.env` sécurisé hors `public/`, vérifier avec `composer check-env --env=production`.  
+4) Configurer le serveur web pour pointer sur `backend/public/` comme document root et autoriser le cache long sur `assets/` et `.vite/`.  
+5) Activer HTTPS pour bénéficier de HSTS et des cookies `Secure`.
+
+---
+
+### Commandes rapides (mémo)
+- Dev : `php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php` + `npm run dev`.
+- Tests : `composer test` ; `npm run test:run`.
+- Lint : `npm run lint`.
+- Build : `npm run build && npm run postbuild`.
+- Env check : `composer check-env --working-dir=backend`.
+
+---
+
+> Dernière mise à jour : 28 février 2026. Merci d’ajouter vos modifications et tests exécutés dans vos PRs.
+
+# Rapport d'optimisation Codex
+
+Analyse réalisée (28 février 2026) --- aperçu rapide du projet et
+leviers d'optimisation.
+
+------------------------------------------------------------------------
+
+## Constats
+
+-   Backend PHP 8.1 procédural, fonctions globales et fichiers
+    utilitaires centralisés (backend/core/\*.php), pas de PSR-4 ni
+    d'injection de dépendances.
+-   Routage minimal par fichier (backend/core/router.php), pas de notion
+    d'HTTP verbs ni de middleware ; vues en templates PHP avec blocs
+    \$blocks.
+-   Frontend Vite 7 en ESM + SCSS, JS pur sans typage, pipeline
+    d'images/WebP via Sharp, copie manuelle des assets vers
+    backend/public (frontend/package.json).
+-   Tests très partiels : quelques tests PHPUnit (backend/tests) et
+    Vitest (i18n/menu), pas de couverture des routes ni des pages.
+-   Sécurité de base (CSP, CSRF, rate limiter session) mais CSP tolère
+    unsafe-inline et l'emailing repose sur mail()
+    (backend/core/security.php, backend/core/mailer.php).
+
+------------------------------------------------------------------------
+
+## Optimisations Backend
+
+-   Introduire un autoload PSR-4 + namespaces et regrouper le code par
+    domaine (src/Http, src/I18n, src/Security, etc.) ; adapter
+    composer.json.
+-   Remplacer le routeur ad hoc par FastRoute/nikic + middleware
+    (langue, sécurité, rate limit).
+-   Externaliser la configuration .env via vlucas/phpdotenv ou
+    symfony/dotenv.
+-   Durcir le rate limiting via stockage Redis/filesystem.
+-   Industrialiser l'emailing avec Symfony Mailer ou PHPMailer + logs
+    d'envoi.
+-   Isoler un module Domain/Blog avec interfaces repository
+    (MySQL/JSON).
+
+------------------------------------------------------------------------
+
+## Optimisations Frontend
+
+-   Migration progressive vers TypeScript.
+-   Ajouter autoprefixer + browserslist + éventuellement
+    @vitejs/plugin-legacy.
+-   Nettoyer les assets hashés obsolètes en postbuild.
+-   Exporter les tokens SCSS en CSS Custom Properties.
+-   Étendre les tests Vitest (menus, i18n, interactions).
+-   Envisager un mode static prerender (SSG).
+
+------------------------------------------------------------------------
+
+## Qualité & Langage
+
+-   Ajouter PHPStan/Psalm + PHPCS.
+-   Étendre PHPUnit (routeur, sécurité, API lang).
+-   Script de vérification des clés i18n manquantes.
+-   Centraliser le logging avec Monolog.
+-   Mettre en place CI (GitHub Actions).
+
+------------------------------------------------------------------------
+
+## Sécurité & Performance
+
+-   CSP sans unsafe-inline (nonces/hashes), ajouter frame-ancestors
+    'none'.
+-   Adapter cookie langue (SameSite=Lax + Secure).
+-   Cache HTTP (ETag, Cache-Control) pour JSON.
+-   Ajouter COOP/COEP si possible.
+-   Optimiser build Vite (manualChunks, minification SVG, Brotli).
+
+------------------------------------------------------------------------

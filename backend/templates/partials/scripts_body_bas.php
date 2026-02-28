@@ -1,6 +1,6 @@
 <!-- LesCaramagnols -->
 <!-- templates/scripts_body_bas.php -->
-<script>
+<script nonce="<?= htmlspecialchars($GLOBALS['csp_nonce'] ?? '') ?>">
 document.addEventListener('DOMContentLoaded', () => {
     const lang = "<?= CURRENT_LANG ?>";
 
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 </script>
-<script type="application/ld+json">
+<script type="application/ld+json" nonce="<?= htmlspecialchars($GLOBALS['csp_nonce'] ?? '') ?>">
 {
   "@context": "https://schema.org",
   "@graph": [

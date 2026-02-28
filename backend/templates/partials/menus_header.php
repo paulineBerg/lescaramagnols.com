@@ -19,10 +19,10 @@ function renderMenu1(array $menuItems): void {
     <div id="menu1" class="menu1">
         <div class="menu1-inner">
             <!-- Réseaux sociaux -->
-            <ul id="navReseaux">
+            <ul id="nav-reseaux">
                 <?php foreach ($menuItems as $item): ?>
                     <?php if (isset($item['image'])): ?>
-                        <li class="bouton_gauche">
+                        <li class="bouton-gauche">
                             <a href="<?= htmlspecialchars($item['url']) ?>" target="_blank" rel="noopener noreferrer"
                                title="<?= htmlspecialchars($item['title'] ?? $item['alt'] ?? '') ?>">
                                 <img src="<?= htmlspecialchars($item['image']) ?>"
@@ -35,7 +35,7 @@ function renderMenu1(array $menuItems): void {
             </ul>
 
             <!-- Recherche -->
-            <div id="menuRecherche">
+            <div id="menu-recherche">
                 <form action="/site/search" method="get" role="search">
                     <input type="hidden" name="lang" value="<?= CURRENT_LANG ?>">
                     <input type="text" name="q" placeholder="<?= t('MENU_RECHERCHER') ?>..." required aria-label="<?= t('MENU_RECHERCHE') ?>">
@@ -44,7 +44,7 @@ function renderMenu1(array $menuItems): void {
             </div>    
 
             <!-- Drapeaux (langues) -->
-            <ul id="navLangues">
+            <ul id="nav-langues">
                 <?php
                 $langs = ['fr' => 'Français', 'de' => 'Allemand', 'en' => 'Anglais'];
                 foreach ($langs as $code => $label):
@@ -55,7 +55,7 @@ function renderMenu1(array $menuItems): void {
                         'en' => 'drapeauangl.gif'
                     ][$code];
                 ?>
-                <li class="bouton_droite <?= $active ?>">
+                <li class="bouton-droite <?= $active ?>">
                     <a href="?lang=<?= $code ?>" onclick="setLangCookie('<?= $code ?>')" title="<?= $label ?>">
                         <img src="/assets/images/structure/menu/<?= $img ?>" alt="<?= $label ?>"
                              class="lang-flag <?= $active ?>">
@@ -64,9 +64,9 @@ function renderMenu1(array $menuItems): void {
                 <?php endforeach; ?>
             </ul>
 
-            <script>
+            <script nonce="<?= htmlspecialchars($GLOBALS['csp_nonce'] ?? '') ?>">
             function setLangCookie(code) {
-                document.cookie = "lang=" + code + "; path=/; max-age=31536000";
+                document.cookie = "lang=" + code + "; path=/; max-age=31536000; samesite=lax";
             }
             </script>
         </div>
@@ -97,7 +97,7 @@ function renderMenu2(array $menuItems, array $langTranslations): void {
     $menuIcon = '/assets/images/structure/favicon-48x48.png';
     ?>
     <div id="menu2position">
-        <nav id="menuDeroulant" aria-label="Menu principal">
+        <nav id="menu-deroulant" aria-label="Menu principal">
             <ul id="menu2">
                 <li class="menu2-favicon menu2-favicon-left" aria-hidden="true">
                     <img src="<?= htmlspecialchars($menuIcon) ?>" alt="">
@@ -166,13 +166,18 @@ function renderMenuHamburger(array $menuItems, array $langTranslations): void {
                     <?php renderBanniere($banniereData, $langTranslations); ?>
                 </div>
             <?php endif; ?>
+
+            <!-- Lien favicon vers l'accueil -->
+            <a href="/" class="mobile-home-link" aria-label="<?= t('MENU_ACCUEIL') ?>">
+                <img src="/assets/images/structure/favicon-48x48.png" alt="<?= t('MENU_ACCUEIL') ?>">
+            </a>
         </div>
 
         <!-- Menu mobile -->
         <nav id="mobile-menu" class="breadcrumb-menu" aria-label="Menu mobile">
 
             <!-- Recherche mobile -->
-            <div id="menuRecherche">
+            <div id="menu-recherche">
                 <form action="/site/search" method="get" role="search">
                     <input type="hidden" name="lang" value="<?= CURRENT_LANG ?>">
                     <input type="text" name="q" placeholder="<?= t('MENU_RECHERCHER') ?>..." required aria-label="<?= t('MENU_RECHERCHE') ?>">
@@ -189,7 +194,7 @@ function renderMenuHamburger(array $menuItems, array $langTranslations): void {
             </div>
 
             <!-- Langues (mobile) -->
-            <div id="menuLanguesMobile">
+            <div id="menu-langues-mobile">
                 <ul class="langues-mobiles">
                     <?php
                     $langs = ['fr' => 'Français', 'de' => 'Allemand', 'en' => 'Anglais'];
@@ -212,9 +217,9 @@ function renderMenuHamburger(array $menuItems, array $langTranslations): void {
             </div>
         </nav>
 
-        <script>
+        <script nonce="<?= htmlspecialchars($GLOBALS['csp_nonce'] ?? '') ?>">
         function setLangCookie(code) {
-            document.cookie = "lang=" + code + "; path=/; max-age=31536000";
+            document.cookie = "lang=" + code + "; path=/; max-age=31536000; samesite=lax";
         }
         </script>
     </div>

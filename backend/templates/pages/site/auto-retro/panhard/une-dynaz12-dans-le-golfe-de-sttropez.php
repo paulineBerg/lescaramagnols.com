@@ -13,7 +13,7 @@ $blocks['EditRegion1'] = '
 
 // === Introduction page (colonneJustifie40) ===
 $blocks['EditRegion2'] = '
-    <div id="blocHaut" class="border">' . t("TXT_DYNAINTRO") . '</div>
+    <div id="bloc-haut" class="border">' . t("TXT_DYNAINTRO") . '</div>
 ';
 
 // === ColonneJustifie25 (image éventuelle) ===

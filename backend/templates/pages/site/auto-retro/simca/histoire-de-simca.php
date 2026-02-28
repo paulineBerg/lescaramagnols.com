@@ -10,7 +10,7 @@ $blocks['EditRegion10'] = '';
 $blocks['EditRegion1'] = '<h1>' . t('TXT_TITRESIMCA') . '</h1>';
 
 // === Introduction courte dans bloc gauche ===
-$blocks['EditRegion2'] = '<div id="blocHaut" class="border">' . t('TXT_SIMCAINTRO') . '</div>';
+$blocks['EditRegion2'] = '<div id="bloc-haut" class="border">' . t('TXT_SIMCAINTRO') . '</div>';
 
 // === Logo Simca dans bloc droit ===
 $blocks['EditRegion8'] = '

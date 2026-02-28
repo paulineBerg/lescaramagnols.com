@@ -11,7 +11,7 @@ $blocks['EditRegion10'] = '';
 $blocks['EditRegion1'] = '';
 
 // === Introduction page (colonneJustifie40) ===
-$blocks['EditRegion2'] = '<div id="blocHaut" class="border">' . t('TXT_SOMMAIREINTRO') . '</div>';
+$blocks['EditRegion2'] = '<div id="bloc-haut" class="border">' . t('TXT_SOMMAIREINTRO') . '</div>';
 
 // === Prévu pour future intro additionnelle ===
 $blocks['EditRegion8'] = '';

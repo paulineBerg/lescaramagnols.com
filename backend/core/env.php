@@ -6,14 +6,17 @@
  */
 function load_env(string $filePath): void
 {
-    static $loaded = [];
+    static $cache = [];
 
     $realPath = realpath($filePath);
-    if ($realPath === false || isset($loaded[$realPath])) {
+    if ($realPath === false || !is_readable($realPath)) {
         return;
     }
 
-    if (!is_readable($realPath)) {
+    $mtime = @filemtime($realPath) ?: null;
+    $cached = $cache[$realPath] ?? null;
+
+    if ($cached !== null && $mtime !== null && $cached['mtime'] >= $mtime) {
         return;
     }
 
@@ -21,6 +24,8 @@ function load_env(string $filePath): void
     if ($lines === false) {
         return;
     }
+
+    $loadedKeys = [];
 
     foreach ($lines as $line) {
         $trimmed = trim($line);
@@ -40,32 +45,41 @@ function load_env(string $filePath): void
             continue;
         }
 
-        // Refuse les clefs avec caracteres non supportes (evite l injection)
         if (!preg_match('/^[A-Z0-9_]+$/', $key)) {
             continue;
         }
 
-        // Nettoyage des guillemets et des retours a la ligne
         $value = trim($value, "\"' ");
         $value = preg_replace("/[\r\n]+/", '', $value);
 
-        // Normalisation basique des booleens
         if (in_array(strtolower($value), ['true', 'false'], true)) {
             $value = strtolower($value) === 'true';
         }
 
-        if (!array_key_exists($key, $_ENV)) {
+        $loadedKeys[] = $key;
+
+        $shouldOverride = true;
+        if ($cached !== null && !in_array($key, $cached['keys'], true)) {
+            $shouldOverride = !array_key_exists($key, $_ENV);
+        }
+
+        if ($shouldOverride) {
             $_ENV[$key] = $value;
         }
-        if (!array_key_exists($key, $_SERVER)) {
+
+        if ($shouldOverride || !array_key_exists($key, $_SERVER)) {
             $_SERVER[$key] = $value;
         }
+
         if (!is_bool($value)) {
             putenv(sprintf('%s=%s', $key, $value));
         }
     }
 
-    $loaded[$realPath] = true;
+    $cache[$realPath] = [
+        'mtime' => $mtime ?? time(),
+        'keys' => $loadedKeys,
+    ];
 }
 
 /**

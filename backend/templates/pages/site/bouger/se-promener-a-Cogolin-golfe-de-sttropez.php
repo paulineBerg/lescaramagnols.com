@@ -7,7 +7,7 @@ $blocks = [];
 $blocks['EditRegion1'] = '<h1>' . t("TXT_TITRECOGOLIN") . '</h1>';
 
 $blocks['EditRegion2'] = '
-<div id="blocHaut" class="border">' . t('TXT_COGOLININTRO') . '</div>
+<div id="bloc-haut" class="border">' . t('TXT_COGOLININTRO') . '</div>
 ';
 $blocks['EditRegion8'] = '
 ';
@@ -52,7 +52,7 @@ $blocks['EditRegion5'] = '';
 $blocks['EditRegion6'] = ''; 
 
 $blocks['EditRegion7'] = '
-<div class="blocInfosPratiques">
+<div class="bloc-infos-pratiques">
     <h3>' . t("TITRE_INFOSPRATIQUES") . '</h3>
     <ul>
         <li><strong>' . t("MARCHE_MERCREDI") . '</strong><br>' . t("MARCHE_MERCREDI_INFOS") . '</li>

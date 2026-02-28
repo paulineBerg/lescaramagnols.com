@@ -13,7 +13,7 @@ $blocks['EditRegion1'] = '
 
 // === Introduction (colonneJustifie40) ===
 $blocks['EditRegion2'] = '
-    <div id="blocHaut" class="border">' . t("TXT_HISTOIREARONDE1300INTRO") . '</div>
+    <div id="bloc-haut" class="border">' . t("TXT_HISTOIREARONDE1300INTRO") . '</div>
 ';
 
 // === Image mascotte dans colonneJustifie25 ===

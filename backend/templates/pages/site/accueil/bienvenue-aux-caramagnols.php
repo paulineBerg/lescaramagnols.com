@@ -9,7 +9,7 @@ $blocks['EditRegion10'] = '';
 
 // === Contenu visuel principal (image + titres accueil) ===
 $blocks['EditRegion1'] = '
-<span class="ImgLargeurContenu">
+<span class="img-largeur-contenu">
     <img src="/assets/images/bouger/golfe/montage.webp" title="' . t('IMAGE_ALT_montage') . '" alt="' . t('IMAGE_ALT_montage') . '">
 </span>
 
@@ -20,7 +20,7 @@ $blocks['EditRegion1'] = '
 
 // === Introduction page (colonneJustifie40) ===
 $blocks['EditRegion2'] = '
-<div class="border" id="blocHaut">
+<div class="border" id="bloc-haut">
     <span class="flottedroite">
         <img src="/assets/images/accueil/raisin.jpg" alt="' . t('IMAGE_ALT_dynaz12') . '" width="150" height="77" title="' . t('IMAGE_ALT_dynaz12') . '">
     </span> 

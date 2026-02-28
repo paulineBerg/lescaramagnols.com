@@ -157,17 +157,6 @@ return [
         ],
     ],
     [
-        'titre'     => t('MENU_COMMUNIQUER'),
-        'chemin'    => '#',
-        'alt'       => t('MENU_COMMUNIQUER'),
-        'title'     => t('MENU_COMMUNIQUER'),
-        'sous_menu' => [
-            ['titre' => t('MENU_ETREAMI'),   'chemin' => '/site/communiquer/les-reseaux-sociaux-de-paulineetnoel-facebook-twitter-google-pinterest-instagram-flickr.php'],
-            ['titre' => t('MENU_NOSNEWS'),   'chemin' => '/site/communiquer/les-news-de-paulineetnoel.php'],
-            ['titre' => t('MENU_VOSPHOTOS'), 'chemin' => '/site/communiquer/vos-photos-vacances-les-caramagnols.php'],
-        ],
-    ],
-    [
         'titre'  => t('MENU_SAVA'),
         'chemin' => '/site/sava/sava-auto-retro-rioz.php',
         'alt'    => t('MENU_SAVA'),

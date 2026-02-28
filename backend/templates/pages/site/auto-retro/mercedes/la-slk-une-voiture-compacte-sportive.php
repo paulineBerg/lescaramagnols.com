@@ -14,7 +14,7 @@ $blocks['EditRegion1'] = '
 
 // === Bloc introduction colonne 40% ===
 $blocks['EditRegion2'] = '
-<div id="blocHaut" class="border">' . t('TXT_HISTOIRESLKINTRO') . '</div>
+<div id="bloc-haut" class="border">' . t('TXT_HISTOIRESLKINTRO') . '</div>
 ';
 
 // === Bloc image colonne 25% ===

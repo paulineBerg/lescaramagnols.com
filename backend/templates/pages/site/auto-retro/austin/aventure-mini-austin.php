@@ -14,7 +14,7 @@ $blocks['EditRegion1'] = '
 
 // === Bloc introduction colonne 40% ===
 $blocks['EditRegion2'] = '
-<div id="blocHaut" class="border">' . t('TXT_HISTOIREMINIINTRO') . '</div>
+<div id="bloc-haut" class="border">' . t('TXT_HISTOIREMINIINTRO') . '</div>
 ';
 
 // === Bloc image colonne 25% ===
@@ -53,15 +53,15 @@ $blocks['EditRegion4'] = '
         <div id="menurectanglewindows">
             <div id="boutonrectangleorange">
                 <a href="/site/auto-retro/panhard/une-dyna-icone-automobile.php">
-        <div id="menurectanglewindows">
-            <div id="boutonrectanglebleufonce">
                     ' . t("MENU_HISTOIREDYNA") . '
                     <img src="/assets/images/structure/menu/auto-retro/uipanhard.jpg" alt="' . t("MENU_HISTOIREDYNA") . '" title="' . t("MENU_HISTOIREDYNA") . '">
                 </a>
             </div>
         </div>
     </div> 
-    <div id="bloccenter">       
+    <div id="bloccenter">  
+        <div id="menurectanglewindows">
+            <div id="boutonrectanglebleufonce">     
                 <a href="/site/auto-retro/renault/la-twingo-une-voiture-a-succes.php">
                     ' . t("MENU_HISTOIRETWINGO") . '
                     <img src="/assets/images/structure/menu/auto-retro/uirenault.jpg"

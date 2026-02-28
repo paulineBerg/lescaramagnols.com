@@ -13,7 +13,7 @@ $blocks['EditRegion1'] = '
 
 // === Bloc introduction (colonneJustifie40) ===
 $blocks['EditRegion2'] = '
-<div id="blocHaut" class="border">' . t('TXT_SLKINTRO') . '</div>
+<div id="bloc-haut" class="border">' . t('TXT_SLKINTRO') . '</div>
 ';
 
 // === Image mascotte ou secondaire (colonneJustifie25) ===

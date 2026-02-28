@@ -7,7 +7,7 @@ $blocks = [];
 $blocks['EditRegion1'] = '<h1>' . t('TITRE_SAVA') . '</h1>';
 
 // === Introduction
-$blocks['EditRegion2'] = '<div id="blocHaut" class="border">' . t('INTRO_SAVA') . '</div>';
+$blocks['EditRegion2'] = '<div id="bloc-haut" class="border">' . t('INTRO_SAVA') . '</div>';
 
 // === Logo SAVA
 $blocks['EditRegion8'] = '

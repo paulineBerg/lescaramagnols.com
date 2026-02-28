@@ -1,6 +1,19 @@
 <?php
-function send_notification_email($to, $subject, $message) {
-    $headers = "From: no-reply@lescaramagnols.com\r\n";
-    $headers .= "Content-type: text/html; charset=UTF-8\r\n";
-    return mail($to, $subject, $message, $headers);
+declare(strict_types=1);
+
+use Caramagnols\Mailer\Mailer;
+
+/**
+ * Passerelle legacy : envoie un email via Symfony Mailer configuré par .env.
+ */
+function send_notification_email(string $to, string $subject, string $message): bool
+{
+    try {
+        $mailer = new Mailer(app_config('mail'));
+        $mailer->send($to, $subject, $message);
+        return true;
+    } catch (Throwable $e) {
+        error_log('[mailer] ' . $e->getMessage());
+        return false;
+    }
 }

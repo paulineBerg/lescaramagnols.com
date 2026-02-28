@@ -12,6 +12,7 @@
         <include>
             <directory suffix=".php">core</directory>
             <directory suffix=".php">config</directory>
+            <directory suffix=".php">src</directory>
         </include>
     </coverage>
 </phpunit>
