@@ -115,10 +115,9 @@ public/index.php
 - Script de vérification : `composer check-i18n` ou `php backend/core/tools/check_i18n_keys.php` (échoue si une clé manque).
 
 ## Admin (sécurité)
-- **Exemple démo** : URL `/site/adminFtyhik5642sZ/`, email `pauline@lescaramagnols.com`, mot de passe hashé dans `.env.example` (à changer).
 - En production :
   - Changer `ADMIN_LOGIN_PATH`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`.
-  - Ne jamais laisser les valeurs de démo.
+  - Ne jamais laisser de valeurs de démo.
   - `.env` doit rester hors `public/` et en permissions 600/640.
 
 ---
