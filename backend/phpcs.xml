@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<ruleset name="Caramagnols">
+  <description>PSR-12 + quelques tolérances pour le legacy.</description>
+  <file>core</file>
+  <file>src</file>
+  <file>config</file>
+  <rule ref="PSR12"/>
+  <exclude-pattern>vendor/*</exclude-pattern>
+  <exclude-pattern>data/*</exclude-pattern>
+</ruleset>

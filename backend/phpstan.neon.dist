@@ -1,0 +1,9 @@
+parameters:
+  level: 5
+  paths:
+    - core
+    - src
+    - config
+  tmpDir: var/phpstan
+  bootstrapFiles:
+    - core/env.php
