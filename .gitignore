@@ -18,6 +18,7 @@ backend/public/.vite/
 backend/data/search_index*.json
 backend/data/*.cache
 backend/data/logs/
+backend/data/menus.json
 frontend/coverage/
 
 # Environnements

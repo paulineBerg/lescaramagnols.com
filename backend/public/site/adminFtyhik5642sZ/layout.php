@@ -23,6 +23,7 @@ function admin_render_layout(string $pageTitle, callable $contentRenderer, array
     $menu = $options['menu'] ?? [
         ['id' => 'dashboard', 'label' => 'Tableau de bord', 'href' => 'dashboard.php', 'icon' => '📊'],
         ['id' => 'database', 'label' => 'Connexion MySQL', 'href' => 'database.php', 'icon' => '🗄️'],
+        ['id' => 'menus', 'label' => 'Menus du site', 'href' => 'menus.php', 'icon' => '🧭'],
     ];
 
     $currentPath = basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '');

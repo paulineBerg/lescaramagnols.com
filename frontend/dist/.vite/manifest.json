@@ -48,12 +48,12 @@
     "src": "src/assets/images/structure/mer.webp"
   },
   "src/js/main.ts": {
-    "file": "assets/main.CXW1lhPs.js",
+    "file": "assets/main.MUnJ_bIT.js",
     "name": "main",
     "src": "src/js/main.ts",
     "isEntry": true,
     "css": [
-      "assets/style.Bi-z15Bo.css"
+      "assets/style.CCUQMI7C.css"
     ],
     "assets": [
       "assets/banniere.C_sNX8ls.gif",
@@ -71,9 +71,10 @@
     ]
   },
   "src/scss/style.scss": {
-    "file": "assets/style.Bi-z15Bo.css",
+    "file": "assets/style.CCUQMI7C.css",
     "src": "src/scss/style.scss",
     "isEntry": true,
+    "name": "style",
     "names": [
       "style.css"
     ]

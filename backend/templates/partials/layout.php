@@ -4,8 +4,9 @@
     <?php
     // file: backend/templates/partials/layout.php
 
-    // ✅ Chargement des menus
-    $menuConfig   = require ROOT_PATH . '/config/menu_data.php';
+    // ✅ Chargement des menus (JSON si présent, fallback config/menu_data.php)
+    require_once ROOT_PATH . '/core/menu_loader.php';
+    $menuConfig   = load_menus();
     $menu1        = $menuConfig['menu1']    ?? [];
     $banniereData = $menuConfig['banniere'] ?? [];
     $menu2        = $menuConfig['menu2']    ?? [];

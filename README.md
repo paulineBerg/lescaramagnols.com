@@ -23,8 +23,8 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - **Frontend build** : Vite 7 (ESM) + SCSS. Entrées `src/js/main.js` et `src/scss/style.scss`; manifest généré dans `backend/public/.vite/manifest.json` puis injecté côté PHP (`partials/scripts_head.php`). Images copiées via `vite-plugin-static-copy`.
 - **Assets runtime** : en production, les bundles sont copiés dans `backend/public/assets` et `backend/public/.vite` par `npm run postbuild`. En dev, Vite sert les assets, le proxy `/core/*` cible `http://127.0.0.1:8000`.
 - **Sécurité** : en-têtes CSP/anti-clickjacking (`core/security.php`), cookies HttpOnly + `SameSite=Strict`, session renommée (`caramagnols_session`), tokens CSRF (`csrf_token()` / `csrf_validate()`), rate limiting session (`core/rate_limiter.php`), sanitisation centralisée (`core/validation.php`).
-- **Admin blog (MVP)** : espace protégé sous `/site/<ADMIN_LOGIN_PATH>/` (défaut `adminFtyhik5642sZ`) avec login email/mot de passe (`core/auth/admin.php`). Layout admin : `backend/public/site/adminFtyhik5642sZ/layout.php`, pages dashboard & login.
-- **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir des templates). Dossier `backend/data/` pour les fichiers dérivés (index, brouillons blog…).
+- **Admin Blog (MVP)** : espace protégé sous `/site/<ADMIN_LOGIN_PATH>/` (défaut `adminFtyhik5642sZ`) avec login email/mot de passe (`core/auth/admin.php`). Layout admin : `backend/public/site/adminFtyhik5642sZ/layout.php`, pages dashboard & login.
+- **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir des templates). Dossier `backend/data/` pour les fichiers dérivés (index, brouillons Blog…).
 - **Base de données (optionnelle pour l’instant)** : schéma MySQL minimal dans `backend/sql/install.sql` avec préfixe `car_`. Fichier `config/database.override.php` permet de surcharger les paramètres issus de `.env`.
 
 ---
@@ -129,7 +129,7 @@ public/index.php
 - **Validation & sécurité** :
   - `core/validation.php` : sanitation texte, email, tags, commentaires, traductions (whitelist de balises).
   - `core/security.php` : en-têtes, session sécurisée, CSRF tokens.
-  - `core/rate_limiter.php` : limiteur de requêtes basé session (utilisé pour `blog/save_article.php`).
+  - `core/rate_limiter.php` : limiteur de requêtes basé session (utilisé pour `Blog/save_article.php`).
 - **Admin** :
   - Authentification email+password (`core/auth/admin.php`), clés dans `.env` (`ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`).
   - Tableau de bord & connexion : `backend/public/site/<ADMIN_LOGIN_PATH>/{index,dashboard,logout}.php`.
@@ -272,6 +272,9 @@ Commande de contrôle : `composer check-env --working-dir=backend` (option `--en
 
 ## Déploiement (rappel)
 1) Builder le front : `npm run build && npm run postbuild` (copie dans `backend/public`).  
+cd ~/www/caramagnols/frontend
+npm run build && npm run postbuild
+
 2) Déployer `backend/public/` + `backend/data/` (index recherche) sur l’hébergement PHP.  
 3) Mettre en place `.env` sécurisé hors `public/`, vérifier avec `composer check-env --env=production`.  
 4) Configurer le serveur web pour pointer sur `backend/public/` comme document root et autoriser le cache long sur `assets/` et `.vite/`.  
@@ -281,6 +284,9 @@ Commande de contrôle : `composer check-env --working-dir=backend` (option `--en
 
 ### Commandes rapides (mémo)
 - Dev : `php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php` + `npm run dev`.
+cd ~/www/caramagnols
+php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php
+
 - Tests : `composer test` ; `npm run test:run`.
 - Lint : `npm run lint`.
 - Build : `npm run build && npm run postbuild`.
