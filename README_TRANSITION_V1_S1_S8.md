@@ -26,6 +26,11 @@ Date : 2026-03-20
 - [x] W1-02 execute : scripts `backend/tools/deploy-fast.sh` et `backend/tools/deploy-release.sh` ajoutes + documentation usage/rollback dans `README.md`.
 - [x] W1-03 execute : hardening HTTP/headers valide sur `https://www.lescaramagnols.com` + controle `--strict-prod-security` vert (preuves `33-check-security-headers-www.txt` et `34-check-env-production-strict.txt`).
 - [x] W1-04 execute : stabilite admin navigation/footer validee (tests 45/45 verts + purge cache navigation, preuves `62-w1-04-admin-tests.txt` et `63-w1-04-cache-clear-navigation.txt`).
+- [x] W1-06 execute : recette manuelle FO/Admin desktop/mobile archivee (`front/*`, `admin/*`) + non-regression automatisee FO/Admin (`87-w1-06-fo-admin-tests.txt`).
+- [x] Maintenance documentaire + securite session admin : warning de prolongation avant timeout (120s) + route keepalive `/<base_path>/<ADMIN_LOGIN_PATH>/session/ping` documentes et testes (non bloquant FO).
+- [x] Correctif admin tarteaucitron : acceptation stable de l'objet JSON vide `{}` dans "Variables JS services" (blocage historique supprime, listes JSON explicites `[]` toujours refusees).
+- [x] Correctif admin tarteaucitron (booleens legacy) : normalisation `false/off/0` pour eviter le recochage automatique des options apres sauvegarde.
+- [x] Durcissement persistance tarteaucitron : suppression des cast bool ambigus restants dans `AdminSettingsService` (normalisation homogene runtime + save), pour stabiliser l'etat coche/decoche apres "Enregistrer".
 
 ## Principes d execution
 
@@ -282,6 +287,16 @@ Livrables :
 - dossier de preuve complet
 - liste des anomalies avec severite
 
+Checklist detaillee W1-06 (execution du 2026-03-20) :
+
+- [x] Dossiers de preuve presents : `front/desktop`, `front/mobile`, `admin/desktop`, `admin/mobile`.
+- [x] Verification automatisee des dossiers : `test -d ...` -> OK (`85-w1-06-directories-check.txt`).
+- [x] Captures FO desktop/mobile archivees (routes critiques `/`, `/blog`, `/blog/proposer`, `/rss`) : detail dans `86-w1-06-proof-files.txt`.
+- [x] Captures admin desktop/mobile archivees (page login + verifications protections `302` sur routes admin privees) : detail dans `86-w1-06-proof-files.txt`.
+- [x] Non-regression FO/Admin rejouee : `./vendor/bin/phpunit tests/FrontControllerHttpTest.php tests/BlogRouteTest.php tests/DynamicRouteTest.php tests/AdminBlogServiceTest.php tests/BlogDiscussionApiControllerTest.php` -> OK (`53` tests, `306` assertions) preuve `87-w1-06-fo-admin-tests.txt`.
+- [x] Liste d'anomalies et decision de traitement archivees : `88-w1-06-anomalies.md` (aucune anomalie bloquante relevee).
+- [x] Verifications fin de mission executees : autoload/Controllers/HTTP/cache/hygiene docs (`89` a `93`).
+
 ### Ticket W1-07 - Cloture S1 et GO/NO-GO
 
 Priorite : P0  
@@ -330,11 +345,11 @@ Livrables :
 
 ### W1-06 - Recette manuelle ciblee FO/Admin
 
-- [ ] Capturer parcours critiques FO desktop (`/`, page article, `/blog`, formulaires).
-- [ ] Capturer parcours critiques FO mobile.
-- [ ] Capturer parcours critiques admin desktop (auth, pages, menus, blog/discussions).
-- [ ] Capturer parcours critiques admin mobile.
-- [ ] Dresser la liste d'anomalies avec severite et decision de traitement.
+- [x] Capturer parcours critiques FO desktop (`/`, `/blog`, `/blog/proposer`, `/rss`) et couvrir la route article via tests de non-regression.
+- [x] Capturer parcours critiques FO mobile (meme perimetre).
+- [x] Capturer parcours admin desktop (login + protections `302`) et couvrir pages/menus/blog/discussions via tests.
+- [x] Capturer parcours admin mobile (login + protections `302`).
+- [x] Dresser la liste d'anomalies avec severite et decision de traitement.
 
 ### W1-07 - Cloture S1 et GO/NO-GO
 

@@ -1,0 +1,2261 @@
+<?php
+
+declare(strict_types=1);
+
+use Caramagnols\Admin\AdminController;
+use Caramagnols\Admin\AdminRouteResolver;
+use Caramagnols\Admin\AdminSettingsService;
+use Caramagnols\Http\Request;
+use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\Logging\LoggerFactory;
+use Caramagnols\Social\InstagramFeedService;
+use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/../core/bootstrap.php';
+require_once __DIR__ . '/../core/auth/admin.php';
+require_once ROOT_PATH . '/core/menu_loader.php';
+
+final class AdminControllerTest extends TestCase
+{
+    private static ?array $baselineDatabaseConfig = null;
+    private static ?string $baselineDatabasePrefix = null;
+
+    private string $logDir;
+    private string $rateLimitDir;
+    private string $blogDir;
+    private string $pagesFile;
+    private string $menusFile;
+    private string $databaseOverrideFile;
+    private string $adminOverrideFile;
+    private string $siteOverrideFile;
+    private ?string $previousBlogDataDir = null;
+
+    protected function setUp(): void
+    {
+        ensure_session_started();
+        $_SESSION = [];
+
+        global $appConfig;
+        if (self::$baselineDatabaseConfig === null) {
+            self::$baselineDatabaseConfig = is_array($appConfig['database'] ?? null) ? $appConfig['database'] : [];
+            self::$baselineDatabasePrefix = (string) ($appConfig['database_prefix'] ?? 'car_');
+        }
+
+        $appConfig['database'] = self::$baselineDatabaseConfig;
+        $appConfig['database_prefix'] = self::$baselineDatabasePrefix ?? 'car_';
+        $appConfig['admin']['email'] = 'admin@example.com';
+        $appConfig['admin']['password_hash'] = password_hash('topsecret', PASSWORD_DEFAULT);
+        $appConfig['admin']['session_key'] = '_admin_controller_test';
+        $appConfig['admin']['login_path'] = 'admin';
+        $appConfig['admin']['allowed_ips'] = [];
+        $appConfig['admin']['trust_proxy_headers'] = false;
+        $appConfig['admin']['login_rate_limit_attempts'] = 5;
+        $appConfig['admin']['login_rate_limit_window'] = 900;
+        $appConfig['admin']['inactivity_timeout_seconds'] = 1200;
+        $appConfig['admin']['reauth_timeout_seconds'] = 600;
+        $appConfig['admin']['totp_enabled'] = false;
+        $appConfig['admin']['totp_secret'] = '';
+        $appConfig['admin']['totp_skip_localhost'] = true;
+        $appConfig['site']['head_metadata_html'] = '';
+        $appConfig['site']['url'] = [
+            'domain' => '',
+            'ssl_domain' => '',
+            'base_path' => '/',
+        ];
+        $appConfig['site']['tarteaucitron'] = [
+            'enabled' => true,
+            'privacy_url' => '/',
+            'orientation' => 'bottom',
+            'icon_position' => 'BottomRight',
+            'show_icon' => true,
+            'show_alert_small' => true,
+            'high_privacy' => true,
+            'accept_all_cta' => true,
+            'deny_all_cta' => true,
+            'mandatory' => true,
+            'google_consent_mode' => true,
+            'bing_consent_mode' => true,
+            'user_config_json' => '{}',
+            'services' => [],
+        ];
+
+        $this->logDir = sys_get_temp_dir() . '/caramagnols-admin-logs-' . bin2hex(random_bytes(6));
+        mkdir($this->logDir, 0777, true);
+        $this->rateLimitDir = sys_get_temp_dir() . '/caramagnols-admin-rate-limits-' . bin2hex(random_bytes(6));
+        mkdir($this->rateLimitDir, 0777, true);
+        $appConfig['security']['rate_limit_dir'] = $this->rateLimitDir;
+        $this->blogDir = sys_get_temp_dir() . '/caramagnols-admin-blog-' . bin2hex(random_bytes(6));
+        mkdir($this->blogDir, 0777, true);
+        $this->previousBlogDataDir = is_string($appConfig['blog']['data_dir'] ?? null) ? $appConfig['blog']['data_dir'] : null;
+        $appConfig['blog']['data_dir'] = $this->blogDir;
+
+        $this->pagesFile = ROOT_PATH . '/var/admin-pages-' . uniqid() . '.json';
+        $this->menusFile = ROOT_PATH . '/var/admin-menus-' . uniqid() . '.json';
+        $this->databaseOverrideFile = ROOT_PATH . '/var/admin-database-override-' . uniqid() . '.php';
+        $this->adminOverrideFile = ROOT_PATH . '/var/admin-credentials-override-' . uniqid() . '.php';
+        $this->siteOverrideFile = ROOT_PATH . '/var/admin-site-override-' . uniqid() . '.php';
+        pages_data_set_path_override($this->pagesFile);
+        menus_data_set_path_override($this->menusFile);
+        pages_cache_clear();
+    }
+
+    protected function tearDown(): void
+    {
+        $_SESSION = [];
+        global $appConfig;
+        $appConfig['database'] = self::$baselineDatabaseConfig ?? [];
+        $appConfig['database_prefix'] = self::$baselineDatabasePrefix ?? 'car_';
+        $appConfig['site']['head_metadata_html'] = '';
+        $appConfig['site']['tarteaucitron'] = [];
+
+        $this->removeDirectoryRecursively($this->logDir);
+        $this->removeDirectoryRecursively($this->rateLimitDir);
+        $this->removeDirectoryRecursively($this->blogDir);
+        if ($this->previousBlogDataDir !== null) {
+            $appConfig['blog']['data_dir'] = $this->previousBlogDataDir;
+        } else {
+            unset($appConfig['blog']['data_dir']);
+        }
+
+        if (file_exists($this->pagesFile)) {
+            unlink($this->pagesFile);
+        }
+
+        if (file_exists($this->pagesFile . '.bak')) {
+            unlink($this->pagesFile . '.bak');
+        }
+
+        if (file_exists($this->menusFile)) {
+            unlink($this->menusFile);
+        }
+
+        if (file_exists($this->menusFile . '.bak')) {
+            unlink($this->menusFile . '.bak');
+        }
+
+        foreach ([$this->databaseOverrideFile, $this->adminOverrideFile, $this->siteOverrideFile] as $file) {
+            if (file_exists($file)) {
+                unlink($file);
+            }
+        }
+
+        pages_data_set_path_override(null);
+        menus_data_set_path_override(null);
+        pages_cache_clear();
+    }
+
+    public function testLoginPageRenders(): void
+    {
+        $controller = $this->controller();
+
+        $response = $controller->handle('login', $this->request('GET', '/admin'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Connexion Admin', $response->body);
+    }
+
+    public function testDashboardRedirectsWhenUnauthenticated(): void
+    {
+        $controller = $this->controller();
+
+        $response = $controller->handle('dashboard', $this->request('GET', '/admin/dashboard'));
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin', $response->headers['Location']);
+    }
+
+    public function testAdminPageReturnsForbiddenWhenIpIsNotAllowlisted(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['allowed_ips'] = ['192.168.1.0/24'];
+
+        $controller = $this->controller();
+        $response = $controller->handle(
+            'dashboard',
+            $this->request('GET', '/admin/dashboard', [], [], '10.0.0.5')
+        );
+
+        $this->assertSame(403, $response->status);
+        $this->assertStringContainsString('Accès admin interdit', $response->body);
+    }
+
+    public function testDashboardRendersLiveEditorialCounts(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                                'en' => ['title' => 'Association'],
+                            ],
+                        ],
+                        [
+                            'slug' => 'archives',
+                            'type' => 'structured_page',
+                            'status' => 'draft',
+                            'route' => '/archives',
+                            'translations' => [
+                                'fr' => ['title' => 'Archives'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'locations' => [
+                        'banner' => ['headline' => ['text' => 'Bienvenue']],
+                        'remonter' => ['label' => 'Top'],
+                        'utility' => [
+                            [
+                                'id' => 'utility-facebook',
+                                'kind' => 'external',
+                                'label' => ['text' => 'Facebook'],
+                                'target' => ['url' => 'https://facebook.example'],
+                                'children' => [],
+                            ],
+                        ],
+                        'primary' => [
+                            [
+                                'id' => 'primary-club',
+                                'kind' => 'group',
+                                'label' => ['text' => 'Club'],
+                                'target' => [],
+                                'children' => [
+                                    [
+                                        'id' => 'primary-association',
+                                        'kind' => 'page',
+                                        'label' => ['text' => 'Association'],
+                                        'target' => ['pageSlug' => 'association'],
+                                        'children' => [],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideLeft' => [
+                            [
+                                'id' => 'side-left-card',
+                                'kind' => 'content_card',
+                                'label' => ['text' => 'Carte club'],
+                                'target' => [],
+                                'children' => [],
+                            ],
+                        ],
+                        'sideRight' => [],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+        $this->writeBlogArticle([
+            'title' => 'Sortie du mois',
+            'slug' => 'sortie-du-mois',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-17 10:00:00',
+            'content' => '<p>Sortie.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'Infos parking',
+            'slug' => 'infos-parking',
+            'lang' => 'fr',
+            'status' => 'draft',
+            'date' => '2026-03-18 10:00:00',
+            'content' => '<p>Parking.</p>',
+            'parent_slug' => 'sortie-du-mois',
+            'parent_lang' => 'fr',
+            'child_sort_order' => 1,
+            'category' => 'Sorties',
+            'tags' => ['Club', 'Infos'],
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'News anglaise',
+            'slug' => 'english-news',
+            'lang' => 'en',
+            'status' => 'published',
+            'date' => '2026-03-19 10:00:00',
+            'content' => '<p>News.</p>',
+            'category' => 'News',
+            'tags' => ['International'],
+        ]);
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('dashboard', $this->request('GET', '/admin/dashboard'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Aucun message en attente. La modération est à jour.', $response->body);
+        $this->assertStringContainsString('Pages : 2 (1 publiées / 1 brouillons).', $response->body);
+        $this->assertStringContainsString('Articles : 3 (2 publiés / 1 brouillons).', $response->body);
+        $this->assertStringContainsString('Brouillons à traiter : 2.', $response->body);
+        $this->assertStringContainsString('Menus : 4 entrées.', $response->body);
+    }
+
+    public function testLoginPostRedirectsToDashboardWhenCredentialsAreValid(): void
+    {
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'email' => 'admin@example.com',
+                    'password' => 'topsecret',
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/dashboard', $response->headers['Location']);
+        $this->assertTrue(admin_is_authenticated());
+    }
+
+    public function testLoginSuccessWritesConnectionContextToSecurityLog(): void
+    {
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'identifier' => 'admin@example.com',
+                    'password' => 'topsecret',
+                ],
+                '203.0.113.42',
+                [
+                    'User-Agent' => 'AdminAgent/5.0',
+                    'Referer' => 'https://example.test/admin',
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/dashboard', $response->headers['Location']);
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileExists($securityLogPath);
+
+        $logContents = (string) file_get_contents($securityLogPath);
+        $this->assertStringContainsString('admin.login.connected', $logContents);
+        $this->assertStringContainsString('203.0.113.42', $logContents);
+        $this->assertStringContainsString('AdminAgent/5.0', $logContents);
+        $this->assertStringContainsString('/admin', $logContents);
+    }
+
+    public function testLoginPostIsRateLimitedAfterConfiguredAttempts(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['login_rate_limit_attempts'] = 1;
+        $appConfig['admin']['login_rate_limit_window'] = 900;
+
+        $controller = $this->controller();
+
+        $first = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'identifier' => 'admin@example.com',
+                    'password' => 'wrong-password',
+                ]
+            )
+        );
+        $this->assertSame(200, $first->status);
+
+        $second = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'identifier' => 'admin@example.com',
+                    'password' => 'wrong-password',
+                ]
+            )
+        );
+
+        $this->assertSame(429, $second->status);
+        $this->assertStringContainsString('Trop de tentatives de connexion', $second->body);
+    }
+
+    public function testLogoutRedirectsBackToLogin(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('logout', $this->request('GET', '/admin/logout'));
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin', $response->headers['Location']);
+        $this->assertFalse(admin_is_authenticated());
+    }
+
+    public function testPagesIndexRendersRegisteredPages(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $response = $controller->handle('pages', $this->request('GET', '/admin/pages'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Pages du site', $response->body);
+        $this->assertStringContainsString('association', $response->body);
+        $this->assertStringContainsString('Publié', $response->body);
+        $this->assertStringContainsString('/admin/pages/association', $response->body);
+        $this->assertStringContainsString('name="page_action" value="delete"', $response->body);
+        $this->assertStringContainsString('name="confirm_delete" value="1"', $response->body);
+        $this->assertStringContainsString('data-delete-warning="ATTENTION : suppression definitive de la page', $response->body);
+        $this->assertStringContainsString('function confirmPageDelete(form)', $response->body);
+        $this->assertStringNotContainsString('Tapez SUPPRIMER pour confirmer', $response->body);
+        $this->assertStringContainsString('>Supprimer<', $response->body);
+    }
+
+    public function testPagesCreatePersistsStructuredPageAndRedirectsToEditScreen(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'pages_new',
+            $this->request(
+                'POST',
+                '/admin/pages/new',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'slug' => 'nouvelle-balade',
+                    'type' => 'structured_page',
+                    'status' => 'published',
+                    'route' => '/nouvelle-balade',
+                    'layout' => 'standard_page',
+                    'translations' => [
+                        'fr' => [
+                            'title' => 'Nouvelle balade',
+                            'meta_description' => 'Balade de printemps',
+                            'regions' => [
+                                'hero_html' => '<h1>Nouvelle balade</h1>',
+                                'intro_html' => '<p>Intro</p>',
+                            ],
+                        ],
+                        'en' => [],
+                        'de' => [],
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/pages/nouvelle-balade?saved=1', $response->headers['Location']);
+
+        $decoded = json_decode((string) file_get_contents($this->pagesFile), true);
+
+        $this->assertIsArray($decoded);
+        $this->assertSame('nouvelle-balade', $decoded['pages'][0]['slug'] ?? null);
+        $this->assertSame('published', $decoded['pages'][0]['status'] ?? null);
+        $this->assertSame('Nouvelle balade', $decoded['pages'][0]['translations']['fr']['title'] ?? null);
+    }
+
+    public function testPagesCreatePersistsStructuredPageFromJsonEditorState(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+        $editorState = [
+            'slug' => 'nouvelle-balade-json',
+            'status' => 'published',
+            'route' => '/nouvelle-balade-json',
+            'layout' => 'standard_page',
+            'translations' => [
+                'fr' => [
+                    'title' => 'Nouvelle balade JSON',
+                    'meta_description' => 'Balade sérialisée',
+                    'regions' => [
+                        'hero_html' => '<h1>Balade JSON</h1>',
+                        'intro_html' => '<p>Intro JSON</p>',
+                    ],
+                ],
+                'en' => [],
+                'de' => [],
+            ],
+        ];
+
+        $response = $controller->handle(
+            'pages_new',
+            $this->request(
+                'POST',
+                '/admin/pages/new',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'page_action' => 'save',
+                    'page_state_json' => json_encode($editorState, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/pages/nouvelle-balade-json?saved=1', $response->headers['Location']);
+
+        $decoded = json_decode((string) file_get_contents($this->pagesFile), true);
+
+        $this->assertIsArray($decoded);
+        $this->assertSame('nouvelle-balade-json', $decoded['pages'][0]['slug'] ?? null);
+        $this->assertSame('published', $decoded['pages'][0]['status'] ?? null);
+        $this->assertSame('Nouvelle balade JSON', $decoded['pages'][0]['translations']['fr']['title'] ?? null);
+        $this->assertSame(
+            'Balade sérialisée',
+            $decoded['pages'][0]['translations']['fr']['meta']['description'] ?? null
+        );
+    }
+
+    public function testPagesEditShowsLayoutPlanForStructuredPages(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Association',
+                                    'regions' => [
+                                        'hero' => [
+                                            'component' => 'heading',
+                                            'title' => 'Association',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'pages_edit',
+            $this->request('GET', '/admin/pages/association'),
+            ['slug' => 'association']
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Plan du template standard', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="region-modal-fr-hero"', $response->body);
+        $this->assertStringContainsString('<dialog class="region-modal" id="region-modal-fr-hero"', $response->body);
+        $this->assertStringContainsString('name="page_state_json"', $response->body);
+        $this->assertStringContainsString('EditRegion8', $response->body);
+        $this->assertStringContainsString('EditRegion9', $response->body);
+        $this->assertStringContainsString('Footer editorial', $response->body);
+        $this->assertStringContainsString('Post-scriptum', $response->body);
+        $this->assertStringNotContainsString('Mode d’édition', $response->body);
+        $this->assertStringNotContainsString('Blocs legacy EditRegion*', $response->body);
+        $this->assertStringContainsString('Êtes-vous sûr de vouloir supprimer cette page ?', $response->body);
+        $this->assertStringContainsString('Oui, supprimer définitivement', $response->body);
+        $this->assertStringContainsString('>Non<', $response->body);
+    }
+
+    public function testPagesEditPrefillsStructuredPlanFromLegacyBlocks(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Association',
+                                    'blocks' => [
+                                        'EditRegion1' => '<h1>Association</h1>',
+                                        'EditRegion2' => '<p>Encart</p>',
+                                        'EditRegion8' => '<p>Intro</p>',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'pages_edit',
+            $this->request('GET', '/admin/pages/association'),
+            ['slug' => 'association']
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('name="translations[fr][regions][hero_html]"', $response->body);
+        $this->assertStringContainsString('&lt;h1&gt;Association&lt;/h1&gt;', $response->body);
+        $this->assertStringContainsString('name="translations[fr][regions][intro_html]"', $response->body);
+        $this->assertStringContainsString('&lt;p&gt;Encart&lt;/p&gt;', $response->body);
+        $this->assertStringContainsString('name="translations[fr][regions][aside_html]"', $response->body);
+        $this->assertStringContainsString('&lt;p&gt;Intro&lt;/p&gt;', $response->body);
+    }
+
+    public function testPagesDeleteRemovesPageAndRedirectsToList(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                                'de' => ['title' => 'Verein'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'pages_edit',
+            $this->request(
+                'POST',
+                '/admin/pages/association',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'page_action' => 'delete',
+                    'confirm_delete' => '1',
+                ]
+            ),
+            ['slug' => 'association']
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/pages?deleted=association', $response->headers['Location']);
+
+        $decoded = json_decode((string) file_get_contents($this->pagesFile), true);
+        $this->assertIsArray($decoded);
+        $this->assertSame([], $decoded['pages'] ?? []);
+    }
+
+    public function testPagesDeletePreservesActiveListFiltersOnRedirect(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'pages_edit',
+            $this->request(
+                'POST',
+                '/admin/pages/association',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'page_action' => 'delete',
+                    'confirm_delete' => '1',
+                    'return_status' => 'draft',
+                    'return_lang' => 'fr',
+                    'return_q' => 'simca aronde',
+                ]
+            ),
+            ['slug' => 'association']
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame(
+            '/admin/pages?deleted=association&status=draft&lang=fr&q=simca%20aronde',
+            $response->headers['Location']
+        );
+    }
+
+    public function testPagesDeleteIsBlockedWhenPageIsUsedInNavigation(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'locations' => [
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-association',
+                                'kind' => 'page',
+                                'label' => ['text' => 'Association'],
+                                'target' => ['pageSlug' => 'association'],
+                                'children' => [],
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                        'banner' => [],
+                        'remonter' => [],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'pages_edit',
+            $this->request(
+                'POST',
+                '/admin/pages/association',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'page_action' => 'delete',
+                    'confirm_delete' => '1',
+                ]
+            ),
+            ['slug' => 'association']
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Suppression impossible', $response->body);
+        $this->assertStringContainsString('Menu principal', $response->body);
+        $this->assertStringContainsString('Association', $response->body);
+
+        $decoded = json_decode((string) file_get_contents($this->pagesFile), true);
+        $this->assertIsArray($decoded);
+        $this->assertCount(1, $decoded['pages'] ?? []);
+    }
+
+    public function testMenusPageRendersVisualBuilderInsteadOfJsonTextarea(): void
+    {
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'locations' => [
+                        'remonter' => [],
+                        'banner' => [],
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-club',
+                                'kind' => 'group',
+                                'label' => ['text' => 'Club'],
+                                'target' => ['pageSlug' => null, 'route' => null, 'url' => null, 'openInNewTab' => false],
+                                'media' => [],
+                                'content' => [],
+                                'accessibility' => [],
+                                'presentation' => [
+                                    'displayMode' => 'dropdown',
+                                ],
+                                'children' => [],
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('menus', $this->request('GET', '/admin/menus'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Builder des menus', $response->body);
+        $this->assertStringContainsString('Mode expert · JSON canonique', $response->body);
+        $this->assertStringContainsString('Aperçu simplifié · header desktop', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="menu-system-banner-dialog"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="menu-system-backtotop-dialog"', $response->body);
+        $this->assertStringContainsString('id="menu-system-banner-dialog"', $response->body);
+        $this->assertStringContainsString('id="menu-system-backtotop-dialog"', $response->body);
+        $this->assertStringNotContainsString('name="menus_json"', $response->body);
+        $this->assertStringContainsString('class="menu-item-card menu-item-card-kind-group', $response->body);
+    }
+
+    public function testLogsPageRendersSystemJournalScreen(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('logs', $this->request('GET', '/admin/logs'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Journaux système', $response->body);
+        $this->assertStringContainsString('Journal SQL', $response->body);
+        $this->assertStringContainsString('Lecture Rapide', $response->body);
+        $this->assertStringContainsString('Debug', $response->body);
+        $this->assertStringContainsString('Canal', $response->body);
+        $this->assertStringContainsString('Nettoyage', $response->body);
+        $this->assertStringContainsString('class="card dashboard-kpi-card"', $response->body);
+        $this->assertStringContainsString('data-log-select-all', $response->body);
+        $this->assertStringContainsString('data-log-delete-selected', $response->body);
+        $this->assertStringContainsString('Tout sélectionner', $response->body);
+    }
+
+    public function testArticlesPageUsesDashboardStyleSummaryCards(): void
+    {
+        $this->writeBlogArticle([
+            'title' => 'Sortie du mois',
+            'slug' => 'sortie-du-mois',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-17 10:00:00',
+            'content' => '<p>Sortie.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('articles', $this->request('GET', '/admin/articles'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Articles visibles', $response->body);
+        $this->assertStringContainsString('Articles publiés', $response->body);
+        $this->assertStringContainsString('class="card dashboard-kpi-card"', $response->body);
+        $this->assertStringContainsString('article_action', $response->body);
+        $this->assertStringContainsString('Supprimer', $response->body);
+    }
+
+    public function testArticleEditorRendersPageAttachmentSelectorWithAvailablePages(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('articles_new', $this->request('GET', '/admin/articles/new'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Accroche en bas de page', $response->body);
+        $this->assertStringContainsString('Association', $response->body);
+        $this->assertStringContainsString('/association', $response->body);
+    }
+
+    public function testArticleDeleteRemovesAttachedDiscussionsAndRedirectsToList(): void
+    {
+        $this->writeBlogArticle([
+            'title' => 'Article à supprimer',
+            'slug' => 'article-a-supprimer',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-18 10:00:00',
+            'content' => '<p>Contenu.</p>',
+        ]);
+
+        $discussionRepository = blog_discussion_repository();
+        $discussionRepository->submitPending('article-a-supprimer', 'fr', [
+            'author' => 'Lecteur',
+            'email' => 'lecteur@example.com',
+            'content' => 'Message à supprimer',
+        ]);
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'articles_edit',
+            $this->request(
+                'POST',
+                '/admin/articles/article-a-supprimer/fr',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'article_action' => 'delete',
+                    'confirm_delete' => '1',
+                ]
+            ),
+            ['slug' => 'article-a-supprimer', 'lang' => 'fr']
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame(
+            '/admin/articles?deleted=article-a-supprimer&deleted_lang=fr&deleted_discussions=1&detached_children=0',
+            $response->headers['Location'] ?? null
+        );
+        $this->assertFileDoesNotExist($this->blogDir . '/article-a-supprimer.fr.json');
+        $this->assertSame([], $discussionRepository->all());
+    }
+
+    public function testMenusPostPersistsVisualBuilderPayload(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'menus',
+            $this->request(
+                'POST',
+                '/admin/menus',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'active_location' => 'primary',
+                    'selected_item' => 'primary|0',
+                    'builder_action' => 'save',
+                    'banner' => [
+                        'image' => '/assets/images/structure/banniere.jpg',
+                        'headline' => 'Voyage dans le golfe',
+                        'alt' => 'Voyage dans le golfe',
+                        'title' => 'Voyage dans le golfe',
+                    ],
+                    'remonter' => [
+                        'label' => 'Top',
+                        'alt' => 'Remonter',
+                        'title' => 'Remonter',
+                    ],
+                    'locations' => [
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-home',
+                                'kind' => 'page',
+                                'label_text' => 'Association',
+                                'target_mode' => 'page',
+                                'target_page_slug' => 'association',
+                                'target_route' => '',
+                                'target_url' => '',
+                                'image' => '',
+                                'content_text' => '',
+                                'alt' => 'Association',
+                                'title' => 'Association',
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Menus sauvegardés via le builder visuel.', $response->body);
+
+        $decoded = json_decode((string) file_get_contents($this->menusFile), true);
+
+        $this->assertIsArray($decoded);
+        $this->assertSame('page', $decoded['locations']['primary'][0]['kind'] ?? null);
+        $this->assertSame('association', $decoded['locations']['primary'][0]['target']['pageSlug'] ?? null);
+    }
+
+    public function testMenusSelectActionMarksPopupForAutoOpen(): void
+    {
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'locations' => [
+                        'remonter' => [],
+                        'banner' => [],
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-home',
+                                'kind' => 'route',
+                                'label' => ['text' => 'Accueil'],
+                                'target' => ['pageSlug' => null, 'route' => '/accueil', 'url' => null, 'openInNewTab' => false],
+                                'media' => [],
+                                'content' => [],
+                                'accessibility' => [],
+                                'presentation' => [],
+                                'children' => [],
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'menus',
+            $this->request(
+                'POST',
+                '/admin/menus',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'active_location' => 'primary',
+                    'selected_item' => 'primary|0',
+                    'builder_action' => 'select@primary|0',
+                    'banner' => [],
+                    'remonter' => [],
+                    'locations' => [
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-home',
+                                'kind' => 'route',
+                                'label_text' => 'Accueil',
+                                'target_mode' => 'route',
+                                'target_page_slug' => '',
+                                'target_route' => '/accueil',
+                                'target_url' => '',
+                                'image' => '',
+                                'content_text' => '',
+                                'alt' => '',
+                                'title' => '',
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+        $this->assertStringContainsString('id="menu-editor-dialog"', $response->body);
+    }
+
+    public function testNestedMenuSelectionDoesNotDuplicatePopupFields(): void
+    {
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'locations' => [
+                        'remonter' => [],
+                        'banner' => [],
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-group',
+                                'kind' => 'group',
+                                'label' => ['text' => 'Club'],
+                                'target' => ['pageSlug' => null, 'route' => null, 'url' => null, 'openInNewTab' => false],
+                                'media' => [],
+                                'content' => [],
+                                'accessibility' => [],
+                                'presentation' => [],
+                                'children' => [
+                                    [
+                                        'id' => 'primary-child',
+                                        'kind' => 'external',
+                                        'label' => ['text' => 'Forum'],
+                                        'target' => ['pageSlug' => null, 'route' => null, 'url' => 'https://forum.example', 'openInNewTab' => true],
+                                        'media' => [],
+                                        'content' => [],
+                                        'accessibility' => [],
+                                        'presentation' => [],
+                                        'children' => [],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'menus',
+            $this->request(
+                'GET',
+                '/admin/menus',
+                [
+                    'location' => 'primary',
+                    'selection' => 'primary|0|0',
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(1, substr_count($response->body, 'name="locations[primary][0][children][0][label_text]"'));
+        $this->assertSame(1, substr_count($response->body, 'name="locations[primary][0][children][0][target_url]"'));
+        $this->assertStringContainsString('id="menu-builder-form"', $response->body);
+        $this->assertStringContainsString('form="menu-builder-form"', $response->body);
+        $this->assertStringContainsString('Sauvegarder et fermer', $response->body);
+        $this->assertStringContainsString('id="selected_label_text"', $response->body);
+        $this->assertStringContainsString('id="banner_image"', $response->body);
+        $this->assertStringContainsString('id="back_to_top_label"', $response->body);
+        $this->assertStringContainsString('name="locations[primary][0][id]"', $response->body);
+    }
+
+    public function testMenusBuilderRendersTranslatedGroupLabelsAndPreservesTranslationKeys(): void
+    {
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'locations' => [
+                        'remonter' => [
+                            'label' => ['text' => null, 'translationKey' => 'REMONTER_TOP'],
+                            'accessibility' => ['alt' => 'Top', 'title' => 'Top'],
+                        ],
+                        'banner' => [
+                            'image' => '/assets/images/structure/banniere.jpg',
+                            'headline' => ['text' => null, 'translationKey' => 'TXT_BANNIERE'],
+                            'accessibility' => ['alt' => null, 'title' => null],
+                        ],
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-home',
+                                'kind' => 'route',
+                                'label' => ['text' => null, 'translationKey' => 'MENU_ACCUEIL'],
+                                'target' => ['pageSlug' => null, 'route' => '/accueil', 'url' => null, 'openInNewTab' => false],
+                                'media' => [],
+                                'content' => [],
+                                'accessibility' => [],
+                                'presentation' => [],
+                                'children' => [],
+                            ],
+                            [
+                                'id' => 'primary-group',
+                                'kind' => 'group',
+                                'label' => ['text' => null, 'translationKey' => 'MENU_AUTORETRO'],
+                                'target' => ['pageSlug' => null, 'route' => null, 'url' => null, 'openInNewTab' => false],
+                                'media' => [],
+                                'content' => [],
+                                'accessibility' => [],
+                                'presentation' => ['displayMode' => 'mega', 'columnCount' => 3, 'menuTemplate' => 'brands'],
+                                'children' => [],
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'menus',
+            $this->request(
+                'GET',
+                '/admin/menus',
+                [
+                    'location' => 'primary',
+                    'selection' => 'primary|1',
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('AUTO-RETRO', $response->body);
+        $this->assertStringNotContainsString('Item sans libellé', $response->body);
+        $this->assertStringContainsString('name="locations[primary][1][label_translation_key]"', $response->body);
+        $this->assertStringContainsString('name="banner[headline_translation_key]"', $response->body);
+        $this->assertStringContainsString('name="remonter[label_translation_key]"', $response->body);
+        $this->assertStringContainsString('value="AUTO-RETRO"', $response->body);
+        $this->assertStringContainsString('value="Remonter"', $response->body);
+    }
+
+    public function testSelectedGroupKeepsChildrenHiddenFieldsInPopupForm(): void
+    {
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'locations' => [
+                        'remonter' => [],
+                        'banner' => [],
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-group',
+                                'kind' => 'group',
+                                'label' => ['text' => 'Club'],
+                                'target' => ['pageSlug' => null, 'route' => null, 'url' => null, 'openInNewTab' => false],
+                                'media' => [],
+                                'content' => [],
+                                'accessibility' => [],
+                                'presentation' => [
+                                    'displayMode' => 'dropdown',
+                                ],
+                                'children' => [
+                                    [
+                                        'id' => 'primary-child',
+                                        'kind' => 'route',
+                                        'label' => ['text' => 'Sorties'],
+                                        'target' => ['pageSlug' => null, 'route' => '/sorties', 'url' => null, 'openInNewTab' => false],
+                                        'media' => [],
+                                        'content' => [],
+                                        'accessibility' => [],
+                                        'presentation' => [],
+                                        'children' => [],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'menus',
+            $this->request(
+                'GET',
+                '/admin/menus',
+                [
+                    'location' => 'primary',
+                    'selection' => 'primary|0',
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame(0, substr_count($response->body, 'name="locations[primary][0][label_text]" type="hidden"'));
+        $this->assertSame(1, substr_count($response->body, 'name="locations[primary][0][children][0][label_text]"'));
+        $this->assertSame(1, substr_count($response->body, 'name="locations[primary][0][children][0][target_route]"'));
+    }
+
+    public function testJsonBuilderStateSelectsNestedGroupWithoutFallingBackToParent(): void
+    {
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'locations' => [
+                        'remonter' => [],
+                        'banner' => [],
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-group',
+                                'kind' => 'group',
+                                'label' => ['text' => 'Auto-Retro'],
+                                'target' => ['pageSlug' => null, 'route' => null, 'url' => null, 'openInNewTab' => false],
+                                'media' => [],
+                                'content' => [],
+                                'accessibility' => [],
+                                'presentation' => ['displayMode' => 'mega', 'columnCount' => 4, 'menuTemplate' => 'brands'],
+                                'children' => [
+                                    [
+                                        'id' => 'primary-austin',
+                                        'kind' => 'group',
+                                        'label' => ['text' => 'Austin'],
+                                        'target' => ['pageSlug' => null, 'route' => null, 'url' => null, 'openInNewTab' => false],
+                                        'media' => [],
+                                        'content' => [],
+                                        'accessibility' => [],
+                                        'presentation' => ['displayMode' => 'dropdown'],
+                                        'children' => [
+                                            [
+                                                'id' => 'primary-austin-link',
+                                                'kind' => 'route',
+                                                'label' => ['text' => 'Mini'],
+                                                'target' => ['pageSlug' => null, 'route' => '/mini', 'url' => null, 'openInNewTab' => false],
+                                                'media' => [],
+                                                'content' => [],
+                                                'accessibility' => [],
+                                                'presentation' => [],
+                                                'children' => [],
+                                            ],
+                                        ],
+                                    ],
+                                    [
+                                        'id' => 'primary-mercedes',
+                                        'kind' => 'group',
+                                        'label' => ['text' => 'Mercedes'],
+                                        'target' => ['pageSlug' => null, 'route' => null, 'url' => null, 'openInNewTab' => false],
+                                        'media' => [],
+                                        'content' => [],
+                                        'accessibility' => [],
+                                        'presentation' => ['displayMode' => 'dropdown'],
+                                        'children' => [
+                                            [
+                                                'id' => 'primary-mercedes-link',
+                                                'kind' => 'route',
+                                                'label' => ['text' => 'SLK'],
+                                                'target' => ['pageSlug' => null, 'route' => '/slk', 'url' => null, 'openInNewTab' => false],
+                                                'media' => [],
+                                                'content' => [],
+                                                'accessibility' => [],
+                                                'presentation' => [],
+                                                'children' => [],
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                            [
+                                'id' => 'primary-bouger',
+                                'kind' => 'group',
+                                'label' => ['text' => 'Bouger'],
+                                'target' => ['pageSlug' => null, 'route' => null, 'url' => null, 'openInNewTab' => false],
+                                'media' => [],
+                                'content' => [],
+                                'accessibility' => [],
+                                'presentation' => ['displayMode' => 'mega', 'columnCount' => 3, 'menuTemplate' => 'editorial'],
+                                'children' => [
+                                    [
+                                        'id' => 'primary-golfe',
+                                        'kind' => 'route',
+                                        'label' => ['text' => 'Le Golfe'],
+                                        'target' => ['pageSlug' => null, 'route' => '/le-golfe', 'url' => null, 'openInNewTab' => false],
+                                        'media' => [],
+                                        'content' => [],
+                                        'accessibility' => [],
+                                        'presentation' => [],
+                                        'children' => [],
+                                    ],
+                                ],
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $builderState = [
+            'active_location' => 'primary',
+            'selected_item' => 'primary|0',
+            'banner' => [],
+            'remonter' => [],
+            'locations' => [
+                'utility' => new stdClass(),
+                'primary' => [
+                    [
+                        'id' => 'primary-group',
+                        'kind' => 'group',
+                        'label_text' => 'Auto-Retro',
+                        'label_translation_key' => '',
+                        'target_mode' => 'group',
+                        'target_page_slug' => '',
+                        'target_route' => '',
+                        'target_url' => '',
+                        'image' => '',
+                        'content_text' => '',
+                        'alt' => '',
+                        'title' => '',
+                        'display_mode' => 'mega',
+                        'column_count' => '4',
+                        'menu_template' => 'brands',
+                        'children' => [
+                            [
+                                'id' => 'primary-austin',
+                                'kind' => 'group',
+                                'label_text' => 'Austin',
+                                'label_translation_key' => '',
+                                'target_mode' => 'group',
+                                'target_page_slug' => '',
+                                'target_route' => '',
+                                'target_url' => '',
+                                'image' => '',
+                                'content_text' => '',
+                                'alt' => '',
+                                'title' => '',
+                                'display_mode' => 'dropdown',
+                                'column_count' => '',
+                                'menu_template' => '',
+                                'children' => [
+                                    [
+                                        'id' => 'primary-austin-link',
+                                        'kind' => 'route',
+                                        'label_text' => 'Mini',
+                                        'label_translation_key' => '',
+                                        'target_mode' => 'route',
+                                        'target_page_slug' => '',
+                                        'target_route' => '/mini',
+                                        'target_url' => '',
+                                        'image' => '',
+                                        'content_text' => '',
+                                        'alt' => '',
+                                        'title' => '',
+                                    ],
+                                ],
+                            ],
+                            [
+                                'id' => 'primary-mercedes',
+                                'kind' => 'group',
+                                'label_text' => 'Mercedes',
+                                'label_translation_key' => '',
+                                'target_mode' => 'group',
+                                'target_page_slug' => '',
+                                'target_route' => '',
+                                'target_url' => '',
+                                'image' => '',
+                                'content_text' => '',
+                                'alt' => '',
+                                'title' => '',
+                                'display_mode' => 'dropdown',
+                                'column_count' => '',
+                                'menu_template' => '',
+                                'children' => [
+                                    [
+                                        'id' => 'primary-mercedes-link',
+                                        'kind' => 'route',
+                                        'label_text' => 'SLK',
+                                        'label_translation_key' => '',
+                                        'target_mode' => 'route',
+                                        'target_page_slug' => '',
+                                        'target_route' => '/slk',
+                                        'target_url' => '',
+                                        'image' => '',
+                                        'content_text' => '',
+                                        'alt' => '',
+                                        'title' => '',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                    [
+                        'id' => 'primary-bouger',
+                        'kind' => 'group',
+                        'label_text' => 'Bouger',
+                        'label_translation_key' => '',
+                        'target_mode' => 'group',
+                        'target_page_slug' => '',
+                        'target_route' => '',
+                        'target_url' => '',
+                        'image' => '',
+                        'content_text' => '',
+                        'alt' => '',
+                        'title' => '',
+                        'display_mode' => 'mega',
+                        'column_count' => '3',
+                        'menu_template' => 'editorial',
+                        'children' => [
+                            [
+                                'id' => 'primary-golfe',
+                                'kind' => 'route',
+                                'label_text' => 'Le Golfe',
+                                'label_translation_key' => '',
+                                'target_mode' => 'route',
+                                'target_page_slug' => '',
+                                'target_route' => '/le-golfe',
+                                'target_url' => '',
+                                'image' => '',
+                                'content_text' => '',
+                                'alt' => '',
+                                'title' => '',
+                            ],
+                        ],
+                    ],
+                ],
+                'footer' => new stdClass(),
+                'sideRight' => new stdClass(),
+                'sideLeft' => new stdClass(),
+            ],
+        ];
+
+        $response = $controller->handle(
+            'menus',
+            $this->request(
+                'POST',
+                '/admin/menus',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'builder_action' => 'select@primary|0|0',
+                    'builder_state_json' => json_encode($builderState, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('name="selected_item"', $response->body);
+        $this->assertStringContainsString('value="primary|0|0"', $response->body);
+        $this->assertStringContainsString('value="Austin"', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+        $this->assertStringNotContainsString('value="Le Golfe"', $response->body);
+    }
+
+    public function testSettingsPageRendersOperationSettingsForm(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('settings', $this->request('GET', '/admin/settings'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Paramètres d’exploitation', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-database"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-admin"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-url"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-head"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-tarteaucitron"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-instagram"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-translations"', $response->body);
+        $this->assertStringContainsString('id="settings-dialog-security"', $response->body);
+        $this->assertStringContainsString('name="tarteaucitron[privacy_url]" type="text" value="/" placeholder="/"', $response->body);
+        $this->assertStringContainsString('name="tarteaucitron[user_config_json]"', $response->body);
+        $this->assertStringContainsString('name="url[base_path]" type="text" value="/" placeholder="/"', $response->body);
+        $this->assertStringContainsString('name="admin[allowed_ips]" type="text"', $response->body);
+        $this->assertStringContainsString('name="instagram[username]" type="text"', $response->body);
+    }
+
+    public function testSettingsPostPersistsOverrideFilesAndHashesAdminPassword(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'database' => [
+                        'host' => '127.0.0.1',
+                        'port' => '3307',
+                        'name' => 'caramagnols',
+                        'user' => 'cara_user',
+                        'password' => 'sql-top-secret',
+                        'prefix' => 'cara_',
+                    ],
+                    'admin' => [
+                        'identifier' => 'nouvel-admin@example.com',
+                        'password' => 'ultra-secret',
+                        'allowed_ips' => '203.0.113.20, 2001:db8::42, 198.51.100.0/24',
+                    ],
+                    'url' => [
+                        'domain' => 'www.example.com',
+                        'ssl_domain' => 'secure.example.com',
+                        'base_path' => '\\catalogue',
+                    ],
+                    'head' => [
+                        'metadata_html' => '<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://www.example.com/auto-retro">
+<script>alert("x")</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite"}</script>',
+                    ],
+                    'tarteaucitron' => [
+                        'enabled' => '1',
+                        'privacy_url' => '\\mentions',
+                        'orientation' => 'top',
+                        'icon_position' => 'TopLeft',
+                        'show_icon' => '0',
+                        'show_alert_small' => '0',
+                        'high_privacy' => '0',
+                        'accept_all_cta' => '0',
+                        'deny_all_cta' => '0',
+                        'mandatory' => '0',
+                        'google_consent_mode' => '0',
+                        'bing_consent_mode' => '0',
+                        'user_config_json' => '{"googletagmanagerId":"GTM-MKG2FFBZ","googleadsId":"AW-123456789"}',
+                        'services' => ['youtube', ' vimeo ', '', 'YouTube'],
+                    ],
+                    'instagram' => [
+                        'enabled' => '1',
+                        'username' => '@paulineetnoel',
+                        'user_id' => '17841400011122233',
+                        'access_token' => 'ig-access-token-example',
+                        'limit' => '5',
+                        'rotation_interval_ms' => '6200',
+                        'cache_ttl_seconds' => '2400',
+                        'timeout_seconds' => '9',
+                    ],
+                    'translations' => [
+                        'fr' => 'TXT_BLOG_SITE_TITLE=Blog des Caramagnols (admin)' . PHP_EOL . 'TXT_CONTACT_SUBMIT=Envoyer maintenant',
+                        'en' => 'TXT_BLOG_SITE_TITLE=Caramagnols Blog',
+                        'de' => '',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Paramètres d’exploitation sauvegardés.', $response->body);
+        $this->assertStringNotContainsString('sql-top-secret', $response->body);
+        $this->assertFileExists($this->databaseOverrideFile);
+        $this->assertFileExists($this->adminOverrideFile);
+        $this->assertFileExists($this->siteOverrideFile);
+
+        $databaseOverride = require $this->databaseOverrideFile;
+        $adminOverride = require $this->adminOverrideFile;
+        $siteOverride = require $this->siteOverrideFile;
+
+        $this->assertSame('127.0.0.1', $databaseOverride['host'] ?? null);
+        $this->assertSame(3307, $databaseOverride['port'] ?? null);
+        $this->assertSame('cara_', $databaseOverride['prefix'] ?? null);
+        $this->assertSame('sql-top-secret', $databaseOverride['password'] ?? null);
+        $this->assertSame('nouvel-admin@example.com', $adminOverride['identifier'] ?? null);
+        $this->assertNotSame('ultra-secret', $adminOverride['password_hash'] ?? null);
+        $this->assertTrue(password_verify('ultra-secret', (string) ($adminOverride['password_hash'] ?? '')));
+        $this->assertSame(['203.0.113.20', '2001:db8::42', '198.51.100.0/24'], $adminOverride['allowed_ips'] ?? null);
+        $this->assertSame('www.example.com', $siteOverride['url']['domain'] ?? null);
+        $this->assertSame('secure.example.com', $siteOverride['url']['ssl_domain'] ?? null);
+        $this->assertSame('/catalogue', $siteOverride['url']['base_path'] ?? null);
+        $this->assertStringContainsString('<meta name="robots" content="index,follow" />', (string) ($siteOverride['head_metadata_html'] ?? ''));
+        $this->assertStringContainsString('<link rel="canonical" href="https://www.example.com/auto-retro" />', (string) ($siteOverride['head_metadata_html'] ?? ''));
+        $this->assertStringContainsString('<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite"}</script>', (string) ($siteOverride['head_metadata_html'] ?? ''));
+        $this->assertStringNotContainsString('alert("x")', (string) ($siteOverride['head_metadata_html'] ?? ''));
+        $this->assertTrue((bool) ($siteOverride['tarteaucitron']['enabled'] ?? false));
+        $this->assertSame('/mentions', $siteOverride['tarteaucitron']['privacy_url'] ?? null);
+        $this->assertSame('top', $siteOverride['tarteaucitron']['orientation'] ?? null);
+        $this->assertSame('TopLeft', $siteOverride['tarteaucitron']['icon_position'] ?? null);
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['show_icon'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['show_alert_small'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['high_privacy'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['accept_all_cta'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['deny_all_cta'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['mandatory'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['google_consent_mode'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['bing_consent_mode'] ?? true));
+        $this->assertSame('{"googleadsId":"AW-123456789","googletagmanagerId":"GTM-MKG2FFBZ"}', $siteOverride['tarteaucitron']['user_config_json'] ?? null);
+        $this->assertSame(['youtube', 'vimeo'], $siteOverride['tarteaucitron']['services'] ?? null);
+        $this->assertTrue((bool) ($siteOverride['instagram']['enabled'] ?? false));
+        $this->assertSame('paulineetnoel', $siteOverride['instagram']['username'] ?? null);
+        $this->assertSame('17841400011122233', $siteOverride['instagram']['user_id'] ?? null);
+        $this->assertSame('ig-access-token-example', $siteOverride['instagram']['access_token'] ?? null);
+        $this->assertSame(5, $siteOverride['instagram']['limit'] ?? null);
+        $this->assertSame(6200, $siteOverride['instagram']['rotation_interval_ms'] ?? null);
+        $this->assertSame(2400, $siteOverride['instagram']['cache_ttl_seconds'] ?? null);
+        $this->assertSame(9, $siteOverride['instagram']['timeout_seconds'] ?? null);
+        $this->assertSame('Blog des Caramagnols (admin)', $siteOverride['i18n_overrides']['fr']['TXT_BLOG_SITE_TITLE'] ?? null);
+        $this->assertSame('Envoyer maintenant', $siteOverride['i18n_overrides']['fr']['TXT_CONTACT_SUBMIT'] ?? null);
+        $this->assertSame('Caramagnols Blog', $siteOverride['i18n_overrides']['en']['TXT_BLOG_SITE_TITLE'] ?? null);
+    }
+
+    public function testSettingsValidationErrorReopensSubmittedPopup(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'tarteaucitron',
+                    'tarteaucitron' => [
+                        'privacy_url' => '',
+                        'orientation' => 'diagonal',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('tarteaucitron', $response->body);
+        $this->assertStringContainsString('data-settings-section-card="tarteaucitron"', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+    }
+
+    public function testSettingsRejectsInvalidAdminAllowedIp(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'admin',
+                    'admin' => [
+                        'identifier' => 'admin@example.com',
+                        'password' => '',
+                        'allowed_ips' => '203.0.113.12, not-an-ip',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('IP autorisée', $response->body);
+        $this->assertStringContainsString('not-an-ip', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+    }
+
+    public function testSettingsRejectsInvalidTarteaucitronServiceIdentifier(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'tarteaucitron',
+                    'database' => [
+                        'host' => '127.0.0.1',
+                        'port' => '3306',
+                        'name' => 'caramagnols',
+                        'user' => 'cara_user',
+                        'password' => '',
+                        'prefix' => 'cara_',
+                    ],
+                    'admin' => [
+                        'identifier' => 'admin@example.com',
+                        'password' => '',
+                    ],
+                    'tarteaucitron' => [
+                        'privacy_url' => '/mentions',
+                        'orientation' => 'bottom',
+                        'icon_position' => 'BottomRight',
+                        'services' => ['Google Maps'],
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Google Maps', $response->body);
+        $this->assertStringContainsString('identifiant technique du service', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+    }
+
+    public function testSettingsRejectsInvalidTarteaucitronUserConfigJson(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'tarteaucitron',
+                    'database' => [
+                        'host' => '127.0.0.1',
+                        'port' => '3306',
+                        'name' => 'caramagnols',
+                        'user' => 'cara_user',
+                        'password' => '',
+                        'prefix' => 'cara_',
+                    ],
+                    'admin' => [
+                        'identifier' => 'admin@example.com',
+                        'password' => '',
+                    ],
+                    'tarteaucitron' => [
+                        'privacy_url' => '/mentions',
+                        'orientation' => 'bottom',
+                        'icon_position' => 'BottomRight',
+                        'user_config_json' => '{"googletagmanagerId":"GTM-XXXX",}',
+                        'services' => ['googletagmanager'],
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('variables services tarteaucitron est invalide', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+    }
+
+    public function testSettingsUrlSectionAllowsEmptyObjectTarteaucitronUserConfig(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'url',
+                    'database' => [
+                        'host' => '127.0.0.1',
+                        'port' => '3306',
+                        'name' => 'caramagnols',
+                        'user' => 'cara_user',
+                        'password' => '',
+                        'prefix' => 'cara_',
+                    ],
+                    'admin' => [
+                        'identifier' => 'admin@example.com',
+                        'password' => '',
+                    ],
+                    'url' => [
+                        'domain' => 'www.example.com',
+                        'ssl_domain' => 'secure.example.com',
+                        'base_path' => '/',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Paramètres d’exploitation sauvegardés.', $response->body);
+        $this->assertStringNotContainsString('Les variables services tarteaucitron doivent être un objet JSON (pas une liste).', $response->body);
+    }
+
+    public function testSettingsUrlSectionPreservesTarteaucitronFalseFlagsWhenConfiguredAsStrings(): void
+    {
+        global $appConfig;
+        $appConfig['site']['tarteaucitron'] = [
+            'enabled' => 'false',
+            'privacy_url' => '/',
+            'orientation' => 'bottom',
+            'icon_position' => 'BottomRight',
+            'show_icon' => 'false',
+            'show_alert_small' => 'false',
+            'high_privacy' => 'false',
+            'accept_all_cta' => 'false',
+            'deny_all_cta' => 'false',
+            'mandatory' => 'false',
+            'google_consent_mode' => 'false',
+            'bing_consent_mode' => 'false',
+            'user_config_json' => '{}',
+            'services' => ['youtube'],
+        ];
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'url',
+                    'database' => [
+                        'host' => '127.0.0.1',
+                        'port' => '3306',
+                        'name' => 'caramagnols',
+                        'user' => 'cara_user',
+                        'password' => '',
+                        'prefix' => 'cara_',
+                    ],
+                    'admin' => [
+                        'identifier' => 'admin@example.com',
+                        'password' => '',
+                    ],
+                    'url' => [
+                        'domain' => 'www.example.com',
+                        'ssl_domain' => 'secure.example.com',
+                        'base_path' => '/',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Paramètres d’exploitation sauvegardés.', $response->body);
+        $this->assertMatchesRegularExpression('/name="tarteaucitron\\[enabled\\]" value="1"(?! checked)/', $response->body);
+        $this->assertMatchesRegularExpression('/name="tarteaucitron\\[show_icon\\]" value="1"(?! checked)/', $response->body);
+        $this->assertMatchesRegularExpression('/name="tarteaucitron\\[show_alert_small\\]" value="1"(?! checked)/', $response->body);
+
+        $siteOverride = require $this->siteOverrideFile;
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['enabled'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['show_icon'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['show_alert_small'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['high_privacy'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['accept_all_cta'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['deny_all_cta'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['mandatory'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['google_consent_mode'] ?? true));
+        $this->assertFalse((bool) ($siteOverride['tarteaucitron']['bing_consent_mode'] ?? true));
+    }
+
+    public function testSettingsRejectsTarteaucitronUserConfigJsonListSyntax(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'tarteaucitron',
+                    'database' => [
+                        'host' => '127.0.0.1',
+                        'port' => '3306',
+                        'name' => 'caramagnols',
+                        'user' => 'cara_user',
+                        'password' => '',
+                        'prefix' => 'cara_',
+                    ],
+                    'admin' => [
+                        'identifier' => 'admin@example.com',
+                        'password' => '',
+                    ],
+                    'tarteaucitron' => [
+                        'privacy_url' => '/mentions',
+                        'orientation' => 'bottom',
+                        'icon_position' => 'BottomRight',
+                        'user_config_json' => '[]',
+                        'services' => ['youtube'],
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('objet JSON (pas une liste)', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+    }
+
+    public function testSettingsInstagramTestChecksApiWithoutSavingOverrides(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $logger = new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
+        $instagramCacheFile = ROOT_PATH . '/var/admin-instagram-test-cache-' . uniqid('', true) . '.json';
+        $instagramService = new InstagramFeedService(
+            $instagramCacheFile,
+            static fn (string $url, int $timeout): ?array => [
+                'status' => 200,
+                'body' => json_encode(
+                    [
+                        'data' => [
+                            [
+                                'id' => 'post-1',
+                                'caption' => 'Post de test',
+                                'media_type' => 'IMAGE',
+                                'media_url' => 'https://cdn.example.test/post.webp',
+                                'thumbnail_url' => '',
+                                'permalink' => 'https://www.instagram.com/p/post-1',
+                                'timestamp' => '2026-03-18T20:10:00+00:00',
+                                'username' => 'paulineetnoel',
+                            ],
+                        ],
+                    ],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ),
+            ],
+            static fn (): int => 1700000600
+        );
+        $settingsService = new AdminSettingsService(
+            $this->databaseOverrideFile,
+            $this->adminOverrideFile,
+            $logger,
+            $this->siteOverrideFile,
+            $instagramService
+        );
+        $controller = $this->controller($settingsService, $logger);
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'instagram',
+                    'settings_action' => 'instagram_test',
+                    'instagram' => [
+                        'enabled' => '1',
+                        'username' => 'paulineetnoel',
+                        'access_token' => 'test-token',
+                        'limit' => '4',
+                        'rotation_interval_ms' => '5500',
+                        'cache_ttl_seconds' => '1800',
+                        'timeout_seconds' => '8',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Connexion Instagram validée', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+        $this->assertFileDoesNotExist($this->siteOverrideFile);
+
+        if (file_exists($instagramCacheFile)) {
+            unlink($instagramCacheFile);
+        }
+    }
+
+    private function controller(?AdminSettingsService $settingsService = null, ?AppEventLogger $logger = null): AdminController
+    {
+        $logger = $logger ?? new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
+        $settingsService = $settingsService ?? new AdminSettingsService(
+            $this->databaseOverrideFile,
+            $this->adminOverrideFile,
+            $logger,
+            $this->siteOverrideFile
+        );
+
+        return new AdminController(
+            new AdminRouteResolver('admin'),
+            $logger,
+            null,
+            null,
+            $settingsService
+        );
+    }
+
+    private function removeDirectoryRecursively(string $directory): void
+    {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        foreach (glob(rtrim($directory, '/') . '/*') ?: [] as $path) {
+            if (is_dir($path)) {
+                $this->removeDirectoryRecursively($path);
+                continue;
+            }
+
+            @unlink($path);
+        }
+
+        @rmdir($directory);
+    }
+
+    /**
+     * @param array<string, mixed> $query
+     * @param array<string, mixed> $post
+     * @param array<string, string> $headers
+     */
+    private function request(
+        string $method,
+        string $uri,
+        array $query = [],
+        array $post = [],
+        string $remoteAddr = '127.0.0.1',
+        array $headers = []
+    ): Request
+    {
+        return new Request(
+            [
+                'REQUEST_METHOD' => $method,
+                'REQUEST_URI' => $uri,
+                'REMOTE_ADDR' => $remoteAddr,
+            ],
+            $query,
+            $post,
+            [],
+            array_merge(['Host' => '127.0.0.1:8000'], $headers)
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $article
+     */
+    private function writeBlogArticle(array $article): void
+    {
+        $path = $this->blogDir . '/' . $article['slug'] . '.' . $article['lang'] . '.json';
+
+        file_put_contents($path, json_encode($article, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+}

@@ -1,6 +1,6 @@
 # Preparation V1 - Checklist Deploiement
 
-Date de reference : 2026-03-19
+Date de reference : 2026-03-20
 
 Ce document propose un plan detaille pour finaliser la webapp en version 1 deployable.
 Il est base sur l'etat reel du depot et sur des verifications executees localement.
@@ -216,6 +216,7 @@ Statut 2026-03-19 :
 - [x] Session admin durcie (`HttpOnly`, `SameSite`, regen ID).
 - [x] CSRF sur tous POST sensibles.
 - [x] Timeout inactivite admin + re-auth sensibles actifs.
+- [x] Warning de session admin avant expiration (T-120s), fenetre de decision 120s, deconnexion auto sans reponse.
 - [x] 2FA TOTP actif hors localhost.
 - [~] Allowlist IP admin active en prod (si contexte le permet).
 - [x] reCAPTCHA discussions + honeypot + rate limiting verifies.
@@ -234,6 +235,7 @@ Statut 2026-03-19 :
 - [x] Session admin durcie validee (`session.cookie_httponly=1`, `SameSite=Strict`, `session_regenerate_id()` sur login/logout).
 - [x] Couverture CSRF etendue aux formulaires contact (page legacy + composant `contact_form` du renderer structure).
 - [x] Re-auth actions sensibles + timeout inactivite actifs dans `AdminController`/`auth/admin.php`.
+- [x] Warning session admin et keepalive CSRF (`POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping`) actifs dans `AdminController` + layout admin.
 - [x] TOTP hors localhost controlee et enforcee par `check_env --env=production` (`ADMIN_TOTP_ENABLED=true` + secret valide).
 - [~] Allowlist IP: mecanisme actif (`ADMIN_ALLOWED_IPS`), `check_env` alerte si vide/loopback-only; la valeur finale reste dependante du contexte infra.
 - [x] Discussions publiques: honeypot + double rate limit + reCAPTCHA + nonce anti-replay verifies (controller + tests).
@@ -258,6 +260,36 @@ Mise a jour 2026-03-20 (execution ticket W1-04) :
 - [x] Invalidation cache navigation verifiee apres sauvegarde menus (test de non-regression ajoute dans `AdminNavigationServiceTest`).
 - [x] Purge cache navigation executee : `php -r "require 'core/bootstrap.php'; app_runtime_cache_clear(['navigation']); ..."` -> `cache_cleared`.
 - [x] Preuves archivees : `62-w1-04-admin-tests.txt` et `63-w1-04-cache-clear-navigation.txt`.
+
+Mise a jour 2026-03-20 (execution ticket W1-06) :
+
+- [x] Recette manuelle FO/Admin archivee sur les 4 axes cibles :
+  - `docs/private/recette-preprod-v1-2026-03-20/front/desktop`
+  - `docs/private/recette-preprod-v1-2026-03-20/front/mobile`
+  - `docs/private/recette-preprod-v1-2026-03-20/admin/desktop`
+  - `docs/private/recette-preprod-v1-2026-03-20/admin/mobile`
+- [x] Verification automatisee des dossiers de preuve : `85-w1-06-directories-check.txt` (`OK`).
+- [x] Inventaire des captures/headers archive : `86-w1-06-proof-files.txt`.
+- [x] Non-regression FO/Admin rejouee : `87-w1-06-fo-admin-tests.txt` (`53` tests, `306` assertions).
+- [x] Synthese anomalies : `88-w1-06-anomalies.md` (aucune anomalie bloquante relevee).
+
+Mise a jour 2026-03-20 (warning session admin) :
+
+- [x] Route keepalive admin ajoutee et gouvernee : `POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping`.
+- [x] Warning d'expiration de session admin implemente : prompt Oui/Non a `T-120s`, attente 120s, logout auto sans reponse.
+- [x] Couverture tests HTTP ajoutee : scenarios `unauthenticated` (401) et keepalive authentifie (200 + timeout rafraichi).
+- [x] Documentation alignee : `README_SECURITE_ADMIN_V1.md`, `backend/README_PUBLIC_ENTRYPOINTS.md`, `README.md`.
+
+Mise a jour 2026-03-20 (correctif tarteaucitron admin) :
+
+- [x] Correction `AdminSettingsService::normalizeTarteaucitronUserConfigJson()` : l'objet JSON vide reste serialize en `{}` (plus de conversion implicite en `[]`).
+- [x] Validation conservee : les listes JSON explicites (`[]`) restent refusees avec le message d'erreur dedie.
+- [x] Normalisation booleenne renforcee pour tarteaucitron (`false`/`off`/`0` legacy) afin d'eviter le recochage involontaire des cases apres sauvegarde.
+- [x] Durcissement runtime complementaire : remplacement des derniers cast `(bool)` ambigus par une normalisation explicite dans `normalizeTarteaucitronConfig()` et `applyRuntimeConfig()`.
+- [x] Non-regression ajoutee dans `AdminControllerTest` :
+  - `testSettingsUrlSectionAllowsEmptyObjectTarteaucitronUserConfig`
+  - `testSettingsUrlSectionPreservesTarteaucitronFalseFlagsWhenConfiguredAsStrings`
+  - `testSettingsRejectsTarteaucitronUserConfigJsonListSyntax`
 
 ## 5) I18n, contenus, coherence UX
 
@@ -421,7 +453,7 @@ Verification executee le 2026-03-19 :
 Statut verifie le 2026-03-19 :
 
 - [x] Toutes les verifications automatiques passent local et CI.
-- [~] Le parcours front/admin est valide en test manuel cible.
+- [~] Le parcours front/admin est valide sur le scope W1-06 (la recette admin authentifiee finale reste a rejouer en cible).
 - [~] La securite admin est appliquee en configuration production.
 - [x] La documentation canonique permet d'installer, exploiter et depanner sans ambiguite.
 
@@ -433,7 +465,7 @@ Details d'execution :
   - CI : workflow aligne sur ces gates (qualite + audits + smoke HTTP)
 - parcours front/admin :
   - non-regression automatisee OK : `phpunit tests/FrontControllerHttpTest.php tests/BlogRouteTest.php tests/DynamicRouteTest.php tests/AdminBlogServiceTest.php tests/BlogDiscussionApiControllerTest.php` -> OK (26 tests)
-  - verification manuelle cible (desktop/mobile sur environnement preprod) a consigner avant go-live
+  - verification manuelle cible archivee (ticket W1-06) : preuves `85-w1-06-directories-check.txt`, `86-w1-06-proof-files.txt`, `88-w1-06-anomalies.md`
 - securite admin prod :
   - `composer check-security-headers -- --url=http://127.0.0.1:8103/blog --forwarded-proto=https` -> OK en local
   - `composer check-log-alerts -- --since-minutes=60 --strict` -> OK
@@ -443,8 +475,8 @@ Details d'execution :
   - `npm run hygiene:docs` -> OK (19 fichiers, 0 lien casse)
   - README de construction V1 renommes avec suffixe `_V1` :
     - `README_ADMIN_EDITORIAL_NAV_V1.md`
-    - `README_AUDIT_COMPLET_V1.md`
-    - `README_AUDIT_PLAN_ACTION_V1.md`
+    - `docs/archive/README_AUDIT_COMPLET_V1.md`
+    - `docs/archive/README_AUDIT_PLAN_ACTION_V1.md`
     - `README_MODERNISATION_V1.md`
     - `docs/archive/README_BLOG_PLAN_V1.md` (archive)
     - `README_RENDER_ARTEFACTS_V1.md`
@@ -454,11 +486,11 @@ Details d'execution :
 Verdict :
 
 - V1 est prete techniquement pour une release candidate.
-- Go-live production : en attente de validation manuelle cible + injection/rotation des secrets prod + credentials Instagram.
+- Go-live production : en attente de recette admin authentifiee finale en cible + injection/rotation des secrets prod + credentials Instagram.
 
 ## TODO go-live bloquants
 
-- Executer et archiver la recette manuelle front/admin en preprod cible (desktop + mobile).
+- Rejouer une recette admin authentifiee en environnement cible avec credentials super-admin de production avant go-live.
 - Injecter les variables/secrets de prod hors Git puis valider `check-env --env=production --strict-prod-security`.
 - Renseigner les credentials Instagram et valider `check-instagram-feed -- --strict`.
 - Rejouer `check-security-headers` sur l'URL preprod reelle (pas prod), archiver la sortie, puis conserver `BLOG_STORAGE=sql` apres validation finale preprod.
@@ -466,26 +498,46 @@ Verdict :
 ## Preuves recette preprod (archive locale courante)
 
 Dossier :
-- `docs/private/recette-preprod-v1-2026-03-19/`
+- `docs/private/recette-preprod-v1-2026-03-20/`
 
 Sorties archivees :
-- `01-check-env.txt`
-- `02-check-security-headers.txt`
-- `03-check-log-alerts.txt`
-- `04-check-instagram.txt`
-- `05-blog-import-sql.txt`
-- `06-blog-storage-dual-write.txt`
-- `07-blog-storage-sql.txt`
-- `08-check-log-alerts.txt`
-- `09-cache-clear.txt`
+- `69-predeploy-status.txt`
+- `70-composer-test.txt`
+- `71-composer-phpstan.txt`
+- `72-composer-phpcs.txt`
+- `73-composer-audit.txt`
+- `74-check-security-headers.txt`
+- `75-check-env-production-strict.txt`
+- `76-npm-lint.txt`
+- `77-npm-test-run.txt`
+- `78-npm-build.txt`
+- `79-npm-audit.json`
+- `80-hygiene-docs.txt`
+- `81-autoload-predeploy.txt`
+- `82-controllers-predeploy.txt`
+- `83-http-predeploy.txt`
+- `84-cache-clear-predeploy.txt`
+- `85-w1-06-directories-check.txt`
+- `86-w1-06-proof-files.txt`
+- `87-w1-06-fo-admin-tests.txt`
+- `88-w1-06-anomalies.md`
+- `89-autoload-w1-06.txt`
+- `90-controllers-w1-06.txt`
+- `91-http-w1-06.txt`
+- `92-cache-clear-w1-06.txt`
+- `93-hygiene-docs-w1-06.txt`
 
 Notes :
-- import blog SQL execute (`composer blog-import-sql`) ; dans cet environnement local, 0 article/0 discussion importes (jeu de donnees blog vide).
-- validation de bascule blog effectuee :
-  - `BLOG_STORAGE=dual-write` -> repository actif `DualWriteBlogRepository`
-  - `BLOG_STORAGE=sql` -> repository actif `SqlBlogRepository`
-- `check-security-headers` archive ici a ete lance sur `https://www.lescaramagnols.com` (status 403, headers manquants signales) ; il faut rejouer sur l'URL preprod cible finale.
-- `check-security-headers` rejoue avec user-agent navigateur: OK sur `https://www.lescaramagnols.com` (status 200, headers requis presents).
-- controle W1-03 rejoue le 2026-03-20 :
+- controles predeploy complets executes et consolides dans `69-predeploy-status.txt` (etat `GO` local).
+- controle W1-03 confirme le 2026-03-20 :
   - `33-check-security-headers-www.txt` -> OK
   - `34-check-env-production-strict.txt` -> OK
+- controle W1-04 confirme le 2026-03-20 :
+  - `62-w1-04-admin-tests.txt` -> OK
+  - `63-w1-04-cache-clear-navigation.txt` -> OK
+- controle W1-06 confirme le 2026-03-20 :
+  - dossiers de preuve FO/Admin valides (`85-w1-06-directories-check.txt`)
+  - inventaire des captures et headers (`86-w1-06-proof-files.txt`)
+  - non-regression FO/Admin (`87-w1-06-fo-admin-tests.txt`)
+  - synthese anomalies (`88-w1-06-anomalies.md`) : aucune anomalie bloquante
+  - controles fin de tache mission W1-06 executes (`89` a `93`) : autoload OK, controllers OK, HTTP OK (`status 200` avec user-agent navigateur), cache purge, hygiene docs OK.

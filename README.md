@@ -3,28 +3,60 @@
 Site associatif mêlant un backend PHP procédural (routage, templates, i18n serveur, sécurité) et un frontend Vite (JS/SCSS) pour l’interactivité et le responsive.  
 Ce document décrit l’architecture, les langages, les dépendances, les commandes utiles et les points clés de mise en production.
 
+## Note 2026-03-18
+- Le service éditorial de pages est désormais unique : registre [`backend/data/pages.json`](./backend/data/pages.json) + rendu [`backend/templates/pages/dynamic.php`](./backend/templates/pages/dynamic.php).
+- Le registre ne contient plus de `legacy_template` ni de champ `template`.
+- Les formulaires admin lourds (`pages`, `menus`) sérialisent maintenant leur état dans un champ JSON caché avant soumission pour éviter les troncatures PHP liées à `max_input_vars`.
+- Les routes publiques préfixées `/*` ont été supprimées ; les routes canoniques sont désormais sans ce préfixe.
+- Les mentions résiduelles de `legacy_template` dans certains documents de plan servent uniquement d’historique de conception tant qu’ils n’ont pas été entièrement réécrits.
+
+## Docs de référence
+- Index de la documentation : `README_DOCUMENTATION_INDEX.md`
+- Plan V1 de deploiement : `README_V1_PREPARATION_DEPLOIEMENT.md`
+- Portail prive famille (vision securisee) : `README_PRIVATE_FAMILLE_V1.md`
+- Plan d’action (historique archive) : `docs/archive/README_AUDIT_PLAN_ACTION_V1.md`
+- Stratégie de modernisation : `README_MODERNISATION_V1.md`
+- Admin éditorial et navigation : `README_ADMIN_EDITORIAL_NAV_V1.md`
+- Blog JSON MVP : `README_BLOG.md`
+- Bootstrap backend / i18n : `backend/README_BOOTSTRAP_I18N.md`
+- Conventions pages dynamiques / contenu : `docs/pages-dynamiques.md`
+- Entrées publiques : `backend/README_PUBLIC_ENTRYPOINTS.md`
+- Installation hors webroot : `backend/README_INSTALLATION_HORS_WEBROOT.md`
+- Logging backend : `backend/README_LOGGING.md`
+- Pipeline de build frontend : `frontend/README_BUILD_PIPELINE.md`
+- Runbook go-live V1 : `docs/v1-go-live-runbook.md`
+
 ## Quick start (2 min)
-- Prérequis : PHP 8.1+, Composer, Node.js 20+, npm
+- Prérequis : PHP 8.1+, Composer, Node.js `20.19+` ou `22.12+`, npm
+- Version recommandée pour ce dépôt : Node `22.22.1` via `nvm`
+- Si `nvm` est installé : `nvm install && nvm use`
 - Installer backend : `composer install --working-dir=backend`
 - Installer frontend : `cd frontend && npm install`
 - Lancer en dev :
+  - Recommandé : `./dev.sh`
   - Terminal 1 : `cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php`
   - Terminal 2 : `cd frontend && npm run dev`
-- Ouvrir : http://127.0.0.1:8000?lang=fr (proxy Vite sur /core)
-- Pas de CSS/JS ? Vérifier `backend/public/.vite/manifest.json` (généré par `npm run build && npm run postbuild`) ou que Vite affiche “ready in …” dans le terminal.
+- Ouvrir : `https://127.0.0.1:18443?lang=fr` (mode `./dev.sh`, certificat local auto-signé)  
+  Fallback HTTP direct : `http://127.0.0.1:8000?lang=fr`
+- Ne pas ouvrir `http://localhost:5173/` directement : le site reste rendu par PHP sur `8000`, Vite sert seulement les assets en dev.
+- Si Vite tourne, PHP charge automatiquement `@vite/client` et `src/js/main.ts` depuis `VITE_DEV_SERVER_URL` (par défaut `http://localhost:5173`).
+- Si Vite ne tourne pas, PHP retombe sur `backend/public/.vite/manifest.json` publié par `npm run build`.
 
 ---
 
 ## Architecture générale
-- **Entrée HTTP** : `backend/public/index.php` charge `core/bootstrap.php`, applique les en-têtes de sécurité, détecte la langue, résout la route via le mini-routeur (`core/router.php`) puis rend la page avec le layout PHP (`templates/partials/layout.php`).
-- **Templating** : pages PHP dans `backend/templates/pages/**` structurées autour des blocs `EditRegion*`; menus/header/footer dans `backend/templates/partials/*`.
-- **Internationalisation (serveur)** : détection langue (`core/lang_bootstrap.php`), chargement et sanitisation des traductions (`core/i18n.php`, fichiers `backend/lang/{fr,en,de}.php`), cookie `lang` sécurisé.
-- **Internationalisation (client)** : module `frontend/src/js/i18n.js` (fetch `core/api/lang.php`, cache in-memory + localStorage, application sur `data-i18n`).
-- **Frontend build** : Vite 7 (ESM) + SCSS. Entrées `src/js/main.js` et `src/scss/style.scss`; manifest généré dans `backend/public/.vite/manifest.json` puis injecté côté PHP (`partials/scripts_head.php`). Images copiées via `vite-plugin-static-copy`.
-- **Assets runtime** : en production, les bundles sont copiés dans `backend/public/assets` et `backend/public/.vite` par `npm run postbuild`. En dev, Vite sert les assets, le proxy `/core/*` cible `http://127.0.0.1:8000`.
-- **Sécurité** : en-têtes CSP/anti-clickjacking (`core/security.php`), cookies HttpOnly + `SameSite=Strict`, session renommée (`caramagnols_session`), tokens CSRF (`csrf_token()` / `csrf_validate()`), rate limiting session (`core/rate_limiter.php`), sanitisation centralisée (`core/validation.php`).
-- **Admin Blog (MVP)** : espace protégé sous `/site/<ADMIN_LOGIN_PATH>/` (défaut `adminFtyhik5642sZ`) avec login email/mot de passe (`core/auth/admin.php`). Layout admin : `backend/public/site/adminFtyhik5642sZ/layout.php`, pages dashboard & login.
-- **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir des templates). Dossier `backend/data/` pour les fichiers dérivés (index, brouillons Blog…).
+- **Entrée HTTP** : `backend/public/index.php` charge `core/bootstrap.php`, applique les en-têtes de sécurité, initialise la langue via `bootstrap_language_context()`, résout la route via le wrapper `core/router.php` (délégué à `backend/src/Http/LegacyRouteResolver.php`, avec fallback blog vers `DEFAULT_LANG` si contenu absent dans la langue demandée) puis rend la page avec le layout PHP (`templates/partials/layout.php`).
+- **Templating** : pages PHP dans `backend/templates/pages/**` structurées autour des blocs `EditRegion*`; menus/header/footer dans `backend/templates/partials/*`. Le layout standard des zones est maintenant centralisé dans `backend/src/Content/StandardPageLayout.php`.
+- **Internationalisation (serveur)** : résolution via `backend/src/I18n/LanguageResolver.php`, orchestration via `backend/core/lang_bootstrap.php`, chargement/sanitisation via `backend/src/I18n/Translator.php` exposé par `backend/core/i18n.php`.
+- **Internationalisation (client)** : module `frontend/src/js/i18n.ts` (fetch `core/api/lang.php`, cache in-memory + localStorage, application sur `data-i18n`).
+- **Frontend build** : Vite 7 (ESM) + SCSS. Entrées `src/js/main.ts` et `src/scss/style.scss`; manifest publié dans `backend/public/.vite/manifest.json` puis injecté côté PHP via `backend/src/Assets/ViteAssetManager.php` et `vite_tags()`. Images copiées via `vite-plugin-static-copy`. Le build applique aussi un gate de budget via `frontend/tools/check-budgets.mjs`.
+- **Assets runtime** : en production, `npm run build` publie le build dans `backend/public/assets` et `backend/public/.vite`, avec purge automatique des anciens bundles hashés à la racine de `backend/public/assets`. La politique V1 impose de ne pas versionner `frontend/dist/**`, `backend/public/.vite/**`, `backend/public/tarteaucitron/**` et les bundles generes a la racine `backend/public/assets`. En dev, Vite sert les assets, le proxy `/core/*` cible `http://127.0.0.1:8000`.
+- **Sécurité** : en-têtes CSP/anti-clickjacking (`core/security.php`), session renommée (`caramagnols_session`) en `SameSite=Strict`, cookie `lang` en `HttpOnly`/`SameSite=Lax`, tokens CSRF (`csrf_token()` / `csrf_validate()`), rate limiting session (`core/rate_limiter.php`), timeout d'inactivite admin (120 min) avec warning de prolongation (fenetre 120s) et keepalive CSRF (`POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping`), sanitisation centralisée (`core/validation.php`).
+- **Admin Blog (MVP JSON)** : espace protégé sous `/<base_path>/<ADMIN_LOGIN_PATH>` (exemple par défaut : `/admin` quand `base_path=/`) avec login email/mot de passe (`core/auth/admin.php`). Le rendu passe par `backend/src/Admin/AdminController.php`, l’écriture blog par `backend/src/Blog/BlogApiController.php`, et la persistance par `backend/src/Blog/JsonBlogRepository.php`. Aucun identifiant admin par défaut n’est fourni par le dépôt.
+- **Dashboard admin** : la page `/<base_path>/<ADMIN_LOGIN_PATH>/dashboard` synthétise les éléments clés de pilotage et met en priorité la modération des discussions (`pending`).
+- **Entrées publiques harmonisées** : RSS, sitemap (`/sitemap.xml`), robots (`/robots.txt`), admin et API blog passent par `backend/public/index.php`. Le sitemap est dynamique (pas de fichier physique `backend/public/sitemap.xml`). Les anciens fichiers publics `rss.php` et les anciens wrappers admin ne sont plus que des shims de compatibilité.
+- **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir des templates). Dossier `backend/data/` pour les fichiers dérivés (index, articles blog JSON, logs applicatifs) et pour les pages dynamiques JSON.
+- **Exploitation/perf** : scripts CLI `composer benchmark-routes` (temps de rendu routes critiques, option `--storage=json|sql|dual-write`), `composer check-log-alerts` (seuils login failure/rate-limit/403/429), `composer check-instagram-feed` (probe bloc Instagram accueil).
 - **Base de données (optionnelle pour l’instant)** : schéma MySQL minimal dans `backend/sql/install.sql` avec préfixe `car_`. Fichier `config/database.override.php` permet de surcharger les paramètres issus de `.env`.
 
 ---
@@ -55,19 +87,21 @@ frontend/
 ```
 public/index.php
   -> core/bootstrap.php (env, config, sécurité)
-  -> lang_bootstrap (détection langue)
+  -> bootstrap_language_context() (langue + traductions)
   -> router (FastRoute puis fallback fichiers)
   -> template page (templates/pages/…)
   -> partials/layout.php
-       -> scripts_head.php (charge manifest Vite)
+       -> scripts_head.php (charge Vite via ViteAssetManager)
 ```
 
 ## Contrat PHP <-> Vite
-- **Dev** : Vite sur http://127.0.0.1:5173, proxy `/core` vers PHP. Pas de manifest utilisé, assets en HMR.
-- **Prod** : `backend/public/assets/**` et `backend/public/.vite/manifest.json` doivent exister (créés par `npm run build && npm run postbuild`).
+- **Dev** : le site s'ouvre sur `http://127.0.0.1:8000`. Si le serveur Vite tourne sur `VITE_DEV_SERVER_URL`, PHP injecte `@vite/client` et `src/js/main.ts` directement depuis Vite. Le proxy `/core/*` de Vite pointe vers `http://127.0.0.1:8000`.
+- **Prod** : `backend/public/assets/**` et `backend/public/.vite/manifest.json` doivent exister (publiés par `npm run build`).
 - Symptômes + solutions :
-  - Page sans CSS/JS : manifest manquant ou `/assets/...` en 404 → relancer `npm run build && npm run postbuild`.
-  - 404 sur `/core/...` en dev : vérifier que `npm run dev` tourne et que le proxy cible bien 127.0.0.1:8000.
+  - `http://localhost:5173/` renvoie 404 : normal, Vite ne sert pas de page HTML autonome dans ce projet.
+  - Page sur `8000` sans CSS/JS en dev : vérifier que `npm run dev` tourne bien sur `VITE_DEV_SERVER_URL`.
+  - Page sur `8000` sans CSS/JS hors dev : manifest manquant ou `/assets/...` en 404 → relancer `npm run build`.
+  - 404 sur `/core/...` en dev : vérifier que le proxy Vite cible bien `127.0.0.1:8000`.
 
 ## Mises à jour récentes
 - Suppression du menu principal « COMMUNIQUER » et de ses sous-entrées (desktop et mobile).
@@ -80,6 +114,61 @@ public/index.php
   - Frontend : entrée `main.ts`, modules i18n/menus/logger en TypeScript, autoprefixer+browserslist.
   - CI GitHub Actions : phpunit, phpstan, phpcs, lint JS/CSS, vitest.
   - Sécurité repo public : `.env`, `config/db.php`, `config/database.override.php`, logs et `public/tmp_config` sont ignorés (`.gitignore`).
+- Phase socle (17 mars 2026) :
+  - unification du bootstrap i18n autour de `LanguageResolver` + `Translator`
+  - suppression des installateurs publics `backend/public/installsql.php` et `backend/public/assets/install.php`
+  - documentation d’installation déplacée vers `backend/README_INSTALLATION_HORS_WEBROOT.md`
+  - suppression des valeurs de démonstration pour l’auth admin dans le code et `.env.example`
+- Deuxième passe (17 mars 2026) :
+  - route admin canonique découplée du dossier legacy et alignée sur `ADMIN_LOGIN_PATH`
+  - création de `backend/src/Admin/AdminRouteResolver.php` et `backend/src/Admin/AdminController.php`
+  - création de `backend/src/Feed/RssFeedService.php` pour un RSS gouverné par le front-controller
+  - transformation des anciens fichiers publics admin/RSS en shims de compatibilité
+- Troisième passe (17 mars 2026) :
+  - création de `backend/src/Assets/ViteAssetManager.php` comme source de vérité Vite côté PHP
+  - wrappers `vite_*` conservés mais désormais branchés sur cette classe
+  - `frontend/tools/publish-build.mjs` remplace la copie brute et purge les anciens bundles hashés
+  - la CI vérifie maintenant le build frontend publié
+- Phase 3 contenu/templates (17 mars 2026) :
+  - `backend/src/Content/StandardPageLayout.php` centralise le layout standard des régions de contenu
+  - `backend/src/Content/StructuredPageRenderer.php` introduit un schéma de pages JSON à régions sémantiques
+  - `backend/templates/partials/contenu.php` n’embarque plus la structure en dur et passe par une factorisation dédiée
+  - `backend/data/pages.json` supporte désormais le schéma `regions` pour les nouveaux contenus
+- Phase 4 blog/outillage (17 mars 2026) :
+  - le blog est clarifié comme MVP JSON `experimental` avec persistance unique dans `backend/data/blog`
+  - l’écriture blog canonique passe par `POST /<base_path>/<ADMIN_LOGIN_PATH>/articles/save` avec alias legacy `/core/blog/save_article.php`
+  - des routes publiques minimales existent maintenant pour `/blog` et `/blog/article/{slug}`
+  - le logging est uniformisé sur auth admin, sauvegarde menus et écriture blog
+- Audit admin/navigation (17 mars 2026) :
+   - `README_ADMIN_EDITORIAL_NAV_V1.md` cadre la prochaine modernisation éditoriale et la refonte du header
+   - `backend/core/menu_loader.php` normalise désormais les clés legacy `menu_droit` / `menu_gauche` vers `menuDroit` / `menuGauche`
+- Section F editorial SQL (17 mars 2026) :
+   - couche PDO MariaDB/MySQL commune via `backend/src/Database/*`
+   - repositories editoriaux pages/navigation maintenant storage-aware (`json`, `dual-write`, `sql`)
+   - commande `composer editorial-import-sql` pour importer `pages.json` et la navigation vers SQL
+   - lecture SQL smoke-testee localement, tout en gardant `json` comme mode par defaut
+- Simplification pages (18 mars 2026) :
+  - suppression du contrat legacy de pages `legacy_template` / `template`
+  - toutes les pages du registre éditorial public sont maintenant des `structured_page`
+  - l’admin pages ne maintient plus de pseudo multi-type en parallèle
+- Discussions blog modérées (18 mars 2026) :
+  - soumission publique de messages sous article via `POST /core/blog/submit_discussion.php`
+  - file de moderation admin via `/<base_path>/<ADMIN_LOGIN_PATH>/discussions`
+  - section de configuration anti-bot/reCAPTCHA dans `settings`
+  - stratégie sécurité retenue : contribution publique sans compte client obligatoire + modération + anti-bot multicouche
+- Stabilisation architecture (19 mars 2026) :
+  - `backend/core/router.php` et `backend/core/menu_loader.php` sont désormais des wrappers de compatibilité
+  - logique legacy routage/menu migree vers `backend/src/Http/LegacyRouteResolver.php` et `backend/src/Navigation/LegacyMenuRuntime.php`
+  - extraction de composants admin (`AdminSerializedFormNormalizer`, parseurs navigation, manager des overrides de traductions)
+  - ajout du script de backup/restore editorial `backend/core/tools/editorial_backup_restore.php`
+- Performance/exploitation (19 mars 2026) :
+  - budgets frontend rendus bloquants dans `npm run build` via `frontend/tools/check-budgets.mjs`
+  - audit images historiques outille via `npm run audit:images`
+  - lazy loading + dimensions explicites ajoutes sur medias non critiques des templates
+  - cache HTTP durci pour assets fingerprintes (`immutable`)
+  - cache runtime consolide pages/navigation/traductions avec invalidation explicite cote admin
+  - benchmark routes critiques disponible via `composer benchmark-routes`
+  - observabilite renforcee: `X-Request-Id`, correlation log, rotation/retention locale, `composer check-log-alerts`
 
 ## Mise en œuvre des optimisations (plan d’action)
 
@@ -91,7 +180,7 @@ public/index.php
 | Frontend | Passage TypeScript modules clés, autoprefixer, tests menus | Moyenne | En place |
 | Observabilité | Monolog (logs app), Symfony Mailer | Moyenne | En place |
 | CI | Workflow GitHub Actions (lint+tests) | Haute | En place |
-| Dette restante | Étendre la couverture tests, migration TS progressive, nettoyage assets obsolètes | Moyenne | À faire |
+| Dette restante | UI admin pages/menus/traductions, refonte du header, réduction progressive de `backend/core/*` | Moyenne | À faire |
 
 ### Backlog priorisé
 1) **Tests & lint** : augmenter la couverture (pages, router avancé, i18n).  
@@ -105,7 +194,11 @@ public/index.php
 - [ ] `composer lint && npm run lint`.
 - [ ] `composer test && npm run test:run`.
 - [ ] `composer check-i18n`.
-- [ ] `npm run build && npm run postbuild` (puis vérifier `backend/public/.vite/manifest.json` et `/assets`).
+- [ ] `npm run build` (puis vérifier `backend/public/.vite/manifest.json` et `/assets`).
+- [ ] `composer benchmark-routes` et `composer check-log-alerts` pour le smoke exploitation.
+- [ ] `composer check-instagram-feed -- --strict` si bloc Instagram activé en cible.
+- [ ] `npm run audit:images` pour suivre la dette image historique.
+- [ ] `npm run hygiene:repo` pour valider policy artefacts/docs/nommage assets.
 - [ ] Démarrer PHP (`php -S 127.0.0.1:8000 -t public public/dev-router.php`) + Vite (`npm run dev`) pour valider le rendu.
 - [ ] Vérifier CSP dans DevTools (aucun blocage), API langue renvoie 304 avec ETag.
 
@@ -123,40 +216,68 @@ public/index.php
 ---
 
 ## Backend (PHP)
-- **Bootstrap** : `core/bootstrap.php` charge `.env`, config (`config/config.php`), sécurité, i18n, router. Vérification des variables critiques en prod (DB & SMTP).
+- **Bootstrap** : `core/bootstrap.php` charge `.env`, config (`config/config.php`), sécurité, i18n, router. Vérification des variables critiques en prod (DB & SMTP). Référence détaillée : `backend/README_BOOTSTRAP_I18N.md`.
 - **Routage** : `core/router.php` mappe l’URI vers un fichier de page sous `templates/pages/`, avec prise en compte du préfixe langue (`/fr`, `/en`, `/de`).
-- **API** : `core/api/lang.php` sert les traductions JSON au frontend (`?lang=fr|en|de`), avec fallback `DEFAULT_LANG`.
+- **Contenu dynamique** : `backend/data/pages.json` est le registre unique des pages éditoriales publiques.
+  - état courant : uniquement des `structured_page`
+  - écriture admin courante : `regions` sémantiques selon `docs/pages-dynamiques.md`
+  - compatibilité de lecture : le moteur tolère encore `blocks` s’ils existent dans une donnée legacy importée, sans en faire un second service
+- **Persistance editoriale** :
+  - mode par defaut : `EDITORIAL_STORAGE=json`
+  - transition disponible : `EDITORIAL_STORAGE=dual-write`
+  - bascule SQL : `EDITORIAL_STORAGE=sql`
+  - import initial : `composer editorial-import-sql`
+  - import blog JSON -> SQL : `composer blog-import-sql`
+  - backup/restore operationnel : `php backend/core/tools/editorial_backup_restore.php backup|restore` (+ `--storage=json|sql|dual-write` pour forcer un mode de verification)
+- **API** : `core/api/lang.php` sert les traductions JSON au frontend (`?lang=fr|en|de`), avec fallback `DEFAULT_LANG`, ETag et le même chargeur de traductions que le rendu PHP.
 - **Validation & sécurité** :
   - `core/validation.php` : sanitation texte, email, tags, commentaires, traductions (whitelist de balises).
   - `core/security.php` : en-têtes, session sécurisée, CSRF tokens.
-  - `core/rate_limiter.php` : limiteur de requêtes basé session (utilisé pour `Blog/save_article.php`).
+  - `core/rate_limiter.php` : limiteur de requêtes basé session (utilisé pour l’API blog et les flux sensibles).
 - **Admin** :
   - Authentification email+password (`core/auth/admin.php`), clés dans `.env` (`ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`).
-  - Tableau de bord & connexion : `backend/public/site/<ADMIN_LOGIN_PATH>/{index,dashboard,logout}.php`.
-- **Blog (MVP JSON)** : endpoint `core/blog/save_article.php` nettoie et retourne l’article/les commentaires ; la persistance BDD reste à brancher.
-- **Installateur SQL (legacy)** : `backend/public/installsql.php` pour provisionner MySQL et déposer `config/db.php` si nécessaire.
+  - Route canonique : `/<base_path>/<ADMIN_LOGIN_PATH>` puis `/dashboard`, `/menus`, `/logout`.
+  - Contrôleur : `backend/src/Admin/AdminController.php`, résolution d’URL via `backend/src/Admin/AdminRouteResolver.php`, rendu via `backend/templates/admin/*.php`.
+  - Les anciens scripts admin publics legacy sont des shims de compatibilité.
+  - Sans configuration explicite (`ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH`), la connexion admin reste désactivée par conception.
+- **Blog (JSON/SQL pilotable)** :
+  - lecture publique : `/blog`, `/blog/article/{slug}`
+  - soumission discussion publique : `POST /core/blog/submit_discussion.php` (statut initial `pending`)
+  - moderation admin : `/<base_path>/<ADMIN_LOGIN_PATH>/discussions`
+  - écriture admin canonique : `/<base_path>/<ADMIN_LOGIN_PATH>/articles/save`
+  - alias legacy : `POST /core/blog/save_article.php`
+  - mode de stockage : `BLOG_STORAGE=json|dual-write|sql` (fallback `EDITORIAL_STORAGE`)
+  - stockage JSON : `backend/data/blog/{slug}.{lang}.json` et `backend/data/blog-discussions/{slug}.{lang}.json`
+  - stockage SQL : tables `blog_articles` / `blog_discussions` (migration `backend/sql/editorial/005_blog.sql`)
+  - statut produit : `BLOG_MODE=experimental`
+- **Installation** : procédure shell documentée dans `backend/README_INSTALLATION_HORS_WEBROOT.md`.
 
 ---
 
 ## Frontend (Vite + SCSS)
-- **Entrée** : `src/js/main.js` importe `menus.js`, `i18n.js` et `src/scss/style.scss`.
-- **Menus & UI** : `src/js/menus.js` gère le menu desktop (hover) et mobile (hamburger), bouton “remonter”.
-- **i18n client** : `src/js/i18n.js` (cache `Map`, persistance localStorage, `changeLanguage`, `applyTranslations` sur `data-i18n`).
-- **Logger** : `src/js/logger.js` centralise `console` en dev.
+- **Entrée** : `src/js/main.ts` importe `menus.ts`, `i18n.ts` et `src/scss/style.scss`.
+- **Menus & UI** : `src/js/menus.ts` gère le menu desktop (hover) et mobile (hamburger), bouton “remonter”.
+- **Fusion mobile groupe/lien** : si un groupe mobile et son premier enfant partagent le même libellé, le lien enfant est fusionné au niveau groupe pour supprimer le doublon d’affichage.
+- **i18n client** : `src/js/i18n.ts` (cache `Map`, persistance localStorage, `changeLanguage`, `applyTranslations` sur `data-i18n`).
+- **Logger** : `src/js/logger.ts` centralise `console` en dev.
+- **Budgets** :
+  - `npm run build` applique un gate de poids JS/CSS/image (`frontend/tools/check-budgets.mjs`) avant publication backend.
 - **Styles** :
   - SCSS modulaires : `_variables.scss`, `_utilities.scss`, `_layout.scss`, `_menus.scss`, `_responsive.scss`, `_components.scss`.
   - Conventions : classes nouvelles en `kebab-case`, utilitaires préfixés `.u-`, hooks JS préfixés `js-`, placeholders `%` pour factoriser.
 - **Images** :
   - Imports Vite (`@/assets/...`) pour hashing.
   - Script `npm run build:webp` (`frontend/tools/convert-webp.js`) génère WebP + variantes `@480w/@960w` avec cache simple.
+  - Script `npm run audit:images` pour inventorier doublons, noms non normalisés et manques de variantes modernes.
 
 ---
 
 ## Pré-requis
 - PHP 8.1+ avec extensions standard.
 - Composer.
-- Node.js 20+ / npm.
-- (Optionnel) MySQL 5.7+/MariaDB 10+ si vous activez le blog ou l’installateur SQL.
+- Node.js `20.19+` ou `22.12+` / npm.
+- Recommandé : `nvm` + `nvm use` à la racine du dépôt (`.nvmrc` fourni : `22.22.1`).
+- MySQL 5.7+/MariaDB 10+ requis si vous activez le stockage SQL (`EDITORIAL_STORAGE` ou `BLOG_STORAGE` en `dual-write|sql`) ou si vous lancez `composer editorial-import-sql` / `composer blog-import-sql`.
 - Secrets : rester dans `.env` hors `public/`, non versionné (voir `.gitignore`).
 
 ---
@@ -166,6 +287,10 @@ public/index.php
 # Dépendances backend
 composer install --working-dir=backend
 
+# Version Node recommandée
+nvm install
+nvm use
+
 # Dépendances frontend
 cd frontend
 npm install
@@ -173,6 +298,9 @@ npm install
 
 ### Développement local
 ```bash
+# Mode recommandé : lance PHP + Vite, vérifie les ports et stoppe proprement les deux processus
+./dev.sh
+
 # Terminal 1 : serveur PHP
 cd backend
 php -S 127.0.0.1:8000 -t public public/dev-router.php
@@ -181,16 +309,31 @@ php -S 127.0.0.1:8000 -t public public/dev-router.php
 cd frontend
 npm run dev   # http://127.0.0.1:5173
 ```
-Visiter http://127.0.0.1:8000 (langue forçable avec `?lang=en`). Le proxy Vite relaie `/core/*` vers le serveur PHP.
+Visiter `https://127.0.0.1:18443` (langue forçable avec `?lang=en`) en mode `./dev.sh`.  
+Le proxy HTTPS local relaie vers PHP `http://127.0.0.1:8000`, et Vite relaie `/core/*` vers le serveur PHP.
+
+Variables optionnelles pour `./dev.sh` :
+- `DEV_LANG` pour la langue d'ouverture affichée (`fr` par défaut)
+- `PHP_HOST` / `PHP_PORT` pour le serveur backend
+- `VITE_HOST` / `VITE_PORT` pour le serveur Vite
+- `HTTPS_ENABLED=0` pour désactiver le proxy HTTPS local
+- `HTTPS_HOST` / `HTTPS_PORT` pour l'URL HTTPS locale (par défaut `https://127.0.0.1:18443`)
+- `REUSE_EXISTING_SERVICES=1` (défaut) pour réutiliser un PHP/Vite déjà lancé au lieu d'échouer sur port occupé
+
+Exemple :
+```bash
+PHP_PORT=8080 VITE_PORT=5174 DEV_LANG=en ./dev.sh
+```
 
 ### Build & copie des assets
 ```bash
 cd frontend
 npm run build
-npm run postbuild   # copie dist/assets et dist/.vite vers backend/public
-# ou enchaîné :
-npm run build && npm run postbuild
 ```
+
+Notes :
+- `npm run build` publie automatiquement le résultat vers `backend/public/` via le script `postbuild`
+- `npm run postbuild` ou `npm run publish:backend` servent uniquement à republier un `dist/` déjà généré
 
 ### Tests
 - **Frontend** : `cd frontend && npm run test:run` (Vitest, jsdom).
@@ -198,9 +341,11 @@ npm run build && npm run postbuild
 - Couverture Vitest : `frontend/coverage/`.
 
 ### Outils CLI utiles (backend/core/tools)
-- `php backend/core/tools/check_env.php [--env=production|... --json --require=KEY1,KEY2]` : valide la présence/permissions des variables d’env et des clés critiques.
+- `php backend/core/tools/check_env.php [--env=production|... --json --require=KEY1,KEY2 --strict-prod-security]` : valide la présence/permissions des variables d’env et des clés critiques.
 - `php backend/core/tools/generate_search_index.php` : construit `backend/data/search_index*.json` à partir des templates.
 - `php backend/core/tools/generate_favicon.php` : régénère les favicons depuis `frontend/src/assets/images/structure/logo.*`.
+- `php backend/core/tools/editorial_backup_restore.php backup [--output=...] [--storage=json|sql|dual-write]` : exporte un backup complet pages/navigation/blog/discussions.
+- `php backend/core/tools/editorial_backup_restore.php restore <backup.json> --force [--storage=json|sql|dual-write]` : restaure ce backup (commande destructive).
 
 ### Conversion images
 ```bash
@@ -218,11 +363,15 @@ npm run build:webp   # Sharp → WebP + tailles responsive
 ## Configuration (.env)
 Copier `backend/.env.example` vers `backend/.env`, puis ajuster :
 - `APP_ENV` (`development`/`production`…), `BASE_URL`, `DEFAULT_LANG`.
+- `VITE_DEV_SERVER_URL` si Vite n'est pas expose sur `http://localhost:5173`.
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_TABLE_PREFIX`.
 - SMTP : `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT`, `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD`, `MAIL_SMTP_ENCRYPTION`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
 - Admin : `ADMIN_LOGIN_PATH`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`.
+- HTTPS/proxy : `FORCE_HTTPS`, `FORCE_HTTPS_ON_LOCALHOST`, `TRUST_PROXY_HEADERS`.
+- Exemple par défaut : `ADMIN_LOGIN_PATH=admin`.
+- `ADMIN_PASSWORD_HASH` est volontairement vide dans `.env.example` tant qu’aucun compte admin n’est créé.
 - Vérifier les permissions du `.env` (600 ou 640, hors `public/`).  
-Commande de contrôle : `composer check-env --working-dir=backend` (option `--env=production` pour forcer les clés prod).
+Commande de contrôle : `composer check-env --working-dir=backend` (option `--env=production` pour forcer les clés prod, et `--strict-prod-security` pour rendre bloquants les points sécurité admin critiques).
 
 ---
 
@@ -230,29 +379,39 @@ Commande de contrôle : `composer check-env --working-dir=backend` (option `--en
 - Schéma de base dans `backend/sql/install.sql` (tables `car_users`, `car_articles`, `car_comments` avec contraintes FK).
 - Préfixe configurable via `DB_TABLE_PREFIX` (défaut `car_`) et helper `db_table()` en PHP.
 - Surcharge des paramètres de connexion via `backend/config/database.override.php` (généré par le module admin, ignoré par Git).
-- Script installateur web héritage : `backend/public/installsql.php` (création DB, import SQL, utilisateur admin, fallback `public/tmp_config` si `config/` n’est pas inscriptible).
+- Installation shell / hors webroot : `backend/README_INSTALLATION_HORS_WEBROOT.md`.
 
 ---
 
 ## Internationalisation
-- **Serveur** : détection URL (`/fr/`), paramètre `?lang`, cookie `lang`, header `HTTP_ACCEPT_LANGUAGE`; fallback `DEFAULT_LANG`. Chargement des fichiers `backend/lang/{code}.php`.
-- **Client** : sélection ou persistance de la langue via `i18n.js` ; attributs `data-i18n` et `data-i18n-attr` dans le HTML pour hydrater les textes/attrs ; fallback sur les contenus existants.
+- **Serveur** : résolution URL (`/fr/`), paramètre `?lang`, cookie `lang`, header `HTTP_ACCEPT_LANGUAGE`; fallback `DEFAULT_LANG`. Le bootstrap commun fixe `CURRENT_LANG` puis charge `backend/lang/{code}.php` via `Translator`.
+- **Client** : sélection ou persistance de la langue via `i18n.ts` ; attributs `data-i18n` et `data-i18n-attr` dans le HTML pour hydrater les textes/attrs ; fallback sur les contenus existants.
+- **Navigation + consentement** : labels marque/langues du header et fallback titre YouTube (cookie consent) sont fournis par les clés i18n backend (`TXT_SITE_BRAND`, `TXT_LANGUAGE_*_LABEL`, `TXT_YOUTUBE_VIDEO_FALLBACK_TITLE`), donc pilotables depuis les dictionnaires et overrides admin.
+- **Tarteaucitron (services externes)** : l’admin permet de définir la liste `services` et un objet JSON `Variables JS services` injecté dans `tarteaucitron.user` (exemple GTM : `{"googletagmanagerId":"GTM-XXXXXXX"}`).
+  L’objet vide doit rester saisi en `{}` (et non `[]`) ; la validation refuse toujours les listes JSON explicites pour éviter une configuration invalide.
+  Les drapeaux booléens sont normalisés côté runtime/admin (compatibilité legacy avec des valeurs texte comme `false`/`off`/`0`) pour éviter un recochage involontaire après sauvegarde.
+  Clés fréquentes : `googletagmanagerId` (GTM), `googleadsId`, `matomoHost` + `matomoId`, `facebookpixelId`, `hotjarId`.
 
 ---
 
 ## Sécurité & conformité
 - En-têtes : CSP restrictive, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`; HSTS si HTTPS détecté.
+- CSP: ouverture conditionnelle des domaines GTM/Google Analytics quand le service tarteaucitron `googletagmanager` est activé.
 - Sessions : cookie `caramagnols_session`, `HttpOnly`, `SameSite=Strict`, `Secure` en HTTPS.
 - CSRF : helpers génériques (`csrf_token`, `csrf_validate`) + variantes admin.
+- Proxy headers : `X-Forwarded-*` pris en compte uniquement si `TRUST_PROXY_HEADERS=true`.
 - Rate limiting : `SessionRateLimiter` (clé + capacité + fenêtre).
 - Sanitisation : textes, emails, tags, commentaires, traductions (HTML autorisé limité) dans `core/validation.php`.
 - Audit config : `core/tools/check_env.php` pour vérifier présence des secrets et permissions.
+- Audit headers preprod : `composer check-security-headers --working-dir=backend -- --url=https://preprod.exemple.tld`.
 
 ---
 
-## Accès admin (démo)
-- URL : `/site/<ADMIN_LOGIN_PATH>/` (défaut `/site/adminFtyhik5642sZ/`).
-- Identifiants par défaut : email `pauline@lescaramagnols.com`, mot de passe correspondant au hash dans `.env.example` (`admin`). **À changer avant toute mise en ligne** via `ADMIN_PASSWORD_HASH`.
+## Accès admin
+- URL canonique : `/<base_path>/<ADMIN_LOGIN_PATH>` (exemple : `/admin` si `base_path=/`, `/catalogue/admin` si `base_path=/catalogue`).
+- Route keepalive admin : `POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping` (prolongation de session apres warning d'inactivite).
+- Les anciens chemins `rss.php`, `assets/rss.php` et les anciens alias admin restent compatibles mais ne sont plus la voie de référence.
+- Aucun identifiant par défaut n’est fourni. Renseigner explicitement `ADMIN_EMAIL` et `ADMIN_PASSWORD_HASH` dans `.env`.
 
 ---
 
@@ -271,30 +430,80 @@ Commande de contrôle : `composer check-env --working-dir=backend` (option `--en
 ---
 
 ## Déploiement (rappel)
-1) Builder le front : `npm run build && npm run postbuild` (copie dans `backend/public`).  
+1) Builder le front : `npm run build` (publication dans `backend/public`).  
 cd ~/www/caramagnols/frontend
-npm run build && npm run postbuild
+npm run build
 
 2) Déployer `backend/public/` + `backend/data/` (index recherche) sur l’hébergement PHP.  
 3) Mettre en place `.env` sécurisé hors `public/`, vérifier avec `composer check-env --env=production`.  
 4) Configurer le serveur web pour pointer sur `backend/public/` comme document root et autoriser le cache long sur `assets/` et `.vite/`.  
 5) Activer HTTPS pour bénéficier de HSTS et des cookies `Secure`.
 
+### Déploiement rapide (petits correctifs)
+
+Scripts :
+
+- `backend/tools/deploy-fast.sh` : sync uniquement les fichiers backend modifies.
+- `backend/tools/deploy-release.sh` : sync complet backend (release).
+
+Variables requises :
+
+```bash
+export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net"
+export REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend"
+```
+
+Prévisualisation (sans ecriture distante) :
+
+```bash
+bash backend/tools/deploy-fast.sh --dry-run
+bash backend/tools/deploy-release.sh --dry-run
+```
+
+Note `deploy-fast.sh` :
+
+- mode par defaut = fichiers backend **stages** uniquement (safe deploy)
+- pour inclure aussi les fichiers non stages : `--all-changes`
+
+Execution :
+
+```bash
+# Correctif rapide
+bash backend/tools/deploy-fast.sh
+
+# Release complete (vendor sync par defaut)
+bash backend/tools/deploy-release.sh
+```
+
+Cas `composer.lock` modifie localement :
+
+- utiliser `deploy-release.sh` (ou `deploy-fast.sh --with-vendor`) pour pousser `vendor/` sur OVH si Composer n'est pas disponible en SSH.
+
+Rollback minimal :
+
+1. Restaurer `.env` backup si necessaire (`.env.bak.YYYY-MM-DD-HHMMSS` cree avant deploy).
+2. Redeployer la derniere archive stable (zip ou release precedente).
+3. Purger le cache runtime :
+
+```bash
+cd /home/lescaramgl-ssh/caramagnols/backend
+php -r "require 'core/bootstrap.php'; app_runtime_cache_clear(['pages','navigation','translations']); echo 'cache_cleared'.PHP_EOL;"
+```
+
 ---
 
 ### Commandes rapides (mémo)
-- Dev : `php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php` + `npm run dev`.
-cd ~/www/caramagnols
-php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php
+- Dev : `./dev.sh` depuis la racine (HTTP + HTTPS local).
+- Dev manuel : `php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php` + `npm run dev`.
 
 - Tests : `composer test` ; `npm run test:run`.
 - Lint : `npm run lint`.
-- Build : `npm run build && npm run postbuild`.
+- Build : `npm run build`.
 - Env check : `composer check-env --working-dir=backend`.
 
 ---
 
-> Dernière mise à jour : 28 février 2026. Merci d’ajouter vos modifications et tests exécutés dans vos PRs.
+> Dernière mise à jour : 17 mars 2026. Merci d’ajouter vos modifications et tests exécutés dans vos PRs.
 
 # Rapport d'optimisation Codex
 
