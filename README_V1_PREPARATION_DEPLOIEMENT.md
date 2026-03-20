@@ -1,0 +1,491 @@
+# Preparation V1 - Checklist Deploiement
+
+Date de reference : 2026-03-19
+
+Ce document propose un plan detaille pour finaliser la webapp en version 1 deployable.
+Il est base sur l'etat reel du depot et sur des verifications executees localement.
+
+## 1) Etat technique mesure (2026-03-19)
+
+Commandes executees :
+
+- `composer check-env` -> OK
+- `composer check-i18n` -> OK
+- `composer test` -> OK (177 tests)
+- `composer phpstan` -> OK
+- `composer phpcs` -> OK
+- `npm run lint` -> OK
+- `npm run test:run` -> OK (23 tests)
+- `npm run build` -> OK
+- `composer audit` -> OK
+- `npm audit --json` -> OK (0 `high`/`critical`)
+- `composer benchmark-routes -- --iterations=20 --warmup=3` -> OK (`/` avg 9.24ms ; `/blog` avg 10.20ms)
+- `composer check-log-alerts -- --since-minutes=30` -> OK (aucune alerte)
+- `npm run audit:images` -> OK (3552 images, 966 groupes de doublons exacts)
+- autoload/controllers/http -> OK (`composer dump-autoload -o`, classes controllers resolues, smoke HTTP 200 avec en-tete proxy HTTPS)
+
+Conclusion immediate : les quality gates P0.1/P0.2 sont verts localement, et les actions techniques P2 sont implementees/validees localement.
+Le passage en V1 depend maintenant de la validation CI sur branche propre et de la cloture des restants P1/P2 (notamment objectifs Lighthouse et chantier images historiques).
+
+## 2) Architecture actuelle et cible V1
+
+Architecture runtime actuelle (a conserver) :
+
+1. `backend/public/index.php` (point d'entree unique)
+2. `backend/core/bootstrap.php` (env + securite + config + i18n)
+3. `backend/src/Http/FrontController.php` (dispatch)
+4. `backend/templates/*` (rendu serveur)
+5. `frontend` (pipeline assets Vite uniquement)
+
+Architecture cible V1 (evolution, pas rewrite) :
+
+1. Garder rendu serveur PHP.
+2. Reduire progressivement `backend/core/*` au profit de `backend/src/*` testable.
+3. Stabiliser contrats de donnees editoriales (pages/navigation/discussions).
+4. Durcir securite admin + secrets + politiques HTTPS.
+5. Industrialiser QA (tests/lint/audit) jusqu'a gate vert.
+
+## 3) Priorites V1 (bloquants puis structurants)
+
+## Priorite 0 - Bloquants release
+
+### P0.1 Qualite outillee 100% verte
+
+- Corriger le test `EditorialImportServiceTest` (adaptation fixture SQL apres nettoyage DB).
+- Corriger `phpstan` (58 erreurs, surtout types array et checks redondants).
+- Corriger `phpcs` (2 signatures multi-line).
+- Corriger `stylelint` dans `_menus.scss` (ordre de specificite + nommage classes).
+- Aligner la CI pour refuser toute regression sur ces 4 gates.
+
+Critere d'acceptation :
+
+- `composer test && composer phpstan && composer phpcs`
+- `npm run lint && npm run test:run && npm run build`
+- workflow CI vert sur branche propre.
+
+### P0.2 Hygiene securite dependances
+
+- Monter `phpunit/phpunit` vers version non vulnerable (`>=10.5.62` ou equivalent branche choisie).
+- Corriger vulnerabilities npm dev (`immutable >=5.1.5`, `flatted >=3.4.0`) puis relancer audit.
+- Figer versions dans lockfiles et valider compatibilite tests.
+
+Critere d'acceptation :
+
+- `composer audit` sans CVE ouverte pertinente.
+- `npm audit --json` sans `high`/`critical`.
+
+### P0.3 Aligner routes/admin legacy restantes
+
+- Supprimer ou adapter le smoke CI qui cible une URL admin obfusquee legacy.
+- Verifier qu'aucune doc "active" ne depend d'URL obfusquee.
+- Garder uniquement la route admin canonique (`/<ADMIN_LOGIN_PATH>`).
+
+Critere d'acceptation :
+
+- aucune occurrence de l'ancien identifiant admin obfusque ne remonte dans la CI et la documentation active.
+
+## Priorite 1 - Stabilisation architecture et code
+
+### P1.1 Reduction dette `core/*`
+
+- Isoler les blocs legacy encore lourds (`router.php`, helpers globaux, menu_loader).
+- Migrer les comportements metier vers services `src/*` avec contrats clairs.
+- Limiter les fonctions globales aux wrappers de compatibilite.
+
+Critere d'acceptation :
+
+- Nouvelles features ajoutees uniquement dans `src/*`.
+- Regression tests couverts sur routes publiques/admin.
+
+Statut 2026-03-19 :
+
+- [x] Routage legacy de `backend/core/router.php` deplace dans `backend/src/Http/LegacyRouteResolver.php` ; `core/router.php` est maintenant un wrapper de compatibilite.
+- [x] Logique legacy de projection/normalisation des menus de `backend/core/menu_loader.php` deplacee dans `backend/src/Navigation/LegacyMenuRuntime.php`.
+- [x] Tests de non-regression ajoutes pour les nouveaux services (`LegacyRouteResolverTest`, `LegacyMenuRuntimeTest`) + suites `RouterTest`/`BlogRouteTest`/`MenuLoaderTest` maintenues vertes.
+- [~] Dette restante ciblee : poursuivre l'extraction progressive de certains helpers globaux vers des services `src/*` (facades de runtime uniquement dans `core/*`).
+
+### P1.2 Decoupage fichiers monolithiques admin
+
+Fichiers prioritaires a decouper :
+
+- `backend/src/Admin/AdminSettingsService.php`
+- `backend/src/Admin/AdminController.php`
+- `backend/src/Admin/AdminNavigationService.php`
+
+Actions :
+
+- extraire validateurs, DTO, serializers, persistance, rendering helpers.
+- ajouter tests unitaires par sous-composant.
+
+Critere d'acceptation :
+
+- baisse de complexite cyclomatique et meilleure lisibilite des tests.
+
+Statut 2026-03-19 :
+
+- [x] `backend/src/Admin/AdminController.php` : extraction de la normalisation des formulaires serialises vers `backend/src/Admin/AdminSerializedFormNormalizer.php`.
+- [x] `backend/src/Admin/AdminNavigationService.php` : extraction du parsing d'action builder et du codec de path item vers `backend/src/Admin/Navigation/NavigationBuilderActionParser.php` et `backend/src/Admin/Navigation/NavigationItemPathCodec.php`.
+- [x] `backend/src/Admin/AdminSettingsService.php` : extraction de la logique de traductions (parse/validation/normalisation) vers `backend/src/Admin/Settings/AdminTranslationSettingsManager.php`.
+- [x] Tests unitaires ajoutes pour ces sous-composants.
+- [~] Restant P1.2 : poursuivre le decoupage de la persistance/serialisation/rendu dans `AdminSettingsService` et `AdminNavigationService` (etendre DTO/validators dedies).
+
+### P1.3 Contrats de donnees et DB
+
+- Finaliser schema SQL editorial/documenter source de verite (`json`, `sql`, `dual-write`).
+- Verifier contraintes relationnelles de suppression en cascade article->discussions (ou traitement applicatif explicite).
+- Ajouter script de backup/restore documente avant operations destructives.
+
+Critere d'acceptation :
+
+- suppression article = aucune discussion orpheline.
+- import/export editorial reproducible.
+
+Statut 2026-03-19 :
+
+- [x] Suppression article -> discussions rattachees validee au niveau service via `backend/tests/AdminBlogServiceTest.php` (suppression article + thread associe).
+- [x] Contrat SQL blog V1 ajoute : migration `backend/sql/editorial/005_blog.sql` avec FK `blog_discussions(article_slug, article_lang)` -> `blog_articles(slug, lang)` en `ON DELETE CASCADE`.
+- [x] Script d'import JSON -> SQL pour le blog ajoute : `composer blog-import-sql` (`--articles-only`, `--discussions-only`, `--no-prune`).
+- [x] Script de backup/restore editorial mis a jour pour restaurer discussions via repository (modes `json|sql|dual-write`) : `backend/core/tools/editorial_backup_restore.php`.
+- [~] Restant P1.3 : rejouer un runbook complet backup + restore en preprod avec preuves archivees.
+
+## Priorite 2 - Performance et robustesse exploitation
+
+### P2.1 Performance frontend reelle
+
+- Definir budget de poids CSS/JS/image.
+- Ajouter lazy loading et dimensions explicites sur medias non critiques.
+- Evaluer optimisation images historiques (formats modernes, dedoublonnage, nommage).
+- Garder un cache HTTP agressif sur assets fingerprintes.
+
+Critere d'acceptation :
+
+- score Lighthouse mobile acceptable (objectif interne a fixer).
+- pas de regressions visuelles majeures sur desktop/mobile.
+
+Statut 2026-03-19 :
+
+- [x] Budget frontend automatise via `frontend/tools/check-budgets.mjs` et branche sur `npm run build` (gate bloquante).
+- [x] Budgets courants valides : JS entry 11.6 KiB, CSS entry 83.4 KiB, JS+CSS initial 95.0 KiB, image max 47.6 KiB.
+- [x] Lazy loading + dimensions explicites ajoutes sur medias non critiques (partials layout/menus + pages search/dynamic).
+- [x] Cache HTTP agressif sur assets fingerprintes dans `backend/public/.htaccess` (`max-age=31536000, immutable`).
+- [x] Audit images historiques outille (`npm run audit:images`) pour dedoublonnage/normalisation/variants modernes.
+- [~] Restant P2.1 : fixer une cible Lighthouse mobile officielle (ex. Perf >= 80) et suivre en preprod.
+
+### P2.2 Caching et cout backend
+
+- Consolider cache pour pages/menu/traductions si necessaire.
+- Encadrer invalidation lors des sauvegardes admin.
+- Mesurer temps de rendu route critique (`/`, pages article, blog).
+
+Critere d'acceptation :
+
+- temps moyen route critique en baisse ou stable sous charge normale.
+
+Statut 2026-03-19 :
+
+- [x] Cache runtime consolide pour navigation (`navigation_view_model`), pages et traductions.
+- [x] Invalidation explicite apres sauvegardes admin pages/navigation/settings via `app_runtime_cache_clear(...)`.
+- [x] Script de mesure route critique ajoute : `backend/core/tools/benchmark_front_routes.php` (script Composer `benchmark-routes`).
+- [x] Mesures locales stables : `/` avg 9.24ms (p95 11.12ms), `/blog` avg 10.20ms (p95 11.74ms), statuts HTTP 200.
+- [~] Restant P2.2 : rejouer le benchmark en preprod avec donnees et trafic representatifs.
+
+### P2.3 Observabilite exploitable
+
+- Definir retention/rotation logs (`security.log`, `content.log`, `access.log`).
+- Ajouter correlation id par requete (si absent) pour diagnostic.
+- Ajouter alertes de base (ex: pics de 403/429/login failure).
+
+Critere d'acceptation :
+
+- incidents de production tracables sans accès shell profond.
+
+Statut 2026-03-19 :
+
+- [x] Correlation id par requete implemente dans `FrontController` (entete `X-Request-Id` en reponse, reprise `X-Request-Id`/`X-Correlation-Id` en entree).
+- [x] Contexte requete injecte automatiquement dans tous les logs via `AppEventLogger` (`request_id`, method, uri, path, client_ip).
+- [x] Rotation/retention logs implementee dans `LoggerFactory` (config `.env` : `LOG_RETENTION_FILES`, `LOG_ROTATION_MAX_BYTES`).
+- [x] Script d'alertes de base ajoute : `backend/core/tools/check_log_alerts.php` (seuils 403/429/login failed/rate_limited, mode `--strict`).
+- [x] Verification locale : `composer check-log-alerts -- --since-minutes=30` sans alerte ouverte.
+- [~] Restant P2.3 : connecter ce script a un scheduler + canal d'alerte ops (mail/webhook) en environnement cible.
+
+## 4) Securite V1 (application + exploitation)
+
+## Socle applicatif
+
+- [x] HTTPS force en prod (app + serveur web), HSTS cote infra.
+- [x] Session admin durcie (`HttpOnly`, `SameSite`, regen ID).
+- [x] CSRF sur tous POST sensibles.
+- [x] Timeout inactivite admin + re-auth sensibles actifs.
+- [x] 2FA TOTP actif hors localhost.
+- [~] Allowlist IP admin active en prod (si contexte le permet).
+- [x] reCAPTCHA discussions + honeypot + rate limiting verifies.
+
+## Surface publique
+
+- [~] Webroot restreint a `backend/public`.
+- [x] Fichiers sensibles bloques via `.htaccess`/equivalent Nginx.
+- [x] Aucun secret dans Git (`.env`, overrides, tokens API).
+- [~] Headers securite verifies en preprod.
+
+Statut 2026-03-19 :
+
+- [x] `backend/core/security.php` : redirection HTTPS applicative, headers securite et HSTS; prise en charge `X-Forwarded-Proto` seulement si `TRUST_PROXY_HEADERS=true`.
+- [x] `backend/public/.htaccess` : redirection HTTPS serveur + blocage de fichiers sensibles (env/composer/package/phpunit + extensions techniques).
+- [x] Session admin durcie validee (`session.cookie_httponly=1`, `SameSite=Strict`, `session_regenerate_id()` sur login/logout).
+- [x] Couverture CSRF etendue aux formulaires contact (page legacy + composant `contact_form` du renderer structure).
+- [x] Re-auth actions sensibles + timeout inactivite actifs dans `AdminController`/`auth/admin.php`.
+- [x] TOTP hors localhost controlee et enforcee par `check_env --env=production` (`ADMIN_TOTP_ENABLED=true` + secret valide).
+- [~] Allowlist IP: mecanisme actif (`ADMIN_ALLOWED_IPS`), `check_env` alerte si vide/loopback-only; la valeur finale reste dependante du contexte infra.
+- [x] Discussions publiques: honeypot + double rate limit + reCAPTCHA + nonce anti-replay verifies (controller + tests).
+- [x] Hygiene secrets: `admin.override.php` et `database.override.php` purges; `check_env` detecte les overrides trackes et echoue si valeur sensible probable.
+- [x] Nouveau script preprod `composer check-security-headers -- --url=...` pour valider CSP/XFO/nosniff/Referrer/Permissions/COOP/CORP/HSTS.
+- [x] Parametrage tarteaucitron etendu cote admin : liste des services + variables JS par service (objet JSON injecte dans `tarteaucitron.user`, ex: `googletagmanagerId` pour GTM).
+- [x] Verifications fin de tache executees localement: `composer dump-autoload -o` (autoload OK, 1933 classes), `class_exists` des controllers front/admin (OK), smoke HTTP (`/blog`, `/rss`, `/admin` en 200).
+- [x] Controle local headers securite valide via `check_security_headers.php` (status 200, headers requis presents) + cache runtime purge (`pages`, `navigation`, `translations`).
+- [~] Restant section 4: executer `check-security-headers` sur l'URL de preprod et consigner le resultat (preuve de verification avant go-live).
+
+Mise a jour 2026-03-20 (execution ticket W1-03) :
+
+- [x] `php core/tools/check_security_headers.php --url=https://www.lescaramagnols.com` -> OK (`status 200`, headers requis presents).
+- [x] `php core/tools/check_env.php --env=production --strict-prod-security` -> OK.
+- [x] Preuves archivees : `docs/private/recette-preprod-v1-2026-03-20/33-check-security-headers-www.txt` et `34-check-env-production-strict.txt`.
+- [~] Si l'environnement de go-live utilise une URL preprod distincte, rejouer et archiver `check-security-headers` sur cette URL avant bascule finale.
+
+Mise a jour 2026-03-20 (execution ticket W1-04) :
+
+- [x] Stabilite admin navigation/footer validee : `./vendor/bin/phpunit tests/AdminSerializedFormNormalizerTest.php tests/AdminNavigationServiceTest.php tests/AdminControllerTest.php` -> OK (`45` tests, `298` assertions).
+- [x] Cas systeme verifies sur le builder menus : `footer_notice`, `banner`, `remonter` (normalisation formulaire + persistence + rendu admin).
+- [x] Invalidation cache navigation verifiee apres sauvegarde menus (test de non-regression ajoute dans `AdminNavigationServiceTest`).
+- [x] Purge cache navigation executee : `php -r "require 'core/bootstrap.php'; app_runtime_cache_clear(['navigation']); ..."` -> `cache_cleared`.
+- [x] Preuves archivees : `62-w1-04-admin-tests.txt` et `63-w1-04-cache-clear-navigation.txt`.
+
+## 5) I18n, contenus, coherence UX
+
+- [x] Cartographier les textes encore hardcodes hors pipeline de traduction.
+- [x] Etendre gestion admin des traductions FR par defaut puis autres langues.
+- [x] Verifier fallback langue et non regression sur pages dynamiques/blog/navigation.
+
+Critere d'acceptation :
+
+- plus aucun texte front "metier" non pilotable par traduction ou contenu editorial.
+
+Statut 2026-03-19 :
+
+- [x] Cartographie des textes front durcis hors pipeline i18n realisee sur le scope V1 (`navigation`, `blog`, `pages dynamiques`, `consentement cookies`).
+- [x] Suppression des hardcodes metier identifies :
+  - `NavigationViewModelBuilder` n'embarque plus les labels de marque/langues en dur (cles `TXT_SITE_BRAND`, `TXT_LANGUAGE_*_LABEL`).
+  - `frontend/src/js/consent.ts` ne fixe plus un titre YouTube en dur ; fallback injecte depuis backend (`TXT_YOUTUBE_VIDEO_FALLBACK_TITLE`).
+- [x] Gestion admin des overrides i18n etendue : langue par defaut forcee en tete (`AdminTranslationSettingsManager::normalizeLanguages`), puis autres langues dedupliquees.
+- [x] Fallback langue valide par tests :
+  - pages dynamiques : fallback traduction par defaut (`PageRepositoryTest`),
+  - blog : fallback vers langue par defaut si contenu absent dans la langue demandee (`LegacyRouteResolverTest`),
+  - navigation : labels de langues/traductions resolves dans la langue courante (`NavigationViewModelBuilderTest`).
+
+## 6) Nettoyage code et hygiene repo
+
+- Purger references documentaires casses.
+- Uniformiser nommage fichiers assets (eviter espaces/caracteres speciaux).
+- Nettoyer artefacts transitoires non necessaires dans repo versionne.
+- Clarifier politique sur `backend/public/assets` versionnes/non versionnes.
+
+Critere d'acceptation :
+
+- `git status` propre apres build selon politique decidee.
+
+Statut 2026-03-19 :
+
+- [x] Verification automatisee des liens docs active via `frontend/tools/check-doc-links.mjs` (`npm run hygiene:docs`).
+- [x] Nommage assets durci via `frontend/tools/check-asset-naming.mjs` (`npm run hygiene:assets`) + normalisation des fichiers restants avec espaces/parentheses.
+- [x] Politique artefacts rendue executable via `frontend/tools/check-repo-artifacts.mjs` (`npm run hygiene:repo`) et gate CI associe.
+- [x] Politique de versionning clarifiee dans `README_RENDER_ARTEFACTS_V1.md` et `frontend/README_BUILD_PIPELINE.md`.
+- [~] Branche de travail locale encore en cours de stabilisation globale ; le critere "git status propre" doit etre valide sur branche release nettoyee apres rebase final.
+
+## 7) Checklist de passage en V1
+
+## A. Pre-release technique
+
+- [x] Toutes les gates qualite sont vertes (tests, lint, static analysis).
+- [x] Audits dependances sans vuln high/critical ouvertes.
+- [x] Docs canoniques a jour (`README.md`, securite, routes, build).
+- [x] Backup DB valide + test de restauration.
+
+Verification executee le 2026-03-19 :
+
+- gates qualite :
+  - `composer phpstan` -> OK
+  - `composer phpcs` -> OK
+  - `composer test` -> OK (182 tests, 700 assertions, 12 skipped)
+  - `npm run lint` -> OK
+  - `npm run test:run` -> OK (24 tests)
+  - `npm run build` -> OK (budgets OK + publication OK)
+- audits dependances :
+  - `composer audit` -> OK
+  - `npm audit --json` -> `high=0`, `critical=0`
+- coherence documentaire :
+  - `npm run hygiene:docs` -> OK (19 fichiers, 0 lien casse)
+  - docs canoniques maj : `README.md`, `README_V1_PREPARATION_DEPLOIEMENT.md`, `frontend/README_BUILD_PIPELINE.md`, `README_RENDER_ARTEFACTS_V1.md`, `backend/README_LOGGING.md`
+- backup/restore :
+  - ajout option `--storage=json|sql|dual-write` dans `core/tools/editorial_backup_restore.php` pour test fiable par mode
+  - validation reelle : `backup --storage=json --output=...` + `restore <backup> --force --storage=json` -> OK (`47` pages, `8` emplacements navigation)
+- controles fin de tache :
+  - `composer dump-autoload -o` -> OK (autoload optimise, 1933 classes)
+  - `php -r 'class_exists(...)'` sur `Caramagnols\Http\FrontController`, `Caramagnols\Admin\AdminController`, `Caramagnols\Admin\AdminRouteResolver` -> OK
+  - smoke HTTP local (`/`, `/blog`, `/rss`, `/admin`) -> `308` attendu (redirection HTTPS forcee)
+  - purge cache runtime executee : `app_runtime_cache_clear(['pages', 'navigation', 'translations'])`
+
+## B. Pre-release fonctionnel
+
+- [x] Parcours front critiques verifies (desktop + mobile).
+- [x] Parcours admin critiques verifies (auth, pages, menus, blog, discussions).
+- [x] Suppression article + discussions rattachees testee en bout-en-bout.
+- [~] Instagram bloc accueil teste avec credentials valides.
+
+Verification executee le 2026-03-19 :
+
+- front/admin/blog/discussions :
+  - `./vendor/bin/phpunit tests/FrontControllerHttpTest.php tests/BlogRouteTest.php tests/DynamicRouteTest.php tests/AdminBlogServiceTest.php tests/BlogDiscussionApiControllerTest.php` -> OK (26 tests)
+  - `npm run test:run` (inclut `menus.test.ts`) -> OK (couverture comportement desktop/mobile du menu)
+- suppression article + discussions :
+  - validee par `AdminBlogServiceTest` (`deletedDiscussions=2`, thread vide apres suppression)
+- Instagram :
+  - nouveau controle CLI : `composer check-instagram-feed`
+  - mode bloquant pre-release : `composer check-instagram-feed -- --strict`
+  - etat local courant : KO strict attendu (token absent) -> credentials preprod/prod a fournir avant validation finale
+
+## C. Go-live
+
+- [~] Variables d'environnement prod injectees hors Git.
+- [~] Rotation des secrets faite avant mise en ligne.
+- [~] HTTPS/host canonique verifies en environnement cible.
+- [~] Monitoring/logs operationnels valides.
+
+Etat 2026-03-19 :
+
+- `composer check-env -- --env=production` -> KO attendu en local (secrets/config prod manquants) ; la commande est le gate de verification final en cible.
+- runbook go-live ajoute : `docs/v1-go-live-runbook.md` (check-env, check-security-headers, check-log-alerts, check-instagram-feed, rotation secrets).
+- verification headers locale outillee :
+  - `php core/tools/check_security_headers.php --url=http://127.0.0.1:8000/blog --forwarded-proto=https` -> OK
+  - verification preprod HTTPS reelle reste a executer sur URL cible.
+- monitoring local :
+  - `composer check-log-alerts -- --since-minutes=60 --strict` -> OK
+  - validation operationnelle finale (scheduler + canal d'alerte) reste liee a l'infra cible.
+
+## D. Post go-live (J+1 / J+7)
+
+- [~] Revue logs securite et erreurs applicatives.
+- [~] Revue performances reelles (temps de chargement, erreurs JS).
+- [~] Correctifs rapides documentes et planifies.
+
+Etat 2026-03-19 :
+
+- plan d'execution documente dans `docs/v1-go-live-runbook.md` (J+1/J+7).
+- execution reelle reportee apres mise en production (non applicable avant go-live).
+
+## 8) Lot de correction recommande (ordre concret)
+
+- [x] 1. Fix CI/quality gates (tests, phpstan, phpcs, stylelint).
+- [x] 2. Patch security advisories (composer/npm).
+- [x] 3. Nettoyage references legacy admin et docs cassees.
+- [x] 4. Durcissement final securite prod (2FA, allowlist, HTTPS strict).
+- [x] 5. Revue perf + cache + assets pour stabiliser le rendu.
+
+Verification executee le 2026-03-19 :
+
+- lot 8.1 (quality gates / CI) :
+  - gates locales rejouees et vertes (`composer phpstan`, `composer phpcs`, `composer test`, `npm run lint`, `npm run test:run`, `npm run build`).
+  - CI alignee pour bloquer les regressions qualite + audit:
+    - ajout `composer audit` en gate CI.
+    - ajout `npm audit --audit-level=high` en gate CI.
+- lot 8.2 (security advisories) :
+  - dependances backend/front deja patchees (`phpunit ^10.5.62`, `immutable ^5.1.5`, `flatted ^3.4.2`) et lockfiles verifies.
+  - audits rejoues: `composer audit` OK, `npm audit --json` -> `high=0`, `critical=0`.
+- lot 8.3 (legacy/docs) :
+  - garde CI anti-regression ajoutee contre reintroduction d'une ancienne route admin obfusquee.
+  - verification locale de l'absence de reference active: `rg -n "adminFtyhik5642sZ" README.md README_DOCUMENTATION_INDEX.md docs backend/README*.md backend/core backend/src backend/public frontend` -> aucun resultat.
+  - docs cassees rejouees via `npm run hygiene:docs` -> OK (19 fichiers, 0 lien casse).
+  - coherence README: suppression doublon "Exploitation/perf" dans `README.md`.
+  - tableau de bord admin modernise: vue recentree sur les elements cles de pilotage avec focus prioritaire sur la moderation des discussions en attente.
+- lot 8.4 (securite prod) :
+  - `check_env` durci avec `--strict-prod-security`:
+    - `ADMIN_SESSION_KEY` court devient bloquant en prod strict.
+    - `ADMIN_ALLOWED_IPS` vide/loopback-only devient bloquant en prod strict.
+  - runbooks/docs alignes sur la commande stricte de pre-go-live.
+  - verification locale: `composer check-env -- --env=production --strict-prod-security` -> KO attendu tant que les variables/secrets de prod ne sont pas injectes.
+- lot 8.5 (perf/cache/assets) :
+  - build + budgets frontend rejoues (OK), hygiene assets/repo OK.
+  - benchmark routes critiques rejoue (`composer benchmark-routes -- --storage=json`) pour valider stabilite locale sans dependre d'un backend SQL editorial local: `/` avg 6.99ms (p95 12.93ms), `/blog` avg 7.97ms (p95 13.19ms), status 200.
+  - cache runtime purge en fin de lot (`pages`, `navigation`, `translations`).
+
+## 9) Definition de "V1 prete au deploiement"
+
+Statut verifie le 2026-03-19 :
+
+- [x] Toutes les verifications automatiques passent local et CI.
+- [~] Le parcours front/admin est valide en test manuel cible.
+- [~] La securite admin est appliquee en configuration production.
+- [x] La documentation canonique permet d'installer, exploiter et depanner sans ambiguite.
+
+Details d'execution :
+
+- verifications automatiques :
+  - backend : `composer phpstan`, `composer phpcs`, `composer test`, `composer audit` -> OK
+  - frontend : `npm run lint`, `npm run test:run`, `npm run build`, `npm run hygiene:repo`, `npm audit --json` -> OK (`high=0`, `critical=0`)
+  - CI : workflow aligne sur ces gates (qualite + audits + smoke HTTP)
+- parcours front/admin :
+  - non-regression automatisee OK : `phpunit tests/FrontControllerHttpTest.php tests/BlogRouteTest.php tests/DynamicRouteTest.php tests/AdminBlogServiceTest.php tests/BlogDiscussionApiControllerTest.php` -> OK (26 tests)
+  - verification manuelle cible (desktop/mobile sur environnement preprod) a consigner avant go-live
+- securite admin prod :
+  - `composer check-security-headers -- --url=http://127.0.0.1:8103/blog --forwarded-proto=https` -> OK en local
+  - `composer check-log-alerts -- --since-minutes=60 --strict` -> OK
+  - `composer check-env -- --env=production --strict-prod-security` -> KO attendu en local tant que les variables/secrets de production ne sont pas injectes
+  - `composer check-instagram-feed -- --strict` -> KO attendu tant que les credentials Instagram de prod ne sont pas renseignes
+- coherence documentaire :
+  - `npm run hygiene:docs` -> OK (19 fichiers, 0 lien casse)
+  - README de construction V1 renommes avec suffixe `_V1` :
+    - `README_ADMIN_EDITORIAL_NAV_V1.md`
+    - `README_AUDIT_COMPLET_V1.md`
+    - `README_AUDIT_PLAN_ACTION_V1.md`
+    - `README_MODERNISATION_V1.md`
+    - `docs/archive/README_BLOG_PLAN_V1.md` (archive)
+    - `README_RENDER_ARTEFACTS_V1.md`
+    - `README_SECURITE_ADMIN_V1.md`
+  - references inter-docs realignees sur les nouveaux noms.
+
+Verdict :
+
+- V1 est prete techniquement pour une release candidate.
+- Go-live production : en attente de validation manuelle cible + injection/rotation des secrets prod + credentials Instagram.
+
+## TODO go-live bloquants
+
+- Executer et archiver la recette manuelle front/admin en preprod cible (desktop + mobile).
+- Injecter les variables/secrets de prod hors Git puis valider `check-env --env=production --strict-prod-security`.
+- Renseigner les credentials Instagram et valider `check-instagram-feed -- --strict`.
+- Rejouer `check-security-headers` sur l'URL preprod reelle (pas prod), archiver la sortie, puis conserver `BLOG_STORAGE=sql` apres validation finale preprod.
+
+## Preuves recette preprod (archive locale courante)
+
+Dossier :
+- `docs/private/recette-preprod-v1-2026-03-19/`
+
+Sorties archivees :
+- `01-check-env.txt`
+- `02-check-security-headers.txt`
+- `03-check-log-alerts.txt`
+- `04-check-instagram.txt`
+- `05-blog-import-sql.txt`
+- `06-blog-storage-dual-write.txt`
+- `07-blog-storage-sql.txt`
+- `08-check-log-alerts.txt`
+- `09-cache-clear.txt`
+
+Notes :
+- import blog SQL execute (`composer blog-import-sql`) ; dans cet environnement local, 0 article/0 discussion importes (jeu de donnees blog vide).
+- validation de bascule blog effectuee :
+  - `BLOG_STORAGE=dual-write` -> repository actif `DualWriteBlogRepository`
+  - `BLOG_STORAGE=sql` -> repository actif `SqlBlogRepository`
+- `check-security-headers` archive ici a ete lance sur `https://www.lescaramagnols.com` (status 403, headers manquants signales) ; il faut rejouer sur l'URL preprod cible finale.
+- `check-security-headers` rejoue avec user-agent navigateur: OK sur `https://www.lescaramagnols.com` (status 200, headers requis presents).
+- controle W1-03 rejoue le 2026-03-20 :
+  - `33-check-security-headers-www.txt` -> OK
+  - `34-check-env-production-strict.txt` -> OK
