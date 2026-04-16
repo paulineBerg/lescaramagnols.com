@@ -13,7 +13,7 @@ return [
 <h3>Karl Benz, le père de l’automobile</h3>
 <p>En 1886, Karl Benz dépose le brevet du Benz Patent-Motorwagen, premier véhicule automobile fonctionnant à l’essence. Ce tricycle, animé par un monocylindre de 954 cm³ refroidi par eau, est une vraie machine ingénieuse. Le premier long trajet réalisé par Bertha Benz prouve que l’invention dépasse la curiosité et inaugure l’usage réel de l’automobile.</p>
 <div id="bloccenter">
-<img src="/assets/images/autoretro/mercedes/Benz Patent-Motorwagen.jpg" 
+<img src="/assets/images/autoretro/mercedes/benz_patent_motorwagen.jpg" 
 title="La Benz Patent-Motorwagen de 1886" 
 alt="La Benz Patent-Motorwagen de 1886"></div>
 

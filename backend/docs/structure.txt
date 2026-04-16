@@ -13,7 +13,8 @@ caramagnols/
 ├── README.txt
 ├── config/
 │   ├── config.php
-│   └── menu_data.php
+│   ├── admin.override.php
+│   └── site.override.php
 ├── core/
 │   ├── admin/
 │   │   ├── dashboard.php

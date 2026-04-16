@@ -34,6 +34,7 @@ final class DynamicRouteTest extends TestCase
             'pages' => [
                 [
                     'slug' => 'test-route',
+                    'type' => 'structured_page',
                     'translations' => [
                         'fr' => ['title' => 'Test'],
                     ],
@@ -45,8 +46,8 @@ final class DynamicRouteTest extends TestCase
         // Force le loader à utiliser notre fichier de test
         load_pages($this->tmpFile);
 
-        $route = resolve_route('/site/test-route');
-        $this->assertSame('pages/site/dynamic.php', $route);
+        $route = resolve_route('/test-route');
+        $this->assertSame('pages/dynamic.php', $route);
         $this->assertIsArray($GLOBALS['currentDynamicPage'] ?? null);
         $this->assertSame('Test', $GLOBALS['currentDynamicPage']['title']);
     }
@@ -57,8 +58,59 @@ final class DynamicRouteTest extends TestCase
         file_put_contents($this->tmpFile, json_encode($json));
         load_pages($this->tmpFile);
 
-        $route = resolve_route('/site/nope');
+        $route = resolve_route('/nope');
         $this->assertSame('pages/404.php', $route);
         $this->assertArrayNotHasKey('currentDynamicPage', $GLOBALS);
     }
+
+    public function testStructuredHomePageCanResolveFromRootRoute(): void
+    {
+        $json = [
+            'pages' => [
+                [
+                    'slug' => 'home',
+                    'type' => 'structured_page',
+                    'status' => 'published',
+                    'route' => '/',
+                    'translations' => [
+                        'fr' => ['title' => 'Accueil'],
+                    ],
+                ],
+            ],
+        ];
+
+        file_put_contents($this->tmpFile, json_encode($json));
+        load_pages($this->tmpFile);
+
+        $route = resolve_route('/');
+
+        $this->assertSame('pages/dynamic.php', $route);
+        $this->assertSame('Accueil', $GLOBALS['currentDynamicPage']['title'] ?? null);
+    }
+
+    public function testStructuredPageCanResolveFromItsRegisteredRoute(): void
+    {
+        $json = [
+            'pages' => [
+                [
+                    'slug' => 'association',
+                    'type' => 'structured_page',
+                    'status' => 'published',
+                    'route' => '/notre-association',
+                    'translations' => [
+                        'fr' => ['title' => 'Association'],
+                    ],
+                ],
+            ],
+        ];
+
+        file_put_contents($this->tmpFile, json_encode($json));
+        load_pages($this->tmpFile);
+
+        $route = resolve_route('/notre-association');
+
+        $this->assertSame('pages/dynamic.php', $route);
+        $this->assertSame('Association', $GLOBALS['currentDynamicPage']['title'] ?? null);
+    }
+
 }

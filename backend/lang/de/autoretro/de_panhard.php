@@ -47,7 +47,7 @@ return [
 
 <div id="bloccenter"><img src="/assets/images/autoretro/panhard/dynaZ.jpg" title="Dyna Z" alt="Dyna Z"></div>
 
-<p>Trotz dieser Fortschritte bremsten die Produktionskosten — insbesondere aufgrund des Aluminiums — die Rentabilität. 1965 wurde Panhard von Citroën übernommen, das 1967 die Produktion ziviler Fahrzeuge einstellte.</p>
+<p>Trotz dieser Fortschritte bremsten die Produktionskosten ,  insbesondere aufgrund des Aluminiums ,  die Rentabilität. 1965 wurde Panhard von Citroën übernommen, das 1967 die Produktion ziviler Fahrzeuge einstellte.</p>
 
 <h4>1960–2012: Von der Straße zu den Panzern</h4>
 <p>Während das zivile Automobil allmählich verschwand, fand Panhard einen neuen Weg im Bereich der Verteidigung. Bereits in den 1950er Jahren entwickelte die Firma eine Reihe von leichten, robusten, wendigen und exportierbaren gepanzerten Fahrzeugen und wurde zu einem diskreten, aber strategischen Pfeiler der französischen Militärindustrie.</p>
@@ -118,7 +118,7 @@ return [
 <h3>Dyna X (1948–1953): Die Anfänge der Revolution</h3>
 <p>Als erster Spross der Familie zeigte der Dyna X für ein Volksauto eine beispiellose Leistung. Seine Höchstgeschwindigkeit lag bei fast 100 km/h, und sein Fahrverhalten übertraf viele schwerere Konkurrenten. Der Innenraum zeichnete sich durch seine schlichte, aber clevere Verarbeitung aus. Das Einzelspeichenlenkrad, das zentrale Armaturenbrett und der Schalthebel am Armaturenbrett nahmen moderne Standards vorweg.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/panhard/Panhard-Levassor_Dynavia_(1948).jpg" title="Dynavia 1948" alt="Dynavia 1948"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/panhard/panhard_levassor_dynavia_1948.jpg" title="Dynavia 1948" alt="Dynavia 1948"></div>
 
 <h3>Der Dynavia: rollendes Labor</h3>
 <p>Der 1948 vorgestellte <strong>Dynavia</strong> ist ein experimenteller Prototyp, der auf dem Dyna X basiert. Seine ultra-aerodynamische Aluminiumkarosserie wurde entworfen, um einen Cx von 0,26 zu erreichen. Der Motor war identisch mit dem des Dyna, aber der Schwerpunkt lag auf der Energieeffizienz durch reine Aerodynamik. Er nahm die zukünftigen Forschungen zur Optimierung des Verbrauchs durch die Form vorweg.</p>
@@ -166,7 +166,7 @@ return [
 
 <div id="bloccenter">
   <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Panhard%20Dyna%20Z.jpg" alt="Panhard Dyna Z, Dreiviertelansicht von vorne" width="400">
-  <figcaption>Panhard Dyna Z — Foto: Alexandre Prévot — Lizenz: CC BY-SA 2.0.</figcaption>
+  <figcaption>Panhard Dyna Z ,  Foto: Alexandre Prévot ,  Lizenz: CC BY-SA 2.0.</figcaption>
 </div>
 <p>
   In der französischen Nachkriegslandschaft der Automobile stach ein Auto durch sein einzigartiges Design und seine kühnen technischen Lösungen hervor: der <strong>Panhard Dyna Z</strong>.
@@ -182,7 +182,7 @@ return [
 </p>
 <div id="bloccenter">
   <img src="https://commons.wikimedia.org/wiki/Special:FilePath/1954%20Panhard%20Dyna%20Z.jpg" alt="Panhard Dyna Z 1954 aus Aluminium, Seitenansicht" width="400">
-  <figcaption>Dyna Z (1954) aus Alu — Foto: Saruman — Public Domain.</figcaption>
+  <figcaption>Dyna Z (1954) aus Alu ,  Foto: Saruman ,  Public Domain.</figcaption>
 </div>
 
 <h2>Eine Mechanik, die so einzigartig ist wie ihr Stil</h2>
@@ -191,17 +191,17 @@ return [
   Unter der Haube bleibt der Dyna Z originell. Sein luftgekühlter gegenüberliegender Zweizylinder-Boxermotor (<em>flat-twin</em>) war für die damalige Zeit ein kleines Wunder: lebhaft, willensstark und berühmt für seinen ganz besonderen Klang.
 </p>
 <p>
-  Der <strong>Frontantrieb</strong> — damals noch selten —, die weiche Federung und das geringe Gewicht sorgten für ein komfortables und angenehmes Fahrgefühl, weit entfernt von schwereren Konkurrenten.
+  Der <strong>Frontantrieb</strong> ,  damals noch selten , , die weiche Federung und das geringe Gewicht sorgten für ein komfortables und angenehmes Fahrgefühl, weit entfernt von schwereren Konkurrenten.
 </p>
 
 <h2>Ein Symbol für französischen Wagemut</h2>
 <p>
-  Produziert von <time datetime="1954">1954</time> bis <time datetime="1959">1959</time>, prägte der Panhard Dyna Z seine Ära. Er bleibt ein Klassiker wegen seines zeitlosen Looks und seines berühmten &bdquo;Aluminium-Lächelns&ldquo; — das durch den zentralen Scheinwerfer geformt wird — sowie für das, was er verkörpert: <strong>Innovation</strong> und <strong>Wagemut</strong>.
+  Produziert von <time datetime="1954">1954</time> bis <time datetime="1959">1959</time>, prägte der Panhard Dyna Z seine Ära. Er bleibt ein Klassiker wegen seines zeitlosen Looks und seines berühmten &bdquo;Aluminium-Lächelns&ldquo; ,  das durch den zentralen Scheinwerfer geformt wird ,  sowie für das, was er verkörpert: <strong>Innovation</strong> und <strong>Wagemut</strong>.
 </p>
 
 <div id="bloccenter">
   <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Panhard%20Dyna%20Z%20with%20a%20Tigre%20engine%2C%20front%20view.jpg" alt="Panhard Dyna Z Tigre, Vorderansicht, die das &bdquo;Lächeln&ldquo; hervorhebt" width="400">
-  <figcaption>&bdquo;Lächeln&ldquo; des Dyna Z (Tigre) — Foto: Joost J. Bakker — Lizenz: CC BY 2.0.</figcaption>
+  <figcaption>&bdquo;Lächeln&ldquo; des Dyna Z (Tigre) ,  Foto: Joost J. Bakker ,  Lizenz: CC BY 2.0.</figcaption>
 </div>
 
 <h2>Panhard Dyna Z1 (1954–1956)</h2>
@@ -211,7 +211,7 @@ return [
 
 <div id="bloccenter">
   <img src="https://commons.wikimedia.org/wiki/Special:FilePath/1955%20Panhard%20Dyna%20Z1.jpg" alt="Panhard Dyna Z1 von 1955, Dreiviertelansicht" width="400">
-  <figcaption>Dyna Z1 (1955) — Foto: Andrew Bone — Lizenz: CC BY 2.0.</figcaption>
+  <figcaption>Dyna Z1 (1955) ,  Foto: Andrew Bone ,  Lizenz: CC BY 2.0.</figcaption>
 </div>
 
 <h3>Ein Sturkopf, aber gut gemacht...</h3>
@@ -224,12 +224,12 @@ return [
 
 <div id="bloccenter">
   <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Panhard%20Dyna%20Z%20851cc%20manufactured%201958.JPG" alt="Panhard Dyna Z 851 cm3, Modelljahr 1958" width="400">
-  <figcaption>Dyna Z (1958) — Foto: Charles01 — Lizenz: CC BY-SA (Versionen 1.0/2.0/2.5/3.0) oder GFDL.</figcaption>
+  <figcaption>Dyna Z (1958) ,  Foto: Charles01 ,  Lizenz: CC BY-SA (Versionen 1.0/2.0/2.5/3.0) oder GFDL.</figcaption>
 </div>
 
 <h3>Beunruhigende Geschwindigkeiten...</h3>
 <p>
-  Mit einem Hubraum von <strong>851 cm³</strong> (Bohrung × Hub: 85 × 75 mm) und einer Leistung von <strong>42 PS</strong> überrascht der Motor durch seinen <em>Klang</em>. Bequem auf der Vordersitzbank installiert, genießt man einen hellen Innenraum und viel Platz. Der <strong>Schalthebel am Lenkrad</strong> steuert ein klassisches Gittergetriebe, mit einigen Besonderheiten: Der Rückwärtsgang wird in vier Schritten eingelegt — den Hebel zu sich ziehen, den Zug am Ende des Hebels ziehen, zu sich zurückkehren und dann absenken.
+  Mit einem Hubraum von <strong>851 cm³</strong> (Bohrung × Hub: 85 × 75 mm) und einer Leistung von <strong>42 PS</strong> überrascht der Motor durch seinen <em>Klang</em>. Bequem auf der Vordersitzbank installiert, genießt man einen hellen Innenraum und viel Platz. Der <strong>Schalthebel am Lenkrad</strong> steuert ein klassisches Gittergetriebe, mit einigen Besonderheiten: Der Rückwärtsgang wird in vier Schritten eingelegt ,  den Hebel zu sich ziehen, den Zug am Ende des Hebels ziehen, zu sich zurückkehren und dann absenken.
 </p>
 <p>
   Vom dritten zum vierten Gang muss man eine Pause einlegen und die Kupplung entlasten; beim Herunterschalten vermeidet ein schnelles Gasgeben, dass das Getriebe kratzt.
@@ -248,21 +248,21 @@ return [
 
 <h3>Hauptversionen / Ausstattungen</h3>
 <ul>
-  <li><strong>Z1 (1954–1956)</strong> — <em>Luxe</em> und <em>Luxe Spécial</em> Limousine; zuerst komplett aus Duralinox, dann am Ende der Serie gemischte Alu/Stahl-Karosserie. <cite>Wikipédia</cite></li>
-  <li><strong>Z5 (1956)</strong> — <em>Luxe</em> / <em>Luxe Taxi</em> Limousine; überarbeiteter Motor (angestrebter Verbrauch &lt;&nbsp;6&nbsp;L/100&nbsp;km), vereinfachte Rückleuchten. <cite>Wikipédia</cite></li>
-  <li><strong>Z6 (1956)</strong> — <em>Luxe Spécial</em> Limousine; gemischte Alu/Stahl-Karosserie. <cite>Wikipédia</cite></li>
-  <li><strong>Z11 (1956–1959)</strong> — <em>Luxe</em> / <em>Luxe Taxi</em> Limousine; komplett aus Stahl, große Rückleuchten, hydraulische Stoßdämpfer. <cite>Wikipédia</cite></li>
-  <li><strong>Z12 (1956–1958)</strong> — <em>Luxe Spécial</em>, <em>Grand Luxe</em>, <em>Grand Standing</em> Limousinen (mit optionalen Blenden, Kotflügelaufsätzen, weißen Flanken, Zweifarbenlackierung). <cite>Wikipédia</cite></li>
-  <li><strong>Z15 (1957–1958)</strong> — <em>Grand Standing</em> Cabriolet (4/5 Sitze). <cite>Wikipédia</cite></li>
-  <li><strong>Z16 (1958–1959)</strong> — <em>Grand Luxe</em> / <em>Grand Standing</em> Limousinen; 380×145 Räder, optionale Jaeger-Kupplung, dann 1959 der „Tigre“-Motor. <cite>Wikipédia</cite></li>
-  <li><strong>Z17 (1958–1960)</strong> — <em>Grand Standing</em> Cabriolet; Jaeger-Option und der „Tigre“-Motor im Jahr 1959. <cite>Wikipédia</cite></li>
-  <li><strong>Z18 (1958–1959)</strong> — <em>Luxe Spécial</em> „Hybrid“-Limousine (Abverkauf von Teilen des Modelljahrs 1958). <cite>Wikipédia</cite></li>
-  <li><strong>W2 / D-65 Nutzfahrzeuge (1958–1959)</strong> — Pritschenwagen und Pick-up. <cite>Wikipédia</cite></li>
+  <li><strong>Z1 (1954–1956)</strong> ,  <em>Luxe</em> und <em>Luxe Spécial</em> Limousine; zuerst komplett aus Duralinox, dann am Ende der Serie gemischte Alu/Stahl-Karosserie. <cite>Wikipédia</cite></li>
+  <li><strong>Z5 (1956)</strong> ,  <em>Luxe</em> / <em>Luxe Taxi</em> Limousine; überarbeiteter Motor (angestrebter Verbrauch &lt;&nbsp;6&nbsp;L/100&nbsp;km), vereinfachte Rückleuchten. <cite>Wikipédia</cite></li>
+  <li><strong>Z6 (1956)</strong> ,  <em>Luxe Spécial</em> Limousine; gemischte Alu/Stahl-Karosserie. <cite>Wikipédia</cite></li>
+  <li><strong>Z11 (1956–1959)</strong> ,  <em>Luxe</em> / <em>Luxe Taxi</em> Limousine; komplett aus Stahl, große Rückleuchten, hydraulische Stoßdämpfer. <cite>Wikipédia</cite></li>
+  <li><strong>Z12 (1956–1958)</strong> ,  <em>Luxe Spécial</em>, <em>Grand Luxe</em>, <em>Grand Standing</em> Limousinen (mit optionalen Blenden, Kotflügelaufsätzen, weißen Flanken, Zweifarbenlackierung). <cite>Wikipédia</cite></li>
+  <li><strong>Z15 (1957–1958)</strong> ,  <em>Grand Standing</em> Cabriolet (4/5 Sitze). <cite>Wikipédia</cite></li>
+  <li><strong>Z16 (1958–1959)</strong> ,  <em>Grand Luxe</em> / <em>Grand Standing</em> Limousinen; 380×145 Räder, optionale Jaeger-Kupplung, dann 1959 der „Tigre“-Motor. <cite>Wikipédia</cite></li>
+  <li><strong>Z17 (1958–1960)</strong> ,  <em>Grand Standing</em> Cabriolet; Jaeger-Option und der „Tigre“-Motor im Jahr 1959. <cite>Wikipédia</cite></li>
+  <li><strong>Z18 (1958–1959)</strong> ,  <em>Luxe Spécial</em> „Hybrid“-Limousine (Abverkauf von Teilen des Modelljahrs 1958). <cite>Wikipédia</cite></li>
+  <li><strong>W2 / D-65 Nutzfahrzeuge (1958–1959)</strong> ,  Pritschenwagen und Pick-up. <cite>Wikipédia</cite></li>
 </ul>
 
 <div id="bloccenter">
   <img src="https://commons.wikimedia.org/wiki/Special:FilePath/Panhard%20Dyna%20Z%20Pick-up%20%2817060557477%29.jpg" alt="Panhard Dyna Z Pick-up Nutzfahrzeug" width="400">
-  <figcaption>Nutzfahrzeug Dyna Z Pick-up — Foto: Andrew Bone — Lizenz: CC BY 2.0.</figcaption>
+  <figcaption>Nutzfahrzeug Dyna Z Pick-up ,  Foto: Andrew Bone ,  Lizenz: CC BY 2.0.</figcaption>
 </div>
 
 <h3>🔎 Schnelle Orientierungspunkte</h3>
@@ -271,7 +271,7 @@ return [
   <li><strong>Karosseriematerialien&nbsp;:</strong> Voll-Aluminium (Duralinox) beim Start → gemischt 1956 → dann komplett aus Stahl (Kosten sinken, Gewicht steigt). <cite>Wikipédia</cite></li>
 </ul>
 
-<h2>Dyna Z — Technische Daten (1954–1959)</h2>
+<h2>Dyna Z ,  Technische Daten (1954–1959)</h2>
 
 <h3>Motor</h3>
 <table>
@@ -354,10 +354,10 @@ return [
 <h3>Warum der Dyna Z?</h3>
 <p>Aus mehreren Gründen, die sich von selbst ergaben:</p>
 <ul>
-  <li><strong>Ihr „Lächeln“</strong> — dieser zentrale Scheinwerfer, der ihr ein fast menschliches Gesicht verleiht.</li>
-  <li><strong>Ihre „Selbstmördertüren“</strong> — ein faszinierendes, kühnes und etwas verrücktes Detail aus der Zeit.</li>
-  <li><strong>Ihr rundes Design</strong> — eine fließende, elegante Zeichnung, typisch für die 50er Jahre.</li>
-  <li><strong>Ihre Seele</strong> — die eines Autos, das gleichzeitig einfach und raffiniert ist, ein Zeuge eines Frankreichs, das seine Moderne erfand.</li>
+  <li><strong>Ihr „Lächeln“</strong> ,  dieser zentrale Scheinwerfer, der ihr ein fast menschliches Gesicht verleiht.</li>
+  <li><strong>Ihre „Selbstmördertüren“</strong> ,  ein faszinierendes, kühnes und etwas verrücktes Detail aus der Zeit.</li>
+  <li><strong>Ihr rundes Design</strong> ,  eine fließende, elegante Zeichnung, typisch für die 50er Jahre.</li>
+  <li><strong>Ihre Seele</strong> ,  die eines Autos, das gleichzeitig einfach und raffiniert ist, ein Zeuge eines Frankreichs, das seine Moderne erfand.</li>
 </ul>
 
 <div id="bloccenter">
@@ -427,7 +427,7 @@ Allein das Einsteigen ist eine Zeitreise: etwas Echtes, Solides, das zum Dauern 
 <hr>
 
 <div class="fiche-technique">
-  <h3>📘 Technische Daten — Panhard Dyna Z12</h3>
+  <h3>📘 Technische Daten ,  Panhard Dyna Z12</h3>
   <table>
     <tr><th>Modell</th><td>Panhard Dyna Z12</td></tr>
     <tr><th>Jahr</th><td>1957</td></tr>
@@ -440,7 +440,7 @@ Allein das Einsteigen ist eine Zeitreise: etwas Echtes, Solides, das zum Dauern 
     <tr><th>Gewicht</th><td>~850 kg</td></tr>
     <tr><th>Antrieb</th><td>Frontantrieb</td></tr>
     <tr><th>Originalfarbe</th><td>Hellgrün</td></tr>
-    <tr><th>Besonderheiten</th><td>Zentraler Scheinwerfer — „Selbstmördertüren“ — rundliche Linien</td></tr>
+    <tr><th>Besonderheiten</th><td>Zentraler Scheinwerfer ,  „Selbstmördertüren“ ,  rundliche Linien</td></tr>
   </table>
 </div>
 

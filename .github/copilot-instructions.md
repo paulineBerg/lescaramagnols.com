@@ -60,7 +60,7 @@ If any specific sections are unclear or you want more examples (tests, common re
 ## Quick how-tos (concrete examples)
 
 1) Add a new public page (server-side template)
-  - Create the file under `backend/templates/pages/...` matching the route you want. Example: to serve `/site/about/team` create `backend/templates/pages/site/about/team.php`.
+  - Create the file under `backend/templates/pages/...` matching the route you want. Example: to serve `/about/team` create `backend/templates/pages/about/team.php`.
   - Keep page templates minimal: set `$pageTitle` if needed, and render content — layout is applied from `backend/templates/partials/layout.php` when `backend/public/index.php` includes the page.
   - Do not modify the router for simple pages; the mini-router maps URIs to files under `backend/templates/pages/` and will return 404 if the path is missing.
 

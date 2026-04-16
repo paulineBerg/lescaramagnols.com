@@ -1,0 +1,3 @@
+config/ovh.env.local
+logs/
+backups/

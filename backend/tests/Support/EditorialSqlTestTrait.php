@@ -1,0 +1,97 @@
+<?php
+
+declare(strict_types=1);
+
+namespace LesCaramagnols\Tests\Support;
+
+use Caramagnols\Database\DatabaseConfig;
+use Caramagnols\Database\EditorialDatabase;
+use Caramagnols\Database\EditorialSchemaManager;
+
+trait EditorialSqlTestTrait
+{
+    private ?EditorialDatabase $editorialSqlDatabase = null;
+    private string $editorialSqlPrefix = '';
+
+    protected function editorialSqlDatabase(): EditorialDatabase
+    {
+        if ($this->editorialSqlDatabase instanceof EditorialDatabase) {
+            return $this->editorialSqlDatabase;
+        }
+
+        $databaseConfig = (array) \app_config('database', []);
+        if ($databaseConfig === []) {
+            $overridePath = ROOT_PATH . '/config/database.override.php';
+            if (file_exists($overridePath)) {
+                $override = require $overridePath;
+                $databaseConfig = is_array($override) ? $override : [];
+            }
+        }
+
+        if ($databaseConfig === []) {
+            $databaseConfig = [
+                'host' => \env('DB_HOST', '127.0.0.1'),
+                'port' => \env('DB_PORT', 3306),
+                'name' => \env('DB_NAME', ''),
+                'user' => \env('DB_USER', ''),
+                'password' => \env('DB_PASSWORD', ''),
+                'charset' => \env('DB_CHARSET', 'utf8mb4'),
+            ];
+        }
+
+        $config = DatabaseConfig::fromArray($databaseConfig);
+        if (!$config->isConfigured()) {
+            $this->markTestSkipped('Configuration SQL absente pour les tests éditoriaux.');
+        }
+
+        try {
+            $this->editorialSqlPrefix = 'test_' . bin2hex(random_bytes(6)) . '_';
+            $this->editorialSqlDatabase = new EditorialDatabase(
+                $config,
+                $this->editorialSqlPrefix,
+                new EditorialSchemaManager($this->editorialSqlPrefix)
+            );
+            $this->editorialSqlDatabase->ensureReady();
+        } catch (\Throwable $exception) {
+            $this->markTestSkipped('Base SQL indisponible pour les tests éditoriaux : ' . $exception->getMessage());
+        }
+
+        return $this->editorialSqlDatabase;
+    }
+
+    protected function cleanupEditorialSqlDatabase(): void
+    {
+        if (!$this->editorialSqlDatabase instanceof EditorialDatabase || $this->editorialSqlPrefix === '') {
+            return;
+        }
+
+        try {
+            $pdo = $this->editorialSqlDatabase->pdo();
+            $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+
+            foreach (
+                [
+                    'blog_discussions',
+                    'blog_articles',
+                    'log_entries',
+                    'navigation_items',
+                    'navigation_sets',
+                    'page_translation_sections',
+                    'page_translations',
+                    'page_sections',
+                    'pages',
+                    'editorial_schema_meta',
+                ] as $table
+            ) {
+                $pdo->exec(sprintf('DROP TABLE IF EXISTS `%s`', $this->editorialSqlPrefix . $table));
+            }
+
+            $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+        } catch (\Throwable) {
+            // Les tests ne doivent pas échouer sur le nettoyage.
+        }
+
+        $this->editorialSqlDatabase = null;
+        $this->editorialSqlPrefix = '';
+    }
+}

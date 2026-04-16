@@ -1,0 +1,542 @@
+{
+    "generated_at": "2026-04-16T14:42:37+02:00",
+    "storage_mode": "sql",
+    "table": "car_page_translation_sections",
+    "section_key": "aside",
+    "rows": [
+        {
+            "id": 3975,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div class=\\\"border\\\" id=\\\"bloc-haut\\\">\\n <span class=\\\"flottedroite\\\">\\n <img src=\\\"/assets/images/accueil/raisin.jpg\\\" alt=\\\"Unsere Dyna Z\\\" width=\\\"150\\\" height=\\\"77\\\" title=\\\"Unsere Dyna Z\\\">\\n </span> \\n <br>Mit seinen 300 Sonnentagen pro Jahr ist der Golf von St-Tropez der ideale Ort, um mit unseren Oldtimern zu fahren.</br>\\n</div>\"}",
+            "locale": "de",
+            "slug": "accueil-bienvenue-aux-caramagnols"
+        },
+        {
+            "id": 3969,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div class=\\\"border\\\" id=\\\"bloc-haut\\\">\\n <span class=\\\"flottedroite\\\">\\n <img src=\\\"/assets/images/accueil/raisin.jpg\\\" alt=\\\"Our Dyna Z\\\" width=\\\"150\\\" height=\\\"77\\\" title=\\\"Our Dyna Z\\\">\\n </span> \\n <br>With its 300 days of sunshine\\n per year, the Gulf of St-Tropez is the perfect place to\\n drive our classic cars.</br>\\n</div>\"}",
+            "locale": "en",
+            "slug": "accueil-bienvenue-aux-caramagnols"
+        },
+        {
+            "id": 3963,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div class=\\\"border\\\" id=\\\"bloc-haut\\\">\\n <span class=\\\"flottedroite\\\">\\n <img src=\\\"/assets/images/accueil/raisin.jpg\\\" alt=\\\"Notre dyna Z\\\" width=\\\"150\\\" height=\\\"77\\\" title=\\\"Notre dyna Z\\\">\\n </span> \\n <br>Avec ses 300 jours d'ensoleillement\\n par an, le golfe de St-Tropez est l'endroit rêvé pour\\n promener avec nos voitures anciennes.</br>\\n</div>\"}",
+            "locale": "fr",
+            "slug": "accueil-bienvenue-aux-caramagnols"
+        },
+        {
+            "id": 4597,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">Une petite aide pour vous y retrouver... Vous trouverez donc ci-dessous le plan d'accès du site.</div>\"}",
+            "locale": "fr",
+            "slug": "accueil-le-plan-du-site-des-caramagnols"
+        },
+        {
+            "id": 4558,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">\\n <p>\\n <strong>Pauline Bergon</strong><br>\\n 2738 route de la Mole<br>\\n 83310 Cogolin – France<br>\\n E-mail : <a href=\\\"mailto:accueil@lescaramagnols.com\\\">accueil@lescaramagnols.com</a><br>\\n RCS : 803 935 725\\n </p>\\n</div>\"}",
+            "locale": "de",
+            "slug": "accueil-toutes-les-mentions-legales"
+        },
+        {
+            "id": 4554,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">\\n <p>\\n <strong>Pauline Bergon</strong><br>\\n 2738 route de la Mole<br>\\n 83310 Cogolin – France<br>\\n E-mail : <a href=\\\"mailto:accueil@lescaramagnols.com\\\">accueil@lescaramagnols.com</a><br>\\n RCS : 803 935 725\\n </p>\\n</div>\"}",
+            "locale": "en",
+            "slug": "accueil-toutes-les-mentions-legales"
+        },
+        {
+            "id": 4550,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">\\n <p>\\n <strong>Pauline Bergon</strong><br>\\n 2738 route de la Mole<br>\\n 83310 Cogolin – France<br>\\n E-mail : <a href=\\\"mailto:accueil@lescaramagnols.com\\\">accueil@lescaramagnols.com</a><br>\\n RCS : 803 935 725\\n </p>\\n</div>\"}",
+            "locale": "fr",
+            "slug": "accueil-toutes-les-mentions-legales"
+        },
+        {
+            "id": 5534,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Der 1959 bei BMC eingeführte Mini war zuerst eine sehr praktische Antwort auf ein einfaches Problem: vier Personen auf möglichst wenig Raum unterzubringen. Seine kurze Karosserie und seine clevere Anordnung machten ihn später zu einem der bekanntesten Kleinwagen des 20. Jahrhunderts.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-austin-aventure-mini-austin"
+        },
+        {
+            "id": 5529,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Introduced by BMC in 1959, the Mini began as a very practical answer to a simple problem: carrying four people in as little space as possible. Its short body and clever layout would later make it one of the most recognisable small cars of the twentieth century.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-austin-aventure-mini-austin"
+        },
+        {
+            "id": 5524,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Née en 1959 chez BMC, la Mini répond d'abord à un besoin très concret : transporter quatre personnes dans un minimum d'espace. Sa silhouette courte et sa disposition mécanique en feront l'une des petites voitures les plus reconnaissables du XXe siècle.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-austin-aventure-mini-austin"
+        },
+        {
+            "id": 4150,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">Der Name Austin stammt direkt von seinem Gründer, Herbert Austin, einem visionären britischen Ingenieur. Als er 1905 beschloss, sein eigenes Unternehmen zu gründen, verwendete er einfach seinen eigenen Namen, um die Marke zu taufen: The Austin Motor Company.</div>\"}",
+            "locale": "de",
+            "slug": "auto-retro-austin-histoire-de-austin"
+        },
+        {
+            "id": 4145,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">The name Austin comes directly from its founder, Herbert Austin, a visionary British engineer. When he decided to create his own company in 1905, he simply used his own name to name the brand: The Austin Motor Company.</div>\"}",
+            "locale": "en",
+            "slug": "auto-retro-austin-histoire-de-austin"
+        },
+        {
+            "id": 5231,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\"><strong>Fokus:</strong> Wichtig an diesem Mini ist vor allem seine Ankunft: wenige Tage vor Weihnachten 2010 in Nizza gefunden, schnell aufgearbeitet und dann als Überraschung verschenkt.</div>\"}",
+            "locale": "de",
+            "slug": "auto-retro-austin-une-mini-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 5227,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\"><strong>Focus:</strong> What matters most with this Mini is how it arrived: found in Nice a few days before Christmas 2010, quickly tidied up and then offered as a surprise.</div>\"}",
+            "locale": "en",
+            "slug": "auto-retro-austin-une-mini-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 5223,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\"><strong>Focus :</strong> Cette Mini compte surtout par la manière dont elle est arrivée : trouvée à Nice quelques jours avant Noël 2010, reprise rapidement puis offerte par surprise.</div>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-austin-une-mini-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 3701,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">Von der Erfindung des Verbrennungsmotors bis hin zu modernen Sicherheits- und Fahrerassistenzsystemen</div>\"}",
+            "locale": "de",
+            "slug": "auto-retro-mercedes-histoire-de-mercedes"
+        },
+        {
+            "id": 3696,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">From the invention of the internal combustion engine to advanced safety and driver assistance systems</div>\"}",
+            "locale": "en",
+            "slug": "auto-retro-mercedes-histoire-de-mercedes"
+        },
+        {
+            "id": 3691,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">De l’invention du moteur à explosion aux systèmes de sécurité et d’assistance de pointe</div>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-mercedes-histoire-de-mercedes"
+        },
+        {
+            "id": 4133,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Als der SLK Mitte der 1990er Jahre erschien, fiel er vor allem durch sein klappbares Metalldach auf. Diese technische Lösung gab ihm eine eigene Position zwischen kleinem Coupé und Seriencabrio.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-mercedes-la-slk-une-voiture-compacte-sportive"
+        },
+        {
+            "id": 4125,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>When it appeared in the mid-1990s, the SLK stood out above all because of its folding metal roof. That technical choice gave it a place somewhere between a small coupé and a production cabriolet.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-mercedes-la-slk-une-voiture-compacte-sportive"
+        },
+        {
+            "id": 4118,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Apparue au milieu des années 1990, la SLK s’est surtout fait connaître grâce à son toit rigide escamotable. Ce choix technique lui a permis d'occuper une place à part entre petit coupé et cabriolet de série.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-mercedes-la-slk-une-voiture-compacte-sportive"
+        },
+        {
+            "id": 3770,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Von Jean-Noëls Bruder geschenkt, wurde dieser SLK unser erster Mercedes und unser offenes Auto für Ausfahrten im Süden.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-mercedes-une-slk-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 3765,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Given to us by Jean-Noël’s brother, this SLK became our first Mercedes and our open-top car for drives in the South.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-mercedes-une-slk-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 3760,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Offerte par le frère de Jean-Noël, cette SLK est devenue notre première Mercedes et notre cabriolet de promenade dans le Sud.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-mercedes-une-slk-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 3249,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Panhard gehört zu den frühen Namen des französischen Automobils. Die Geschichte der Marke reicht von den ersten modernen Antriebsschemata über leichte Nachkriegslimousinen bis zum späteren Schwerpunkt auf Militärfahrzeugen.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-panhard-histoire-de-panhard"
+        },
+        {
+            "id": 3244,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Panhard is one of the pioneering names in French motoring. Its history runs from some of the first modern mechanical layouts to light post-war saloons, before a later shift toward military vehicles.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-panhard-histoire-de-panhard"
+        },
+        {
+            "id": 3239,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Panhard fait partie des marques anciennes de l'automobile française. Son histoire va des premières architectures mécaniques modernes aux berlines légères d'après-guerre, avant un recentrage vers les véhicules militaires.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-panhard-histoire-de-panhard"
+        },
+        {
+            "id": 4315,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Die von 1954 bis 1959 gebaute Dyna Z zeigt die Methode von Panhard sehr klar: Gewicht sparen, Aerodynamik ernst nehmen und aus einem kleinen Boxermotor mit zwei Zylindern möglichst viel herausholen.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-panhard-la-dyna-z-voiture-de-collection"
+        },
+        {
+            "id": 4310,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Built from 1954 to 1959, the Dyna Z shows the Panhard method clearly: keep weight low, work on aerodynamics and get the most from a small flat twin.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-panhard-la-dyna-z-voiture-de-collection"
+        },
+        {
+            "id": 4304,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Produite de 1954 à 1959, la Dyna Z montre bien la méthode Panhard : réduire le poids, travailler l'aérodynamique et tirer le maximum d'un petit bicylindre.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-panhard-la-dyna-z-voiture-de-collection"
+        },
+        {
+            "id": 4973,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Bei Panhard bezeichnet der Name Dyna eine Familie leichter und recht ungewöhnlicher Autos von der Dyna X bis zur Dyna Z. Entscheidend sind nicht Luxus oder große Leistung, sondern eine ständige Suche nach geringem Gewicht, Aerodynamik und gutem Wirkungsgrad.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-panhard-une-dyna-icone-automobile"
+        },
+        {
+            "id": 4968,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>At Panhard, the Dyna name refers to a family of light and rather unusual cars, from the Dyna X to the Dyna Z. What links them is not luxury or outright power, but a constant search for low weight, aerodynamics and efficiency.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-panhard-une-dyna-icone-automobile"
+        },
+        {
+            "id": 4963,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Chez Panhard, le nom Dyna désigne une famille de voitures légères et très particulières, de la Dyna X à la Dyna Z. Leur point commun n'est pas le luxe ni la puissance, mais une recherche constante de poids contenu, d'aérodynamique et de rendement.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-panhard-une-dyna-icone-automobile"
+        },
+        {
+            "id": 2838,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Ende 2020 in der Bretagne entdeckt, wurde dieser Dyna Z12 zu einem ernsthaften Wiederinbetriebnahmeprojekt und nicht zu einer bloßen Schönheitsrestauration.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-panhard-une-dynaz12-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 2833,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Spotted in Brittany at the end of 2020, this Dyna Z12 became a serious recommissioning project rather than a cosmetic restoration.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-panhard-une-dynaz12-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 2828,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Repérée en Bretagne fin 2020, cette Dyna Z12 est devenue un projet de remise en route sérieux plutôt qu’une restauration de façade.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-panhard-une-dynaz12-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 2853,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Renault wurde 1899 gegründet und gehört zu den ältesten französischen Automarken, die heute noch aktiv sind. Die Geschichte der Marke wechselt zwischen Volksautos, technischer Entwicklung, schwierigeren Phasen und mehreren Neustarts.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-renault-histoire-de-renault"
+        },
+        {
+            "id": 2848,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Founded in 1899, Renault is one of the oldest French car makers still active today. Its history alternates between popular cars, technical innovation, difficult periods and repeated revivals.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-renault-histoire-de-renault"
+        },
+        {
+            "id": 2843,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Fondée en 1899, Renault fait partie des constructeurs français les plus anciens encore actifs. Son histoire alterne voitures populaires, innovations techniques, périodes de crise et relances successives.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-renault-histoire-de-renault"
+        },
+        {
+            "id": 2868,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Als der Twingo 1992 erschien, fiel er sofort durch seine Monobox-Form und seinen wandelbaren Innenraum auf. Vor allem zeigte er aber, dass ein Kleinwagen einfach, praktisch und weniger brav sein konnte als viele Konkurrenten.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-renault-la-twingo-une-voiture-a-succes"
+        },
+        {
+            "id": 2863,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>When it appeared in 1992, the Twingo stood out immediately thanks to its one-box shape and flexible interior. More importantly, it showed that a small car could be simple, practical and less conventional than many of its rivals.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-renault-la-twingo-une-voiture-a-succes"
+        },
+        {
+            "id": 2858,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Présentée en 1992, la Twingo a d'abord surpris par sa silhouette monocorps et son intérieur modulable. Elle a surtout montré qu'une petite voiture pouvait être simple, pratique et moins sage que ses concurrentes.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-renault-la-twingo-une-voiture-a-succes"
+        },
+        {
+            "id": 5564,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Simca wurde 1934 von Henri Pigozzi gegründet. Zunächst baute die Marke Fiat-Modelle in Frankreich, bevor sie eigene Autos entwickelte. Innerhalb weniger Jahrzehnte gewann Simca auf dem französischen Markt deutlich an Gewicht und verschwand dann in den Umstrukturierungen der 1970er und 1980er Jahre.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-simca-histoire-de-simca"
+        },
+        {
+            "id": 5559,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Founded in 1934 by Henri Pigozzi, Simca began by assembling Fiat models in France before developing cars of its own. Within a few decades the brand gained real weight on the French market, then disappeared in the restructurings of the 1970s and 1980s.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-simca-histoire-de-simca"
+        },
+        {
+            "id": 5554,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Fondée en 1934 par Henri Pigozzi, Simca commence par assembler des Fiat en France avant de développer ses propres modèles. En quelques décennies, la marque prend une place importante sur le marché français, puis disparaît dans les restructurations des années 1970 et 1980.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-simca-histoire-de-simca"
+        },
+        {
+            "id": 5609,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Der Aronde war das erste Modell, das Simca vollständig im eigenen Haus entwickelte. 1951 eingeführt, half er der Marke mit seiner selbsttragenden Karosserie, einer breiten Modellpalette und einer Laufbahn von mehr als zehn Jahren entscheidend beim Wachstum.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-simca-histoire-simca-aronde-icone-francaise"
+        },
+        {
+            "id": 5604,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>The Aronde was the first Simca model developed entirely in-house. Introduced in 1951, it helped the brand move to another level thanks to its monocoque body, a broad range and a career that lasted for more than ten years.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-simca-histoire-simca-aronde-icone-francaise"
+        },
+        {
+            "id": 5599,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>L'Aronde est le premier modèle Simca entièrement conçu en interne. Lancée en 1951, elle aide la marque à changer de dimension grâce à une carrosserie monocoque, une gamme large et une carrière longue de plus de dix ans.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-simca-histoire-simca-aronde-icone-francaise"
+        },
+        {
+            "id": 4841,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Der 1951 eingeführte Simca 9 eröffnete die Aronde-Baureihe. Wichtig ist er vor allem wegen seiner selbsttragenden Karosserie, seiner modernen Präsentation und seiner Rolle beim Aufstieg von Simca.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-simca-la-simca-9-aronde-voiture-de-collection"
+        },
+        {
+            "id": 4836,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>The Simca 9, launched in 1951, opened the Aronde line. It matters mainly because of its monocoque body, its modern presentation and the role it played in Simca's rise.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-simca-la-simca-9-aronde-voiture-de-collection"
+        },
+        {
+            "id": 4831,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>La Simca 9, lancée en 1951, ouvre la carrière de l'Aronde. Elle compte surtout par sa carrosserie monocoque, sa présentation moderne et le rôle qu'elle joue dans la montée en puissance de Simca.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-simca-la-simca-9-aronde-voiture-de-collection"
+        },
+        {
+            "id": 4781,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Der Aronde 1300 erschien 1956 mit dem 1.290-cm³-Flash-Motor und einer überarbeiteten Präsentation. Er verlängerte die Karriere des Aronde mit etwas mehr Leistung und einem markanteren Auftritt.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-simca-la-simca-aronde-1300-voiture-de-collection"
+        },
+        {
+            "id": 4776,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>The Aronde 1300 appeared in 1956 with the 1,290 cc Flash engine and a revised presentation. It extended the Aronde's career by giving it more power and a stronger visual identity.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-simca-la-simca-aronde-1300-voiture-de-collection"
+        },
+        {
+            "id": 4771,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>L'Aronde 1300 apparaît en 1956 avec le moteur Flash de 1 290 cm³ et une présentation revue. Elle prolonge la carrière de l'Aronde en lui donnant plus de puissance et un style plus appuyé.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-simca-la-simca-aronde-1300-voiture-de-collection"
+        },
+        {
+            "id": 3611,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Ab 1959 übernahm der P60 die Grundstruktur des Aronde, gab ihr aber ein deutlich stärkeres Gesicht. Er gehört zu dem Moment, in dem Simca die Aronde-Reihe in die 1960er Jahre führen wollte.</p>\"}",
+            "locale": "de",
+            "slug": "auto-retro-simca-la-simca-p60-voiture-de-collection"
+        },
+        {
+            "id": 3606,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>From 1959 onward, the P60 reused the Aronde's basic structure while giving it a much stronger visual identity. It belongs to the moment when Simca wanted to carry the Aronde line into the 1960s.</p>\"}",
+            "locale": "en",
+            "slug": "auto-retro-simca-la-simca-p60-voiture-de-collection"
+        },
+        {
+            "id": 3601,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>La P60 reprend la base de l'Aronde en lui donnant un style plus net à partir de 1959. Elle correspond au moment où Simca veut faire entrer la gamme Aronde dans les années 1960.</p>\"}",
+            "locale": "fr",
+            "slug": "auto-retro-simca-la-simca-p60-voiture-de-collection"
+        },
+        {
+            "id": 5624,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<img src=\\\"/assets/images/autoretro/simca/aronde/simca_aronde_a_la_maison.jpg\\\"\\n title=\\\"Simca Aronde A90 Elysée\\\"\\n alt=\\\"Simca Aronde A90 Elysée\\\">\"}",
+            "locale": "de",
+            "slug": "auto-retro-simca-une-aronde-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 5619,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<img src=\\\"/assets/images/autoretro/simca/aronde/simca_aronde_a_la_maison.jpg\\\"\\n title=\\\"Simca Aronde A90 Elysée\\\"\\n alt=\\\"Simca Aronde A90 Elysée\\\">\"}",
+            "locale": "en",
+            "slug": "auto-retro-simca-une-aronde-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 5614,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<img src=\\\"/assets/images/autoretro/simca/aronde/exposition_simca_aronde.jpg\\\"\\n title=\\\"Simca Aronde A90 Elysée\\\"\\n alt=\\\"Simca Aronde A90 Elysée\\\">\"}",
+            "locale": "fr",
+            "slug": "auto-retro-simca-une-aronde-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 6059,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<img src=\\\"/assets/images/autoretro/simca/aronde/restauration_simca_aronde_elysee_fin.jpg\\\"\\n title=\\\"Ein von Garage SAVA restaurierter Simca Aronde\\\"\\n alt=\\\"Ein von Garage SAVA restaurierter Simca Aronde\\\">\"}",
+            "locale": "de",
+            "slug": "auto-retro-simca-une-simca-aronde-en-restauration-chez-sava-rioz"
+        },
+        {
+            "id": 6054,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<img src=\\\"/assets/images/autoretro/simca/aronde/restauration_simca_aronde_elysee_fin.jpg\\\"\\n title=\\\"A Simca Aronde restored by Garage SAVA\\\"\\n alt=\\\"A Simca Aronde restored by Garage SAVA\\\">\"}",
+            "locale": "en",
+            "slug": "auto-retro-simca-une-simca-aronde-en-restauration-chez-sava-rioz"
+        },
+        {
+            "id": 6049,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<img src=\\\"/assets/images/autoretro/simca/aronde/restauration_simca_aronde_elysee_fin.jpg\\\"\\n title=\\\"Une Simca Aronde restaurée par Garage SAVA\\\"\\n alt=\\\"Une Simca Aronde restaurée par Garage SAVA\\\">\"}",
+            "locale": "fr",
+            "slug": "auto-retro-simca-une-simca-aronde-en-restauration-chez-sava-rioz"
+        },
+        {
+            "id": 5260,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">À deux pas du littoral, Cogolin est un village provençal pittoresque bâti sur les pentes du massif des Maures. Avec un climat très doux toute l'année, Cogolin est une des rares communes du département du Var à s'étirer lentement des terres jusqu'aux rives de la Méditerranée.\\n<br><h2>Entrez dans l'histoire</h2> et venez à la découverte du vieux village et de la légende de Cogolin.\\nElle raconte que la barque portant d'Italie le corps du Chevalier Torpès, après avoir échoué dans un premier temps sur les rivages de l'actuel Saint-Tropez, alla avec ses passagers d'infortune, un coq et un chien, se heurter dans le fond du golfe.\\nLà, le coq s'envola dans un champ de… lin et le coq et le lin devinrent Cogolin, un des premiers rébus de l'histoire au cours duquel le chien disparut mystérieusement !</div>\"}",
+            "locale": "de",
+            "slug": "bouger-se-promener-a-cogolin-golfe-de-sttropez"
+        },
+        {
+            "id": 5255,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">A stone's throw from the coast, Cogolin is a picturesque Provençal village built on the slopes of the Massif des Maures. With a very mild climate all year round, Cogolin is one of the few communes in the Var department to slowly stretch from the land to the shores of the Mediterranean.\\n<br><h2>Step into history</h2> and come discover the old village and the legend of Cogolin.\\nIt tells that the boat carrying the body of the Knight Torpès from Italy, after first running aground on the shores of what is now Saint-Tropez, went with its unfortunate passengers, a rooster and a dog, to crash at the bottom of the gulf.\\nThere, the rooster flew into a field of... flax and the rooster and the flax became Cogolin, one of the first rebuses in history, during which the dog mysteriously disappeared!</div>\"}",
+            "locale": "en",
+            "slug": "bouger-se-promener-a-cogolin-golfe-de-sttropez"
+        },
+        {
+            "id": 5250,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\"><h2>Entrez dans l'histoire</h2> La légende fondatrice de Cogolin remonte au Chevalier Torpès. Après son martyr à Pise, sa barque dérive jusqu’aux côtes varoises avec pour compagnons un coq et un chien. Lorsqu’elle touche terre à l’emplacement actuel de Cogolin, le coq s’envole dans un champ de lin ,  formant ainsi le mot-rebus \\\"Coq-au-lin\\\". L’animal devient l’emblème du village, tandis que le chien... disparaît dans la brume de l’histoire !</div>\"}",
+            "locale": "fr",
+            "slug": "bouger-se-promener-a-cogolin-golfe-de-sttropez"
+        },
+        {
+            "id": 5296,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Der Name erinnert an eine Wachfunktion und an das alte Gebiet des Fraxinetum. Das Dorf liegt in bewaldetem Relief, in dem Kork lange eine zentrale wirtschaftliche Rolle spielte.</p>\"}",
+            "locale": "de",
+            "slug": "bouger-se-promener-a-la-garde-freinet-golfe-de-sttropez"
+        },
+        {
+            "id": 5290,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>The name recalls a watch function and the old territory of Fraxinetum. The village sits in wooded terrain where cork long played a central role in local life.</p>\"}",
+            "locale": "en",
+            "slug": "bouger-se-promener-a-la-garde-freinet-golfe-de-sttropez"
+        },
+        {
+            "id": 5284,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Le nom rappelle une fonction de garde et l’ancien territoire du Fraxinetum. Le village s’inscrit dans un relief boisé où le liège a longtemps compté dans l’économie locale.</p>\"}",
+            "locale": "fr",
+            "slug": "bouger-se-promener-a-la-garde-freinet-golfe-de-sttropez"
+        },
+        {
+            "id": 5332,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Ramatuelle liegt über der Küstenebene. Interessant ist das Dorf sowohl wegen seines kreisförmigen Grundrisses als auch wegen der direkten Verbindung zu Weinbergen, Pinienwäldern und den Stränden von Pampelonne.</p>\"}",
+            "locale": "de",
+            "slug": "bouger-se-promener-a-ramatuelle-golfe-de-sttropez"
+        },
+        {
+            "id": 5329,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Ramatuelle stands above the coastal plain. The village is worth seeing for its circular plan as much as for its direct link with vineyards, pine woods and the Pampelonne beaches.</p>\"}",
+            "locale": "en",
+            "slug": "bouger-se-promener-a-ramatuelle-golfe-de-sttropez"
+        },
+        {
+            "id": 5325,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Ramatuelle domine la plaine côtière. Le village vaut autant pour son plan circulaire que pour son lien direct avec les vignes, les pinèdes et les plages de Pampelonne.</p>\"}",
+            "locale": "fr",
+            "slug": "bouger-se-promener-a-ramatuelle-golfe-de-sttropez"
+        },
+        {
+            "id": 5391,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Saint-Tropez ist mehr als sein mondänes Bild. Es ist zunächst ein alter Hafen und ein kompakter Ortskern, der außerhalb der Saison angenehm zu Fuß zu erkunden ist, im Sommer aber stark unter Druck steht.</p>\"}",
+            "locale": "de",
+            "slug": "bouger-se-promener-a-sttropez"
+        },
+        {
+            "id": 5388,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Saint-Tropez is more than its fashionable image. It is first an old port and a compact town center, pleasant to walk through out of season but under heavy pressure in summer.</p>\"}",
+            "locale": "en",
+            "slug": "bouger-se-promener-a-sttropez"
+        },
+        {
+            "id": 5384,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Saint-Tropez ne se résume pas à son image mondaine. C’est d’abord un port ancien et un centre compact, agréable à parcourir hors saison mais très sollicité en été.</p>\"}",
+            "locale": "fr",
+            "slug": "bouger-se-promener-a-sttropez"
+        },
+        {
+            "id": 4634,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Le golfe réunit des communes très différentes, entre stations balnéaires, ports, villages perchés et massif des Maures. Pour le comprendre, il faut regarder à la fois le relief, les saisons et les modes de circulation.</p>\"}",
+            "locale": "fr",
+            "slug": "bouger-se-promener-dans-le-golfe-de-sttropez"
+        },
+        {
+            "id": 4646,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div class=\\\"border\\\" id=\\\"bloc-haut\\\">\\n<p>\\n Se promener dans les villages du golfe de Saint-Tropez, c’est découvrir une autre facette de la côte varoise.\\n Loin de l’image la plus connue du littoral, ces villages offrent des ruelles paisibles, des places ombragées,\\n des façades colorées, des marchés, des petits ports et une atmosphère typiquement provençale.\\n </p>\\n</div>\"}",
+            "locale": "fr",
+            "slug": "bouger-se-promener-dans-les-villages-du-golfe-de-sttropez"
+        },
+        {
+            "id": 5985,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Bouly&Cailloux versammelt handgemachte Kreationen. Der Shop kann Leserinnen und Leser interessieren, die kleine Serien, schlichte Objekte und handwerkliche Arbeit mögen.</p>\"}",
+            "locale": "de",
+            "slug": "boulyetcailloux-des-bijoux-artisanaux"
+        },
+        {
+            "id": 5994,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Bouly&Cailloux brings together handmade creations. The shop may interest readers who like small series, simple objects and manual craft.</p>\"}",
+            "locale": "en",
+            "slug": "boulyetcailloux-des-bijoux-artisanaux"
+        },
+        {
+            "id": 3307,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Bouly&Cailloux réunit des créations faites main. La boutique peut intéresser les lecteurs qui aiment les petites séries, les objets simples et le travail manuel.</p>\"}",
+            "locale": "fr",
+            "slug": "boulyetcailloux-des-bijoux-artisanaux"
+        },
+        {
+            "id": 5430,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Gassin liegt über dem Golf. Interessant sind hier sowohl die Lage als auch das dichte mittelalterliche Gefüge, die Ausblicke und die Weinlandschaft ringsum.</p>\"}",
+            "locale": "de",
+            "slug": "gassin-village-perche-golfe-saint-tropez"
+        },
+        {
+            "id": 5427,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Gassin overlooks the gulf from above. Its interest lies as much in its position as in its compact medieval fabric, its views and its vineyard surroundings.</p>\"}",
+            "locale": "en",
+            "slug": "gassin-village-perche-golfe-saint-tropez"
+        },
+        {
+            "id": 5424,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Gassin domine le golfe depuis les hauteurs. Son intérêt tient autant à sa position qu’à son tissu médiéval resserré, à ses vues et à son environnement viticole.</p>\"}",
+            "locale": "fr",
+            "slug": "gassin-village-perche-golfe-saint-tropez"
+        },
+        {
+            "id": 3100,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<img src=\\\"/assets/images/autoretro/sava_logo.jpg\\\"\\n title=\\\"Das SAVA-Logo\\\"\\n alt=\\\"Das SAVA-Logo\\\">\"}",
+            "locale": "de",
+            "slug": "sava-sava-auto-retro-rioz"
+        },
+        {
+            "id": 3095,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<img src=\\\"/assets/images/autoretro/sava_logo.jpg\\\"\\n title=\\\"The SAVA logo\\\"\\n alt=\\\"The SAVA logo\\\">\"}",
+            "locale": "en",
+            "slug": "sava-sava-auto-retro-rioz"
+        },
+        {
+            "id": 3090,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<div id=\\\"bloc-haut\\\" class=\\\"border\\\">Une entreprise qui évolue avec passion et précision</div>\"}",
+            "locale": "fr",
+            "slug": "sava-sava-auto-retro-rioz"
+        },
+        {
+            "id": 5207,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Diese Twingo wurde im Mai 2023 übernommen und im Winter 2023-2024 überarbeitet. Seitdem erfüllt sie wieder eine einfache Aufgabe: kurze Wege, lokale Ausfahrten und Reserveauto für unsere Gäste.</p>\"}",
+            "locale": "de",
+            "slug": "twingo-helios-1999-notre-exemplaire"
+        },
+        {
+            "id": 5203,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Bought in May 2023 and refreshed during the winter of 2023-2024, this Twingo has returned to a simple role: short trips, local outings and backup transport for our guests.</p>\"}",
+            "locale": "en",
+            "slug": "twingo-helios-1999-notre-exemplaire"
+        },
+        {
+            "id": 5199,
+            "payload_json": "{\"component\":\"rich_text\",\"html\":\"<p>Achetée en mai 2023 puis remise en état pendant l’hiver 2023-2024, cette Twingo a retrouvé un rôle simple : petits trajets, sorties locales et voiture d’appoint pour nos invités.</p>\"}",
+            "locale": "fr",
+            "slug": "twingo-helios-1999-notre-exemplaire"
+        }
+    ]
+}

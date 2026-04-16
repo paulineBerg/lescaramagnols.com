@@ -1,0 +1,133 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+LOCAL_BACKEND="${LOCAL_BACKEND:-${REPO_ROOT}/backend}"
+REMOTE_HOST="${REMOTE_HOST:-}"
+REMOTE_BACKEND="${REMOTE_BACKEND:-}"
+SITEMAP_BASE_URL="${SITEMAP_BASE_URL:-}"
+
+DRY_RUN=0
+NO_VENDOR=0
+NO_CACHE_CLEAR=0
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  REMOTE_HOST="user@host" REMOTE_BACKEND="/home/user/caramagnols/backend" \
+  bash backend/tools/deploy-release.sh [--dry-run] [--no-vendor] [--no-cache-clear]
+
+Description:
+  Full release deploy of backend/ to remote host.
+  - Keeps remote .env in place
+  - Keeps remote config/*.override.php in place (admin runtime settings)
+  - Keeps runtime editorial uploads under backend/public/uploads/editorial/
+  - Syncs backend/vendor/ by default (OVH without composer)
+  - Generates static sitemap at backend/public/sitemap.xml
+  - Clears runtime cache after deploy (unless --no-cache-clear)
+
+Options:
+  --dry-run         Preview sync and deletions only.
+  --no-vendor       Do not sync backend/vendor/.
+  --sitemap-base-url=URL  Override base URL for sitemap generation.
+  --no-cache-clear  Skip runtime cache clear on remote.
+  -h, --help        Show help.
+USAGE
+}
+
+while (($#)); do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    --no-vendor) NO_VENDOR=1 ;;
+    --sitemap-base-url=*) SITEMAP_BASE_URL="${1#*=}" ;;
+    --no-cache-clear) NO_CACHE_CLEAR=1 ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+if [[ -z "$REMOTE_HOST" || -z "$REMOTE_BACKEND" ]]; then
+  echo "REMOTE_HOST and REMOTE_BACKEND are required." >&2
+  usage
+  exit 1
+fi
+
+if [[ ! -d "$LOCAL_BACKEND" ]]; then
+  echo "Local backend directory not found: $LOCAL_BACKEND" >&2
+  exit 1
+fi
+
+echo "Deploy mode: release"
+echo "Dry run: $DRY_RUN"
+echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
+echo "Sync vendor: $((1 - NO_VENDOR))"
+echo "Sitemap base URL override: ${SITEMAP_BASE_URL:-<auto>}"
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  FILE_COUNT="$(find "$LOCAL_BACKEND" -type f | wc -l | tr -d ' ')"
+  echo "[dry-run] backend files detected locally: $FILE_COUNT"
+  echo "[dry-run] full rsync would run with --delete and standard excludes."
+  if [[ "$NO_VENDOR" -eq 0 && -d "$LOCAL_BACKEND/vendor" ]]; then
+    echo "[dry-run] vendor/ would be synced."
+  fi
+  echo "[dry-run] No remote command executed."
+  exit 0
+fi
+
+ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND'"
+ssh "$REMOTE_HOST" "test -f '$REMOTE_BACKEND/.env' && cp '$REMOTE_BACKEND/.env' '$REMOTE_BACKEND/.env.bak.$(date +%F-%H%M%S)' || true"
+
+RSYNC_FLAGS=(-azv --delete --info=progress2)
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  RSYNC_FLAGS+=(-n)
+fi
+
+rsync "${RSYNC_FLAGS[@]}" \
+  --exclude=".git/" \
+  --exclude=".env" \
+  --exclude=".env.*" \
+  --exclude="config/database.override.php" \
+  --exclude="config/admin.override.php" \
+  --exclude="config/site.override.php" \
+  --exclude="node_modules/" \
+  --exclude="tests/" \
+  --exclude="docs/" \
+  --exclude="README*" \
+  --exclude="var/cache/*" \
+  --exclude="var/log/*" \
+  --exclude="public/uploads/" \
+  "$LOCAL_BACKEND/" "$REMOTE_HOST:$REMOTE_BACKEND/"
+
+if [[ "$NO_VENDOR" -eq 0 && -d "$LOCAL_BACKEND/vendor" ]]; then
+  rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/vendor/" "$REMOTE_HOST:$REMOTE_BACKEND/vendor/"
+fi
+
+if [[ -n "$SITEMAP_BASE_URL" ]]; then
+  escaped_sitemap_base_url="$(printf '%q' "$SITEMAP_BASE_URL")"
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url=${escaped_sitemap_base_url}"
+else
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/generate_sitemap.php --output=public/sitemap.xml"
+fi
+
+ssh "$REMOTE_HOST" "find '$REMOTE_BACKEND' -type d -exec chmod 755 {} \; && \
+find '$REMOTE_BACKEND' -type f -exec chmod 644 {} \; && \
+test ! -f '$REMOTE_BACKEND/.env' || chmod 640 '$REMOTE_BACKEND/.env' && \
+mkdir -p '$REMOTE_BACKEND/var/cache' '$REMOTE_BACKEND/var/log' && \
+chmod -R 775 '$REMOTE_BACKEND/var'"
+
+if [[ "$NO_CACHE_CLEAR" -eq 0 ]]; then
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\"]); } echo \"cache_cleared\n\";'"
+fi
+
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'echo file_exists(\"vendor/autoload.php\") ? \"autoload_ok\n\" : \"autoload_missing\n\";'"
+
+echo "deploy-release completed."

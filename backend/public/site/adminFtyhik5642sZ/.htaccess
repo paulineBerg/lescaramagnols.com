@@ -1,9 +1,0 @@
-RewriteEngine On
-
-# Laisse passer les fichiers/dossiers existants
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Route toutes les autres requêtes vers index.php
-RewriteRule ^ index.php [QSA,L]

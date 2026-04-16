@@ -901,7 +901,7 @@ The tires mounted on the car no longer corresponded to safety standards. We ther
 <p>On the mechanical side, Julien tackled the engine with the precision of a surgeon. The result: the Simca purrs as it did on day one. Meanwhile, Laetitia immersed herself in the restoration of the upholstery, restoring the cabin to its original appearance, but with that little extra soul that makes all the difference. The interior has become a place where you want to settle in, as if the car itself had found its smile again.</p>
 
 <div id="bloccenter"><img src="/assets/images/autoretro/simca/aronde/simca_aronde_1300_un_proprietaire_heureux.jpg" title="Simca Aronde Elysée, a happy owner" alt="Simca Aronde Elysée, a happy owner"></div>
-<p>And then there are the finishes... those little details that make the Simca shine from every angle. The chrome, the paints, the bichromated screws — everything breathes respect for a job well done. You can feel Garage SAVA\'s desire to leave nothing to chance, to give a new life to each piece, without ever betraying the original spirit.</p>
+<p>And then there are the finishes... those little details that make the Simca shine from every angle. The chrome, the paints, the bichromated screws ,  everything breathes respect for a job well done. You can feel Garage SAVA\'s desire to leave nothing to chance, to give a new life to each piece, without ever betraying the original spirit.</p>
 
 <p>In the end, this restoration is a bit like a rebirth. Seeing the Simca Aronde 1300 Élysée A90 hit the road again, proud and elegant, is an emotion that is difficult to describe. Thanks to the talent and passion of Julien and Laetitia, this piece of history is rolling again, ready to tell other chapters on the roads of time.</p>',
 

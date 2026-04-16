@@ -1,0 +1,59 @@
+{
+    "meta": {
+        "schemaVersion": 1,
+        "generatedAt": "2026-03-19T06:55:31+00:00",
+        "storageMode": "sql",
+        "paths": {
+            "pages": "/home/surfacepro8/www/caramagnols/backend/data/pages.json",
+            "menus": "/home/surfacepro8/www/caramagnols/backend/data/menus.json",
+            "blog": "/home/surfacepro8/www/caramagnols/backend/data/blog",
+            "discussions": "/home/surfacepro8/www/caramagnols/backend/data/blog/discussions"
+        }
+    },
+    "pages": {
+        "meta": {
+            "version": 2
+        },
+        "pages": []
+    },
+    "navigation": {
+        "meta": {
+            "version": 2
+        },
+        "locations": {
+            "remonter": {
+                "label": {
+                    "text": null,
+                    "translationKey": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                }
+            },
+            "banner": {
+                "image": null,
+                "headline": {
+                    "text": null,
+                    "translationKey": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                }
+            },
+            "footerNotice": [],
+            "utility": [],
+            "primary": [],
+            "footer": [],
+            "sideRight": [],
+            "sideLeft": []
+        }
+    },
+    "blog": {
+        "articles": []
+    },
+    "discussions": {
+        "threads": []
+    }
+}

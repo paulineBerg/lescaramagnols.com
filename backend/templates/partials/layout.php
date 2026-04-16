@@ -4,12 +4,10 @@
     <?php
     // file: backend/templates/partials/layout.php
 
-    // ✅ Chargement des menus (JSON si présent, fallback config/menu_data.php)
+    // ✅ Chargement des menus éditoriaux canonisés depuis backend/data/menus.json
     require_once ROOT_PATH . '/core/menu_loader.php';
     $menuConfig   = load_menus();
-    $menu1        = $menuConfig['menu1']    ?? [];
-    $banniereData = $menuConfig['banniere'] ?? [];
-    $menu2        = $menuConfig['menu2']    ?? [];
+    $navigationViewModel = navigation_view_model($_SERVER['REQUEST_URI'] ?? '/', CURRENT_LANG);
     $menu3        = $menuConfig['menu3']    ?? [];
     $menuDroit    = $menuConfig['menuDroit'] ?? [];
     $menuGauche   = $menuConfig['menuGauche'] ?? [];
@@ -25,7 +23,8 @@
     ?>
 </head>
 
-<body>
+<?php $bodyClass = trim((string) ($pageBodyClass ?? '')); ?>
+<body<?php echo $bodyClass !== '' ? ' class="' . htmlspecialchars($bodyClass, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
 
 <?php
 if (file_exists(__DIR__ . '/scripts_body.php')) {
@@ -34,22 +33,13 @@ if (file_exists(__DIR__ . '/scripts_body.php')) {
 ?>
 
 <!-- En-tête principal -->
-<div id="entete">
-    <?php
-    if (file_exists(__DIR__ . '/menus_header.php')) {
-        require_once __DIR__ . '/menus_header.php';
-    }
-
-    if (function_exists('renderMenu1'))       renderMenu1($menu1, $langTranslations);
-    if (function_exists('renderBanniere'))    renderBanniere($banniereData, $langTranslations);
-    if (function_exists('renderMenu2'))       renderMenu2($menu2, $langTranslations);
-    ?>
-</div>
-
-<!-- Menu mobile -->
 <?php
-if (function_exists('renderMenuHamburger')) {
-    renderMenuHamburger($menu2, $langTranslations);
+if (file_exists(__DIR__ . '/menus_header.php')) {
+    require_once __DIR__ . '/menus_header.php';
+}
+
+if (function_exists('renderSiteHeader')) {
+    renderSiteHeader($navigationViewModel);
 }
 ?>
 
@@ -67,21 +57,30 @@ if (file_exists(__DIR__ . '/menus_fixes.php')) {
     <?php if (function_exists('renderMenuFixe')) renderMenuFixe($menuGauche, 'menu-gauche', t('TXT_MENUGAUCHE')); ?>
 </div>
 
-<div id="contenu">
-    <?php
-    if (file_exists(__DIR__ . '/contenu.php')) {
-        require_once __DIR__ . '/contenu.php';
-    }
-    ?>
-</div>
+<main id="main-content" role="main">
+    <div id="contenu">
+        <?php
+        if (file_exists(__DIR__ . '/contenu.php')) {
+            include __DIR__ . '/contenu.php';
+        }
+        ?>
+    </div>
+</main>
 
 <!-- Flèche REMONTER -->
 <div id="remonter" class="fleche">
-    <a href="#" onclick="toTop(); return false;" aria-label="Remonter en haut de page" role="button">
-        <span class="remonter-texte">TOP</span>
+    <?php $backToTopLabel = htmlspecialchars(t('REMONTER_TITRE'), ENT_QUOTES, 'UTF-8'); ?>
+    <a href="#" onclick="toTop(); return false;" aria-label="<?php echo $backToTopLabel; ?>" role="button">
+        <span class="remonter-texte"><?php echo $backToTopLabel; ?></span>
         <img src="/assets/images/structure/menu/remonter.png"
-             alt="remonter en haut"
-             title="Cliquez pour remonter en haut">
+             alt=""
+             aria-hidden="true"
+             title="<?php echo htmlspecialchars(t('TXT_REMONTER_TITLE'), ENT_QUOTES, 'UTF-8'); ?>"
+             width="32"
+             height="32"
+             loading="lazy"
+             decoding="async"
+             fetchpriority="low">
     </a>
 </div>
 

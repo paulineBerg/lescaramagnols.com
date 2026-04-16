@@ -24,16 +24,16 @@ return [
 'BOUGERDESCRIPT' => 'A territory shaped by the sea and history',
 
 'TXT_GOLFEINTRO' => 'The Gulf of Saint-Tropez is a Mediterranean gem nestled in the Var department, formed by twelve emblematic communes: Cavalaire-sur-Mer, Cogolin, Gassin, Grimaud, La Croix-Valmer, La Garde-Freinet, La Mole, Le Plan-de-la-Tour, Ramatuelle, Le Rayol-Canadel-sur-Mer, Sainte-Maxime and, of course, Saint-Tropez.
-<br>This territory alone represents nearly 30% of the Massif des Maures, an ancient massif composed mainly of crystalline schists, quartzites, and gneiss, resulting from a Hercynian folding dating back more than 300 million years. The coastline boasts more than 103 km of shores, lined with 40 fine sandy beaches of varied compositions—ranging from siliceous sands to alluviums rich in ferrous minerals carried from the hills by intermittent streams.',
+<br>This territory alone represents nearly 30% of the Massif des Maures, an ancient massif composed mainly of crystalline schists, quartzites, and gneiss, resulting from a Hercynian folding dating back more than 300 million years. The coastline boasts more than 103 km of shores, lined with 40 fine sandy beaches of varied compositions, ranging from siliceous sands to alluviums rich in ferrous minerals carried from the hills by intermittent streams.',
 
 'TXT_GOLFE' => '
 <h2>A LITTLE BIT OF HISTORY with a capital H:</h2>
 
-<p>The founding legend tells that in the year 68, the martyred body of Torpes—a Christian beheaded under Nero—was placed in a boat, accompanied by a dog and a rooster, and left to drift on the Arno. Guided by the currents, the boat ended its journey on the shores of the gulf. From this fable came the place names: "Tropez" for the man, "Cogolin" for the rooster (from the Latin <em>coquillus</em>), and "Grimaud" for the dog (from the Old French <em>grimaud</em>, a guard canine).</p>
+<p>The founding legend tells that in the year 68, the martyred body of Torpes, a Christian beheaded under Nero, was placed in a boat, accompanied by a dog and a rooster, and left to drift on the Arno. Guided by the currents, the boat ended its journey on the shores of the gulf. From this fable came the place names: "Tropez" for the man, "Cogolin" for the rooster (from the Latin <em>coquillus</em>), and "Grimaud" for the dog (from the Old French <em>grimaud</em>, a guard canine).</p>
 
 <p>But beyond the myths, the Gulf had a turbulent history. From antiquity, the Phocaeans established trading posts there. The Romans built rustic villas with colonnades, exploited coastal salt marshes, and erected paved roads, fragments of which are still visible at La Nartelle or towards La Garde-Freinet. Terracotta dolia and amphorae found testify to intense wine and olive growing activity.</p>
 
-<p>In the 8th and 9th centuries, Saracen incursions caused the abandonment of many lands. But from the 11th century, the Counts of Provence retook possession of the territory, building watchtowers and citadels—such as the Ramatuelle tower or the Citadel of Saint-Tropez, built of local pink sandstone from the massif.</p>
+<p>In the 8th and 9th centuries, Saracen incursions caused the abandonment of many lands. But from the 11th century, the Counts of Provence retook possession of the territory, building watchtowers and citadels, such as the Ramatuelle tower or the Citadel of Saint-Tropez, built of local pink sandstone from the massif.</p>
 
 <p>The port of Saint-Tropez experienced a remarkable boom from the 15th century. Mediterranean ships, rigged with tartans or xebecs, ensured the trade of salt, leather, wine, and woven fabrics. There were shipyards, vaulted warehouses, and dry docks still visible under the current quays. The port architecture adapted to the dominant mistral, with roof overhangs called <em>génoises</em>.</p>
 
@@ -41,7 +41,7 @@ return [
 
 <p>The villages of the Gulf are a living theater of southern architecture: facades with colored lime, sculpted lintels, external stairs of rough stone, and irregular rounded Romanesque hollow tiles. The building materials come from local quarries: Provence limestone, Rayol sandstone, Aleppo pine wood.</p>
 
-<p>From May to September, the Gulf comes alive: classic sailboat regattas like the Voiles de Saint-Tropez, music festivals, votive festivals, local markets where the scents of lavender, tapenade, and country bread mingle. The tourist offices—often housed in former notable\'s houses or mills—perpetuate the memory of the places.</p>
+<p>From May to September, the Gulf comes alive: classic sailboat regattas like the Voiles de Saint-Tropez, music festivals, votive festivals, local markets where the scents of lavender, tapenade, and country bread mingle. The tourist offices, often housed in former notable\'s houses or mills, perpetuate the memory of the places.</p>
 ',
 
     // PAGE COGOLIN
@@ -60,6 +60,16 @@ There, the rooster flew into a field of... flax and the rooster and the flax bec
     'IMAGE_ALT_cogolinfontaine' => 'A fountain in Cogolin',
     'IMAGE_ALT_cogolinvue'      => 'View of Cogolin',
     'IMAGE_ALT_cogolintour'     => 'The tower of Cogolin',
+    'TITRE_INFOSPRATIQUES'      => 'Practical information: markets and flea markets',
+    'MARCHE_MERCREDI'           => 'Wednesday Provençal market',
+    'MARCHE_MERCREDI_INFOS'     => 'Every Wednesday morning from 8 a.m. to 1 p.m. on Place Victor Hugo and at the boulodrome, with more than 100 stalls selling local produce, textiles, crafts and Provençal specialties.',
+    'MARCHE_SAMEDI'             => 'Saturday Provençal market',
+    'MARCHE_SAMEDI_INFOS'       => 'Every Saturday morning from 8 a.m. to 1 p.m. on Place de la Republique, with around 50 vendors.',
+    'BROCANTE_JEUDI'            => 'Thursday morning flea market',
+    'BROCANTE_JEUDI_INFOS'      => 'From 6:00 a.m. to 2:30 p.m. on the Marines de Cogolin beach. Reservation required. Contact: 06 08 10 94 73.',
+    'BROCANTE_DIMANCHE'         => 'Sunday morning flea market',
+    'BROCANTE_DIMANCHE_INFOS'   => 'From 6:00 a.m. to 2:00 p.m. at Jas des Robert (chemin de Negresse). Contact: 06 67 71 74 27.',
+    'INFOS_MARCHE_NOTE'         => 'These dates apply all year round. In bad weather, some markets may be reduced or cancelled. Check cogolin.fr for updates.',
 
 
     'TXT_COGOLINCENTRE'     => '<h2>The name Cogolin</h2> first appeared in the year 1055. Our old village is located on a small hill, in Provençal "COGOUYOUN".<br>Numerous remains of dwellings and agrarian traces attest to an already significant human and commercial activity that has continued to this day.<br>Cogolin is now a village that is both calm and lively.
@@ -78,6 +88,7 @@ There, the rooster flew into a field of... flax and the rooster and the flax bec
     'IMAGE_ALT_gardefreinetvillage'  => 'The village of La Garde-Freinet',
     'IMAGE_ALT_gardefreinetplace'    => 'A very nice square in La Garde-Freinet',
     'IMAGE_ALT_gardefreinetchemin'   => 'The path meanders in La Garde-Freinet',
+    'TITRE_INTRO_GARDEFREINET'       => 'La Garde-Freinet, sentinel of the Maures',
 
     'TXT_GARDEFREINETINTRO'         => 'Nestled in the heart of the Massif des Maures, La Garde-Freinet, an old Provençal village, has preserved its authenticity. It is accessed by picturesque roads winding through wild nature. Its position as a sentinel at the top of the pass earned it the name of "garde" (guard).
 <br>The name of the inhabitants is "Gardois", from "Gardeu" in Provençal. "Freinet", added later, refers to the territory of Fraxinetum (a vast plain populated with ash trees, from Gassin to Grimaud).
@@ -88,6 +99,8 @@ There, the rooster flew into a field of... flax and the rooster and the flax bec
     'TXT_GARDEFREINETCONCLUSION'    => 'Also, La Garde-Freinet offers an exceptional panorama of the Pre-Alpine massifs, the Mediterranean, and the forest landscapes of the Maures.
 <br>Ten years of archaeological excavations have uncovered the remains of a fortified village from the Middle Ages. To access it, the path runs along the cliff to the gates of the village, where you can see the remains of about thirty houses carved into the schist.
 <br>The conditions of the destruction of Fort Freinet are known, but its origin, the challenge to the Saracen occupation, or the function of certain dwellings, fuel discussions, on a site that has not yet revealed all its secrets.',
+    'TITRE_ASAVOIR_GF'              => 'Good to know: cork, a local treasure',
+    'CONTENU_ASAVOIR_GF'            => 'In the 19th century, La Garde-Freinet became a major center for cork-stopper production. Thanks to the abundance of cork oaks in the massif, local people mastered bark stripping without damaging the tree, then treated and punched the cork sheets. This activity employed nearly a third of the population and contributed to the village\'s prosperity. Some workshops can still be seen today, bearing witness to this rural and artisanal know-how.',
 
 
     // PAGE RAMATUELLE

@@ -43,11 +43,11 @@ Extrait simplifié :
 Hypothèse sécurité : contenu considéré « de confiance » (édité par l'admin). Si besoin d'échapper, le layout reste maître ; seule la meta description est échappée dans le template dynamique.
 
 ## Route dynamique
-- URL choisie : `/site/{slug}` (compatible avec préfixe langue déjà géré : `/fr/site/{slug}`).
+- URL choisie : `/{slug}` (compatible avec préfixe langue déjà géré : `/fr/{slug}`).
 - Priorité : pages physiques existantes d'abord, puis dynamique. Les routes statiques continuent de fonctionner.
-- Implémentation dans `backend/core/router.php` : pattern `site/{slug}` → recherche dans `pages.json` → template `pages/site/dynamic.php` ; sinon 404.
+- Implémentation dans `backend/core/router.php` : pattern `/{slug}` → recherche dans `pages.json` → template `pages/dynamic.php` ; sinon 404.
 
-## Template unique : `backend/templates/pages/site/dynamic.php`
+## Template unique : `backend/templates/pages/dynamic.php`
 - Utilise `$blocks` comme les autres pages, même layout (`partials/layout.php`).
 - Prend la page préchargée par le routeur via `$GLOBALS['currentDynamicPage']` (pas de 2e I/O).
 - Si meta.description définie → injectée dans `EditRegion10` sous forme de balise meta échappée.
@@ -56,7 +56,7 @@ Hypothèse sécurité : contenu considéré « de confiance » (édité par l'ad
 ## Ajouter une page
 1. Éditer `backend/data/pages.json` et ajouter une entrée dans `pages` avec un `slug` unique.
 2. Ajouter les blocs nécessaires (`EditRegion1..12`).
-3. Visiter `/site/{slug}` (ou `/fr/site/{slug}` selon la langue courante).
+3. Visiter `/{slug}` (ou `/fr/{slug}` selon la langue courante).
 
 ## Tests
 - `backend/tests/Content/PagesLoaderTest.php`

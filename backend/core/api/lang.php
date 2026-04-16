@@ -6,35 +6,30 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap.php';
 
+use Caramagnols\Http\Response;
+
 /**
- * Traite la requête de traduction et écrit la réponse.
- * Séparée pour être testable en CLI (définir LANG_API_AS_FUNCTION).
+ * Construit la réponse HTTP JSON de traduction.
  */
-function handle_lang_api(): void
+function lang_api_response(?string $requestedLang = null, ?string $ifNoneMatch = null): Response
 {
-    // Liste restreinte des langues supportées par le site
     $availableLangs = ['fr', 'en', 'de'];
 
-    $lang = $_GET['lang'] ?? DEFAULT_LANG;
-    $lang = strtolower($lang);
+    $lang = strtolower((string) ($requestedLang ?? DEFAULT_LANG));
     if (!in_array($lang, $availableLangs, true)) {
         $lang = DEFAULT_LANG;
     }
 
-    $langFile = ROOT_PATH . '/lang/' . $lang . '.php';
-    if (!file_exists($langFile)) {
-        $langFile = ROOT_PATH . '/lang/' . DEFAULT_LANG . '.php';
-    }
-
-    // ETag basé sur le mtime du fichier de langue courant
+    $langFile = translation_file_path($lang);
     $etag = 'W/"' . (filemtime($langFile) ?: time()) . '"';
-    header('ETag: ' . $etag);
-    header('Cache-Control: public, max-age=300');
-    header('Content-Type: application/json; charset=utf-8');
+    $headers = [
+        'ETag' => $etag,
+        'Cache-Control' => 'public, max-age=300',
+        'Content-Type' => 'application/json; charset=utf-8',
+    ];
 
-    if (isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === $etag) {
-        http_response_code(304);
-        return;
+    if (is_string($ifNoneMatch) && trim($ifNoneMatch) === $etag) {
+        return new Response(304, $headers, '');
     }
 
     try {
@@ -44,19 +39,33 @@ function handle_lang_api(): void
             throw new RuntimeException('Traductions introuvables');
         }
 
-        echo json_encode(
+        $json = json_encode(
             $translations,
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         );
-    } catch (Throwable $exception) {
-        http_response_code(500);
 
+        return new Response(200, $headers, is_string($json) ? $json : '{}');
+    } catch (Throwable $exception) {
         error_log('[lang.php] ' . $exception->getMessage());
 
-        echo json_encode([
-            'error' => 'Unable to load translations.'
-        ]);
+        $json = json_encode(['error' => 'Unable to load translations.']);
+
+        return new Response(500, $headers, is_string($json) ? $json : '{"error":"Unable to load translations."}');
     }
+}
+
+/**
+ * Traite la requête de traduction et écrit la réponse.
+ * Séparée pour être testable en CLI (définir LANG_API_AS_FUNCTION).
+ */
+function handle_lang_api(): void
+{
+    $response = lang_api_response(
+        is_string($_GET['lang'] ?? null) ? $_GET['lang'] : null,
+        is_string($_SERVER['HTTP_IF_NONE_MATCH'] ?? null) ? $_SERVER['HTTP_IF_NONE_MATCH'] : null
+    );
+
+    $response->send();
 }
 
 if (!defined('LANG_API_AS_FUNCTION')) {

@@ -4,6 +4,9 @@
 
 declare(strict_types=1);
 
+use Caramagnols\Content\PageRepository;
+use Caramagnols\Content\StructuredPageRenderer;
+
 /**
  * Retourne le chemin du fichier JSON des pages.
  */
@@ -32,13 +35,21 @@ function pages_data_set_path_override(?string $path): void
     $GLOBALS['pagesDataPathOverride'] = $path;
 }
 
-/**
- * Stockage cache (référence) pour réutiliser le chargement JSON.
- */
-function &pages_cache_store(): array
+function &pages_repository_store(): array
 {
-    static $cache = [];
-    return $cache;
+    static $repositories = [];
+    return $repositories;
+}
+
+function page_repository_for_path(string $path): PageRepository
+{
+    $repositories =& pages_repository_store();
+
+    if (!isset($repositories[$path]) || !$repositories[$path] instanceof PageRepository) {
+        $repositories[$path] = new PageRepository($path, new StructuredPageRenderer());
+    }
+
+    return $repositories[$path];
 }
 
 /**
@@ -62,73 +73,8 @@ function page_block_defaults(): array
 function load_pages(?string $path = null): array
 {
     $path ??= pages_data_path();
-    $cache =& pages_cache_store();
 
-    if (array_key_exists($path, $cache)) {
-        return $cache[$path];
-    }
-
-    if (!file_exists($path)) {
-        $cache[$path] = [];
-        return $cache[$path];
-    }
-
-    if (!is_readable($path)) {
-        error_log('[pages_loader] Fichier non lisible : ' . $path);
-        $cache[$path] = [];
-        return $cache[$path];
-    }
-
-    $raw = file_get_contents($path);
-    if ($raw === false) {
-        error_log('[pages_loader] Impossible de lire le fichier : ' . $path);
-        $cache[$path] = [];
-        return $cache[$path];
-    }
-
-    $decoded = json_decode($raw, true);
-    if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
-        error_log('[pages_loader] JSON invalide dans ' . $path . ' : ' . json_last_error_msg());
-        $cache[$path] = [];
-        return $cache[$path];
-    }
-
-    if (!is_array($decoded)) {
-        error_log('[pages_loader] Le fichier doit contenir un objet ou un tableau.');
-        $cache[$path] = [];
-        return $cache[$path];
-    }
-
-    $pages = $decoded['pages'] ?? $decoded;
-    if (!is_array($pages)) {
-        error_log('[pages_loader] La clé "pages" doit être un tableau.');
-        $cache[$path] = [];
-        return $cache[$path];
-    }
-
-    $normalized = [];
-    foreach ($pages as $page) {
-        if (!is_array($page)) {
-            continue;
-        }
-
-        $slug = trim((string) ($page['slug'] ?? ''));
-        if ($slug === '') {
-            continue;
-        }
-
-        $normalized[] = [
-            'slug' => $slug,
-            'status' => strtolower((string) ($page['status'] ?? 'published')),
-            'title' => $page['title'] ?? null,
-            'blocks' => is_array($page['blocks'] ?? null) ? $page['blocks'] : [],
-            'translations' => is_array($page['translations'] ?? null) ? $page['translations'] : [],
-            'meta' => is_array($page['meta'] ?? null) ? $page['meta'] : [],
-        ];
-    }
-
-    $cache[$path] = $normalized;
-    return $cache[$path];
+    return page_repository_for_path($path)->all();
 }
 
 /**
@@ -138,49 +84,9 @@ function load_pages(?string $path = null): array
 function get_page_by_slug(string $slug, string $lang, ?string $fallbackLang = null, ?string $path = null): ?array
 {
     $fallbackLang = $fallbackLang ?? (defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr');
-    $pages = load_pages($path);
+    $path ??= pages_data_path();
 
-    foreach ($pages as $page) {
-        if (($page['slug'] ?? '') !== $slug) {
-            continue;
-        }
-
-        if (($page['status'] ?? 'published') !== 'published') {
-            return null;
-        }
-
-        $translations = is_array($page['translations'] ?? null) ? $page['translations'] : [];
-        $translation = $translations[$lang] ?? null;
-
-        if ($translation === null && $fallbackLang !== $lang) {
-            $translation = $translations[$fallbackLang] ?? null;
-        }
-
-        if ($translation === null && !empty($translations)) {
-            $translation = reset($translations);
-        }
-
-        $baseBlocks = is_array($page['blocks'] ?? null) ? $page['blocks'] : [];
-        $translationBlocks = is_array($translation['blocks'] ?? null) ? $translation['blocks'] : [];
-
-        $blocks = array_merge(
-            page_block_defaults(),
-            $baseBlocks,
-            $translationBlocks
-        );
-
-        $metaBase = is_array($page['meta'] ?? null) ? $page['meta'] : [];
-        $metaTranslated = is_array($translation['meta'] ?? null) ? $translation['meta'] : [];
-
-        return [
-            'slug' => $slug,
-            'title' => (string) ($translation['title'] ?? $page['title'] ?? $slug),
-            'blocks' => $blocks,
-            'meta' => array_merge($metaBase, $metaTranslated),
-        ];
-    }
-
-    return null;
+    return page_repository_for_path($path)->findPublishedStructuredBySlug($slug, $lang, $fallbackLang);
 }
 
 /**
@@ -188,12 +94,21 @@ function get_page_by_slug(string $slug, string $lang, ?string $fallbackLang = nu
  */
 function pages_cache_clear(?string $path = null): void
 {
-    $cache =& pages_cache_store();
+    $repositories =& pages_repository_store();
 
     if ($path === null) {
-        $cache = [];
+        foreach ($repositories as $repository) {
+            if ($repository instanceof PageRepository) {
+                $repository->clearCache();
+            }
+        }
+        $repositories = [];
         return;
     }
 
-    unset($cache[$path]);
+    if (isset($repositories[$path]) && $repositories[$path] instanceof PageRepository) {
+        $repositories[$path]->clearCache();
+    }
+
+    unset($repositories[$path]);
 }

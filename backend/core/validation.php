@@ -68,7 +68,7 @@ function sanitize_tags(array $tags, int $maxTags = 25, int $maxLength = 60): arr
         }
         $clean[] = $label;
         if (count($clean) === $maxTags) {
-            $errors[] = sprintf('Nombre maximal de tags atteint (%d).', $maxTags);
+            $errors[] = sprintf((string) t('TXT_VALIDATION_MAX_TAGS_REACHED'), $maxTags);
             break;
         }
     }
@@ -90,13 +90,13 @@ function sanitize_comment_payload(array $payload): array
     $content = sanitize_text_field((string) ($payload['content'] ?? ''), 2000, ['strong', 'em', 'br']);
 
     if ($name === '') {
-        $errors[] = 'Le nom est obligatoire.';
+        $errors[] = (string) t('TXT_BLOG_DISCUSSION_ERROR_NAME_REQUIRED');
     }
     if ($email === null) {
-        $errors[] = 'Adresse e-mail invalide.';
+        $errors[] = (string) t('TXT_BLOG_DISCUSSION_ERROR_EMAIL_INVALID');
     }
     if ($content === '') {
-        $errors[] = 'Le commentaire est vide.';
+        $errors[] = (string) t('TXT_BLOG_DISCUSSION_ERROR_CONTENT_EMPTY');
     }
 
     return [

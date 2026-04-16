@@ -11,7 +11,7 @@ final class RouterTest extends TestCase
     public function testHomeRouteResolvesToAccueil(): void
     {
         $this->assertSame(
-            'pages/site/accueil/bienvenue-aux-caramagnols.php',
+            'pages/dynamic.php',
             resolve_route('/')
         );
     }
@@ -23,4 +23,5 @@ final class RouterTest extends TestCase
             resolve_route('/does-not-exist')
         );
     }
+
 }

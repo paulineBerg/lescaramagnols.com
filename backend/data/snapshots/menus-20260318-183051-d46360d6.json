@@ -1,0 +1,2368 @@
+{
+    "meta": {
+        "version": 2
+    },
+    "locations": {
+        "remonter": {
+            "label": {
+                "text": null,
+                "translationKey": "REMONTER_TOP"
+            },
+            "accessibility": {
+                "alt": "Top",
+                "title": "Top"
+            }
+        },
+        "banner": {
+            "image": "/assets/images/structure/banniere.jpg",
+            "headline": {
+                "text": "VOYAGE DANS LE GOLFE DE SAINT-TROPEZ ET NOS VOITURES DE COLLECTION                         VOYAGE DANS LE GOLFE DE SAINT-TROPEZ ET NOS VOITURES DE COLLECTION",
+                "translationKey": null
+            },
+            "accessibility": {
+                "alt": null,
+                "title": null
+            }
+        },
+        "utility": [
+            {
+                "id": "utility-42e49721",
+                "kind": "external",
+                "label": {
+                    "text": null,
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": "https://www.facebook.com/lescaramagnols",
+                    "openInNewTab": true
+                },
+                "media": {
+                    "image": "/assets/images/structure/reseaux-sociaux/facebooklogomini.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": "La Page Facebook",
+                    "title": "La Page Facebook"
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "utility-80ec0592",
+                "kind": "external",
+                "label": {
+                    "text": null,
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": "https://www.flickr.com/photos/130851617@N05",
+                    "openInNewTab": true
+                },
+                "media": {
+                    "image": "/assets/images/structure/reseaux-sociaux/flickrlogomini.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": "La Page Flickr",
+                    "title": "La Page Flickr"
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "utility-c27b84c6",
+                "kind": "external",
+                "label": {
+                    "text": null,
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": "https://instagram.com/paulineetnoel/",
+                    "openInNewTab": true
+                },
+                "media": {
+                    "image": "/assets/images/structure/reseaux-sociaux/instagramlogomini.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": "La Page Instagram",
+                    "title": "La Page Instagram"
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "utility-3e3f09d9",
+                "kind": "external",
+                "label": {
+                    "text": null,
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": "https://www.pinterest.fr/lescaramagnols/",
+                    "openInNewTab": true
+                },
+                "media": {
+                    "image": "/assets/images/structure/reseaux-sociaux/pinterestlogomini.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": "La Page Pinterest",
+                    "title": "La Page Pinterest"
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "utility-d9cb8108",
+                "kind": "external",
+                "label": {
+                    "text": null,
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": "https://www.tumblr.com/lescaramagnols/",
+                    "openInNewTab": true
+                },
+                "media": {
+                    "image": "/assets/images/structure/reseaux-sociaux/tumblrlogomini.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": "La Page Tumblr",
+                    "title": "La Page Tumblr"
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            }
+        ],
+        "primary": [
+            {
+                "id": "primary-a20e3d14",
+                "kind": "route",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_ACCUEIL"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": null
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "primary-baa7393c",
+                "kind": "group",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_AUTORETRO"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": null
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "mega",
+                    "columnCount": 4,
+                    "menuTemplate": "standard",
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": [
+                    {
+                        "id": "primary-a64ba7dc",
+                        "kind": "group",
+                        "label": {
+                            "text": null,
+                            "translationKey": "MENU_AUSTIN"
+                        },
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        },
+                        "media": {
+                            "image": null
+                        },
+                        "content": {
+                            "text": null
+                        },
+                        "accessibility": {
+                            "alt": null,
+                            "title": null
+                        },
+                        "presentation": {
+                            "displayMode": "dropdown",
+                            "columnCount": null,
+                            "menuTemplate": null,
+                            "isHighlight": false,
+                            "featuredCard": {
+                                "title": null,
+                                "text": null,
+                                "image": null,
+                                "ctaLabel": null,
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": null,
+                                    "url": null,
+                                    "openInNewTab": false
+                                }
+                            }
+                        },
+                        "children": [
+                            {
+                                "id": "primary-b01c4009",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_AUSTIN"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/austin/histoire-de-austin.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-28428c85",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIREMINI"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/austin/aventure-mini-austin.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-c0d9a734",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_MINI"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "primary-88821f74",
+                        "kind": "group",
+                        "label": {
+                            "text": null,
+                            "translationKey": "MENU_MERCEDES"
+                        },
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        },
+                        "media": {
+                            "image": null
+                        },
+                        "content": {
+                            "text": null
+                        },
+                        "accessibility": {
+                            "alt": null,
+                            "title": null
+                        },
+                        "presentation": {
+                            "displayMode": "dropdown",
+                            "columnCount": null,
+                            "menuTemplate": null,
+                            "isHighlight": false,
+                            "featuredCard": {
+                                "title": null,
+                                "text": null,
+                                "image": null,
+                                "ctaLabel": null,
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": null,
+                                    "url": null,
+                                    "openInNewTab": false
+                                }
+                            }
+                        },
+                        "children": [
+                            {
+                                "id": "primary-d61a0271",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_MERCEDES"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/mercedes/histoire-de-mercedes.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-5ecfdd0e",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIRESLK"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/mercedes/la-slk-une-voiture-compacte-sportive.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-3c9f561a",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_SLK"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/mercedes/une-slk-dans-le-golfe-de-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "primary-5b9c5de1",
+                        "kind": "group",
+                        "label": {
+                            "text": null,
+                            "translationKey": "MENU_PANHARD"
+                        },
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        },
+                        "media": {
+                            "image": null
+                        },
+                        "content": {
+                            "text": null
+                        },
+                        "accessibility": {
+                            "alt": null,
+                            "title": null
+                        },
+                        "presentation": {
+                            "displayMode": "dropdown",
+                            "columnCount": null,
+                            "menuTemplate": null,
+                            "isHighlight": false,
+                            "featuredCard": {
+                                "title": null,
+                                "text": null,
+                                "image": null,
+                                "ctaLabel": null,
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": null,
+                                    "url": null,
+                                    "openInNewTab": false
+                                }
+                            }
+                        },
+                        "children": [
+                            {
+                                "id": "primary-a1226c96",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_PANHARD"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/panhard/histoire-de-panhard.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-a248d352",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIREDYNA"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/panhard/une-dyna-icone-automobile.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-b5ab181b",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIREDYNAZ"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/panhard/la-dyna-z-voiture-de-collection.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-8efc7088",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_DYNA"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/panhard/une-dynaz12-dans-le-golfe-de-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "primary-5eb858ee",
+                        "kind": "group",
+                        "label": {
+                            "text": null,
+                            "translationKey": "MENU_RENAULT"
+                        },
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        },
+                        "media": {
+                            "image": null
+                        },
+                        "content": {
+                            "text": null
+                        },
+                        "accessibility": {
+                            "alt": null,
+                            "title": null
+                        },
+                        "presentation": {
+                            "displayMode": "dropdown",
+                            "columnCount": null,
+                            "menuTemplate": null,
+                            "isHighlight": false,
+                            "featuredCard": {
+                                "title": null,
+                                "text": null,
+                                "image": null,
+                                "ctaLabel": null,
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": null,
+                                    "url": null,
+                                    "openInNewTab": false
+                                }
+                            }
+                        },
+                        "children": [
+                            {
+                                "id": "primary-feee2a37",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_RENAULT"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/renault/histoire-de-renault.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-754652a1",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIRETWINGO"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/renault/la-twingo-une-voiture-a-succes.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-6712c482",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_TWINGO"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "primary-d4e683f2",
+                        "kind": "group",
+                        "label": {
+                            "text": null,
+                            "translationKey": "MENU_SIMCA"
+                        },
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        },
+                        "media": {
+                            "image": null
+                        },
+                        "content": {
+                            "text": null
+                        },
+                        "accessibility": {
+                            "alt": null,
+                            "title": null
+                        },
+                        "presentation": {
+                            "displayMode": "dropdown",
+                            "columnCount": null,
+                            "menuTemplate": null,
+                            "isHighlight": false,
+                            "featuredCard": {
+                                "title": null,
+                                "text": null,
+                                "image": null,
+                                "ctaLabel": null,
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": null,
+                                    "url": null,
+                                    "openInNewTab": false
+                                }
+                            }
+                        },
+                        "children": [
+                            {
+                                "id": "primary-f989b0b9",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_SIMCA"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/simca/histoire-de-simca.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-f74f4d17",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIREARONDE"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/simca/histoire-simca-aronde-icone-francaise.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-5433fabb",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIREARONDE9"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-37f5c58c",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIREARONDE1300"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/simca/la-simca-aronde-1300-voiture-de-collection.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-52157755",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_HISTOIREARONDEp60"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/simca/la-simca-P60-voiture-de-collection.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-dea59c40",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_ARONDE"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-1d4da934",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_ARONDERESTAURATION"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/auto-retro/simca/une-simca-aronde-en-restauration-chez-sava-rioz.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "primary-1ed6615d",
+                "kind": "group",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_BOUGER"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": null
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "mega",
+                    "columnCount": 2,
+                    "menuTemplate": "standard",
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": [
+                    {
+                        "id": "primary-5d34fc85",
+                        "kind": "route",
+                        "label": {
+                            "text": null,
+                            "translationKey": "MENU_LEGOLFE"
+                        },
+                        "target": {
+                            "pageSlug": null,
+                            "route": "/bouger/se-promener-dans-le-golfe-de-sttropez.php",
+                            "url": null,
+                            "openInNewTab": false
+                        },
+                        "media": {
+                            "image": null
+                        },
+                        "content": {
+                            "text": null
+                        },
+                        "accessibility": {
+                            "alt": null,
+                            "title": null
+                        },
+                        "presentation": {
+                            "displayMode": "link",
+                            "columnCount": null,
+                            "menuTemplate": null,
+                            "isHighlight": false,
+                            "featuredCard": {
+                                "title": null,
+                                "text": null,
+                                "image": null,
+                                "ctaLabel": null,
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": null,
+                                    "url": null,
+                                    "openInNewTab": false
+                                }
+                            }
+                        },
+                        "children": []
+                    },
+                    {
+                        "id": "primary-38416c35",
+                        "kind": "group",
+                        "label": {
+                            "text": null,
+                            "translationKey": "MENU_LESVILLAGES"
+                        },
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        },
+                        "media": {
+                            "image": null
+                        },
+                        "content": {
+                            "text": null
+                        },
+                        "accessibility": {
+                            "alt": null,
+                            "title": null
+                        },
+                        "presentation": {
+                            "displayMode": "dropdown",
+                            "columnCount": null,
+                            "menuTemplate": null,
+                            "isHighlight": false,
+                            "featuredCard": {
+                                "title": null,
+                                "text": null,
+                                "image": null,
+                                "ctaLabel": null,
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": null,
+                                    "url": null,
+                                    "openInNewTab": false
+                                }
+                            }
+                        },
+                        "children": [
+                            {
+                                "id": "primary-677a9293",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_LESVILLAGESCOGOLIN"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-8fb96a6d",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_LESVILLAGESGARDEFREINET"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-0cc28f25",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_LESVILLAGESRAMATUELLE"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            },
+                            {
+                                "id": "primary-5a713bd1",
+                                "kind": "route",
+                                "label": {
+                                    "text": null,
+                                    "translationKey": "MENU_LESVILLAGESSTTROPEZ"
+                                },
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": "/bouger/se-promener-a-sttropez.php",
+                                    "url": null,
+                                    "openInNewTab": false
+                                },
+                                "media": {
+                                    "image": null
+                                },
+                                "content": {
+                                    "text": null
+                                },
+                                "accessibility": {
+                                    "alt": null,
+                                    "title": null
+                                },
+                                "presentation": {
+                                    "displayMode": "link",
+                                    "columnCount": null,
+                                    "menuTemplate": null,
+                                    "isHighlight": false,
+                                    "featuredCard": {
+                                        "title": null,
+                                        "text": null,
+                                        "image": null,
+                                        "ctaLabel": null,
+                                        "target": {
+                                            "pageSlug": null,
+                                            "route": null,
+                                            "url": null,
+                                            "openInNewTab": false
+                                        }
+                                    }
+                                },
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "id": "primary-4debb158",
+                        "kind": "route",
+                        "label": {
+                            "text": null,
+                            "translationKey": "MENU_ANIMATIONS"
+                        },
+                        "target": {
+                            "pageSlug": null,
+                            "route": "/bouger/les-animations-dans-le-golfe-de-sttropez.php",
+                            "url": null,
+                            "openInNewTab": false
+                        },
+                        "media": {
+                            "image": null
+                        },
+                        "content": {
+                            "text": null
+                        },
+                        "accessibility": {
+                            "alt": null,
+                            "title": null
+                        },
+                        "presentation": {
+                            "displayMode": "link",
+                            "columnCount": null,
+                            "menuTemplate": null,
+                            "isHighlight": false,
+                            "featuredCard": {
+                                "title": null,
+                                "text": null,
+                                "image": null,
+                                "ctaLabel": null,
+                                "target": {
+                                    "pageSlug": null,
+                                    "route": null,
+                                    "url": null,
+                                    "openInNewTab": false
+                                }
+                            }
+                        },
+                        "children": []
+                    }
+                ]
+            },
+            {
+                "id": "primary-9d0db153",
+                "kind": "route",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_SAVA"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/sava/sava-auto-retro-rioz.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": null
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "primary-db031dbf",
+                "kind": "route",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_BIJOUX"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/bc/boulyetcailloux-des-bijoux-artisanaux.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": null
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            }
+        ],
+        "footer": [
+            {
+                "id": "footer-317a901e",
+                "kind": "route",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_MENTIONS"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/accueil/toutes-les-mentions-legales.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": null
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "footer-6ed9f818",
+                "kind": "route",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_PLAN"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/accueil/le-plan-du-site-des-caramagnols.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": null
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            }
+        ],
+        "sideRight": [
+            {
+                "id": "sideright-71fb6822",
+                "kind": "content_card",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_AUSTIN"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/auto-retro/austin/histoire-de-austin.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btaustin.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "sideright-b294fb0a",
+                "kind": "content_card",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_MERCEDES"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/auto-retro/mercedes/histoire-de-mercedes.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btmercedes.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "sideright-4e3b1f14",
+                "kind": "content_card",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_PANHARD"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/auto-retro/panhard/histoire-de-panhard.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btpanhard.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "sideright-9ab70e67",
+                "kind": "content_card",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_RENAULT"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/auto-retro/renault/histoire-de-renault.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btrenault.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "sideright-2a6f43c2",
+                "kind": "content_card",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_SIMCA"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/auto-retro/simca/histoire-de-simca.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btsimca.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            }
+        ],
+        "sideLeft": [
+            {
+                "id": "sideleft-593f0ef3",
+                "kind": "content_card",
+                "label": {
+                    "text": "Bientôt La Mini Mayfair",
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btaustin.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "sideleft-bada3998",
+                "kind": "content_card",
+                "label": {
+                    "text": "Bientôt La SLK 230 kompressor",
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btmercedes.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "sideleft-0887cf37",
+                "kind": "content_card",
+                "label": {
+                    "text": "Bientôt La Dyna Z12",
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btpanhard.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "sideleft-c22363db",
+                "kind": "content_card",
+                "label": {
+                    "text": "Bientôt La Twingo Hélios",
+                    "translationKey": null
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": null,
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btrenault.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            },
+            {
+                "id": "sideleft-2fffb665",
+                "kind": "content_card",
+                "label": {
+                    "text": null,
+                    "translationKey": "MENU_ARONDE"
+                },
+                "target": {
+                    "pageSlug": null,
+                    "route": "/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php",
+                    "url": null,
+                    "openInNewTab": false
+                },
+                "media": {
+                    "image": "/assets/images/structure/menu/auto-retro/btsimca.jpg"
+                },
+                "content": {
+                    "text": null
+                },
+                "accessibility": {
+                    "alt": null,
+                    "title": null
+                },
+                "presentation": {
+                    "displayMode": "link",
+                    "columnCount": null,
+                    "menuTemplate": null,
+                    "isHighlight": false,
+                    "featuredCard": {
+                        "title": null,
+                        "text": null,
+                        "image": null,
+                        "ctaLabel": null,
+                        "target": {
+                            "pageSlug": null,
+                            "route": null,
+                            "url": null,
+                            "openInNewTab": false
+                        }
+                    }
+                },
+                "children": []
+            }
+        ]
+    }
+}

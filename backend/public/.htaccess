@@ -1,9 +1,70 @@
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteBase /
 
-# Laisse passer les vrais fichiers et dossiers
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# Canonical host: force le domaine en www.
+# Laisse le challenge ACME HTTP-01 passer sans redirection.
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/ [NC]
+RewriteCond %{HTTP_HOST} ^lescaramagnols\.com(?::\d+)?$ [NC]
+RewriteRule ^ https://www.lescaramagnols.com%{REQUEST_URI} [R=301,L,NE]
 
-# Redirige tout vers index.php
+# Force HTTPS en production (compatible reverse proxy).
+# Laisse le challenge ACME HTTP-01 passer sans redirection.
+RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/ [NC]
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L,NE]
+
+# Ne jamais exposer les fichiers cachés sauf challenge ACME.
+RewriteRule "(^|/)\.(?!well-known/)" - [F,L]
+
+# Bloque l'accès direct à des fichiers techniques/sensibles si présents dans le webroot.
+RewriteRule "(^|/)(?:composer\.(?:json|lock)|package(?:-lock)?\.json|phpunit\.xml(?:\.dist)?|\.env(?:\..*)?)$" - [F,L,NC]
+RewriteRule "(^|/).+\.(?:md|markdown|sql|log|ya?ml|ini|dist|bak|old|orig|swp)$" - [F,L,NC]
+RewriteRule "(^|/).+\.(?:sh|bash|zsh|ps1|bat|cmd)$" - [F,L,NC]
+
+# Force explicitement la racine vers le front-controller (évite un 403 sur certains Apache mutualisés).
+RewriteRule ^$ index.php [QSA,L]
+
+# Laisse passer les fichiers et dossiers existants (assets, images, etc.).
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Front-controller unique pour tout le reste.
 RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_expires.c>
+ExpiresActive On
+ExpiresByType text/css "access plus 30 days"
+ExpiresByType application/javascript "access plus 30 days"
+ExpiresByType text/javascript "access plus 30 days"
+ExpiresByType application/font-woff2 "access plus 30 days"
+ExpiresByType font/woff2 "access plus 30 days"
+ExpiresByType image/webp "access plus 30 days"
+ExpiresByType image/jpeg "access plus 30 days"
+ExpiresByType image/png "access plus 30 days"
+ExpiresByType image/gif "access plus 30 days"
+ExpiresByType image/svg+xml "access plus 30 days"
+ExpiresByType image/x-icon "access plus 30 days"
+</IfModule>
+
+<IfModule mod_headers.c>
+Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+Header always set Cross-Origin-Opener-Policy "same-origin"
+Header always set Cross-Origin-Resource-Policy "same-site"
+<IfModule mod_setenvif.c>
+# Assets fingerprintes Vite (hash dans le nom de fichier) => cache long.
+SetEnvIf Request_URI "\.[A-Za-z0-9_-]{8,}\.(?:css|js|mjs|png|jpe?g|gif|webp|svg|ico|woff2?)$" CARA_FP_ASSET=1
+</IfModule>
+<FilesMatch "\.(?:css|js|mjs|png|jpe?g|gif|webp|svg|ico|woff2?)$">
+  Header set Cache-Control "public, max-age=31536000, immutable" env=CARA_FP_ASSET
+  Header set Cache-Control "public, max-age=2592000" env=!CARA_FP_ASSET
+</FilesMatch>
+</IfModule>

@@ -3,6 +3,11 @@
 Site associatif mêlant un backend PHP procédural (routage, templates, i18n serveur, sécurité) et un frontend Vite (JS/SCSS) pour l’interactivité et le responsive.  
 Ce document décrit l’architecture, les langages, les dépendances, les commandes utiles et les points clés de mise en production.
 
+## Emplacement WSL du depot
+- Controle local du `2026-04-11` : depot verifie sous `/home/surfacepro8/www/caramagnols` sur le systeme de fichiers Linux WSL (`ext4`).
+- Aucun deplacement n'a ete necessaire : le depot n'est pas stocke sous `/mnt/c`, `/mnt/d` ni un autre montage Windows.
+- Regle de maintenance : garder le depot Git dans `/home/...` pour proteger les performances de Git, Composer, Node/Vite et des watchers locaux.
+
 ## Note 2026-03-18
 - Le service éditorial de pages est désormais unique : registre [`backend/data/pages.json`](./backend/data/pages.json) + rendu [`backend/templates/pages/dynamic.php`](./backend/templates/pages/dynamic.php).
 - Le registre ne contient plus de `legacy_template` ni de champ `template`.
@@ -51,13 +56,14 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - **Internationalisation (client)** : module `frontend/src/js/i18n.ts` (fetch `core/api/lang.php`, cache in-memory + localStorage, application sur `data-i18n`).
 - **Frontend build** : Vite 7 (ESM) + SCSS. Entrées `src/js/main.ts` et `src/scss/style.scss`; manifest publié dans `backend/public/.vite/manifest.json` puis injecté côté PHP via `backend/src/Assets/ViteAssetManager.php` et `vite_tags()`. Images copiées via `vite-plugin-static-copy`. Le build applique aussi un gate de budget via `frontend/tools/check-budgets.mjs`.
 - **Assets runtime** : en production, `npm run build` publie le build dans `backend/public/assets` et `backend/public/.vite`, avec purge automatique des anciens bundles hashés à la racine de `backend/public/assets`. La politique V1 impose de ne pas versionner `frontend/dist/**`, `backend/public/.vite/**`, `backend/public/tarteaucitron/**` et les bundles generes a la racine `backend/public/assets`. En dev, Vite sert les assets, le proxy `/core/*` cible `http://127.0.0.1:8000`.
-- **Sécurité** : en-têtes CSP/anti-clickjacking (`core/security.php`), session renommée (`caramagnols_session`) en `SameSite=Strict`, cookie `lang` en `HttpOnly`/`SameSite=Lax`, tokens CSRF (`csrf_token()` / `csrf_validate()`), rate limiting session (`core/rate_limiter.php`), timeout d'inactivite admin (120 min) avec warning de prolongation (fenetre 120s) et keepalive CSRF (`POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping`), sanitisation centralisée (`core/validation.php`).
-- **Admin Blog (MVP JSON)** : espace protégé sous `/<base_path>/<ADMIN_LOGIN_PATH>` (exemple par défaut : `/admin` quand `base_path=/`) avec login email/mot de passe (`core/auth/admin.php`). Le rendu passe par `backend/src/Admin/AdminController.php`, l’écriture blog par `backend/src/Blog/BlogApiController.php`, et la persistance par `backend/src/Blog/JsonBlogRepository.php`. Aucun identifiant admin par défaut n’est fourni par le dépôt.
+- **Uploads éditoriaux runtime** : les images uploadées depuis l’admin (pages/articles) sont stockées dans `backend/public/uploads/editorial/**` (chemins publics stables `/uploads/editorial/...`) et doivent être conservées en déploiement (pas de `--delete` sur ce dossier). Les medias partages pages sont mutualises dans `backend/public/uploads/editorial/media/YYYY/MM` avec resize auto + conversion WebP.
+- **Sécurité** : en-têtes CSP/anti-clickjacking (`core/security.php`), session renommée (`caramagnols_session`) en `SameSite=Strict`, cookie `lang` en `HttpOnly`/`SameSite=Lax`, tokens CSRF (`csrf_token()` / `csrf_validate()`), rate limiting session (`core/rate_limiter.php`), timeout d'inactivite admin (120 min) avec warning de prolongation (fenetre 120s) et keepalive CSRF (`POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping`), sanitisation centralisée (`core/validation.php`) et filtrage strict des `iframe` editoriaux (YouTube uniquement, normalise `youtube-nocookie`).
+- **Admin Blog (MVP JSON/SQL)** : espace protégé sous `/<base_path>/<ADMIN_LOGIN_PATH>` (exemple par défaut : `/admin` quand `base_path=/`) avec login email/mot de passe (`core/auth/admin.php`). Le rendu passe par `backend/src/Admin/AdminController.php`, l’écriture blog par `backend/src/Blog/BlogApiController.php`, et la persistance par `backend/src/Blog/JsonBlogRepository.php` / `SqlBlogRepository`. Workflow statuts disponible : `draft`, `scheduled` (auto-publication a date atteinte), `published`. Aucun identifiant admin par défaut n’est fourni par le dépôt.
 - **Dashboard admin** : la page `/<base_path>/<ADMIN_LOGIN_PATH>/dashboard` synthétise les éléments clés de pilotage et met en priorité la modération des discussions (`pending`).
-- **Entrées publiques harmonisées** : RSS, sitemap (`/sitemap.xml`), robots (`/robots.txt`), admin et API blog passent par `backend/public/index.php`. Le sitemap est dynamique (pas de fichier physique `backend/public/sitemap.xml`). Les anciens fichiers publics `rss.php` et les anciens wrappers admin ne sont plus que des shims de compatibilité.
+- **Entrées publiques harmonisées** : RSS, sitemap (`/sitemap.xml`), robots (`/robots.txt`), admin et API blog passent par `backend/public/index.php`. Le sitemap est servi dynamiquement (avec possibilité de générer aussi `backend/public/sitemap.xml` en déploiement). Les anciens fichiers publics `rss.php` et les anciens wrappers admin ne sont plus que des shims de compatibilité.
 - **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir des templates). Dossier `backend/data/` pour les fichiers dérivés (index, articles blog JSON, logs applicatifs) et pour les pages dynamiques JSON.
-- **Exploitation/perf** : scripts CLI `composer benchmark-routes` (temps de rendu routes critiques, option `--storage=json|sql|dual-write`), `composer check-log-alerts` (seuils login failure/rate-limit/403/429), `composer check-instagram-feed` (probe bloc Instagram accueil).
-- **Base de données (optionnelle pour l’instant)** : schéma MySQL minimal dans `backend/sql/install.sql` avec préfixe `car_`. Fichier `config/database.override.php` permet de surcharger les paramètres issus de `.env`.
+- **Exploitation/perf** : scripts CLI `composer benchmark-routes` (temps de rendu routes critiques, option `--storage=json|sql|dual-write`), `composer check-log-alerts` (seuils login failure/rate-limit/403/429 + notification webhook/email), `composer check-instagram-feed` (probe bloc Instagram accueil). Un pack systemd est fourni pour l'ordonnancement en preprod/prod (`backend/tools/systemd/*` + `backend/tools/check-log-alerts-runner.sh`). Le mode `notify_on` des alertes logs est pilotable depuis `Admin > Parametres > Observabilite ops` (sans exposer les secrets webhook/email).
+- **Base de données (optionnelle pour l’instant)** : schema MySQL legacy (`backend/sql/install.sql`) + schema editorial (`backend/sql/editorial/*.sql`), initialisables via `composer init-db-admin --working-dir=backend -- ...`. Le fichier `config/database.override.php` permet de surcharger les parametres issus de `.env`.
 
 ---
 
@@ -169,6 +175,21 @@ public/index.php
   - cache runtime consolide pages/navigation/traductions avec invalidation explicite cote admin
   - benchmark routes critiques disponible via `composer benchmark-routes`
   - observabilite renforcee: `X-Request-Id`, correlation log, rotation/retention locale, `composer check-log-alerts`
+- Editorial images admin (21 mars 2026) :
+  - creation/edition articles: image de couverture avec upload admin securise, metadonnees (alt/titre/legende/dimensions) et rendu front (liste/detail/chroniques attachees)
+  - creation/edition pages: image SEO par langue (`meta.image`) avec upload admin
+  - creation/edition pages: galerie de medias partages (hors traductions) `meta.shared_media` en tete de page, reutilisable inter-pages/inter-articles
+  - upload galerie partages: redimensionnement automatique (max 2048px) + conversion WebP cote serveur vers `/uploads/editorial/media/YYYY/MM`
+  - SEO image: emission `og:image` + `twitter:image` dans le head quand disponible
+  - scripts de deploiement mis a jour pour preserver `backend/public/uploads/editorial/**`
+- Observabilite ops admin (21 mars 2026) :
+  - ajout d'une section `Observabilite ops` dans les parametres admin pour choisir le mode d'envoi des alertes logs (`alerts`/`always`)
+  - persistance dans `backend/config/site.override.php` et prise en compte par `check_log_alerts.php`
+  - secrets webhook/email conserves dans la configuration systeme (`/etc/caramagnols/check-log-alerts.env`)
+- Revue post go-live J+1/J+7 (21 mars 2026) :
+  - runbook execute et archive dans `docs/private/recette-preprod-v1-2026-03-21/` (`122` a `128`)
+  - logs securite J+1/J+7 : aucune alerte declenchee
+  - benchmark routes archive + synthese anomalies (aucune anomalie bloquante)
 
 ## Mise en œuvre des optimisations (plan d’action)
 
@@ -247,6 +268,8 @@ public/index.php
   - écriture admin canonique : `/<base_path>/<ADMIN_LOGIN_PATH>/articles/save`
   - alias legacy : `POST /core/blog/save_article.php`
   - mode de stockage : `BLOG_STORAGE=json|dual-write|sql` (fallback `EDITORIAL_STORAGE`)
+  - workflow statut : `draft` / `scheduled` / `published`
+  - publication planifiee : un article `scheduled` devient visible automatiquement (front, RSS, sitemap) des que sa date est atteinte, sans cron
   - stockage JSON : `backend/data/blog/{slug}.{lang}.json` et `backend/data/blog-discussions/{slug}.{lang}.json`
   - stockage SQL : tables `blog_articles` / `blog_discussions` (migration `backend/sql/editorial/005_blog.sql`)
   - statut produit : `BLOG_MODE=experimental`
@@ -256,7 +279,7 @@ public/index.php
 
 ## Frontend (Vite + SCSS)
 - **Entrée** : `src/js/main.ts` importe `menus.ts`, `i18n.ts` et `src/scss/style.scss`.
-- **Menus & UI** : `src/js/menus.ts` gère le menu desktop (hover) et mobile (hamburger), bouton “remonter”.
+- **Menus & UI** : `src/js/menus.ts` gère le menu desktop (survol souris + clic/tap tactile), le mobile (hamburger), et le bouton “remonter”. Les sous-menus desktop imbriqués s’ouvrent désormais sous leur parent pour limiter les pertes d’ouverture liées au pointage.
 - **Fusion mobile groupe/lien** : si un groupe mobile et son premier enfant partagent le même libellé, le lien enfant est fusionné au niveau groupe pour supprimer le doublon d’affichage.
 - **i18n client** : `src/js/i18n.ts` (cache `Map`, persistance localStorage, `changeLanguage`, `applyTranslations` sur `data-i18n`).
 - **Logger** : `src/js/logger.ts` centralise `console` en dev.
@@ -335,6 +358,21 @@ Notes :
 - `npm run build` publie automatiquement le résultat vers `backend/public/` via le script `postbuild`
 - `npm run postbuild` ou `npm run publish:backend` servent uniquement à republier un `dist/` déjà généré
 
+### Initialisation DB + admin (CLI)
+```bash
+composer init-db-admin --working-dir=backend -- \
+  --db-host=127.0.0.1 \
+  --db-port=3306 \
+  --db-name=caramagnols \
+  --db-user=root \
+  --db-password='motdepasse_sql' \
+  --admin-email=admin@exemple.tld \
+  --admin-password='motdepasse-admin-fort' \
+  --dry-run
+```
+
+Puis relancer la meme commande sans `--dry-run` pour appliquer.
+
 ### Tests
 - **Frontend** : `cd frontend && npm run test:run` (Vitest, jsdom).
 - **Backend** : `composer test` ou `vendor/bin/phpunit` (tests sous `backend/tests/`).
@@ -379,6 +417,7 @@ Commande de contrôle : `composer check-env --working-dir=backend` (option `--en
 - Schéma de base dans `backend/sql/install.sql` (tables `car_users`, `car_articles`, `car_comments` avec contraintes FK).
 - Préfixe configurable via `DB_TABLE_PREFIX` (défaut `car_`) et helper `db_table()` en PHP.
 - Surcharge des paramètres de connexion via `backend/config/database.override.php` (généré par le module admin, ignoré par Git).
+- Commande canonique d'initialisation : `composer init-db-admin --working-dir=backend -- ...` (base, schemas SQL, compte admin, overrides).
 - Installation shell / hors webroot : `backend/README_INSTALLATION_HORS_WEBROOT.md`.
 
 ---
@@ -445,12 +484,18 @@ Scripts :
 
 - `backend/tools/deploy-fast.sh` : sync uniquement les fichiers backend modifies.
 - `backend/tools/deploy-release.sh` : sync complet backend (release).
+- `backend/tools/check-log-alerts-runner.sh` : runner exploitation pour `check_log_alerts.php` (utilisable en scheduler).
+- `backend/tools/systemd/install-check-log-alerts-systemd.sh` : installation timer `systemd` preprod/prod.
+- Les deux scripts preservent `.env` et `backend/config/*.override.php` (config admin runtime).
+- Les deux scripts regenerent `backend/public/sitemap.xml` sur la cible.
 
 Variables requises :
 
 ```bash
 export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net"
 export REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend"
+# optionnel: force l'URL canonique du sitemap
+export SITEMAP_BASE_URL="https://www.lescaramagnols.com"
 ```
 
 Prévisualisation (sans ecriture distante) :

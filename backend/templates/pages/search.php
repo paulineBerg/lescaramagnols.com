@@ -15,7 +15,7 @@ $lang = defined('CURRENT_LANG') ? CURRENT_LANG : 'fr';
 $fallbackIndexFile = ROOT_PATH . '/data/search_index.json';
 $indexFile = ROOT_PATH . '/data/search_index_' . $lang . '.json';
 if (!file_exists($indexFile)) {
-    // Fallback on legacy index if language-specific file is unavailable.
+    // Fallback on default index if language-specific file is unavailable.
     $indexFile = $fallbackIndexFile;
 }
 $query = trim($_GET['q'] ?? '');
@@ -42,7 +42,7 @@ if (file_exists($indexFile) && $query !== '') {
     $json = file_get_contents($indexFile);
     $data = json_decode($json, true);
 
-    // If the language-specific index is empty or invalid, fall back to the legacy index.
+    // If the language-specific index is empty or invalid, fall back to the default index.
     if ((!is_array($data) || empty($data)) && $indexFile !== $fallbackIndexFile && file_exists($fallbackIndexFile)) {
         $json = file_get_contents($fallbackIndexFile);
         $data = json_decode($json, true);
@@ -79,7 +79,7 @@ if ($query === '') {
         $html .= '<a href="' . htmlspecialchars($res['url']) . '">';
         $html .= '<strong>' . htmlspecialchars($res['titre']) . '</strong></a><br>';
         if (!empty($res['image'])) {
-            $html .= '<img src="' . htmlspecialchars($res['image']) . '" alt="" style="width:120px;"><br>';
+            $html .= '<img src="' . htmlspecialchars($res['image']) . '" alt="" width="120" height="80" loading="lazy" decoding="async" fetchpriority="low" style="width:120px;height:auto;"><br>';
         }
         $html .= '<small>' . htmlspecialchars($res['contenu']) . '</small>';
         $html .= '</li>';

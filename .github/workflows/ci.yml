@@ -7,14 +7,36 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: caramagnols
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: caramagnols
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_CHARSET: utf8mb4
     steps:
       - uses: actions/checkout@v4
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
-          extensions: mbstring, intl
+          extensions: mbstring, intl, pdo_mysql
           tools: composer
+      - name: Remove local DB override
+        run: rm -f backend/config/database.override.php
       - name: Cache composer
         uses: actions/cache@v4
         with:
@@ -26,16 +48,50 @@ jobs:
         run: composer install --no-interaction --prefer-dist
         working-directory: backend
 
+      - name: Wait for MySQL
+        run: |
+          php -r '
+          $ready = false;
+          for ($i = 0; $i < 30; $i++) {
+              try {
+                  new PDO("mysql:host=127.0.0.1;port=3306;dbname=caramagnols;charset=utf8mb4", "root", "root");
+                  $ready = true;
+                  break;
+              } catch (Throwable $exception) {
+                  usleep(500000);
+              }
+          }
+          if (!$ready) {
+              fwrite(STDERR, "MySQL not ready\n");
+              exit(1);
+          }
+          '
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend deps
         run: npm ci
         working-directory: frontend
+
+      - name: Front build publish
+        run: npm run build && test -f ../backend/public/.vite/manifest.json
+        working-directory: frontend
+
+      - name: Repo hygiene
+        run: npm run hygiene:repo
+        working-directory: frontend
+
+      - name: Guard obfuscated admin route references
+        run: |
+          if rg -n "adminFtyhik5642sZ" README.md README_DOCUMENTATION_INDEX.md docs backend/README*.md backend/core backend/src backend/public frontend; then
+            echo "Legacy obfuscated admin route reference detected."
+            exit 1
+          fi
 
       - name: PHP lint (phpstan)
         run: composer phpstan
@@ -49,6 +105,10 @@ jobs:
         run: composer test
         working-directory: backend
 
+      - name: Composer audit
+        run: composer audit
+        working-directory: backend
+
       - name: Front lint
         run: npm run lint
         working-directory: frontend
@@ -56,3 +116,26 @@ jobs:
       - name: Vitest
         run: npm run test:run
         working-directory: frontend
+
+      - name: npm audit (high/critical gate)
+        run: npm audit --audit-level=high
+        working-directory: frontend
+
+      - name: HTTP smoke
+        run: |
+          php -S 127.0.0.1:8000 -t public public/dev-router.php >/tmp/caramagnols-php.log 2>&1 &
+          PHP_PID=$!
+          trap "kill $PHP_PID" EXIT
+          for i in $(seq 1 20); do
+            if curl -fsS "http://127.0.0.1:8000/?lang=fr" >/tmp/caramagnols-home.html; then
+              break
+            fi
+            sleep 1
+          done
+          grep -q 'id="entete"' /tmp/caramagnols-home.html
+          grep -q 'id="breadcrumb-mobile"' /tmp/caramagnols-home.html
+          grep -q 'data-nav-scope-root="desktop"' /tmp/caramagnols-home.html
+          curl -sSI "http://127.0.0.1:8000/admin" | grep -q "200 OK"
+          curl -sSI "http://127.0.0.1:8000/admin/pages" | grep -q "302 Found"
+          curl -sSI "http://127.0.0.1:8000/admin/menus" | grep -q "302 Found"
+        working-directory: backend

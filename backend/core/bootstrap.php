@@ -26,10 +26,11 @@ load_env(ROOT_PATH . '/.env');
 // 2b. Helpers de validation
 require_once ROOT_PATH . '/core/validation.php';
 require_once ROOT_PATH . '/core/security.php';
-apply_security_headers();
+enforce_https_redirect_if_needed();
 
 // 3. Chargement de la configuration globale
 require_once ROOT_PATH . '/config/config.php';
+apply_security_headers();
 
 // 3bis. Verification des variables critiques en production
 if (APP_ENV === 'production') {
@@ -67,3 +68,4 @@ require_once ROOT_PATH . '/core/lang_bootstrap.php';
 
 // 6. Initialisation du mini-routeur
 require_once ROOT_PATH . '/core/router.php';
+require_once ROOT_PATH . '/core/menu_loader.php';

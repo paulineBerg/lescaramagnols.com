@@ -1,0 +1,1770 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Caramagnols\Admin;
+
+use Caramagnols\Blog\BlogSaveService;
+use Caramagnols\Content\PageRepository;
+use Caramagnols\Http\Request;
+use Caramagnols\Http\Response;
+use Caramagnols\Logging\AppEventLogger;
+
+final class AdminController
+{
+    private AppEventLogger $eventLogger;
+    private AdminPageService $pageService;
+    private AdminBlogService $blogService;
+    private AdminDiscussionService $discussionService;
+    private AdminNavigationService $navigationService;
+    private AdminSettingsService $settingsService;
+    private AdminLogService $logService;
+    private AdminMediaLibraryService $mediaLibraryService;
+    private AdminSerializedFormNormalizer $serializedFormNormalizer;
+    private AdminEditorialImageService $editorialImageService;
+
+    public function __construct(
+        private readonly AdminRouteResolver $routeResolver,
+        ?AppEventLogger $eventLogger = null,
+        ?AdminPageService $pageService = null,
+        ?AdminNavigationService $navigationService = null,
+        ?AdminSettingsService $settingsService = null,
+        ?AdminLogService $logService = null,
+        ?AdminMediaLibraryService $mediaLibraryService = null,
+        ?AdminBlogService $blogService = null,
+        ?AdminDiscussionService $discussionService = null,
+        ?AdminSerializedFormNormalizer $serializedFormNormalizer = null,
+        ?AdminEditorialImageService $editorialImageService = null
+    ) {
+        require_once ROOT_PATH . '/core/auth/admin.php';
+        require_once ROOT_PATH . '/core/menu_loader.php';
+        require_once ROOT_PATH . '/core/rate_limiter.php';
+
+        $this->eventLogger = $eventLogger ?? app_event_logger();
+        $pageRepository = page_repository(pages_data_path());
+        $this->pageService = $pageService ?? new AdminPageService(
+            $pageRepository,
+            site_available_languages(),
+            (string) app_config('default_lang', 'fr'),
+            navigation_repository(menus_data_path())
+        );
+        $this->blogService = $blogService ?? new AdminBlogService(
+            blog_repository(),
+            new BlogSaveService(blog_repository(), $this->eventLogger, $pageRepository),
+            site_available_languages(),
+            (string) app_config('default_lang', 'fr'),
+            $pageRepository
+        );
+        $this->discussionService = $discussionService ?? new AdminDiscussionService(
+            blog_discussion_repository(),
+            blog_repository(),
+            site_available_languages(),
+            (string) app_config('default_lang', 'fr')
+        );
+        $this->navigationService = $navigationService ?? new AdminNavigationService(
+            navigation_repository(menus_data_path()),
+            $pageRepository
+        );
+        $this->settingsService = $settingsService ?? new AdminSettingsService(
+            ROOT_PATH . '/config/database.override.php',
+            ROOT_PATH . '/config/admin.override.php',
+            $this->eventLogger,
+            ROOT_PATH . '/config/site.override.php'
+        );
+        $this->logService = $logService ?? new AdminLogService(app_sql_log_store());
+        $this->mediaLibraryService = $mediaLibraryService ?? new AdminMediaLibraryService(
+            ROOT_PATH . '/public',
+            max(1048576, (int) app_config('admin.media.max_upload_bytes', 62914560)),
+            max(10485760, (int) app_config('admin.media.max_archive_bytes', 209715200))
+        );
+        $this->serializedFormNormalizer = $serializedFormNormalizer ?? new AdminSerializedFormNormalizer();
+        $this->editorialImageService = $editorialImageService ?? new AdminEditorialImageService(
+            ROOT_PATH . '/public',
+            max(1048576, (int) app_config('admin.editorial_image.max_upload_bytes', 6291456))
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $routeParams
+     */
+    public function handle(string $page, Request $request, array $routeParams = []): Response
+    {
+        return match ($page) {
+            'login' => $this->login($request),
+            'dashboard' => $this->dashboard($request),
+            'pages' => $this->pages($request),
+            'pages_new' => $this->pageEditor($request),
+            'articles' => $this->articles($request),
+            'discussions' => $this->discussions($request),
+            'media' => $this->mediaLibrary($request),
+            'articles_new' => $this->articleEditor($request),
+            'articles_edit' => $this->articleEditor(
+                $request,
+                is_string($routeParams['slug'] ?? null) ? rawurldecode($routeParams['slug']) : null,
+                is_string($routeParams['lang'] ?? null) ? rawurldecode($routeParams['lang']) : null
+            ),
+            'pages_edit' => $this->pageEditor(
+                $request,
+                is_string($routeParams['slug'] ?? null) ? rawurldecode($routeParams['slug']) : null
+            ),
+            'menus' => $this->menus($request),
+            'logs' => $this->logs($request),
+            'settings' => $this->settings($request),
+            'session_ping' => $this->sessionPing($request),
+            'logout' => $this->logout($request),
+            default => new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Page admin introuvable.'),
+        };
+    }
+
+    private function login(Request $request): Response
+    {
+        $networkGuard = $this->guardAdminNetwork($request, 'login');
+        if ($networkGuard !== null) {
+            return $networkGuard;
+        }
+
+        if (admin_is_authenticated()) {
+            return $this->redirect($this->routeResolver->canonicalPath('dashboard'));
+        }
+
+        $error = null;
+        $notice = $this->noticeMessageFromCode(admin_pop_notice_code());
+        if ($notice === null && (($request->query()['reauth'] ?? null) === '1')) {
+            $notice = $this->noticeMessageFromCode('reauth_required');
+        }
+        $submittedIdentifier = admin_configured_identifier();
+        $totpRequired = admin_totp_should_challenge();
+
+        if ($request->method() === 'POST') {
+            $body = $request->body();
+            $token = $body['csrf_token'] ?? '';
+            $identifier = is_string($body['identifier'] ?? null)
+                ? $body['identifier']
+                : (is_string($body['email'] ?? null) ? $body['email'] : '');
+            $password = is_string($body['password'] ?? null) ? $body['password'] : '';
+            $totpCode = is_string($body['totp_code'] ?? null) ? $body['totp_code'] : '';
+            $submittedIdentifier = $identifier;
+            $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)) ?? 'unknown';
+            $requestContext = [
+                'identifier' => AppEventLogger::maskIdentifier($identifier),
+                'ip' => $clientIp,
+                'uri' => $request->uri(),
+                'method' => $request->method(),
+                'user_agent' => (string) ($request->header('User-Agent') ?? ''),
+                'referer' => (string) ($request->header('Referer') ?? $request->header('Referrer') ?? ''),
+            ];
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.login.invalid_csrf',
+                    $requestContext,
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                $limiter = new \FileRateLimiter(
+                    'admin-login:' . $clientIp,
+                    (int) app_config('admin.login_rate_limit_attempts', 5),
+                    (int) app_config('admin.login_rate_limit_window', 900)
+                );
+
+                if (!$limiter->allow()) {
+                    $retryAfter = $limiter->retryAfter();
+                    $this->eventLogger->security(
+                        'admin.login.rate_limited',
+                        array_merge($requestContext, ['retry_after' => $retryAfter]),
+                        'warning'
+                    );
+                    $error = 'Trop de tentatives de connexion. Merci de réessayer dans ' . $retryAfter . ' secondes.';
+                    $body = $this->renderTemplate(
+                        'layout.php',
+                        [
+                            'pageTitle' => 'Connexion Admin · Les Caramagnols',
+                            'error' => $error,
+                            'csrfToken' => admin_csrf_token(),
+                            'submittedIdentifier' => $submittedIdentifier,
+                            'loginPath' => $this->routeResolver->loginPath(),
+                            'contentTemplate' => 'login.php',
+                        ]
+                    );
+
+                    return new Response(429, ['Content-Type' => 'text/html; charset=utf-8'], $body);
+                }
+
+                if (admin_login($identifier, $password, $totpCode)) {
+                    $limiter->clear();
+
+                    $this->eventLogger->security(
+                        'admin.login.connected',
+                        array_merge(
+                            $requestContext,
+                            ['actor' => admin_current_masked_identifier()]
+                        )
+                    );
+
+                    return $this->redirect($this->routeResolver->canonicalPath('dashboard'));
+                }
+
+                $limiter->hit();
+                $this->eventLogger->security(
+                    'admin.login.failed',
+                    array_merge($requestContext, ['reason' => 'invalid_credentials']),
+                    'warning'
+                );
+                $failureReason = admin_pop_login_failure_reason();
+                $error = match ($failureReason) {
+                    'totp_required' => 'Code 2FA requis.',
+                    'totp_invalid' => 'Code 2FA invalide.',
+                    default => 'Identifiants invalides.',
+                };
+            }
+        }
+
+        return $this->renderPage(
+            'login.php',
+            [
+                'pageTitle' => 'Connexion Admin · Les Caramagnols',
+                'notice' => $notice,
+                'error' => $error,
+                'csrfToken' => admin_csrf_token(),
+                'submittedIdentifier' => $submittedIdentifier,
+                'loginPath' => $this->routeResolver->loginPath(),
+                'totpRequired' => $totpRequired,
+            ]
+        );
+    }
+
+    private function dashboard(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'dashboard');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $pageSummary = $this->pageService->dashboardSummary();
+        $articleSummary = $this->blogService->dashboardSummary();
+        $discussionSummary = $this->discussionService->dashboardSummary();
+        $navigationSummary = $this->navigationService->dashboardSummary();
+
+        return $this->renderPage(
+            'dashboard.php',
+            [
+                'pageTitle' => 'Tableau de bord',
+                'activeMenu' => 'dashboard',
+                'adminPath' => $this->routeResolver->loginPath(),
+                'blogMode' => (string) app_config('blog.mode', 'experimental'),
+                'blogStorage' => blog_storage_mode(),
+                'pageSummary' => $pageSummary,
+                'articleSummary' => $articleSummary,
+                'discussionSummary' => $discussionSummary,
+                'navigationSummary' => $navigationSummary,
+                'publishedContentCount' => (int) $pageSummary['published'] + (int) $articleSummary['published'],
+                'draftContentCount' => (int) $pageSummary['drafts'] + (int) $articleSummary['drafts'],
+            ]
+        );
+    }
+
+    private function pages(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'pages');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $query = $request->query();
+        $deletedSlug = is_string($query['deleted'] ?? null) ? rawurldecode($query['deleted']) : null;
+        $statusFilter = is_string($query['status'] ?? null) ? $query['status'] : null;
+        $languageFilter = is_string($query['lang'] ?? null) ? $query['lang'] : null;
+        $search = is_string($query['q'] ?? null) ? $query['q'] : null;
+
+        return $this->renderPage(
+            'pages_list.php',
+            [
+                'pageTitle' => 'Pages du site',
+                'activeMenu' => 'pages',
+                'csrfToken' => admin_csrf_token(),
+                'availableLanguages' => $this->pageService->availableLanguages(),
+                'supportedStatuses' => $this->pageService->supportedStatuses(),
+                'statusFilter' => $statusFilter,
+                'languageFilter' => $languageFilter,
+                'searchQuery' => $search ?? '',
+                'pages' => $this->pageService->listPages($statusFilter, $languageFilter, $search),
+                'createPageUrl' => $this->routeResolver->pageCreatePath(),
+                'message' => $deletedSlug !== null && $deletedSlug !== ''
+                    ? sprintf('Page "%s" supprimée avec toutes ses traductions.', $deletedSlug)
+                    : null,
+            ]
+        );
+    }
+
+    private function pageEditor(Request $request, ?string $slug = null): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'pages');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $existingForm = $slug !== null ? $this->pageService->formDataForSlug($slug) : null;
+        if ($slug !== null && $existingForm === null) {
+            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Page admin introuvable.');
+        }
+
+        $message = $request->query()['saved'] ?? null;
+        $message = $message === '1' ? 'Page sauvegardée.' : null;
+        $error = null;
+        $formData = $existingForm ?? $this->pageService->emptyFormData();
+        $deleteInfo = $slug !== null ? $this->pageService->deletionInfoForSlug($slug) : ['canDelete' => false, 'references' => []];
+
+        if ($request->method() === 'POST') {
+            $body = $this->serializedFormNormalizer->pageEditor(is_array($request->body()) ? $request->body() : []);
+            $token = $body['csrf_token'] ?? '';
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.pages.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                $action = is_string($body['page_action'] ?? null) ? $body['page_action'] : 'save';
+
+                if ($action === 'delete' && $slug !== null) {
+                    $confirmDelete = !empty($body['confirm_delete']);
+                    if (!$confirmDelete) {
+                        $error = 'Merci de confirmer la suppression avant de continuer.';
+                    } elseif (($sensitiveGuard = $this->guardSensitiveAction($request, 'pages.delete')) !== null) {
+                        return $sensitiveGuard;
+                    } else {
+                        $result = $this->pageService->delete($slug);
+                        $deleteInfo = [
+                            'canDelete' => ($result['references'] ?? []) === [],
+                            'references' => is_array($result['references'] ?? null) ? $result['references'] : [],
+                        ];
+
+                        if ($result['success'] === true) {
+                            $this->eventLogger->content(
+                                'admin.pages.deleted',
+                                [
+                                    'actor' => admin_current_masked_identifier(),
+                                    'slug' => $slug,
+                                ]
+                            );
+
+                            $redirectQuery = ['deleted' => $slug];
+                            $returnStatus = is_string($body['return_status'] ?? null) ? trim((string) $body['return_status']) : '';
+                            if (in_array($returnStatus, $this->pageService->supportedStatuses(), true)) {
+                                $redirectQuery['status'] = $returnStatus;
+                            }
+
+                            $returnLanguage = is_string($body['return_lang'] ?? null) ? trim((string) $body['return_lang']) : '';
+                            if (in_array($returnLanguage, $this->pageService->availableLanguages(), true)) {
+                                $redirectQuery['lang'] = $returnLanguage;
+                            }
+
+                            $returnSearch = is_string($body['return_q'] ?? null) ? trim((string) $body['return_q']) : '';
+                            if ($returnSearch !== '') {
+                                $redirectQuery['q'] = $returnSearch;
+                            }
+
+                            $location = $this->routeResolver->canonicalPath('pages')
+                                . '?'
+                                . http_build_query($redirectQuery, '', '&', PHP_QUERY_RFC3986);
+
+                            return $this->redirect($location);
+                        }
+
+                        $this->eventLogger->content(
+                            'admin.pages.delete_failed',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'slug' => $slug,
+                                'error' => (string) ($result['error'] ?? 'unknown'),
+                            ],
+                            'warning'
+                        );
+                        $error = (string) ($result['error'] ?? 'Impossible de supprimer la page.');
+                    }
+                } else {
+                    $uploadError = $this->applyUploadedPageSharedMedia($body, $request);
+                    if ($uploadError === null) {
+                        $uploadError = $this->applyUploadedPageImages($body, $request);
+                    }
+                    if ($uploadError !== null) {
+                        $error = $uploadError;
+                    } else {
+                        $result = $this->pageService->save($body, $slug);
+                        $formData = $result['form'];
+
+                        if ($result['success'] === true && is_string($result['slug'] ?? null)) {
+                            $this->eventLogger->content(
+                                'admin.pages.saved',
+                                [
+                                    'actor' => admin_current_masked_identifier(),
+                                    'slug' => (string) $result['slug'],
+                                    'status' => (string) ($formData['status'] ?? PageRepository::STATUS_DRAFT),
+                                ]
+                            );
+
+                            return $this->redirect($this->routeResolver->pageEditPath((string) $result['slug']) . '?saved=1');
+                        }
+
+                        $this->eventLogger->content(
+                            'admin.pages.save_failed',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'slug' => (string) ($formData['slug'] ?? $slug ?? ''),
+                            ],
+                            'warning'
+                        );
+                        $error = (string) ($result['error'] ?? 'Impossible de sauvegarder la page.');
+                    }
+                }
+            }
+        }
+
+        $currentSlug = trim((string) ($formData['slug'] ?? $slug ?? ''));
+
+        return $this->renderPage(
+            'pages_form.php',
+            [
+                'pageTitle' => $slug === null ? 'Nouvelle page' : 'Éditer une page',
+                'activeMenu' => 'pages',
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'availableLanguages' => $this->pageService->availableLanguages(),
+                'supportedStatuses' => $this->pageService->supportedStatuses(),
+                'formData' => $formData,
+                'isNewPage' => $slug === null,
+                'currentSlug' => $currentSlug,
+                'currentPageUrl' => $currentSlug !== '' ? $this->routeResolver->pageEditPath($currentSlug) : $this->routeResolver->pageCreatePath(),
+                'pagesIndexUrl' => $this->routeResolver->canonicalPath('pages'),
+                'deleteInfo' => $deleteInfo,
+                'sharedMediaLibrary' => $this->editorialImageService->listUploads('media', 160),
+                'contentMediaPicker' => $this->mediaLibraryService->mediaPickerViewModel('page', 260),
+            ]
+        );
+    }
+
+    private function articles(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'articles');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $query = $request->query();
+        $saved = ($query['saved'] ?? null) === '1';
+        $deletedSlug = is_string($query['deleted'] ?? null) ? rawurldecode((string) $query['deleted']) : null;
+        $deletedLanguage = is_string($query['deleted_lang'] ?? null) ? rawurldecode((string) $query['deleted_lang']) : null;
+        $deletedDiscussions = (int) ($query['deleted_discussions'] ?? 0);
+        $detachedChildren = (int) ($query['detached_children'] ?? 0);
+        $filters = $this->blogService->normalizeFilters($query);
+        $message = null;
+
+        if ($saved) {
+            $message = 'Article sauvegardé.';
+        } elseif (is_string($deletedSlug) && $deletedSlug !== '') {
+            $languageLabel = is_string($deletedLanguage) && $deletedLanguage !== ''
+                ? strtoupper($deletedLanguage)
+                : strtoupper((string) app_config('default_lang', 'fr'));
+            $message = sprintf(
+                'Article "%s" (%s) supprimé. %d discussion(s) associée(s) supprimée(s).',
+                $deletedSlug,
+                $languageLabel,
+                max(0, $deletedDiscussions)
+            );
+
+            if ($detachedChildren > 0) {
+                $message .= ' ' . $detachedChildren . ' article(s) enfant détaché(s) du parent supprimé.';
+            }
+        }
+
+        return $this->renderPage(
+            'articles_list.php',
+            [
+                'pageTitle' => 'Articles du blog',
+                'activeMenu' => 'articles',
+                'filters' => $filters,
+                'availableLanguages' => $this->blogService->availableLanguages(),
+                'supportedStatuses' => $this->blogService->supportedStatuses(),
+                'availableCategories' => $this->blogService->availableCategories($filters['lang']),
+                'availableTags' => $this->blogService->availableTags($filters['lang']),
+                'articles' => $this->blogService->listArticles($filters),
+                'createArticleUrl' => $this->routeResolver->articleCreatePath(),
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+            ]
+        );
+    }
+
+    private function articleEditor(Request $request, ?string $slug = null, ?string $language = null): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'articles');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $existingForm = ($slug !== null && $language !== null)
+            ? $this->blogService->formDataForArticle($slug, $language)
+            : null;
+        if ($slug !== null && $language !== null && $existingForm === null) {
+            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Article admin introuvable.');
+        }
+
+        $message = ($request->query()['saved'] ?? null) === '1' ? 'Article sauvegardé.' : null;
+        $error = null;
+        $formData = $existingForm ?? $this->blogService->emptyFormData();
+
+        if ($request->method() === 'POST') {
+            $body = $request->body();
+            $token = $body['csrf_token'] ?? '';
+            $action = is_string($body['article_action'] ?? null) ? trim((string) $body['article_action']) : 'save';
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.articles.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                if ($action === 'delete') {
+                    if ($slug === null || $language === null) {
+                        $error = 'Suppression impossible : article introuvable.';
+                    } else {
+                        $confirmDelete = !empty($body['confirm_delete']);
+                        if (!$confirmDelete) {
+                            $error = 'Merci de confirmer la suppression avant de continuer.';
+                        } elseif (($sensitiveGuard = $this->guardSensitiveAction($request, 'articles.delete')) !== null) {
+                            return $sensitiveGuard;
+                        } else {
+                            $result = $this->blogService->delete($slug, $language);
+
+                            if (($result['success'] ?? false) === true) {
+                                $deletedDiscussions = max(0, (int) ($result['deletedDiscussions'] ?? 0));
+                                $detachedChildren = max(0, (int) ($result['detachedChildren'] ?? 0));
+
+                                $this->eventLogger->content(
+                                    'admin.articles.deleted',
+                                    [
+                                        'actor' => admin_current_masked_identifier(),
+                                        'slug' => $slug,
+                                        'lang' => $language,
+                                        'deleted_discussions' => $deletedDiscussions,
+                                        'detached_children' => $detachedChildren,
+                                    ]
+                                );
+
+                                $location = $this->routeResolver->canonicalPath('articles')
+                                    . '?deleted=' . rawurlencode($slug)
+                                    . '&deleted_lang=' . rawurlencode($language)
+                                    . '&deleted_discussions=' . $deletedDiscussions
+                                    . '&detached_children=' . $detachedChildren;
+
+                                return $this->redirect($location);
+                            }
+
+                            $this->eventLogger->content(
+                                'admin.articles.delete_failed',
+                                [
+                                    'actor' => admin_current_masked_identifier(),
+                                    'slug' => $slug,
+                                    'lang' => $language,
+                                    'error' => (string) ($result['error'] ?? 'unknown'),
+                                ],
+                                'warning'
+                            );
+                            $error = (string) ($result['error'] ?? 'Impossible de supprimer l’article.');
+                        }
+                    }
+                } else {
+                    $uploadError = $this->applyUploadedArticleImage($body, $request);
+                    if ($uploadError !== null) {
+                        $error = $uploadError;
+                    } else {
+                        $result = $this->blogService->save(
+                            is_array($body) ? $body : [],
+                            $slug,
+                            $language,
+                            admin_current_identifier()
+                        );
+                        $formData = $result['form'];
+
+                        if (($result['success'] ?? false) === true && is_string($result['slug'] ?? null) && is_string($result['lang'] ?? null)) {
+                            $this->eventLogger->content(
+                                'admin.articles.saved',
+                                [
+                                    'actor' => admin_current_masked_identifier(),
+                                    'slug' => (string) $result['slug'],
+                                    'lang' => (string) $result['lang'],
+                                    'status' => (string) ($formData['status'] ?? 'draft'),
+                                    'category' => (string) ($formData['category'] ?? ''),
+                                    'tags' => (string) ($formData['tags_input'] ?? ''),
+                                ]
+                            );
+
+                            return $this->redirect(
+                                $this->routeResolver->articleEditPath((string) $result['slug'], (string) $result['lang']) . '?saved=1'
+                            );
+                        }
+
+                        $this->eventLogger->content(
+                            'admin.articles.save_failed',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'slug' => (string) ($formData['slug'] ?? $slug ?? ''),
+                                'lang' => (string) ($formData['lang'] ?? $language ?? ''),
+                                'error' => (string) ($result['error'] ?? 'unknown'),
+                            ],
+                            'warning'
+                        );
+
+                        $error = (string) ($result['error'] ?? 'Impossible de sauvegarder l’article.');
+                    }
+                }
+            }
+        }
+
+        $currentSlug = trim((string) ($formData['slug'] ?? $slug ?? ''));
+        $currentLanguage = trim((string) ($formData['lang'] ?? $language ?? app_config('default_lang', 'fr')));
+
+        return $this->renderPage(
+            'articles_form.php',
+            [
+                'pageTitle' => $slug === null ? 'Nouvel article' : 'Éditer un article',
+                'activeMenu' => 'articles',
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'formData' => $formData,
+                'isNewArticle' => $slug === null || $language === null,
+                'currentArticleUrl' => $currentSlug !== '' && $currentLanguage !== ''
+                    ? $this->routeResolver->articleEditPath($currentSlug, $currentLanguage)
+                    : $this->routeResolver->articleCreatePath(),
+                'articlesIndexUrl' => $this->routeResolver->canonicalPath('articles'),
+                'availableLanguages' => $this->blogService->availableLanguages(),
+                'supportedStatuses' => $this->blogService->supportedStatuses(),
+                'availableCategories' => $this->blogService->availableCategories($currentLanguage),
+                'availableTags' => $this->blogService->availableTags($currentLanguage),
+                'availablePageOptions' => $this->blogService->availablePageOptions($currentLanguage),
+                'availableParentArticles' => $this->blogService->availableParentArticles($currentLanguage, $currentSlug, $currentLanguage),
+                'childArticles' => $currentSlug !== '' && $currentLanguage !== ''
+                    ? $this->blogService->childArticlesForArticle($currentSlug, $currentLanguage)
+                    : [],
+                'contentMediaPicker' => $this->mediaLibraryService->mediaPickerViewModel('article', 260),
+            ]
+        );
+    }
+
+    private function discussions(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'discussions');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $message = null;
+        $error = null;
+        $filters = $this->discussionService->normalizeFilters($request->query());
+
+        if ($request->method() === 'POST') {
+            $body = is_array($request->body()) ? $request->body() : [];
+            $token = $body['csrf_token'] ?? '';
+            $filters = $this->discussionService->normalizeFilters($body);
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.discussions.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                $discussionAction = is_string($body['discussion_action'] ?? null)
+                    ? strtolower(trim((string) $body['discussion_action']))
+                    : '';
+                if ($discussionAction === 'delete' && ($sensitiveGuard = $this->guardSensitiveAction($request, 'discussions.delete')) !== null) {
+                    return $sensitiveGuard;
+                }
+
+                $result = $this->discussionService->handleAction($body, admin_current_identifier());
+                $message = $result['message'];
+                $error = $result['error'];
+
+                if (($result['success'] ?? false) === true) {
+                    $this->eventLogger->content(
+                        'admin.discussions.moderated',
+                        [
+                            'actor' => admin_current_masked_identifier(),
+                            'discussion_id' => (string) ($body['discussion_id'] ?? ''),
+                            'action' => (string) ($body['discussion_action'] ?? ''),
+                        ]
+                    );
+                } elseif ($error !== null && $error !== 'Session expirée, merci de réessayer.') {
+                    $this->eventLogger->content(
+                        'admin.discussions.moderation_failed',
+                        [
+                            'actor' => admin_current_masked_identifier(),
+                            'discussion_id' => (string) ($body['discussion_id'] ?? ''),
+                            'action' => (string) ($body['discussion_action'] ?? ''),
+                            'error' => $error,
+                        ],
+                        'warning'
+                    );
+                }
+            }
+        }
+
+        $view = $this->discussionService->viewModel($filters);
+
+        return $this->renderPage(
+            'discussions.php',
+            [
+                'pageTitle' => 'Discussions du blog',
+                'activeMenu' => 'discussions',
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'discussionFilters' => $view['filters'],
+                'discussionRows' => $view['rows'],
+                'discussionCounts' => $view['counts'],
+                'availableLanguages' => $this->discussionService->availableLanguages(),
+                'supportedStatuses' => $this->discussionService->supportedStatuses(),
+            ]
+        );
+    }
+
+    private function mediaLibrary(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'media');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $query = $request->query();
+        $folder = $this->mediaLibraryService->normalizeFolderPath(
+            is_string($query['folder'] ?? null) ? (string) $query['folder'] : ''
+        );
+        $filters = $this->mediaLibraryService->normalizeFilters(is_array($query) ? $query : []);
+        $message = null;
+        $error = null;
+
+        if ($request->method() === 'POST') {
+            $body = is_array($request->body()) ? $request->body() : [];
+            $token = $body['csrf_token'] ?? '';
+            $folder = $this->mediaLibraryService->normalizeFolderPath(
+                is_string($body['folder'] ?? null) ? (string) $body['folder'] : $folder
+            );
+            $filtersInput = is_array($body['filters'] ?? null) ? $body['filters'] : $body;
+            $filters = $this->mediaLibraryService->normalizeFilters(is_array($filtersInput) ? $filtersInput : []);
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.media.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                $action = is_string($body['media_action'] ?? null)
+                    ? strtolower(trim((string) $body['media_action']))
+                    : '';
+                $maxWidth = max(
+                    320,
+                    min(
+                        8192,
+                        is_numeric($body['upload_max_width'] ?? null) ? (int) $body['upload_max_width'] : 2560
+                    )
+                );
+                $maxHeight = max(
+                    320,
+                    min(
+                        8192,
+                        is_numeric($body['upload_max_height'] ?? null) ? (int) $body['upload_max_height'] : 2560
+                    )
+                );
+                $quality = max(
+                    30,
+                    min(
+                        100,
+                        is_numeric($body['upload_quality'] ?? null) ? (int) $body['upload_quality'] : 82
+                    )
+                );
+                $autoWebp = (string) ($body['upload_auto_webp'] ?? '1') === '1';
+
+                if ($action === 'create_folder') {
+                    $result = $this->mediaLibraryService->createFolder(
+                        $folder,
+                        is_string($body['new_folder_name'] ?? null) ? (string) $body['new_folder_name'] : ''
+                    );
+                    if (($result['success'] ?? false) === true) {
+                        $folder = is_string($result['folder'] ?? null) ? (string) $result['folder'] : $folder;
+                        $message = 'Dossier créé.';
+                        $this->eventLogger->content(
+                            'admin.media.folder_created',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $folder,
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Creation du dossier impossible.';
+                    }
+                } elseif ($action === 'upload') {
+                    $files = $this->uploadedFiles($request, 'media_files');
+                    $result = $this->mediaLibraryService->uploadFiles(
+                        $folder,
+                        $files,
+                        $autoWebp,
+                        $maxWidth,
+                        $maxHeight,
+                        $quality
+                    );
+                    if (($result['success'] ?? false) === true) {
+                        $message = sprintf(
+                            '%d fichier(s) importé(s), %d converti(s) en WebP, %d ignore(s).',
+                            max(0, (int) ($result['uploadedCount'] ?? 0)),
+                            max(0, (int) ($result['convertedCount'] ?? 0)),
+                            max(0, (int) ($result['skippedCount'] ?? 0))
+                        );
+                        $this->eventLogger->content(
+                            'admin.media.uploaded',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $folder,
+                                'uploaded' => (int) ($result['uploadedCount'] ?? 0),
+                                'converted' => (int) ($result['convertedCount'] ?? 0),
+                                'skipped' => (int) ($result['skippedCount'] ?? 0),
+                                'auto_webp' => $autoWebp,
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Import des fichiers impossible.';
+                    }
+                } elseif ($action === 'import_zip') {
+                    $archiveFile = $this->uploadedFile($request, 'media_zip_file');
+                    $result = is_array($archiveFile)
+                        ? $this->mediaLibraryService->importArchive(
+                            $folder,
+                            $archiveFile,
+                            $autoWebp,
+                            $maxWidth,
+                            $maxHeight,
+                            $quality
+                        )
+                        : [
+                            'success' => false,
+                            'error' => 'Aucune archive ZIP transmise.',
+                            'importedCount' => 0,
+                            'convertedCount' => 0,
+                            'skippedCount' => 0,
+                        ];
+                    if (($result['success'] ?? false) === true) {
+                        $message = sprintf(
+                            'Import ZIP terminé : %d fichier(s) importé(s), %d converti(s) en WebP, %d ignore(s).',
+                            max(0, (int) ($result['importedCount'] ?? 0)),
+                            max(0, (int) ($result['convertedCount'] ?? 0)),
+                            max(0, (int) ($result['skippedCount'] ?? 0))
+                        );
+                        $this->eventLogger->content(
+                            'admin.media.zip_imported',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $folder,
+                                'imported' => (int) ($result['importedCount'] ?? 0),
+                                'converted' => (int) ($result['convertedCount'] ?? 0),
+                                'skipped' => (int) ($result['skippedCount'] ?? 0),
+                                'auto_webp' => $autoWebp,
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Import ZIP impossible.';
+                    }
+                } elseif ($action === 'export_folder') {
+                    $result = $this->mediaLibraryService->exportFolderArchive($folder);
+                    if (($result['success'] ?? false) !== true) {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Export ZIP impossible.';
+                    } else {
+                        $filename = is_string($result['filename'] ?? null) ? (string) $result['filename'] : 'media-export.zip';
+                        $content = is_string($result['content'] ?? null) ? (string) $result['content'] : '';
+                        $this->eventLogger->content(
+                            'admin.media.zip_exported',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $folder,
+                                'filename' => $filename,
+                            ]
+                        );
+
+                        return new Response(
+                            200,
+                            [
+                                'Content-Type' => 'application/zip',
+                                'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+                                'Content-Length' => (string) strlen($content),
+                                'Cache-Control' => 'no-store',
+                            ],
+                            $content
+                        );
+                    }
+                } elseif ($action === 'rename_file') {
+                    $targetFile = is_string($body['target_file'] ?? null) ? (string) $body['target_file'] : '';
+                    $newFilename = is_string($body['new_file_name'] ?? null) ? (string) $body['new_file_name'] : '';
+                    $result = $this->mediaLibraryService->renameFile($targetFile, $newFilename);
+                    if (($result['success'] ?? false) === true) {
+                        $message = 'Fichier renomme.';
+                        $this->eventLogger->content(
+                            'admin.media.file_renamed',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $folder,
+                                'file' => $targetFile,
+                                'new_name' => $newFilename,
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Renommage du fichier impossible.';
+                    }
+                } elseif ($action === 'move_file') {
+                    $targetFile = is_string($body['target_file'] ?? null) ? (string) $body['target_file'] : '';
+                    $destinationFolder = is_string($body['destination_folder'] ?? null) ? (string) $body['destination_folder'] : '';
+                    $result = $this->mediaLibraryService->moveFile($targetFile, $destinationFolder);
+                    if (($result['success'] ?? false) === true) {
+                        $message = 'Fichier deplace.';
+                        $this->eventLogger->content(
+                            'admin.media.file_moved',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $folder,
+                                'file' => $targetFile,
+                                'destination_folder' => $destinationFolder,
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Deplacement du fichier impossible.';
+                    }
+                } elseif ($action === 'delete_file') {
+                    $result = $this->mediaLibraryService->deleteFile(
+                        is_string($body['target_file'] ?? null) ? (string) $body['target_file'] : ''
+                    );
+                    $folder = is_string($result['folder'] ?? null) ? (string) $result['folder'] : $folder;
+                    if (($result['success'] ?? false) === true) {
+                        $message = 'Fichier supprimé.';
+                        $this->eventLogger->content(
+                            'admin.media.file_deleted',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $folder,
+                                'file' => is_string($body['target_file'] ?? null) ? (string) $body['target_file'] : '',
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Suppression du fichier impossible.';
+                    }
+                } elseif ($action === 'delete_folder') {
+                    $targetFolder = is_string($body['target_folder'] ?? null) ? (string) $body['target_folder'] : '';
+                    $result = $this->mediaLibraryService->deleteFolder($targetFolder);
+                    $folder = is_string($result['parentFolder'] ?? null) ? (string) $result['parentFolder'] : $folder;
+                    if (($result['success'] ?? false) === true) {
+                        $message = 'Dossier supprimé.';
+                        $this->eventLogger->content(
+                            'admin.media.folder_deleted',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $targetFolder,
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Suppression du dossier impossible.';
+                    }
+                } elseif ($action === 'rename_folder') {
+                    $targetFolder = is_string($body['target_folder'] ?? null) ? (string) $body['target_folder'] : '';
+                    $newFolderName = is_string($body['new_folder_name'] ?? null) ? (string) $body['new_folder_name'] : '';
+                    $result = $this->mediaLibraryService->renameFolder($targetFolder, $newFolderName);
+                    if (($result['success'] ?? false) === true) {
+                        $message = 'Dossier renomme.';
+                        $this->eventLogger->content(
+                            'admin.media.folder_renamed',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $targetFolder,
+                                'new_name' => $newFolderName,
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Renommage du dossier impossible.';
+                    }
+                } elseif ($action === 'move_folder') {
+                    $targetFolder = is_string($body['target_folder'] ?? null) ? (string) $body['target_folder'] : '';
+                    $destinationFolder = is_string($body['destination_folder'] ?? null) ? (string) $body['destination_folder'] : '';
+                    $result = $this->mediaLibraryService->moveFolder($targetFolder, $destinationFolder);
+                    if (($result['success'] ?? false) === true) {
+                        $message = 'Dossier deplace.';
+                        $this->eventLogger->content(
+                            'admin.media.folder_moved',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $targetFolder,
+                                'destination_folder' => $destinationFolder,
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Deplacement du dossier impossible.';
+                    }
+                } elseif ($action === 'convert_file_webp') {
+                    $result = $this->mediaLibraryService->convertFileToWebp(
+                        is_string($body['target_file'] ?? null) ? (string) $body['target_file'] : '',
+                        $maxWidth,
+                        $maxHeight,
+                        $quality
+                    );
+                    $folder = is_string($result['folder'] ?? null) ? (string) $result['folder'] : $folder;
+                    if (($result['success'] ?? false) === true) {
+                        $message = 'Conversion WebP réalisée.';
+                        $this->eventLogger->content(
+                            'admin.media.file_converted_webp',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'folder' => $folder,
+                                'file' => is_string($body['target_file'] ?? null) ? (string) $body['target_file'] : '',
+                                'output' => is_string($result['outputSrc'] ?? null) ? (string) $result['outputSrc'] : '',
+                            ]
+                        );
+                    } else {
+                        $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Conversion WebP impossible.';
+                    }
+                } else {
+                    $error = 'Action media inconnue.';
+                }
+            }
+        }
+
+        return $this->renderPage(
+            'media.php',
+            [
+                'pageTitle' => 'Bibliotheque medias',
+                'activeMenu' => 'media',
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'mediaView' => $this->mediaLibraryService->viewModel($folder, $filters),
+            ]
+        );
+    }
+
+    private function menus(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'menus');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $message = null;
+        $error = null;
+        $view = $this->navigationService->viewModel(
+            is_string($request->query()['location'] ?? null) ? $request->query()['location'] : null,
+            is_string($request->query()['selection'] ?? null) ? $request->query()['selection'] : null
+        );
+        $view['openContextualEditor'] = false;
+
+        if ($request->method() === 'POST') {
+            $body = $this->serializedFormNormalizer->menuBuilder($request->body());
+            $token = $body['csrf_token'] ?? '';
+            $builderAction = is_string($body['builder_action'] ?? null) ? $body['builder_action'] : '';
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.menus.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                $result = $this->navigationService->handle(is_array($body) ? $body : []);
+                $message = $result['message'];
+                $error = $result['error'];
+                $view = $result['view'];
+                $view['openContextualEditor'] = $this->shouldOpenMenuContextualEditor($builderAction, $error, $view);
+
+                if ($message !== null) {
+                    $this->eventLogger->content(
+                        'admin.menus.saved',
+                        [
+                            'actor' => admin_current_masked_identifier(),
+                            'sections' => array_keys((array) ($view['locations'] ?? [])),
+                        ]
+                    );
+                } elseif ($error !== null && $error !== 'Session expirée, merci de réessayer.') {
+                    $this->eventLogger->content(
+                        'admin.menus.save_failed',
+                        [
+                            'actor' => admin_current_masked_identifier(),
+                            'error' => $error,
+                        ],
+                        'warning'
+                    );
+                }
+            }
+        }
+
+        return $this->renderPage(
+            'menus.php',
+            [
+                'pageTitle' => 'Menus du site',
+                'activeMenu' => 'menus',
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'menusView' => $view,
+            ]
+        );
+    }
+
+    private function settings(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'settings');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $message = null;
+        $error = null;
+        $view = $this->settingsService->viewModel();
+        $openSettingsSection = null;
+
+        if ($request->method() === 'POST') {
+            $body = $request->body();
+            $token = $body['csrf_token'] ?? '';
+            $requestedSettingsSection = is_string($body['settings_section'] ?? null)
+                ? trim((string) $body['settings_section'])
+                : '';
+            $allowedSettingsSections = ['database', 'admin', 'url', 'head', 'tarteaucitron', 'discussions', 'instagram', 'observability', 'translations', 'security'];
+            if (in_array($requestedSettingsSection, $allowedSettingsSections, true)) {
+                $openSettingsSection = $requestedSettingsSection;
+            }
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.settings.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                $settingsAction = is_string($body['settings_action'] ?? null)
+                    ? trim((string) $body['settings_action'])
+                    : 'save';
+
+                if ($settingsAction === 'instagram_test' && $openSettingsSection === 'instagram') {
+                    $result = $this->settingsService->testInstagramConnection(
+                        is_array($body) ? $body : [],
+                        admin_current_identifier()
+                    );
+                } elseif ($settingsAction === 'cache_clear') {
+                    $result = $this->settingsService->clearCaches(
+                        admin_current_identifier()
+                    );
+                } else {
+                    $result = $this->settingsService->save(
+                        is_array($body) ? $body : [],
+                        admin_current_identifier()
+                    );
+                }
+
+                $message = $result['message'];
+                $error = $result['error'];
+                $view = $result['view'];
+
+                if (($result['success'] ?? false) === true && is_string($result['adminIdentifier'] ?? null)) {
+                    admin_update_authenticated_identifier((string) $result['adminIdentifier']);
+                }
+
+                if (($result['success'] ?? false) === true && !($settingsAction === 'instagram_test' && $openSettingsSection === 'instagram')) {
+                    $openSettingsSection = null;
+                }
+            }
+        }
+
+        return $this->renderPage(
+            'settings.php',
+            [
+                'pageTitle' => 'Paramètres d’exploitation',
+                'activeMenu' => 'settings',
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'openSettingsSection' => $openSettingsSection,
+                'settingsView' => $view,
+            ]
+        );
+    }
+
+    private function logs(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'logs');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $message = null;
+        $error = null;
+        $filters = $this->logService->normalizeFilters($request->query());
+
+        if ($request->method() === 'POST') {
+            $body = $request->body();
+            $token = $body['csrf_token'] ?? '';
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.logs.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+                $filters = $this->logService->normalizeFilters(is_array($body) ? $body : []);
+            } else {
+                $sensitiveGuard = $this->guardSensitiveAction($request, 'logs.write');
+                if ($sensitiveGuard !== null) {
+                    return $sensitiveGuard;
+                }
+
+                $action = is_string($body['log_action'] ?? null) ? $body['log_action'] : '';
+                $result = match ($action) {
+                    'delete_selected' => $this->logService->deleteSelected(is_array($body) ? $body : []),
+                    'purge_filtered' => $this->logService->purgeFiltered(is_array($body) ? $body : []),
+                    default => [
+                        'success' => false,
+                        'message' => null,
+                        'error' => 'Action de logs inconnue.',
+                        'deletedCount' => 0,
+                        'filters' => $this->logService->normalizeFilters(is_array($body) ? $body : []),
+                    ],
+                };
+
+                $message = $result['message'];
+                $error = $result['error'];
+                $filters = is_array($result['filters'] ?? null)
+                    ? $this->logService->normalizeFilters($result['filters'])
+                    : $filters;
+
+                if (($result['success'] ?? false) === true) {
+                    $this->eventLogger->security(
+                        $action === 'purge_filtered'
+                            ? 'admin.logs.purged_filtered'
+                            : 'admin.logs.deleted_selected',
+                        [
+                            'actor' => admin_current_masked_identifier(),
+                            'deleted_count' => (int) ($result['deletedCount'] ?? 0),
+                            'filters' => $filters,
+                        ]
+                    );
+                } elseif ($error !== null && $error !== 'Session expirée, merci de réessayer.') {
+                    $this->eventLogger->security(
+                        'admin.logs.action_failed',
+                        [
+                            'actor' => admin_current_masked_identifier(),
+                            'action' => $action,
+                            'filters' => $filters,
+                            'error' => $error,
+                        ],
+                        'warning'
+                    );
+                }
+            }
+        }
+
+        return $this->renderPage(
+            'logs.php',
+            [
+                'pageTitle' => 'Journaux système',
+                'activeMenu' => 'logs',
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'logsView' => $this->logService->viewModel($filters),
+            ]
+        );
+    }
+
+    private function logout(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'logout');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        admin_logout();
+
+        return $this->redirect($this->routeResolver->canonicalPath('login'), 302);
+    }
+
+    private function sessionPing(Request $request): Response
+    {
+        $networkGuard = $this->guardAdminNetwork($request, 'session_ping');
+        if ($networkGuard !== null) {
+            return Response::json(['ok' => false, 'error' => 'access_denied'], 403);
+        }
+
+        if ($request->method() !== 'POST') {
+            return Response::json(['ok' => false, 'error' => 'method_not_allowed'], 405);
+        }
+
+        if (!admin_is_authenticated()) {
+            return Response::json(
+                [
+                    'ok' => false,
+                    'error' => 'unauthenticated',
+                    'loginUrl' => $this->routeResolver->canonicalPath('login'),
+                ],
+                401
+            );
+        }
+
+        $body = is_array($request->body()) ? $request->body() : [];
+        $tokenFromBody = is_string($body['csrf_token'] ?? null) ? $body['csrf_token'] : null;
+        $tokenFromHeader = $request->header('X-CSRF-Token');
+        $csrfToken = $tokenFromBody !== null && trim($tokenFromBody) !== ''
+            ? $tokenFromBody
+            : (is_string($tokenFromHeader) ? $tokenFromHeader : null);
+
+        if (!admin_validate_csrf_token($csrfToken)) {
+            $this->eventLogger->security(
+                'admin.session.ping.invalid_csrf',
+                [
+                    'uri' => $request->uri(),
+                    'method' => $request->method(),
+                    'actor' => admin_current_masked_identifier(),
+                ],
+                'warning'
+            );
+
+            return Response::json(['ok' => false, 'error' => 'invalid_csrf'], 419);
+        }
+
+        $user = admin_current_user();
+        $lastActivityAt = is_array($user) ? (int) ($user['last_activity_at'] ?? time()) : time();
+        $timeoutSeconds = admin_inactivity_timeout_seconds();
+        $remainingSeconds = max(0, $timeoutSeconds - max(0, time() - $lastActivityAt));
+
+        return Response::json(
+            [
+                'ok' => true,
+                'remainingSeconds' => $remainingSeconds,
+                'timeoutSeconds' => $timeoutSeconds,
+            ]
+        );
+    }
+
+    private function guardAuthenticated(Request $request, string $page): ?Response
+    {
+        $networkGuard = $this->guardAdminNetwork($request, $page);
+        if ($networkGuard !== null) {
+            return $networkGuard;
+        }
+
+        if (admin_is_authenticated()) {
+            return null;
+        }
+
+        $this->eventLogger->security(
+            'admin.access.denied',
+            [
+                'page' => $page,
+                'uri' => $request->uri(),
+                'method' => $request->method(),
+            ],
+            'warning'
+        );
+
+        return $this->redirect($this->routeResolver->canonicalPath('login'), 302);
+    }
+
+    private function guardAdminNetwork(Request $request, string $page): ?Response
+    {
+        $allowedIps = app_config('admin.allowed_ips', []);
+        $allowedIps = is_array($allowedIps) ? array_values(array_filter(array_map('strval', $allowedIps))) : [];
+
+        if ($allowedIps === []) {
+            return null;
+        }
+
+        $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false));
+        if (ip_matches_allowlist($clientIp, $allowedIps)) {
+            return null;
+        }
+
+        $this->eventLogger->security(
+            'admin.access.denied_ip',
+            [
+                'page' => $page,
+                'uri' => $request->uri(),
+                'ip' => $clientIp,
+            ],
+            'warning'
+        );
+
+        return new Response(403, ['Content-Type' => 'text/html; charset=utf-8'], 'Accès admin interdit.');
+    }
+
+    private function guardSensitiveAction(Request $request, string $action): ?Response
+    {
+        if ($request->method() !== 'POST') {
+            return null;
+        }
+
+        if (admin_reauth_is_fresh()) {
+            return null;
+        }
+
+        $this->eventLogger->security(
+            'admin.reauth.required',
+            [
+                'action' => $action,
+                'uri' => $request->uri(),
+                'method' => $request->method(),
+                'actor' => admin_current_masked_identifier(),
+            ],
+            'warning'
+        );
+
+        admin_logout('reauth_required');
+
+        return $this->redirect($this->routeResolver->canonicalPath('login') . '?reauth=1', 302);
+    }
+
+    private function noticeMessageFromCode(?string $noticeCode): ?string
+    {
+        return match ($noticeCode) {
+            'inactive_timeout' => sprintf(
+                'Session expirée après inactivité (%d minutes). Merci de vous reconnecter.',
+                (int) floor(admin_inactivity_timeout_seconds() / 60)
+            ),
+            'reauth_required' => 'Veuillez vous reconnecter pour valider une action sensible.',
+            default => null,
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function renderPage(string $template, array $context): Response
+    {
+        $user = admin_current_user();
+        $loginAt = is_array($user) ? (int) ($user['login_at'] ?? time()) : time();
+        $defaultContext = [
+            'activeMenu' => 'dashboard',
+            'adminIdentifier' => is_array($user)
+                ? (string) ($user['identifier'] ?? $user['email'] ?? admin_configured_identifier())
+                : admin_configured_identifier(),
+            'formattedLogin' => date('d/m/Y H:i', $loginAt),
+            'adminLoginUrl' => $this->routeResolver->canonicalPath('login'),
+            'adminDashboardUrl' => $this->routeResolver->canonicalPath('dashboard'),
+            'adminPagesUrl' => $this->routeResolver->canonicalPath('pages'),
+            'adminPageCreateUrl' => $this->routeResolver->pageCreatePath(),
+            'adminArticlesUrl' => $this->routeResolver->canonicalPath('articles'),
+            'adminArticleCreateUrl' => $this->routeResolver->articleCreatePath(),
+            'adminDiscussionsUrl' => $this->routeResolver->canonicalPath('discussions'),
+            'adminMediaUrl' => $this->routeResolver->canonicalPath('media'),
+            'adminMenusUrl' => $this->routeResolver->canonicalPath('menus'),
+            'adminLogsUrl' => $this->routeResolver->canonicalPath('logs'),
+            'adminSettingsUrl' => $this->routeResolver->canonicalPath('settings'),
+            'adminLogoutUrl' => $this->routeResolver->canonicalPath('logout'),
+            'adminSessionPingUrl' => $this->routeResolver->sessionPingPath(),
+            'adminBlogSaveUrl' => $this->routeResolver->blogSavePath(),
+            'loginPath' => $this->routeResolver->loginPath(),
+            'csrfToken' => admin_csrf_token(),
+            'adminSessionTimeoutSeconds' => admin_inactivity_timeout_seconds(),
+            'adminSessionWarningLeadSeconds' => min(120, admin_inactivity_timeout_seconds()),
+            'adminSessionDecisionSeconds' => 120,
+            'adminSessionWarningTitle' => (string) t('TXT_ADMIN_SESSION_WARNING_TITLE'),
+            'adminSessionWarningMessage' => (string) t('TXT_ADMIN_SESSION_WARNING_MESSAGE'),
+            'adminSessionWarningCountdownTemplate' => (string) t('TXT_ADMIN_SESSION_WARNING_COUNTDOWN_TEMPLATE'),
+            'adminSessionWarningConfirmLabel' => (string) t('TXT_ADMIN_SESSION_WARNING_CONFIRM'),
+            'adminSessionWarningLogoutLabel' => (string) t('TXT_ADMIN_SESSION_WARNING_LOGOUT'),
+            'adminSessionWarningNetworkError' => (string) t('TXT_ADMIN_SESSION_WARNING_NETWORK_ERROR'),
+        ];
+
+        $body = $this->renderTemplate(
+            'layout.php',
+            array_merge(
+                $defaultContext,
+                $context,
+                [
+                    'contentTemplate' => $template,
+                ]
+            )
+        );
+
+        return new Response(200, ['Content-Type' => 'text/html; charset=utf-8'], $body);
+    }
+
+    /**
+     * @param array<string, mixed> $view
+     */
+    private function shouldOpenMenuContextualEditor(string $builderAction, ?string $error, array $view): bool
+    {
+        if (!is_array($view['selectedItem']['item'] ?? null) || !is_string($view['selectedItemPath'] ?? null)) {
+            return false;
+        }
+
+        if ($error !== null && $error !== 'Session expirée, merci de réessayer.') {
+            return true;
+        }
+
+        foreach (['select@', 'append@', 'append_child@', 'duplicate@'] as $prefix) {
+            if (str_starts_with($builderAction, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function applyUploadedArticleImage(array &$body, Request $request): ?string
+    {
+        $file = $this->uploadedFile($request, 'article_image_file');
+        if ($file === null) {
+            return null;
+        }
+
+        $articleData = is_array($body['article'] ?? null) ? $body['article'] : [];
+        $slugHint = is_string($articleData['slug'] ?? null) ? (string) $articleData['slug'] : 'article';
+
+        try {
+            $uploaded = $this->editorialImageService->upload($file, 'article', $slugHint);
+        } catch (\RuntimeException $exception) {
+            return $exception->getMessage();
+        }
+
+        $articleData['featured_image_src'] = (string) $uploaded['src'];
+
+        $hasWidth = is_string($articleData['featured_image_width'] ?? null)
+            ? trim((string) $articleData['featured_image_width']) !== ''
+            : !empty($articleData['featured_image_width']);
+        if (!$hasWidth && is_int($uploaded['width'])) {
+            $articleData['featured_image_width'] = (string) $uploaded['width'];
+        }
+
+        $hasHeight = is_string($articleData['featured_image_height'] ?? null)
+            ? trim((string) $articleData['featured_image_height']) !== ''
+            : !empty($articleData['featured_image_height']);
+        if (!$hasHeight && is_int($uploaded['height'])) {
+            $articleData['featured_image_height'] = (string) $uploaded['height'];
+        }
+
+        $body['article'] = $articleData;
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function applyUploadedPageImages(array &$body, Request $request): ?string
+    {
+        $translations = is_array($body['translations'] ?? null) ? $body['translations'] : [];
+        $slugHint = is_string($body['slug'] ?? null) ? (string) $body['slug'] : 'page';
+
+        foreach ($this->pageService->availableLanguages() as $language) {
+            $fieldName = 'page_image_file_' . strtolower($language);
+            $file = $this->uploadedFile($request, $fieldName);
+            if ($file === null) {
+                continue;
+            }
+
+            try {
+                $uploaded = $this->editorialImageService->upload($file, 'page', $slugHint . '-' . $language);
+            } catch (\RuntimeException $exception) {
+                $prefix = strtoupper((string) $language);
+
+                return '[' . $prefix . '] ' . $exception->getMessage();
+            }
+
+            $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
+            $translation['meta_image_src'] = (string) $uploaded['src'];
+
+            $hasWidth = is_string($translation['meta_image_width'] ?? null)
+                ? trim((string) $translation['meta_image_width']) !== ''
+                : !empty($translation['meta_image_width']);
+            if (!$hasWidth && is_int($uploaded['width'])) {
+                $translation['meta_image_width'] = (string) $uploaded['width'];
+            }
+
+            $hasHeight = is_string($translation['meta_image_height'] ?? null)
+                ? trim((string) $translation['meta_image_height']) !== ''
+                : !empty($translation['meta_image_height']);
+            if (!$hasHeight && is_int($uploaded['height'])) {
+                $translation['meta_image_height'] = (string) $uploaded['height'];
+            }
+
+            $translations[$language] = $translation;
+        }
+
+        $body['translations'] = $translations;
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function applyUploadedPageSharedMedia(array &$body, Request $request): ?string
+    {
+        $sharedMediaInput = is_array($body['shared_media'] ?? null) ? $body['shared_media'] : [];
+        $sharedMedia = [];
+
+        foreach (array_values($sharedMediaInput) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $sanitized = AdminEditorialImageService::sanitizeImageMetadata([
+                'src' => (string) ($item['src'] ?? ''),
+                'alt' => (string) ($item['alt'] ?? ''),
+                'title' => (string) ($item['title'] ?? ''),
+                'caption' => (string) ($item['caption'] ?? ''),
+                'width' => $item['width'] ?? null,
+                'height' => $item['height'] ?? null,
+            ]);
+            if ($sanitized === null) {
+                continue;
+            }
+
+            $sharedMedia[] = $sanitized;
+        }
+
+        $slugHint = is_string($body['slug'] ?? null) ? (string) $body['slug'] : 'page';
+        $uploadedFiles = $this->uploadedFiles($request, 'page_shared_media_files');
+        foreach ($uploadedFiles as $file) {
+            try {
+                $uploaded = $this->editorialImageService->uploadWebp($file, 'media', $slugHint, 2048, 2048, 82);
+            } catch (\RuntimeException $exception) {
+                return '[Media] ' . $exception->getMessage();
+            }
+
+            $originalName = is_string($file['name'] ?? null) ? (string) $file['name'] : '';
+            $fallbackAlt = trim(str_replace(['-', '_'], ' ', (string) pathinfo($originalName, PATHINFO_FILENAME)));
+            if ($fallbackAlt === '') {
+                $fallbackAlt = trim((string) $slugHint);
+            }
+
+            $sharedMedia[] = [
+                'src' => (string) ($uploaded['src'] ?? ''),
+                'alt' => $fallbackAlt,
+                'title' => '',
+                'caption' => '',
+                'width' => isset($uploaded['width']) ? (int) $uploaded['width'] : null,
+                'height' => isset($uploaded['height']) ? (int) $uploaded['height'] : null,
+            ];
+        }
+
+        if (count($sharedMedia) > 24) {
+            $sharedMedia = array_slice($sharedMedia, 0, 24);
+        }
+
+        $body['shared_media'] = array_values($sharedMedia);
+
+        return null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function uploadedFile(Request $request, string $fieldName): ?array
+    {
+        $files = $this->uploadedFiles($request, $fieldName);
+
+        return $files[0] ?? null;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function uploadedFiles(Request $request, string $fieldName): array
+    {
+        $files = $request->files();
+        $entry = $files[$fieldName] ?? null;
+        if (!is_array($entry)) {
+            return [];
+        }
+
+        $names = $entry['name'] ?? null;
+        if (is_array($names)) {
+            $errors = is_array($entry['error'] ?? null) ? $entry['error'] : [];
+            $tmpNames = is_array($entry['tmp_name'] ?? null) ? $entry['tmp_name'] : [];
+            $types = is_array($entry['type'] ?? null) ? $entry['type'] : [];
+            $sizes = is_array($entry['size'] ?? null) ? $entry['size'] : [];
+            $normalized = [];
+
+            foreach (array_keys($names) as $index) {
+                $error = isset($errors[$index]) ? (int) $errors[$index] : UPLOAD_ERR_NO_FILE;
+                if ($error === UPLOAD_ERR_NO_FILE) {
+                    continue;
+                }
+
+                $normalized[] = [
+                    'name' => is_string($names[$index] ?? null) ? (string) $names[$index] : '',
+                    'type' => is_string($types[$index] ?? null) ? (string) $types[$index] : '',
+                    'tmp_name' => is_string($tmpNames[$index] ?? null) ? (string) $tmpNames[$index] : '',
+                    'error' => $error,
+                    'size' => is_numeric($sizes[$index] ?? null) ? (int) $sizes[$index] : 0,
+                ];
+            }
+
+            return $normalized;
+        }
+
+        $error = isset($entry['error']) ? (int) $entry['error'] : UPLOAD_ERR_NO_FILE;
+        if ($error === UPLOAD_ERR_NO_FILE) {
+            return [];
+        }
+
+        return [$entry];
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function renderTemplate(string $template, array $context = []): string
+    {
+        $templatePath = ROOT_PATH . '/templates/admin/' . $template;
+
+        extract($context, EXTR_SKIP);
+
+        ob_start();
+        require $templatePath;
+
+        return (string) ob_get_clean();
+    }
+
+    private function redirect(string $location, int $status = 302): Response
+    {
+        return new Response($status, ['Location' => $location], '');
+    }
+}

@@ -4,10 +4,8 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../env.php';
-
 $langs = ['fr', 'en', 'de'];
-$base = dirname(__DIR__, 1) . '/lang';
+$base = dirname(__DIR__, 2) . '/lang';
 
 $all = [];
 foreach ($langs as $lang) {
@@ -31,9 +29,16 @@ $errors = false;
 
 foreach ($langs as $lang) {
     $missing = array_diff($ref, $all[$lang]);
+    $extra = array_diff($all[$lang], $ref);
+
     if ($missing !== []) {
         $errors = true;
         echo "Clés manquantes en $lang : " . implode(', ', $missing) . "\n";
+    }
+
+    if ($extra !== []) {
+        $errors = true;
+        echo "Clés supplémentaires en $lang : " . implode(', ', $extra) . "\n";
     }
 }
 

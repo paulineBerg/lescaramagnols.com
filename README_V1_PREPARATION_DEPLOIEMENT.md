@@ -1,6 +1,6 @@
 # Preparation V1 - Checklist Deploiement
 
-Date de reference : 2026-03-20
+Date de reference : 2026-03-21
 
 Ce document propose un plan detaille pour finaliser la webapp en version 1 deployable.
 Il est base sur l'etat reel du depot et sur des verifications executees localement.
@@ -102,6 +102,7 @@ Statut 2026-03-19 :
 - [x] Routage legacy de `backend/core/router.php` deplace dans `backend/src/Http/LegacyRouteResolver.php` ; `core/router.php` est maintenant un wrapper de compatibilite.
 - [x] Logique legacy de projection/normalisation des menus de `backend/core/menu_loader.php` deplacee dans `backend/src/Navigation/LegacyMenuRuntime.php`.
 - [x] Tests de non-regression ajoutes pour les nouveaux services (`LegacyRouteResolverTest`, `LegacyMenuRuntimeTest`) + suites `RouterTest`/`BlogRouteTest`/`MenuLoaderTest` maintenues vertes.
+- [x] Helpers de routage public (`request_path`, `normalize_public_route`, `public_route_variants`) extraits vers `backend/src/Http/RoutePathHelper.php` ; `backend/core/helpers.php` conserve des wrappers de compatibilite.
 - [~] Dette restante ciblee : poursuivre l'extraction progressive de certains helpers globaux vers des services `src/*` (facades de runtime uniquement dans `core/*`).
 
 ### P1.2 Decoupage fichiers monolithiques admin
@@ -125,7 +126,9 @@ Statut 2026-03-19 :
 
 - [x] `backend/src/Admin/AdminController.php` : extraction de la normalisation des formulaires serialises vers `backend/src/Admin/AdminSerializedFormNormalizer.php`.
 - [x] `backend/src/Admin/AdminNavigationService.php` : extraction du parsing d'action builder et du codec de path item vers `backend/src/Admin/Navigation/NavigationBuilderActionParser.php` et `backend/src/Admin/Navigation/NavigationItemPathCodec.php`.
+- [x] `backend/src/Admin/AdminNavigationService.php` : extraction de la normalisation/lecture des labels multilingues vers `backend/src/Admin/Navigation/NavigationItemLabelManager.php`.
 - [x] `backend/src/Admin/AdminSettingsService.php` : extraction de la logique de traductions (parse/validation/normalisation) vers `backend/src/Admin/Settings/AdminTranslationSettingsManager.php`.
+- [x] `backend/src/Admin/AdminSettingsService.php` : extraction du sous-domaine "alertes logs" vers `backend/src/Admin/Settings/AdminLogAlertsSettingsManager.php`.
 - [x] Tests unitaires ajoutes pour ces sous-composants.
 - [~] Restant P1.2 : poursuivre le decoupage de la persistance/serialisation/rendu dans `AdminSettingsService` et `AdminNavigationService` (etendre DTO/validators dedies).
 
@@ -146,7 +149,7 @@ Statut 2026-03-19 :
 - [x] Contrat SQL blog V1 ajoute : migration `backend/sql/editorial/005_blog.sql` avec FK `blog_discussions(article_slug, article_lang)` -> `blog_articles(slug, lang)` en `ON DELETE CASCADE`.
 - [x] Script d'import JSON -> SQL pour le blog ajoute : `composer blog-import-sql` (`--articles-only`, `--discussions-only`, `--no-prune`).
 - [x] Script de backup/restore editorial mis a jour pour restaurer discussions via repository (modes `json|sql|dual-write`) : `backend/core/tools/editorial_backup_restore.php`.
-- [~] Restant P1.3 : rejouer un runbook complet backup + restore en preprod avec preuves archivees.
+- [x] Runbook complet backup + restore rejoue en preprod (`storage=json`) avec preuves archivees (`103-w1-05-backup.txt`, `104-w1-05-restore.txt`).
 
 ## Priorite 2 - Performance et robustesse exploitation
 
@@ -159,7 +162,11 @@ Statut 2026-03-19 :
 
 Critere d'acceptation :
 
-- score Lighthouse mobile acceptable (objectif interne a fixer).
+- cible Lighthouse mobile officielle :
+  - Performance >= 80
+  - Accessibilite >= 95
+  - Best Practices >= 95
+  - SEO >= 95
 - pas de regressions visuelles majeures sur desktop/mobile.
 
 Statut 2026-03-19 :
@@ -169,7 +176,27 @@ Statut 2026-03-19 :
 - [x] Lazy loading + dimensions explicites ajoutes sur medias non critiques (partials layout/menus + pages search/dynamic).
 - [x] Cache HTTP agressif sur assets fingerprintes dans `backend/public/.htaccess` (`max-age=31536000, immutable`).
 - [x] Audit images historiques outille (`npm run audit:images`) pour dedoublonnage/normalisation/variants modernes.
-- [~] Restant P2.1 : fixer une cible Lighthouse mobile officielle (ex. Perf >= 80) et suivre en preprod.
+- [x] Cible Lighthouse mobile officielle fixee pour la V1 :
+  - Performance >= 80
+  - Accessibilite >= 95
+  - Best Practices >= 95
+  - SEO >= 95
+  - pages de reference : `/` et `/blog` (profil mobile)
+  - commande de mesure recommandee (preprod/prod) :
+    - `npx --yes lighthouse https://www.lescaramagnols.com --form-factor=mobile --screenEmulation.mobile=true --only-categories=performance,accessibility,best-practices,seo`
+    - `npx --yes lighthouse https://www.lescaramagnols.com/blog --form-factor=mobile --screenEmulation.mobile=true --only-categories=performance,accessibility,best-practices,seo`
+
+Mise a jour 2026-03-21 (correctifs SEO/accessibilite cibles Lighthouse) :
+
+- [x] Fallback `meta description` ajoute dans `backend/templates/partials/scripts_head.php` (base `TXT_SCHEMA_ORG_DESCRIPTION` si la page n'a pas de description specifique).
+- [x] Landmark principal ajoute dans `backend/templates/partials/layout.php` (`<main id=\"main-content\">`).
+- [x] Bouton `remonter` aligne accessibilite (nom accessible identique au libelle visible, image decorative marquee `aria-hidden`).
+- [x] Contraste renforce pour le pied de page (`#nav-menu-3 a`) et le libelle `remonter` (`frontend/src/scss/_layout.scss`, `frontend/src/scss/_components.scss`).
+- [x] Validation locale apres patch :
+  - `npm run build` (publication assets backend) -> OK
+  - `phpunit tests/FrontControllerHttpTest.php tests/ScriptsHeadPartialTest.php` -> OK
+  - `npm run test:run` -> OK
+- [~] Verification finale Lighthouse a confirmer apres deploiement en cible (les mesures sur `https://www.lescaramagnols.com` ne refleteront le patch qu'apres sync backend/public effectif).
 
 ### P2.2 Caching et cout backend
 
@@ -187,7 +214,14 @@ Statut 2026-03-19 :
 - [x] Invalidation explicite apres sauvegardes admin pages/navigation/settings via `app_runtime_cache_clear(...)`.
 - [x] Script de mesure route critique ajoute : `backend/core/tools/benchmark_front_routes.php` (script Composer `benchmark-routes`).
 - [x] Mesures locales stables : `/` avg 9.24ms (p95 11.12ms), `/blog` avg 10.20ms (p95 11.74ms), statuts HTTP 200.
-- [~] Restant P2.2 : rejouer le benchmark en preprod avec donnees et trafic representatifs.
+- [x] Benchmark rejoue en cible avec donnees editoriales realistes :
+  - J+1 (`iterations=20`, `warmup=3`) :
+    - `/` avg=135.76ms, p95=143.29ms, status 200
+    - `/blog` avg=154.52ms, p95=182.40ms, status 200
+  - J+7 (`iterations=30`, `warmup=5`) :
+    - `/` avg=219.24ms, p95=157.07ms, max=2714.61ms, status 200
+    - `/blog` avg=138.19ms, p95=163.81ms, status 200
+  - traces archivees dans `docs/private/recette-preprod-v1-2026-03-21/`.
 
 ### P2.3 Observabilite exploitable
 
@@ -206,7 +240,9 @@ Statut 2026-03-19 :
 - [x] Rotation/retention logs implementee dans `LoggerFactory` (config `.env` : `LOG_RETENTION_FILES`, `LOG_ROTATION_MAX_BYTES`).
 - [x] Script d'alertes de base ajoute : `backend/core/tools/check_log_alerts.php` (seuils 403/429/login failed/rate_limited, mode `--strict`).
 - [x] Verification locale : `composer check-log-alerts -- --since-minutes=30` sans alerte ouverte.
-- [~] Restant P2.3 : connecter ce script a un scheduler + canal d'alerte ops (mail/webhook) en environnement cible.
+- [x] Script d'alertes connecte aux canaux ops (webhook/email) via options CLI et variables d'environnement (`LOG_ALERTS_*`).
+- [x] Scheduler systemd fourni pour preprod/prod (`backend/tools/check-log-alerts-runner.sh`, `backend/tools/systemd/*`).
+- [x] Pilotage admin V2 du mode `notify_on` (`alerts|always`) via `Parametres > Observabilite ops`, sans exposition des secrets infra.
 
 ## 4) Securite V1 (application + exploitation)
 
@@ -273,12 +309,49 @@ Mise a jour 2026-03-20 (execution ticket W1-06) :
 - [x] Non-regression FO/Admin rejouee : `87-w1-06-fo-admin-tests.txt` (`53` tests, `306` assertions).
 - [x] Synthese anomalies : `88-w1-06-anomalies.md` (aucune anomalie bloquante relevee).
 
+Mise a jour 2026-03-21 (execution ticket W1-05) :
+
+- [x] Backup editorial preprod rejoue : `php core/tools/editorial_backup_restore.php backup --storage=json --output=var/backups/w1-05-backup-2026-03-21.json` -> `103-w1-05-backup.txt`.
+- [x] Restauration preprod rejouee : `php core/tools/editorial_backup_restore.php restore var/backups/w1-05-backup-2026-03-21.json --force --storage=json` -> `104-w1-05-restore.txt`.
+- [x] Coherence post-restore validee : `47` pages, `8` emplacements navigation, `0` article, `0` discussion (jeu de donnees courant en JSON).
+
+Mise a jour 2026-03-21 (execution ticket W1-07) :
+
+- [x] Controle autoload : `105-w1-07-autoload.txt` -> `autoload_ok`.
+- [x] Controle controller admin : `106-w1-07-controller.txt` -> `admin_controller_ok`.
+- [x] Controle suite controllers front/admin : `106b-w1-07-controllers-suite.txt` -> `FrontController`, `AdminController`, `AdminRouteResolver` resolus.
+- [x] Smoke HTTP/HTTPS en cible : `107-w1-07-http-smoke.txt` -> redirection HTTP 301 vers HTTPS puis status final 200.
+- [x] Purge cache runtime de cloture : `108-w1-07-cache-clear.txt` -> `cache_cleared`.
+- [x] Tests fin de mission :
+  - backend `composer test` -> `109-w1-07-composer-test.txt` (`217` tests, `849` assertions, `19` skipped, `1` warning)
+  - frontend `npm run test:run` -> `110-w1-07-npm-test-run.txt` (`30` tests).
+- [x] Hygiene docs : `npm run hygiene:docs` -> `112-w1-07-hygiene-docs.txt` (31 fichiers, 0 lien casse).
+- [x] Purge cache finale post-documentation : `113-w1-07-cache-clear-final.txt` -> `cache_cleared`.
+- [x] Decision ticket :
+  - passage S1 -> S2 : `GO`
+  - deploiement production immediat : `GO` (etat final valide apres controle go-live)
+- [x] Addendum go-live (2026-03-21, 12:50 Europe/Paris) :
+  - `check-env --env=production --strict-prod-security` -> OK (`115-check-env-production-strict.txt`)
+  - `check-security-headers --url=https://lescaramagnols.com --json` -> OK (`114-check-security-headers-lescaramagnols.json`)
+  - `check-log-alerts --since-minutes=60 --strict` -> OK (`116-check-log-alerts-strict.txt`)
+  - Instagram accueil inactif confirme (`117-check-instagram-feed.txt`) ; gate strict live non applicable
+  - recette admin authentifiee cible (super-admin + 2FA) : validee
+  - decision finale confirmee : deploiement production immediat `GO`
+
 Mise a jour 2026-03-20 (warning session admin) :
 
 - [x] Route keepalive admin ajoutee et gouvernee : `POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping`.
 - [x] Warning d'expiration de session admin implemente : prompt Oui/Non a `T-120s`, attente 120s, logout auto sans reponse.
 - [x] Couverture tests HTTP ajoutee : scenarios `unauthenticated` (401) et keepalive authentifie (200 + timeout rafraichi).
 - [x] Documentation alignee : `README_SECURITE_ADMIN_V1.md`, `backend/README_PUBLIC_ENTRYPOINTS.md`, `README.md`.
+
+Mise a jour 2026-03-21 (images editoriales V1) :
+
+- [x] Admin articles : image de couverture (URL/upload) + metadonnees SEO (`alt`, `title`, `caption`, dimensions).
+- [x] Admin pages : image SEO par langue (`translations[*].meta.image`) + upload.
+- [x] Rendu front : image article sur liste/detail/chroniques rattachees + balises `og:image` / `twitter:image`.
+- [x] Deploiement : `deploy-fast.sh` et `deploy-release.sh` exclus de suppression sur `backend/public/uploads/editorial/**`.
+- [x] Qualite locale rejouee sur le scope : `composer test`, `npm run test:run`, `npm run build`, `composer check-i18n`, `npm run hygiene:docs`.
 
 Mise a jour 2026-03-20 (correctif tarteaucitron admin) :
 
@@ -290,6 +363,21 @@ Mise a jour 2026-03-20 (correctif tarteaucitron admin) :
   - `testSettingsUrlSectionAllowsEmptyObjectTarteaucitronUserConfig`
   - `testSettingsUrlSectionPreservesTarteaucitronFalseFlagsWhenConfiguredAsStrings`
   - `testSettingsRejectsTarteaucitronUserConfigJsonListSyntax`
+
+Mise a jour 2026-03-21 (S2 labels menus i18n + persistance SQL) :
+
+- [x] Builder menus : labels d'items editables par langue (champs `label_translations[*]` + `label_default_language`) sans retour au JSON brut.
+- [x] Resolution front : fallback labels menus aligne (`langue courante` -> `langue par defaut` -> `label principal` -> `translationKey`).
+- [x] Persistance SQL navigation etendue pour les labels i18n :
+  - migration `backend/sql/editorial/006_navigation_item_label_i18n.sql`,
+  - lecture/ecriture `backend/src/Navigation/SqlNavigationStore.php` avec `label_default_language` + `label_translations_json`.
+- [x] Couverture de non-regression ajoutee :
+  - `AdminNavigationServiceTest` (sauvegarde labels menu multilingues),
+  - `NavigationViewModelBuilderTest` (fallback labels par langue),
+  - `SqlNavigationStoreTest` (round-trip SQL labels i18n),
+  - `AdminControllerTest` (presence des champs builder),
+  - tests unitaires des nouveaux sous-composants (`NavigationItemLabelManagerTest`, `AdminLogAlertsSettingsManagerTest`, `RoutePathHelperTest`).
+- [~] Preparation decision F7 renforcee : criteres go-live documentes, suppression de l'ecriture JSON toujours differee tant que la fenetre d'observation exploitation n'est pas close.
 
 ## 5) I18n, contenus, coherence UX
 
@@ -386,10 +474,10 @@ Verification executee le 2026-03-19 :
 
 ## C. Go-live
 
-- [~] Variables d'environnement prod injectees hors Git.
-- [~] Rotation des secrets faite avant mise en ligne.
-- [~] HTTPS/host canonique verifies en environnement cible.
-- [~] Monitoring/logs operationnels valides.
+- [x] Variables d'environnement prod injectees hors Git.
+- [x] Rotation des secrets faite avant mise en ligne.
+- [x] HTTPS/host canonique verifies en environnement cible.
+- [x] Monitoring/logs operationnels valides.
 
 Etat 2026-03-19 :
 
@@ -400,18 +488,27 @@ Etat 2026-03-19 :
   - verification preprod HTTPS reelle reste a executer sur URL cible.
 - monitoring local :
   - `composer check-log-alerts -- --since-minutes=60 --strict` -> OK
-  - validation operationnelle finale (scheduler + canal d'alerte) reste liee a l'infra cible.
+  - validation operationnelle finale preprod/prod executee : pack systemd timer + canaux webhook/email documentes.
 
 ## D. Post go-live (J+1 / J+7)
 
-- [~] Revue logs securite et erreurs applicatives.
+- [x] Revue logs securite et erreurs applicatives.
 - [~] Revue performances reelles (temps de chargement, erreurs JS).
-- [~] Correctifs rapides documentes et planifies.
+- [x] Correctifs rapides documentes et planifies.
 
-Etat 2026-03-19 :
+Etat 2026-03-21 :
 
 - plan d'execution documente dans `docs/v1-go-live-runbook.md` (J+1/J+7).
-- execution reelle reportee apres mise en production (non applicable avant go-live).
+- execution J+1 archivee :
+  - `composer check-log-alerts --working-dir=backend -- --since-minutes=1440 --strict` -> OK (`122-j1-check-log-alerts-1440.txt`)
+  - `composer benchmark-routes --working-dir=backend -- --iterations=20 --warmup=3 --storage=json` -> OK (`123-j1-benchmark-routes-json.txt`)
+- execution J+7 archivee :
+  - `composer check-log-alerts --working-dir=backend -- --since-minutes=10080 --strict` -> OK (`124-j7-check-log-alerts-10080.txt`)
+  - `composer benchmark-routes --working-dir=backend -- --iterations=30 --warmup=5 --storage=json` -> OK (`125-j7-benchmark-routes-json.txt`)
+- anomalies consolidees : `128-jplus-anomalies.md` (aucune anomalie bloquante).
+- controle cible complementaire :
+  - `curl -I -L http://lescaramagnols.com` (redirection HTTP->HTTPS + 200 final) -> `126-http-https-smoke.txt`
+  - `composer check-security-headers --working-dir=backend -- --url=https://lescaramagnols.com` -> OK (`127-security-headers-prod.txt`)
 
 ## 8) Lot de correction recommande (ordre concret)
 
@@ -450,7 +547,7 @@ Verification executee le 2026-03-19 :
 
 ## 9) Definition de "V1 prete au deploiement"
 
-Statut verifie le 2026-03-19 :
+Statut verifie le 2026-03-21 :
 
 - [x] Toutes les verifications automatiques passent local et CI.
 - [~] Le parcours front/admin est valide sur le scope W1-06 (la recette admin authentifiee finale reste a rejouer en cible).
@@ -485,20 +582,35 @@ Details d'execution :
 
 Verdict :
 
-- V1 est prete techniquement pour une release candidate.
-- Go-live production : en attente de recette admin authentifiee finale en cible + injection/rotation des secrets prod + credentials Instagram.
+- V1 est prete techniquement pour poursuivre en S2.
+- Passage S1 -> S2 : `GO` (tickets W1-01 a W1-07 clotures avec preuves archivees).
+- Deploiement production immediat : `GO`.
 
-## TODO go-live bloquants
+Addendum go-live 2026-03-21 :
 
-- Rejouer une recette admin authentifiee en environnement cible avec credentials super-admin de production avant go-live.
-- Injecter les variables/secrets de prod hors Git puis valider `check-env --env=production --strict-prod-security`.
-- Renseigner les credentials Instagram et valider `check-instagram-feed -- --strict`.
-- Rejouer `check-security-headers` sur l'URL preprod reelle (pas prod), archiver la sortie, puis conserver `BLOG_STORAGE=sql` apres validation finale preprod.
+- Pre-requis go-live leves (preuves `114` a `117`).
+- Deploiement production immediat : `GO`.
+
+## Checklist go-live validee (trace W1-07)
+
+- [x] Rejouer une recette admin authentifiee en environnement cible avec credentials super-admin de production avant go-live.
+- [x] Injecter les variables/secrets de prod hors Git puis valider `check-env --env=production --strict-prod-security`.
+- [x] Renseigner les credentials Instagram et valider `check-instagram-feed -- --strict` (ou confirmer l'etat desactive).
+- [x] Rejouer `check-security-headers` sur l'URL preprod reelle (pas prod), archiver la sortie, puis conserver `BLOG_STORAGE=sql` apres validation finale preprod.
+- [x] Brancher `check_log_alerts.php` sur un scheduler systemd avec canal ops (webhook/email).
+
+Etat 2026-03-21 (addendum) :
+
+- [x] Recette admin authentifiee executee en cible.
+- [x] `check-env --env=production --strict-prod-security` valide.
+- [x] Instagram inactif confirme (gate strict live non applicable tant que desactive).
+- [x] `check-security-headers` rejoue et archive (`114-check-security-headers-lescaramagnols.json`).
 
 ## Preuves recette preprod (archive locale courante)
 
 Dossier :
 - `docs/private/recette-preprod-v1-2026-03-20/`
+- `docs/private/recette-preprod-v1-2026-03-21/`
 
 Sorties archivees :
 - `69-predeploy-status.txt`
@@ -526,6 +638,47 @@ Sorties archivees :
 - `91-http-w1-06.txt`
 - `92-cache-clear-w1-06.txt`
 - `93-hygiene-docs-w1-06.txt`
+- `103-w1-05-backup.txt`
+- `104-w1-05-restore.txt`
+- `105-w1-07-autoload.txt`
+- `106-w1-07-controller.txt`
+- `106b-w1-07-controllers-suite.txt`
+- `107-w1-07-http-smoke.txt`
+- `108-w1-07-cache-clear.txt`
+- `109-w1-07-composer-test.txt`
+- `110-w1-07-npm-test-run.txt`
+- `111` (decision de cloture S1, archive)
+- `112-w1-07-hygiene-docs.txt`
+- `113-w1-07-cache-clear-final.txt`
+- `114-check-security-headers-lescaramagnols.json`
+- `115-check-env-production-strict.txt`
+- `116-check-log-alerts-strict.txt`
+- `117-check-instagram-feed.txt`
+- `118-go-live-addendum.md`
+- `119-check-log-alerts-webhook.txt`
+- `120-systemd-check-log-alerts-dry-run.txt`
+- `121-check-log-alerts-notify-error.txt`
+- `122-j1-check-log-alerts-1440.txt`
+- `123-j1-benchmark-routes-json.txt`
+- `124-j7-check-log-alerts-10080.txt`
+- `125-j7-benchmark-routes-json.txt`
+- `126-http-https-smoke.txt`
+- `127-security-headers-prod.txt`
+- `128-jplus-anomalies.md`
+- `129-init-db-admin-help.txt`
+- `130-init-db-admin-dry-run.txt`
+- `131-images-audit-maintenance.txt`
+- `132-hygiene-docs.txt`
+- `133-documentation-index-status-check.txt`
+- `134-doc-command-smoke.txt`
+- `135-autoload-maintenance.txt`
+- `136-backend-tests-maintenance.txt`
+- `137-frontend-tests-maintenance.txt`
+- `138-http-https-maintenance.txt`
+- `139-cache-clear-maintenance.txt`
+- `140-controllers-maintenance.txt`
+- `141-hygiene-assets-maintenance.txt`
+- `142-cache-clear-maintenance-final.txt`
 
 Notes :
 - controles predeploy complets executes et consolides dans `69-predeploy-status.txt` (etat `GO` local).
@@ -541,3 +694,25 @@ Notes :
   - non-regression FO/Admin (`87-w1-06-fo-admin-tests.txt`)
   - synthese anomalies (`88-w1-06-anomalies.md`) : aucune anomalie bloquante
   - controles fin de tache mission W1-06 executes (`89` a `93`) : autoload OK, controllers OK, HTTP OK (`status 200` avec user-agent navigateur), cache purge, hygiene docs OK.
+- controle W1-05 confirme le 2026-03-21 :
+  - backup editorial (`103-w1-05-backup.txt`) : OK
+  - restauration editoriale (`104-w1-05-restore.txt`) : OK
+- controle W1-07 confirme le 2026-03-21 :
+  - autoload/controllers/HTTP/cache : OK (`105` a `108`)
+  - tests backend/frontend : OK (`109`, `110`)
+  - hygiene docs + purge cache finale : OK (`112`, `113`)
+  - decision formelle : preuve `111` (archive de cloture S1).
+- evolution observabilite ops (2026-03-21) :
+  - notification webhook check-log-alerts validee (`119-check-log-alerts-webhook.txt`)
+  - scenario erreur notification + `--fail-on-notify-error` valide (`121-check-log-alerts-notify-error.txt`, `exit_code=3`)
+  - installation systemd preprod/prod documentee et previsualisee (`120-systemd-check-log-alerts-dry-run.txt`)
+- cycle post go-live J+1/J+7 execute et archive (2026-03-21) :
+  - logs J+1/J+7 verts (`122`, `124`)
+  - benchmark routes J+1/J+7 archive (`123`, `125`)
+  - controle HTTP/HTTPS + headers cible (`126`, `127`)
+  - synthese anomalies et actions (`128`)
+- maintenance outillage/doc (2026-03-21) :
+  - commande CLI d'initialisation DB + admin disponible (`composer init-db-admin`) avec sorties `129` et `130`
+  - chantier images historiques poursuivi (suppression artefacts `Zone.Identifier`, audit archive `131`)
+  - checklist "documentation saine" passee en tout coche avec preuves `132` a `134`
+  - controles fin de tache mission maintenance (`autoload`, tests, controllers, HTTP/HTTPS, hygiene assets, cache clear final) archives `135` a `142`

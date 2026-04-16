@@ -229,6 +229,73 @@ final class AdminNavigationServiceTest extends TestCase
         $this->assertFileDoesNotExist($this->menusFile);
     }
 
+    public function testHandleSaveConvertsRouteItemToPageWhenPageTargetIsSelected(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $service = new AdminNavigationService(
+            new NavigationRepository($this->menusFile),
+            new PageRepository($this->pagesFile)
+        );
+
+        $result = $service->handle([
+            'active_location' => 'primary',
+            'selected_item' => 'primary|0',
+            'builder_action' => 'save',
+            'banner' => [],
+            'remonter' => [],
+            'locations' => [
+                'utility' => [],
+                'primary' => [
+                    [
+                        'id' => 'primary-link',
+                        'kind' => 'route',
+                        'label_text' => 'Association',
+                        'target_mode' => 'route',
+                        'target_page_slug' => 'association',
+                        'target_route' => '/bc/boulyetcailloux-des-bijoux-artisanaux.php',
+                        'target_url' => '',
+                        'image' => '',
+                        'content_text' => '',
+                        'alt' => 'Association',
+                        'title' => 'Association',
+                    ],
+                ],
+                'footer' => [],
+                'sideRight' => [],
+                'sideLeft' => [],
+            ],
+        ]);
+
+        $this->assertSame('Menus sauvegardés via le builder visuel.', $result['message']);
+        $this->assertNull($result['error']);
+
+        $decoded = json_decode((string) file_get_contents($this->menusFile), true);
+        $this->assertIsArray($decoded);
+        $this->assertSame('page', $decoded['locations']['primary'][0]['kind'] ?? null);
+        $this->assertSame('association', $decoded['locations']['primary'][0]['target']['pageSlug'] ?? null);
+        $this->assertNull($decoded['locations']['primary'][0]['target']['route'] ?? null);
+    }
+
     public function testHandleSavePreservesTranslationKeysWhenPopupPostsResolvedLabels(): void
     {
         file_put_contents(
@@ -442,6 +509,146 @@ final class AdminNavigationServiceTest extends TestCase
 
         $this->assertSame('Nos anciennes', $decoded['locations']['primary'][0]['label']['text'] ?? null);
         $this->assertNull($decoded['locations']['primary'][0]['label']['translationKey'] ?? null);
+    }
+
+    public function testHandleSavePersistsMenuLabelTranslationsByLanguage(): void
+    {
+        $service = new AdminNavigationService(
+            new NavigationRepository($this->menusFile),
+            new PageRepository($this->pagesFile)
+        );
+
+        $result = $service->handle([
+            'active_location' => 'primary',
+            'selected_item' => 'primary|0',
+            'builder_action' => 'save',
+            'banner' => [],
+            'remonter' => [],
+            'locations' => [
+                'utility' => [],
+                'primary' => [
+                    [
+                        'id' => 'primary-home',
+                        'kind' => 'route',
+                        'label_text' => 'Accueil',
+                        'label_translation_key' => '',
+                        'label_default_language' => 'fr',
+                        'label_translations' => [
+                            'fr' => 'Accueil',
+                            'de' => 'Startseite',
+                            'en' => 'Home',
+                        ],
+                        'target_mode' => 'route',
+                        'target_page_slug' => '',
+                        'target_route' => '/accueil',
+                        'target_url' => '',
+                        'image' => '',
+                        'content_text' => '',
+                        'alt' => 'Accueil',
+                        'title' => 'Accueil',
+                    ],
+                ],
+                'footer' => [],
+                'sideRight' => [],
+                'sideLeft' => [],
+            ],
+        ]);
+
+        $this->assertSame('Menus sauvegardés via le builder visuel.', $result['message']);
+        $this->assertNull($result['error']);
+
+        $decoded = json_decode((string) file_get_contents($this->menusFile), true);
+        $this->assertIsArray($decoded);
+        $this->assertSame('fr', $decoded['locations']['primary'][0]['label']['defaultLanguage'] ?? null);
+        $this->assertSame('Startseite', $decoded['locations']['primary'][0]['label']['translations']['de'] ?? null);
+        $this->assertSame('Home', $decoded['locations']['primary'][0]['label']['translations']['en'] ?? null);
+    }
+
+    public function testHandleSavePersistsBannerHeadlineTranslationsByLanguage(): void
+    {
+        $service = new AdminNavigationService(
+            new NavigationRepository($this->menusFile),
+            new PageRepository($this->pagesFile)
+        );
+
+        $result = $service->handle([
+            'active_location' => 'primary',
+            'selected_item' => '',
+            'builder_action' => 'save',
+            'banner' => [
+                'image' => '/assets/images/structure/banniere.jpg',
+                'headline' => 'Voyage dans le golfe',
+                'headline_translation_key' => '',
+                'headline_default_language' => 'fr',
+                'headline_translations' => [
+                    'fr' => 'Voyage dans le golfe',
+                    'de' => 'Reise durch den Golf',
+                    'en' => 'Journey through the gulf',
+                ],
+                'alt' => 'Banniere',
+                'title' => 'Banniere',
+            ],
+            'remonter' => [],
+            'locations' => [
+                'utility' => [],
+                'primary' => [],
+                'footer' => [],
+                'sideRight' => [],
+                'sideLeft' => [],
+            ],
+        ]);
+
+        $this->assertSame('Menus sauvegardés via le builder visuel.', $result['message']);
+        $this->assertNull($result['error']);
+
+        $decoded = json_decode((string) file_get_contents($this->menusFile), true);
+        $this->assertIsArray($decoded);
+        $this->assertSame('fr', $decoded['locations']['banner']['headline']['defaultLanguage'] ?? null);
+        $this->assertSame('Voyage dans le golfe', $decoded['locations']['banner']['headline']['translations']['fr'] ?? null);
+        $this->assertSame('Reise durch den Golf', $decoded['locations']['banner']['headline']['translations']['de'] ?? null);
+        $this->assertSame('Journey through the gulf', $decoded['locations']['banner']['headline']['translations']['en'] ?? null);
+    }
+
+    public function testHandleSavePersistsBackToTopLabelTranslationsByLanguage(): void
+    {
+        $service = new AdminNavigationService(
+            new NavigationRepository($this->menusFile),
+            new PageRepository($this->pagesFile)
+        );
+
+        $result = $service->handle([
+            'active_location' => 'primary',
+            'selected_item' => '',
+            'builder_action' => 'save',
+            'banner' => [],
+            'remonter' => [
+                'label' => 'Remonter',
+                'label_translation_key' => '',
+                'label_default_language' => 'fr',
+                'label_translations' => [
+                    'fr' => 'Remonter',
+                    'de' => 'Nach oben',
+                ],
+                'alt' => 'Remonter',
+                'title' => 'Remonter',
+            ],
+            'locations' => [
+                'utility' => [],
+                'primary' => [],
+                'footer' => [],
+                'sideRight' => [],
+                'sideLeft' => [],
+            ],
+        ]);
+
+        $this->assertSame('Menus sauvegardés via le builder visuel.', $result['message']);
+        $this->assertNull($result['error']);
+
+        $decoded = json_decode((string) file_get_contents($this->menusFile), true);
+        $this->assertIsArray($decoded);
+        $this->assertSame('fr', $decoded['locations']['remonter']['label']['defaultLanguage'] ?? null);
+        $this->assertSame('Remonter', $decoded['locations']['remonter']['label']['translations']['fr'] ?? null);
+        $this->assertSame('Nach oben', $decoded['locations']['remonter']['label']['translations']['de'] ?? null);
     }
 
     public function testHandleSavePersistsFooterNoticeTranslationsWithFrenchDefault(): void

@@ -32,7 +32,7 @@ final class ValidationTest extends TestCase
             'content' => 'Hi'
         ]);
 
-        $this->assertContains('Adresse e-mail invalide.', $result['errors']);
+        $this->assertContains((string) t('TXT_BLOG_DISCUSSION_ERROR_EMAIL_INVALID'), $result['errors']);
     }
 
     public function testSanitizeTranslationArrayKeepsAllowedTags(): void
