@@ -1,22 +1,11 @@
 import { defineConfig } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'node:url';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  plugins: [
-    viteStaticCopy({
-      targets: [
-        {
-          src: 'src/assets/images/**/*',
-          dest: 'assets/images'
-        }
-      ]
-    })
-  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src')
@@ -42,6 +31,10 @@ export default defineConfig({
     }
   },
   server: {
+    host: 'localhost',
+    port: 5173,
+    strictPort: true,
+    origin: 'http://localhost:5173',
     proxy: {
       '/core/': {
         target: 'http://127.0.0.1:8000',

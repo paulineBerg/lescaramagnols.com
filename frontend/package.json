@@ -4,8 +4,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host localhost",
-    "build": "vite build",
-    "postbuild": "mkdir -p ../backend/public/assets ../backend/public/.vite && cp -r dist/assets/. ../backend/public/assets/ && cp -r dist/.vite/. ../backend/public/.vite/",
+    "build": "vite build && node tools/check-budgets.mjs",
+    "postbuild": "node tools/publish-build.mjs",
+    "publish:backend": "node tools/publish-build.mjs",
+    "audit:images": "node tools/audit-images.mjs",
+    "hygiene:docs": "node tools/check-doc-links.mjs",
+    "hygiene:assets": "node tools/check-asset-naming.mjs",
+    "hygiene:repo": "node tools/check-repo-artifacts.mjs && npm run hygiene:docs && npm run hygiene:assets",
     "preview": "vite preview",
     "lint:js": "eslint \"src/js/**/*.{js,mjs}\"",
     "lint:css": "stylelint \"src/**/*.{css,scss}\" --allow-empty-input",
@@ -31,11 +36,12 @@
     "eslint": "^9.13.0",
     "fast-glob": "^3.3.3",
     "fill-range": "^7.1.1",
+    "flatted": "^3.4.2",
     "fs-extra": "^11.3.0",
     "glob-parent": "^5.1.2",
     "globals": "^15.15.0",
     "graceful-fs": "^4.2.11",
-    "immutable": "^5.1.3",
+    "immutable": "^5.1.5",
     "is-binary-path": "^2.1.0",
     "is-extglob": "^2.1.1",
     "is-glob": "^4.0.3",
@@ -65,7 +71,6 @@
     "typescript": "^5.7.2",
     "universalify": "^2.0.1",
     "vite": "^7.3.1",
-    "vite-plugin-static-copy": "^3.1.1",
     "vitest": "^3.2.4"
   },
   "main": "index.js",
@@ -78,7 +83,7 @@
     "not dead"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0 <25"
   },
   "keywords": [],
   "author": "",

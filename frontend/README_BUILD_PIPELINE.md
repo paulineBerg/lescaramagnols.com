@@ -65,14 +65,18 @@ Exemple de sortie attendue :
 
 Le script `frontend/tools/publish-build.mjs` :
 - lit `frontend/dist/.vite/manifest.json`
-- remplace `backend/public/assets/images/**` par la copie issue de `frontend/dist/assets/images/**`
-- copie `frontend/dist/assets/**` vers `backend/public/assets/**`
+- resynchronise d'abord `frontend/dist/assets/images/**` depuis `frontend/src/assets/images/**`
+- vérifie que `frontend/dist/assets/images/**` est un miroir exact de `frontend/src/assets/images/**`
+- remplace `backend/public/assets/images/**` par la copie issue de ce miroir
+- copie le reste de `frontend/dist/assets/**` vers `backend/public/assets/**`
 - copie le manifest vers `backend/public/.vite/manifest.json`
 - supprime les anciens bundles hashés obsolètes à la racine de `backend/public/assets/`
+- vérifie ensuite que `backend/public/assets/images/**` reste un miroir exact de `frontend/src/assets/images/**`
 
 Le nettoyage est volontairement limité :
 - il touche uniquement les fichiers hashés à la racine de `backend/public/assets/`
 - il resynchronise integralement `backend/public/assets/images/**` depuis la source frontend
+- il ne depend pas d'un plugin de copie Vite pour les images publiques versionnees
 - il ne touche pas `backend/public/assets/index.php`
 - il ne touche pas `backend/public/assets/rss.php`
 
