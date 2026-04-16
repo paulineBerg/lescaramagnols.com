@@ -7,7 +7,7 @@ const imageRoot = join(projectRoot, 'src', 'assets', 'images');
 
 const rasterExtensions = new Set(['.jpg', '.jpeg', '.png', '.gif']);
 const modernExtensions = new Set(['.webp', '.avif']);
-const allowedNamePattern = /^[a-z0-9._/-]+$/;
+const allowedNamePattern = /^[a-z0-9._@/-]+$/;
 
 /**
  * @param {string} directory
