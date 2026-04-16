@@ -5,6 +5,13 @@ Date : 2026-03-21
 Ce document décrit la gouvernance HTTP publique de reference apres les passes 2 a 4 de modernisation.
 La section E ajoute une couche de testabilite sur ce meme point d'entree sans changer le rendu front-office.
 
+Reference complementaire :
+- `../docs/README_REFONTE_LOT_C.md`
+
+Mise a jour 2026-04-16 :
+- les suppressions suivies des anciens points d'entree `backend/public/adminFtyhik5642sZ/**`, `backend/public/site/adminFtyhik5642sZ/**` et `backend/public/installsql.php` relevent du Lot C de refonte, pas d'un nettoyage opportuniste
+- leur mapping de remplacement est documente dans `../docs/README_REFONTE_LOT_C.md`
+
 ## Objectif
 
 Faire converger les points d'entrée publics sensibles vers une seule gouvernance :

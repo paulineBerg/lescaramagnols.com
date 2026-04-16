@@ -6,7 +6,9 @@ Ce document cadre le prochain chantier de modernisation du projet : rendre l'adm
 
 References :
 - `README_MODERNISATION_V1.md`
-- `README_AUDIT_PLAN_ACTION_V1.md`
+- `docs/archive/README_AUDIT_PLAN_ACTION_V1.md`
+- `docs/README_REFONTE_LOT_C.md`
+- `docs/README_CONSOLIDATION_LOT_D.md`
 - `docs/pages-dynamiques.md`
 - `backend/README_PUBLIC_ENTRYPOINTS.md`
 
@@ -18,6 +20,14 @@ Ce document contient encore une partie de journal de conception. L'etat courant 
 - `backend/templates/admin/menus.php` n'est plus un textarea JSON : le builder visuel serveur est la voie normale
 - les formulaires admin `pages` et `menus` serialisent maintenant leur etat dans un champ JSON cache avant POST pour eviter les troncatures `max_input_vars`
 - les mentions restantes de `legacy_template` plus bas sont historiques si elles ne sont pas explicitement marquees comme "etat courant"
+
+Mise a jour 2026-04-16 (Lot C, isolation de la refonte) :
+- les suppressions suivies de `backend/templates/pages/site/**`, `backend/config/menu_data.php` et des points d'entree admin obfusques relevent de la bascule vers `structured_page`, `NavigationRepository` et l'admin canonique
+- ce perimetre doit etre documente et livre a part du nettoyage de depot ; le mapping de remplacement est centralise dans `docs/README_REFONTE_LOT_C.md`
+
+Mise a jour 2026-04-16 (Lot D, consolidation du code neuf) :
+- le bloc admin/editorial/navigation doit etre consolide comme domaine fonctionnel autonome, avec `backend/src/Admin/*`, `backend/src/Content/*`, `backend/src/Navigation/*`, `backend/templates/admin/*` et leurs tests associes
+- l'ordre de commit et les README a maintenir sont centralises dans `docs/README_CONSOLIDATION_LOT_D.md`
 
 Mise a jour 2026-03-19 (P1 en cours) :
 - `backend/core/router.php` et `backend/core/menu_loader.php` sont des wrappers de compatibilite ; la logique metier est migree dans `backend/src/Http/LegacyRouteResolver.php` et `backend/src/Navigation/LegacyMenuRuntime.php`.
@@ -34,6 +44,45 @@ Mise a jour 2026-03-20 (ticket W1-04 execute) :
   - `AdminSerializedFormNormalizerTest` couvre la fusion des champs systeme quand l'etat JSON serialize est incomplet,
   - `AdminNavigationServiceTest` verifie la purge du cache navigation apres sauvegarde.
 - validation operationnelle : `tests/AdminSerializedFormNormalizerTest.php`, `tests/AdminNavigationServiceTest.php`, `tests/AdminControllerTest.php` -> verts.
+
+Mise a jour 2026-03-20 (menu mobile) :
+- rendu mobile aligne sur la logique de fusion homonyme : si un groupe et son premier lien enfant partagent le meme libelle, le lien est promu au niveau du groupe et le doublon enfant est retire.
+- couverture de non-regression ajoutee dans `tests/MenusHeaderPartialTest.php`.
+
+Mise a jour 2026-03-20 (menu desktop tactile + sous-menus) :
+- les sous-menus desktop imbriques s'ouvrent maintenant sous leur parent (plus de decalage lateral penalissant le pointage).
+- les interactions desktop restent hybrides : survol souris conserve + ouverture au tap/clic sur ecran tactile.
+- couverture de non-regression frontend etendue dans `frontend/src/js/__tests__/menus.test.ts` (cas tap tactile desktop).
+
+Mise a jour 2026-03-20 (editeur pages, iframe) :
+- les regions `rich_text` acceptent maintenant les embeds `iframe` YouTube en mode admin (persistance stable apres sauvegarde et re-ouverture du formulaire).
+- les URLs `youtube.com/embed/*` sont canonicalisees en `youtube-nocookie.com/embed/*` pour rester compatibles avec la CSP en place.
+- les sources `iframe` hors liste de confiance sont supprimees au rendu (durcissement anti-injection).
+
+Mise a jour 2026-03-21 (articles blog, publication planifiee) :
+- ajout du statut `scheduled` dans l'admin articles avec date de publication programmee dediee.
+- publication automatique sans cron : un article planifie devient visible sur le front (liste, detail, RSS, sitemap) des que sa date est atteinte.
+
+Mise a jour 2026-03-21 (images editoriales V1) :
+- admin articles : ajout d'une image de couverture (URL ou upload), avec metadonnees SEO (`alt`, `title`, `caption`, dimensions).
+- admin pages : ajout d'une image SEO par langue (stockee en `translations[*].meta.image`) avec upload.
+- admin pages : ajout d'une section dediee "medias partages" en tete de formulaire (hors traductions), stockee en `meta.shared_media`.
+- upload medias partages : traitement serveur avec redimensionnement automatique (max 2048px) + conversion WebP, stockage mutualise dans `backend/public/uploads/editorial/media/YYYY/MM`.
+- rendu front : la galerie `meta.shared_media` est injectee en haut de page (section hero) et reste independante des contenus traduits.
+- stockage runtime des uploads dans `backend/public/uploads/editorial/**`, preserve en deploiement (scripts fast/release exclus de ce scope).
+- rendu front enrichi (cartes blog + detail article + chroniques rattachees) et balises head `og:image` / `twitter:image`.
+
+TODO V2 media :
+- etudier un module multimedia dedie (images + videos + metadata + droits d usage) avec bibliotheque unifiee admin et API de selection cross-contenus.
+
+Mise a jour 2026-03-21 (admin menus, suppression) :
+- bouton `Supprimer` du builder menus protege par une confirmation explicite.
+- comportement par defaut en cas d'annulation/fermeture de la popup : suppression refusee (`Non`).
+
+Mise a jour 2026-03-21 (admin menus, labels multilingues) :
+- le builder menus permet maintenant d'editer le libelle des items par langue (`fr/de/en`) avec choix d'une langue par defaut.
+- la projection front respecte un fallback explicite : langue courante -> langue par defaut -> libelle principal -> `translationKey`.
+- la persistance SQL navigation stocke les labels i18n (`label_default_language`, `label_translations_json`) via migration `006_navigation_item_label_i18n.sql`.
 
 ## Objectif
 
@@ -57,7 +106,7 @@ Etat actuel :
 
 Constat :
 - l'admin est securisee, centralisee et couvre maintenant le cycle critique "creer une page / traduire / publier"
-- le principal manque editorial est desormais la traduction plus fine des labels de menus et la poursuite de la bascule SQL
+- le principal reste editorial est desormais la preparation de la decision F7 (retrait ecriture JSON) et la poursuite de la bascule SQL exploitee
 
 ## 2. Pages
 
@@ -489,6 +538,8 @@ car_navigation_items
 - open_in_new_tab
 - label_text nullable
 - label_translation_key nullable
+- label_default_language nullable
+- label_translations_json nullable
 - image nullable
 - alt_text nullable
 - title_text nullable
@@ -859,7 +910,7 @@ Resultat attendu apres la section E :
 - les regressions sur les aliases admin legacy sont detectees automatiquement
 
 Readmes a maintenir :
-- `README_AUDIT_PLAN_ACTION_V1.md`
+- `docs/archive/README_AUDIT_PLAN_ACTION_V1.md`
 - `README_MODERNISATION_V1.md`
 
 ## Section F - Migrer L Editorial Vers SQL
@@ -913,6 +964,11 @@ Statut des etapes :
 - [x] F6 : lecture front-office en `sql` disponible et verifiee localement
 - [ ] F7 : suppression de l'ecriture JSON, volontairement differee apres stabilisation
 
+Preparation decision F7 (etat courant) :
+- [x] criteres techniques explicites poses (storage SQL stable + scheduler alertes logs + preuves runbook J+1/J+7).
+- [x] garde-fou rollback documente (retour `dual-write` si anomalie post-bascule).
+- [ ] decision GO finale F7 a prononcer apres fenetre d'observation exploitation complete.
+
 Readmes a maintenir :
 - `README_ADMIN_EDITORIAL_NAV_V1.md`
 - `README_MODERNISATION_V1.md`
@@ -924,7 +980,6 @@ Readmes a maintenir :
 - stocker en SQL la presentation du mega menu, ses colonnes et sa carte mise en avant
 - ajouter une section `Parametres` dans l'admin pour gerer la connexion BDD et la connexion admin
 - ecrire ces parametres sensibles dans une configuration runtime securisee hors webroot
-- rendre les labels de menus editables par langue dans le builder sans retomber sur du JSON brut
 - remplacer les boutons de reordonnancement du builder menus par du drag and drop TypeScript avec fallback serveur
 - etendre les tests HTTP pour couvrir le header desktop/mobile et les chemins de langue
 - continuer la reduction du legacy autour des partiels de navigation restants (`menu3`, blocs lateraux, footer)

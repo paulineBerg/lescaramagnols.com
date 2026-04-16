@@ -4,6 +4,9 @@ Date : 2026-03-19
 
 Ce document décrit la troisième passe de modernisation du pipeline Vite vers le backend PHP.
 
+Reference complementaire :
+- `../docs/README_CONSOLIDATION_LOT_D.md`
+
 ## Objectif
 
 Garantir un seul contrat de build entre le frontend et le backend :
@@ -11,6 +14,9 @@ Garantir un seul contrat de build entre le frontend et le backend :
 - publication contrôlée vers `backend/public/`
 - purge automatique des anciens bundles hashés
 - lecture du manifest unifiée côté PHP
+
+Mise a jour 2026-04-16 :
+- le Lot D isole `frontend/tools/**` comme domaine de consolidation specifique ; ce README reste la source de verite pour ce sous-lot (publication, hygiene docs/assets/repo, budgets, proxy dev)
 
 ## Source De Verite
 

@@ -1,6 +1,6 @@
 # Plan Transition V1 - S1 A S8
 
-Date de mise a jour : 2026-03-20
+Date de mise a jour : 2026-03-21
 Statut : actif
 
 Ce document est le plan d'execution operationnel pour :
@@ -20,17 +20,27 @@ References :
 
 ## Execution en cours
 
-Date : 2026-03-20
+Date : 2026-03-21
 
 - [x] W1-01 execute : quality gates locales lancees et preuves archivees dans `docs/private/recette-preprod-v1-2026-03-20/`.
 - [x] W1-02 execute : scripts `backend/tools/deploy-fast.sh` et `backend/tools/deploy-release.sh` ajoutes + documentation usage/rollback dans `README.md`.
 - [x] W1-03 execute : hardening HTTP/headers valide sur `https://www.lescaramagnols.com` + controle `--strict-prod-security` vert (preuves `33-check-security-headers-www.txt` et `34-check-env-production-strict.txt`).
 - [x] W1-04 execute : stabilite admin navigation/footer validee (tests 45/45 verts + purge cache navigation, preuves `62-w1-04-admin-tests.txt` et `63-w1-04-cache-clear-navigation.txt`).
+- [x] W1-05 execute : runbook backup/restore rejoue en preprod (`storage=json`) avec preuve de backup (`103-w1-05-backup.txt`) et de restauration (`104-w1-05-restore.txt`).
 - [x] W1-06 execute : recette manuelle FO/Admin desktop/mobile archivee (`front/*`, `admin/*`) + non-regression automatisee FO/Admin (`87-w1-06-fo-admin-tests.txt`).
+- [x] W1-07 execute : controles de cloture relances (autoload/controllers/HTTP/cache/tests/hygiene docs) + decision formelle archivee (etat final `GO`, preuves `105` a `113`).
 - [x] Maintenance documentaire + securite session admin : warning de prolongation avant timeout (120s) + route keepalive `/<base_path>/<ADMIN_LOGIN_PATH>/session/ping` documentes et testes (non bloquant FO).
 - [x] Correctif admin tarteaucitron : acceptation stable de l'objet JSON vide `{}` dans "Variables JS services" (blocage historique supprime, listes JSON explicites `[]` toujours refusees).
 - [x] Correctif admin tarteaucitron (booleens legacy) : normalisation `false/off/0` pour eviter le recochage automatique des options apres sauvegarde.
 - [x] Durcissement persistance tarteaucitron : suppression des cast bool ambigus restants dans `AdminSettingsService` (normalisation homogene runtime + save), pour stabiliser l'etat coche/decoche apres "Enregistrer".
+- [x] Correctif navigation desktop FO : sous-menus imbriques re-positionnes sous le parent + ouverture tactile au tap/clic conservee en complement du survol souris.
+- [x] Correctif admin pages (editeur HTML) : les `iframe` YouTube en region `rich_text` sont conserves apres sauvegarde/re-ouverture, avec normalisation automatique vers `youtube-nocookie.com` et rejet des sources non autorisees.
+- [x] Evolution editoriale V1 : upload image admin pages/articles, rendu SEO image (`og:image`/`twitter:image`) et preservation `backend/public/uploads/editorial/**` en deploiement (non bloquant FO).
+- [x] Correctif admin menus : confirmation explicite avant suppression d'un item (`Oui/Non`), annulation par defaut si absence de validation (non bloquant FO).
+- [x] Addendum go-live 2026-03-21 : pre-requis prod leves (`check-env --strict-prod-security` OK, headers securite OK, recette admin authentifiee OK, Instagram desactive) -> decision deploiement immediat revue a `GO` (preuves `114` a `117`).
+- [x] Observabilite ops : `check_log_alerts.php` branche sur canal webhook/email + pack `systemd timer` (`runner`, templates units, script d'installation) pour preprod/prod.
+- [x] V2 observabilite admin : nouveau panneau `Parametres > Observabilite ops` pour piloter `notify_on` (`alerts|always`) sans exposer les secrets infra.
+- [x] Runbook post go-live execute : cycle J+1 + J+7 archive (`122` a `128`) avec logs verts, benchmark routes, controle HTTP/HTTPS cible et synthese anomalies.
 
 ## Principes d execution
 
@@ -127,7 +137,7 @@ npm audit --json
 Livrables :
 
 - preuves de commandes (fichiers `.txt` ou captures)
-- statut GO/NO-GO explicite
+- statut de decision explicite
 
 ### Ticket W1-02 - Deploiement leger standardise
 
@@ -249,13 +259,21 @@ Commandes de validation :
 ```bash
 cd backend
 php core/tools/editorial_backup_restore.php backup --output=var/backups
-php core/tools/editorial_backup_restore.php restore --input=var/backups/<dernier_fichier>.json
+php core/tools/editorial_backup_restore.php restore var/backups/<dernier_fichier>.json --force
 ```
 
 Livrables :
 
 - archive backup
 - preuve de restauration valide
+
+Checklist detaillee W1-05 (execution du 2026-03-21) :
+
+- [x] Backup editorial complet genere : `php core/tools/editorial_backup_restore.php backup --storage=json --output=var/backups/w1-05-backup-2026-03-21.json`.
+- [x] Restauration rejouee depuis le backup genere : `php core/tools/editorial_backup_restore.php restore var/backups/w1-05-backup-2026-03-21.json --force --storage=json`.
+- [x] Coherence post-restore verifiee : `47` pages, `8` emplacements navigation, `0` article, `0` discussion (jeu editorial JSON courant).
+- [x] Preuves archivees : `103-w1-05-backup.txt`, `104-w1-05-restore.txt`.
+- [x] Ecart restant sur ce ticket : aucun pour la cloture S1.
 
 ### Ticket W1-06 - Recette manuelle ciblee FO/Admin
 
@@ -297,7 +315,7 @@ Checklist detaillee W1-06 (execution du 2026-03-20) :
 - [x] Liste d'anomalies et decision de traitement archivees : `88-w1-06-anomalies.md` (aucune anomalie bloquante relevee).
 - [x] Verifications fin de mission executees : autoload/Controllers/HTTP/cache/hygiene docs (`89` a `93`).
 
-### Ticket W1-07 - Cloture S1 et GO/NO-GO
+### Ticket W1-07 - Cloture S1 et decision de passage
 
 Priorite : P0  
 Effort : 0.5 jour
@@ -322,7 +340,7 @@ php -r "require 'core/bootstrap.php'; app_runtime_cache_clear(['pages','navigati
 
 Livrables :
 
-- decision GO/NO-GO signee
+- decision de passage signee (`GO`)
 - checklist S1 complete
 
 ## Checklists detaillees tickets S1
@@ -337,11 +355,11 @@ Livrables :
 
 ### W1-05 - Backup/restore avant operations destructives
 
-- [ ] Generer un backup editorial complet avant manipulation destructive.
-- [ ] Rejouer une restauration depuis le dernier backup disponible.
-- [ ] Comparer la coherence post-restore (`pages`, `navigation`, `blog`, `discussions`).
-- [ ] Archiver le fichier de backup et la sortie de restauration.
-- [ ] Documenter les ecarts ou anomalies de coherence (si presents).
+- [x] Generer un backup editorial complet avant manipulation destructive.
+- [x] Rejouer une restauration depuis le dernier backup disponible.
+- [x] Comparer la coherence post-restore (`pages`, `navigation`, `blog`, `discussions`).
+- [x] Archiver le fichier de backup et la sortie de restauration.
+- [x] Documenter les ecarts ou anomalies de coherence (si presents).
 
 ### W1-06 - Recette manuelle ciblee FO/Admin
 
@@ -351,13 +369,13 @@ Livrables :
 - [x] Capturer parcours admin mobile (login + protections `302`).
 - [x] Dresser la liste d'anomalies avec severite et decision de traitement.
 
-### W1-07 - Cloture S1 et GO/NO-GO
+### W1-07 - Cloture S1 et decision de passage
 
-- [ ] Consolider les preuves et statuts W1-01 a W1-06.
-- [ ] Rejouer les controles fin de tache : autoload, controllers, smoke HTTP.
-- [ ] Purger le cache runtime (`pages`, `navigation`, `translations`) en cloture.
-- [ ] Mettre a jour `README_V1_PREPARATION_DEPLOIEMENT.md` (decision GO/NO-GO + restants).
-- [ ] Formaliser une decision explicite `GO` ou `NO-GO` avec justification.
+- [x] Consolider les preuves et statuts W1-01 a W1-06.
+- [x] Rejouer les controles fin de tache : autoload, controllers, smoke HTTP.
+- [x] Purger le cache runtime (`pages`, `navigation`, `translations`) en cloture.
+- [x] Mettre a jour `README_V1_PREPARATION_DEPLOIEMENT.md` (decision de passage + restants).
+- [x] Formaliser une decision explicite `GO` avec justification.
 
 ## Definition de done S1
 
@@ -368,3 +386,8 @@ Pour considerer S1 termine :
 3. Les preuves de recette sont archivees.
 4. Le deploiement rapide est operationnel.
 5. Les README canoniques sont alignes.
+
+Statut cloture S1 (2026-03-21) :
+
+- Decision passage S1 -> S2 : `GO`.
+- Decision deploiement production immediat : `GO` (confirme apres addendum go-live du 2026-03-21, preuves `114` a `117`).
