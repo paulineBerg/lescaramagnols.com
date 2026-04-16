@@ -7,6 +7,15 @@ const STORAGE_KEY = 'lescaramagnols.lang';
 
 const translationCache = new Map<SupportedLang, Record<string, string>>();
 
+function resolveLangApiEndpoint(): string {
+  const candidate = window.caramagnolsRuntime?.api?.lang;
+  if (typeof candidate === 'string' && candidate.trim() !== '') {
+    return candidate.trim();
+  }
+
+  return '/core/api/lang.php';
+}
+
 function normaliseLang(lang?: string | null): SupportedLang {
   if (!lang) return DEFAULT_LANG;
   const clean = lang.toLowerCase().split('-')[0];
@@ -59,7 +68,9 @@ export async function loadTranslations(lang: SupportedLang = DEFAULT_LANG): Prom
   }
 
   try {
-    const response = await fetch(`core/api/lang.php?lang=${finalLang}`, {
+    const endpoint = resolveLangApiEndpoint();
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const response = await fetch(`${endpoint}${separator}lang=${encodeURIComponent(finalLang)}`, {
       headers: {
         Accept: 'application/json'
       },

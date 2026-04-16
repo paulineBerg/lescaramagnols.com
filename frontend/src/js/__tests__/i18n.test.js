@@ -17,6 +17,7 @@ describe('i18n helpers', () => {
     vi.restoreAllMocks();
     clearTranslationCache();
     localStorage.clear();
+    window.caramagnolsRuntime = undefined;
     Object.defineProperty(window.navigator, 'language', {
       value: 'fr-FR',
       configurable: true
@@ -55,5 +56,20 @@ describe('i18n helpers', () => {
     await changeLanguage('en');
     await changeLanguage('en');
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses runtime lang api path when provided', async () => {
+    window.caramagnolsRuntime = {
+      api: {
+        lang: '/catalogue/core/api/lang.php'
+      }
+    };
+
+    await changeLanguage('de');
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/catalogue/core/api/lang.php?lang=de'),
+      expect.any(Object)
+    );
   });
 });
