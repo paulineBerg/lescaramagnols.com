@@ -1,21 +1,376 @@
 {
-    "bouger": [
+    "accueil": [
         {
-            "titre": "LE GOLFE DE SAINT-TROPEZen quelques mots Saint-Tropez Balades Nature et Patrimoine Les animations La Plage, La Mer, Le Soleil",
-            "contenu": "LE GOLFE DE SAINT-TROPEZen quelques mots Saint-Tropez Balades Nature et Patrimoine Les animations La Plage, La Mer, Le Soleil Le Golfe de Saint-Tropez est un écrin méditerranéen niché dans le département du Var, formé de douze communes emblématiques : Cavalaire-sur-Mer, Cogolin, Gassin, Grimaud, La …",
-            "url": "\/site\/bouger\/se-promener-dans-le-golfe-de-sttropez",
-            "image": "\/assets\/images\/structure\/menu\/bouger\/uivillages.jpg",
+            "titre": "BIENVENUE SUR LES CARAMAGNOLS",
+            "contenu": "BIENVENUE SUR LES CARAMAGNOLS NOS VOITURES RETRO AU CŒUR DU GOLFE DE ST-TROPEZ Avec ses 300 jours d'ensoleillement par an, le golfe de St-Tropez est l'endroit rêvé pour promener avec nos voitures anciennes. Voitures Passion Profitez de notre passion pour les voitures anciennes, collection, auto-rétr…",
+            "url": "/",
+            "image": "/assets/images/bouger/golfe/montage.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
+                "EditRegion3",
+                "EditRegion7"
+            ]
+        },
+        {
+            "titre": "LES MENTIONS LÉGALES DES CARAMAGNOLS",
+            "contenu": "LES MENTIONS LÉGALES DES CARAMAGNOLS Pauline Bergon 2738 route de la Mole 83310 Cogolin – France E-mail : accueil@lescaramagnols.com RCS : 803 935 725 Conformément à la législation en vigueur, notamment la loi pour la confiance dans l’économie numérique (LCEN) et le Règlement Général sur la Protecti…",
+            "url": "/accueil/toutes-les-mentions-legales.php",
+            "image": "https://www.lescaramagnols.com/assets/images/structure/banniere.gif",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
+                "EditRegion4"
+            ]
+        },
+        {
+            "titre": "SOMMAIRE",
+            "contenu": "SOMMAIRE Une petite aide pour vous y retrouver... Vous trouverez donc ci-dessous le plan d'accès du site. Sitemap Le Menu d'accueil - 3 pages Bienvenue aux Caramagnols Le plan du site Les mentions légales Auto-rétro - 20 pages Panhard Dyna Z12 Austin Aventure Mini Austin Histoire de Austin Une Mini …",
+            "url": "/accueil/le-plan-du-site-des-caramagnols.php",
+            "image": null,
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        }
+    ],
+    "auto-retro": [
+        {
+            "titre": "ARONDE A90 ELYSEE",
+            "contenu": "ARONDE A90 ELYSEE Notre Aronde : Un voyage entre passion et tragédie Comment parler de notre Aronde sans évoquer celle qui a marqué nos débuts dans cette aventure ? Tout a commencé en 2013, quand nous avons acquis notre première Aronde A90 Elysée de 1955. À l'époque, elle n'était pas dans sa plus be…",
+            "url": "/auto-retro/simca/une-aronde-dans-le-golfe-de-sttropez.php",
+            "image": "/assets/images/autoretro/simca/aronde/exposition_simca_aronde.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "AUSTIN",
+            "contenu": "AUSTIN L'histoire de la marque automobile AUSTIN : Une icône britannique Austin, une marque emblématique de l'automobile britannique, a vu le jour en 1905 sous l'initiative de Herbert Austin, un ingénieur talentueux et innovant. L'objectif de cette marque était clair : rendre l'automobile accessible…",
+            "url": "/auto-retro/austin/histoire-de-austin.php",
+            "image": "/assets/images/autoretro/austin/austin_7hp.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "L'ARONDE DE CHEZ SIMCA",
+            "contenu": "L'ARONDE DE CHEZ SIMCA L'Aronde, dont le nom évoque une hirondelle en français ancien, illustre une approche innovante dans la conception automobile. Le choix de cette dénomination n'était pas anodin : il symbolisait l'efficacité énergétique du véhicule. L'appellation fait référence à la légèreté et…",
+            "url": "/auto-retro/simca/histoire-simca-aronde-icone-francaise.php",
+            "image": "/assets/images/autoretro/simca/simca_aronde_9.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "LA DYNA DE CHEZ PANHARD",
+            "contenu": "LA DYNA DE CHEZ PANHARD La Panhard Dyna, produite de l’après-guerre jusqu’au tournant des années 1960, incarne une des périodes les plus fécondes de l’automobile française. Née dans un contexte de reconstruction, cette berline légère et audacieuse a marqué l’histoire par son ingénierie innovante, se…",
+            "url": "/auto-retro/panhard/une-dyna-icone-automobile.php",
+            "image": "/assets/images/autoretro/panhard/Panhard_Dyna.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "LA DYNA MODELE Z12",
+            "contenu": "Panhard Dyna Z12 : histoire, caractéristiques techniques et intérêt en collection La Panhard Dyna Z12 est l’une des versions les plus intéressantes de la famille Dyna Z. Produite entre août 1956 et octobre 1958, elle correspond à une phase importante de l’évolution du modèle, lorsque Panhard cherche…",
+            "url": "/auto-retro/panhard/la-dyna-modele-z12.php",
+            "image": "/assets/images/structure/menu/auto-retro/uisimca.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion3",
+                "EditRegion11"
+            ]
+        },
+        {
+            "titre": "LA MINI DE CHEZ AUSTIN - MORRIS et +++",
+            "contenu": "LA MINI DE CHEZ AUSTIN - MORRIS et +++ L'histoire de la Mini Austin débute dans les années 1950, une époque marquée par la crise pétrolière et la nécessité pour les automobilistes de trouver des solutions de transport à la fois économiques et efficaces. Ce contexte va donner naissance à l'une des vo…",
+            "url": "/auto-retro/austin/aventure-mini-austin.php",
+            "image": "/assets/images/autoretro/austin/1963_MkI_Mini.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "La Panhard Dyna Z",
+            "contenu": "Panhard Dyna Z : une berline française audacieuse, légère et en avance sur son temps Loin des codes stylistiques de l'époque, cette berline familiale incarne l'esprit avant-gardiste de son constructeur en misant sur l'aérodynamisme et la légèreté. Panhard Dyna Z , Photo : Alexandre Prévot , Licence …",
+            "url": "/auto-retro/panhard/la-dyna-z-voiture-de-collection.php",
+            "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Panhard%20Dyna%20Z.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
+                "EditRegion11"
+            ]
+        },
+        {
+            "titre": "LA SIMCA 9 ARONDE (avril 1951)",
+            "contenu": "LA SIMCA 9 ARONDE (avril 1951) Carrosserie monocoque : une première pour Simca, cette caractéristique offrait une rigidité accrue et un habitacle plus spacieux. Calandre distinctive: elle arbore un design en \"podium\" ou \"escalier\". Dans le paysage automobile français de la fin des années 1940, la Si…",
+            "url": "/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php",
+            "image": "/assets/images/autoretro/simca/aronde/simca_9_sport.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "LA SIMCA ARONDE 1300 ou 90A",
+            "contenu": "LA SIMCA ARONDE 1300 ou 90A L'Aronde 1300 marque une étape importante dans l'histoire de la Simca. Sortie en 1956, elle succède à la Simca 9 et apporte de nombreuses améliorations, tant au niveau du moteur que du design qui s'est inspiré des modèles américains, calandre avant et ailes arrières. Ce m…",
+            "url": "/auto-retro/simca/la-simca-aronde-1300-voiture-de-collection.php",
+            "image": "/assets/images/autoretro/simca/aronde/moteur_flash.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "LA SIMCA P60",
+            "contenu": "LA SIMCA P60 La Simca Aronde P60, lancée en 1959, représente une évolution significative de la gamme Aronde. Conçue pour personnaliser les années 1960, la P60 se distingue par son style modernisé et ses performances améliorées. L'Aronde P60, présentée en avant-première au Salon de l'Automobile de Pa…",
+            "url": "/auto-retro/simca/la-simca-P60-voiture-de-collection.php",
+            "image": "/assets/images/autoretro/simca/aronde/simca_aronde_P60.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "LA SLK DE CHEZ MERCEDES",
+            "contenu": "Mercedes-Benz SLK : de la naissance du roadster à toit rigide escamotable à la fin de la lignée Un Design marqué : une voiture compacte, tendue et immédiatement reconnaissable. La Mercedes-Benz SLK occupe une place singulière dans l’histoire automobile contemporaine. Lorsqu’elle apparaît au milieu d…",
+            "url": "/auto-retro/mercedes/la-slk-une-voiture-compacte-sportive.php",
+            "image": "/assets/images/autoretro/mercedes/mercedes_SLK_R170_200_1996.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "LA TWINGO DE CHEZ RENAULT",
+            "contenu": "LA TWINGO DE CHEZ RENAULT La Renault Twingo est une citadine emblématique qui a bouleversé le paysage automobile européen dès 1992. Conçue pour incarner la mobilité urbaine accessible, elle combine audace stylistique, ingénierie novatrice et un sens du jeu qui a conquis plusieurs générations. Twingo…",
+            "url": "/auto-retro/renault/la-twingo-une-voiture-a-succes.php",
+            "image": "/assets/images/autoretro/renault/1997_Renault_Twingo_1.15.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "MERCEDES-BENZ",
+            "contenu": "MERCEDES-BENZ De l’invention du moteur à explosion aux systèmes de sécurité et d’assistance de pointe Les pionniers : la naissance d’une étoile L’histoire de Mercedes-Benz est d’abord celle de deux trajectoires parallèles qui finissent par se croiser, donnant naissance à une marque qui marquera dura…",
+            "url": "/auto-retro/mercedes/histoire-de-mercedes.php",
+            "image": "/assets/images/autoretro/mercedes/mercedesportraits.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "MINI MAYFAIR",
+            "contenu": "Notre Austin Mini Mayfair de 1988 Focus : Cette Mini n’est pas seulement une voiture ancienne, c’est avant tout une histoire. Offerte à Noël 2010 après avoir été trouvée quelques jours plus tôt à Nice, cachée en secret puis remise en état en un temps record, elle incarne parfaitement l’esprit de la …",
+            "url": "/auto-retro/austin/une-mini-dans-le-golfe-de-sttropez.php",
+            "image": "/assets/images/structure/menu/auto-retro/uiaustin.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "NOTRE DYNA",
+            "contenu": "NOTRE DYNA C’est l’histoire d’une rencontre, d’une Bretonne qui a traversé la France pour venir s’endormir doucement sous le soleil du Golfe de Saint-Tropez. Achat : octobre 2020 Notre Panhard Dyna Z12 est une vraie bretonne. Nous l’avons repérée au détour d’un célèbre site de petites annonces d’occ…",
+            "url": "/auto-retro/panhard/une-dynaz12-dans-le-golfe-de-sttropez.php",
+            "image": "/assets/images/autoretro/panhard/dynaz12/annonce_dyna_z12.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "PANHARD",
+            "contenu": "PANHARD La marque Panhard & Levassor raccourcit son nom en \"Panhard\" en 1932. Ce changement de cap reflète une volonté d’adaptation à un monde automobile en constante évolution, où clarté et identité forte deviennent des impératifs. Panhard, précurseur de l’automobile moderne Dans les dernières anné…",
+            "url": "/auto-retro/panhard/histoire-de-panhard.php",
+            "image": "/assets/images/autoretro/panhard/Rene_Panhard.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "RENAULT",
+            "contenu": "RENAULT Fondée en 1899 par les frères Louis, Marcel et Fernand Renault, la marque Renault est l'une des plus anciennes marques automobiles encore en activité. Renault : L'Histoire d'une Passion Automobile Les Débuts Innovants de Renault Dès ses débuts, Renault s'est distingué par son esprit novateur…",
+            "url": "/auto-retro/renault/histoire-de-renault.php",
+            "image": "/assets/images/autoretro/renault/les_freres_renault.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "RESTAURATION ARONDE A90 Elysée par Garage SAVA à Rioz (70)",
+            "contenu": "Restauration de notre Simca Aronde A90 Elysée par Garage SAVA à Rioz (70) En août 2021, un feu de forêt touche notre propriété et détruit notre Aronde A90 Élysée. En avril 2022, lors d'une soirée canapé-téléphone, Jean-Noël discute à nouveau de l'Aronde perdue avec son fils, passionné d'automobiles …",
+            "url": "/auto-retro/simca/une-simca-aronde-en-restauration-chez-sava-rioz.php",
+            "image": "/assets/images/autoretro/simca/aronde/restauration_simca_aronde_elysee_fin.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "SIMCA",
+            "contenu": "SIMCA Simca, acronyme de \"Société Industrielle de Mécanique et de Carrosserie Automobile\", fut fondée en 1934 par Henri Pigozzi. En l’espace d’un demi-siècle, elle incarna l’un des plus grands élans de l’industrie automobile française, alliant ingéniosité technique, flair commercial et audace stylis…",
+            "url": "/auto-retro/simca/histoire-de-simca.php",
+            "image": "/assets/images/autoretro/simca/simca_Henri_Pigozzi.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "SLK",
+            "contenu": "Notre Mercedes SLK 230 Kompressor de 1996 : une Mercedes de famille, un cadeau, et déjà un vrai futur collector Il y a des voitures que l’on cherche longtemps, en comparant les annonces, les versions et les options. Et puis il y a celles qui arrivent dans une vie presque comme un signe. Notre Merced…",
+            "url": "/auto-retro/mercedes/une-slk-dans-le-golfe-de-sttropez.php",
+            "image": "/assets/images/structure/menu/auto-retro/uiaustin.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion3",
+                "EditRegion11"
+            ]
+        },
+        {
+            "titre": "TWINGO HELIOS",
+            "contenu": "Renault Twingo Hélios – Une petite voiture, une grande histoire Acquisition et remise en état : Nous avons acquis cette Twingo en mai 2023, dans un état globalement sain mais marqué par les années et son utilisation. Fidèle à son histoire, elle était restée dans son jus, nécessitant toutefois quelqu…",
+            "url": "/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php",
+            "image": "/assets/images/structure/menu/auto-retro/uiaustin.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        }
+    ],
+    "boulyetcailloux-des-bijoux-artisanaux": [
+        {
+            "titre": "Boulyetcailloux Des Bijoux Artisanaux",
+            "contenu": "Bouly&Cailloux : des créations artisanales à découvrir Pourquoi visiter Bouly&Cailloux ? Si vous aimez les créations faites main, les pièces originales et les univers artisanaux, la boutique Bouly&Cailloux mérite le détour. Vous y découvrirez des réalisations conçues avec goût, dans une approche cré…",
+            "url": "/boulyetcailloux-des-bijoux-artisanaux.php",
+            "image": null,
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
+                "EditRegion4",
+                "EditRegion5",
+                "EditRegion6",
+                "EditRegion7",
+                "EditRegion9",
+                "EditRegion11"
+            ]
+        }
+    ],
+    "bouger": [
+        {
+            "titre": "GASSIN",
+            "contenu": "Gassin : village perché du Golfe de Saint-Tropez entre histoire, patrimoine, technique et tourisme Perché à près de 200 mètres d’altitude, Gassin offre l’un des panoramas les plus remarquables du Golfe de Saint-Tropez. Ce village médiéval, organisé autour d’un tissu urbain dense et de ruelles étroit…",
+            "url": "/bouger/se-promener-a-gassin.php",
+            "image": null,
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "LE GOLFE DE SAINT-TROPEZ en quelques mots",
+            "contenu": "LE GOLFE DE SAINT-TROPEZen quelques mots Saint-Tropez Balades Nature et Patrimoine Les animations La Plage, La Mer, Le Soleil Le Golfe de Saint-Tropez est un écrin méditerranéen niché dans le département du Var, formé de douze communes emblématiques : Cavalaire-sur-Mer, Cogolin, Gassin, Grimaud, La …",
+            "url": "/bouger/se-promener-dans-le-golfe-de-sttropez.php",
+            "image": "/assets/images/structure/menu/bouger/uivillages.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2"
+            ]
+        },
+        {
+            "titre": "Les Animations Dans Le Golfe De Sttropez",
+            "contenu": "Les animations dans le Golfe de Saint-Tropez : entre mer, villages et art de vivre Le Golfe de Saint-Tropez ne se résume pas à son image glamour. C’est aussi un territoire vivant, chaleureux et varié, où les animations prennent des formes très différentes selon les saisons, les villages et les envie…",
+            "url": "/bouger/les-animations-dans-le-golfe-de-sttropez.php",
+            "image": null,
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "Les Brochures Du Golfe De Sttropez",
+            "contenu": "",
+            "url": "/bouger/les-brochures-du-golfe-de-sttropez.php",
+            "image": null,
+            "blocs_utilises": []
+        },
+        {
+            "titre": "Les Voiles Latines A Sttropez",
+            "contenu": "",
+            "url": "/bouger/animations/les-voiles-latines-a-sttropez.php",
+            "image": null,
+            "blocs_utilises": []
+        },
+        {
+            "titre": "Se Promener A Ramatuelle Golfe De Sttropez",
+            "contenu": "Ramatuelle : un village perché emblématique du Golfe de Saint-Tropez Un village circulaire dominant la Méditerranée, entre vignobles, pinèdes et plages mythiques. Situé sur les hauteurs du Golfe de Saint-Tropez, le village de Ramatuelle est l’un des exemples les plus remarquables d’implantation médi…",
+            "url": "/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php",
+            "image": "/assets/images/structure/menu/bouger/uicogolin.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "Se Promener A Sttropez",
+            "contenu": "Saint-Tropez : entre village provençal et destination mythique Saint-Tropez est un village entre tradition et légende, où le charme des ruelles provençales rencontre l’élégance du port et l’énergie de la Méditerranée. Située sur la côte méditerranéenne, dans le département du Var, Saint-Tropez est a…",
+            "url": "/bouger/se-promener-a-sttropez.php",
+            "image": "/assets/images/structure/menu/bouger/uicogolin.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3"
+            ]
+        },
+        {
+            "titre": "Se Promener Dans Les Villages Du Golfe De Sttropez",
+            "contenu": "Se promener dans les villages du golfe de Saint-Tropez Se promener dans les villages du golfe de Saint-Tropez, c’est découvrir une autre facette de la côte varoise. Loin de l’image la plus connue du littoral, ces villages offrent des ruelles paisibles, des places ombragées, des façades colorées, des…",
+            "url": "/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php",
+            "image": "/assets/images/structure/menu/bouger/uicogolin.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
                 "EditRegion4"
             ]
         },
         {
             "titre": "VISITEZ COGOLIN",
             "contenu": "VISITEZ COGOLIN Entrez dans l'histoire La légende fondatrice de Cogolin remonte au Chevalier Torpès. Après son martyr à Pise, sa barque dérive jusqu’aux côtes varoises avec pour compagnons un coq et un chien. Lorsqu’elle touche terre à l’emplacement actuel de Cogolin, le coq s’envole dans un champ d…",
-            "url": "\/site\/bouger\/se-promener-a-Cogolin-golfe-de-sttropez",
-            "image": "\/assets\/images\/bouger\/communes\/cogolin\/mairie_de_cogolin.jpg",
+            "url": "/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php",
+            "image": "/assets/images/bouger/communes/cogolin/mairie_de_cogolin.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -25,306 +380,26 @@
         },
         {
             "titre": "VISITEZ LA GARDE-FREINET",
-            "contenu": "VISITEZ LA GARDE-FREINET Son nom \"Garde\" vient de son rôle défensif stratégique ; \"Freinet\" fait référence au Fraxinetum, plaine ancienne peuplée de frênes entre Grimaud et Gassin.  Le XIXe siècle marque l’apogée économique avec l’essor de l’industrie bouchonnière. En 1872, on y compte plus de 660 o…",
-            "url": "\/site\/bouger\/se-promener-a-La-Garde-Freinet-golfe-de-sttropez",
-            "image": "\/assets\/images\/bouger\/communes\/lagardefreinet\/la_garde_freinet_village.jpg",
+            "contenu": "VISITEZ LA GARDE-FREINET Son nom \"Garde\" vient de son rôle défensif stratégique ; \"Freinet\" fait référence au Fraxinetum, plaine ancienne peuplée de frênes entre Grimaud et Gassin. Le XIXe siècle marque l’apogée économique avec l’essor de l’industrie bouchonnière. En 1872, on y compte plus de 660 ou…",
+            "url": "/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php",
+            "image": "/assets/images/bouger/communes/lagardefreinet/la_garde_freinet_village.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
-                "EditRegion8",
                 "EditRegion3",
                 "EditRegion7"
-            ]
-        }
-    ],
-    "accueil": [
-        {
-            "titre": "(Sans titre)",
-            "contenu": "Une petite aide pour vous y retrouver... Vous trouverez donc ci-dessous le plan d'accès du site. Sitemap La page d'accueil Le Menu d'accueil2 pages Les mentions légales des Caramagnols Le Plan du site Auto-rétro1 page Simca : histoire de la marque. Bouger6 pages Le Golfe de Saint-Tropez : ses légend…",
-            "url": "\/site\/accueil\/le-plan-du-site-des-caramagnols",
-            "image": null,
-            "blocs_utilises": [
-                "EditRegion2",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "BIENVENUE SUR LES CARAMAGNOLS NOS VOITURES RETRO AU CŒUR DU GOLFE DE ST-TROPEZ",
-            "contenu": "BIENVENUE SUR LES CARAMAGNOLS NOS VOITURES RETRO AU CŒUR DU GOLFE DE ST-TROPEZ Avec ses 300 jours d'ensoleillement par an, le golfe de St-Tropez est l'endroit rêvé pour promener avec nos voitures anciennes. Voitures Passion Profitez de notre passion pour les voitures anciennes, collection, auto-rétr…",
-            "url": "\/site\/accueil\/bienvenue-aux-caramagnols",
-            "image": "\/assets\/images\/bouger\/golfe\/montage.webp",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion3",
-                "EditRegion5",
-                "EditRegion6",
-                "EditRegion7"
-            ]
-        },
-        {
-            "titre": "LES MENTIONS LÉGALES DES CARAMAGNOLS",
-            "contenu": "LES MENTIONS LÉGALES DES CARAMAGNOLS Pauline Bergon - 2738 route de la Mole - 83310 Cogolin.RCS : 803 935 725 - La loi pour la confiance dans l'économie numérique précise les informations à faire paraître sur le site afin d'établir un lien de \"confiance\" entre vous, visiteur, et moi qui suis derrièr…",
-            "url": "\/site\/accueil\/toutes-les-mentions-legales",
-            "image": "https:\/\/www.lescaramagnols.com\/structure\/images\/menu\/banniere.gif",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion3",
-                "EditRegion4"
-            ]
-        }
-    ],
-    "auto-retro": [
-        {
-            "titre": "ARONDE A90 ELYSEE",
-            "contenu": "ARONDE A90 ELYSEE   Notre Aronde : Un voyage entre passion et tragédie Comment parler de notre Aronde sans évoquer celle qui a marqué nos débuts dans cette aventure ? Tout a commencé en 2013, quand nous avons acquis notre première Aronde A90 Elysée de 1955. À l'époque, elle n'était pas dans sa plus …",
-            "url": "\/site\/auto-retro\/simca\/une-aronde-dans-le-golfe-de-sttropez",
-            "image": "\/assets\/images\/autoretro\/simca\/aronde\/exposition_simca_aronde.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "AUSTIN",
-            "contenu": "AUSTIN Le nom Austin vient directement de son fondateur, Herbert Austin, un ingénieur britannique visionnaire. Lorsqu'il décide de créer sa propre entreprise en 1905, il utilise tout simplement son propre nom pour baptiser la marque : The Austin Motor Company.  L'histoire de la marque automobile AUS…",
-            "url": "\/site\/auto-retro\/austin\/histoire-de-austin",
-            "image": "\/assets\/images\/autoretro\/austin\/austin_logo.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "L'ARONDE DE CHEZ SIMCA",
-            "contenu": "L'ARONDE DE CHEZ SIMCA L'Aronde, dont le nom évoque une hirondelle en français ancien, illustre une approche innovante dans la conception automobile. Le choix de cette dénomination n'était pas anodin : il symbolisait l'efficacité énergétique du véhicule. L'appellation fait référence à la légèreté et…",
-            "url": "\/site\/auto-retro\/simca\/histoire-simca-aronde-icone-francaise",
-            "image": "\/assets\/images\/autoretro\/simca\/mascotte_aronde.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "LA DYNA DE CHEZ PANHARD",
-            "contenu": "LA DYNA DE CHEZ PANHARD La Panhard Dyna, produite de l’après-guerre jusqu’au tournant des années 1960, incarne une des périodes les plus fécondes de l’automobile française. Née dans un contexte de reconstruction, cette berline légère et audacieuse a marqué l’histoire par son ingénierie innovante, se…",
-            "url": "\/site\/auto-retro\/panhard\/une-dyna-icone-automobile",
-            "image": "\/assets\/images\/autoretro\/panhard\/dyna_centre_volant.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "LA MINI DE CHEZ AUSTIN - MORRIS et +++",
-            "contenu": "LA MINI DE CHEZ AUSTIN - MORRIS et +++ L'histoire de la Mini Austin débute dans les années 1950, une époque marquée par la crise pétrolière et la nécessité pour les automobilistes de trouver des solutions de transport à la fois économiques et efficaces. Ce contexte va donner naissance à l'une des vo…",
-            "url": "\/site\/auto-retro\/austin\/aventure-mini-austin",
-            "image": "\/assets\/images\/autoretro\/austin\/emblemes_mini.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "LA Panhard Dyna Z : Le sourire d'aluminium qui osait tout",
-            "contenu": "LA Panhard Dyna Z : Le sourire d'aluminium qui osait tout Loin des codes stylistiques de l'époque, cette berline familiale incarne l'esprit avant-gardiste de son constructeur en misant sur l'aérodynamisme et la légèreté.  Panhard Dyna Z — Photo : Alexandre Prévot — Licence : CC BY-SA 2.0. Dans le pa…",
-            "url": "\/site\/auto-retro\/panhard\/la-dyna-z-voiture-de-collection",
-            "image": "\/assets\/images\/autoretro\/panhard\/dynaz12\/volant_dyna_z12.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "LA SIMCA 9 ARONDE (avril 1951)",
-            "contenu": "LA SIMCA 9 ARONDE (avril 1951) Carrosserie monocoque : une première pour Simca, cette caractéristique offrait une rigidité accrue et un habitacle plus spacieux. Calandre distinctive: elle arbore un design en \"podium\" ou \"escalier\".  Dans le paysage automobile français de la fin des années 1940, la S…",
-            "url": "\/site\/auto-retro\/simca\/la-simca-9-aronde-voiture-de-collection",
-            "image": "\/assets\/images\/autoretro\/simca\/aronde\/simca_9_calandre_escalier.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "LA SIMCA ARONDE 1300 ou 90A",
-            "contenu": "LA SIMCA ARONDE 1300 ou 90A L'Aronde 1300 marque une étape importante dans l'histoire de la Simca. Sortie en 1956, elle succède à la Simca 9 et apporte de nombreuses améliorations, tant au niveau du moteur que du design qui s'est inspiré des modèles américains, calandre avant et ailes arrières. Ce m…",
-            "url": "\/site\/auto-retro\/simca\/la-simca-aronde-1300-voiture-de-collection",
-            "image": "\/assets\/images\/autoretro\/simca\/aronde_elysee.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "LA SIMCA P60",
-            "contenu": "LA SIMCA P60 La Simca Aronde P60, lancée en 1959, représente une évolution significative de la gamme Aronde. Conçue pour personnaliser les années 1960, la P60 se distingue par son style modernisé et ses performances améliorées.  L'Aronde P60, présentée en avant-première au Salon de l'Automobile de P…",
-            "url": "\/site\/auto-retro\/simca\/la-simca-P60-voiture-de-collection",
-            "image": "\/assets\/images\/autoretro\/simca\/aronde\/simca_aronde_P60_bacalan.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "LA SLK DE CHEZ MERCEDES",
-            "contenu": "LA SLK DE CHEZ MERCEDES",
-            "url": "\/site\/auto-retro\/mercedes\/la-slk-une-voiture-compacte-sportive",
-            "image": "\/assets\/images\/structure\/menu\/auto-retro\/uiaustin.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "LA TWINGO DE CHEZ RENAULT",
-            "contenu": "LA TWINGO DE CHEZ RENAULT La Renault Twingo est une citadine emblématique qui a bouleversé le paysage automobile européen dès 1992. Conçue pour incarner la mobilité urbaine accessible, elle combine audace stylistique, ingénierie novatrice et un sens du jeu qui a conquis plusieurs générations.  Twing…",
-            "url": "\/site\/auto-retro\/renault\/la-twingo-une-voiture-a-succes",
-            "image": "\/assets\/images\/autoretro\/renault\/affiche_twingo.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "MERCEDES-BENZ",
-            "contenu": "MERCEDES-BENZ De l’invention du moteur à explosion aux systèmes de sécurité et d’assistance de pointe  Les pionniers : la naissance d’une étoile L’histoire de Mercedes-Benz est d’abord celle de deux trajectoires parallèles qui finissent par se croiser, donnant naissance à une marque qui marquera dur…",
-            "url": "\/site\/auto-retro\/mercedes\/histoire-de-mercedes",
-            "image": "\/assets\/images\/autoretro\/mercedes\/mercedeslogos.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "MINI MAYFAIR",
-            "contenu": "MINI MAYFAIR   En construction, revenez bientôt :)",
-            "url": "\/site\/auto-retro\/austin\/une-mini-dans-le-golfe-de-sttropez",
-            "image": "\/assets\/images\/structure\/menu\/auto-retro\/uiaustin.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "NOTRE DYNA",
-            "contenu": "NOTRE DYNA C’est l’histoire d’une rencontre, d’une Bretonne qui a traversé la France pour venir s’endormir doucement sous le soleil du Golfe de Saint-Tropez.  Achat : octobre 2020 Notre Panhard Dyna Z12 est une vraie bretonne. Nous l’avons repérée au détour d’un célèbre site de petites annonces d’oc…",
-            "url": "\/site\/auto-retro\/panhard\/une-dynaz12-dans-le-golfe-de-sttropez",
-            "image": "\/assets\/images\/autoretro\/panhard\/dynaz12\/achat_panhard_dyna_z12.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "PANHARD",
-            "contenu": "PANHARD La marque Panhard & Levassor raccourcit son nom en \"Panhard\" en 1932. Ce changement de cap reflète une volonté d’adaptation à un monde automobile en constante évolution, où clarté et identité forte deviennent des impératifs.  Panhard, précurseur de l’automobile moderne Dans les dernières ann…",
-            "url": "\/site\/auto-retro\/panhard\/histoire-de-panhard",
-            "image": "\/assets\/images\/autoretro\/panhard\/affiche_panhard.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3",
-                "EditRegion11"
-            ]
-        },
-        {
-            "titre": "RENAULT",
-            "contenu": "RENAULT Fondée en 1899 par les frères Louis, Marcel et Fernand Renault, la marque Renault est l'une des plus anciennes marques automobiles encore en activité.  Renault : L'Histoire d'une Passion Automobile Les Débuts Innovants de Renault Dès ses débuts, Renault s'est distingué par son esprit novateu…",
-            "url": "\/site\/auto-retro\/renault\/histoire-de-renault",
-            "image": "\/assets\/images\/autoretro\/renault\/renault_logo.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "Restauration de notre Simca Aronde A90 Elysée par Garage SAVA à Rioz (70)",
-            "contenu": "Restauration de notre Simca Aronde A90 Elysée par Garage SAVA à Rioz (70)   En août 2021, un feu de forêt touche notre propriété et détruit notre Aronde A90 Élysée. En avril 2022, lors d'une soirée canapé-téléphone, Jean-Noël discute à nouveau de l'Aronde perdue avec son fils, passionné d'automobile…",
-            "url": "\/site\/auto-retro\/simca\/une-simca-aronde-en-restauration-chez-sava-rioz",
-            "image": "\/assets\/images\/autoretro\/simca\/aronde\/restauration_simca_aronde_elysee_fin.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "SIMCA",
-            "contenu": "SIMCA Simca, acronyme de \"Société Industrielle de Mécanique et de Carrosserie Automobile\", fut fondée en 1934 par Henri Pigozzi. En l’espace d’un demi-siècle, elle incarna l’un des plus grands élans de l’industrie automobile française, alliant ingéniosité technique, flair commercial et audace stylis…",
-            "url": "\/site\/auto-retro\/simca\/histoire-de-simca",
-            "image": "\/assets\/images\/autoretro\/simca\/simcal_logo.png",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "SLK",
-            "contenu": "SLK   En construction, revenez bientôt :)",
-            "url": "\/site\/auto-retro\/mercedes\/une-slk-dans-le-golfe-de-sttropez",
-            "image": "\/assets\/images\/structure\/menu\/auto-retro\/uiaustin.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion8",
-                "EditRegion3"
-            ]
-        },
-        {
-            "titre": "TWINGO",
-            "contenu": "TWINGO En construction, revenez bientôt :)",
-            "url": "\/site\/auto-retro\/renault\/une-twingo-dans-le-golfe-de-sttropez",
-            "image": "\/assets\/images\/structure\/menu\/auto-retro\/uiaustin.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion3"
             ]
         }
     ],
     "sava": [
         {
             "titre": "SAVA – Votre partenaire automobile à Rioz (70190)",
-            "contenu": "SAVA – Votre partenaire automobile à Rioz (70190) Une entreprise qui évolue avec passion et précision  2023 – Un atelier mobile au service du quotidien Créé par Julien Perrot, technicien qualifié et passionné d’automobile, SAVA démarre son activité avec un concept innovant : un garage mobile. Son fo…",
-            "url": "\/site\/sava\/sava-auto-retro-rioz",
-            "image": "\/assets\/images\/autoretro\/sava_logo.jpg",
+            "contenu": "SAVA – Votre partenaire automobile à Rioz (70190) Une entreprise qui évolue avec passion et précision 2023 – Un atelier mobile au service du quotidien Créé par Julien Perrot, technicien qualifié et passionné d’automobile, SAVA démarre son activité avec un concept innovant : un garage mobile. Son fou…",
+            "url": "/sava/sava-auto-retro-rioz.php",
+            "image": "/assets/images/structure/menu/sava/uihistoiresdevieilles.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
-                "EditRegion8",
                 "EditRegion3"
             ]
         }

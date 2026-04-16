@@ -1,188 +1,166 @@
 <?php
-// core/tools/generate_search_index.php
 
 declare(strict_types=1);
 
-define('ROOT_PATH', dirname(__DIR__, 2));
-define('TEMPLATE_PATH', ROOT_PATH . '/templates/pages/site/');
+require_once dirname(__DIR__) . '/bootstrap.php';
 
-require_once ROOT_PATH . '/core/i18n.php';
-
-// 🌐 Langues à traiter
-$languages = ['fr', 'en', 'de'];
-
-// ❌ Fichiers et dossiers exclus de l'index
-$excludeFiles = ['404.php', 'search.php', 'index.php', 'test.php'];
+$languages = function_exists('site_available_languages')
+    ? site_available_languages()
+    : [defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr'];
+$defaultLanguage = defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr';
+$repository = page_repository_for_path(pages_data_path());
 
 /**
  * Détermine si un bloc correspond à un menu UI (non pertinent pour la recherche).
  */
-function isMenuUIBlock(string $blocContent): bool {
+function isMenuUIBlock(string $blocContent): bool
+{
     return (
-        preg_match('/MENU_UI_/i', $blocContent) ||
-        preg_match('#/assets/images/structure/menu/#i', $blocContent) ||
-        preg_match('/id=["\']menurectanglewindows/i', $blocContent) ||
-        preg_match('/id=["\']boutonrectangle/i', $blocContent)
+        preg_match('/MENU_UI_/i', $blocContent)
+        || preg_match('#/assets/images/structure/menu/#i', $blocContent)
+        || preg_match('/id=["\']menurectanglewindows/i', $blocContent)
+        || preg_match('/id=["\']boutonrectangle/i', $blocContent)
     );
 }
 
 /**
  * Convertit un contenu HTML en texte normalisé.
  */
-function normalizeText(string $html): string {
+function normalizeText(string $html): string
+{
     $text = strip_tags($html);
     $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
     $text = preg_replace('/\s+/u', ' ', $text);
-    return trim($text);
+
+    return trim((string) $text);
 }
 
 /**
  * Récupère la première image trouvée dans un bloc HTML.
  */
-function extractFirstImage(string $html): ?string {
+function extractFirstImage(string $html): ?string
+{
     if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $html, $match)) {
-        return $match[1];
+        return (string) $match[1];
     }
+
     return null;
 }
 
-/**
- * Exécute un template afin de récupérer les blocs produits.
- *
- * @return array<string, string>
- */
-function renderTemplateBlocks(string $filepath, array $lang): array {
-    global $langTranslations;
-
-    $langTranslations = $lang;
-    $blocks = [];
-
-    ob_start();
-    try {
-        include $filepath;
-    } catch (Throwable $e) {
-        ob_end_clean();
-        throw $e;
+function searchIndexCategory(string $route): string
+{
+    $normalized = normalize_public_route($route);
+    if ($normalized === null || $normalized === '/') {
+        return 'accueil';
     }
-    ob_end_clean();
 
-    return is_array($blocks) ? $blocks : [];
+    $segment = explode('/', trim($normalized, '/'))[0] ?? 'pages';
+    $segment = preg_replace('/\.php$/i', '', $segment) ?? $segment;
+
+    return trim((string) $segment) !== '' ? (string) $segment : 'pages';
 }
 
-foreach ($languages as $langCode) {
-    echo "--- Génération de l'index pour la langue : $langCode ---\n";
-
-    $langFilePath = ROOT_PATH . "/lang/{$langCode}.php";
-    if (!file_exists($langFilePath)) {
-        echo "❌ Fichier de langue non trouvé pour '$langCode', ignoré.\n";
+foreach ($languages as $language) {
+    if (!is_string($language) || trim($language) === '') {
         continue;
     }
 
-    $lang = require $langFilePath;
-    if (!is_array($lang)) {
-        echo "❌ Le fichier de langue '$langCode' n'a pas retourné de tableau, ignoré.\n";
-        continue;
-    }
+    $language = trim($language);
+    echo "--- Génération de l'index pour la langue : {$language} ---\n";
 
-    $outputFileFull = ROOT_PATH . "/data/search_index_{$langCode}.json";
-    $outputFileMin = ROOT_PATH . "/data/search_index_{$langCode}.min.json";
-
+    $outputFileFull = ROOT_PATH . "/data/search_index_{$language}.json";
+    $outputFileMin = ROOT_PATH . "/data/search_index_{$language}.min.json";
     $index = [];
 
-    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(TEMPLATE_PATH));
-    foreach ($iterator as $file) {
-        /** @var SplFileInfo $file */
-        if ($file->isDir() || $file->getExtension() !== 'php') {
+    foreach ($repository->published() as $page) {
+        if (!is_array($page)) {
             continue;
         }
 
-        $filepath = $file->getPathname();
-        $relativePath = str_replace(TEMPLATE_PATH, '', $filepath);
-        if (in_array(basename($relativePath), $excludeFiles, true)) {
+        $slug = trim((string) ($page['slug'] ?? ''));
+        if ($slug === '') {
             continue;
         }
 
-        $url = '/' . str_replace('.php', '', str_replace('\\', '/', 'site/' . $relativePath));
-        $parts = explode('/', trim($relativePath, '/'));
-        $categorie = $parts[0] ?? 'inconnu';
-
-        try {
-            $blocks = renderTemplateBlocks($filepath, $lang);
-        } catch (Throwable $exception) {
-            echo "⚠️  Impossible d'inclure '$relativePath' : " . $exception->getMessage() . "\n";
+        $rendered = $repository->findPublishedStructuredBySlug($slug, $language, $defaultLanguage);
+        if (!is_array($rendered)) {
             continue;
         }
 
-        if (empty($blocks)) {
-            continue;
-        }
-
-        $titre = '';
-        $texteTotal = '';
+        $title = trim((string) ($rendered['title'] ?? ''));
+        $route = normalize_public_route((string) ($rendered['route'] ?? '')) ?? ('/' . $slug);
+        $category = searchIndexCategory($route);
+        $blocks = is_array($rendered['blocks'] ?? null) ? $rendered['blocks'] : [];
+        $textParts = [];
         $image = null;
-        $blocsUtilises = [];
+        $usedBlocks = [];
 
-        foreach ($blocks as $blocId => $blocContent) {
-            if (!is_string($blocContent) || trim($blocContent) === '') {
+        foreach ($blocks as $blockId => $blockContent) {
+            if (!is_string($blockId) || !is_string($blockContent) || trim($blockContent) === '') {
                 continue;
             }
 
-            if (!$image) {
-                $image = extractFirstImage($blocContent);
+            if ($image === null) {
+                $image = extractFirstImage($blockContent);
             }
 
-            if ($titre === '' && strtolower($blocId) === 'editregion1') {
-                $titre = normalizeText($blocContent);
-            }
-
-            if (isMenuUIBlock($blocContent)) {
+            if (isMenuUIBlock($blockContent)) {
                 continue;
             }
 
-            $texteTotal .= ' ' . normalizeText($blocContent);
-            $blocsUtilises[] = $blocId;
+            $text = normalizeText($blockContent);
+            if ($text === '') {
+                continue;
+            }
+
+            $textParts[] = $text;
+            $usedBlocks[] = $blockId;
         }
 
-        $titre = $titre !== '' ? $titre : '(Sans titre)';
-        $texteTotal = trim($texteTotal);
-
-        if ($texteTotal === '') {
+        $body = trim(implode(' ', $textParts));
+        if ($title === '' && $body === '') {
             continue;
         }
 
-        $index[$categorie][] = [
-            'titre' => $titre,
-            'contenu' => mb_substr($texteTotal, 0, 300) . (mb_strlen($texteTotal) > 300 ? '…' : ''),
-            'url' => $url,
+        if ($title === '') {
+            $title = $slug;
+        }
+
+        $index[$category][] = [
+            'titre' => $title,
+            'contenu' => mb_substr($body, 0, 300) . (mb_strlen($body) > 300 ? '…' : ''),
+            'url' => $route,
             'image' => $image,
-            'blocs_utilises' => array_values(array_unique($blocsUtilises)),
+            'blocs_utilises' => array_values(array_unique($usedBlocks)),
         ];
     }
 
-    // 🔠 Tri alphabétique
     foreach ($index as &$entries) {
-        usort($entries, static function ($a, $b) {
-            return strcasecmp($a['titre'], $b['titre']);
-        });
+        usort(
+            $entries,
+            static fn (array $left, array $right): int => strcasecmp((string) $left['titre'], (string) $right['titre'])
+        );
     }
     unset($entries);
 
-    // 📁 Dossier de sortie
     $dataPath = dirname($outputFileFull);
     if (!is_dir($dataPath) && !mkdir($dataPath, 0755, true) && !is_dir($dataPath)) {
-        echo "❌ Impossible de créer le dossier de sortie '$dataPath'.\n";
+        echo "❌ Impossible de créer le dossier de sortie '{$dataPath}'.\n";
         continue;
     }
 
-    // 💾 Écriture des fichiers
-    $jsonPretty = json_encode($index, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
-    $jsonMin = json_encode($index, JSON_UNESCAPED_UNICODE);
+    $jsonPretty = json_encode($index, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $jsonMin = json_encode($index, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    if ($jsonPretty === false || $jsonMin === false) {
+        echo "❌ Impossible d'encoder l'index '{$language}'.\n";
+        continue;
+    }
 
     file_put_contents($outputFileFull, $jsonPretty);
     file_put_contents($outputFileMin, $jsonMin);
 
-    // Maintien des anciens noms de fichiers pour la langue par défaut (français)
-    if ($langCode === 'fr') {
+    if ($language === $defaultLanguage) {
         file_put_contents(ROOT_PATH . '/data/search_index.json', $jsonPretty);
         file_put_contents(ROOT_PATH . '/data/search_index.min.json', $jsonMin);
     }
@@ -192,9 +170,8 @@ foreach ($languages as $langCode) {
         $totalEntries += count($entries);
     }
 
-    // ✅ Résumé
-    echo "✅ Index pour '$langCode' généré avec succès.\n";
-    echo "   - 📁 " . $outputFileFull . "\n";
-    echo "   - 📁 " . $outputFileMin . "\n";
-    echo "   - 📊 Catégories : " . count($index) . " — Total éléments : " . $totalEntries . "\n";
+    echo "✅ Index pour '{$language}' généré avec succès.\n";
+    echo "   - 📁 {$outputFileFull}\n";
+    echo "   - 📁 {$outputFileMin}\n";
+    echo '   - 📊 Catégories : ' . count($index) . " — Total éléments : {$totalEntries}\n";
 }
