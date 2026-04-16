@@ -3,6 +3,7 @@
 // /templates/menus_footer.php
 
 $menu3 = $menuConfig['menu3'] ?? [];
+$langTranslations = is_array($GLOBALS['langTranslations'] ?? null) ? $GLOBALS['langTranslations'] : [];
 
 /**
  * Menu 3 : Menu déroulant principal du pied de page
@@ -55,4 +56,3 @@ function renderMenu3Item(array $item, array $langTranslations): void {
 // Affichage du menu
 renderMenu3($menu3, $langTranslations);
 ?>
-

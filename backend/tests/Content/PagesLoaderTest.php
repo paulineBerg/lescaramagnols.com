@@ -27,9 +27,11 @@ final class PagesLoaderTest extends TestCase
     public function testLoadValidJson(): void
     {
         $json = [
+            'meta' => ['version' => 2],
             'pages' => [
                 [
                     'slug' => 'test',
+                    'type' => 'structured_page',
                     'status' => 'published',
                     'translations' => [
                         'fr' => [
@@ -60,6 +62,7 @@ final class PagesLoaderTest extends TestCase
             'pages' => [
                 [
                     'slug' => 'multilang',
+                    'type' => 'structured_page',
                     'translations' => [
                         'fr' => [
                             'title' => 'FR',
@@ -90,6 +93,7 @@ final class PagesLoaderTest extends TestCase
             'pages' => [
                 [
                     'slug' => 'draft',
+                    'type' => 'structured_page',
                     'status' => 'draft',
                     'translations' => [
                         'fr' => [
@@ -104,4 +108,49 @@ final class PagesLoaderTest extends TestCase
         $page = get_page_by_slug('draft', 'fr', 'fr', $this->tmpFile);
         $this->assertNull($page);
     }
+
+    public function testGetPageBySlugBuildsBlocksFromSemanticRegions(): void
+    {
+        $json = [
+            'pages' => [
+                [
+                    'slug' => 'structured',
+                    'type' => 'structured_page',
+                    'translations' => [
+                        'fr' => [
+                            'title' => 'Structured',
+                            'regions' => [
+                                'hero' => [
+                                    'component' => 'heading',
+                                    'title' => 'Association',
+                                    'subtitle' => 'Club auto',
+                                ],
+                                'left' => [
+                                    'component' => 'facts',
+                                    'title' => 'Repères',
+                                    'items' => [
+                                        ['label' => 'Fondé', 'value' => '2010'],
+                                    ],
+                                ],
+                                'bottom' => [
+                                    'component' => 'rich_text',
+                                    'html' => '<p>Bienvenue.</p>',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        file_put_contents($this->tmpFile, json_encode($json));
+
+        $page = get_page_by_slug('structured', 'fr', 'fr', $this->tmpFile);
+
+        $this->assertNotNull($page);
+        $this->assertStringContainsString('<h1>Association</h1>', $page['blocks']['EditRegion1']);
+        $this->assertStringContainsString('content-facts', $page['blocks']['EditRegion5']);
+        $this->assertStringContainsString('<p>Bienvenue.</p>', $page['blocks']['EditRegion7']);
+    }
+
 }

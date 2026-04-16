@@ -102,8 +102,10 @@ h3 {
 
 #contenu {
   width: 65%;
+  box-sizing: border-box;
+  padding: clamp(0.85rem, 1.6vw, 1.35rem);
   background-color: vars.$color-bleu-transparent;
-  margin: 12rem auto 2rem;
+  margin: 2rem auto;
   position: relative;
   display: block;
   overflow: hidden;
@@ -208,11 +210,18 @@ h3 {
     a {
       text-align: center;
       text-decoration: none;
+      color: vars.$color-blanc;
+      font-weight: 600;
+
+      &:visited {
+        color: vars.$color-blanc;
+      }
 
       &:hover,
       &:focus,
       &:active {
         text-decoration: underline;
+        color: vars.$color-blanc;
       }
     }
   }
@@ -385,7 +394,8 @@ h3 {
   );
 }
 
-#bloc-haut {
+#bloc-haut,
+.content-region-bordered-callout {
   width: auto;
   height: auto;
   text-align: center;

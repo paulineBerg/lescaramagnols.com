@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Caramagnols\Admin;
 
+use Caramagnols\Admin\Settings\AdminLogAlertsSettingsManager;
 use Caramagnols\Admin\Settings\AdminTranslationSettingsManager;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Social\InstagramFeedService;
@@ -13,6 +14,7 @@ final class AdminSettingsService
     private AppEventLogger $eventLogger;
     private ?InstagramFeedService $instagramFeedService;
     private AdminTranslationSettingsManager $translationSettingsManager;
+    private AdminLogAlertsSettingsManager $logAlertsSettingsManager;
 
     public function __construct(
         private readonly string $databaseOverridePath = ROOT_PATH . '/config/database.override.php',
@@ -20,12 +22,15 @@ final class AdminSettingsService
         ?AppEventLogger $eventLogger = null,
         private readonly string $siteOverridePath = ROOT_PATH . '/config/site.override.php',
         ?InstagramFeedService $instagramFeedService = null,
-        ?AdminTranslationSettingsManager $translationSettingsManager = null
+        ?AdminTranslationSettingsManager $translationSettingsManager = null,
+        ?AdminLogAlertsSettingsManager $logAlertsSettingsManager = null
     ) {
         $this->eventLogger = $eventLogger ?? app_event_logger();
         $this->instagramFeedService = $instagramFeedService;
         $this->translationSettingsManager = $translationSettingsManager
             ?? new AdminTranslationSettingsManager((string) app_config('default_lang', 'fr'));
+        $this->logAlertsSettingsManager = $logAlertsSettingsManager
+            ?? new AdminLogAlertsSettingsManager('alerts');
     }
 
     /**
@@ -59,6 +64,7 @@ final class AdminSettingsService
             $this->configuredTarteaucitronSettings(),
             $this->configuredDiscussionSettings(),
             $this->configuredInstagramSettings(),
+            $this->configuredLogAlertsSettings(),
             $this->configuredTranslationSettings()
         );
     }
@@ -143,6 +149,23 @@ final class AdminSettingsService
             'cacheTtlSeconds' => (int) app_config('site.instagram.cache_ttl_seconds', 1800),
             'timeoutSeconds' => (int) app_config('site.instagram.timeout_seconds', 8),
         ];
+    }
+
+    /**
+     * @return array{notifyOn: string}
+     */
+    private function configuredLogAlertsSettings(): array
+    {
+        return $this->logAlertsSettingsManager->configured(
+            app_config('site.log_alerts.notify_on', env('LOG_ALERTS_NOTIFY_ON', 'alerts'))
+        );
+    }
+
+    private function configuredInstagramCachePath(): string
+    {
+        $path = trim((string) app_config('site.instagram.cache_path', ROOT_PATH . '/var/cache/instagram-feed.json'));
+
+        return $path !== '' ? $path : ROOT_PATH . '/var/cache/instagram-feed.json';
     }
 
     /**
@@ -269,6 +292,20 @@ final class AdminSettingsService
             'timeoutSeconds' => (string) ($payload['timeout_seconds'] ?? ($fallback['timeoutSeconds'] ?? 8)),
             'accessTokenFallback' => trim((string) ($fallback['accessToken'] ?? '')),
         ];
+    }
+
+    /**
+     * @param array<string, string> $fallback
+     * @return array<string, string>
+     */
+    private function logAlertsForm(array $payload, array $fallback): array
+    {
+        return $this->logAlertsSettingsManager->form(
+            [
+                'notifyOn' => $payload['notify_on'] ?? null,
+            ],
+            ['notifyOn' => (string) ($fallback['notifyOn'] ?? 'alerts')]
+        );
     }
 
     /**
@@ -536,6 +573,15 @@ final class AdminSettingsService
     }
 
     /**
+     * @param array<string, string> $logAlerts
+     * @return array{data: array<string, string>, error: string|null}
+     */
+    private function normalizeLogAlertsConfig(array $logAlerts): array
+    {
+        return $this->logAlertsSettingsManager->normalizeConfig($logAlerts);
+    }
+
+    /**
      * @param array<string, mixed> $payload
      * @return array{success: bool, message: string|null, error: string|null, view: array<string, mixed>, adminIdentifier: string|null}
      */
@@ -548,11 +594,13 @@ final class AdminSettingsService
         $tarteaucitronPayload = is_array($payload['tarteaucitron'] ?? null) ? $payload['tarteaucitron'] : [];
         $discussionsPayload = is_array($payload['discussions'] ?? null) ? $payload['discussions'] : [];
         $instagramPayload = is_array($payload['instagram'] ?? null) ? $payload['instagram'] : [];
+        $logAlertsPayload = is_array($payload['log_alerts'] ?? null) ? $payload['log_alerts'] : [];
         $translationsPayload = is_array($payload['translations'] ?? null) ? $payload['translations'] : [];
         $configuredUrl = $this->configuredUrlSettings();
         $configuredTarteaucitron = $this->configuredTarteaucitronSettings();
         $configuredDiscussions = $this->configuredDiscussionSettings();
         $configuredInstagram = $this->configuredInstagramSettings();
+        $configuredLogAlerts = $this->configuredLogAlertsSettings();
         $configuredTranslations = $this->configuredTranslationSettings();
 
         $databaseForm = [
@@ -584,6 +632,7 @@ final class AdminSettingsService
         $tarteaucitronForm = $this->tarteaucitronForm($tarteaucitronPayload, $configuredTarteaucitron);
         $discussionsForm = $this->discussionsForm($discussionsPayload, $configuredDiscussions);
         $instagramForm = $this->instagramForm($instagramPayload, $configuredInstagram);
+        $logAlertsForm = $this->logAlertsForm($logAlertsPayload, $configuredLogAlerts);
         $translationsForm = $this->translationsForm($translationsPayload, $configuredTranslations);
 
         $databaseConfig = $this->normalizeDatabaseConfig($databaseForm);
@@ -592,7 +641,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => $databaseConfig['error'],
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -603,7 +652,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => $adminConfig['error'],
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -614,7 +663,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => $urlConfig['error'],
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -625,7 +674,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => $headConfig['error'],
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -636,7 +685,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => $tarteaucitronConfig['error'],
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -647,7 +696,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => $discussionsConfig['error'],
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -658,7 +707,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => $instagramConfig['error'],
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -669,7 +718,18 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => $translationsConfig['error'],
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
+                'adminIdentifier' => null,
+            ];
+        }
+
+        $logAlertsConfig = $this->normalizeLogAlertsConfig($logAlertsForm);
+        if ($logAlertsConfig['error'] !== null) {
+            return [
+                'success' => false,
+                'message' => null,
+                'error' => $logAlertsConfig['error'],
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -694,6 +754,7 @@ final class AdminSettingsService
         $previousTarteaucitron = $configuredTarteaucitron;
         $previousDiscussions = $configuredDiscussions;
         $previousInstagram = $configuredInstagram;
+        $previousLogAlerts = $configuredLogAlerts;
         $previousTranslations = $this->normalizeI18nOverrides(app_config('site.i18n_overrides', []));
 
         $databasePassword = $databaseConfig['data']['password'] !== ''
@@ -708,7 +769,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => 'Le mot de passe admin est obligatoire pour la première configuration.',
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -782,6 +843,9 @@ final class AdminSettingsService
                 'cache_ttl_seconds' => (int) $instagramConfig['data']['cacheTtlSeconds'],
                 'timeout_seconds' => (int) $instagramConfig['data']['timeoutSeconds'],
             ],
+            'log_alerts' => [
+                'notify_on' => (string) $logAlertsConfig['data']['notifyOn'],
+            ],
             'i18n_overrides' => $translationsConfig['data'],
         ];
 
@@ -804,7 +868,7 @@ final class AdminSettingsService
                 'success' => false,
                 'message' => null,
                 'error' => 'Impossible de sauvegarder les paramètres d’exploitation.',
-                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm),
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm),
                 'adminIdentifier' => null,
             ];
         }
@@ -869,6 +933,9 @@ final class AdminSettingsService
                         'limit' => (int) ($previousInstagram['limit'] ?? 6) !== $siteOverride['instagram']['limit'],
                         'rotation_interval_ms' => (int) ($previousInstagram['rotationIntervalMs'] ?? 5500) !== $siteOverride['instagram']['rotation_interval_ms'],
                     ],
+                    'log_alerts' => [
+                        'notify_on' => (string) ($previousLogAlerts['notifyOn'] ?? 'alerts') !== (string) ($siteOverride['log_alerts']['notify_on'] ?? 'alerts'),
+                    ],
                     'i18n_overrides' => $previousTranslations !== $this->normalizeI18nOverrides($siteOverride['i18n_overrides']),
                 ],
                 'storage' => [
@@ -892,6 +959,60 @@ final class AdminSettingsService
     }
 
     /**
+     * @return array{success: bool, message: string|null, error: string|null, view: array<string, mixed>, adminIdentifier: string|null}
+     */
+    public function clearCaches(?string $actorIdentifier = null): array
+    {
+        $instagramCachePath = $this->configuredInstagramCachePath();
+
+        app_runtime_cache_clear(['pages', 'navigation', 'translations']);
+
+        $instagramCacheDeleted = false;
+        if (is_file($instagramCachePath)) {
+            $instagramCacheDeleted = @unlink($instagramCachePath);
+
+            if (!$instagramCacheDeleted) {
+                $this->eventLogger->security(
+                    'admin.settings.cache_clear_failed',
+                    [
+                        'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                        'instagram_cache_path' => $instagramCachePath,
+                        'reason' => 'unlink_failed',
+                    ],
+                    'warning'
+                );
+
+                return [
+                    'success' => false,
+                    'message' => null,
+                    'error' => 'Le cache applicatif a été vidé, mais le fichier de cache Instagram n’a pas pu être supprimé.',
+                    'view' => $this->viewModel(),
+                    'adminIdentifier' => null,
+                ];
+            }
+        }
+
+        $this->eventLogger->security(
+            'admin.settings.cache_cleared',
+            [
+                'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                'instagram_cache_path' => $instagramCachePath,
+                'instagram_cache_deleted' => $instagramCacheDeleted,
+            ]
+        );
+
+        return [
+            'success' => true,
+            'message' => $instagramCacheDeleted
+                ? 'Caches applicatifs vidés et cache Instagram supprimé.'
+                : 'Caches applicatifs vidés.',
+            'error' => null,
+            'view' => $this->viewModel(),
+            'adminIdentifier' => null,
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $payload
      * @return array{success: bool, message: string|null, error: string|null, view: array<string, mixed>}
      */
@@ -904,12 +1025,14 @@ final class AdminSettingsService
         $tarteaucitronPayload = is_array($payload['tarteaucitron'] ?? null) ? $payload['tarteaucitron'] : [];
         $discussionsPayload = is_array($payload['discussions'] ?? null) ? $payload['discussions'] : [];
         $instagramPayload = is_array($payload['instagram'] ?? null) ? $payload['instagram'] : [];
+        $logAlertsPayload = is_array($payload['log_alerts'] ?? null) ? $payload['log_alerts'] : [];
         $translationsPayload = is_array($payload['translations'] ?? null) ? $payload['translations'] : [];
 
         $configuredUrl = $this->configuredUrlSettings();
         $configuredTarteaucitron = $this->configuredTarteaucitronSettings();
         $configuredDiscussions = $this->configuredDiscussionSettings();
         $configuredInstagram = $this->configuredInstagramSettings();
+        $configuredLogAlerts = $this->configuredLogAlertsSettings();
         $configuredTranslations = $this->configuredTranslationSettings();
 
         $databaseForm = [
@@ -941,8 +1064,9 @@ final class AdminSettingsService
         $tarteaucitronForm = $this->tarteaucitronForm($tarteaucitronPayload, $configuredTarteaucitron);
         $discussionsForm = $this->discussionsForm($discussionsPayload, $configuredDiscussions);
         $instagramForm = $this->instagramForm($instagramPayload, $configuredInstagram);
+        $logAlertsForm = $this->logAlertsForm($logAlertsPayload, $configuredLogAlerts);
         $translationsForm = $this->translationsForm($translationsPayload, $configuredTranslations);
-        $view = $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $translationsForm);
+        $view = $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm);
 
         $instagramConfig = $this->normalizeInstagramConfig($instagramForm);
         if ($instagramConfig['error'] !== null) {
@@ -1021,6 +1145,7 @@ final class AdminSettingsService
      * @param array<string, mixed> $tarteaucitron
      * @param array<string, bool|float|int|string> $discussions
      * @param array<string, bool|int|string> $instagram
+     * @param array<string, string> $logAlerts
      * @param array{languages?: array<int, string>, textByLanguage?: array<string, string>} $translations
      * @return array<string, mixed>
      */
@@ -1032,6 +1157,7 @@ final class AdminSettingsService
         array $tarteaucitron,
         array $discussions,
         array $instagram,
+        array $logAlerts,
         array $translations = []
     ): array {
         $databasePasswordConfigured = ((string) app_config('database.password', '')) !== '';
@@ -1044,6 +1170,10 @@ final class AdminSettingsService
         }
         $discussionRecaptchaSecretConfigured = trim((string) ($discussions['recaptchaSecretKey'] ?? '')) !== '';
         $instagramAccessTokenConfigured = trim((string) ($instagram['accessToken'] ?? '')) !== '';
+        $logAlertsNotifyOn = strtolower(trim((string) ($logAlerts['notifyOn'] ?? 'alerts')));
+        if (!in_array($logAlertsNotifyOn, ['alerts', 'always'], true)) {
+            $logAlertsNotifyOn = 'alerts';
+        }
         $translationLanguages = is_array($translations['languages'] ?? null)
             ? array_values(array_filter(array_map(static fn ($value): string => strtolower(trim((string) $value)), $translations['languages']), static fn (string $value): bool => $value !== ''))
             : [];
@@ -1058,10 +1188,16 @@ final class AdminSettingsService
         $textByLanguage = is_array($translations['textByLanguage'] ?? null) ? $translations['textByLanguage'] : [];
         $translationTextareas = [];
         $translationCounts = [];
+        $translationDictionaryTextByLanguage = [];
+        $translationDictionaryCounts = [];
         foreach ($translationLanguages as $language) {
             $rawText = trim((string) ($textByLanguage[$language] ?? ''));
             $translationTextareas[$language] = $rawText;
             $translationCounts[$language] = $this->countTranslationOverrideLines($rawText);
+
+            $dictionaryEntries = $this->translationSettingsManager->dictionaryEntriesForLanguage($language);
+            $translationDictionaryCounts[$language] = count($dictionaryEntries);
+            $translationDictionaryTextByLanguage[$language] = $this->translationSettingsManager->serializeOverrideLines($dictionaryEntries);
         }
         $knownTranslationKeys = $this->knownTranslationKeys();
 
@@ -1139,10 +1275,15 @@ final class AdminSettingsService
                 'cacheTtlSeconds' => (int) ($instagram['cacheTtlSeconds'] ?? 1800),
                 'timeoutSeconds' => (int) ($instagram['timeoutSeconds'] ?? 8),
             ],
+            'logAlerts' => [
+                'notifyOn' => $logAlertsNotifyOn,
+            ],
             'translations' => [
                 'languages' => $translationLanguages,
                 'textByLanguage' => $translationTextareas,
                 'countByLanguage' => $translationCounts,
+                'dictionaryTextByLanguage' => $translationDictionaryTextByLanguage,
+                'dictionaryCountByLanguage' => $translationDictionaryCounts,
                 'knownKeysCount' => count($knownTranslationKeys),
             ],
             'storage' => [
@@ -1426,6 +1567,13 @@ final class AdminSettingsService
                 'cache_ttl_seconds' => max(60, min(86400, (int) ($siteOverride['instagram']['cache_ttl_seconds'] ?? 1800))),
                 'timeout_seconds' => max(3, min(20, (int) ($siteOverride['instagram']['timeout_seconds'] ?? 8))),
                 'cache_path' => ROOT_PATH . '/var/cache/instagram-feed.json',
+            ],
+            'log_alerts' => [
+                'notify_on' => in_array(
+                    strtolower(trim((string) ($siteOverride['log_alerts']['notify_on'] ?? 'alerts'))),
+                    ['alerts', 'always'],
+                    true
+                ) ? strtolower(trim((string) ($siteOverride['log_alerts']['notify_on'] ?? 'alerts'))) : 'alerts',
             ],
             'i18n_overrides' => $this->normalizeI18nOverrides($siteOverride['i18n_overrides'] ?? []),
         ]);

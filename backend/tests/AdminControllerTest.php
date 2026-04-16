@@ -29,6 +29,8 @@ final class AdminControllerTest extends TestCase
     private string $adminOverrideFile;
     private string $siteOverrideFile;
     private ?string $previousBlogDataDir = null;
+    /** @var array<int, string> */
+    private array $uploadedRuntimeFiles = [];
 
     protected function setUp(): void
     {
@@ -138,6 +140,13 @@ final class AdminControllerTest extends TestCase
                 unlink($file);
             }
         }
+
+        foreach ($this->uploadedRuntimeFiles as $uploadedRuntimeFile) {
+            if (is_string($uploadedRuntimeFile) && $uploadedRuntimeFile !== '' && file_exists($uploadedRuntimeFile)) {
+                @unlink($uploadedRuntimeFile);
+            }
+        }
+        $this->uploadedRuntimeFiles = [];
 
         pages_data_set_path_override(null);
         menus_data_set_path_override(null);
@@ -560,6 +569,78 @@ final class AdminControllerTest extends TestCase
         );
     }
 
+    public function testPagesCreateUploadsSharedMediaAsWebpAndStoresItAtRootMeta(): void
+    {
+        if (!extension_loaded('gd') || !function_exists('imagewebp')) {
+            $this->markTestSkipped('Extension GD + WebP requise pour ce test.');
+        }
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+        $temporaryImage = $this->createTemporaryJpeg(2600, 1400);
+
+        $response = $controller->handle(
+            'pages_new',
+            $this->request(
+                'POST',
+                '/admin/pages/new',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'slug' => 'galerie-partagee',
+                    'status' => 'published',
+                    'route' => '/galerie-partagee',
+                    'layout' => 'standard_page',
+                    'translations' => [
+                        'fr' => [
+                            'title' => 'Galerie partagee',
+                            'regions' => [
+                                'hero_html' => '<h1>Galerie partagee</h1>',
+                            ],
+                        ],
+                        'en' => [],
+                        'de' => [],
+                    ],
+                ],
+                '127.0.0.1',
+                [],
+                [
+                    'page_shared_media_files' => [
+                        'name' => ['simca-test.jpg'],
+                        'type' => ['image/jpeg'],
+                        'tmp_name' => [$temporaryImage],
+                        'error' => [UPLOAD_ERR_OK],
+                        'size' => [filesize($temporaryImage)],
+                    ],
+                ]
+            )
+        );
+
+        @unlink($temporaryImage);
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/pages/galerie-partagee?saved=1', $response->headers['Location']);
+
+        $decoded = json_decode((string) file_get_contents($this->pagesFile), true);
+        $this->assertIsArray($decoded);
+
+        $sharedMedia = $decoded['pages'][0]['meta']['shared_media'][0] ?? null;
+        $this->assertIsArray($sharedMedia);
+        $sharedMediaSrc = (string) ($sharedMedia['src'] ?? '');
+        $this->assertStringStartsWith('/uploads/editorial/media/', $sharedMediaSrc);
+        $this->assertStringEndsWith('.webp', $sharedMediaSrc);
+
+        $absoluteSharedMediaPath = ROOT_PATH . '/public' . $sharedMediaSrc;
+        $this->uploadedRuntimeFiles[] = $absoluteSharedMediaPath;
+
+        $this->assertFileExists($absoluteSharedMediaPath);
+        $dimensions = @getimagesize($absoluteSharedMediaPath);
+        $this->assertIsArray($dimensions);
+        $this->assertLessThanOrEqual(2048, (int) ($dimensions[0] ?? 0));
+        $this->assertLessThanOrEqual(2048, (int) ($dimensions[1] ?? 0));
+    }
+
     public function testPagesEditShowsLayoutPlanForStructuredPages(): void
     {
         file_put_contents(
@@ -610,6 +691,20 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('EditRegion9', $response->body);
         $this->assertStringContainsString('Footer editorial', $response->body);
         $this->assertStringContainsString('Post-scriptum', $response->body);
+        $this->assertStringContainsString('data-image-check-run', $response->body);
+        $this->assertStringContainsString('data-image-check-results', $response->body);
+        $this->assertStringContainsString('Medias partages (toutes langues)', $response->body);
+        $this->assertStringContainsString('name="page_shared_media_files[]"', $response->body);
+        $this->assertStringContainsString('data-shared-media-editor', $response->body);
+        $this->assertStringContainsString('data-content-media-open="page-media-insert-dialog"', $response->body);
+        $this->assertStringContainsString('id="page-media-insert-dialog"', $response->body);
+        $this->assertStringContainsString('Inserer un media (image / video)', $response->body);
+        $this->assertStringContainsString('data-content-media-folder', $response->body);
+        $this->assertStringContainsString('data-content-media-preset', $response->body);
+        $this->assertStringContainsString('data-content-media-governance-strict', $response->body);
+        $this->assertStringContainsString('data-content-media-audit', $response->body);
+        $this->assertStringContainsString('data-region-callout-root', $response->body);
+        $this->assertStringContainsString('Ajouter la bordure rose autour de l encart texte', $response->body);
         $this->assertStringNotContainsString('Mode d’édition', $response->body);
         $this->assertStringNotContainsString('Blocs legacy EditRegion*', $response->body);
         $this->assertStringContainsString('Êtes-vous sûr de vouloir supprimer cette page ?', $response->body);
@@ -664,6 +759,52 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('&lt;p&gt;Encart&lt;/p&gt;', $response->body);
         $this->assertStringContainsString('name="translations[fr][regions][aside_html]"', $response->body);
         $this->assertStringContainsString('&lt;p&gt;Intro&lt;/p&gt;', $response->body);
+    }
+
+    public function testPagesEditKeepsTrustedIframeInStructuredRegions(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Association',
+                                    'regions' => [
+                                        'body' => [
+                                            'component' => 'rich_text',
+                                            'html' => '<div class="video-container"><iframe src="https://www.youtube.com/embed/jHO4WgBiHGQ" title="SIMCA ARONDE" allowfullscreen></iframe></div>',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'pages_edit',
+            $this->request('GET', '/admin/pages/association'),
+            ['slug' => 'association']
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('name="translations[fr][regions][body_html]"', $response->body);
+        $this->assertStringContainsString('youtube-nocookie.com/embed/jHO4WgBiHGQ', $response->body);
     }
 
     public function testPagesDeleteRemovesPageAndRedirectsToList(): void
@@ -916,6 +1057,167 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('Tout sélectionner', $response->body);
     }
 
+    public function testMediaPageRendersLibraryManagementScreen(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('media', $this->request('GET', '/admin/media'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Bibliotheque medias', $response->body);
+        $this->assertStringContainsString('name="media_action" value="upload"', $response->body);
+        $this->assertStringContainsString('name="media_action" value="import_zip"', $response->body);
+        $this->assertStringContainsString('name="media_action" value="export_folder"', $response->body);
+    }
+
+    public function testMediaCreateFolderActionCreatesExpectedDirectory(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $targetDirectory = ROOT_PATH . '/public/uploads/editorial/library/photos-2026';
+
+        if (is_dir($targetDirectory)) {
+            @rmdir($targetDirectory);
+        }
+
+        $response = $controller->handle(
+            'media',
+            $this->request(
+                'POST',
+                '/admin/media',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'media_action' => 'create_folder',
+                    'folder' => '',
+                    'new_folder_name' => 'Photos 2026',
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Dossier créé.', $response->body);
+        $this->assertDirectoryExists($targetDirectory);
+
+        @rmdir($targetDirectory);
+    }
+
+    public function testMediaRenameFileActionRenamesFile(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = 'media-' . bin2hex(random_bytes(4));
+        $sourceRelativePath = $token . '-source.jpg';
+        $renamedFilename = $token . '-renamed.jpg';
+        $sourceAbsolutePath = ROOT_PATH . '/public/uploads/editorial/library/' . $sourceRelativePath;
+        $renamedAbsolutePath = ROOT_PATH . '/public/uploads/editorial/library/' . $renamedFilename;
+
+        @unlink($sourceAbsolutePath);
+        @unlink($renamedAbsolutePath);
+        file_put_contents($sourceAbsolutePath, 'media-test');
+
+        $response = $controller->handle(
+            'media',
+            $this->request(
+                'POST',
+                '/admin/media',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'media_action' => 'rename_file',
+                    'folder' => '',
+                    'target_file' => $sourceRelativePath,
+                    'new_file_name' => $renamedFilename,
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Fichier renomme.', $response->body);
+        $this->assertFileDoesNotExist($sourceAbsolutePath);
+        $this->assertFileExists($renamedAbsolutePath);
+
+        @unlink($sourceAbsolutePath);
+        @unlink($renamedAbsolutePath);
+    }
+
+    public function testMediaMoveFolderActionMovesDirectoryToDestination(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $sourceFolder = 'media-' . bin2hex(random_bytes(4)) . '-source';
+        $destinationFolder = 'media-' . bin2hex(random_bytes(4)) . '-archive';
+        $absoluteRoot = ROOT_PATH . '/public/uploads/editorial/library';
+        $sourceAbsolutePath = $absoluteRoot . '/' . $sourceFolder;
+        $destinationAbsolutePath = $absoluteRoot . '/' . $destinationFolder;
+        $movedAbsolutePath = $destinationAbsolutePath . '/' . $sourceFolder;
+
+        $this->removeDirectoryRecursively($sourceAbsolutePath);
+        $this->removeDirectoryRecursively($destinationAbsolutePath);
+        mkdir($sourceAbsolutePath, 0777, true);
+        mkdir($destinationAbsolutePath, 0777, true);
+        file_put_contents($sourceAbsolutePath . '/sample.txt', 'media-folder-test');
+
+        $response = $controller->handle(
+            'media',
+            $this->request(
+                'POST',
+                '/admin/media',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'media_action' => 'move_folder',
+                    'folder' => '',
+                    'target_folder' => $sourceFolder,
+                    'destination_folder' => $destinationFolder,
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Dossier deplace.', $response->body);
+        $this->assertDirectoryDoesNotExist($sourceAbsolutePath);
+        $this->assertDirectoryExists($movedAbsolutePath);
+        $this->assertFileExists($movedAbsolutePath . '/sample.txt');
+
+        $this->removeDirectoryRecursively($sourceAbsolutePath);
+        $this->removeDirectoryRecursively($destinationAbsolutePath);
+    }
+
+    public function testMediaFiltersAreRenderedFromQueryParameters(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'media',
+            $this->request(
+                'GET',
+                '/admin/media',
+                [
+                    'q' => 'photo',
+                    'type' => 'image',
+                    'min_size_kb' => '10',
+                    'max_size_kb' => '2048',
+                    'date_from' => '2026-01-01',
+                    'date_to' => '2026-12-31',
+                    'sort' => 'size_desc',
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('name="q" type="text" value="photo"', $response->body);
+        $this->assertStringContainsString('<option value="image" selected>Images</option>', $response->body);
+        $this->assertStringContainsString('name="min_size_kb" type="number" min="0" step="1" value="10"', $response->body);
+        $this->assertStringContainsString('name="max_size_kb" type="number" min="0" step="1" value="2048"', $response->body);
+        $this->assertStringContainsString('name="date_from" type="date" value="2026-01-01"', $response->body);
+        $this->assertStringContainsString('name="date_to" type="date" value="2026-12-31"', $response->body);
+        $this->assertStringContainsString('<option value="size_desc" selected>', $response->body);
+        $this->assertStringContainsString('(filtres actifs)', $response->body);
+    }
+
     public function testArticlesPageUsesDashboardStyleSummaryCards(): void
     {
         $this->writeBlogArticle([
@@ -972,9 +1274,19 @@ final class AdminControllerTest extends TestCase
         $response = $controller->handle('articles_new', $this->request('GET', '/admin/articles/new'));
 
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('Accroche en bas de page', $response->body);
+        $this->assertStringContainsString('Page parent de publication', $response->body);
+        $this->assertStringContainsString('Choisir une page parent (obligatoire)', $response->body);
         $this->assertStringContainsString('Association', $response->body);
         $this->assertStringContainsString('/association', $response->body);
+        $this->assertStringContainsString('name="article[scheduled_publish_at]"', $response->body);
+        $this->assertStringContainsString('Planifié', $response->body);
+        $this->assertStringContainsString('data-content-media-open="article-media-insert-dialog"', $response->body);
+        $this->assertStringContainsString('id="article-media-insert-dialog"', $response->body);
+        $this->assertStringContainsString('Inserer un media (image / video)', $response->body);
+        $this->assertStringContainsString('data-content-media-folder', $response->body);
+        $this->assertStringContainsString('data-content-media-preset', $response->body);
+        $this->assertStringContainsString('data-content-media-governance-strict', $response->body);
+        $this->assertStringContainsString('data-content-media-audit', $response->body);
     }
 
     public function testArticleDeleteRemovesAttachedDiscussionsAndRedirectsToList(): void
@@ -1063,11 +1375,22 @@ final class AdminControllerTest extends TestCase
                     'banner' => [
                         'image' => '/assets/images/structure/banniere.jpg',
                         'headline' => 'Voyage dans le golfe',
+                        'headline_default_language' => 'fr',
+                        'headline_translations' => [
+                            'fr' => 'Voyage dans le golfe',
+                            'de' => 'Reise durch den Golf',
+                            'en' => 'Journey through the gulf',
+                        ],
                         'alt' => 'Voyage dans le golfe',
                         'title' => 'Voyage dans le golfe',
                     ],
                     'remonter' => [
                         'label' => 'Top',
+                        'label_default_language' => 'fr',
+                        'label_translations' => [
+                            'fr' => 'Remonter',
+                            'de' => 'Nach oben',
+                        ],
                         'alt' => 'Remonter',
                         'title' => 'Remonter',
                     ],
@@ -1104,6 +1427,12 @@ final class AdminControllerTest extends TestCase
         $this->assertIsArray($decoded);
         $this->assertSame('page', $decoded['locations']['primary'][0]['kind'] ?? null);
         $this->assertSame('association', $decoded['locations']['primary'][0]['target']['pageSlug'] ?? null);
+        $this->assertSame('fr', $decoded['locations']['banner']['headline']['defaultLanguage'] ?? null);
+        $this->assertSame('Reise durch den Golf', $decoded['locations']['banner']['headline']['translations']['de'] ?? null);
+        $this->assertSame('Journey through the gulf', $decoded['locations']['banner']['headline']['translations']['en'] ?? null);
+        $this->assertSame('fr', $decoded['locations']['remonter']['label']['defaultLanguage'] ?? null);
+        $this->assertSame('Remonter', $decoded['locations']['remonter']['label']['translations']['fr'] ?? null);
+        $this->assertSame('Nach oben', $decoded['locations']['remonter']['label']['translations']['de'] ?? null);
     }
 
     public function testMenusSelectActionMarksPopupForAutoOpen(): void
@@ -1327,8 +1656,15 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('AUTO-RETRO', $response->body);
         $this->assertStringNotContainsString('Item sans libellé', $response->body);
         $this->assertStringContainsString('name="locations[primary][1][label_translation_key]"', $response->body);
+        $this->assertStringContainsString('name="locations[primary][1][label_default_language]"', $response->body);
+        $this->assertStringContainsString('name="locations[primary][1][label_translations][fr]"', $response->body);
         $this->assertStringContainsString('name="banner[headline_translation_key]"', $response->body);
+        $this->assertStringContainsString('name="banner[headline_default_language]"', $response->body);
+        $this->assertStringContainsString('name="banner[headline_translations][fr]"', $response->body);
         $this->assertStringContainsString('name="remonter[label_translation_key]"', $response->body);
+        $this->assertStringContainsString('name="remonter[label_default_language]"', $response->body);
+        $this->assertStringContainsString('name="remonter[label_translations][fr]"', $response->body);
+        $this->assertStringContainsString('name="remonter[label_translations][de]"', $response->body);
         $this->assertStringContainsString('value="AUTO-RETRO"', $response->body);
         $this->assertStringContainsString('value="Remonter"', $response->body);
     }
@@ -1677,6 +2013,7 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('data-region-modal-open="settings-dialog-head"', $response->body);
         $this->assertStringContainsString('data-region-modal-open="settings-dialog-tarteaucitron"', $response->body);
         $this->assertStringContainsString('data-region-modal-open="settings-dialog-instagram"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-observability"', $response->body);
         $this->assertStringContainsString('data-region-modal-open="settings-dialog-translations"', $response->body);
         $this->assertStringContainsString('id="settings-dialog-security"', $response->body);
         $this->assertStringContainsString('name="tarteaucitron[privacy_url]" type="text" value="/" placeholder="/"', $response->body);
@@ -1684,6 +2021,100 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('name="url[base_path]" type="text" value="/" placeholder="/"', $response->body);
         $this->assertStringContainsString('name="admin[allowed_ips]" type="text"', $response->body);
         $this->assertStringContainsString('name="instagram[username]" type="text"', $response->body);
+        $this->assertStringContainsString('name="log_alerts[notify_on]"', $response->body);
+        $this->assertStringContainsString('name="translations[fr]"', $response->body);
+        $this->assertStringContainsString('Dictionnaire existant FR', $response->body);
+        $this->assertStringContainsString('name="settings_action" value="cache_clear"', $response->body);
+        $this->assertStringContainsString('Vider le cache', $response->body);
+    }
+
+    public function testSettingsCacheClearActionDeletesInstagramCacheFile(): void
+    {
+        global $appConfig;
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+        $instagramCacheFile = ROOT_PATH . '/var/admin-instagram-cache-clear-' . uniqid('', true) . '.json';
+        $previousInstagramConfig = $appConfig['site']['instagram'] ?? null;
+
+        $instagramConfig = is_array($previousInstagramConfig) ? $previousInstagramConfig : [];
+        $instagramConfig['cache_path'] = $instagramCacheFile;
+        $appConfig['site']['instagram'] = $instagramConfig;
+
+        file_put_contents(
+            $instagramCacheFile,
+            json_encode(
+                [
+                    'fingerprint' => 'test',
+                    'fetched_at' => time(),
+                    'username' => 'test',
+                    'posts' => [],
+                ],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        try {
+            $response = $controller->handle(
+                'settings',
+                $this->request(
+                    'POST',
+                    '/admin/settings',
+                    [],
+                    [
+                        'csrf_token' => $token,
+                        'settings_section' => 'security',
+                        'settings_action' => 'cache_clear',
+                    ]
+                )
+            );
+
+            $this->assertSame(200, $response->status);
+            $this->assertStringContainsString('Caches applicatifs vidés', $response->body);
+            $this->assertFileDoesNotExist($instagramCacheFile);
+        } finally {
+            if (file_exists($instagramCacheFile)) {
+                unlink($instagramCacheFile);
+            }
+
+            if ($previousInstagramConfig === null) {
+                unset($appConfig['site']['instagram']);
+            } else {
+                $appConfig['site']['instagram'] = $previousInstagramConfig;
+            }
+        }
+    }
+
+    public function testSettingsPostDoesNotForceReauthenticationWhenWindowExpired(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $sessionKey = admin_session_key();
+        $_SESSION[$sessionKey]['last_reauth_at'] = time() - 700;
+
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'tarteaucitron',
+                    'tarteaucitron' => [
+                        'privacy_url' => '',
+                        'orientation' => 'diagonal',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertTrue(admin_is_authenticated());
+        $this->assertStringContainsString('tarteaucitron', $response->body);
     }
 
     public function testSettingsPostPersistsOverrideFilesAndHashesAdminPassword(): void
@@ -1750,6 +2181,9 @@ final class AdminControllerTest extends TestCase
                         'cache_ttl_seconds' => '2400',
                         'timeout_seconds' => '9',
                     ],
+                    'log_alerts' => [
+                        'notify_on' => 'always',
+                    ],
                     'translations' => [
                         'fr' => 'TXT_BLOG_SITE_TITLE=Blog des Caramagnols (admin)' . PHP_EOL . 'TXT_CONTACT_SUBMIT=Envoyer maintenant',
                         'en' => 'TXT_BLOG_SITE_TITLE=Caramagnols Blog',
@@ -1807,6 +2241,7 @@ final class AdminControllerTest extends TestCase
         $this->assertSame(6200, $siteOverride['instagram']['rotation_interval_ms'] ?? null);
         $this->assertSame(2400, $siteOverride['instagram']['cache_ttl_seconds'] ?? null);
         $this->assertSame(9, $siteOverride['instagram']['timeout_seconds'] ?? null);
+        $this->assertSame('always', $siteOverride['log_alerts']['notify_on'] ?? null);
         $this->assertSame('Blog des Caramagnols (admin)', $siteOverride['i18n_overrides']['fr']['TXT_BLOG_SITE_TITLE'] ?? null);
         $this->assertSame('Envoyer maintenant', $siteOverride['i18n_overrides']['fr']['TXT_CONTACT_SUBMIT'] ?? null);
         $this->assertSame('Caramagnols Blog', $siteOverride['i18n_overrides']['en']['TXT_BLOG_SITE_TITLE'] ?? null);
@@ -1838,6 +2273,46 @@ final class AdminControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('tarteaucitron', $response->body);
         $this->assertStringContainsString('data-settings-section-card="tarteaucitron"', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+    }
+
+    public function testSettingsRejectsInvalidLogAlertsMode(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'settings_section' => 'observability',
+                    'database' => [
+                        'host' => '127.0.0.1',
+                        'port' => '3306',
+                        'name' => 'caramagnols',
+                        'user' => 'cara_user',
+                        'password' => '',
+                        'prefix' => 'cara_',
+                    ],
+                    'admin' => [
+                        'identifier' => 'admin@example.com',
+                        'password' => '',
+                    ],
+                    'log_alerts' => [
+                        'notify_on' => 'burst',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Le mode de notification des alertes logs est invalide.', $response->body);
+        $this->assertStringContainsString('data-settings-section-card="observability"', $response->body);
         $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
     }
 
@@ -2233,9 +2708,9 @@ final class AdminControllerTest extends TestCase
         array $query = [],
         array $post = [],
         string $remoteAddr = '127.0.0.1',
-        array $headers = []
-    ): Request
-    {
+        array $headers = [],
+        array $files = []
+    ): Request {
         return new Request(
             [
                 'REQUEST_METHOD' => $method,
@@ -2245,8 +2720,34 @@ final class AdminControllerTest extends TestCase
             $query,
             $post,
             [],
-            array_merge(['Host' => '127.0.0.1:8000'], $headers)
+            array_merge(['Host' => '127.0.0.1:8000'], $headers),
+            '',
+            $files
         );
+    }
+
+    private function createTemporaryJpeg(int $width, int $height): string
+    {
+        $width = max(1, $width);
+        $height = max(1, $height);
+        $temporaryPath = tempnam(sys_get_temp_dir(), 'cara-page-media-');
+        if (!is_string($temporaryPath) || $temporaryPath === '') {
+            self::fail('Impossible de creer un fichier temporaire image.');
+        }
+
+        $image = imagecreatetruecolor($width, $height);
+        if ($image === false) {
+            self::fail('Impossible de creer une image de test.');
+        }
+
+        $background = imagecolorallocate($image, 24, 68, 124);
+        imagefilledrectangle($image, 0, 0, $width, $height, $background);
+        $textColor = imagecolorallocate($image, 255, 255, 255);
+        imagestring($image, 5, 20, 20, 'Caramagnols', $textColor);
+        imagejpeg($image, $temporaryPath, 90);
+        imagedestroy($image);
+
+        return $temporaryPath;
     }
 
     /**

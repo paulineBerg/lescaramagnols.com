@@ -3,167 +3,17 @@
 /***************************  */
 @use 'variables' as vars;
 
-// Menu windows visible uniquement sur mobile/tablette
 div#menuwindows {
   display: block;
 }
 
-/* Menu mobile (masqué par défaut sur desktop) */
-#breadcrumb-mobile {
-  display: none;
-  width: 100%;
-}
-
-/* En-tête du menu mobile */
-.menu-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-/* Responsive ≤ 768px */
 @media screen and (width <= 768px) {
   body {
     font-size: 140%;
-    margin-top: 60px; /* pour le menu fixe */
   }
 
   #remonter {
     display: block;
-  }
-
-  /* Autoriser le scroll dans le menu mobile */
-  #breadcrumb-mobile.open {
-    height: 100vh;
-    overflow-y: auto;
-  }
-
-  body.menu-open {
-    overflow: hidden;
-  }
-
-  /* Cacher le bouton remonter quand le menu mobile est ouvert */
-  #breadcrumb-mobile.open ~ #remonter {
-    display: none;
-  }
-
-  /* Affiche le menu mobile */
-  #breadcrumb-mobile {
-    display: block;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    padding: 10px;
-    background-color: #{vars.$color-blanc};
-    border-bottom: 1px solid #{vars.$color-gris};
-    z-index: 1000;
-  }
-
-  /* Structure du menu mobile */
-  .breadcrumb-menu {
-    display: none;
-    list-style: none;
-    margin: 0;
-    padding: 10px 0;
-    background-color: #{vars.$color-blanc};
-    border: 1px solid #{vars.$color-gris};
-    border-radius: 5px;
-  }
-
-  #banniere {
-    display: flex !important;
-    height: 2.5rem;
-    background-image: url('@/assets/images/structure/banniere.gif');
-    background-repeat: repeat-x;
-    background-size: auto 2.5rem;
-    background-position: center top;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .banniere-texte {
-    font-size: 1.6rem;
-    padding: 0 0.5rem;
-    animation: defilement 15s linear infinite;
-    color: #{vars.$color-blanc};
-  }
-
-  .banniere-mobile-header {
-    flex: 1;
-    margin-left: 10px;
-  }
-
-  .mobile-home-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 10px;
-
-    img {
-      width: 32px;
-      height: 32px;
-    }
-  }
-
-  .breadcrumb-menu.open {
-    display: block;
-    pointer-events: auto; /* Réactive les clics sur le menu quand il est ouvert */
-  }
-
-  .breadcrumb-menu li ul {
-    display: none;
-  }
-
-  .breadcrumb-menu li.open > ul {
-    display: block;
-  }
-
-  .breadcrumb-menu > li {
-    border-bottom: 1px solid #{vars.$color-gris};
-  }
-
-  .breadcrumb-menu > li:last-child {
-    border-bottom: none;
-  }
-
-  .breadcrumb-menu li a {
-    text-decoration: none;
-    color: #{vars.$color-bleu-fonce};
-    text-align: left;
-  }
-
-  .breadcrumb-menu li a:hover {
-    text-decoration: underline;
-  }
-
-  #menu-langues-mobile {
-    padding: 1rem 0; /* Espace vertical autour des drapeaux */
-  }
-
-  #menu-langues-mobile .langues-mobiles {
-    display: flex;
-    justify-content: center; /* Centre les drapeaux horizontalement */
-    gap: 1.5rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  /* Les li et a à l'intérieur s'aligneront naturellement grâce au flex, pas besoin de styles additionnels. */
-
-  #hamburger-icon span {
-    display: block;
-    height: 10px;
-    background-color: #{vars.$color-noir};
-    border-radius: 2px;
-    transition: all 0.3s ease;
-    margin: 3px 0;
-  }
-
-  /* RECHERCHER */
-  #menu-recherche {
-    margin-left: 0;
   }
 
   #menu-gauche,
@@ -171,20 +21,9 @@ div#menuwindows {
     display: none;
   }
 
-  #entete {
-    display: flex;
-  }
-
-  .defilement marquee {
-    font-size: 14px;
-    color: #{vars.$color-noir};
-    font-weight: bold;
-    white-space: nowrap;
-  }
-
   #contenu {
     width: 97%;
-    margin: 5rem auto auto;
+    margin: 1rem auto auto;
   }
 
   #colonne-justifie-25,
@@ -204,15 +43,4 @@ div#menuwindows {
     margin-left: auto;
     margin-right: auto;
   }
-}
-
-.breadcrumb-menu > li > a {
-  font-weight: bold;
-  padding: 10px;
-  display: block;
-  color: #{vars.$color-noir};
-}
-
-.breadcrumb-menu > li > a:hover {
-  color: #{vars.$color-bleu-fonce};
 }
