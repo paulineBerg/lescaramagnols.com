@@ -16,8 +16,6 @@ pnpm-debug.log*
 backend/public/.vite/
 backend/public/tarteaucitron/
 backend/public/assets/*
-!backend/public/assets/images/
-!backend/public/assets/images/**
 !backend/public/assets/index.php
 !backend/public/assets/rss.php
 backend/public/uploads/**
