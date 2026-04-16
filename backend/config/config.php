@@ -50,6 +50,7 @@ $siteTarteaucitronOverride = is_array($siteOverride['tarteaucitron'] ?? null) ? 
 $siteUrlOverride = is_array($siteOverride['url'] ?? null) ? $siteOverride['url'] : [];
 $siteDiscussionsOverride = is_array($siteOverride['discussions'] ?? null) ? $siteOverride['discussions'] : [];
 $siteInstagramOverride = is_array($siteOverride['instagram'] ?? null) ? $siteOverride['instagram'] : [];
+$siteLogAlertsOverride = is_array($siteOverride['log_alerts'] ?? null) ? $siteOverride['log_alerts'] : [];
 $normalizeI18nOverrides = static function (mixed $overrides): array {
     if (!is_array($overrides)) {
         return [];
@@ -160,6 +161,9 @@ $siteInstagramDefaults = [
     'cache_ttl_seconds' => 1800,
     'timeout_seconds' => 8,
 ];
+$siteLogAlertsDefaults = [
+    'notify_on' => trim((string) env('LOG_ALERTS_NOTIFY_ON', 'alerts')),
+];
 $normalizeBooleanValue = static function (mixed $value, bool $fallback): bool {
     if ($value === null) {
         return $fallback;
@@ -231,6 +235,14 @@ $siteInstagramConfig = array_merge(
     $siteInstagramDefaults,
     array_intersect_key($siteInstagramOverride, $siteInstagramDefaults)
 );
+$siteLogAlertsConfig = array_merge(
+    $siteLogAlertsDefaults,
+    array_intersect_key($siteLogAlertsOverride, $siteLogAlertsDefaults)
+);
+$siteLogAlertsConfig['notify_on'] = strtolower(trim((string) ($siteLogAlertsConfig['notify_on'] ?? 'alerts')));
+if (!in_array($siteLogAlertsConfig['notify_on'], ['alerts', 'always'], true)) {
+    $siteLogAlertsConfig['notify_on'] = 'alerts';
+}
 $siteInstagramUsername = ltrim(trim((string) ($siteInstagramConfig['username'] ?? '')), '@');
 if (preg_match('/^[A-Za-z0-9._]{1,30}$/', $siteInstagramUsername) !== 1) {
     $siteInstagramUsername = '';
@@ -428,6 +440,7 @@ $appConfig = [
             'timeout_seconds' => max(3, min(20, (int) ($siteInstagramConfig['timeout_seconds'] ?? 8))),
             'cache_path' => ROOT_PATH . '/var/cache/instagram-feed.json',
         ],
+        'log_alerts' => $siteLogAlertsConfig,
         'i18n_overrides' => $siteI18nOverrides,
     ],
     'security' => [
