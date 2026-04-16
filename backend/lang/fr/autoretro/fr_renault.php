@@ -69,12 +69,12 @@ return [
 <h3>Facelifts et sportivité (2000s)</h3>
 <p>Au fil des ans, la Twingo se modernise. En 1998, un premier restylage introduit les phares cristallins et un tableau de bord plus arrondi. En 2004, la Twingo reçoit des airbags et l’ABS de série. Des séries spéciales apparaissent régulièrement (Kenzo, Privilège, Night&Day). En 2007, la Twingo II fait son apparition : plus longue (3,60 m), elle gagne en équipements mais perd la banquette coulissante. La version RS (Renault Sport) équipée d’un moteur 1.6 L 133 ch devient une référence parmi les citadines sportives.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_(II,_Facelift).jpg" title="Twingo II" alt="Twingo II"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/renault/renault_twingo_ii_facelift.jpg" title="Twingo II" alt="Twingo II"></div>
 
 <h3>Troisième génération : la révolution technique (2014)</h3>
 <p>En partenariat avec Daimler (Smart), la Twingo III rompt avec le passé. Elle adopte une architecture propulsion à moteur arrière, chose rare pour une citadine. Cette configuration permet un rayon de braquage exceptionnel (4,3 m), idéal pour la ville. Motorisée par des blocs 1.0 SCe (70–75 ch) ou 0.9 TCe turbo (90 ch), elle atteint 160 km/h en version TCe. Le coffre arrière gagne en volume (219 L) malgré l’implantation du moteur sous plancher.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_2014_(2).jpg" title="Twingo III" alt="Twingo III"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/renault/renault_twingo_2014_2.jpg" title="Twingo III" alt="Twingo III"></div>
 
 <h3>Version électrique (2020)</h3>
 <p>En 2020, Renault lance la Twingo Electric, équipée d’un moteur électrique de 82 ch et une batterie de 22 kWh. L’autonomie atteint 190 km en cycle WLTP, idéale pour les trajets urbains quotidiens. La recharge s’effectue en 4 h sur borne 7 kW. L’équipement comprend régulateur de vitesse, climatisation automatique et système EasyLink avec écran 7 pouces.</p>
@@ -85,7 +85,7 @@ return [
 <div id="bloccenter"><img src="/assets/images/autoretro/renault/interieur_twingo.jpg" title="intérieur de la Twingo" alt="Intérieur de la Twingo"></div>
 
 <h3>Conclusion : la magie Twingo</h3>
-<p>La Twingo incarne l’ingéniosité française dans ce qu’elle a de plus joyeux. Ludique, fiable, inventive, elle démontre que la simplicité n’exclut ni le confort ni le style. Qu’elle roule au sans plomb ou à l’électrique, elle garde ce petit quelque chose qui fait sourire. Une voiture attachante, à l’image de celles et ceux qui l’ont conduite — et qui, sans nul doute, continueront à la chérir.</p>
+<p>La Twingo incarne l’ingéniosité française dans ce qu’elle a de plus joyeux. Ludique, fiable, inventive, elle démontre que la simplicité n’exclut ni le confort ni le style. Qu’elle roule au sans plomb ou à l’électrique, elle garde ce petit quelque chose qui fait sourire. Une voiture attachante, à l’image de celles et ceux qui l’ont conduite ,  et qui, sans nul doute, continueront à la chérir.</p>
 ',
 
 //-------------------------------------------------------------

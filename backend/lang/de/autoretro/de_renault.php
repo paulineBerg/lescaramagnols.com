@@ -69,12 +69,12 @@ return [
 <h3>Facelifts und Sportlichkeit (2000er Jahre)</h3>
 <p>Im Laufe der Jahre modernisierte sich der Twingo. 1998 führte ein erstes Facelift kristalline Scheinwerfer und ein runderes Armaturenbrett ein. 2004 erhielt der Twingo Airbags und ABS serienmäßig. Spezialserien erschienen regelmäßig (Kenzo, Privilège, Night&Day). 2007 erschien der Twingo II: länger (3,60 m), er gewann an Ausstattung, verlor aber die verschiebbare Rücksitzbank. Die RS-Version (Renault Sport), ausgestattet mit einem 1,6 L 133 PS Motor, wurde zu einer Referenz unter den sportlichen Kleinwagen.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_(II,_Facelift).jpg" title="Twingo II" alt="Twingo II"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/renault/renault_twingo_ii_facelift.jpg" title="Twingo II" alt="Twingo II"></div>
 
 <h3>Dritte Generation: die technische Revolution (2014)</h3>
 <p>In Partnerschaft mit Daimler (Smart) brach der Twingo III mit der Vergangenheit. Er nahm eine Hinterradantriebsarchitektur mit Heckmotor an, was für einen Kleinwagen selten ist. Diese Konfiguration ermöglicht einen außergewöhnlichen Wendekreis (4,3 m), ideal für die Stadt. Angetrieben von 1.0 SCe (70–75 PS) oder 0.9 TCe Turbo (90 PS) Blöcken, erreichte er 160 km/h in der TCe-Version. Das Kofferraumvolumen vergrößerte sich (219 L), obwohl der Motor unter dem Boden platziert war.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_2014_(2).jpg" title="Twingo III" alt="Twingo III"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/renault/renault_twingo_2014_2.jpg" title="Twingo III" alt="Twingo III"></div>
 
 <h3>Elektroversion (2020)</h3>
 <p>2020 führte Renault den Twingo Electric ein, ausgestattet mit einem 82 PS Elektromotor und einer 22 kWh Batterie. Die Reichweite beträgt 190 km im WLTP-Zyklus, ideal für den täglichen Stadtverkehr. Die Aufladung erfolgt in 4 Stunden an einer 7 kW Ladesäule. Die Ausstattung umfasst Geschwindigkeitsregler, automatische Klimaanlage und ein EasyLink-System mit 7-Zoll-Bildschirm.</p>
@@ -85,7 +85,7 @@ return [
 <div id="bloccenter"><img src="/assets/images/autoretro/renault/interieur_twingo.jpg" title="Innenraum des Twingo" alt="Innenraum des Twingo"></div>
 
 <h3>Fazit: die Twingo-Magie</h3>
-<p>Der Twingo verkörpert französischen Einfallsreichtum in seiner fröhlichsten Form. Spielerisch, zuverlässig, erfinderisch, beweist er, dass Einfachheit weder Komfort noch Stil ausschließt. Ob er mit Benzin oder elektrisch fährt, er behält dieses gewisse Etwas, das ein Lächeln hervorruft. Ein liebenswertes Auto, wie die, die es gefahren sind — und die es zweifellos weiterhin schätzen werden.</p>
+<p>Der Twingo verkörpert französischen Einfallsreichtum in seiner fröhlichsten Form. Spielerisch, zuverlässig, erfinderisch, beweist er, dass Einfachheit weder Komfort noch Stil ausschließt. Ob er mit Benzin oder elektrisch fährt, er behält dieses gewisse Etwas, das ein Lächeln hervorruft. Ein liebenswertes Auto, wie die, die es gefahren sind ,  und die es zweifellos weiterhin schätzen werden.</p>
 ',
 
 //-------------------------------------------------------------

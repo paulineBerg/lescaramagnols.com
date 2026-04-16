@@ -25,16 +25,16 @@ return [
 'BOUGERDESCRIPT' => 'Un territoire façonné par la mer et l’histoire',
 
 'TXT_GOLFEINTRO' => 'Le Golfe de Saint-Tropez est un écrin méditerranéen niché dans le département du Var, formé de douze communes emblématiques : Cavalaire-sur-Mer, Cogolin, Gassin, Grimaud, La Croix-Valmer, La Garde-Freinet, La Mole, Le Plan-de-la-Tour, Ramatuelle, Le Rayol-Canadel-sur-Mer, Sainte-Maxime et bien sûr Saint-Tropez.
-<br>Ce territoire représente à lui seul près de 30 % du Massif des Maures, massif ancien composé essentiellement de schistes cristallins, de quartzites et de gneiss, issus d’un plissement hercynien datant de plus de 300 millions d’années. Le littoral y déploie plus de 103 km de côtes, bordées de 40 plages de sable fin aux compositions variées — allant des sables siliceux aux alluvions riches en minéraux ferreux charriés depuis les collines par les ruisseaux intermittents.',
+<br>Ce territoire représente à lui seul près de 30 % du Massif des Maures, massif ancien composé essentiellement de schistes cristallins, de quartzites et de gneiss, issus d’un plissement hercynien datant de plus de 300 millions d’années. Le littoral y déploie plus de 103 km de côtes, bordées de 40 plages de sable fin aux compositions variées ,  allant des sables siliceux aux alluvions riches en minéraux ferreux charriés depuis les collines par les ruisseaux intermittents.',
 
 'TXT_GOLFE' => '
 <h2>UN PEU D\'HISTOIRE avec un grand H :</h2>
 
-<p>La légende fondatrice raconte qu’en l’an 68, le corps martyrisé de Torpes — un chrétien décapité sous Néron — fut placé dans une barque, accompagné d’un chien et d’un coq, puis laissé dériver sur l’Arno. Guidée par les flots, l’embarcation finit sa course sur les rives du golfe. De cette fable naquirent les toponymes : "Tropez" pour l’homme, "Cogolin" pour le coq (du latin <em>coquillus</em>), et "Grimaud" pour le chien (de l’ancien français <em>grimaud</em>, canidé de garde).</p>
+<p>La légende fondatrice raconte qu’en l’an 68, le corps martyrisé de Torpes ,  un chrétien décapité sous Néron ,  fut placé dans une barque, accompagné d’un chien et d’un coq, puis laissé dériver sur l’Arno. Guidée par les flots, l’embarcation finit sa course sur les rives du golfe. De cette fable naquirent les toponymes : "Tropez" pour l’homme, "Cogolin" pour le coq (du latin <em>coquillus</em>), et "Grimaud" pour le chien (de l’ancien français <em>grimaud</em>, canidé de garde).</p>
 
 <p>Mais au-delà des mythes, le Golfe connut une histoire mouvementée. Dès l’Antiquité, les Phocéens y installent des comptoirs commerciaux. Les Romains y construisent des <em>villae</em> rustiques à colonnades, exploitent les salins côtiers et édifient des routes dallées, dont des fragments sont encore visibles à la Nartelle ou vers La Garde-Freinet. Des dolia en terre cuite et amphores retrouvées témoignent d’une intense activité viticole et oléicole.</p>
 
-<p>Aux VIII<sup>e</sup> et IX<sup>e</sup> siècles, les incursions sarrasines provoquent l’abandon de nombreuses terres. Mais dès le XI<sup>e</sup>, les comtes de Provence reprennent possession du territoire, construisant tours de guet et citadelles — comme la tour de Ramatuelle ou la citadelle de Saint-Tropez, édifiée en pierres de grès rose du massif local.</p>
+<p>Aux VIII<sup>e</sup> et IX<sup>e</sup> siècles, les incursions sarrasines provoquent l’abandon de nombreuses terres. Mais dès le XI<sup>e</sup>, les comtes de Provence reprennent possession du territoire, construisant tours de guet et citadelles ,  comme la tour de Ramatuelle ou la citadelle de Saint-Tropez, édifiée en pierres de grès rose du massif local.</p>
 
 <p>Le port de Saint-Tropez connaît un essor remarquable à partir du XVe siècle. Les navires méditerranéens, gréés en tartanes ou chebecs, assurent le commerce du sel, du cuir, du vin et des toiles tissées. On y trouve alors des chantiers navals, des entrepôts voûtés et des cales sèches encore visibles sous les quais actuels. L’architecture portuaire s’adapte au mistral dominant, avec des avancées de toits appelées <em>génoises</em>.</p>
 
@@ -42,7 +42,7 @@ return [
 
 <p>Les villages du Golfe sont un théâtre vivant d’architecture méridionale : façades à chaux colorée, linteaux sculptés, escaliers extérieurs en pierre brute et tuiles creuses romanes à l’arrondi irrégulier. Les matériaux de construction sont issus des carrières locales : calcaire de Provence, grès du Rayol, bois de pin d’Alep.</p>
 
-<p>De mai à septembre, le Golfe s’anime : régates de voiliers classiques comme les Voiles de Saint-Tropez, festivals de musique, fêtes votives, marchés de terroir où se mêlent parfums de lavande, tapenade et pain de campagne. Les offices du tourisme — souvent installés dans d’anciennes maisons de notables ou des moulins — perpétuent la mémoire des lieux.</p>
+<p>De mai à septembre, le Golfe s’anime : régates de voiliers classiques comme les Voiles de Saint-Tropez, festivals de musique, fêtes votives, marchés de terroir où se mêlent parfums de lavande, tapenade et pain de campagne. Les offices du tourisme ,  souvent installés dans d’anciennes maisons de notables ou des moulins ,  perpétuent la mémoire des lieux.</p>
 ',
 
     // PAGE COGOLIN
@@ -61,6 +61,16 @@ Là, le coq s\'envola dans un champ de… lin et le coq et le lin devinrent Cogo
     'IMAGE_ALT_cogolinfontaine' => 'Une fontaine à Cogolin',
     'IMAGE_ALT_cogolinvue'      => 'Vue de Cogolin',
     'IMAGE_ALT_cogolintour'     => 'La tour de Cogolin',
+    'TITRE_INFOSPRATIQUES'      => 'Praktische Informationen: Märkte und Flohmärkte',
+    'MARCHE_MERCREDI'           => 'Provenzalischer Mittwochsmarkt',
+    'MARCHE_MERCREDI_INFOS'     => 'Jeden Mittwochmorgen von 8 bis 13 Uhr auf dem Place Victor Hugo und am Bouleplatz, mit mehr als 100 Ständen mit lokalen Erzeugnissen, Textilien, Handwerk und provenzalischen Spezialitäten.',
+    'MARCHE_SAMEDI'             => 'Provenzalischer Samstagsmarkt',
+    'MARCHE_SAMEDI_INFOS'       => 'Jeden Samstagmorgen von 8 bis 13 Uhr auf dem Place de la Republique mit etwa 50 Ausstellern.',
+    'BROCANTE_JEUDI'            => 'Donnerstagvormittag-Flohmarkt',
+    'BROCANTE_JEUDI_INFOS'      => 'Von 6:00 bis 14:30 Uhr am Strand der Marines de Cogolin. Reservierung erforderlich. Kontakt: 06 08 10 94 73.',
+    'BROCANTE_DIMANCHE'         => 'Sonntagvormittag-Flohmarkt',
+    'BROCANTE_DIMANCHE_INFOS'   => 'Von 6:00 bis 14:00 Uhr am Jas des Robert (chemin de Negresse). Kontakt: 06 67 71 74 27.',
+    'INFOS_MARCHE_NOTE'         => 'Diese Termine gelten das ganze Jahr über. Bei schlechtem Wetter können einige Märkte verkleinert oder abgesagt werden. Prüfen Sie cogolin.fr auf Aktualisierungen.',
 
 
     'TXT_COGOLINCENTRE'     => '<h2>Le nom de Cogolin</h2> apparaît pour la première fois en l\'an 1055. Notre vieux village est situé sur un monticule, en provençal "COGOUYOUN".<br>De nombreux vestiges d\'habitats et des traces agraires attestent d\'une activité humaine et commerçante déjà importante qui s\'est perpétuée jusqu\'à nos jours.<br>Cogolin est aujourd\'hui un village calme et animé à la fois.
@@ -79,6 +89,7 @@ Là, le coq s\'envola dans un champ de… lin et le coq et le lin devinrent Cogo
     'IMAGE_ALT_gardefreinetvillage'  => 'Le village de La Garde-Freinet',
     'IMAGE_ALT_gardefreinetplace'    => 'Une bien jolie place à La Garde-Freinet',
     'IMAGE_ALT_gardefreinetchemin'   => 'Le chemin serpente à La Garde-Freinet',
+    'TITRE_INTRO_GARDEFREINET'       => 'La Garde-Freinet, Wächterin der Maures',
 
     'TXT_GARDEFREINETINTRO'         => 'Nichée au cœur du Massif des Maures, La Garde-Freinet, vieux village provençal, a su préserver son authenticité. On y accède par des routes pittoresques serpentant dans une nature sauvage. Sa position de sentinelle au sommet du col lui valut l\'appellation de "garde".
 <br>Le nom des habitants est Gardois, de "Gardeu" en provençal. Freinet, ajouté après, fait référence au territoire du Fraxinetum (vaste plaine peuplée de frênes, de Gassin à Grimaud).
@@ -89,6 +100,8 @@ Là, le coq s\'envola dans un champ de… lin et le coq et le lin devinrent Cogo
     'TXT_GARDEFREINETCONCLUSION'    => 'Également, la Garde-Freinet nous offre un panorama exceptionnel sur les massifs préalpins, la Méditerranée et les paysages forestiers des Maures.
 <br>Dix années de campagnes de fouilles archéologiques ont permis de dégager les vestiges d\'un village fortifié du Moyen-Âge. Pour y accéder, le sentier longe la falaise jusqu\'aux portes du village, où l\'on peut voir les restes d\'une trentaine d\'habitations taillées dans le schiste.
 <br>Les conditions de la destruction du Fort Freinet sont connues, mais son origine, la remise en cause de l\'occupation sarrasine ou la fonction de certaines habitations, alimentent les discussions, sur un site qui n\'a pas encore livré tous ses secrets.',
+    'TITRE_ASAVOIR_GF'              => 'Wissenswertes: Kork, ein lokaler Reichtum',
+    'CONTENU_ASAVOIR_GF'            => 'Im 19. Jahrhundert wurde La Garde-Freinet zu einem wichtigen Zentrum der Korkenherstellung. Dank der vielen Korkeichen im Massif beherrschten die Einwohner das Schaelen der Rinde, ohne den Baum zu beschädigen, sowie die Weiterverarbeitung und das Stanzen der Platten. Diese Tätigkeit beschäftigte fast ein Drittel der Bevölkerung und trug zum Wohlstand des Dorfes bei. Einige Werkstätten sind noch heute sichtbar und zeugen von diesem ländlichen und handwerklichen Know-how.',
 
 
     // PAGE RAMATUELLE

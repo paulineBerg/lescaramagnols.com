@@ -19,26 +19,20 @@ final class ApiLangTest extends TestCase
 
     public function testReturnsJson(): void
     {
-        $_GET['lang'] = 'fr';
-        ob_start();
-        handle_lang_api();
-        $output = ob_get_clean();
+        $response = lang_api_response('fr');
 
-        $this->assertNotFalse($output);
-        $this->assertJson($output);
+        $this->assertSame(200, $response->status);
+        $this->assertJson($response->body);
+        $this->assertSame('application/json; charset=utf-8', $response->headers['Content-Type'] ?? null);
     }
 
     public function testReturns304WhenEtagMatches(): void
     {
-        $_GET['lang'] = 'fr';
-        $langFile = ROOT_PATH . '/lang/fr.php';
+        $langFile = translation_file_path('fr');
         $etag = 'W/"' . (filemtime($langFile) ?: time()) . '"';
-        $_SERVER['HTTP_IF_NONE_MATCH'] = $etag;
+        $response = lang_api_response('fr', $etag);
 
-        ob_start();
-        handle_lang_api();
-        ob_end_clean();
-
-        $this->assertSame(304, http_response_code());
+        $this->assertSame(304, $response->status);
+        $this->assertSame('', $response->body);
     }
 }

@@ -69,12 +69,12 @@ return [
 <h3>Facelifts and sportiness (2000s)</h3>
 <p>Over the years, the Twingo was modernized. In 1998, a first restyling introduced crystalline headlights and a more rounded dashboard. In 2004, the Twingo received standard airbags and ABS. Special series appeared regularly (Kenzo, Privilège, Night&Day). In 2007, the Twingo II made its appearance: longer (3.60 m), it gained in equipment but lost the sliding bench seat. The RS (Renault Sport) version equipped with a 1.6 L 133 hp engine became a benchmark among sporty city cars.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_(II,_Facelift).jpg" title="Twingo II" alt="Twingo II"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/renault/renault_twingo_ii_facelift.jpg" title="Twingo II" alt="Twingo II"></div>
 
 <h3>Third generation: the technical revolution (2014)</h3>
 <p>In partnership with Daimler (Smart), the Twingo III broke with the past. It adopted a rear-engine, rear-wheel drive architecture, a rare thing for a city car. This configuration allowed for an exceptional turning radius (4.3 m), ideal for the city. Powered by 1.0 SCe (70–75 hp) or 0.9 TCe turbo (90 hp) blocks, it reached 160 km/h in the TCe version. The rear trunk gained in volume (219 L) despite the engine being located under the floor.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_2014_(2).jpg" title="Twingo III" alt="Twingo III"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/renault/renault_twingo_2014_2.jpg" title="Twingo III" alt="Twingo III"></div>
 
 <h3>Electric version (2020)</h3>
 <p>In 2020, Renault launched the Twingo Electric, equipped with an 82 hp electric motor and a 22 kWh battery. The range reached 190 km in the WLTP cycle, ideal for daily urban journeys. Charging takes 4 hours on a 7 kW terminal. The equipment included cruise control, automatic air conditioning, and the EasyLink system with a 7-inch screen.</p>

@@ -25,16 +25,16 @@ return [
 'BOUGERDESCRIPT' => 'Un territoire façonné par la mer et l’histoire',
 
 'TXT_GOLFEINTRO' => 'Le Golfe de Saint-Tropez est un écrin méditerranéen niché dans le département du Var, formé de douze communes emblématiques : Cavalaire-sur-Mer, Cogolin, Gassin, Grimaud, La Croix-Valmer, La Garde-Freinet, La Mole, Le Plan-de-la-Tour, Ramatuelle, Le Rayol-Canadel-sur-Mer, Sainte-Maxime et bien sûr Saint-Tropez.
-<br>Ce territoire représente à lui seul près de 30 % du Massif des Maures, massif ancien composé essentiellement de schistes cristallins, de quartzites et de gneiss, issus d’un plissement hercynien datant de plus de 300 millions d’années. Le littoral y déploie plus de 103 km de côtes, bordées de 40 plages de sable fin aux compositions variées — allant des sables siliceux aux alluvions riches en minéraux ferreux charriés depuis les collines par les ruisseaux intermittents.',
+<br>Ce territoire représente à lui seul près de 30 % du Massif des Maures, massif ancien composé essentiellement de schistes cristallins, de quartzites et de gneiss, issus d’un plissement hercynien datant de plus de 300 millions d’années. Le littoral y déploie plus de 103 km de côtes, bordées de 40 plages de sable fin aux compositions variées ,  allant des sables siliceux aux alluvions riches en minéraux ferreux charriés depuis les collines par les ruisseaux intermittents.',
 
 'TXT_GOLFE' => '
 <h2>UN PEU D\'HISTOIRE avec un grand H :</h2>
 
-<p>La légende fondatrice raconte qu’en l’an 68, le corps martyrisé de Torpes — un chrétien décapité sous Néron — fut placé dans une barque, accompagné d’un chien et d’un coq, puis laissé dériver sur l’Arno. Guidée par les flots, l’embarcation finit sa course sur les rives du golfe. De cette fable naquirent les toponymes : "Tropez" pour l’homme, "Cogolin" pour le coq (du latin <em>coquillus</em>), et "Grimaud" pour le chien (de l’ancien français <em>grimaud</em>, canidé de garde).</p>
+<p>La légende fondatrice raconte qu’en l’an 68, le corps martyrisé de Torpes ,  un chrétien décapité sous Néron ,  fut placé dans une barque, accompagné d’un chien et d’un coq, puis laissé dériver sur l’Arno. Guidée par les flots, l’embarcation finit sa course sur les rives du golfe. De cette fable naquirent les toponymes : "Tropez" pour l’homme, "Cogolin" pour le coq (du latin <em>coquillus</em>), et "Grimaud" pour le chien (de l’ancien français <em>grimaud</em>, canidé de garde).</p>
 
 <p>Mais au-delà des mythes, le Golfe connut une histoire mouvementée. Dès l’Antiquité, les Phocéens y installent des comptoirs commerciaux. Les Romains y construisent des <em>villae</em> rustiques à colonnades, exploitent les salins côtiers et édifient des routes dallées, dont des fragments sont encore visibles à la Nartelle ou vers La Garde-Freinet. Des dolia en terre cuite et amphores retrouvées témoignent d’une intense activité viticole et oléicole.</p>
 
-<p>Aux VIII<sup>e</sup> et IX<sup>e</sup> siècles, les incursions sarrasines provoquent l’abandon de nombreuses terres. Mais dès le XI<sup>e</sup>, les comtes de Provence reprennent possession du territoire, construisant tours de guet et citadelles — comme la tour de Ramatuelle ou la citadelle de Saint-Tropez, édifiée en pierres de grès rose du massif local.</p>
+<p>Aux VIII<sup>e</sup> et IX<sup>e</sup> siècles, les incursions sarrasines provoquent l’abandon de nombreuses terres. Mais dès le XI<sup>e</sup>, les comtes de Provence reprennent possession du territoire, construisant tours de guet et citadelles ,  comme la tour de Ramatuelle ou la citadelle de Saint-Tropez, édifiée en pierres de grès rose du massif local.</p>
 
 <p>Le port de Saint-Tropez connaît un essor remarquable à partir du XVe siècle. Les navires méditerranéens, gréés en tartanes ou chebecs, assurent le commerce du sel, du cuir, du vin et des toiles tissées. On y trouve alors des chantiers navals, des entrepôts voûtés et des cales sèches encore visibles sous les quais actuels. L’architecture portuaire s’adapte au mistral dominant, avec des avancées de toits appelées <em>génoises</em>.</p>
 
@@ -42,7 +42,7 @@ return [
 
 <p>Les villages du Golfe sont un théâtre vivant d’architecture méridionale : façades à chaux colorée, linteaux sculptés, escaliers extérieurs en pierre brute et tuiles creuses romanes à l’arrondi irrégulier. Les matériaux de construction sont issus des carrières locales : calcaire de Provence, grès du Rayol, bois de pin d’Alep.</p>
 
-<p>De mai à septembre, le Golfe s’anime : régates de voiliers classiques comme les Voiles de Saint-Tropez, festivals de musique, fêtes votives, marchés de terroir où se mêlent parfums de lavande, tapenade et pain de campagne. Les offices du tourisme — souvent installés dans d’anciennes maisons de notables ou des moulins — perpétuent la mémoire des lieux.</p>
+<p>De mai à septembre, le Golfe s’anime : régates de voiliers classiques comme les Voiles de Saint-Tropez, festivals de musique, fêtes votives, marchés de terroir où se mêlent parfums de lavande, tapenade et pain de campagne. Les offices du tourisme ,  souvent installés dans d’anciennes maisons de notables ou des moulins ,  perpétuent la mémoire des lieux.</p>
 ',
 
     // PAGE COGOLIN
@@ -51,7 +51,7 @@ return [
 
     'TXT_TITRECOGOLIN' => 'VISITEZ COGOLIN',
 
-    'TXT_COGOLININTRO' => '<h2>Entrez dans l\'histoire</h2> La légende fondatrice de Cogolin remonte au Chevalier Torpès. Après son martyr à Pise, sa barque dérive jusqu’aux côtes varoises avec pour compagnons un coq et un chien. Lorsqu’elle touche terre à l’emplacement actuel de Cogolin, le coq s’envole dans un champ de lin — formant ainsi le mot-rebus "Coq-au-lin". L’animal devient l’emblème du village, tandis que le chien... disparaît dans la brume de l’histoire !',
+    'TXT_COGOLININTRO' => '<h2>Entrez dans l\'histoire</h2> La légende fondatrice de Cogolin remonte au Chevalier Torpès. Après son martyr à Pise, sa barque dérive jusqu’aux côtes varoises avec pour compagnons un coq et un chien. Lorsqu’elle touche terre à l’emplacement actuel de Cogolin, le coq s’envole dans un champ de lin ,  formant ainsi le mot-rebus "Coq-au-lin". L’animal devient l’emblème du village, tandis que le chien... disparaît dans la brume de l’histoire !',
 
     'TXT_COGOLINCENTRE' => '<h2>Le nom de Cogolin</h2> apparaît dès l’an 1055. Le bourg originel, juché sur une butte, s’appelait "COGOUYOUN" en provençal. 
     L’archéologie y a révélé des traces d’occupations agricoles, de moulins, et même de monnaies antiques prouvant une activité commerçante ancienne et continue. 
@@ -67,6 +67,7 @@ return [
     'IMAGE_ALT_cogolincroix'    => 'La croix de Cogolin',
     'IMAGE_ALT_cogolinfontaine' => 'Fontaine typique dans les ruelles de Cogolin',
     'IMAGE_ALT_cogolinvue'      => 'Vue panoramique sur Cogolin et le golfe',
+    'IMAGE_ALT_cogolintour'     => 'La tour de Cogolin',
     'TITRE_INFOSPRATIQUES' => '🗓️ Informations pratiques : marchés & brocantes',
     'MARCHE_MERCREDI' => 'Marché provençal du mercredi',
     'MARCHE_MERCREDI_INFOS' => 'Chaque mercredi matin de 8h à 13h sur la place Victor Hugo et le boulodrome, avec plus de 100 stands de producteurs locaux, textiles, artisanat et spécialités provençales.',
@@ -97,6 +98,7 @@ return [
     'IMAGE_ALT_gardefreinetplace' => 'Une jolie place ombragée à La Garde-Freinet',
     'IMAGE_ALT_gardefreinetcroix' => 'La croix dominant le village de La Garde-Freinet',
     'IMAGE_ALT_gardefreinetescalier' => 'L\'escalier menant au Fort Freinet',
+    'IMAGE_ALT_gardefreinetchemin' => 'Le chemin serpente à La Garde-Freinet',
     'TITRE_ASAVOIR_GF' => 'À savoir : le bouchon de liège, une richesse locale',
     'CONTENU_ASAVOIR_GF' => 'Au XIX<sup>e</sup> siècle, La Garde-Freinet devient un centre majeur de production de bouchons en liège. Grâce à l’abondance des chênes-lièges dans le massif, les habitants maîtrisent l’écorçage sans abîmer l’arbre, puis le traitement et le perçage des plaques. Cette activité employait un tiers de la population et contribua à la prospérité du village. Certains ateliers sont encore visibles aujourd’hui, témoins de ce savoir-faire rural et artisanal.',
 
