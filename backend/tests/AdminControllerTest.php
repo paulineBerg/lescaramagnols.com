@@ -683,6 +683,15 @@ final class AdminControllerTest extends TestCase
         );
 
         $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('role="tablist" aria-label="Traductions de la page"', $response->body);
+        $this->assertStringContainsString('data-translation-tab="fr"', $response->body);
+        $this->assertStringContainsString('data-translation-tab="en"', $response->body);
+        $this->assertStringContainsString('data-translation-tab="de"', $response->body);
+        $this->assertStringContainsString('data-translation-panel="fr"', $response->body);
+        $this->assertStringContainsString('data-translation-panel="en"', $response->body);
+        $this->assertStringContainsString('data-translation-save="fr"', $response->body);
+        $this->assertStringContainsString('data-translation-save="en"', $response->body);
+        $this->assertStringContainsString('data-translation-save="de"', $response->body);
         $this->assertStringContainsString('Plan du template standard', $response->body);
         $this->assertStringContainsString('data-region-modal-open="region-modal-fr-hero"', $response->body);
         $this->assertStringContainsString('<dialog class="region-modal" id="region-modal-fr-hero"', $response->body);

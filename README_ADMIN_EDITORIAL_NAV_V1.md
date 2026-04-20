@@ -84,6 +84,11 @@ Mise a jour 2026-03-21 (admin menus, labels multilingues) :
 - la projection front respecte un fallback explicite : langue courante -> langue par defaut -> libelle principal -> `translationKey`.
 - la persistance SQL navigation stocke les labels i18n (`label_default_language`, `label_translations_json`) via migration `006_navigation_item_label_i18n.sql`.
 
+Mise a jour 2026-04-20 (admin pages, onglets de traduction) :
+- l ecran `pages_edit` groupe maintenant `fr / en / de` en onglets au lieu d afficher toutes les langues a la suite.
+- chaque onglet garde son propre bouton `Enregistrer la page`, mais la sauvegarde reste celle de la page complete pour conserver un seul contrat de persistance.
+- l onglet actif est restaure cote client apres navigation ou sauvegarde pour eviter de revenir systematiquement sur `fr`.
+
 ## Objectif
 
 Obtenir un socle moderne et coherent pour :

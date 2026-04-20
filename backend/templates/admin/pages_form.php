@@ -189,6 +189,12 @@ $hasStructuredRegionContent = static function (array $values, string $field): bo
 $deleteInfo = is_array($deleteInfo ?? null) ? $deleteInfo : ['canDelete' => false, 'references' => []];
 $deleteReferences = is_array($deleteInfo['references'] ?? null) ? $deleteInfo['references'] : [];
 $pageEditorFormId = 'page-editor-form';
+$translationLanguages = array_values(
+    array_filter(
+        is_array($availableLanguages ?? null) ? $availableLanguages : array_keys($translations),
+        static fn (mixed $language): bool => is_string($language) && trim($language) !== ''
+    )
+);
 ?>
 
 <section class="card page-editor-intro">
@@ -563,22 +569,77 @@ $pageEditorFormId = 'page-editor-form';
     <?php endif; ?>
   </section>
 
-  <?php foreach (($availableLanguages ?? []) as $language): ?>
+  <?php if ($translationLanguages !== []): ?>
+  <section class="card">
+    <div class="page-editor-intro__header">
+      <div>
+        <h2>Traductions</h2>
+        <p class="page-editor-intro__description">
+          Chaque langue ouvre maintenant son propre panneau. L enregistrement reste definitif sur la page courante, avec un bouton de sauvegarde disponible dans chaque onglet.
+        </p>
+      </div>
+    </div>
+
+    <div class="menu-builder-tabs" role="tablist" aria-label="Traductions de la page" data-translation-tabs>
+      <?php foreach ($translationLanguages as $translationTabIndex => $language): ?>
+      <?php
+      $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
+      $translationTitle = trim((string) ($translation['title'] ?? ''));
+      $isActiveTranslationTab = $translationTabIndex === 0;
+      ?>
+      <button
+        type="button"
+        id="page-translation-tab-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+        class="menu-builder-tab<?php echo $isActiveTranslationTab ? ' menu-builder-tab-active' : ''; ?>"
+        role="tab"
+        aria-selected="<?php echo $isActiveTranslationTab ? 'true' : 'false'; ?>"
+        aria-controls="page-translation-panel-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+        tabindex="<?php echo $isActiveTranslationTab ? '0' : '-1'; ?>"
+        data-translation-tab="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+      >
+        <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
+        <small><?php echo htmlspecialchars($translationTitle !== '' ? 'Titre renseigne' : 'Titre a renseigner', ENT_QUOTES, 'UTF-8'); ?></small>
+      </button>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
+
+  <?php foreach ($translationLanguages as $translationTabIndex => $language): ?>
   <?php
   $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
   $regionValues = is_array($translation['regions'] ?? null) ? $translation['regions'] : [];
   $translationMetaImageSrc = trim((string) ($translation['meta_image_src'] ?? ''));
   $translationMetaImageAlt = trim((string) ($translation['meta_image_alt'] ?? ''));
+  $isActiveTranslationTab = $translationTabIndex === 0;
   $regionStatuses = [];
   foreach ($regionFieldMap as $regionKey => $fieldKey) {
       $regionStatuses[$regionKey] = $hasStructuredRegionContent($regionValues, $fieldKey);
   }
   ?>
-  <details class="card translation-card" open>
-    <summary>
-      <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
-      <span class="lang-badge"><?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?></span>
-    </summary>
+  <section
+    class="card translation-card"
+    id="page-translation-panel-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+    role="tabpanel"
+    aria-labelledby="page-translation-tab-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+    data-translation-panel="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+    <?php echo $isActiveTranslationTab ? '' : 'hidden'; ?>
+  >
+    <div class="page-editor-intro__header">
+      <div class="actions-inline">
+        <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
+        <span class="lang-badge"><?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?></span>
+      </div>
+      <button
+        type="submit"
+        name="page_action"
+        value="save"
+        form="<?php echo htmlspecialchars($pageEditorFormId, ENT_QUOTES, 'UTF-8'); ?>"
+        data-translation-save="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+      >
+        Enregistrer la page
+      </button>
+    </div>
 
     <div class="admin-form-grid admin-form-grid-2">
       <div class="field">
@@ -818,7 +879,7 @@ $pageEditorFormId = 'page-editor-form';
         <?php endforeach; ?>
       </div>
     </details>
-  </details>
+  </section>
   <?php endforeach; ?>
 
   <dialog
@@ -1105,6 +1166,126 @@ $pageEditorFormId = 'page-editor-form';
 </form>
 
 <?php $cspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
+<script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+  (() => {
+    const tabList = document.querySelector('[data-translation-tabs]');
+    const tabs = Array.from(document.querySelectorAll('[data-translation-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-translation-panel]'));
+    if (!(tabList instanceof HTMLElement) || tabs.length === 0 || panels.length === 0) {
+      return;
+    }
+
+    const storageKey = 'admin-page-editor-active-translation';
+    const availableLanguages = tabs
+      .map((tab) => tab.getAttribute('data-translation-tab') || '')
+      .filter((language) => language !== '');
+
+    if (availableLanguages.length === 0) {
+      return;
+    }
+
+    const firstLanguage = availableLanguages[0];
+
+    const setActiveLanguage = (requestedLanguage, options = {}) => {
+      const language = availableLanguages.includes(requestedLanguage) ? requestedLanguage : firstLanguage;
+      const shouldStore = options.store !== false;
+
+      tabs.forEach((tab) => {
+        const tabLanguage = tab.getAttribute('data-translation-tab') || '';
+        const isActive = tabLanguage === language;
+        tab.classList.toggle('menu-builder-tab-active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        tab.tabIndex = isActive ? 0 : -1;
+      });
+
+      panels.forEach((panel) => {
+        const panelLanguage = panel.getAttribute('data-translation-panel') || '';
+        panel.hidden = panelLanguage !== language;
+      });
+
+      if (shouldStore && typeof window.sessionStorage !== 'undefined') {
+        window.sessionStorage.setItem(storageKey, language);
+      }
+
+      if (window.location.hash !== `#translation-${language}`) {
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#translation-${language}`);
+      }
+
+      return language;
+    };
+
+    const moveFocus = (currentIndex, delta) => {
+      const nextIndex = (currentIndex + delta + tabs.length) % tabs.length;
+      const nextTab = tabs[nextIndex];
+      if (!(nextTab instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const nextLanguage = nextTab.getAttribute('data-translation-tab') || firstLanguage;
+      setActiveLanguage(nextLanguage);
+      nextTab.focus();
+    };
+
+    tabs.forEach((tab, index) => {
+      if (!(tab instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      tab.addEventListener('click', () => {
+        setActiveLanguage(tab.getAttribute('data-translation-tab') || firstLanguage);
+      });
+
+      tab.addEventListener('keydown', (event) => {
+        if (!(event instanceof KeyboardEvent)) {
+          return;
+        }
+
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          moveFocus(index, 1);
+          return;
+        }
+
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          moveFocus(index, -1);
+          return;
+        }
+
+        if (event.key === 'Home') {
+          event.preventDefault();
+          const firstTab = tabs[0];
+          if (firstTab instanceof HTMLButtonElement) {
+            setActiveLanguage(firstTab.getAttribute('data-translation-tab') || firstLanguage);
+            firstTab.focus();
+          }
+          return;
+        }
+
+        if (event.key === 'End') {
+          event.preventDefault();
+          const lastTab = tabs[tabs.length - 1];
+          if (lastTab instanceof HTMLButtonElement) {
+            setActiveLanguage(lastTab.getAttribute('data-translation-tab') || firstLanguage);
+            lastTab.focus();
+          }
+        }
+      });
+    });
+
+    let preferredLanguage = '';
+    const hashMatch = window.location.hash.match(/^#translation-([a-z]{2})$/i);
+    if (Array.isArray(hashMatch) && typeof hashMatch[1] === 'string') {
+      preferredLanguage = hashMatch[1].toLowerCase();
+    }
+
+    if (preferredLanguage === '' && typeof window.sessionStorage !== 'undefined') {
+      preferredLanguage = window.sessionStorage.getItem(storageKey) || '';
+    }
+
+    setActiveLanguage(preferredLanguage, { store: preferredLanguage !== '' });
+  })();
+</script>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
     const form = document.getElementById('page-editor-form');
