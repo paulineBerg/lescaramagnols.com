@@ -854,7 +854,7 @@ $translationLanguages = array_values(
                     Ajouter la bordure rose autour de l encart texte
                   </label>
                   <p class="notice-muted region-callout-control__status" data-region-callout-status>
-                    Active uniquement pour un encart texte sans image.
+                    Cette option suit uniquement la case a cocher, meme si l encart contient une image.
                   </p>
                 </div>
                 <?php endif; ?>
@@ -2332,8 +2332,6 @@ $translationLanguages = array_values(
       return wrapper instanceof HTMLDivElement ? wrapper.innerHTML.trim() : String(rawHtml || '').trim();
     };
 
-    const containsImage = (rawHtml) => parseHtml(rawHtml).content.querySelector('img') instanceof HTMLImageElement;
-
     const visibleText = (rawHtml) => String(parseHtml(rawHtml).content.textContent || '').replace(/\s+/g, ' ').trim();
 
     const wrapCalloutHtml = (rawHtml) => {
@@ -2343,10 +2341,6 @@ $translationLanguages = array_values(
       }
 
       if (resolveWrapper(normalized) instanceof HTMLDivElement) {
-        return normalized;
-      }
-
-      if (containsImage(normalized) || visibleText(normalized) === '') {
         return normalized;
       }
 
@@ -2385,37 +2379,22 @@ $translationLanguages = array_values(
       }
 
       let currentHtml = textarea.value.trim();
-      const currentlyWrapped = resolveWrapper(currentHtml) instanceof HTMLDivElement;
-      const currentHasImage = containsImage(currentHtml);
-
-      if (normalizeContent && currentHasImage && currentlyWrapped) {
-        const unwrapped = unwrapCalloutHtml(currentHtml);
-        updateTextareaValue(textarea, unwrapped);
-        currentHtml = textarea.value.trim();
-      }
-
-      const hasImage = containsImage(currentHtml);
-      const hasText = visibleText(unwrapCalloutHtml(currentHtml)) !== '';
       const isWrapped = resolveWrapper(currentHtml) instanceof HTMLDivElement;
+      const hasContent = unwrapCalloutHtml(currentHtml) !== '';
 
       checkbox.checked = isWrapped;
-      checkbox.disabled = hasImage || !hasText;
+      checkbox.disabled = false;
 
-      if (hasImage) {
-        setStatus(status, 'Bordure inactive : une image est detectee dans cet encart.');
-        return;
-      }
-
-      if (!hasText) {
-        setStatus(status, 'Ajoute du texte dans l encart pour activer cette option.');
+      if (!hasContent) {
+        setStatus(status, 'Ajoute du contenu dans l encart, puis coche cette option si tu veux afficher la bordure.');
         return;
       }
 
       setStatus(
         status,
         isWrapped
-          ? 'La bordure rose sera affichee autour du texte de cet encart.'
-          : 'Coche cette option pour entourer le texte de l encart.'
+          ? 'La bordure rose sera affichee autour de cet encart.'
+          : 'Coche cette option pour afficher la bordure rose autour de cet encart.'
       );
     };
 

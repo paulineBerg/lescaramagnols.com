@@ -1391,6 +1391,12 @@ if (function_exists('mb_strimwidth')) {
         </div>
 
         <div class="region-modal__body menu-editor-dialog__body">
+          <?php if (($error ?? null) !== null): ?>
+          <div class="notice notice-error" role="alert"><?php echo $escape((string) $error); ?></div>
+          <p class="notice-muted">
+            La sauvegarde vérifie tout le menu courant. Un autre item invalide peut donc bloquer l’enregistrement, même si la popup ouverte semble correcte.
+          </p>
+          <?php endif; ?>
           <?php $renderEditorFields($selectedDescriptor, $activeLocation, $selectedInputName); ?>
         </div>
 

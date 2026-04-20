@@ -1523,6 +1523,61 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('id="menu-editor-dialog"', $response->body);
     }
 
+    public function testMenusSaveFailureRendersErrorInsidePopup(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'menus',
+            $this->request(
+                'POST',
+                '/admin/menus',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'active_location' => 'primary',
+                    'selected_item' => 'primary|0',
+                    'builder_action' => 'save',
+                    'banner' => [],
+                    'remonter' => [],
+                    'locations' => [
+                        'utility' => [],
+                        'primary' => [
+                            [
+                                'id' => 'primary-home',
+                                'kind' => 'route',
+                                'label_text' => 'Accueil',
+                                'target_mode' => 'route',
+                                'target_page_slug' => '',
+                                'target_route' => '',
+                                'target_url' => '',
+                                'image' => '',
+                                'content_text' => '',
+                                'alt' => '',
+                                'title' => '',
+                            ],
+                        ],
+                        'footer' => [],
+                        'sideRight' => [],
+                        'sideLeft' => [],
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+        $this->assertStringContainsString(
+            '<div class="notice notice-error" role="alert">Menu principal &gt; Accueil : la route interne est obligatoire.</div>',
+            $response->body
+        );
+        $this->assertStringContainsString(
+            'La sauvegarde vérifie tout le menu courant.',
+            $response->body
+        );
+    }
+
     public function testNestedMenuSelectionDoesNotDuplicatePopupFields(): void
     {
         file_put_contents(

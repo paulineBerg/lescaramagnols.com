@@ -543,7 +543,12 @@ final class AdminNavigationService
                 $kind = $targetMode;
             }
             $target = [
-                'pageSlug' => $targetMode === 'page' ? $this->stringOrNull($item['target_page_slug'] ?? null) : null,
+                'pageSlug' => $targetMode === 'page'
+                    ? (
+                        $this->resolvePublishedPageSlugAlias($this->stringOrNull($item['target_page_slug'] ?? null))
+                        ?? $this->stringOrNull($item['target_page_slug'] ?? null)
+                    )
+                    : null,
                 'route' => $targetMode === 'route' ? $this->normalizeRoute($item['target_route'] ?? null) : null,
                 'url' => $targetMode === 'external' ? $this->stringOrNull($item['target_url'] ?? null) : null,
                 'openInNewTab' => $targetMode === 'external'
@@ -668,10 +673,6 @@ final class AdminNavigationService
                     return sprintf('%s : le mode mega menu est réservé au menu principal.', $context);
                 }
 
-                if ($displayMode === 'mega' && $children === []) {
-                    return sprintf('%s : un mega menu doit contenir au moins un item enfant.', $context);
-                }
-
                 $featuredCard = is_array($presentation['featuredCard'] ?? null) ? $presentation['featuredCard'] : [];
                 $featuredTarget = is_array($featuredCard['target'] ?? null) ? $featuredCard['target'] : [];
                 $featuredPageSlug = $this->stringOrNull($featuredTarget['pageSlug'] ?? null);
@@ -679,8 +680,8 @@ final class AdminNavigationService
                 $featuredUrl = $this->stringOrNull($featuredTarget['url'] ?? null);
 
                 if ($featuredPageSlug !== null) {
-                    $page = $this->pageRepository->findBySlug($featuredPageSlug);
-                    if ($page === null || ($page['status'] ?? PageRepository::STATUS_DRAFT) !== PageRepository::STATUS_PUBLISHED) {
+                    $page = $this->findPublishedPageBySlugAlias($featuredPageSlug);
+                    if ($page === null) {
                         return sprintf('%s : la page ciblée par la carte mise en avant doit être publiée.', $context);
                     }
                 }
@@ -712,8 +713,8 @@ final class AdminNavigationService
                     return sprintf('%s : aucune page publiée n’est sélectionnée.', $context);
                 }
 
-                $page = $this->pageRepository->findBySlug($pageSlug);
-                if ($page === null || ($page['status'] ?? PageRepository::STATUS_DRAFT) !== PageRepository::STATUS_PUBLISHED) {
+                $page = $this->findPublishedPageBySlugAlias($pageSlug);
+                if ($page === null) {
                     return sprintf('%s : la page cible doit être publiée.', $context);
                 }
             }
@@ -736,8 +737,8 @@ final class AdminNavigationService
                 }
 
                 if ($pageSlug !== null) {
-                    $page = $this->pageRepository->findBySlug($pageSlug);
-                    if ($page === null || ($page['status'] ?? PageRepository::STATUS_DRAFT) !== PageRepository::STATUS_PUBLISHED) {
+                    $page = $this->findPublishedPageBySlugAlias($pageSlug);
+                    if ($page === null) {
                         return sprintf('%s : la page cible doit être publiée.', $context);
                     }
                 } elseif ($route === null && $url === null) {
@@ -1414,7 +1415,11 @@ final class AdminNavigationService
                 'ctaLabel' => $this->stringOrNull($item['featured_cta_label'] ?? null),
                 'target' => [
                     'pageSlug' => $featuredTargetMode === 'page'
-                        ? $this->stringOrNull($item['featured_target_page_slug'] ?? null)
+                        ? (
+                            $this->resolvePublishedPageSlugAlias(
+                                $this->stringOrNull($item['featured_target_page_slug'] ?? null)
+                            ) ?? $this->stringOrNull($item['featured_target_page_slug'] ?? null)
+                        )
                         : null,
                     'route' => $featuredTargetMode === 'route'
                         ? $this->normalizeRoute($item['featured_target_route'] ?? null)
@@ -1446,6 +1451,59 @@ final class AdminNavigationService
         }
 
         return (string) ($page['slug'] ?? '');
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findPublishedPageBySlugAlias(?string $slug): ?array
+    {
+        $resolvedSlug = $this->resolvePublishedPageSlugAlias($slug);
+        if ($resolvedSlug === null) {
+            return null;
+        }
+
+        $page = $this->pageRepository->findBySlug($resolvedSlug);
+        if ($page === null || ($page['status'] ?? PageRepository::STATUS_DRAFT) !== PageRepository::STATUS_PUBLISHED) {
+            return null;
+        }
+
+        return $page;
+    }
+
+    private function resolvePublishedPageSlugAlias(?string $slug): ?string
+    {
+        $slug = $this->stringOrNull($slug);
+        if ($slug === null) {
+            return null;
+        }
+
+        $exactPage = $this->pageRepository->findBySlug($slug);
+        if ($exactPage !== null && ($exactPage['status'] ?? PageRepository::STATUS_DRAFT) === PageRepository::STATUS_PUBLISHED) {
+            return $slug;
+        }
+
+        $suffixMatches = [];
+        foreach ($this->pageRepository->published() as $page) {
+            if (!is_array($page)) {
+                continue;
+            }
+
+            $candidateSlug = $this->stringOrNull($page['slug'] ?? null);
+            if ($candidateSlug === null) {
+                continue;
+            }
+
+            if ($candidateSlug === $slug || str_ends_with($candidateSlug, '-' . $slug)) {
+                $suffixMatches[] = $candidateSlug;
+            }
+        }
+
+        if (count($suffixMatches) !== 1) {
+            return null;
+        }
+
+        return $suffixMatches[0];
     }
 
     private function labelToString(mixed $label): ?string

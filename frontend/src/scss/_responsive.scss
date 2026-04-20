@@ -35,6 +35,18 @@ div#menuwindows {
     margin-right: auto;
   }
 
+  #colonne-justifie-25 figure {
+    width: min(100%, 22rem);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #colonne-justifie-25 img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+
   #blocbascentrepetit {
     width: 95%;
     overflow: auto;

@@ -121,6 +121,12 @@ $img-frames: (
   }
 }
 
+.content-image-fill {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 // VIDEO RESPONSIVE
 
 .video-container {

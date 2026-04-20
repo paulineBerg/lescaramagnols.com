@@ -39,12 +39,17 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - Si `nvm` est installé : `nvm install && nvm use`
 - Installer backend : `composer install --working-dir=backend`
 - Installer frontend : `cd frontend && npm install`
+
+- deployer : cd frontend && npm run build
+- copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
+bash .ops-sync/bin/pull-caramagnols-db.sh --live
+
 - Lancer en dev :
   - Recommandé : `./dev.sh`
-  - Terminal 1 : `cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php`
-  - Terminal 2 : `cd frontend && npm run dev`
+  - Terminal 1 : `  cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php  `
+  - Terminal 2 : `  cd frontend && npm run dev  `
 - Non/Ouvrir : `https://127.0.0.1:18443?lang=fr` (mode `./dev.sh`, certificat local auto-signé)  
--  OUVRIR/ Fallback HTTP direct : `http://127.0.0.1:8000?lang=fr`
+-  OUVRIR/ Fallback HTTP direct : `  http://127.0.0.1:8000?lang=fr  `
 - Ne pas ouvrir `http://localhost:5173/` directement : le site reste rendu par PHP sur `8000`, Vite sert seulement les assets en dev.
 - Si Vite tourne, PHP charge automatiquement `@vite/client` et `src/js/main.ts` depuis `VITE_DEV_SERVER_URL` (par défaut `http://localhost:5173`).
 - Si Vite ne tourne pas, PHP retombe sur `backend/public/.vite/manifest.json` publié par `npm run build`.

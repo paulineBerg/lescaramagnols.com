@@ -40,7 +40,6 @@ alt="La conception de Béla Barényi – 1951"></div>
 
 <h3>Sécurité active : ABS, airbag, ESP</h3>
 <p>En 1978, l’ABS développé avec Bosch apparaît sur la Classe S, empêchant le blocage des roues lors des freinages d’urgence. En 1981, l’airbag conducteur est industrialisé sur la Classe S, complété par des prétensionneurs de ceinture. En 1995, l’ESP fait ses débuts sur la Classe S et stabilise la trajectoire en freinant chaque roue individuellement.</p>
-<p>Image suggérée : tableau de bord avec voyants ABS/ESP et photo d’un airbag déployé.</p>
 
 <h3>Groupes motopropulseurs : injection directe et Diesel</h3>
 <img class="flottegauche" src="/assets/images/autoretro/mercedes/focusmoteur.jpg" alt="Moteur de la 300SL" title="Moteur de la 300SL">
@@ -53,15 +52,12 @@ alt="La conception de Béla Barényi – 1951"></div>
 
 <h3>AMG : « Un homme, un moteur »</h3>
 <p>En 1967, Hans-Werner Aufrecht et Erhard Melcher fondent AMG pour transformer les Mercedes en machines de course. La 300 SEL surnommée « Red Pig » marque les esprits aux 24 Heures de Spa 1971. Aujourd’hui, chaque V8 biturbo AMG est assemblé à la main par un seul technicien, symbole d’un savoir-faire artisanal.</p>
-<p>Image suggérée : 300 SEL « Red Pig » en course et plaque « One Man, One Engine ».</p>
 
 <h3>Formule 1 : les Flèches d’Argent</h3>
 <p>Des succès des années 1950 avec Juan Manuel Fangio au retour en 2010, Mercedes domine l’ère turbo-hybride à partir de 2014 grâce à un groupe propulseur de pointe, enchaînant huit titres constructeurs consécutifs et sept titres pilotes.</p>
-<p>Image suggérée : monoplace moderne avec mise en avant de l’unité hybride.</p>
 
 <h2>Vers l’avenir : électrique et connectivité</h2>
 <p>Avec la gamme EQ, de l’EQC à l’EQS, Mercedes-Benz associe luxe, efficience et performances électriques. L’interface MBUX (Mercedes-Benz User Experience) apprend les habitudes du conducteur et s’intègre aux systèmes d’aide à la conduite pour une expérience fluide et intuitive.</p>
-<p>Image suggérée : intérieur avec grand écran MBUX et vue d’un modèle EQ en charge.</p>
 <p>Mercedes-Benz continue d’écrire son histoire en alliant tradition et innovation, façonnant l’avenir de la mobilité avec passion et excellence.</p>  
     
 ',

@@ -511,6 +511,123 @@ final class AdminNavigationServiceTest extends TestCase
         $this->assertNull($decoded['locations']['primary'][0]['label']['translationKey'] ?? null);
     }
 
+    public function testHandleSaveAllowsPrimaryMegaGroupWithoutChildren(): void
+    {
+        $service = new AdminNavigationService(
+            new NavigationRepository($this->menusFile),
+            new PageRepository($this->pagesFile)
+        );
+
+        $result = $service->handle([
+            'active_location' => 'primary',
+            'selected_item' => 'primary|0',
+            'builder_action' => 'save',
+            'banner' => [],
+            'remonter' => [],
+            'locations' => [
+                'utility' => [],
+                'primary' => [
+                    [
+                        'id' => 'primary-mercedes',
+                        'kind' => 'group',
+                        'label_text' => 'MERCEDEZ-BENZ',
+                        'target_mode' => 'group',
+                        'target_page_slug' => '',
+                        'target_route' => '',
+                        'target_url' => '',
+                        'image' => '',
+                        'content_text' => '',
+                        'alt' => '',
+                        'title' => '',
+                        'display_mode' => 'mega',
+                        'column_count' => '4',
+                        'menu_template' => 'standard',
+                    ],
+                ],
+                'footer' => [],
+                'sideRight' => [],
+                'sideLeft' => [],
+            ],
+        ]);
+
+        $this->assertSame('Menus sauvegardés via le builder visuel.', $result['message']);
+        $this->assertNull($result['error']);
+
+        $decoded = json_decode((string) file_get_contents($this->menusFile), true);
+        $this->assertIsArray($decoded);
+        $this->assertSame('group', $decoded['locations']['primary'][0]['kind'] ?? null);
+        $this->assertSame('mega', $decoded['locations']['primary'][0]['presentation']['displayMode'] ?? null);
+        $this->assertSame([], $decoded['locations']['primary'][0]['children'] ?? null);
+    }
+
+    public function testHandleSaveResolvesLegacyPageSlugAliasForSideCardTargets(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'auto-retro-renault-twingo-helios-1999-notre-exemplaire',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php',
+                            'translations' => [
+                                'fr' => ['title' => 'TWINGO HELIOS'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $service = new AdminNavigationService(
+            new NavigationRepository($this->menusFile),
+            new PageRepository($this->pagesFile)
+        );
+
+        $result = $service->handle([
+            'active_location' => 'sideLeft',
+            'selected_item' => 'sideLeft|0',
+            'builder_action' => 'save',
+            'banner' => [],
+            'remonter' => [],
+            'locations' => [
+                'utility' => [],
+                'primary' => [],
+                'footer' => [],
+                'sideRight' => [],
+                'sideLeft' => [
+                    [
+                        'id' => 'sideleft-twingo',
+                        'kind' => 'content_card',
+                        'label_text' => 'La Twingo Hélios',
+                        'target_mode' => 'page',
+                        'target_page_slug' => 'twingo-helios-1999-notre-exemplaire',
+                        'target_route' => '',
+                        'target_url' => '',
+                        'image' => '/assets/images/structure/menu/auto-retro/btrenault.jpg',
+                        'content_text' => '',
+                        'alt' => 'Twingo Hélios',
+                        'title' => 'Twingo Hélios',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertSame('Menus sauvegardés via le builder visuel.', $result['message']);
+        $this->assertNull($result['error']);
+
+        $decoded = json_decode((string) file_get_contents($this->menusFile), true);
+        $this->assertIsArray($decoded);
+        $this->assertSame(
+            'auto-retro-renault-twingo-helios-1999-notre-exemplaire',
+            $decoded['locations']['sideLeft'][0]['target']['pageSlug'] ?? null
+        );
+    }
+
     public function testHandleSavePersistsMenuLabelTranslationsByLanguage(): void
     {
         $service = new AdminNavigationService(
