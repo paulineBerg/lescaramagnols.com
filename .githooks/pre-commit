@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  exit 0
+fi
+
+staged_files="$(git diff --cached --name-only --diff-filter=ACMR)"
+if [[ -z "${staged_files}" ]]; then
+  exit 0
+fi
+
+tmp_files="$(mktemp)"
+tmp_diff="$(mktemp)"
+tmp_hits="$(mktemp)"
+trap 'rm -f "${tmp_files}" "${tmp_diff}" "${tmp_hits}"' EXIT
+
+printf '%s\n' "${staged_files}" > "${tmp_files}"
+
+# 1) Blocage par noms de fichiers sensibles.
+filename_pattern='(^|/)\.env($|\.)|(^|/)\.env\.|(^|/).*\.pem$|(^|/).*\.p12$|(^|/).*\.pfx$|(^|/).*\.key$|(^|/)id_rsa($|[._-])|(^|/)admin\.override\.php$|(^|/)database\.override\.php$'
+if grep -nE "${filename_pattern}" "${tmp_files}" > "${tmp_hits}"; then
+  echo "[pre-commit] Commit bloqué: fichier potentiellement sensible détecté."
+  sed -n '1,80p' "${tmp_hits}"
+  echo "[pre-commit] Retire ces fichiers du stage: git restore --staged <fichier>"
+  exit 1
+fi
+
+# 2) Blocage par signatures de secrets dans le diff stage.
+git diff --cached --no-color --text > "${tmp_diff}"
+
+pem_pattern='-----BEGIN [A-Z ]*PRIVATE'
+pem_pattern+=' KEY-----'
+ghp_pattern='ghp_'
+ghp_pattern+='[A-Za-z0-9]{20,}'
+github_pat_pattern='github_pat_'
+github_pat_pattern+='[A-Za-z0-9_]{20,}'
+glpat_pattern='glpat-'
+glpat_pattern+='[A-Za-z0-9_-]{20,}'
+sk_pattern='sk-(live|test|proj)-'
+sk_pattern+='[A-Za-z0-9]{10,}'
+google_api_pattern='AIza'
+google_api_pattern+='[0-9A-Za-z_-]{20,}'
+slack_token_pattern='xox[baprs]-'
+slack_token_pattern+='[A-Za-z0-9-]{10,}'
+database_url_pattern='database_url=.*://'
+database_url_pattern+='[^[:space:]]+:[^[:space:]]+@'
+bearer_pattern='authorization:[[:space:]]*bearer[[:space:]]+'
+bearer_pattern+='[A-Za-z0-9._-]{20,}'
+aws_secret_pattern='aws_secret_access'
+aws_secret_pattern+='_key'
+
+secret_pattern="${pem_pattern}|${ghp_pattern}|${github_pat_pattern}|${glpat_pattern}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|${sk_pattern}|${google_api_pattern}|${slack_token_pattern}|${aws_secret_pattern}|${database_url_pattern}|${bearer_pattern}"
+if grep -inE -- "${secret_pattern}" "${tmp_diff}" > "${tmp_hits}"; then
+  echo "[pre-commit] Commit bloqué: secret potentiel détecté dans le diff stage."
+  sed -n '1,120p' "${tmp_hits}"
+  echo "[pre-commit] Vérifie puis corrige, ou retire du stage: git restore --staged <fichier>"
+  exit 1
+fi
+
+exit 0

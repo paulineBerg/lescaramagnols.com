@@ -39,6 +39,7 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - Si `nvm` est installé : `nvm install && nvm use`
 - Installer backend : `composer install --working-dir=backend`
 - Installer frontend : `cd frontend && npm install`
+- Installer les hooks Git locaux : `make install-git-hooks`
 
 - deployer : cd frontend && npm run build
 - copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
