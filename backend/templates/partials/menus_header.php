@@ -111,53 +111,77 @@ function renderMegaMenuLinks(array $items): void
 }
 
 /**
- * @param array<int, array<string, mixed>> $columns
+ * @param array<int, array<string, mixed>> $sections
  * @return array<int, array<string, mixed>>
  */
-function normalizeMegaSectionsForRender(array $columns): array
+function normalizeMegaSectionsForRender(array $sections): array
 {
-    $sections = [];
+    $normalizedSections = [];
 
-    foreach ($columns as $column) {
-        if (!is_array($column)) {
+    foreach ($sections as $section) {
+        if (!is_array($section)) {
             continue;
         }
 
-        foreach ((array) ($column['sections'] ?? []) as $section) {
-            if (!is_array($section)) {
+        $rawItemColumns = [];
+        if (is_array($section['itemColumns'] ?? null)) {
+            $rawItemColumns = (array) $section['itemColumns'];
+        } elseif (is_array($section['items'] ?? null)) {
+            $rawItemColumns = [(array) $section['items']];
+        }
+
+        $itemColumns = [];
+        foreach ($rawItemColumns as $columnItems) {
+            if (!is_array($columnItems)) {
                 continue;
             }
 
             $normalizedItems = array_values(array_filter(
-                is_array($section['items'] ?? null) ? $section['items'] : [],
+                $columnItems,
                 static fn (mixed $item): bool => is_array($item)
             ));
-            $label = trim((string) ($section['label'] ?? ''));
-            $href = is_string($section['href'] ?? null) ? (string) $section['href'] : null;
-            $firstItem = $normalizedItems[0] ?? null;
 
-            if ($label !== '' && is_array($firstItem)) {
-                $firstLabel = trim((string) ($firstItem['label'] ?? ''));
-                $firstHref = is_string($firstItem['href'] ?? null) ? (string) $firstItem['href'] : null;
+            if ($normalizedItems !== []) {
+                $itemColumns[] = $normalizedItems;
+            }
+        }
 
-                if ($firstLabel !== '' && strcasecmp($firstLabel, $label) === 0 && $firstHref !== null && $firstHref !== '') {
-                    if ($href === null || $href === '') {
-                        $href = $firstHref;
-                    }
+        $label = trim((string) ($section['label'] ?? ''));
+        $href = is_string($section['href'] ?? null) ? (string) $section['href'] : null;
+        $firstColumn = $itemColumns[0] ?? [];
+        $firstItem = $firstColumn[0] ?? null;
 
-                    array_shift($normalizedItems);
+        if ($label !== '' && is_array($firstItem)) {
+            $firstLabel = trim((string) ($firstItem['label'] ?? ''));
+            $firstHref = is_string($firstItem['href'] ?? null) ? (string) $firstItem['href'] : null;
+
+            if ($firstLabel !== '' && strcasecmp($firstLabel, $label) === 0 && $firstHref !== null && $firstHref !== '') {
+                if ($href === null || $href === '') {
+                    $href = $firstHref;
+                }
+
+                array_shift($firstColumn);
+                if ($firstColumn === []) {
+                    array_shift($itemColumns);
+                } else {
+                    $itemColumns[0] = $firstColumn;
                 }
             }
-
-            $sections[] = [
-                'label' => $label,
-                'href' => $href,
-                'items' => $normalizedItems,
-            ];
         }
+
+        if ($itemColumns === [] && ($label !== '' || ($href !== null && $href !== ''))) {
+            $itemColumns = [[]];
+        }
+
+        $normalizedSections[] = [
+            'label' => $label,
+            'href' => $href,
+            'itemColumns' => $itemColumns,
+            'columnSpan' => max(1, count($itemColumns)),
+        ];
     }
 
-    return $sections;
+    return $normalizedSections;
 }
 
 /**
@@ -253,11 +277,19 @@ function renderDesktopNavigationItem(array $item, int $depth = 0): void
     $panelId = 'site-nav-panel-desktop-' . $itemId;
     $presentation = is_array($item['presentation'] ?? null) ? $item['presentation'] : [];
     $mega = is_array($item['mega'] ?? null) ? $item['mega'] : [];
-    $megaSections = normalizeMegaSectionsForRender((array) ($mega['columns'] ?? []));
+    $megaSections = normalizeMegaSectionsForRender((array) ($mega['sections'] ?? []));
     $configuredMegaColumns = max(1, (int) (($mega['columnCount'] ?? 3) ?: 3));
     $megaSectionCount = count($megaSections);
+    $megaGridUnits = 0;
+    foreach ($megaSections as $megaSection) {
+        if (!is_array($megaSection)) {
+            continue;
+        }
+
+        $megaGridUnits += max(1, (int) ($megaSection['columnSpan'] ?? 1));
+    }
     $renderedMegaColumns = $megaSections !== []
-        ? min(6, max($configuredMegaColumns, count($megaSections)))
+        ? min(6, max($configuredMegaColumns, $megaGridUnits))
         : $configuredMegaColumns;
     ?>
     <li class="site-nav-item<?php echo $hasChildren ? ' site-nav-item-has-children' : ''; ?><?php echo $activeClass . $megaClass . $togglelessClass; ?>" data-nav-item>
@@ -314,7 +346,18 @@ function renderDesktopNavigationItem(array $item, int $depth = 0): void
             data-nav-mega-sections="<?php echo (int) $megaSectionCount; ?>"
           >
             <?php foreach ($megaSections as $section): ?>
-            <section class="site-nav-mega-section">
+            <?php
+            $sectionColumns = array_values(array_filter(
+                is_array($section['itemColumns'] ?? null) ? $section['itemColumns'] : [],
+                static fn (mixed $column): bool => is_array($column)
+            ));
+            $sectionColumnCount = max(1, count($sectionColumns));
+            $sectionSpan = max(1, (int) ($section['columnSpan'] ?? $sectionColumnCount));
+            ?>
+            <section
+              class="site-nav-mega-section<?php echo $sectionColumnCount > 1 ? ' site-nav-mega-section-multi-column' : ''; ?>"
+              style="--site-nav-mega-section-span: <?php echo $sectionSpan; ?>; --site-nav-mega-section-columns: <?php echo $sectionColumnCount; ?>;"
+            >
               <?php if (!empty($section['label'])): ?>
               <?php if (!empty($section['href'])): ?>
               <a class="site-nav-mega-section-title" href="<?php echo htmlspecialchars((string) $section['href'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -325,9 +368,13 @@ function renderDesktopNavigationItem(array $item, int $depth = 0): void
               <?php endif; ?>
               <?php endif; ?>
 
-              <ul class="site-nav-mega-links">
-                <?php renderMegaMenuLinks(is_array($section['items'] ?? null) ? $section['items'] : []); ?>
-              </ul>
+              <div class="site-nav-mega-section-columns">
+                <?php foreach ($sectionColumns as $sectionColumnItems): ?>
+                <ul class="site-nav-mega-links">
+                  <?php renderMegaMenuLinks($sectionColumnItems); ?>
+                </ul>
+                <?php endforeach; ?>
+              </div>
             </section>
             <?php endforeach; ?>
           </div>

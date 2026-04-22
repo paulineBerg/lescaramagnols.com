@@ -529,6 +529,7 @@ Regles:
 - `backend/public/assets/images/**` est une copie publiee, pas une source editable
 - si un nouveau module frontend est ajoute, preferer TypeScript quand cela reste coherent avec le dossier touche
 - conserver les contrats DOM deja relies au CSS, aux scripts et aux tests
+- pour le menu haut desktop, ne pas laisser plus de `5` liens consecutifs sous une meme section de mega menu; au dela, redistribuer automatiquement la suite dans une colonne voisine du meme bloc via la projection backend, avec un titre unique de section et sans imposer de faux groupes editoriaux dans les donnees
 
 Contrainte importante:
 - le site n'est pas une SPA

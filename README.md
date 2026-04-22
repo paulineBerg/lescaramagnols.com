@@ -15,6 +15,11 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - Les routes publiques préfixées `/*` ont été supprimées ; les routes canoniques sont désormais sans ce préfixe.
 - Les mentions résiduelles de `legacy_template` dans certains documents de plan servent uniquement d’historique de conception tant qu’ils n’ont pas été entièrement réécrits.
 
+## Note 2026-04-22
+- Le mega menu desktop limite désormais chaque section à `5` liens consécutifs maximum.
+- Au-delà, la suite est reprojetée automatiquement dans une colonne adjacente du meme bloc, sous un titre unique de section, sans imposer un faux sous-groupe dans l'admin.
+- Le mobile conserve l'arborescence complète et ne réutilise pas cette découpe de confort desktop.
+
 ## Docs de référence
 - Index de la documentation : `README_DOCUMENTATION_INDEX.md`
 - Plan V1 de deploiement : `README_V1_PREPARATION_DEPLOIEMENT.md`
@@ -89,6 +94,7 @@ git stash pop "stash@{0}"
 ## Architecture générale
 - **Entrée HTTP** : `backend/public/index.php` charge `core/bootstrap.php`, applique les en-têtes de sécurité, initialise la langue via `bootstrap_language_context()`, résout la route via le wrapper `core/router.php` (délégué à `backend/src/Http/LegacyRouteResolver.php`, avec fallback blog vers `DEFAULT_LANG` si contenu absent dans la langue demandée) puis rend la page avec le layout PHP (`templates/partials/layout.php`).
 - **Templating** : pages PHP dans `backend/templates/pages/**` structurées autour des blocs `EditRegion*`; menus/header/footer dans `backend/templates/partials/*`. Le layout standard des zones est maintenant centralisé dans `backend/src/Content/StandardPageLayout.php`.
+- **Navigation haute** : le mega menu desktop est projeté par `backend/src/Navigation/NavigationViewModelBuilder.php` puis rendu par `backend/templates/partials/menus_header.php`; une même section y est découpée automatiquement après `5` liens par colonne, mais conserve un titre unique avec ses colonnes adjacentes, sans modifier l'arbre éditorial saisi en admin.
 - **Internationalisation (serveur)** : résolution via `backend/src/I18n/LanguageResolver.php`, orchestration via `backend/core/lang_bootstrap.php`, chargement/sanitisation via `backend/src/I18n/Translator.php` exposé par `backend/core/i18n.php`.
 - **Internationalisation (client)** : module `frontend/src/js/i18n.ts` (fetch `core/api/lang.php`, cache in-memory + localStorage, application sur `data-i18n`).
 - **Frontend build** : Vite 7 (ESM) + SCSS. Entrées `src/js/main.ts` et `src/scss/style.scss`; manifest publié dans `backend/public/.vite/manifest.json` puis injecté côté PHP via `backend/src/Assets/ViteAssetManager.php` et `vite_tags()`. Images copiées via `vite-plugin-static-copy`. Le build applique aussi un gate de budget via `frontend/tools/check-budgets.mjs`.

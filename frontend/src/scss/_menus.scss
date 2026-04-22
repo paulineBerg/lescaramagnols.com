@@ -588,6 +588,7 @@
 .site-nav-mega-section {
   display: grid;
   gap: 0.25rem;
+  grid-column: span var(--site-nav-mega-section-span, 1);
   padding: 0.18rem 0;
   border-top: 1px solid rgb(255 255 255 / 6%);
   font-size: 0.76rem;
@@ -639,6 +640,13 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.site-nav-mega-section-columns {
+  display: grid;
+  grid-template-columns: repeat(var(--site-nav-mega-section-columns, 1), minmax(0, 1fr));
+  gap: 0.4rem;
+  align-items: start;
 }
 
 .site-nav-mega-link-anchor,

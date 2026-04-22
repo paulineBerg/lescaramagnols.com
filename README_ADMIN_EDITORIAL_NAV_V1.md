@@ -89,6 +89,11 @@ Mise a jour 2026-04-20 (admin pages, onglets de traduction) :
 - chaque onglet garde son propre bouton `Enregistrer la page`, mais la sauvegarde reste celle de la page complete pour conserver un seul contrat de persistance.
 - l onglet actif est restaure cote client apres navigation ou sauvegarde pour eviter de revenir systematiquement sur `fr`.
 
+Mise a jour 2026-04-22 (mega menu desktop, sections longues) :
+- dans le mega menu desktop, une meme section ne rend pas plus de `5` liens consecutifs par colonne.
+- au dela de ce seuil, le rendu ouvre une colonne voisine dans le meme bloc au lieu d imposer un faux sous-groupe editorial.
+- cette redistribution est pilotee par `NavigationViewModelBuilder` puis rendue par `menus_header.php`; le mobile conserve son arborescence normale.
+
 ## Objectif
 
 Obtenir un socle moderne et coherent pour :
@@ -684,6 +689,7 @@ Structure UX recommandee pour ce mega menu :
 - niveau 1 : barre compacte avec `5 a 7` entrees racines maximum
 - niveau 2 : panneau horizontal aligne sur le header
 - contenu du panneau : `2 a 4` colonnes de liens + `1` carte mise en avant optionnelle
+- une section desktop ne doit pas depasser `5` liens consecutifs par colonne; le surplus repart automatiquement dans une colonne voisine du meme bloc, sous un titre unique de section
 - mobile : drawer avec accordions, gouverne par le meme arbre
 - admin : meme view model que le front, avec apercu simplifie
 

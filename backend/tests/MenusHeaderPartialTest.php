@@ -83,30 +83,27 @@ final class MenusHeaderPartialTest extends TestCase
 
         $sections = normalizeMegaSectionsForRender([
             [
-                'sections' => [
+                'label' => 'Austin',
+                'href' => null,
+                'itemColumns' => [[
                     [
                         'label' => 'Austin',
-                        'href' => null,
-                        'items' => [
-                            [
-                                'label' => 'Austin',
-                                'href' => '/auto-retro/austin/histoire-de-austin.php',
-                            ],
-                            [
-                                'label' => 'Histoire de la Mini',
-                                'href' => '/auto-retro/austin/aventure-mini-austin.php',
-                            ],
-                        ],
+                        'href' => '/auto-retro/austin/histoire-de-austin.php',
                     ],
-                ],
+                    [
+                        'label' => 'Histoire de la Mini',
+                        'href' => '/auto-retro/austin/aventure-mini-austin.php',
+                    ],
+                ]],
             ],
         ]);
 
         $this->assertCount(1, $sections);
         $this->assertSame('Austin', $sections[0]['label'] ?? null);
         $this->assertSame('/auto-retro/austin/histoire-de-austin.php', $sections[0]['href'] ?? null);
-        $this->assertCount(1, $sections[0]['items'] ?? []);
-        $this->assertSame('Histoire de la Mini', $sections[0]['items'][0]['label'] ?? null);
+        $this->assertCount(1, $sections[0]['itemColumns'] ?? []);
+        $this->assertCount(1, $sections[0]['itemColumns'][0] ?? []);
+        $this->assertSame('Histoire de la Mini', $sections[0]['itemColumns'][0][0]['label'] ?? null);
     }
 
     public function testMegaSectionKeepsUnlabeledSectionsSeparatedForColumnDistribution(): void
@@ -117,40 +114,112 @@ final class MenusHeaderPartialTest extends TestCase
 
         $sections = normalizeMegaSectionsForRender([
             [
-                'sections' => [
-                    [
-                        'label' => null,
-                        'href' => null,
-                        'items' => [
-                            ['label' => 'Histoire de Austin', 'href' => '/auto-retro/austin/histoire-de-austin'],
-                        ],
-                    ],
-                    [
-                        'label' => null,
-                        'href' => null,
-                        'items' => [
-                            ['label' => 'La Mini', 'href' => '/auto-retro/austin/aventure-mini-austin'],
-                        ],
-                    ],
-                ],
+                'label' => null,
+                'href' => null,
+                'itemColumns' => [[
+                    ['label' => 'Histoire de Austin', 'href' => '/auto-retro/austin/histoire-de-austin'],
+                ]],
             ],
             [
-                'sections' => [
-                    [
-                        'label' => null,
-                        'href' => null,
-                        'items' => [
-                            ['label' => 'Histoire de Renault', 'href' => '/auto-retro/renault/histoire-de-renault'],
-                        ],
-                    ],
-                ],
+                'label' => null,
+                'href' => null,
+                'itemColumns' => [[
+                    ['label' => 'La Mini', 'href' => '/auto-retro/austin/aventure-mini-austin'],
+                ]],
+            ],
+            [
+                'label' => null,
+                'href' => null,
+                'itemColumns' => [[
+                    ['label' => 'Histoire de Renault', 'href' => '/auto-retro/renault/histoire-de-renault'],
+                ]],
             ],
         ]);
 
         $this->assertCount(3, $sections);
-        $this->assertSame('Histoire de Austin', $sections[0]['items'][0]['label'] ?? null);
-        $this->assertSame('La Mini', $sections[1]['items'][0]['label'] ?? null);
-        $this->assertSame('Histoire de Renault', $sections[2]['items'][0]['label'] ?? null);
+        $this->assertSame('Histoire de Austin', $sections[0]['itemColumns'][0][0]['label'] ?? null);
+        $this->assertSame('La Mini', $sections[1]['itemColumns'][0][0]['label'] ?? null);
+        $this->assertSame('Histoire de Renault', $sections[2]['itemColumns'][0][0]['label'] ?? null);
+    }
+
+    public function testRenderSiteHeaderRendersSingleTitleForMultiColumnSection(): void
+    {
+        if (!function_exists('renderSiteHeader')) {
+            require ROOT_PATH . '/templates/partials/menus_header.php';
+        }
+
+        ob_start();
+        renderSiteHeader([
+            'brand' => [
+                'label' => 'Les Caramagnols',
+                'href' => '/',
+                'logo' => '/assets/images/structure/favicon-48x48.png',
+            ],
+            'utility' => [],
+            'banner' => [
+                'headline' => 'Voyage',
+                'title' => 'Voyage',
+                'image' => null,
+            ],
+            'primary' => [
+                [
+                    'id' => 'primary-auto',
+                    'label' => 'Auto-Retro',
+                    'href' => null,
+                    'title' => 'Auto-Retro',
+                    'active' => false,
+                    'openInNewTab' => false,
+                    'children' => [
+                        [
+                            'id' => 'primary-austin',
+                            'label' => 'Austin',
+                            'href' => '/auto-retro/austin',
+                            'title' => 'Austin',
+                            'active' => false,
+                            'openInNewTab' => false,
+                            'children' => [],
+                            'presentation' => [],
+                            'panelKind' => null,
+                            'mega' => null,
+                        ],
+                    ],
+                    'presentation' => ['displayMode' => 'mega'],
+                    'panelKind' => 'mega',
+                    'mega' => [
+                        'columnCount' => 2,
+                        'featuredCard' => null,
+                        'sections' => [
+                            [
+                                'label' => 'Austin',
+                                'href' => '/auto-retro/austin',
+                                'itemColumns' => [
+                                    [
+                                        ['label' => 'Lien A1', 'href' => '/auto-retro/austin/a1'],
+                                    ],
+                                    [
+                                        ['label' => 'Lien A6', 'href' => '/auto-retro/austin/a6'],
+                                    ],
+                                ],
+                                'columnSpan' => 2,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'languages' => [],
+            'search' => [
+                'action' => '/search',
+                'currentLanguage' => 'fr',
+                'label' => 'Recherche',
+                'placeholder' => 'Rechercher...',
+            ],
+        ]);
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString('site-nav-mega-section-multi-column', $html);
+        $this->assertStringContainsString('--site-nav-mega-section-columns: 2;', $html);
+        $this->assertStringContainsString('Lien A6', $html);
+        $this->assertSame(1, substr_count($html, 'site-nav-mega-section-title'));
     }
 
     public function testMobileNavigationPromotesAndMergesDuplicateLabelChildLink(): void
@@ -190,4 +259,5 @@ final class MenusHeaderPartialTest extends TestCase
         $this->assertSame('Histoire de la Mini', $normalized['children'][0]['label'] ?? null);
         $this->assertSame('/auto-retro/austin/aventure-mini-austin.php', $normalized['children'][0]['href'] ?? null);
     }
+
 }

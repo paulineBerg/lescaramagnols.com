@@ -166,7 +166,13 @@ final class NavigationViewModelBuilderTest extends TestCase
                                 [
                                     'id' => 'primary-austin',
                                     'kind' => 'group',
-                                    'label' => ['text' => 'Austin'],
+                                    'label' => [
+                                        'text' => 'Austin',
+                                        'defaultLanguage' => 'fr',
+                                        'translations' => [
+                                            'fr' => 'Austin',
+                                        ],
+                                    ],
                                     'target' => ['pageSlug' => null, 'route' => null, 'url' => null],
                                     'media' => [],
                                     'content' => [],
@@ -219,12 +225,13 @@ final class NavigationViewModelBuilderTest extends TestCase
         );
 
         $this->assertSame('mega', $viewModel['primary'][0]['panelKind'] ?? null);
-        $this->assertSame(2, count($viewModel['primary'][0]['mega']['columns'] ?? []));
+        $this->assertSame(2, count($viewModel['primary'][0]['mega']['sections'] ?? []));
         $this->assertSame(3, $viewModel['primary'][0]['mega']['columnCount'] ?? null);
         $this->assertSame('Collection a la une', $viewModel['primary'][0]['mega']['featuredCard']['title'] ?? null);
         $this->assertSame('/auto-retro', $viewModel['primary'][0]['mega']['featuredCard']['href'] ?? null);
         $this->assertTrue($viewModel['primary'][0]['mega']['featuredCard']['active'] ?? false);
-        $this->assertTrue($viewModel['primary'][0]['mega']['columns'][0]['sections'][0]['items'][0]['presentation']['isHighlight'] ?? false);
+        $this->assertSame('Austin', $viewModel['primary'][0]['mega']['sections'][0]['label'] ?? null);
+        $this->assertTrue($viewModel['primary'][0]['mega']['sections'][0]['itemColumns'][0][0]['presentation']['isHighlight'] ?? false);
     }
 
     public function testBuildMegaMenuFlattensUnlabeledGroupsAndDistributesAcrossColumns(): void
@@ -326,17 +333,14 @@ final class NavigationViewModelBuilderTest extends TestCase
 
         $mega = $viewModel['primary'][0]['mega'] ?? [];
         $this->assertSame(4, $mega['columnCount'] ?? null);
-        $this->assertCount(4, $mega['columns'] ?? []);
-        $this->assertCount(2, $mega['columns'][0]['sections'] ?? []);
-        $this->assertCount(2, $mega['columns'][1]['sections'] ?? []);
-        $this->assertCount(2, $mega['columns'][2]['sections'] ?? []);
-        $this->assertCount(2, $mega['columns'][3]['sections'] ?? []);
-        $this->assertSame('Lien 1', $mega['columns'][0]['sections'][0]['items'][0]['rawLabel'] ?? null);
-        $this->assertSame('Lien 5', $mega['columns'][0]['sections'][1]['items'][0]['rawLabel'] ?? null);
-        $this->assertSame('Lien 2', $mega['columns'][1]['sections'][0]['items'][0]['rawLabel'] ?? null);
+        $this->assertCount(8, $mega['sections'] ?? []);
+        $this->assertSame('Lien 1', $mega['sections'][0]['itemColumns'][0][0]['rawLabel'] ?? null);
+        $this->assertSame('Lien 2', $mega['sections'][1]['itemColumns'][0][0]['rawLabel'] ?? null);
+        $this->assertSame('Lien 5', $mega['sections'][4]['itemColumns'][0][0]['rawLabel'] ?? null);
+        $this->assertSame(1, $mega['sections'][0]['columnSpan'] ?? null);
     }
 
-    public function testBuildMegaMenuDistributesSingleSectionWithManyItemsAcrossColumns(): void
+    public function testBuildMegaMenuSplitsSingleSectionAfterFiveItems(): void
     {
         $builder = new NavigationViewModelBuilder(new PageRepository($this->pagesFile), ['fr', 'de']);
         $viewModel = $builder->build(
@@ -360,7 +364,13 @@ final class NavigationViewModelBuilderTest extends TestCase
                                 [
                                     'id' => 'primary-austin',
                                     'kind' => 'group',
-                                    'label' => ['text' => 'Austin'],
+                                    'label' => [
+                                        'text' => 'Austin',
+                                        'defaultLanguage' => 'fr',
+                                        'translations' => [
+                                            'fr' => 'Austin',
+                                        ],
+                                    ],
                                     'target' => ['pageSlug' => null, 'route' => null, 'url' => null],
                                     'media' => [],
                                     'content' => [],
@@ -401,6 +411,13 @@ final class NavigationViewModelBuilderTest extends TestCase
                                             'target' => ['pageSlug' => null, 'route' => '/a5', 'url' => null],
                                             'children' => [],
                                         ],
+                                        [
+                                            'id' => 'primary-austin-6',
+                                            'kind' => 'route',
+                                            'label' => ['text' => 'Lien A6'],
+                                            'target' => ['pageSlug' => null, 'route' => '/a6', 'url' => null],
+                                            'children' => [],
+                                        ],
                                     ],
                                 ],
                             ],
@@ -414,14 +431,13 @@ final class NavigationViewModelBuilderTest extends TestCase
 
         $mega = $viewModel['primary'][0]['mega'] ?? [];
         $this->assertSame(3, $mega['columnCount'] ?? null);
-        $this->assertCount(3, $mega['columns'] ?? []);
-        $this->assertCount(2, $mega['columns'][0]['sections'] ?? []);
-        $this->assertCount(2, $mega['columns'][1]['sections'] ?? []);
-        $this->assertCount(1, $mega['columns'][2]['sections'] ?? []);
-        $this->assertNull($mega['columns'][0]['sections'][0]['label'] ?? null);
-        $this->assertSame('Lien A1', $mega['columns'][0]['sections'][0]['items'][0]['rawLabel'] ?? null);
-        $this->assertArrayHasKey('label', $mega['columns'][1]['sections'][0] ?? []);
-        $this->assertNull($mega['columns'][1]['sections'][0]['label']);
+        $this->assertCount(1, $mega['sections'] ?? []);
+        $this->assertSame('Austin', $mega['sections'][0]['label'] ?? null);
+        $this->assertSame(2, $mega['sections'][0]['columnSpan'] ?? null);
+        $this->assertCount(2, $mega['sections'][0]['itemColumns'] ?? []);
+        $this->assertCount(5, $mega['sections'][0]['itemColumns'][0] ?? []);
+        $this->assertSame('Lien A1', $mega['sections'][0]['itemColumns'][0][0]['rawLabel'] ?? null);
+        $this->assertSame('Lien A6', $mega['sections'][0]['itemColumns'][1][0]['rawLabel'] ?? null);
     }
 
     public function testBuildUsesLanguageSpecificLabelsForBrandAndLanguageSwitcher(): void

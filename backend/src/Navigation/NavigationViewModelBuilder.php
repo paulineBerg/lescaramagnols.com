@@ -10,6 +10,7 @@ final class NavigationViewModelBuilder
 {
     private const FOOTER_NOTICE_FALLBACK_TRANSLATION_KEY = 'TXT_PiedPageModele';
     private const FOOTER_NOTICE_FALLBACK_LANGUAGE = 'fr';
+    private const DESKTOP_MEGA_SECTION_ITEM_LIMIT = 5;
     private string $runtimeLanguage = self::FOOTER_NOTICE_FALLBACK_LANGUAGE;
 
     /**
@@ -272,17 +273,20 @@ final class NavigationViewModelBuilder
                             'id' => ($child['id'] ?? 'section') . '-flattened-' . $grandChildIndex,
                             'label' => null,
                             'href' => null,
-                            'items' => [$grandChild],
+                            'itemColumns' => [[$grandChild]],
+                            'columnSpan' => 1,
                         ];
                     }
                     continue;
                 }
 
+                $itemColumns = $this->chunkMegaSectionItems($grandChildren, self::DESKTOP_MEGA_SECTION_ITEM_LIMIT);
                 $sections[] = [
                     'id' => $child['id'] ?? 'section',
                     'label' => $childLabel !== '' ? $childLabel : null,
                     'href' => $child['href'] ?? null,
-                    'items' => $grandChildren,
+                    'itemColumns' => $itemColumns,
+                    'columnSpan' => max(1, count($itemColumns)),
                 ];
                 continue;
             }
@@ -291,7 +295,8 @@ final class NavigationViewModelBuilder
                 'id' => $child['id'] ?? 'section',
                 'label' => null,
                 'href' => null,
-                'items' => [$child],
+                'itemColumns' => [[$child]],
+                'columnSpan' => 1,
             ];
         }
 
@@ -299,51 +304,39 @@ final class NavigationViewModelBuilder
             ? max(2, min(4, (int) $presentation['columnCount']))
             : 3;
 
-        if (count($sections) === 1) {
-            $singleSection = $sections[0];
-            $singleItems = array_values(
-                array_filter(
-                    is_array($singleSection['items'] ?? null) ? $singleSection['items'] : [],
-                    static fn (mixed $item): bool => is_array($item)
-                )
-            );
+        return [
+            'sections' => $sections,
+            'featuredCard' => is_array($presentation['featuredCard'] ?? null) ? $presentation['featuredCard'] : null,
+            'menuTemplate' => $presentation['menuTemplate'] ?? 'standard',
+            'columnCount' => $columnCount,
+        ];
+    }
 
-            if (count($singleItems) > $columnCount) {
-                $distributedSections = [];
-                foreach ($singleItems as $itemIndex => $singleItem) {
-                    $distributedSections[] = [
-                        'id' => ($singleSection['id'] ?? 'section') . '-distributed-' . $itemIndex,
-                        'label' => $itemIndex === 0 ? ($singleSection['label'] ?? null) : null,
-                        'href' => $itemIndex === 0 ? ($singleSection['href'] ?? null) : null,
-                        'items' => [$singleItem],
-                    ];
-                }
-
-                $sections = $distributedSections;
-            }
-        }
-
-        $columns = array_fill(0, $columnCount, ['sections' => []]);
-
-        foreach ($sections as $index => $section) {
-            $columns[$index % $columnCount]['sections'][] = $section;
-        }
-
-        $columns = array_values(
+    /**
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    private function chunkMegaSectionItems(array $items, int $itemLimit): array
+    {
+        $normalizedItems = array_values(
             array_filter(
-                $columns,
-                static fn (array $column): bool => $column['sections'] !== []
+                $items,
+                static fn (mixed $item): bool => is_array($item)
             )
         );
 
-        return [
-            'columns' => $columns,
-            'featuredCard' => is_array($presentation['featuredCard'] ?? null) ? $presentation['featuredCard'] : null,
-            'menuTemplate' => $presentation['menuTemplate'] ?? 'standard',
-            // Keep the configured column count so desktop rendering can respect the editor setting
-            // even when there are fewer sections than columns.
-            'columnCount' => $columnCount,
-        ];
+        if ($normalizedItems === []) {
+            return [[]];
+        }
+
+        if ($itemLimit < 1 || count($normalizedItems) <= $itemLimit) {
+            return [$normalizedItems];
+        }
+
+        return array_values(array_filter(
+            array_chunk($normalizedItems, $itemLimit),
+            static fn (array $chunk): bool => $chunk !== []
+        ));
     }
 
     /**
