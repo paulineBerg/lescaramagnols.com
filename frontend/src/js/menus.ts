@@ -1,8 +1,6 @@
 const DESKTOP_HOVER_SUPPRESSION_KEY = 'site-nav-desktop-hover-until';
 const DESKTOP_TOUCH_SETTLE_MS = 900;
 const DESKTOP_HOVER_CLOSE_DELAY_MS = 160;
-const MIN_MEGA_PANEL_VISIBLE_WIDTH = 320;
-
 let lastPointerType = '';
 let lastPointerAt = 0;
 let pointerTrackerBound = false;
@@ -39,30 +37,18 @@ const directChildBySelector = (item: HTMLElement, selector: string): HTMLElement
   return directChild instanceof HTMLElement ? directChild : null;
 };
 
+const resetMegaPanelAlignment = (panel: HTMLElement) => {
+  panel.style.removeProperty('--site-nav-panel-anchor-offset');
+  delete panel.dataset.navPanelAnchorSide;
+};
+
 const alignMegaPanelToParent = (item: HTMLElement) => {
   const panel = directChildBySelector(item, '[data-nav-panel][data-nav-panel-kind="mega"]');
-  if (!panel || panel.hidden) {
+  if (!panel) {
     return;
   }
 
-  const row = directChildBySelector(item, '.site-nav-row');
-  if (!row) {
-    return;
-  }
-
-  panel.style.removeProperty('--site-nav-panel-anchor-start');
-
-  const panelRect = panel.getBoundingClientRect();
-  const rowRect = row.getBoundingClientRect();
-  if (panelRect.width <= 0 || rowRect.width <= 0) {
-    return;
-  }
-
-  const desiredOffset = Math.max(0, rowRect.left - panelRect.left);
-  const maxOffset = Math.max(0, panelRect.width - MIN_MEGA_PANEL_VISIBLE_WIDTH);
-  const anchoredOffset = Math.min(desiredOffset, maxOffset);
-
-  panel.style.setProperty('--site-nav-panel-anchor-start', `${Math.round(anchoredOffset)}px`);
+  resetMegaPanelAlignment(panel);
 };
 
 const alignOpenMegaPanels = () => {
@@ -106,7 +92,7 @@ const openItem = (item: HTMLElement, shouldOpen: boolean) => {
     panel.hidden = !shouldOpen;
 
     if (!shouldOpen && panel.dataset.navPanelKind === 'mega') {
-      panel.style.removeProperty('--site-nav-panel-anchor-start');
+      resetMegaPanelAlignment(panel);
     }
   }
 

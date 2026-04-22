@@ -463,8 +463,6 @@
 }
 
 .site-nav-panel-mega {
-  --site-nav-panel-anchor-start: 0px;
-
   left: 0;
   right: 0;
   min-width: 0;
@@ -498,8 +496,7 @@
 }
 
 .site-nav-panel-mega .site-nav-mega {
-  margin-left: var(--site-nav-panel-anchor-start);
-  width: calc(100% - var(--site-nav-panel-anchor-start));
+  width: 100%;
   max-width: 100%;
 }
 

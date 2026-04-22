@@ -98,8 +98,8 @@ $standardLayoutPlan = [
     [
         'key' => 'intro',
         'slot' => 'EditRegion8',
-        'label' => 'ImageReduit',
-        'summary' => 'Colonne gauche',
+        'label' => 'Intro',
+        'summary' => 'Colonne gauche : petite image d appel ou texte court uniquement',
         'area' => 'intro',
     ],
     [
@@ -770,7 +770,7 @@ $translationLanguages = array_values(
         <div class="page-layout-plan__header">
           <div>
             <h3>Plan du template standard</h3>
-            <p>Clique sur une zone pour ouvrir sa popup d’édition. Disposition de référence: <strong>ImageReduit à gauche</strong>, <strong>Hero au centre</strong>, <strong>Encart à droite</strong>. Chaque région structurée remplace l’ancien bloc <code>EditRegion*</code> correspondant.</p>
+            <p>Clique sur une zone pour ouvrir sa popup d’édition. Disposition de référence: <strong>Intro à gauche</strong>, <strong>Hero au centre</strong>, <strong>Encart à droite</strong>. Chaque région structurée remplace l’ancien bloc <code>EditRegion*</code> correspondant.</p>
           </div>
           <span class="tag">Mode structuré</span>
         </div>
@@ -832,6 +832,9 @@ $translationLanguages = array_values(
             <div class="region-modal__body">
               <div class="field">
                 <label for="<?php echo htmlspecialchars($textareaId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $planItem['label'], ENT_QUOTES, 'UTF-8'); ?> · contenu HTML</label>
+                <?php if ($planKey === 'intro'): ?>
+                <p class="notice-muted">Limite editoriale : petite image d appel ou texte court uniquement. Ne pas y mettre un second corps d article, un long developpement ou une grande image.</p>
+                <?php endif; ?>
                 <textarea id="<?php echo htmlspecialchars($textareaId, ENT_QUOTES, 'UTF-8'); ?>" name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][regions][<?php echo htmlspecialchars($fieldKey, ENT_QUOTES, 'UTF-8'); ?>]" rows="<?php echo $rows; ?>"><?php echo htmlspecialchars((string) (($translation['regions'][$fieldKey] ?? '')), ENT_QUOTES, 'UTF-8'); ?></textarea>
                 <div class="actions-inline">
                   <button

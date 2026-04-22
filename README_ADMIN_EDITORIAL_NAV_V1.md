@@ -94,6 +94,11 @@ Mise a jour 2026-04-22 (mega menu desktop, sections longues) :
 - au dela de ce seuil, le rendu ouvre une colonne voisine dans le meme bloc au lieu d imposer un faux sous-groupe editorial.
 - cette redistribution est pilotee par `NavigationViewModelBuilder` puis rendue par `menus_header.php`; le mobile conserve son arborescence normale.
 
+Mise a jour 2026-04-22 (mega menu desktop, pleine largeur utile) :
+- le mega menu desktop n aligne plus son contenu sous le seul bouton parent quand cela laisse un grand vide inutile a gauche.
+- le panneau interne utilise maintenant toute la largeur disponible avant de retomber a la ligne.
+- le rendu PHP n est plus borne artificiellement a `6` colonnes: il suit les unites de grille effectivement demandees par les sections mega menu.
+
 ## Objectif
 
 Obtenir un socle moderne et coherent pour :

@@ -289,7 +289,7 @@ function renderDesktopNavigationItem(array $item, int $depth = 0): void
         $megaGridUnits += max(1, (int) ($megaSection['columnSpan'] ?? 1));
     }
     $renderedMegaColumns = $megaSections !== []
-        ? min(6, max($configuredMegaColumns, $megaGridUnits))
+        ? max($configuredMegaColumns, $megaGridUnits)
         : $configuredMegaColumns;
     ?>
     <li class="site-nav-item<?php echo $hasChildren ? ' site-nav-item-has-children' : ''; ?><?php echo $activeClass . $megaClass . $togglelessClass; ?>" data-nav-item>

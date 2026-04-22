@@ -697,6 +697,9 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('<dialog class="region-modal" id="region-modal-fr-hero"', $response->body);
         $this->assertStringContainsString('name="page_state_json"', $response->body);
         $this->assertStringContainsString('EditRegion8', $response->body);
+        $this->assertStringContainsString('Intro', $response->body);
+        $this->assertStringContainsString('petite image d appel ou texte court uniquement', $response->body);
+        $this->assertStringContainsString('Ne pas y mettre un second corps d article, un long developpement ou une grande image.', $response->body);
         $this->assertStringContainsString('EditRegion9', $response->body);
         $this->assertStringContainsString('Footer editorial', $response->body);
         $this->assertStringContainsString('Post-scriptum', $response->body);

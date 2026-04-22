@@ -222,6 +222,110 @@ final class MenusHeaderPartialTest extends TestCase
         $this->assertSame(1, substr_count($html, 'site-nav-mega-section-title'));
     }
 
+    public function testRenderSiteHeaderUsesAllMegaGridUnitsBeforeWrapping(): void
+    {
+        if (!function_exists('renderSiteHeader')) {
+            require ROOT_PATH . '/templates/partials/menus_header.php';
+        }
+
+        ob_start();
+        renderSiteHeader([
+            'brand' => [
+                'label' => 'Les Caramagnols',
+                'href' => '/',
+                'logo' => '/assets/images/structure/favicon-48x48.png',
+            ],
+            'utility' => [],
+            'banner' => [
+                'headline' => 'Voyage',
+                'title' => 'Voyage',
+                'image' => null,
+            ],
+            'primary' => [
+                [
+                    'id' => 'primary-auto',
+                    'label' => 'Auto-Retro',
+                    'href' => null,
+                    'title' => 'Auto-Retro',
+                    'active' => false,
+                    'openInNewTab' => false,
+                    'children' => [
+                        [
+                            'id' => 'primary-austin-link',
+                            'label' => 'Austin',
+                            'href' => '/auto-retro/austin',
+                            'title' => 'Austin',
+                            'active' => false,
+                            'openInNewTab' => false,
+                            'children' => [],
+                            'presentation' => [],
+                            'panelKind' => null,
+                            'mega' => null,
+                        ],
+                    ],
+                    'presentation' => ['displayMode' => 'mega'],
+                    'panelKind' => 'mega',
+                    'mega' => [
+                        'columnCount' => 4,
+                        'featuredCard' => null,
+                        'sections' => [
+                            [
+                                'label' => 'Austin',
+                                'href' => '/auto-retro/austin',
+                                'itemColumns' => [[['label' => 'Mini', 'href' => '/mini']]],
+                                'columnSpan' => 1,
+                            ],
+                            [
+                                'label' => 'Citroen',
+                                'href' => '/auto-retro/citroen',
+                                'itemColumns' => [[['label' => 'Traction', 'href' => '/traction']]],
+                                'columnSpan' => 1,
+                            ],
+                            [
+                                'label' => 'Mercedes',
+                                'href' => '/auto-retro/mercedes',
+                                'itemColumns' => [[['label' => 'SLK', 'href' => '/slk']]],
+                                'columnSpan' => 1,
+                            ],
+                            [
+                                'label' => 'Panhard',
+                                'href' => '/auto-retro/panhard',
+                                'itemColumns' => [[['label' => 'Dyna', 'href' => '/dyna']]],
+                                'columnSpan' => 1,
+                            ],
+                            [
+                                'label' => 'Renault',
+                                'href' => '/auto-retro/renault',
+                                'itemColumns' => [[['label' => 'Twingo', 'href' => '/twingo']]],
+                                'columnSpan' => 1,
+                            ],
+                            [
+                                'label' => 'Simca',
+                                'href' => '/auto-retro/simca',
+                                'itemColumns' => [
+                                    [['label' => 'Aronde', 'href' => '/aronde']],
+                                    [['label' => 'P60', 'href' => '/p60']],
+                                ],
+                                'columnSpan' => 2,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'languages' => [],
+            'search' => [
+                'action' => '/search',
+                'currentLanguage' => 'fr',
+                'label' => 'Recherche',
+                'placeholder' => 'Rechercher...',
+            ],
+        ]);
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString('--site-nav-mega-columns: 7;', $html);
+        $this->assertStringNotContainsString('--site-nav-mega-columns: 6;', $html);
+    }
+
     public function testMobileNavigationPromotesAndMergesDuplicateLabelChildLink(): void
     {
         if (!function_exists('normalizeMobileNavigationItemForRender')) {

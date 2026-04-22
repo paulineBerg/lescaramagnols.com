@@ -76,6 +76,12 @@ Regles associees:
 - ne pas toucher aux secrets ou aux overrides locaux sauf demande explicite
 - ne pas supprimer `backend/public/uploads/editorial/**` ni le traiter comme un cache
 
+Discipline de `worktree`:
+- sauf demande explicite contraire, finir un passage de travail avec un `git status` propre
+- supprimer avant cloture les fichiers temporaires, payloads de deploiement, scripts jetables et artefacts locaux crees pour la tache
+- ne pas laisser de modifications partielles, brouillons ou fichiers non suivis sans utilite claire dans le depot
+- si le depot etait deja sale avant intervention, isoler strictement le diff de la tache et revenir a un `worktree` propre sans ecraser un travail utilisateur non valide
+
 ## 4. Documents de reference obligatoires
 
 Avant une modification non triviale, prendre en compte les documents de reference lies au sujet:
@@ -265,6 +271,8 @@ Variantes attendues selon le type d'article:
 Regles de structuration HTML/editoriale:
 - un seul `h1` visible par article
 - respecter la hierarchie `h1` > `h2` > `h3` sans niveau saute
+- `EditRegion8 - Intro` ne peut contenir qu'une petite image d'appel ou un texte court
+- ne pas utiliser `INTRO` pour loger un second corps d'article, un long developpement ou une grande image; si le contenu depasse ce role, le basculer dans `EditRegion3 - Corps` ou une autre region adaptee
 - rechercher, quand le sujet s'y prete, des images libre de droit pour agrementer les sections et ne pas se limiter aux visuels deja presents
 - ne pas laisser de `h2` ou `h3` vides
 - pas de tiret cadratin ou autres sigles qu'un clavier français n'a pas directement 
