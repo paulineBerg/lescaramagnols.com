@@ -199,10 +199,10 @@ describe('menus', () => {
     }
   });
 
-  it('ouvre le sous-menu desktop au survol avec any-hover sur appareil hybride', () => {
+  it('ouvre le sous-menu desktop au survol meme si le navigateur detecte mal le hover', () => {
     const originalMatchMedia = window.matchMedia;
     const matchMediaMock = vi.fn((query: string): MediaQueryList => ({
-      matches: query === '(any-hover: hover) and (any-pointer: fine)',
+      matches: false,
       media: query,
       onchange: null,
       addEventListener: vi.fn(),
@@ -218,14 +218,13 @@ describe('menus', () => {
     });
 
     try {
+      renderNavigation();
+
       const item = document.querySelector<HTMLElement>('[data-nav-item]');
       const panel = document.getElementById('desktop-submenu');
 
       item?.dispatchEvent(new MouseEvent('mouseenter'));
       expect(panel?.hidden).toBe(false);
-
-      expect(matchMediaMock).toHaveBeenCalledWith('(hover: hover) and (pointer: fine)');
-      expect(matchMediaMock).toHaveBeenCalledWith('(any-hover: hover) and (any-pointer: fine)');
     } finally {
       Object.defineProperty(window, 'matchMedia', {
         configurable: true,

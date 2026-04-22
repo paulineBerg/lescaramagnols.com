@@ -95,11 +95,15 @@ $renderAdminTilePreview = static function (array $tile, string $context = 'catal
         </div>
         <div class="tile-admin-group-card__actions">
           <a class="button-link" href="<?php echo htmlspecialchars((string) (($adminTilesUrl ?? admin_url('tiles')) . '/' . $groupId), ENT_QUOTES, 'UTF-8'); ?>">Éditer</a>
-          <form method="post" action="<?php echo htmlspecialchars((string) ($adminTilesUrl ?? admin_url('tiles')), ENT_QUOTES, 'UTF-8'); ?>">
+          <form
+            class="tile-admin-group-card__duplicate-form"
+            method="post"
+            action="<?php echo htmlspecialchars((string) ($adminTilesUrl ?? admin_url('tiles')), ENT_QUOTES, 'UTF-8'); ?>"
+          >
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="tile_list_action" value="duplicate">
             <input type="hidden" name="group_id" value="<?php echo $groupId; ?>">
-            <button type="submit" class="button-link button-link-muted">Dupliquer</button>
+            <button type="submit" class="button-link button-link-muted tile-admin-group-card__duplicate-button">Dupliquer</button>
           </form>
         </div>
       </div>

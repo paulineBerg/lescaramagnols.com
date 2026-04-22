@@ -471,11 +471,9 @@
   box-shadow: 0 1.2rem 2.1rem rgb(0 0 0 / 24%);
 }
 
-@media (hover: hover) and (pointer: fine), (any-hover: hover) and (any-pointer: fine) {
-  .site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:hover > .site-nav-panel[hidden],
-  .site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:focus-within > .site-nav-panel[hidden] {
-    display: block;
-  }
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:hover > .site-nav-panel[hidden],
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:focus-within > .site-nav-panel[hidden] {
+  display: block;
 }
 
 .site-nav-panel-mega {

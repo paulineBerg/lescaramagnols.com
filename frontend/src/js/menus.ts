@@ -151,16 +151,12 @@ const isModifiedClick = (event: MouseEvent) =>
   event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
 
 const desktopHoverEnabled = () => {
-  if (typeof window.matchMedia !== 'function') {
-    return true;
+  const desktopRoot = document.querySelector<HTMLElement>('[data-nav-scope-root="desktop"]');
+  if (!desktopRoot) {
+    return false;
   }
 
-  const primaryPointerSupportsHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  if (primaryPointerSupportsHover) {
-    return true;
-  }
-
-  return window.matchMedia('(any-hover: hover) and (any-pointer: fine)').matches;
+  return window.getComputedStyle(desktopRoot).display !== 'none';
 };
 
 const restoreDesktopHoverSuppression = () => {

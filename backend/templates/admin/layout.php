@@ -1625,16 +1625,33 @@ $adminMenu = [
       .tile-admin-group-card__actions {
         display: grid;
         gap: 0.55rem;
+        grid-template-columns: 1fr;
         justify-items: stretch;
+        align-self: start;
+        min-width: 10rem;
       }
 
-      .tile-admin-group-card__actions form {
+      .tile-admin-group-card__actions form,
+      .tile-admin-group-card__duplicate-form {
         margin: 0;
+        width: 100%;
       }
 
       .tile-admin-group-card__actions .button-link,
       .tile-admin-group-card__actions button {
         width: 100%;
+      }
+
+      .tile-admin-group-card__duplicate-button {
+        border: 1px solid rgba(29, 111, 141, 0.18);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+      }
+
+      .tile-admin-group-card__duplicate-button:hover,
+      .tile-admin-group-card__duplicate-button:focus-visible {
+        background: rgba(29, 111, 141, 0.16);
+        color: var(--admin-primary-dark);
+        outline: none;
       }
 
       .tile-admin-group-card h3,
