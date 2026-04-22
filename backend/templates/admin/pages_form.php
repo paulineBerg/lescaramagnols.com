@@ -195,6 +195,24 @@ $translationLanguages = array_values(
         static fn (mixed $language): bool => is_string($language) && trim($language) !== ''
     )
 );
+$tileSupportEnabled = !empty($tileSupportEnabled);
+$tilePlacements = is_array($formData['tile_placements'] ?? null) ? array_values($formData['tile_placements']) : [];
+$tileGroupOptions = is_array($tileGroupOptions ?? null) ? array_values($tileGroupOptions) : [];
+$tileGroupCatalog = is_array($tileGroupCatalog ?? null) ? array_values($tileGroupCatalog) : [];
+$tilePageOptions = is_array($tilePageOptions ?? null) ? array_values($tilePageOptions) : [];
+$tileEditorBootstrapJson = json_encode(
+    [
+        'enabled' => $tileSupportEnabled,
+        'languages' => $translationLanguages,
+        'placements' => $tilePlacements,
+        'groups' => $tileGroupCatalog,
+        'pageOptions' => $tilePageOptions,
+    ],
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+);
+if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
+    $tileEditorBootstrapJson = '{}';
+}
 ?>
 
 <section class="card page-editor-intro">
@@ -278,6 +296,31 @@ $translationLanguages = array_values(
       </div>
     </div>
   </section>
+
+  <?php if ($tileSupportEnabled): ?>
+  <section class="card" data-page-tile-editor data-page-tile-bootstrap="<?php echo htmlspecialchars($tileEditorBootstrapJson, ENT_QUOTES, 'UTF-8'); ?>">
+    <div class="page-editor-intro__header">
+      <div>
+        <h2>Tuiles after_body</h2>
+        <p class="page-editor-intro__description">
+          Les groupes sélectionnés sont injectés à la fin de <code>EditRegion4 - Apres corps</code>, dans l ordre choisi.
+          Depuis cette page, vous gérez seulement l affectation des groupes, leur ordre, la visibilité locale et, si besoin,
+          une page cible locale. L édition complète des tuiles se fait dans <code>Tuiles</code>.
+        </p>
+      </div>
+      <div class="actions-inline">
+        <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($adminTilesUrl ?? admin_url('tiles')), ENT_QUOTES, 'UTF-8'); ?>">Gérer les groupes</a>
+        <button type="button" class="button-link button-link-muted" data-page-tile-add-placement<?php echo $tileGroupOptions === [] ? ' disabled' : ''; ?>>Ajouter un groupe</button>
+      </div>
+    </div>
+
+    <?php if ($tileGroupOptions === []): ?>
+    <p class="notice-muted">Aucun groupe n est encore disponible. Crée d abord un groupe dans l administration Tuiles.</p>
+    <?php endif; ?>
+
+    <div class="page-tile-placement-list" data-page-tile-placement-list></div>
+  </section>
+  <?php endif; ?>
 
   <section class="card" data-shared-media-editor>
     <h2>
@@ -1287,6 +1330,439 @@ $translationLanguages = array_values(
     }
 
     setActiveLanguage(preferredLanguage, { store: preferredLanguage !== '' });
+  })();
+</script>
+<script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+  (() => {
+    const editor = document.querySelector('[data-page-tile-editor]');
+    const addButton = document.querySelector('[data-page-tile-add-placement]');
+    const list = document.querySelector('[data-page-tile-placement-list]');
+    if (!(editor instanceof HTMLElement) || !(list instanceof HTMLElement)) {
+      return;
+    }
+
+    let bootstrap = {};
+    try {
+      bootstrap = JSON.parse(editor.getAttribute('data-page-tile-bootstrap') || '{}');
+    } catch (error) {
+      bootstrap = {};
+    }
+
+    const languages = Array.isArray(bootstrap.languages) ? bootstrap.languages.filter((language) => typeof language === 'string' && language !== '') : [];
+    const groups = Array.isArray(bootstrap.groups) ? bootstrap.groups : [];
+    const pageOptions = Array.isArray(bootstrap.pageOptions) ? bootstrap.pageOptions : [];
+    const groupMap = new Map(groups.map((group) => [String(group.id || ''), group]));
+
+    const escapeHtml = (value) => String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+
+    const defaultTranslations = () => {
+      const translations = {};
+      languages.forEach((language) => {
+        translations[language] = { label: '', alt: '', title: '' };
+      });
+
+      return translations;
+    };
+
+    const defaultOverride = () => ({
+      visibility_mode: 'default',
+      target_mode: 'default',
+      target_page_slug: '',
+      target_route: '',
+      target_url: '',
+      translations: defaultTranslations(),
+    });
+
+    const normalizeOverride = (raw) => {
+      const normalized = defaultOverride();
+      const source = raw && typeof raw === 'object' ? raw : {};
+
+      normalized.visibility_mode = typeof source.visibility_mode === 'string' && source.visibility_mode !== ''
+        ? source.visibility_mode
+        : 'default';
+      normalized.target_mode = typeof source.target_mode === 'string' && source.target_mode !== ''
+        ? source.target_mode
+        : 'default';
+      normalized.target_page_slug = typeof source.target_page_slug === 'string' ? source.target_page_slug : '';
+      normalized.target_route = typeof source.target_route === 'string' ? source.target_route : '';
+      normalized.target_url = typeof source.target_url === 'string' ? source.target_url : '';
+
+      const rawTranslations = source.translations && typeof source.translations === 'object' ? source.translations : {};
+      languages.forEach((language) => {
+        const translation = rawTranslations[language] && typeof rawTranslations[language] === 'object'
+          ? rawTranslations[language]
+          : {};
+        normalized.translations[language] = {
+          label: typeof translation.label === 'string' ? translation.label : '',
+          alt: typeof translation.alt === 'string' ? translation.alt : '',
+          title: typeof translation.title === 'string' ? translation.title : '',
+        };
+      });
+
+      return normalized;
+    };
+
+    const normalizePlacement = (raw, index) => {
+      const source = raw && typeof raw === 'object' ? raw : {};
+      const overrides = {};
+      const rawOverrides = source.overrides && typeof source.overrides === 'object' ? source.overrides : {};
+      Object.keys(rawOverrides).forEach((itemUid) => {
+        overrides[itemUid] = normalizeOverride(rawOverrides[itemUid]);
+      });
+
+      return {
+        placement_id: typeof source.placement_id === 'string' ? source.placement_id : '',
+        group_id: source.group_id != null ? String(source.group_id) : '',
+        sort_order: source.sort_order != null && String(source.sort_order) !== '' ? String(source.sort_order) : String((index + 1) * 10),
+        overrides,
+      };
+    };
+
+    const placements = Array.isArray(bootstrap.placements)
+      ? bootstrap.placements.map((placement, index) => normalizePlacement(placement, index))
+      : [];
+
+    const defaultPlacement = () => ({
+      placement_id: '',
+      group_id: '',
+      sort_order: String((placements.length + 1) * 10),
+      overrides: {},
+    });
+
+    const ensureOverride = (placement, itemUid) => {
+      if (!placement.overrides[itemUid]) {
+        placement.overrides[itemUid] = defaultOverride();
+      }
+
+      return placement.overrides[itemUid];
+    };
+
+    const groupOptionsHtml = (selectedGroupId) => {
+      const options = ['<option value="">Choisir un groupe</option>'];
+      groups.forEach((group) => {
+        const groupId = String(group.id || '');
+        const selected = groupId === selectedGroupId ? ' selected' : '';
+        const itemCount = Array.isArray(group.items) ? group.items.length : 0;
+        options.push(`<option value="${escapeHtml(groupId)}"${selected}>${escapeHtml(group.name || groupId)} · ${itemCount} tuile(s)</option>`);
+      });
+
+      return options.join('');
+    };
+
+    const pageOptionLabel = (pageOption) => {
+      const slug = String(pageOption.slug || '');
+      const route = String(pageOption.route || '');
+      const status = String(pageOption.status || '');
+
+      return [String(pageOption.title || slug), route, status].filter((value) => value !== '').join(' · ');
+    };
+
+    const pageOptionLabels = new Map();
+    pageOptions.forEach((pageOption) => {
+      const slug = String(pageOption.slug || '');
+      if (slug === '') {
+        return;
+      }
+
+      pageOptionLabels.set(slug, pageOptionLabel(pageOption));
+    });
+
+    const pageOptionsHtml = (selectedSlug) => {
+      const options = ['<option value="">Choisir une page</option>'];
+      pageOptions.forEach((pageOption) => {
+        const slug = String(pageOption.slug || '');
+        if (slug === '') {
+          return;
+        }
+
+        const label = pageOptionLabel(pageOption);
+        const selected = slug === selectedSlug ? ' selected' : '';
+        options.push(`<option value="${escapeHtml(slug)}"${selected}>${escapeHtml(label)}</option>`);
+      });
+
+      return options.join('');
+    };
+
+    const hasTileTranslationOverride = (override) => {
+      const translations = override && typeof override === 'object' ? override.translations : null;
+      if (!translations || typeof translations !== 'object') {
+        return false;
+      }
+
+      return Object.values(translations).some((translation) => {
+        if (!translation || typeof translation !== 'object') {
+          return false;
+        }
+
+        return ['label', 'alt', 'title'].some((field) => {
+          return typeof translation[field] === 'string' && translation[field].trim() !== '';
+        });
+      });
+    };
+
+    const hiddenOverrideInputsHtml = (placementIndex, itemUid, override) => {
+      const prefix = `tile_placements[${placementIndex}][overrides][${itemUid}]`;
+      const inputs = [
+        `<input type="hidden" name="${escapeHtml(prefix)}[visibility_mode]" value="${escapeHtml(override.visibility_mode || 'default')}" />`,
+        `<input type="hidden" name="${escapeHtml(prefix)}[target_mode]" value="${escapeHtml(override.target_mode || 'default')}" />`,
+        `<input type="hidden" name="${escapeHtml(prefix)}[target_page_slug]" value="${escapeHtml(override.target_page_slug || '')}" />`,
+        `<input type="hidden" name="${escapeHtml(prefix)}[target_route]" value="${escapeHtml(override.target_route || '')}" />`,
+        `<input type="hidden" name="${escapeHtml(prefix)}[target_url]" value="${escapeHtml(override.target_url || '')}" />`,
+      ];
+
+      languages.forEach((language) => {
+        const translation = override.translations[language] || { label: '', alt: '', title: '' };
+        const translationPrefix = `${prefix}[translations][${language}]`;
+        inputs.push(`<input type="hidden" name="${escapeHtml(translationPrefix)}[label]" value="${escapeHtml(translation.label || '')}" />`);
+        inputs.push(`<input type="hidden" name="${escapeHtml(translationPrefix)}[alt]" value="${escapeHtml(translation.alt || '')}" />`);
+        inputs.push(`<input type="hidden" name="${escapeHtml(translationPrefix)}[title]" value="${escapeHtml(translation.title || '')}" />`);
+      });
+
+      return inputs.join('');
+    };
+
+    const renderGroupItemsHtml = (placement, placementIndex) => {
+      const group = groupMap.get(String(placement.group_id || ''));
+      if (!group || !Array.isArray(group.items) || group.items.length === 0) {
+        return '<p class="notice-muted">Choisissez un groupe pour afficher les tuiles et leurs overrides.</p>';
+      }
+
+        return group.items.map((item) => {
+        const itemUid = String(item.item_uid || '');
+        const override = ensureOverride(placement, itemUid);
+        const targetMode = override.target_mode || 'default';
+        const hasAdvancedTargetOverride = targetMode === 'route' || targetMode === 'external';
+        const hasTranslationOverride = hasTileTranslationOverride(override);
+        const visibleTargetMode = hasAdvancedTargetOverride
+          ? 'advanced'
+          : (targetMode === 'page' ? 'page' : 'default');
+        const image = String(item.image_src || '');
+        const tileSize = String(item.tile_size || '<?php echo \Caramagnols\Content\TileRepository::DEFAULT_SIZE; ?>');
+        const imageHtml = image !== ''
+          ? `<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async" fetchpriority="low" style="max-width: 10rem; width: 100%; height: auto; border-radius: 0.75rem;" />`
+          : '<span class="notice-muted">Sans image</span>';
+        const localTargetSummary = (() => {
+          if (targetMode === 'page' && String(override.target_page_slug || '') !== '') {
+            return `Page locale : ${pageOptionLabels.get(String(override.target_page_slug || '')) || String(override.target_page_slug || '')}`;
+          }
+
+          if (targetMode === 'route') {
+            return `Cible avancée locale conservée : ${String(override.target_route || 'route interne')}`;
+          }
+
+          if (targetMode === 'external') {
+            return `Cible avancée locale conservée : ${String(override.target_url || 'URL externe')}`;
+          }
+
+          return 'Cible locale : défaut du groupe';
+        })();
+        const overrideNotes = [];
+        if (hasAdvancedTargetOverride) {
+          overrideNotes.push('Une cible locale avancée existe déjà. Elle est conservée tant que vous ne la remplacez pas ici.');
+        }
+        if (hasTranslationOverride) {
+          overrideNotes.push('Des textes locaux personnalisés existent déjà. Ils sont conservés en arrière-plan depuis cet écran simplifié.');
+        }
+
+        return `
+          <article class="nested-card page-tile-placement-item">
+            <div class="page-editor-intro__header">
+              <div>
+                <strong>${escapeHtml(item.label || 'Tuile')}</strong>
+                <p class="notice-muted">Cible par défaut : ${escapeHtml(item.target_summary || 'Aucune')}</p>
+                <p class="notice-muted">${escapeHtml(localTargetSummary)}</p>
+              </div>
+              <div class="actions-inline">
+                <span class="lang-badge">${escapeHtml(tileSize.toUpperCase())}</span>
+                <span class="lang-badge">${escapeHtml(String(item.color_token || '').toUpperCase())}</span>
+              </div>
+            </div>
+
+            ${hiddenOverrideInputsHtml(placementIndex, itemUid, override)}
+
+            <div class="admin-form-grid admin-form-grid-3">
+              <div class="field">
+                <label>Visibilité</label>
+                <select data-page-tile-ui-visibility data-item-uid="${escapeHtml(itemUid)}">
+                  <option value="default"${override.visibility_mode === 'default' ? ' selected' : ''}>Défaut du groupe</option>
+                  <option value="visible"${override.visibility_mode === 'visible' ? ' selected' : ''}>Forcer visible</option>
+                  <option value="hidden"${override.visibility_mode === 'hidden' ? ' selected' : ''}>Masquer sur cette page</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Cible locale</label>
+                <select data-page-tile-ui-target-mode data-item-uid="${escapeHtml(itemUid)}">
+                  <option value="default"${visibleTargetMode === 'default' ? ' selected' : ''}>Défaut du groupe</option>
+                  <option value="page"${visibleTargetMode === 'page' ? ' selected' : ''}>Remplacer par une page</option>
+                  ${hasAdvancedTargetOverride ? '<option value="advanced" selected>Conserver la cible avancée</option>' : ''}
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Aperçu</label>
+                ${imageHtml}
+              </div>
+
+              <div class="field admin-form-span-2" data-page-tile-target-wrapper="page"${visibleTargetMode === 'page' ? '' : ' hidden'}>
+                <label>Page cible locale</label>
+                <select data-page-tile-ui-target-page data-item-uid="${escapeHtml(itemUid)}">
+                  ${pageOptionsHtml(override.target_page_slug || '')}
+                </select>
+              </div>
+            </div>
+
+            ${overrideNotes.length > 0 ? `<p class="notice-muted">${overrideNotes.map((note) => escapeHtml(note)).join('<br>')}</p>` : ''}
+          </article>
+        `;
+      }).join('');
+    };
+
+    const renderPlacements = () => {
+      if (placements.length === 0) {
+        list.innerHTML = '<p class="notice-muted">Aucun groupe de tuiles n est encore attaché à cette page.</p>';
+        return;
+      }
+
+      list.innerHTML = placements.map((placement, index) => `
+        <article class="nested-card page-tile-placement" data-page-tile-placement data-placement-index="${index}">
+          <div class="page-editor-intro__header">
+            <div>
+              <strong>Groupe ${index + 1}</strong>
+              <p class="notice-muted">Ordre d affichage dans after_body.</p>
+            </div>
+            <button type="button" class="button-link button-link-muted" data-page-tile-remove-placement>Retirer ce groupe</button>
+          </div>
+
+          <div class="admin-form-grid admin-form-grid-2">
+            <div class="field">
+              <label>Groupe</label>
+              <select name="tile_placements[${index}][group_id]" data-page-tile-group>
+                ${groupOptionsHtml(String(placement.group_id || ''))}
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Ordre</label>
+              <input type="number" min="0" step="10" name="tile_placements[${index}][sort_order]" value="${escapeHtml(placement.sort_order || '')}" data-page-tile-sort />
+            </div>
+          </div>
+
+          <div class="page-tile-placement__items">
+            ${renderGroupItemsHtml(placement, index)}
+          </div>
+        </article>
+      `).join('');
+    };
+
+    const placementFromEvent = (eventTarget) => {
+      if (!(eventTarget instanceof HTMLElement)) {
+        return null;
+      }
+
+      const placementElement = eventTarget.closest('[data-page-tile-placement]');
+      if (!(placementElement instanceof HTMLElement)) {
+        return null;
+      }
+
+      const index = Number.parseInt(placementElement.getAttribute('data-placement-index') || '', 10);
+      if (Number.isNaN(index) || !placements[index]) {
+        return null;
+      }
+
+      return { placement: placements[index], index };
+    };
+
+    list.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      if (target.matches('[data-page-tile-remove-placement]')) {
+        const resolved = placementFromEvent(target);
+        if (!resolved) {
+          return;
+        }
+
+        placements.splice(resolved.index, 1);
+        renderPlacements();
+      }
+    });
+
+    list.addEventListener('change', (event) => {
+      const target = event.target;
+      const resolved = placementFromEvent(target instanceof HTMLElement ? target : null);
+      if (!resolved) {
+        return;
+      }
+
+      const { placement } = resolved;
+      const itemUid = target instanceof HTMLElement ? (target.getAttribute('data-item-uid') || '') : '';
+
+      if (target instanceof HTMLSelectElement && target.matches('[data-page-tile-group]')) {
+        placement.group_id = target.value;
+        renderPlacements();
+        return;
+      }
+
+      if (target instanceof HTMLSelectElement && target.matches('[data-page-tile-ui-visibility]') && itemUid !== '') {
+        const override = ensureOverride(placement, itemUid);
+        override.visibility_mode = target.value;
+        renderPlacements();
+        return;
+      }
+
+      if (target instanceof HTMLSelectElement && target.matches('[data-page-tile-ui-target-mode]') && itemUid !== '') {
+        if (target.value === 'advanced') {
+          return;
+        }
+
+        const override = ensureOverride(placement, itemUid);
+        override.target_mode = target.value;
+        renderPlacements();
+        return;
+      }
+
+      if (target instanceof HTMLSelectElement && target.matches('[data-page-tile-ui-target-page]') && itemUid !== '') {
+        const override = ensureOverride(placement, itemUid);
+        override.target_page_slug = target.value;
+        override.target_mode = target.value === '' ? 'default' : 'page';
+        renderPlacements();
+      }
+    });
+
+    list.addEventListener('input', (event) => {
+      const target = event.target;
+      const resolved = placementFromEvent(target instanceof HTMLElement ? target : null);
+      if (!resolved) {
+        return;
+      }
+
+      const { placement } = resolved;
+      if (target instanceof HTMLInputElement && target.matches('[data-page-tile-sort]')) {
+        placement.sort_order = target.value;
+        return;
+      }
+
+      if (!(target instanceof HTMLInputElement)) {
+        return;
+      }
+    });
+
+    if (addButton instanceof HTMLButtonElement) {
+      addButton.addEventListener('click', () => {
+        placements.push(defaultPlacement());
+        renderPlacements();
+      });
+    }
+
+    renderPlacements();
   })();
 </script>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
@@ -2442,7 +2918,7 @@ $translationLanguages = array_values(
 
   <?php if ($deleteReferences !== []): ?>
   <div class="notice notice-error">
-    Suppression bloquée : la page est encore utilisée par la navigation.
+    Suppression bloquée : la page est encore utilisée par la navigation ou par des tuiles.
   </div>
   <ul>
     <?php foreach ($deleteReferences as $reference): ?>
@@ -2453,7 +2929,7 @@ $translationLanguages = array_values(
     </li>
     <?php endforeach; ?>
   </ul>
-  <p class="notice-muted">Retire d’abord ces références dans les menus avant de supprimer la page.</p>
+  <p class="notice-muted">Retire d abord ces références dans les menus ou les tuiles avant de supprimer la page.</p>
   <?php else: ?>
   <details class="danger-confirmation">
     <summary>Supprimer définitivement</summary>

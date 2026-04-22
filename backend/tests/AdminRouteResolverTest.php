@@ -27,6 +27,9 @@ final class AdminRouteResolverTest extends TestCase
         $this->assertSame('/admin-moderne/pages/new', $resolver->pageCreatePath());
         $this->assertSame('/admin-moderne/pages/association', $resolver->pageEditPath('association'));
         $this->assertSame('/admin-moderne/articles/save', $resolver->blogSavePath());
+        $this->assertSame('/admin-moderne/tiles', $resolver->canonicalPath('tiles'));
+        $this->assertSame('/admin-moderne/tiles/new', $resolver->tileCreatePath());
+        $this->assertSame('/admin-moderne/tiles/42', $resolver->tileEditPath(42));
     }
 
     public function testCanonicalPathsIncludeConfiguredBasePathWhenProvided(): void
@@ -50,6 +53,9 @@ final class AdminRouteResolverTest extends TestCase
         $this->assertContains('/admin/pages/{slug:[A-Za-z0-9_-]+}', $paths);
         $this->assertContains('/admin/discussions', $paths);
         $this->assertContains('/admin/media', $paths);
+        $this->assertContains('/admin/tiles', $paths);
+        $this->assertContains('/admin/tiles/new', $paths);
+        $this->assertContains('/admin/tiles/{id:[0-9]+}', $paths);
         $this->assertNotContains('/legacy-admin/discussions.php', $paths);
         $this->assertContains('/admin/logs', $paths);
         $this->assertNotContains('/legacy-admin/menus.php', $paths);

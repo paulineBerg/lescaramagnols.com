@@ -469,6 +469,12 @@ if (is_array($instagramView) && !empty($instagramView['enabled'])) {
     $blocks['EditRegion11'] = $existingPostscript . ob_get_clean();
 }
 
+$pageTilesHtml = $pageSlug !== '' ? page_tile_renderer()->renderAfterBody($pageSlug, $language) : '';
+if ($pageTilesHtml !== '') {
+    $existingAfterBody = (string) ($blocks['EditRegion4'] ?? '');
+    $blocks['EditRegion4'] = $existingAfterBody . $pageTilesHtml;
+}
+
 $pageMetaDescription = !empty($page['meta']['description']) ? (string) $page['meta']['description'] : null;
 $pageMetaImage = null;
 $pageMetaImagePayload = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata(

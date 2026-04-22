@@ -1,6 +1,6 @@
 # Caramagnols Workspace AGENTS
 
-Version de reference: 2026-04-19
+Version de reference: 2026-04-22
 
 Ce fichier est la source de verite pour le depot `/home/surfacepro8/www/caramagnols`.
 Son but est de fixer des regles communes de developpement, d'architecture, de langage, de verification et de documentation, a partir des conventions reelles du projet.
@@ -272,6 +272,7 @@ Regles de structuration HTML/editoriale:
 - un seul `h1` visible par article
 - respecter la hierarchie `h1` > `h2` > `h3` sans niveau saute
 - `EditRegion8 - Intro` ne peut contenir qu'une petite image d'appel ou un texte court
+- pour `INTRO`, privilegier d'abord une petite image; si aucune image n'est utile, limiter le texte a un bloc tres court
 - ne pas utiliser `INTRO` pour loger un second corps d'article, un long developpement ou une grande image; si le contenu depasse ce role, le basculer dans `EditRegion3 - Corps` ou une autre region adaptee
 - rechercher, quand le sujet s'y prete, des images libre de droit pour agrementer les sections et ne pas se limiter aux visuels deja presents
 - ne pas laisser de `h2` ou `h3` vides
@@ -334,9 +335,21 @@ Regles de format pour les images:
 
 Regles de dimension cible:
 - image d'intro: largeur cible `1280 px`
-- image dans le texte: largeur cible `960 px`
+- image dans le texte: largeur cible `400 px` par defaut
+- image dans le texte plus structurante ou documentaire: largeur cible `700 px` maximum
+- n'utiliser `700 px` que si le detail apporte reellement quelque chose a la lecture; sinon servir `400 px`
 - si la source historique est plus petite mais propre, la conserver telle quelle
 - renseigner `width` et `height` dans le HTML quand l'information est disponible
+
+Regle specifique pour les tuiles Windows 10:
+- la source canonique des visuels de tuiles est `frontend/src/assets/images/structure/menu/**`
+- une image de tuile `ui*` doit etre preparee en `222x90 px`
+- produire `jpg` et `webp`
+- recadrer pour ne garder que le sujet utile, sans ciel, sol ou decor excessif
+- ne jamais dessiner la bordure coloree dans la photo elle-meme
+- la bordure W10 provient du fond `boutonrectangle/*` en `248x120 px`
+- garder le rapport visuel historique: image `222x90` posee dans un fond W10 `248x120`, avec cadre colore lateral fin et bandeau titre reserve en haut
+- si une nouvelle tuile doit coller au rendu legacy, respecter aussi le gabarit CSS existant: bouton `14rem x 7rem`, `padding` `0.25rem`, `padding-bottom` `0.625rem`
 
 Regles de poids et de rendu:
 - preferer un fichier optimise plutot qu'un original inutilement lourd
@@ -351,15 +364,18 @@ Regles de fond:
 - toute nouvelle image externe doit avoir un statut d'usage clair: image du projet, domaine public, `CC0` ou licence libre clairement compatible
 - ne jamais utiliser une image dont le statut est flou, absent ou seulement suppose
 - ne jamais faire de hotlinking depuis un site tiers
-- les informations de provenance et de licence se mentionnent simplement dans la section `Sources` de fin d'article; ne pas les mettre dans la legende
+- pour une image, la section `Sources` publique doit rester minimale: garder le lien vers la source ou le fichier, sans ajouter auteur, licence ni autres details
 
-Documentation minimale attendue pour une image externe:
+Documentation minimale de travail attendue pour une image externe:
 - URL source
 - titre ou description courte du fichier
-- auteur si connu
-- statut de licence ou de domaine public
-- date d'ajout locale
-- chemin local utilise sur le site
+- si necessaire pour verification interne, auteur ou statut de licence
+- si utile, une mention courte de contexte editorial ou de provenance hors rendu public
+
+Regle de redaction pour la section `Sources` publique:
+- rester sobre et utile: source ou fichier seulement pour une image
+- ne pas transformer la section `Sources` en journal interne
+- ne pas afficher dans la page publique des mentions comme `Photo`, `Auteur`, `Licence`, `License`, `Lizenz`, `Ajout local`, `date d'ajout`, `chemin local`, `chemin du site`, `Added locally`, `Site path` ou equivalentes
 
 ### 10.4 Types de media et usage editorial
 
@@ -377,6 +393,7 @@ Regles d'usage:
 - par defaut, les images sont centrees dans leur bloc
 - ne recourir a un alignement gauche ou droite que si une contrainte editoriale explicite le justifie vraiment
 - interdire les doublons media entre intro, corps, regions structurees et galerie finale; un meme visuel ou un visuel quasi identique ne doit pas apparaitre a plusieurs endroits d'une meme page
+- a l'echelle du site, une image editoriale ne doit etre utilisee qu'une seule fois dans le texte, quelle que soit la page, sauf contre-indication explicite prealablement validee
 - si une image est deja presente dans une region structuree, ne pas la reposer dans le corps du texte sauf demande explicite
 
 Regle de densite image selon la longueur:
@@ -538,6 +555,7 @@ Regles:
 - si un nouveau module frontend est ajoute, preferer TypeScript quand cela reste coherent avec le dossier touche
 - conserver les contrats DOM deja relies au CSS, aux scripts et aux tests
 - pour le menu haut desktop, ne pas laisser plus de `5` liens consecutifs sous une meme section de mega menu; au dela, redistribuer automatiquement la suite dans une colonne voisine du meme bloc via la projection backend, avec un titre unique de section et sans imposer de faux groupes editoriaux dans les donnees
+- pour le menu haut desktop, l ouverture des sous-menus doit fonctionner au survol par defaut; le clic reste un complement pour les cas tactiles, mais ne remplace pas le survol sur desktop
 
 Contrainte importante:
 - le site n'est pas une SPA

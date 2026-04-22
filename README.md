@@ -19,6 +19,12 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - Le mega menu desktop limite désormais chaque section à `5` liens consécutifs maximum.
 - Au-delà, la suite est reprojetée automatiquement dans une colonne adjacente du meme bloc, sous un titre unique de section, sans imposer un faux sous-groupe dans l'admin.
 - Le mobile conserve l'arborescence complète et ne réutilise pas cette découpe de confort desktop.
+- Nouveau module admin `Tuiles` : groupes de tuiles Windows 10 réutilisables, rattachables aux pages en `after_body`. L écran `Tuiles` porte l édition complète des groupes ; l écran `Pages` ne gère plus que l affectation, l ordre, la visibilité locale et, si besoin, une page cible locale.
+- Le catalogue `Tuiles` permet maintenant de dupliquer un groupe existant en un clic, avec ouverture directe de la copie dans l écran d édition.
+- Les tuiles `after_body` supportent maintenant les formats `small`, `medium`, `large` et `rectangle`, avec une grille dense type Windows 10, hover léger uniquement et empilement vertical sur mobile.
+- Le format éditorial par défaut du module `Tuiles` est désormais `rectangle`, avec image visible dans la tuile et fond W10 servi depuis `boutonrectangle/*`.
+- Migration legacy des tuiles HTML vers SQL outillée par `php backend/core/tools/migrate_legacy_page_tiles.php` (`--apply` après backup) ; les groupes auto-retro y sont normalisés à `1` tuile par marque en ordre alphabétique, avec ajout de `Citroën`.
+- Gabarit W10 des images de tuiles : source canonique sous `frontend/src/assets/images/structure/menu/**`, fond couleur servi depuis `boutonpetit/*`, `boutonmoyen/*`, `boutongrand/*` ou `boutonrectangle/*` selon la taille, avec fallback serveur si une couleur n existe pas pour un format donne.
 
 ## Docs de référence
 - Index de la documentation : `README_DOCUMENTATION_INDEX.md`
@@ -333,8 +339,10 @@ public/index.php
   - Conventions : classes nouvelles en `kebab-case`, utilitaires préfixés `.u-`, hooks JS préfixés `js-`, placeholders `%` pour factoriser.
 - **Images** :
   - Imports Vite (`@/assets/...`) pour hashing.
-  - Script `npm run build:webp` (`frontend/tools/convert-webp.js`) génère WebP + variantes `@480w/@960w` avec cache simple.
-  - Script `npm run audit:images` pour inventorier doublons, noms non normalisés et manques de variantes modernes.
+- Script `npm run build:webp` (`frontend/tools/convert-webp.js`) génère WebP + variantes `@400w/@700w` avec cache simple.
+- Pour les images diffusees dans le texte editorial, viser `400 px` par defaut et ne monter a `700 px` que si un detail le justifie vraiment.
+- Dans la section `Sources` des pages publiques, pour une image, ne garder que le lien vers la source ou le fichier. Ne pas afficher `Photo`, `Auteur`, `Licence`, ni des mentions internes comme `Ajout local`, `Chemin du site`, `Added locally` ou `Site path`.
+- Script `npm run audit:images` pour inventorier doublons, noms non normalisés et manques de variantes modernes.
 
 ---
 
@@ -433,6 +441,12 @@ Puis relancer la meme commande sans `--dry-run` pour appliquer.
 cd frontend
 npm run build:webp   # Sharp → WebP + tailles responsive
 ```
+
+Pour les images inserees dans le corps des pages editoriales :
+- `400 px` est la largeur cible par defaut
+- `700 px` est un maximum reserve aux visuels qui apportent un detail utile a la lecture
+- eviter de servir plus large quand le gain editorial est nul
+- dans `Sources`, ne pas exposer de traces internes de workflow comme `Ajout local`, `Chemin du site`, `Added locally` ou `Site path`
 
 ## Licence
 - Code sous licence MIT (voir fichier `LICENSE`).

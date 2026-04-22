@@ -76,10 +76,15 @@ trait EditorialSqlTestTrait
                     'log_entries',
                     'navigation_items',
                     'navigation_sets',
+                    'page_tile_item_overrides',
+                    'page_tile_placements',
                     'page_translation_sections',
                     'page_translations',
                     'page_sections',
                     'pages',
+                    'tile_group_item_translations',
+                    'tile_group_items',
+                    'tile_groups',
                     'editorial_schema_meta',
                 ] as $table
             ) {

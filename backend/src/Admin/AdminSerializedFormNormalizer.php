@@ -26,6 +26,15 @@ final class AdminSerializedFormNormalizer
 
     /**
      * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    public function tileEditor(array $body): array
+    {
+        return $this->normalize($body, 'tile_state_json', ['tile_action', 'csrf_token']);
+    }
+
+    /**
+     * @param array<string, mixed> $body
      * @param array<int, string> $preservedKeys
      * @return array<string, mixed>
      */

@@ -28,6 +28,7 @@ final class AdminRouteResolver
             'articles' => $basePath . '/articles',
             'discussions' => $basePath . '/discussions',
             'media' => $basePath . '/media',
+            'tiles' => $basePath . '/tiles',
             'menus' => $basePath . '/menus',
             'logs' => $basePath . '/logs',
             'settings' => $basePath . '/settings',
@@ -45,6 +46,16 @@ final class AdminRouteResolver
     public function pageEditPath(string $slug): string
     {
         return $this->canonicalPath('pages') . '/' . rawurlencode(trim($slug));
+    }
+
+    public function tileCreatePath(): string
+    {
+        return $this->canonicalPath('tiles') . '/new';
+    }
+
+    public function tileEditPath(int $groupId): string
+    {
+        return $this->canonicalPath('tiles') . '/' . rawurlencode((string) $groupId);
     }
 
     public function blogSavePath(): string
@@ -84,6 +95,8 @@ final class AdminRouteResolver
         $articleCreatePath = $this->articleCreatePath();
         $discussionsPath = $this->canonicalPath('discussions');
         $mediaPath = $this->canonicalPath('media');
+        $tilesPath = $this->canonicalPath('tiles');
+        $tileCreatePath = $this->tileCreatePath();
         $menusPath = $this->canonicalPath('menus');
         $logsPath = $this->canonicalPath('logs');
         $settingsPath = $this->canonicalPath('settings');
@@ -166,6 +179,26 @@ final class AdminRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $mediaPath . '.php',
                 'handler' => ['type' => 'admin', 'page' => 'media'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $tilesPath,
+                'handler' => ['type' => 'admin', 'page' => 'tiles'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $tilesPath . '.php',
+                'handler' => ['type' => 'admin', 'page' => 'tiles'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $tileCreatePath,
+                'handler' => ['type' => 'admin', 'page' => 'tiles_new'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $tilesPath . '/{id:[0-9]+}',
+                'handler' => ['type' => 'admin', 'page' => 'tiles_edit'],
             ],
             [
                 'methods' => ['GET', 'POST'],

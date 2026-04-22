@@ -442,6 +442,14 @@
 .site-nav-item:not(.site-nav-item-active) > .site-nav-row .site-nav-link:hover,
 .site-nav-item:not(.site-nav-item-active) > .site-nav-row .site-nav-label-button:hover,
 .site-nav-item:not(.site-nav-item-active) > .site-nav-row .site-nav-toggle:hover,
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:hover > .site-nav-row .site-nav-link,
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:hover > .site-nav-row .site-nav-label-button,
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:hover > .site-nav-row .site-nav-label-static,
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:hover > .site-nav-row .site-nav-toggle,
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:focus-within > .site-nav-row .site-nav-link,
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:focus-within > .site-nav-row .site-nav-label-button,
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:focus-within > .site-nav-row .site-nav-label-static,
+.site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:focus-within > .site-nav-row .site-nav-toggle,
 .site-nav-item.is-open:not(.site-nav-item-active) > .site-nav-row .site-nav-link,
 .site-nav-item.is-open:not(.site-nav-item-active) > .site-nav-row .site-nav-label-button,
 .site-nav-item.is-open:not(.site-nav-item-active) > .site-nav-row .site-nav-label-static,
@@ -455,11 +463,19 @@
   position: absolute;
   top: calc(100% + 0.06rem);
   left: 0;
+  z-index: 35;
   min-width: 11rem;
   padding: 0.35rem;
   border-radius: 0.7rem;
   background: rgb(14 30 61 / 96%);
   box-shadow: 0 1.2rem 2.1rem rgb(0 0 0 / 24%);
+}
+
+@media (hover: hover) and (pointer: fine), (any-hover: hover) and (any-pointer: fine) {
+  .site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:hover > .site-nav-panel[hidden],
+  .site-header-nav-shell[data-nav-scope-root="desktop"] .site-nav-item-has-children:focus-within > .site-nav-panel[hidden] {
+    display: block;
+  }
 }
 
 .site-nav-panel-mega {

@@ -44,6 +44,10 @@ Mise a jour 2026-04-16 :
 - `npm run audit:images`
   - audite les images source dans `frontend/src/assets/images`
   - remonte les doublons exacts, noms non normalises et manques de variantes modernes
+- `npm run build:webp`
+  - produit les variantes WebP de travail
+  - cible `@400w` par defaut et `@700w` pour les usages editoriaux qui demandent plus de detail
+  - ne change pas le format redactionnel de la section `Sources` : sur les pages publiques, garder seulement source, fichier, auteur et licence, sans mentions internes comme `Ajout local`, `Chemin du site`, `Added locally` ou `Site path`
 - `npm run hygiene:docs`
   - verifie les liens Markdown locaux des docs projet (`README*` + `docs/**`)
 - `npm run hygiene:assets`
@@ -104,6 +108,7 @@ Source de verite image :
 - source versionnee : `frontend/src/assets/images/**`
 - publication derivee : `backend/public/assets/images/**`
 - consequence pratique : ne jamais corriger une image directement dans `backend/public/assets/images`
+- pour les images integrees dans le texte editorial : viser `400 px` par defaut et ne monter a `700 px` qu'en cas de besoin documentaire clair
 
 ## Contrat Cote PHP
 

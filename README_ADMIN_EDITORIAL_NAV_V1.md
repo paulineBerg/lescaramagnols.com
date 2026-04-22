@@ -89,6 +89,20 @@ Mise a jour 2026-04-20 (admin pages, onglets de traduction) :
 - chaque onglet garde son propre bouton `Enregistrer la page`, mais la sauvegarde reste celle de la page complete pour conserver un seul contrat de persistance.
 - l onglet actif est restaure cote client apres navigation ou sauvegarde pour eviter de revenir systematiquement sur `fr`.
 
+Mise a jour 2026-04-22 (tuiles after_body) :
+- ajout d un module admin `Tuiles` distinct de `Menus du site`
+- stockage SQL dedie pour les groupes, les items, leurs traductions et les placements de page
+- rattachement des groupes uniquement en `after_body`, avec ordre configurable dans l editeur de page
+- chaque item peut maintenant choisir un format `small`, `medium`, `large` ou `rectangle`
+- le format visuel par defaut est maintenant `rectangle`, avec image editoriale visible dans la tuile
+- l ecran `Tuiles` reste la source de verite pour l edition complete d un groupe
+- le catalogue `Tuiles` expose aussi une action `Dupliquer` pour cloner rapidement un groupe existant avant ajustements
+- l ecran `pages_edit` ne sert qu a rattacher un groupe a une page, definir son ordre, regler la visibilite locale d une tuile et, si besoin, remplacer sa cible par une page du site
+- les surcharges plus anciennes de type route, URL ou textes traduits restent conservees si elles existent deja, mais ne sont plus exposees dans l UI simplifiee de `pages_edit`
+- rendu front `windows10-classic` base sur les assets existants, avec grille dense type W10 cote serveur, hover leger seulement et pile verticale sur mobile
+- script de migration legacy disponible : `php backend/core/tools/migrate_legacy_page_tiles.php` puis `--apply` apres backup SQL
+- migration auto-retro normalisee sur `1` tuile par marque, triee par ordre alphabetique, avec ajout de `Citroën`
+
 Mise a jour 2026-04-22 (mega menu desktop, sections longues) :
 - dans le mega menu desktop, une meme section ne rend pas plus de `5` liens consecutifs par colonne.
 - au dela de ce seuil, le rendu ouvre une colonne voisine dans le meme bloc au lieu d imposer un faux sous-groupe editorial.

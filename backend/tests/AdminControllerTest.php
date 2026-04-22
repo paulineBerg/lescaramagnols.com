@@ -188,6 +188,17 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('Accès admin interdit', $response->body);
     }
 
+    public function testTilesPageRendersWhenAuthenticated(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('tiles', $this->request('GET', '/admin/tiles'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Groupes de tuiles', $response->body);
+    }
+
     public function testDashboardRendersLiveEditorialCounts(): void
     {
         file_put_contents(

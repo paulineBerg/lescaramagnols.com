@@ -13,8 +13,8 @@ const projectRoot = resolve(__dirname, '..');
 
 const FORMATS = [
   { suffix: '', width: null, quality: 82 },
-  { suffix: '@480w', width: 480, quality: 80 },
-  { suffix: '@960w', width: 960, quality: 78 }
+  { suffix: '@400w', width: 400, quality: 80 },
+  { suffix: '@700w', width: 700, quality: 78 }
 ];
 
 const SOURCE_GLOB = ['src/assets/**/*.{jpg,jpeg,png}'];

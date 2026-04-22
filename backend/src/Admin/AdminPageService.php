@@ -6,6 +6,7 @@ namespace Caramagnols\Admin;
 
 use Caramagnols\Content\PageRepository;
 use Caramagnols\Content\StandardPageRegionMapper;
+use Caramagnols\Content\TileRepository;
 use Caramagnols\Navigation\NavigationRepository;
 
 final class AdminPageService
@@ -22,7 +23,8 @@ final class AdminPageService
         private readonly array $availableLanguages,
         private readonly string $defaultLanguage = 'fr',
         private readonly ?NavigationRepository $navigationRepository = null,
-        ?StandardPageRegionMapper $regionMapper = null
+        ?StandardPageRegionMapper $regionMapper = null,
+        private readonly ?TileRepository $tileRepository = null
     ) {
         $this->regionMapper = $regionMapper ?? new StandardPageRegionMapper();
     }
@@ -165,6 +167,7 @@ final class AdminPageService
             'route' => '',
             'layout' => 'standard_page',
             'shared_media' => [],
+            'tile_placements' => [],
             'translations' => $translations,
         ];
     }
@@ -248,7 +251,20 @@ final class AdminPageService
             ];
         }
 
-        app_runtime_cache_clear(['pages', 'navigation']);
+        if ($this->tileSupportEnabled()) {
+            $savedSlug = (string) ($page['slug'] ?? '');
+            $placements = is_array($formData['tile_placements'] ?? null) ? $formData['tile_placements'] : [];
+            if (!$this->tileRepository?->replacePlacementsForPage($savedSlug, $placements, $originalSlug)) {
+                return [
+                    'success' => false,
+                    'error' => 'La page est sauvegardee, mais les placements de tuiles n ont pas pu etre mis a jour.',
+                    'form' => $this->buildFormData($page),
+                    'slug' => $slug,
+                ];
+            }
+        }
+
+        app_runtime_cache_clear(['pages', 'navigation', 'tiles']);
 
         return [
             'success' => true,
@@ -263,7 +279,10 @@ final class AdminPageService
      */
     public function deletionInfoForSlug(string $slug): array
     {
-        $references = $this->navigationReferencesForPageSlug($slug);
+        $references = array_merge(
+            $this->navigationReferencesForPageSlug($slug),
+            $this->tileReferencesForPageSlug($slug)
+        );
 
         return [
             'canDelete' => $references === [],
@@ -285,11 +304,14 @@ final class AdminPageService
             ];
         }
 
-        $references = $this->navigationReferencesForPageSlug($slug);
+        $references = array_merge(
+            $this->navigationReferencesForPageSlug($slug),
+            $this->tileReferencesForPageSlug($slug)
+        );
         if ($references !== []) {
             return [
                 'success' => false,
-                'error' => 'Suppression impossible : cette page est encore utilisée dans la navigation du site.',
+                'error' => 'Suppression impossible : cette page est encore utilisee dans la navigation ou dans des groupes de tuiles.',
                 'references' => $references,
             ];
         }
@@ -302,7 +324,11 @@ final class AdminPageService
             ];
         }
 
-        app_runtime_cache_clear(['pages', 'navigation']);
+        if ($this->tileSupportEnabled()) {
+            $this->tileRepository?->deletePlacementsForPage($slug);
+        }
+
+        app_runtime_cache_clear(['pages', 'navigation', 'tiles']);
 
         return [
             'success' => true,
@@ -328,6 +354,73 @@ final class AdminPageService
             PageRepository::STATUS_DRAFT,
             PageRepository::STATUS_PUBLISHED,
         ];
+    }
+
+    public function tileSupportEnabled(): bool
+    {
+        return $this->tileRepository instanceof TileRepository && editorial_storage_mode() !== 'json';
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string, theme: string, tileCount: int}>
+     */
+    public function tileGroupReferenceOptions(): array
+    {
+        if (!$this->tileSupportEnabled()) {
+            return [];
+        }
+
+        return $this->tileRepository->groupReferenceOptions();
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function tileGroupCatalogForEditor(): array
+    {
+        if (!$this->tileSupportEnabled()) {
+            return [];
+        }
+
+        $catalog = [];
+        foreach ($this->tileRepository->groupReferenceOptions() as $groupOption) {
+            $groupId = (int) ($groupOption['id'] ?? 0);
+            if ($groupId <= 0) {
+                continue;
+            }
+
+            $group = $this->tileRepository->findGroupForAdmin($groupId);
+            if (!is_array($group)) {
+                continue;
+            }
+
+            $items = [];
+            foreach (is_array($group['items'] ?? null) ? $group['items'] : [] as $groupItem) {
+                if (!is_array($groupItem)) {
+                    continue;
+                }
+
+                $items[] = [
+                    'item_uid' => (string) ($groupItem['item_uid'] ?? ''),
+                    'label' => $this->preferredTileLabel($groupItem),
+                    'tile_size' => (string) ($groupItem['tile_size'] ?? TileRepository::DEFAULT_SIZE),
+                    'color_token' => (string) ($groupItem['color_token'] ?? 'bleu'),
+                    'image_src' => (string) ($groupItem['image_src'] ?? ''),
+                    'target_summary' => $this->tileTargetSummary(
+                        is_array($groupItem['target'] ?? null) ? $groupItem['target'] : []
+                    ),
+                ];
+            }
+
+            $catalog[] = [
+                'id' => $groupId,
+                'name' => (string) ($group['name'] ?? ''),
+                'theme' => (string) ($group['theme'] ?? TileRepository::DEFAULT_THEME),
+                'items' => $items,
+            ];
+        }
+
+        return $catalog;
     }
 
     /**
@@ -390,6 +483,18 @@ final class AdminPageService
         }
 
         return $references;
+    }
+
+    /**
+     * @return array<int, array<string, string>>
+     */
+    private function tileReferencesForPageSlug(string $slug): array
+    {
+        if (!$this->tileSupportEnabled()) {
+            return [];
+        }
+
+        return $this->tileRepository->referencesToPageSlug($slug);
     }
 
     /**
@@ -487,6 +592,12 @@ final class AdminPageService
         $formData['route'] = normalize_public_route((string) ($page['route'] ?? '')) ?? '';
         $formData['layout'] = (string) ($page['layout'] ?? 'standard_page');
         $formData['shared_media'] = $this->sharedMediaFormFromPage($page);
+        if ($this->tileSupportEnabled()) {
+            $formData['tile_placements'] = $this->tileRepository->placementsForPageEditor(
+                (string) ($page['slug'] ?? ''),
+                $this->availableLanguages
+            );
+        }
 
         foreach ($this->availableLanguages as $language) {
             $translation = $this->translationForForm($page, $language);
@@ -523,6 +634,17 @@ final class AdminPageService
         $existingSharedMedia = $existingPage !== null ? $this->sharedMediaFormFromPage($existingPage) : [];
         $sharedMediaInput = array_key_exists('shared_media', $payload) ? $payload['shared_media'] : $existingSharedMedia;
         $formData['shared_media'] = $this->normalizeSharedMediaFormInput($sharedMediaInput);
+        $existingTilePlacements = (
+            $existingPage !== null
+            && $this->tileSupportEnabled()
+            && trim((string) ($existingPage['slug'] ?? '')) !== ''
+        )
+            ? $this->tileRepository->placementsForPageEditor((string) ($existingPage['slug'] ?? ''), $this->availableLanguages)
+            : [];
+        $tilePlacementsInput = array_key_exists('tile_placements', $payload)
+            ? $payload['tile_placements']
+            : $existingTilePlacements;
+        $formData['tile_placements'] = $this->normalizeTilePlacementsFormInput($tilePlacementsInput);
 
         $translationsInput = is_array($payload['translations'] ?? null) ? $payload['translations'] : [];
 
@@ -832,6 +954,49 @@ final class AdminPageService
     }
 
     /**
+     * @param array<string, mixed> $groupItem
+     */
+    private function preferredTileLabel(array $groupItem): string
+    {
+        $translations = is_array($groupItem['translations'] ?? null) ? $groupItem['translations'] : [];
+
+        foreach ([$this->defaultLanguage, ...$this->availableLanguages] as $language) {
+            $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
+            $label = trim((string) ($translation['label'] ?? ''));
+            if ($label !== '') {
+                return $label;
+            }
+        }
+
+        foreach ($translations as $translation) {
+            if (!is_array($translation)) {
+                continue;
+            }
+
+            $label = trim((string) ($translation['label'] ?? ''));
+            if ($label !== '') {
+                return $label;
+            }
+        }
+
+        return 'Tuile';
+    }
+
+    /**
+     * @param array<string, mixed> $target
+     */
+    private function tileTargetSummary(array $target): string
+    {
+        $targetType = trim((string) ($target['type'] ?? 'page'));
+
+        return match ($targetType) {
+            'route' => 'Route : ' . trim((string) ($target['route'] ?? '')),
+            'external' => 'URL : ' . trim((string) ($target['url'] ?? '')),
+            default => 'Page : ' . trim((string) ($target['pageSlug'] ?? '')),
+        };
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function emptyTranslationFormData(): array
@@ -846,6 +1011,66 @@ final class AdminPageService
             'meta_image_height' => '',
             'regions' => StandardPageRegionMapper::emptyPlanFields(),
         ];
+    }
+
+    /**
+     * @param mixed $input
+     * @return array<int, array<string, mixed>>
+     */
+    private function normalizeTilePlacementsFormInput(mixed $input): array
+    {
+        if (!$this->tileSupportEnabled() || !is_array($input)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach (array_values($input) as $index => $placement) {
+            if (!is_array($placement)) {
+                continue;
+            }
+
+            $overridesInput = is_array($placement['overrides'] ?? null) ? $placement['overrides'] : [];
+            $overrides = [];
+
+            foreach ($overridesInput as $itemUid => $override) {
+                if (!is_string($itemUid) || !is_array($override)) {
+                    continue;
+                }
+
+                $translationsInput = is_array($override['translations'] ?? null) ? $override['translations'] : [];
+                $translations = [];
+                foreach ($this->availableLanguages as $language) {
+                    if (!is_string($language) || trim($language) === '') {
+                        continue;
+                    }
+
+                    $translation = is_array($translationsInput[$language] ?? null) ? $translationsInput[$language] : [];
+                    $translations[$language] = [
+                        'label' => trim((string) ($translation['label'] ?? '')),
+                        'alt' => trim((string) ($translation['alt'] ?? '')),
+                        'title' => trim((string) ($translation['title'] ?? '')),
+                    ];
+                }
+
+                $overrides[$itemUid] = [
+                    'visibility_mode' => trim((string) ($override['visibility_mode'] ?? 'default')),
+                    'target_mode' => trim((string) ($override['target_mode'] ?? 'default')),
+                    'target_page_slug' => trim((string) ($override['target_page_slug'] ?? '')),
+                    'target_route' => trim((string) ($override['target_route'] ?? '')),
+                    'target_url' => trim((string) ($override['target_url'] ?? '')),
+                    'translations' => $translations,
+                ];
+            }
+
+            $normalized[] = [
+                'placement_id' => trim((string) ($placement['placement_id'] ?? '')),
+                'group_id' => trim((string) ($placement['group_id'] ?? '')),
+                'sort_order' => trim((string) ($placement['sort_order'] ?? (($index + 1) * 10))),
+                'overrides' => $overrides,
+            ];
+        }
+
+        return $normalized;
     }
 
     /**

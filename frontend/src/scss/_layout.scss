@@ -381,6 +381,311 @@ h3 {
   );
 }
 
+.page-tile-groups {
+  --page-tile-gap: clamp(0.45rem, 1vw, 0.9rem);
+  display: grid;
+  gap: clamp(1rem, 1.8vw, 1.75rem);
+  width: 100%;
+  margin: 2.4rem auto 0;
+}
+
+.page-tile-group {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.page-tile-group__title {
+  margin: 0;
+  color: vars.$color-blanc;
+  font-family: vars.$font-segoe-ui-light, sans-serif;
+  font-size: clamp(1.1rem, 0.9rem + 0.9vw, 1.9rem);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-align: left;
+}
+
+.page-tile-group__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--page-tile-gap);
+  justify-content: stretch;
+  align-content: start;
+}
+
+.page-tile {
+  position: relative;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  background-image: var(--page-tile-bg-default);
+  background-color: rgb(0 0 0 / 12%);
+  color: vars.$color-blanc;
+  text-decoration: none;
+  font-size: inherit;
+  font-style: normal;
+  font-weight: 400;
+  box-shadow: 0 0.85rem 1.85rem rgb(0 0 0 / 26%);
+  isolation: isolate;
+  transform: translateZ(0);
+  transition:
+    transform 0.16s ease,
+    filter 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.page-tile:link,
+.page-tile:visited,
+.page-tile:hover,
+.page-tile:focus,
+.page-tile:focus-visible,
+.page-tile:active {
+  color: inherit;
+  text-decoration: none;
+  font-size: inherit;
+  font-style: normal;
+  font-weight: 400;
+  background-color: transparent;
+}
+
+.page-tile--size-small {
+  grid-column: span 1;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+}
+
+.page-tile--size-medium {
+  grid-column: span 1;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+}
+
+.page-tile--size-large {
+  grid-column: span 2;
+  min-height: 0;
+  aspect-ratio: 2.05 / 1;
+}
+
+.page-tile--size-rectangle {
+  grid-column: span 1;
+  min-height: 0;
+  aspect-ratio: 248 / 120;
+}
+
+.page-tile:hover,
+.page-tile:focus-visible {
+  background-image: var(--page-tile-bg-hover, var(--page-tile-bg-default));
+  transform: translateY(-0.18rem);
+  filter: brightness(1.04);
+  box-shadow: 0 1rem 2rem rgb(0 0 0 / 30%);
+  outline: none;
+}
+
+.page-tile:active {
+  background-image: var(--page-tile-bg-active, var(--page-tile-bg-hover, var(--page-tile-bg-default)));
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.page-tile__inner {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 100%;
+}
+
+.page-tile__figure {
+  position: absolute;
+  inset: 2.45rem 0.45rem 0.45rem;
+  margin: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.page-tile--size-small .page-tile__figure {
+  inset: 1.65rem 0.28rem 0.28rem;
+}
+
+.page-tile--size-large .page-tile__figure {
+  inset: 3.05rem 0.55rem 0.55rem;
+}
+
+.page-tile--size-rectangle .page-tile__figure {
+  inset: 1.05rem 0.52rem 0.34rem;
+}
+
+.page-tile__image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  transform: scale(1.01);
+}
+
+.page-tile--size-rectangle .page-tile__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: brightness(1.08) contrast(1.03) saturate(1.02);
+  transform: none;
+}
+
+.page-tile__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background:
+    linear-gradient(180deg, rgb(0 0 0 / 34%) 0%, rgb(0 0 0 / 16%) 36%, rgb(0 0 0 / 58%) 100%);
+}
+
+.page-tile__content {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.55rem 0.62rem 0.72rem;
+  overflow: hidden;
+}
+
+.page-tile__label,
+.page-tile__summary {
+  display: block;
+  max-width: 100%;
+  text-shadow: 0 0.12rem 0.45rem rgb(0 0 0 / 82%);
+}
+
+.page-tile__label {
+  font-family: vars.$font-segoe-ui-light, sans-serif;
+  font-weight: 300;
+  font-size: clamp(1.08rem, 0.95rem + 0.4vw, 1.45rem);
+  line-height: 1.02;
+  inline-size: 100%;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  hyphens: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-tile__summary {
+  margin-top: auto;
+  max-width: 82%;
+  font-family: vars.$font-family-main;
+  font-size: clamp(0.78rem, 0.72rem + 0.2vw, 0.96rem);
+  line-height: 1.2;
+  opacity: 0.92;
+}
+
+.page-tile--size-small .page-tile__content {
+  padding: 0.32rem 0.36rem 0.38rem;
+}
+
+.page-tile--size-small .page-tile__label {
+  font-size: clamp(0.76rem, 0.7rem + 0.18vw, 0.92rem);
+}
+
+.page-tile--size-small .page-tile__summary {
+  display: none;
+}
+
+.page-tile--size-medium .page-tile__label {
+  font-size: clamp(1.12rem, 1rem + 0.42vw, 1.5rem);
+}
+
+.page-tile--size-large .page-tile__content {
+  padding: 0.72rem 0.82rem 0.92rem;
+}
+
+.page-tile--size-large .page-tile__label {
+  font-size: clamp(1.6rem, 1.2rem + 0.9vw, 2.35rem);
+}
+
+.page-tile--size-large .page-tile__summary {
+  max-width: 72%;
+  font-size: clamp(0.84rem, 0.76rem + 0.28vw, 1.08rem);
+}
+
+.page-tile--size-rectangle .page-tile__label {
+  max-width: 100%;
+  font-size: clamp(0.84rem, 0.78rem + 0.2vw, 0.98rem);
+  letter-spacing: -0.01em;
+}
+
+.page-tile--size-rectangle .page-tile__summary {
+  max-width: 56%;
+  font-size: clamp(0.68rem, 0.65rem + 0.12vw, 0.82rem);
+}
+
+.page-tile--size-rectangle .page-tile__content {
+  padding: 0.24rem 0.34rem 0.32rem;
+}
+
+.page-tile--size-rectangle.page-tile--with-media .page-tile__overlay {
+  background:
+    linear-gradient(180deg, rgb(0 0 0 / 22%) 0%, rgb(0 0 0 / 0%) 42%, rgb(0 0 0 / 18%) 100%);
+}
+
+.page-tile:not(.page-tile--with-media) .page-tile__figure {
+  display: none;
+}
+
+.page-tile:not(.page-tile--with-media) .page-tile__overlay {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 9%) 0%, rgb(0 0 0 / 9%) 100%);
+}
+
+.page-tile:not(.page-tile--with-media) .page-tile__content {
+  justify-content: flex-end;
+}
+
+.page-tile--color-blanc:not(.page-tile--with-media),
+.page-tile--color-jaune:not(.page-tile--with-media) {
+  color: vars.$color-noir;
+}
+
+.page-tile--color-blanc:not(.page-tile--with-media) .page-tile__label,
+.page-tile--color-blanc:not(.page-tile--with-media) .page-tile__summary,
+.page-tile--color-jaune:not(.page-tile--with-media) .page-tile__label,
+.page-tile--color-jaune:not(.page-tile--with-media) .page-tile__summary {
+  text-shadow: none;
+}
+
+@media (max-width: 63.99rem) {
+  .page-tile-group__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .page-tile-group__title {
+    text-align: center;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  .page-tile-group__grid {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+
+  .page-tile--size-small,
+  .page-tile--size-medium,
+  .page-tile--size-large,
+  .page-tile--size-rectangle {
+    grid-column: auto;
+  }
+
+  .page-tile__summary {
+    max-width: 100%;
+  }
+}
+
 // Application du mixin diaporama appartements
 #diaporama {
   @include mixins.diaporama-appt(

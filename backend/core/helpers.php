@@ -10,7 +10,9 @@ use Caramagnols\Blog\JsonBlogDiscussionRepository;
 use Caramagnols\Blog\JsonBlogRepository;
 use Caramagnols\Blog\SqlBlogDiscussionRepository;
 use Caramagnols\Blog\SqlBlogRepository;
+use Caramagnols\Content\PageTileRenderer;
 use Caramagnols\Content\PageRepository;
+use Caramagnols\Content\TileRepository;
 use Caramagnols\Database\DatabaseConfig;
 use Caramagnols\Database\EditorialDatabase;
 use Caramagnols\Database\EditorialSchemaManager;
@@ -260,6 +262,10 @@ function app_runtime_cache_clear(array $scopes = ['pages', 'navigation', 'transl
     if (in_array('translations', $scopes, true) && function_exists('translation_runtime_cache_clear')) {
         translation_runtime_cache_clear();
     }
+
+    if (in_array('tiles', $scopes, true) && function_exists('tile_repository_cache_clear')) {
+        tile_repository_cache_clear();
+    }
 }
 
 function admin_route_resolver(): AdminRouteResolver
@@ -461,6 +467,75 @@ function editorial_schema_migration_files(string $schemaDir): array
 function page_repository(?string $path = null): PageRepository
 {
     return new PageRepository($path ?? ROOT_PATH . '/data/pages.json');
+}
+
+function tile_repository(): TileRepository
+{
+    static $repository = null;
+    static $state = null;
+
+    $currentState = [
+        'database' => (array) app_config('database', []),
+        'database_prefix' => (string) app_config('database_prefix', 'car_'),
+        'schema_dir' => (string) app_config('editorial.schema_dir', ROOT_PATH . '/sql/editorial'),
+    ];
+
+    if (!$repository instanceof TileRepository || $state !== $currentState) {
+        $repository = new TileRepository(editorial_database());
+        $state = $currentState;
+    }
+
+    return $repository;
+}
+
+function tile_repository_cache_clear(): void
+{
+    tile_repository()->clearCache();
+}
+
+function getTileImage(string $size, ?string $image = null): string
+{
+    $normalizedSize = TileRepository::normalizeTileSizeValue($size);
+    $imageName = trim((string) ($image ?? ''));
+
+    if ($imageName === '') {
+        $imageName = TileRepository::buttonFilename($normalizedSize, 'bleu');
+    }
+
+    if (preg_match('#^(?:https?:)?//#i', $imageName) === 1 || str_starts_with($imageName, '/')) {
+        return $imageName;
+    }
+
+    return '/assets/images/structure/menu/'
+        . TileRepository::buttonFolderForSize($normalizedSize)
+        . '/'
+        . ltrim($imageName, '/');
+}
+
+function getTileButtonImage(string $size, string $colorToken = 'bleu', string $state = 'default'): string
+{
+    return getTileImage($size, TileRepository::buttonFilename($size, $colorToken, $state));
+}
+
+function page_tile_renderer(): PageTileRenderer
+{
+    static $renderer = null;
+    static $state = null;
+
+    $currentState = [
+        'pages_path' => pages_data_path(),
+        'storage_mode' => editorial_storage_mode(),
+        'database' => (array) app_config('database', []),
+        'database_prefix' => (string) app_config('database_prefix', 'car_'),
+        'schema_dir' => (string) app_config('editorial.schema_dir', ROOT_PATH . '/sql/editorial'),
+    ];
+
+    if (!$renderer instanceof PageTileRenderer || $state !== $currentState) {
+        $renderer = new PageTileRenderer(tile_repository(), page_repository($currentState['pages_path']));
+        $state = $currentState;
+    }
+
+    return $renderer;
 }
 
 function navigation_repository(?string $path = null): NavigationRepository

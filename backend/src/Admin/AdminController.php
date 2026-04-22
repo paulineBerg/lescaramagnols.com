@@ -20,6 +20,7 @@ final class AdminController
     private AdminSettingsService $settingsService;
     private AdminLogService $logService;
     private AdminMediaLibraryService $mediaLibraryService;
+    private AdminTileService $tileService;
     private AdminSerializedFormNormalizer $serializedFormNormalizer;
     private AdminEditorialImageService $editorialImageService;
 
@@ -34,7 +35,8 @@ final class AdminController
         ?AdminBlogService $blogService = null,
         ?AdminDiscussionService $discussionService = null,
         ?AdminSerializedFormNormalizer $serializedFormNormalizer = null,
-        ?AdminEditorialImageService $editorialImageService = null
+        ?AdminEditorialImageService $editorialImageService = null,
+        ?AdminTileService $tileService = null
     ) {
         require_once ROOT_PATH . '/core/auth/admin.php';
         require_once ROOT_PATH . '/core/menu_loader.php';
@@ -46,7 +48,9 @@ final class AdminController
             $pageRepository,
             site_available_languages(),
             (string) app_config('default_lang', 'fr'),
-            navigation_repository(menus_data_path())
+            navigation_repository(menus_data_path()),
+            null,
+            tile_repository()
         );
         $this->blogService = $blogService ?? new AdminBlogService(
             blog_repository(),
@@ -82,6 +86,12 @@ final class AdminController
             ROOT_PATH . '/public',
             max(1048576, (int) app_config('admin.editorial_image.max_upload_bytes', 6291456))
         );
+        $this->tileService = $tileService ?? new AdminTileService(
+            tile_repository(),
+            $pageRepository,
+            site_available_languages(),
+            (string) app_config('default_lang', 'fr')
+        );
     }
 
     /**
@@ -97,11 +107,17 @@ final class AdminController
             'articles' => $this->articles($request),
             'discussions' => $this->discussions($request),
             'media' => $this->mediaLibrary($request),
+            'tiles' => $this->tiles($request),
             'articles_new' => $this->articleEditor($request),
+            'tiles_new' => $this->tileEditor($request),
             'articles_edit' => $this->articleEditor(
                 $request,
                 is_string($routeParams['slug'] ?? null) ? rawurldecode($routeParams['slug']) : null,
                 is_string($routeParams['lang'] ?? null) ? rawurldecode($routeParams['lang']) : null
+            ),
+            'tiles_edit' => $this->tileEditor(
+                $request,
+                is_numeric($routeParams['id'] ?? null) ? (int) $routeParams['id'] : null
             ),
             'pages_edit' => $this->pageEditor(
                 $request,
@@ -444,7 +460,235 @@ final class AdminController
                 'currentPageUrl' => $currentSlug !== '' ? $this->routeResolver->pageEditPath($currentSlug) : $this->routeResolver->pageCreatePath(),
                 'pagesIndexUrl' => $this->routeResolver->canonicalPath('pages'),
                 'deleteInfo' => $deleteInfo,
+                'tileSupportEnabled' => $this->pageService->tileSupportEnabled(),
+                'tileGroupOptions' => $this->pageService->tileGroupReferenceOptions(),
+                'tileGroupCatalog' => $this->pageService->tileGroupCatalogForEditor(),
+                'tilePageOptions' => $this->pageService->pageReferenceOptions(),
                 'sharedMediaLibrary' => $this->editorialImageService->listUploads('media', 160),
+                'contentMediaPicker' => $this->mediaLibraryService->mediaPickerViewModel('page', 260),
+            ]
+        );
+    }
+
+    private function tiles(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'tiles');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $query = $request->query();
+        $deletedId = is_numeric($query['deleted'] ?? null) ? (int) $query['deleted'] : null;
+        $error = null;
+
+        if ($request->method() === 'POST' && $this->tileService->isEnabled()) {
+            $body = is_array($request->body()) ? $request->body() : [];
+            $token = $body['csrf_token'] ?? '';
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.tiles.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                $action = is_string($body['tile_list_action'] ?? null)
+                    ? trim((string) $body['tile_list_action'])
+                    : '';
+                $groupId = is_numeric($body['group_id'] ?? null) ? (int) $body['group_id'] : 0;
+
+                if ($action === 'duplicate' && $groupId > 0) {
+                    $result = $this->tileService->duplicate($groupId);
+
+                    if (($result['success'] ?? false) === true && is_numeric($result['id'] ?? null)) {
+                        $duplicatedGroupId = (int) $result['id'];
+                        $this->eventLogger->content(
+                            'admin.tiles.duplicated',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'source_group_id' => $groupId,
+                                'group_id' => $duplicatedGroupId,
+                                'name' => (string) ($result['name'] ?? ''),
+                            ]
+                        );
+
+                        return $this->redirect($this->routeResolver->tileEditPath($duplicatedGroupId) . '?duplicated=1');
+                    }
+
+                    $this->eventLogger->content(
+                        'admin.tiles.duplicate_failed',
+                        [
+                            'actor' => admin_current_masked_identifier(),
+                            'source_group_id' => $groupId,
+                            'error' => (string) ($result['error'] ?? 'unknown'),
+                        ],
+                        'warning'
+                    );
+                    $error = (string) ($result['error'] ?? 'Impossible de dupliquer le groupe de tuiles.');
+                }
+            }
+        }
+
+        return $this->renderPage(
+            'tiles_list.php',
+            [
+                'pageTitle' => 'Groupes de tuiles',
+                'activeMenu' => 'tiles',
+                'tilesEnabled' => $this->tileService->isEnabled(),
+                'groups' => $this->tileService->listGroups(),
+                'createTileUrl' => $this->routeResolver->tileCreatePath(),
+                'message' => $deletedId !== null && $deletedId > 0
+                    ? sprintf('Groupe de tuiles #%d supprimé.', $deletedId)
+                    : null,
+                'error' => $error,
+            ]
+        );
+    }
+
+    private function tileEditor(Request $request, ?int $groupId = null): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'tiles');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        if (!$this->tileService->isEnabled()) {
+            return $this->renderPage(
+                'tiles_list.php',
+                [
+                    'pageTitle' => 'Groupes de tuiles',
+                    'activeMenu' => 'tiles',
+                    'tilesEnabled' => false,
+                    'groups' => [],
+                    'createTileUrl' => $this->routeResolver->tileCreatePath(),
+                    'error' => 'Le module Tuiles est disponible uniquement quand l éditorial SQL est actif.',
+                ]
+            );
+        }
+
+        $existingForm = ($groupId ?? 0) > 0 ? $this->tileService->formDataForGroup((int) $groupId) : null;
+        if (($groupId ?? 0) > 0 && $existingForm === null) {
+            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Groupe de tuiles introuvable.');
+        }
+
+        $message = null;
+        if (($request->query()['duplicated'] ?? null) === '1') {
+            $message = 'Groupe de tuiles duplique.';
+        } elseif (($request->query()['saved'] ?? null) === '1') {
+            $message = 'Groupe de tuiles sauvegarde.';
+        }
+        $error = null;
+        $formData = $existingForm ?? $this->tileService->emptyFormData();
+
+        if ($request->method() === 'POST') {
+            $body = $this->serializedFormNormalizer->tileEditor(is_array($request->body()) ? $request->body() : []);
+            $token = $body['csrf_token'] ?? '';
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.tiles.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                $error = 'Session expirée, merci de réessayer.';
+            } else {
+                $action = is_string($body['tile_action'] ?? null) ? trim((string) $body['tile_action']) : 'save';
+
+                if ($action === 'delete' && ($groupId ?? 0) > 0) {
+                    $confirmDelete = !empty($body['confirm_delete']);
+                    if (!$confirmDelete) {
+                        $error = 'Merci de confirmer la suppression avant de continuer.';
+                    } elseif (($sensitiveGuard = $this->guardSensitiveAction($request, 'tiles.delete')) !== null) {
+                        return $sensitiveGuard;
+                    } else {
+                        $result = $this->tileService->delete((int) $groupId);
+                        if (($result['success'] ?? false) === true) {
+                            $this->eventLogger->content(
+                                'admin.tiles.deleted',
+                                [
+                                    'actor' => admin_current_masked_identifier(),
+                                    'group_id' => (int) $groupId,
+                                ]
+                            );
+
+                            return $this->redirect(
+                                $this->routeResolver->canonicalPath('tiles')
+                                . '?deleted='
+                                . rawurlencode((string) $groupId)
+                            );
+                        }
+
+                        $this->eventLogger->content(
+                            'admin.tiles.delete_failed',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'group_id' => (int) $groupId,
+                                'error' => (string) ($result['error'] ?? 'unknown'),
+                            ],
+                            'warning'
+                        );
+                        $error = (string) ($result['error'] ?? 'Impossible de supprimer le groupe de tuiles.');
+                    }
+                } else {
+                    $result = $this->tileService->save($body, $groupId);
+                    $formData = $result['form'];
+
+                    if (($result['success'] ?? false) === true && is_numeric($result['id'] ?? null)) {
+                        $savedGroupId = (int) $result['id'];
+                        $this->eventLogger->content(
+                            'admin.tiles.saved',
+                            [
+                                'actor' => admin_current_masked_identifier(),
+                                'group_id' => $savedGroupId,
+                                'name' => (string) ($formData['name'] ?? ''),
+                            ]
+                        );
+
+                        return $this->redirect($this->routeResolver->tileEditPath($savedGroupId) . '?saved=1');
+                    }
+
+                    $this->eventLogger->content(
+                        'admin.tiles.save_failed',
+                        [
+                            'actor' => admin_current_masked_identifier(),
+                            'group_id' => (int) ($groupId ?? 0),
+                            'error' => (string) ($result['error'] ?? 'unknown'),
+                        ],
+                        'warning'
+                    );
+                    $error = (string) ($result['error'] ?? 'Impossible de sauvegarder le groupe de tuiles.');
+                }
+            }
+        }
+
+        $currentGroupId = max(0, (int) ($formData['id'] ?? $groupId ?? 0));
+
+        return $this->renderPage(
+            'tiles_form.php',
+            [
+                'pageTitle' => $currentGroupId > 0 ? 'Éditer un groupe de tuiles' : 'Nouveau groupe de tuiles',
+                'activeMenu' => 'tiles',
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'formData' => $formData,
+                'isNewTileGroup' => $currentGroupId <= 0,
+                'currentTileUrl' => $currentGroupId > 0
+                    ? $this->routeResolver->tileEditPath($currentGroupId)
+                    : $this->routeResolver->tileCreatePath(),
+                'tilesIndexUrl' => $this->routeResolver->canonicalPath('tiles'),
+                'availableLanguages' => $this->tileService->availableLanguages(),
+                'tileThemes' => $this->tileService->availableThemes(),
+                'tileSizes' => $this->tileService->availableSizes(),
+                'tileColors' => $this->tileService->availableColors(),
+                'tilePageOptions' => $this->tileService->pageReferenceOptions(),
                 'contentMediaPicker' => $this->mediaLibraryService->mediaPickerViewModel('page', 260),
             ]
         );
@@ -1488,6 +1732,8 @@ final class AdminController
             'adminArticleCreateUrl' => $this->routeResolver->articleCreatePath(),
             'adminDiscussionsUrl' => $this->routeResolver->canonicalPath('discussions'),
             'adminMediaUrl' => $this->routeResolver->canonicalPath('media'),
+            'adminTilesUrl' => $this->routeResolver->canonicalPath('tiles'),
+            'adminTileCreateUrl' => $this->routeResolver->tileCreatePath(),
             'adminMenusUrl' => $this->routeResolver->canonicalPath('menus'),
             'adminLogsUrl' => $this->routeResolver->canonicalPath('logs'),
             'adminSettingsUrl' => $this->routeResolver->canonicalPath('settings'),
