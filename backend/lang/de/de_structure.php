@@ -35,6 +35,7 @@ return [
     'MENU_AUSTIN'                   => 'Austin',
     'MENU_HISTOIREMINI'             => 'Mini Geschichte',
     'MENU_MINI'                     => 'Der Mini Mayfair',
+    'MENU_NOTREMINI'                => 'Unser Mini Mayfair',
     'MENU_RENAULT'                  => 'Renault',
     'MENU_HISTOIRETWINGO'           => 'Twingo Geschichte',
     'MENU_TWINGO'                   => 'Der Twingo Hélios',
