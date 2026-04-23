@@ -207,8 +207,8 @@ if ($attachedArticles !== []) {
         return $flattened;
     };
 
-    $articleCreationTimestamp = static function (array $article): int {
-        foreach (['created_at', 'date', 'updated_at'] as $field) {
+    $articlePublicationTimestamp = static function (array $article): int {
+        foreach (['date', 'updated_at', 'created_at'] as $field) {
             $value = $article[$field] ?? null;
             $timestamp = is_string($value) ? strtotime($value) : false;
 
@@ -223,8 +223,8 @@ if ($attachedArticles !== []) {
     $attachedChronicleArticles = $flattenAttachedArticles($attachedArticles);
     usort(
         $attachedChronicleArticles,
-        static function (array $left, array $right) use ($articleCreationTimestamp): int {
-            $comparison = $articleCreationTimestamp($right) <=> $articleCreationTimestamp($left);
+        static function (array $left, array $right) use ($articlePublicationTimestamp): int {
+            $comparison = $articlePublicationTimestamp($right) <=> $articlePublicationTimestamp($left);
             if ($comparison !== 0) {
                 return $comparison;
             }

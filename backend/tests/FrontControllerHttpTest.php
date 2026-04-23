@@ -617,14 +617,24 @@ final class FrontControllerHttpTest extends TestCase
         );
 
         $this->writeBlogArticle([
-            'title' => 'Article accroche',
+            'title' => 'Article ancien',
             'slug' => 'article-accroche',
             'lang' => 'fr',
             'status' => 'published',
             'date' => '2026-03-20 10:00:00',
-            'content' => '<p>Article visible.</p>',
+            'content' => '<p>Article visible ancien.</p>',
             'page_slug' => 'association',
-            'created_at' => '2026-03-20T10:00:00+00:00',
+            'created_at' => '2026-03-25T10:00:00+00:00',
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'Article récent',
+            'slug' => 'article-recent',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-24 10:00:00',
+            'content' => '<p>Article visible recent.</p>',
+            'page_slug' => 'association',
+            'created_at' => '2026-03-19T10:00:00+00:00',
         ]);
         $this->writeBlogArticle([
             'title' => 'Article hors page',
@@ -652,14 +662,28 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Contenu de page.', $response->body);
         $this->assertStringContainsString('Chronique au fil du temps', $response->body);
-        $this->assertStringContainsString('Article accroche', $response->body);
+        $this->assertStringContainsString('Article ancien', $response->body);
+        $this->assertStringContainsString('Article récent', $response->body);
         $this->assertStringContainsString('article-accroche', $response->body);
+        $this->assertStringContainsString('article-recent', $response->body);
         $this->assertStringNotContainsString('Article hors page', $response->body);
         $this->assertStringNotContainsString('Article brouillon', $response->body);
         $this->assertStringContainsString('Sources', $response->body);
         $this->assertGreaterThan(
             strpos($response->body, 'Sources'),
             strpos($response->body, 'Chronique au fil du temps')
+        );
+        $this->assertMatchesRegularExpression(
+            '/<details id="attached-article-article-recent" class="page-attached-article" open>/',
+            $response->body
+        );
+        $this->assertMatchesRegularExpression(
+            '/<details id="attached-article-article-accroche" class="page-attached-article" >/',
+            $response->body
+        );
+        $this->assertLessThan(
+            strpos($response->body, 'article-accroche'),
+            strpos($response->body, 'article-recent')
         );
     }
 
