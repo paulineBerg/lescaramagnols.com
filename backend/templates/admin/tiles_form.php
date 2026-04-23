@@ -128,7 +128,11 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
           <strong>Tuile <?php echo (int) ($index + 1); ?></strong>
           <p class="notice-muted">Libellé, cible, image et couleurs par défaut du groupe.</p>
         </div>
-        <button type="button" class="button-link button-link-muted" data-tile-remove-item>Retirer cette tuile</button>
+        <div class="tile-editor-item__actions">
+          <button type="button" class="button-muted button-small" data-tile-move-direction="up">Monter</button>
+          <button type="button" class="button-muted button-small" data-tile-move-direction="down">Descendre</button>
+          <button type="button" class="button-link button-link-muted button-small" data-tile-remove-item>Retirer cette tuile</button>
+        </div>
       </div>
 
       <div class="tile-editor-item__preview-shell" data-tile-preview-shell>
@@ -155,7 +159,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
         </div>
 
         <div class="field">
-          <label for="tile-sort-order-<?php echo (int) $index; ?>">Ordre</label>
+          <label for="tile-sort-order-<?php echo (int) $index; ?>">Position</label>
           <input
             id="tile-sort-order-<?php echo (int) $index; ?>"
             name="items[<?php echo (int) $index; ?>][sort_order]"
@@ -163,7 +167,11 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
             min="0"
             step="10"
             value="<?php echo htmlspecialchars((string) ($item['sort_order'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+            readonly
+            aria-readonly="true"
+            data-tile-sort-order
           />
+          <p class="admin-form-help">Mise à jour via les boutons Monter / Descendre.</p>
         </div>
 
         <div class="field">
@@ -451,7 +459,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
         <h2>Tuiles du groupe</h2>
         <p class="page-editor-intro__description">
           Chaque tuile porte son gabarit Windows 10, sa couleur, son image éditoriale et sa cible par défaut.
-          Les textes restent traduisibles.
+          Les textes restent traduisibles. L ordre du groupe se règle directement avec Monter / Descendre.
         </p>
       </div>
       <button type="button" class="button-link button-link-muted" data-tile-add-item>Ajouter une tuile</button>
@@ -680,6 +688,8 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
       return `/assets/images/structure/menu/${sizeFolders[normalizedSize]}/${sizePrefixes[normalizedSize]}${normalizedColor}.png`;
     };
 
+    const visibleRows = () => Array.from(list.querySelectorAll('[data-tile-item]')).filter((row) => row instanceof HTMLElement);
+
     const resolveNextIndex = () => {
       let maxIndex = -1;
       list.querySelectorAll('[data-tile-item]').forEach((row) => {
@@ -855,7 +865,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
         groupNamePreview.textContent = groupName !== '' ? groupName : 'Groupe sans nom';
       }
 
-      const rows = Array.from(list.querySelectorAll('[data-tile-item]')).filter((row) => row instanceof HTMLElement);
+      const rows = visibleRows();
       if (groupCountPreview instanceof HTMLElement) {
         groupCountPreview.textContent = `${rows.length} tuile(s)`;
       }
@@ -887,8 +897,8 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
       });
     };
 
-    const refreshRowHeadings = () => {
-      Array.from(list.querySelectorAll('[data-tile-item]')).forEach((row, visibleIndex) => {
+    const refreshRowMetadata = () => {
+      visibleRows().forEach((row, visibleIndex, rows) => {
         if (!(row instanceof HTMLElement)) {
           return;
         }
@@ -897,7 +907,54 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
         if (title instanceof HTMLElement) {
           title.textContent = `Tuile ${visibleIndex + 1}`;
         }
+
+        const sortOrderField = row.querySelector('[data-tile-sort-order]');
+        if (sortOrderField instanceof HTMLInputElement) {
+          sortOrderField.value = String((visibleIndex + 1) * 10);
+        }
+
+        const moveUpButton = row.querySelector('[data-tile-move-direction="up"]');
+        if (moveUpButton instanceof HTMLButtonElement) {
+          moveUpButton.disabled = visibleIndex === 0;
+        }
+
+        const moveDownButton = row.querySelector('[data-tile-move-direction="down"]');
+        if (moveDownButton instanceof HTMLButtonElement) {
+          moveDownButton.disabled = visibleIndex === rows.length - 1;
+        }
       });
+    };
+
+    const moveRow = (row, direction) => {
+      if (!(row instanceof HTMLElement) || !(list instanceof HTMLElement)) {
+        return;
+      }
+
+      if (direction === 'up') {
+        const previousRow = row.previousElementSibling;
+        if (!(previousRow instanceof HTMLElement)) {
+          return;
+        }
+
+        list.insertBefore(row, previousRow);
+      } else if (direction === 'down') {
+        const nextRow = row.nextElementSibling;
+        if (!(nextRow instanceof HTMLElement)) {
+          return;
+        }
+
+        list.insertBefore(nextRow, row);
+      } else {
+        return;
+      }
+
+      refreshRowMetadata();
+      renderGroupPreview();
+
+      const focusButton = row.querySelector(`[data-tile-move-direction="${direction}"]`);
+      if (focusButton instanceof HTMLButtonElement) {
+        focusButton.focus();
+      }
     };
 
     const updateTargetFields = (row) => {
@@ -929,9 +986,19 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
       if (removeButton instanceof HTMLButtonElement) {
         removeButton.addEventListener('click', () => {
           row.remove();
-          refreshRowHeadings();
+          refreshRowMetadata();
           renderGroupPreview();
         });
+      }
+
+      const moveUpButton = row.querySelector('[data-tile-move-direction="up"]');
+      if (moveUpButton instanceof HTMLButtonElement) {
+        moveUpButton.addEventListener('click', () => moveRow(row, 'up'));
+      }
+
+      const moveDownButton = row.querySelector('[data-tile-move-direction="down"]');
+      if (moveDownButton instanceof HTMLButtonElement) {
+        moveDownButton.addEventListener('click', () => moveRow(row, 'down'));
       }
 
       const targetType = row.querySelector('[data-tile-target-type]');
@@ -949,12 +1016,12 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
         renderGroupPreview();
       });
 
-      refreshRowHeadings();
       updateTargetFields(row);
       syncRowPreview(row);
     };
 
     list.querySelectorAll('[data-tile-item]').forEach(bindRow);
+    refreshRowMetadata();
 
     let nextIndex = resolveNextIndex();
     addButton.addEventListener('click', () => {
@@ -968,6 +1035,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
       row.setAttribute('data-tile-index', String(nextIndex));
       list.appendChild(row);
       bindRow(row);
+      refreshRowMetadata();
       renderGroupPreview();
       nextIndex += 1;
     });

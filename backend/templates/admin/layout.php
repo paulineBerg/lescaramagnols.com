@@ -1667,6 +1667,13 @@ $adminMenu = [
         align-items: center;
       }
 
+      .tile-editor-item__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        justify-content: flex-end;
+      }
+
       .tile-group-preview-card__name {
         color: var(--admin-primary-dark);
       }
