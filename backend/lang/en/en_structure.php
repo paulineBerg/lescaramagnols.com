@@ -206,6 +206,8 @@ return [
     'TXT_BLOG_DISCUSSION_MESSAGE' => 'Message',
     'TXT_BLOG_DISCUSSION_RECAPTCHA_NOTICE' => 'The reCAPTCHA service requires the matching cookie consent.',
     'TXT_BLOG_DISCUSSION_SUBMIT' => 'Send message',
+    'TXT_BLOG_DISCUSSION_SUBMIT_PENDING_LABEL' => 'Sending...',
+    'TXT_BLOG_DISCUSSION_SUBMIT_PENDING_MESSAGE' => 'Your message is being sent. Please wait a few seconds.',
     'TXT_BLOG_DISCUSSION_ERROR_METHOD_NOT_ALLOWED' => 'Method not allowed. Use POST.',
     'TXT_BLOG_DISCUSSION_ERROR_INVALID_ARTICLE' => 'Invalid article.',
     'TXT_BLOG_DISCUSSION_ERROR_ARTICLE_NOT_FOUND' => 'Article not found.',

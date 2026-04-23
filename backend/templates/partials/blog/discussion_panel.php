@@ -76,7 +76,7 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
   <?php else: ?>
   <div class="blog-discussion-compose">
     <p class="blog-discussion-intro blog-discussion-intro-compose"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_MODERATION_NOTICE'), ENT_QUOTES, 'UTF-8'); ?></p>
-    <form class="blog-discussion-form" method="post" action="<?php echo htmlspecialchars($discussionSubmitPath, ENT_QUOTES, 'UTF-8'); ?>">
+    <form class="blog-discussion-form" method="post" action="<?php echo htmlspecialchars($discussionSubmitPath, ENT_QUOTES, 'UTF-8'); ?>" data-discussion-form>
       <input type="hidden" name="article_slug" value="<?php echo htmlspecialchars($articleSlug, ENT_QUOTES, 'UTF-8'); ?>" />
       <input type="hidden" name="article_lang" value="<?php echo htmlspecialchars($articleLanguage, ENT_QUOTES, 'UTF-8'); ?>" />
       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($discussionCsrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
@@ -112,8 +112,17 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
       </div>
       <?php endif; ?>
 
+      <p class="blog-discussion-notice blog-discussion-notice-info" data-discussion-submit-feedback hidden role="status" aria-live="polite">
+        <?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT_PENDING_MESSAGE'), ENT_QUOTES, 'UTF-8'); ?>
+      </p>
+
       <div class="actions-inline">
-        <button type="submit"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT'), ENT_QUOTES, 'UTF-8'); ?></button>
+        <button
+          type="submit"
+          data-discussion-submit-button
+          data-submit-label-idle="<?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT'), ENT_QUOTES, 'UTF-8'); ?>"
+          data-submit-label-pending="<?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT_PENDING_LABEL'), ENT_QUOTES, 'UTF-8'); ?>"
+        ><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT'), ENT_QUOTES, 'UTF-8'); ?></button>
       </div>
     </form>
   </div>

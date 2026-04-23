@@ -843,9 +843,19 @@ $legacy-title-suffix: (
   color: #0d6c30;
 }
 
+.blog-discussion-notice-info {
+  background: rgb(20 84 170 / 12%);
+  color: rgb(20 84 170);
+}
+
 .blog-discussion-notice-error {
   background: rgb(161 26 42 / 12%);
   color: #a11a2a;
+}
+
+.blog-discussion-form button:disabled {
+  opacity: 0.8;
+  cursor: wait;
 }
 
 .blog-discussion-honeypot {

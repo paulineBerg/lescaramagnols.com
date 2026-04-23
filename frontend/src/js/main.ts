@@ -4,6 +4,7 @@ import './menus.ts';
 import '../scss/style.scss';
 
 import { initCookieConsent } from './consent.ts';
+import { initDiscussionForms } from './discussion-form.ts';
 import { resolveLanguage, loadTranslations, applyTranslations, persistLanguage } from './i18n.ts';
 import { initInstagramFeeds } from './instagram-feed.ts';
 
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const translations = await loadTranslations(lang);
   applyTranslations(translations);
   initInstagramFeeds();
+  initDiscussionForms();
 
   // Optionnel : appliquer <html lang="...">
   document.documentElement.lang = lang;
