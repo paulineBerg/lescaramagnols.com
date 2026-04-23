@@ -66,6 +66,24 @@ final class AdminRouteResolverTest extends TestCase
         $this->assertContains('/admin/articles/save', $paths);
     }
 
+    public function testTilesIndexRouteAcceptsPostForCatalogActions(): void
+    {
+        $resolver = new AdminRouteResolver('admin');
+        $tilesRoute = null;
+
+        foreach ($resolver->routeDefinitions() as $route) {
+            if (($route['path'] ?? null) !== '/admin/tiles') {
+                continue;
+            }
+
+            $tilesRoute = $route;
+            break;
+        }
+
+        $this->assertIsArray($tilesRoute);
+        $this->assertSame(['GET', 'POST'], $tilesRoute['methods'] ?? null);
+    }
+
     public function testLegacySegmentConfiguredAsLoginPathIsOnlyUsedAsCanonicalPath(): void
     {
         $resolver = new AdminRouteResolver('legacy-admin-2026');

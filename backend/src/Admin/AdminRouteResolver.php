@@ -181,12 +181,12 @@ final class AdminRouteResolver
                 'handler' => ['type' => 'admin', 'page' => 'media'],
             ],
             [
-                'methods' => ['GET'],
+                'methods' => ['GET', 'POST'],
                 'path' => $tilesPath,
                 'handler' => ['type' => 'admin', 'page' => 'tiles'],
             ],
             [
-                'methods' => ['GET'],
+                'methods' => ['GET', 'POST'],
                 'path' => $tilesPath . '.php',
                 'handler' => ['type' => 'admin', 'page' => 'tiles'],
             ],
