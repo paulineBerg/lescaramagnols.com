@@ -351,8 +351,8 @@ if ($attachedArticles !== []) {
     </section>
     <?php
 
-    $existingAfterBody = (string) ($blocks['EditRegion4'] ?? '');
-    $blocks['EditRegion4'] = $existingAfterBody . ob_get_clean();
+    $existingPostscript = (string) ($blocks['EditRegion11'] ?? '');
+    $blocks['EditRegion11'] = $existingPostscript . ob_get_clean();
 }
 
 $pageRoute = normalize_public_route((string) ($page['route'] ?? '')) ?? '';

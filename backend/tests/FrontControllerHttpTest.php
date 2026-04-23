@@ -602,6 +602,10 @@ final class FrontControllerHttpTest extends TestCase
                                             'component' => 'rich_text',
                                             'html' => '<p>Contenu de page.</p>',
                                         ],
+                                        'postscript' => [
+                                            'component' => 'rich_text',
+                                            'html' => '<h2>Sources</h2><p>Source de test.</p>',
+                                        ],
                                     ],
                                 ],
                             ],
@@ -652,6 +656,11 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('article-accroche', $response->body);
         $this->assertStringNotContainsString('Article hors page', $response->body);
         $this->assertStringNotContainsString('Article brouillon', $response->body);
+        $this->assertStringContainsString('Sources', $response->body);
+        $this->assertGreaterThan(
+            strpos($response->body, 'Sources'),
+            strpos($response->body, 'Chronique au fil du temps')
+        );
     }
 
     public function testDynamicPageRendersSharedMediaGalleryFromRootMeta(): void
