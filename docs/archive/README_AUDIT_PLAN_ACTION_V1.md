@@ -153,7 +153,7 @@ Effet attendu :
 ### P3.1 Continuer le nettoyage des artefacts
 
 Reference :
-- `README_RENDER_ARTEFACTS_V1.md`
+- `frontend/README_BUILD_PIPELINE.md`
 
 Action :
 - automatiser la purge des anciens bundles en postbuild
@@ -286,7 +286,7 @@ Effet attendu :
 - [x] workflow dev documente et testable
 - [x] admin sans fallback de demo
 - [x] endpoints publics legacy passes en revue
-- [x] dette d'artefacts suivie dans `README_RENDER_ARTEFACTS_V1.md`
+- [x] dette d'artefacts suivie dans `frontend/README_BUILD_PIPELINE.md`
 
 ## Definition De "Projet Assaini"
 

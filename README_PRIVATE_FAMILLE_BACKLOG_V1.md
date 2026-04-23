@@ -8,7 +8,7 @@ Ce document est le backlog **pret a execution** du lot `PVT-01 - Foundation` du 
 References :
 
 - `README_PRIVATE_FAMILLE_V1.md`
-- `README_TRANSITION_V1_S1_S8.md`
+- `README.md`
 - `README_SECURITE_ADMIN_V1.md`
 - `backend/README_PUBLIC_ENTRYPOINTS.md`
 

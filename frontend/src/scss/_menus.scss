@@ -461,7 +461,7 @@
 
 .site-nav-panel {
   position: absolute;
-  top: calc(100% + 0.06rem);
+  top: 100%;
   left: 0;
   z-index: 35;
   min-width: 11rem;
@@ -499,7 +499,7 @@
 }
 
 .site-nav-sublist > .site-nav-item > .site-nav-panel {
-  top: calc(100% + 0.06rem);
+  top: 100%;
   left: 0;
 }
 

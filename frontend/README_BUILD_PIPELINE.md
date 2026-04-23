@@ -14,6 +14,7 @@ Garantir un seul contrat de build entre le frontend et le backend :
 - publication contrôlée vers `backend/public/`
 - purge automatique des anciens bundles hashés
 - lecture du manifest unifiée côté PHP
+- politique artefacts et hygiene repo centralisees dans ce README
 
 Mise a jour 2026-04-16 :
 - le Lot D isole `frontend/tools/**` comme domaine de consolidation specifique ; ce README reste la source de verite pour ce sous-lot (publication, hygiene docs/assets/repo, budgets, proxy dev)

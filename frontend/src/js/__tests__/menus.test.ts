@@ -199,6 +199,32 @@ describe('menus', () => {
     }
   });
 
+  it('garde le sous-menu desktop ouvert pendant le passage du bouton vers le panneau', () => {
+    vi.useFakeTimers();
+
+    try {
+      const item = document.querySelector<HTMLElement>('[data-nav-item]');
+      const panel = document.getElementById('desktop-submenu');
+
+      item?.dispatchEvent(new MouseEvent('mouseenter'));
+      expect(panel?.hidden).toBe(false);
+
+      item?.dispatchEvent(new MouseEvent('mouseleave'));
+      panel?.dispatchEvent(new MouseEvent('mouseenter'));
+
+      vi.advanceTimersByTime(220);
+      expect(item?.classList.contains('is-open')).toBe(true);
+      expect(panel?.hidden).toBe(false);
+
+      panel?.dispatchEvent(new MouseEvent('mouseleave'));
+      vi.advanceTimersByTime(220);
+      expect(item?.classList.contains('is-open')).toBe(false);
+      expect(panel?.hidden).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('ouvre le sous-menu desktop au survol meme si le navigateur detecte mal le hover', () => {
     const originalMatchMedia = window.matchMedia;
     const matchMediaMock = vi.fn((query: string): MediaQueryList => ({

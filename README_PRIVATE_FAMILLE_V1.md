@@ -11,9 +11,8 @@ Ce document decrit la solution recommandee pour ajouter, apres W1->W8, un espace
 
 References :
 
-- `README_TRANSITION_V1_S1_S8.md`
+- `README.md`
 - `README_SECURITE_ADMIN_V1.md`
-- `README_V1_PREPARATION_DEPLOIEMENT.md`
 - `backend/README_INSTALLATION_HORS_WEBROOT.md`
 - `README_PRIVATE_FAMILLE_BACKLOG_V1.md` (tickets techniques prets a execution)
 

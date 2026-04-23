@@ -87,19 +87,21 @@ Discipline de `worktree`:
 Avant une modification non triviale, prendre en compte les documents de reference lies au sujet:
 - `README.md`
 - `README_DOCUMENTATION_INDEX.md`
+- `README_SECURITE_ADMIN_V1.md`
+- `backend/README_INSTALLATION_HORS_WEBROOT.md`
 - `backend/README_BOOTSTRAP_I18N.md`
 - `backend/README_PUBLIC_ENTRYPOINTS.md`
 - `backend/README_LOGGING.md`
 - `frontend/README_BUILD_PIPELINE.md`
 - `README_ADMIN_EDITORIAL_NAV_V1.md`
 - `README_BLOG.md`
+- `docs/pages-dynamiques.md`
 - `docs/rapport-style-editorial-2026-04-16.md`
-- `docs/README_REFONTE_LOT_C.md`
-- `docs/README_CONSOLIDATION_LOT_D.md`
 
 Principe:
 - si un README existant couvre deja le domaine touche, il doit etre considere comme source de verite documentaire
 - si un changement modifie comportement, exploitation, verification ou deploiement, mettre a jour la doc pertinente
+- les notes d audit ou de lot datees ne sont a relire que si la tache porte explicitement sur ce chantier historique
 
 ## 5. Architecture cible du depot
 

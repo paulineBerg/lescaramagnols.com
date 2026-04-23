@@ -109,7 +109,7 @@ Statut :
 Remplace par :
 - `docs/archive/README_BLOG_PLAN_V1.md` pour la trace historique
 - `README_MODERNISATION_V1.md` pour la trajectoire de modernisation
-- `README_V1_PREPARATION_DEPLOIEMENT.md` pour l'etat deployable et les gates
+- `README.md` pour l'etat courant, le deploiement et les gates de verification
 
 Conserve :
 - l'archive si elle reste utile a la lecture historique, sans redevenir une source de pilotage produit

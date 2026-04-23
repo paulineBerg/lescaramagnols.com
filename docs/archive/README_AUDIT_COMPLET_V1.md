@@ -112,7 +112,7 @@ Conclusion :
   - enorme volume d'assets images
 - `docs/`
   - documentation libre
-- `README_RENDER_ARTEFACTS_V1.md`
+- `frontend/README_BUILD_PIPELINE.md`
   - audit specifique des artefacts de rendu deja mene
 
 ## Architecture Fonctionnelle
@@ -362,7 +362,7 @@ Les assets sont encore un sujet majeur :
 - historique d'artefacts buildes present dans le repo
 - nettoyage manuel necessaire
 
-Le document `README_RENDER_ARTEFACTS_V1.md` couvre deja ce sujet en detail.
+Le document `frontend/README_BUILD_PIPELINE.md` couvre deja ce sujet en detail.
 
 ## 4. Securite Et Surface Publique
 
@@ -584,5 +584,5 @@ Moins claire en developpement local et sur le perimetre admin/blog.
 ## Documents Lies
 
 - `README.md`
-- `README_RENDER_ARTEFACTS_V1.md`
+- `frontend/README_BUILD_PIPELINE.md`
 - `README_AUDIT_PLAN_ACTION_V1.md`

@@ -28,7 +28,8 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 
 ## Docs de référence
 - Index de la documentation : `README_DOCUMENTATION_INDEX.md`
-- Plan V1 de deploiement : `README_V1_PREPARATION_DEPLOIEMENT.md`
+- Vue globale, installation, build, verification et deploiement : ce `README.md`
+- Securite admin : `README_SECURITE_ADMIN_V1.md`
 - Portail prive famille (vision securisee) : `README_PRIVATE_FAMILLE_V1.md`
 - Plan d’action (historique archive) : `docs/archive/README_AUDIT_PLAN_ACTION_V1.md`
 - Stratégie de modernisation : `README_MODERNISATION_V1.md`
@@ -518,6 +519,15 @@ Commande de contrôle : `composer check-env --working-dir=backend` (option `--en
 
 ---
 
+## Vérification minimale avant livraison
+- Principe : aucune regression visible front-office ; les evolutions restent incrementales ; toute nouvelle logique backend va dans `backend/src/*`.
+- Backend : `composer check-env --working-dir=backend`, `composer check-i18n --working-dir=backend`, `composer test --working-dir=backend`, `composer phpstan --working-dir=backend`, `composer phpcs --working-dir=backend`.
+- Frontend : `cd frontend && npm run lint && npm run test:run && npm run build && npm run hygiene:repo`.
+- Preprod / securite : `composer check-security-headers --working-dir=backend -- --url=https://preprod.exemple.tld` et `composer check-log-alerts --working-dir=backend -- --since-minutes=60 --strict`.
+- Apres deploiement : purger le cache runtime `pages`, `navigation` et `translations`, puis verifier au minimum `/`, `/blog`, `/sitemap.xml` et l URL admin canonique.
+
+---
+
 ## Roadmap (extrait)
 - M3 : Moteur de recherche front complet sur `backend/data/search_index.json`, filtres et UX.
 - M3 : Dashboard admin enrichi (logs, gestion BDD : création/écrasement contrôlé, vérification tables).
@@ -606,80 +616,4 @@ php -r "require 'core/bootstrap.php'; app_runtime_cache_clear(['pages','navigati
 
 ---
 
-> Dernière mise à jour : 17 mars 2026. Merci d’ajouter vos modifications et tests exécutés dans vos PRs.
-
-# Rapport d'optimisation Codex
-
-Analyse réalisée (28 février 2026) --- aperçu rapide du projet et
-leviers d'optimisation.
-
-------------------------------------------------------------------------
-
-## Constats
-
--   Backend PHP 8.1 procédural, fonctions globales et fichiers
-    utilitaires centralisés (backend/core/\*.php), pas de PSR-4 ni
-    d'injection de dépendances.
--   Routage minimal par fichier (backend/core/router.php), pas de notion
-    d'HTTP verbs ni de middleware ; vues en templates PHP avec blocs
-    \$blocks.
--   Frontend Vite 7 en ESM + SCSS, JS pur sans typage, pipeline
-    d'images/WebP via Sharp, copie manuelle des assets vers
-    backend/public (frontend/package.json).
--   Tests très partiels : quelques tests PHPUnit (backend/tests) et
-    Vitest (i18n/menu), pas de couverture des routes ni des pages.
--   Sécurité de base (CSP, CSRF, rate limiter session) mais CSP tolère
-    unsafe-inline et l'emailing repose sur mail()
-    (backend/core/security.php, backend/core/mailer.php).
-
-------------------------------------------------------------------------
-
-## Optimisations Backend
-
--   Introduire un autoload PSR-4 + namespaces et regrouper le code par
-    domaine (src/Http, src/I18n, src/Security, etc.) ; adapter
-    composer.json.
--   Remplacer le routeur ad hoc par FastRoute/nikic + middleware
-    (langue, sécurité, rate limit).
--   Externaliser la configuration .env via vlucas/phpdotenv ou
-    symfony/dotenv.
--   Durcir le rate limiting via stockage Redis/filesystem.
--   Industrialiser l'emailing avec Symfony Mailer ou PHPMailer + logs
-    d'envoi.
--   Isoler un module Domain/Blog avec interfaces repository
-    (MySQL/JSON).
-
-------------------------------------------------------------------------
-
-## Optimisations Frontend
-
--   Migration progressive vers TypeScript.
--   Ajouter autoprefixer + browserslist + éventuellement
-    @vitejs/plugin-legacy.
--   Nettoyer les assets hashés obsolètes en postbuild.
--   Exporter les tokens SCSS en CSS Custom Properties.
--   Étendre les tests Vitest (menus, i18n, interactions).
--   Envisager un mode static prerender (SSG).
-
-------------------------------------------------------------------------
-
-## Qualité & Langage
-
--   Ajouter PHPStan/Psalm + PHPCS.
--   Étendre PHPUnit (routeur, sécurité, API lang).
--   Script de vérification des clés i18n manquantes.
--   Centraliser le logging avec Monolog.
--   Mettre en place CI (GitHub Actions).
-
-------------------------------------------------------------------------
-
-## Sécurité & Performance
-
--   CSP sans unsafe-inline (nonces/hashes), ajouter frame-ancestors
-    'none'.
--   Adapter cookie langue (SameSite=Lax + Secure).
--   Cache HTTP (ETag, Cache-Control) pour JSON.
--   Ajouter COOP/COEP si possible.
--   Optimiser build Vite (manualChunks, minification SVG, Brotli).
-
-------------------------------------------------------------------------
+> Dernière mise à jour : 23 avril 2026.

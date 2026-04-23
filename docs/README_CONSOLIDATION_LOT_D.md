@@ -137,7 +137,7 @@ Tests a associer :
 
 README de domaine :
 - `README_BLOG.md`
-- `README_V1_PREPARATION_DEPLOIEMENT.md`
+- `README.md`
 
 ### D4. Logging / observabilite / exploitation
 
@@ -155,7 +155,7 @@ Tests a associer :
 README de domaine :
 - `backend/README_LOGGING.md`
 - `README_SECURITE_ADMIN_V1.md`
-- `README_V1_PREPARATION_DEPLOIEMENT.md`
+- `README.md`
 
 ### D5. Outillage frontend / hygiene / publication
 
@@ -171,7 +171,6 @@ Code principal :
 
 README de domaine :
 - `frontend/README_BUILD_PIPELINE.md`
-- `README_RENDER_ARTEFACTS_V1.md`
 
 ## Point Important Sur Les Commits
 

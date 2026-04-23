@@ -343,6 +343,55 @@ const bindSubmenuToggles = () => {
       scheduleDesktopHoverClose(item);
     });
   });
+
+  document
+    .querySelectorAll<HTMLElement>('[data-nav-scope-root="desktop"] [data-nav-item] > [data-nav-panel]')
+    .forEach(panel => {
+      if (panel.dataset.hoverGuardBound === 'true') {
+        return;
+      }
+
+      panel.dataset.hoverGuardBound = 'true';
+
+      panel.addEventListener('mouseenter', () => {
+        if (!desktopHoverEnabled()) {
+          return;
+        }
+
+        if (recentTouchInteraction()) {
+          return;
+        }
+
+        const item = panel.closest<HTMLElement>('[data-nav-item]');
+        if (!item) {
+          return;
+        }
+
+        clearDesktopHoverCloseTimer(item);
+      });
+
+      panel.addEventListener('mouseleave', event => {
+        if (!desktopHoverEnabled()) {
+          return;
+        }
+
+        if (recentTouchInteraction()) {
+          return;
+        }
+
+        const item = panel.closest<HTMLElement>('[data-nav-item]');
+        if (!item || item.contains(document.activeElement)) {
+          return;
+        }
+
+        const destination = event.relatedTarget;
+        if (destination instanceof Node && item.contains(destination)) {
+          return;
+        }
+
+        scheduleDesktopHoverClose(item);
+      });
+    });
 };
 
 const bindDesktopTouchRowToggles = () => {
