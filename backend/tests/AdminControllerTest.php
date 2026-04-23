@@ -199,6 +199,44 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('Groupes de tuiles', $response->body);
     }
 
+    public function testTilesPageRendersDuplicateSuccessFlashMessage(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        admin_set_flash_message(
+            'success',
+            'Duplication réussie : le groupe #7 a été recopié dans le groupe #8 sous le titre "Austin - copie" avec 6 tuile(s) copiée(s).'
+        );
+        $controller = $this->controller();
+
+        $response = $controller->handle('tiles', $this->request('GET', '/admin/tiles'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString(
+            '<div class="notice notice-success">Duplication réussie : le groupe #7 a été recopié dans le groupe #8 sous le titre &quot;Austin - copie&quot; avec 6 tuile(s) copiée(s).</div>',
+            $response->body
+        );
+        $this->assertNull(admin_pop_flash_message());
+    }
+
+    public function testTilesPageRendersDuplicateErrorFlashMessage(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        admin_set_flash_message(
+            'error',
+            'Duplication impossible pour le groupe #7 : Groupe de tuiles introuvable.'
+        );
+        $controller = $this->controller();
+
+        $response = $controller->handle('tiles', $this->request('GET', '/admin/tiles'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString(
+            '<div class="notice notice-error">Duplication impossible pour le groupe #7 : Groupe de tuiles introuvable.</div>',
+            $response->body
+        );
+        $this->assertNull(admin_pop_flash_message());
+    }
+
     public function testDashboardRendersLiveEditorialCounts(): void
     {
         file_put_contents(

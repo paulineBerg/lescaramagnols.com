@@ -81,6 +81,29 @@ final class AuthTest extends TestCase
         $this->assertSame('inactive_timeout', admin_pop_notice_code());
     }
 
+    public function testAdminFlashMessageRoundTrip(): void
+    {
+        admin_set_flash_message('success', 'Duplication réussie.');
+
+        $this->assertSame(
+            [
+                'type' => 'success',
+                'message' => 'Duplication réussie.',
+            ],
+            admin_pop_flash_message()
+        );
+        $this->assertNull(admin_pop_flash_message());
+
+        admin_set_flash_message('error', 'Duplication impossible.');
+        $this->assertSame(
+            [
+                'type' => 'error',
+                'message' => 'Duplication impossible.',
+            ],
+            admin_pop_flash_message()
+        );
+    }
+
     public function testAdminLoginRequiresTotpWhenEnabledOutsideLocalBypass(): void
     {
         global $appConfig;

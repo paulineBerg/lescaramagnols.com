@@ -107,6 +107,8 @@ Mise a jour 2026-04-22 (tuiles after_body) :
 Mise a jour 2026-04-23 (tuiles, duplication) :
 - le bouton `Dupliquer` du catalogue `Tuiles` recopie maintenant tout le groupe, y compris les items, leurs traductions, leurs cibles et leurs medias
 - le groupe duplique est cree avec un titre suffixe en ` - copie`, puis ` - copie 2`, ` - copie 3`, etc.
+- apres duplication, le catalogue `Tuiles` revient maintenant sur lui-meme avec un message de succes detaille (groupe source, groupe cree, titre et nombre de tuiles recopiees)
+- en cas d echec, le catalogue affiche aussi un message d erreur detaille au lieu d une redirection muette
 
 Mise a jour 2026-04-22 (mega menu desktop, sections longues) :
 - dans le mega menu desktop, une meme section ne rend pas plus de `5` liens consecutifs par colonne.

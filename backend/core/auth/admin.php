@@ -27,6 +27,11 @@ function admin_notice_session_key(): string
     return admin_session_key() . '_notice';
 }
 
+function admin_flash_session_key(): string
+{
+    return admin_session_key() . '_flash';
+}
+
 function admin_login_failure_session_key(): string
 {
     return admin_session_key() . '_auth_failure';
@@ -51,6 +56,55 @@ function admin_pop_notice_code(): ?string
     unset($_SESSION[$key]);
 
     return is_string($noticeCode) && trim($noticeCode) !== '' ? trim($noticeCode) : null;
+}
+
+/**
+ * @param 'success'|'error'|null $type
+ */
+function admin_set_flash_message(?string $type, ?string $message): void
+{
+    $key = admin_flash_session_key();
+    $normalizedType = is_string($type) ? trim($type) : '';
+    $normalizedMessage = is_string($message) ? trim($message) : '';
+
+    if (
+        $normalizedMessage === ''
+        || !in_array($normalizedType, ['success', 'error'], true)
+    ) {
+        unset($_SESSION[$key]);
+        return;
+    }
+
+    $_SESSION[$key] = [
+        'type' => $normalizedType,
+        'message' => $normalizedMessage,
+    ];
+}
+
+/**
+ * @return array{type: 'success'|'error', message: string}|null
+ */
+function admin_pop_flash_message(): ?array
+{
+    $key = admin_flash_session_key();
+    $flash = $_SESSION[$key] ?? null;
+    unset($_SESSION[$key]);
+
+    if (!is_array($flash)) {
+        return null;
+    }
+
+    $type = is_string($flash['type'] ?? null) ? trim((string) $flash['type']) : '';
+    $message = is_string($flash['message'] ?? null) ? trim((string) $flash['message']) : '';
+
+    if ($message === '' || !in_array($type, ['success', 'error'], true)) {
+        return null;
+    }
+
+    return [
+        'type' => $type,
+        'message' => $message,
+    ];
 }
 
 function admin_set_login_failure_reason(?string $reason): void
@@ -532,6 +586,7 @@ function admin_login(string $identifier, string $password, ?string $totpCode = n
         'last_reauth_at' => $now,
     ];
     admin_set_notice_code(null);
+    admin_set_flash_message(null, null);
     admin_set_login_failure_reason(null);
 
     if (function_exists('app_event_logger')) {
@@ -555,6 +610,7 @@ function admin_logout(?string $noticeCode = null): void
     unset($_SESSION[$key]);
     admin_set_login_failure_reason(null);
     admin_set_notice_code($noticeCode);
+    admin_set_flash_message(null, null);
 
     if (function_exists('session_regenerate_id')) {
         session_regenerate_id(true);

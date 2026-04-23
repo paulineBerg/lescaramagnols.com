@@ -479,7 +479,16 @@ final class AdminController
 
         $query = $request->query();
         $deletedId = is_numeric($query['deleted'] ?? null) ? (int) $query['deleted'] : null;
+        $flash = admin_pop_flash_message();
+        $message = null;
         $error = null;
+        if (is_array($flash)) {
+            if (($flash['type'] ?? '') === 'success') {
+                $message = (string) ($flash['message'] ?? '');
+            } elseif (($flash['type'] ?? '') === 'error') {
+                $error = (string) ($flash['message'] ?? '');
+            }
+        }
 
         if ($request->method() === 'POST' && $this->tileService->isEnabled()) {
             $body = is_array($request->body()) ? $request->body() : [];
@@ -516,7 +525,17 @@ final class AdminController
                             ]
                         );
 
-                        return $this->redirect($this->routeResolver->tileEditPath($duplicatedGroupId) . '?duplicated=1');
+                        admin_set_flash_message(
+                            'success',
+                            $this->tileDuplicateSuccessMessage(
+                                $groupId,
+                                $duplicatedGroupId,
+                                (string) ($result['name'] ?? ''),
+                                (int) ($result['tileCount'] ?? 0)
+                            )
+                        );
+
+                        return $this->redirect($this->routeResolver->canonicalPath('tiles'));
                     }
 
                     $this->eventLogger->content(
@@ -528,7 +547,16 @@ final class AdminController
                         ],
                         'warning'
                     );
-                    $error = (string) ($result['error'] ?? 'Impossible de dupliquer le groupe de tuiles.');
+
+                    admin_set_flash_message(
+                        'error',
+                        $this->tileDuplicateErrorMessage(
+                            $groupId,
+                            (string) ($result['error'] ?? 'Impossible de dupliquer le groupe de tuiles.')
+                        )
+                    );
+
+                    return $this->redirect($this->routeResolver->canonicalPath('tiles'));
                 }
             }
         }
@@ -541,9 +569,9 @@ final class AdminController
                 'tilesEnabled' => $this->tileService->isEnabled(),
                 'groups' => $this->tileService->listGroups(),
                 'createTileUrl' => $this->routeResolver->tileCreatePath(),
-                'message' => $deletedId !== null && $deletedId > 0
+                'message' => $message ?? ($deletedId !== null && $deletedId > 0
                     ? sprintf('Groupe de tuiles #%d supprimé.', $deletedId)
-                    : null,
+                    : null),
                 'error' => $error,
             ]
         );
@@ -1709,6 +1737,40 @@ final class AdminController
             'reauth_required' => 'Veuillez vous reconnecter pour valider une action sensible.',
             default => null,
         };
+    }
+
+    private function tileDuplicateSuccessMessage(int $sourceGroupId, int $duplicatedGroupId, string $name, int $tileCount): string
+    {
+        $message = sprintf(
+            'Duplication réussie : le groupe #%d a été recopié dans le groupe #%d',
+            $sourceGroupId,
+            $duplicatedGroupId
+        );
+
+        $normalizedName = trim($name);
+        if ($normalizedName !== '') {
+            $message .= sprintf(' sous le titre "%s"', $normalizedName);
+        }
+
+        if ($tileCount > 0) {
+            $message .= sprintf(' avec %d tuile(s) copiée(s)', $tileCount);
+        }
+
+        return $message . '.';
+    }
+
+    private function tileDuplicateErrorMessage(int $sourceGroupId, string $error): string
+    {
+        $normalizedError = trim($error);
+        if ($normalizedError === '') {
+            $normalizedError = 'Impossible de dupliquer le groupe de tuiles.';
+        }
+
+        return sprintf(
+            'Duplication impossible pour le groupe #%d : %s',
+            $sourceGroupId,
+            $normalizedError
+        );
     }
 
     /**

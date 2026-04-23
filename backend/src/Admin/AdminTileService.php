@@ -283,7 +283,7 @@ final class AdminTileService
     }
 
     /**
-     * @return array{success: bool, error: string|null, id: int|null, name: string}
+     * @return array{success: bool, error: string|null, id: int|null, name: string, tileCount: int}
      */
     public function duplicate(int $groupId): array
     {
@@ -293,6 +293,7 @@ final class AdminTileService
                 'error' => 'Groupe de tuiles introuvable.',
                 'id' => null,
                 'name' => '',
+                'tileCount' => 0,
             ];
         }
 
@@ -302,6 +303,7 @@ final class AdminTileService
                 'error' => 'Le module Tuiles est disponible uniquement quand l éditorial SQL est actif.',
                 'id' => null,
                 'name' => '',
+                'tileCount' => 0,
             ];
         }
 
@@ -312,10 +314,12 @@ final class AdminTileService
                 'error' => 'Groupe de tuiles introuvable.',
                 'id' => null,
                 'name' => '',
+                'tileCount' => 0,
             ];
         }
 
         $duplicateForm = $this->buildDuplicatedFormData($existingGroup);
+        $tileCount = is_array($duplicateForm['items'] ?? null) ? count($duplicateForm['items']) : 0;
         $savedGroupId = $this->tileRepository->saveGroup($duplicateForm);
 
         if (!is_int($savedGroupId) || $savedGroupId <= 0) {
@@ -324,6 +328,7 @@ final class AdminTileService
                 'error' => 'Impossible de dupliquer le groupe de tuiles.',
                 'id' => null,
                 'name' => (string) ($duplicateForm['name'] ?? ''),
+                'tileCount' => $tileCount,
             ];
         }
 
@@ -334,6 +339,7 @@ final class AdminTileService
             'error' => null,
             'id' => $savedGroupId,
             'name' => (string) ($duplicateForm['name'] ?? ''),
+            'tileCount' => $tileCount,
         ];
     }
 
