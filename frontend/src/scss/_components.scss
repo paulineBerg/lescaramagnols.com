@@ -400,14 +400,11 @@ $legacy-title-suffix: (
 }
 
 .page-attached-article-body {
-  max-height: min(20rem, 46vh);
-  overflow-y: auto;
-  padding-right: 0.3rem;
+  overflow: visible;
   color: rgb(30 44 69);
   font-size: 1rem;
   line-height: 1.65;
   text-align: left;
-  scrollbar-gutter: stable;
 }
 
 .page-attached-article-body > h1:first-child {
