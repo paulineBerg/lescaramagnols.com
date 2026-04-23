@@ -2100,6 +2100,8 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('name="admin[allowed_ips]" type="text"', $response->body);
         $this->assertStringContainsString('name="instagram[username]" type="text"', $response->body);
         $this->assertStringContainsString('name="log_alerts[notify_on]"', $response->body);
+        $this->assertStringContainsString('id="blog-publish-php-binary"', $response->body);
+        $this->assertStringContainsString('publish_scheduled_blog_articles.php', $response->body);
         $this->assertStringContainsString('name="translations[fr]"', $response->body);
         $this->assertStringContainsString('Dictionnaire existant FR', $response->body);
         $this->assertStringContainsString('name="settings_action" value="cache_clear"', $response->body);

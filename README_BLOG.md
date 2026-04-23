@@ -29,6 +29,7 @@ Actif :
 - workflow de statut admin `draft` / `scheduled` / `published`
 - image de couverture article (URL ou upload admin) avec métadonnées (`alt`, `title`, `caption`, `width`, `height`)
 - lecture publique (`/blog`, `/blog/article/{slug}`)
+- rendu des discussions publiques sous l’article blog et sous les chroniques blog rattachées aux pages dynamiques
 - flux RSS et sitemap basés sur les articles publiés
 - discussions publiques modérées (`pending`, `approved`, `rejected`)
 - modération admin (`Discussions`)
@@ -58,6 +59,12 @@ La planification ne dépend pas d’un cron :
 - statut `scheduled` côté admin + date planifiée (champ "Publication programmée"),
 - publication automatique à la lecture publique dès que la date est atteinte,
 - comportement appliqué de manière homogène sur les repositories JSON et SQL.
+
+Commande cron optionnelle :
+- `php backend/core/tools/publish_scheduled_blog_articles.php`
+- cette commande promeut réellement les articles `scheduled` arrivés à échéance en statut `published`
+- elle reste utile pour garder l’admin, les exports et les vérifications d’exploitation alignés avec le front
+- l’admin `Paramètres > Observabilité ops` affiche le binaire PHP détecté, le chemin du script et une ligne cron prête à copier
 
 Règles :
 - `published` : visible immédiatement en front, RSS et sitemap.

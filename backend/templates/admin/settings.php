@@ -46,6 +46,9 @@ $logAlertsNotifyOn = strtolower(trim((string) ($logAlerts['notifyOn'] ?? 'alerts
 if (!in_array($logAlertsNotifyOn, ['alerts', 'always'], true)) {
     $logAlertsNotifyOn = 'alerts';
 }
+$scheduledBlogPublishPhpBinary = trim((string) ($logAlerts['blogPublishPhpBinary'] ?? 'php'));
+$scheduledBlogPublishScriptPath = trim((string) ($logAlerts['blogPublishScriptPath'] ?? ''));
+$scheduledBlogPublishCronCommand = trim((string) ($logAlerts['blogPublishCronCommand'] ?? ''));
 $logAlertsModeSummary = $logAlertsNotifyOn === 'always'
     ? $translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_ALWAYS', 'Toujours notifier')
     : $translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_ALERTS', 'Uniquement en cas d’alerte');
@@ -831,6 +834,19 @@ $autostartAttr = static function (string $section, ?string $openSection): string
         <p class="settings-dialog__summary">
           <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_NOTE', 'Configuration système associée : /etc/caramagnols/check-log-alerts.env (webhook, emails, timeout).'), ENT_QUOTES, 'UTF-8'); ?>
         </p>
+        <div class="field">
+          <label for="blog-publish-php-binary"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BLOG_PUBLISH_PHP_BINARY_LABEL', 'Binaire PHP détecté'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="blog-publish-php-binary" type="text" value="<?php echo htmlspecialchars($scheduledBlogPublishPhpBinary, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+        </div>
+        <div class="field">
+          <label for="blog-publish-script-path"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BLOG_PUBLISH_SCRIPT_PATH_LABEL', 'Script de publication planifiée'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="blog-publish-script-path" type="text" value="<?php echo htmlspecialchars($scheduledBlogPublishScriptPath, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+        </div>
+        <div class="field">
+          <label for="blog-publish-cron-command"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BLOG_PUBLISH_CRON_COMMAND_LABEL', 'Commande cron recommandée'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="blog-publish-cron-command" type="text" value="<?php echo htmlspecialchars($scheduledBlogPublishCronCommand, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BLOG_PUBLISH_CRON_COMMAND_HELP', 'A lancer chaque minute ou toutes les 5 minutes pour basculer les articles blog planifiés en publiés dès que leur date est atteinte.'), ENT_QUOTES, 'UTF-8'); ?></small>
+        </div>
       </div>
       <div class="region-modal__actions actions-inline actions-inline-end">
         <button type="button" class="button-muted" data-region-modal-close>Annuler</button>

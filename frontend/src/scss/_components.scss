@@ -399,6 +399,35 @@ $legacy-title-suffix: (
   border-top: 1px solid rgb(19 41 75 / 10%);
 }
 
+.page-attached-article-body {
+  max-height: min(20rem, 46vh);
+  overflow-y: auto;
+  padding-right: 0.3rem;
+  color: rgb(30 44 69);
+  font-size: 1rem;
+  line-height: 1.65;
+  text-align: left;
+  scrollbar-gutter: stable;
+}
+
+.page-attached-article-body > h1:first-child {
+  display: none;
+}
+
+.page-attached-article-body :is(h2, h3, h4) {
+  color: rgb(31 58 109);
+}
+
+.page-attached-article-body a {
+  color: rgb(25 70 140);
+}
+
+.page-attached-article-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
 .instagram-feed-home {
   display: grid;
   gap: 0.9rem;
@@ -948,6 +977,77 @@ $legacy-title-suffix: (
 
 .page-blog-article .blog-discussion-form button:hover,
 .page-blog-article .blog-discussion-form button:focus-visible {
+  background: rgb(12 62 126);
+}
+
+.page-attached-article-panel .blog-discussions {
+  margin-top: 1rem;
+  padding: 1rem 1.05rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(180deg, rgb(246 250 255 / 96%), rgb(239 246 255 / 92%));
+  color: rgb(30 44 69);
+  box-shadow: inset 0 0 0 1px rgb(27 86 163 / 10%);
+}
+
+.page-attached-article-panel .blog-discussions .content-callout-title,
+.page-attached-article-panel .blog-discussion-intro,
+.page-attached-article-panel .blog-discussion-empty,
+.page-attached-article-panel .blog-discussion-form label {
+  color: rgb(30 44 69);
+}
+
+.page-attached-article-panel .blog-discussion-compose {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgb(27 86 163 / 18%);
+}
+
+.page-attached-article-panel .blog-discussion-form {
+  padding: 0.95rem;
+  border: 1px solid rgb(27 86 163 / 18%);
+  border-radius: 0.8rem;
+  background: rgb(255 255 255 / 66%);
+}
+
+.page-attached-article-panel .blog-discussion-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.page-attached-article-panel .blog-discussion-grid > .field {
+  min-width: 0;
+}
+
+.page-attached-article-panel .blog-discussion-form input,
+.page-attached-article-panel .blog-discussion-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid rgb(27 86 163 / 35%);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: rgb(25 39 62);
+  font: inherit;
+}
+
+.page-attached-article-panel .blog-discussion-form textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+.page-attached-article-panel .blog-discussion-form button {
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: rgb(20 84 170);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.page-attached-article-panel .blog-discussion-form button:hover,
+.page-attached-article-panel .blog-discussion-form button:focus-visible {
   background: rgb(12 62 126);
 }
 

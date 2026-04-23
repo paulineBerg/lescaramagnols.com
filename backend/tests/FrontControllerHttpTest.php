@@ -578,6 +578,26 @@ final class FrontControllerHttpTest extends TestCase
 
     public function testDynamicPageRendersArticlesAttachedToItsSlugAtBottom(): void
     {
+        global $appConfig;
+        $appConfig['site']['discussions'] = [
+            'enabled' => true,
+            'require_account' => false,
+            'rate_limit_per_ip' => 6,
+            'rate_limit_window' => 600,
+            'global_rate_limit_per_ip' => 20,
+            'global_rate_limit_window' => 3600,
+            'min_form_fill_seconds' => 1,
+            'max_form_age_seconds' => 7200,
+            'honeypot_field' => 'website',
+            'recaptcha' => [
+                'enabled' => false,
+                'site_key' => '',
+                'secret_key' => '',
+                'minimum_score' => 0.5,
+                'timeout_seconds' => 8,
+            ],
+        ];
+
         file_put_contents(
             $this->pagesFile,
             json_encode(
@@ -656,6 +676,12 @@ final class FrontControllerHttpTest extends TestCase
             'page_slug' => 'association',
             'created_at' => '2026-03-20T12:00:00+00:00',
         ]);
+        blog_discussion_repository()->submitPending('article-recent', 'fr', [
+            'author' => 'Louise',
+            'email' => 'louise@example.com',
+            'content' => '<p>Message validé.</p>',
+            'status' => 'approved',
+        ]);
 
         $response = $this->frontController()->handle($this->request('GET', '/association'));
 
@@ -681,6 +707,13 @@ final class FrontControllerHttpTest extends TestCase
             '/<details id="attached-article-article-accroche" class="page-attached-article" >/',
             $response->body
         );
+        $this->assertStringContainsString('Message validé.', $response->body);
+        $this->assertStringContainsString('discussion-form-article-recent', $response->body);
+        $this->assertStringContainsString('name="return_to"', $response->body);
+        $this->assertStringContainsString('name="article_slug" value="article-recent"', $response->body);
+        $this->assertStringContainsString('name="article_lang" value="fr"', $response->body);
+        $this->assertStringContainsString('open_article=article-recent', $response->body);
+        $this->assertStringContainsString('core/blog/submit_discussion.php', $response->body);
         $this->assertLessThan(
             strpos($response->body, 'article-accroche'),
             strpos($response->body, 'article-recent')

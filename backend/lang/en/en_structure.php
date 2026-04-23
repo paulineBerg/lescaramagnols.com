@@ -342,6 +342,10 @@ return [
     'TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_HELP' => 'Use "Always notify" temporarily to validate email/webhook delivery, then switch back to alert mode.',
     'TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_NOTE' => 'Related system config: /etc/caramagnols/check-log-alerts.env (webhook, emails, timeout).',
     'TXT_ADMIN_SETTINGS_LOG_ALERTS_SAVE' => 'Save log alerts',
+    'TXT_ADMIN_SETTINGS_BLOG_PUBLISH_PHP_BINARY_LABEL' => 'Detected PHP binary',
+    'TXT_ADMIN_SETTINGS_BLOG_PUBLISH_SCRIPT_PATH_LABEL' => 'Scheduled publish script',
+    'TXT_ADMIN_SETTINGS_BLOG_PUBLISH_CRON_COMMAND_LABEL' => 'Recommended cron command',
+    'TXT_ADMIN_SETTINGS_BLOG_PUBLISH_CRON_COMMAND_HELP' => 'Run every minute or every 5 minutes to switch scheduled blog articles to published as soon as their date is reached.',
 
     // Instagram
     'TXT_INSTAGRAM_LATEST_POSTS' => 'Latest Instagram posts',

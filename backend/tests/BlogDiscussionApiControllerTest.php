@@ -172,6 +172,52 @@ final class BlogDiscussionApiControllerTest extends TestCase
         $this->assertSame([], $repository->all());
     }
 
+    public function testSubmitRedirectsBackToProvidedPublicPageWhenReturnToIsValid(): void
+    {
+        $scope = 'blog_discussion_' . hash('sha256', 'fr:bonjour');
+        $token = csrf_token($scope);
+        $nonce = bin2hex(random_bytes(16));
+        $_SESSION['_blog_discussion_form_nonces'][$nonce] = [
+            'scope' => $scope,
+            'issued_at' => time() - 3,
+        ];
+
+        $controller = new BlogDiscussionApiController(
+            new JsonBlogRepository($this->blogDir),
+            new JsonBlogDiscussionRepository($this->discussionDir)
+        );
+
+        $response = $controller->submit(
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/core/blog/submit_discussion.php',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                ],
+                [],
+                [
+                    'article_slug' => 'bonjour',
+                    'article_lang' => 'fr',
+                    'csrf_token' => $token,
+                    'form_nonce' => $nonce,
+                    'return_to' => '/auto-retro/austin/histoire-de-austin.php?lang=fr&open_article=bonjour#discussion-form-bonjour',
+                    'website' => '',
+                    'author' => 'Pauline',
+                    'email' => 'pauline@example.com',
+                    'content' => 'Bonjour à tous',
+                ],
+                [],
+                ['Host' => 'example.test']
+            )
+        );
+
+        $this->assertSame(303, $response->status);
+        $this->assertStringContainsString(
+            '/auto-retro/austin/histoire-de-austin.php?lang=fr&open_article=bonjour#discussion-form-bonjour',
+            (string) ($response->headers['Location'] ?? '')
+        );
+    }
+
     public function testSubmitIsBlockedWhenDiscussionsAreDisabled(): void
     {
         global $appConfig;

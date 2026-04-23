@@ -262,81 +262,13 @@ ob_start();
 <?php endif; ?>
 
 <?php if ($discussionsEnabled): ?>
-<section class="content-callout blog-discussions" id="discussion-form" aria-labelledby="blog-discussions-title">
-  <h2 id="blog-discussions-title" class="content-callout-title"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSIONS'), ENT_QUOTES, 'UTF-8'); ?></h2>
-
-  <?php if (is_array($discussionFlash) && trim((string) ($discussionFlash['message'] ?? '')) !== ''): ?>
-  <p class="blog-discussion-notice blog-discussion-notice-<?php echo (($discussionFlash['type'] ?? 'error') === 'success') ? 'success' : 'error'; ?>">
-    <?php echo htmlspecialchars((string) $discussionFlash['message'], ENT_QUOTES, 'UTF-8'); ?>
-  </p>
-  <?php endif; ?>
-
-  <?php if ($approvedDiscussions === []): ?>
-  <p class="blog-discussion-empty"><?php echo htmlspecialchars(t('TXT_BLOG_NO_VALIDATED_MESSAGES'), ENT_QUOTES, 'UTF-8'); ?></p>
-  <?php else: ?>
-  <ul class="blog-discussion-list">
-    <?php foreach ($approvedDiscussions as $discussion): ?>
-    <li class="blog-discussion-item">
-      <p class="blog-discussion-meta">
-        <strong><?php echo htmlspecialchars((string) ($discussion['author'] ?? t('TXT_BLOG_READER')), ENT_QUOTES, 'UTF-8'); ?></strong>
-        <span>·</span>
-        <time datetime="<?php echo htmlspecialchars((string) ($discussion['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-          <?php echo htmlspecialchars($formatDiscussionDate((string) ($discussion['created_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
-        </time>
-      </p>
-      <div class="blog-discussion-content">
-        <?php echo (string) ($discussion['content'] ?? ''); ?>
-      </div>
-    </li>
-    <?php endforeach; ?>
-  </ul>
-  <?php endif; ?>
-
-  <?php if ($discussionRequireAccount): ?>
-  <p class="blog-discussion-intro"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_ACCOUNT_REQUIRED'), ENT_QUOTES, 'UTF-8'); ?></p>
-  <?php else: ?>
-  <div class="blog-discussion-compose">
-    <p class="blog-discussion-intro blog-discussion-intro-compose"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_MODERATION_NOTICE'), ENT_QUOTES, 'UTF-8'); ?></p>
-    <form class="blog-discussion-form" method="post" action="<?php echo htmlspecialchars($discussionSubmitPath, ENT_QUOTES, 'UTF-8'); ?>">
-      <input type="hidden" name="article_slug" value="<?php echo htmlspecialchars($articleSlug, ENT_QUOTES, 'UTF-8'); ?>" />
-      <input type="hidden" name="article_lang" value="<?php echo htmlspecialchars($articleLanguage, ENT_QUOTES, 'UTF-8'); ?>" />
-      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($discussionCsrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-      <input type="hidden" name="form_nonce" value="<?php echo htmlspecialchars($discussionNonce, ENT_QUOTES, 'UTF-8'); ?>" />
-      <div class="blog-discussion-honeypot" aria-hidden="true">
-        <label for="discussion-hp-<?php echo htmlspecialchars($honeypotField, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_HONEYPOT_LABEL'), ENT_QUOTES, 'UTF-8'); ?></label>
-        <input id="discussion-hp-<?php echo htmlspecialchars($honeypotField, ENT_QUOTES, 'UTF-8'); ?>" type="text" name="<?php echo htmlspecialchars($honeypotField, ENT_QUOTES, 'UTF-8'); ?>" value="" tabindex="-1" autocomplete="off" />
-      </div>
-
-      <div class="blog-discussion-grid">
-        <div class="field">
-          <label for="discussion-author"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_NAME'), ENT_QUOTES, 'UTF-8'); ?></label>
-          <input id="discussion-author" type="text" name="author" maxlength="120" required value="<?php echo htmlspecialchars((string) ($discussionOldInput['author'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
-        </div>
-        <div class="field">
-          <label for="discussion-email"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_EMAIL'), ENT_QUOTES, 'UTF-8'); ?></label>
-          <input id="discussion-email" type="email" name="email" maxlength="180" required value="<?php echo htmlspecialchars((string) ($discussionOldInput['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="discussion-content"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_MESSAGE'), ENT_QUOTES, 'UTF-8'); ?></label>
-        <textarea id="discussion-content" name="content" rows="6" maxlength="2000" required><?php echo htmlspecialchars((string) ($discussionOldInput['content'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-      </div>
-
-      <?php if ($recaptchaEnabled): ?>
-      <div class="blog-discussion-recaptcha">
-        <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars($recaptchaSiteKey, ENT_QUOTES, 'UTF-8'); ?>"></div>
-        <small><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_RECAPTCHA_NOTICE'), ENT_QUOTES, 'UTF-8'); ?></small>
-      </div>
-      <?php endif; ?>
-
-      <div class="actions-inline">
-        <button type="submit"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT'), ENT_QUOTES, 'UTF-8'); ?></button>
-      </div>
-    </form>
-  </div>
-  <?php endif; ?>
-</section>
+<?php
+$discussionAnchorId = 'discussion-form';
+$discussionTitleId = 'blog-discussions-title';
+$discussionFieldPrefix = 'discussion';
+$returnToDiscussionUrl = '';
+require TEMPLATES_PATH . '/partials/blog/discussion_panel.php';
+?>
 <?php endif; ?>
 <?php
 $blocks['EditRegion4'] = ob_get_clean();

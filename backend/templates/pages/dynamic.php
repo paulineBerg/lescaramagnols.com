@@ -25,9 +25,15 @@ $pageTitle = $page['title'] ?? t('TXT_SITE_BRAND');
 $blocks = is_array($page['blocks'] ?? null) ? $page['blocks'] : [];
 $pageSlug = trim((string) ($page['slug'] ?? ''));
 $language = defined('CURRENT_LANG') ? CURRENT_LANG : (defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr');
-$attachedArticles = $pageSlug !== ''
-    ? blog_repository()->publishedArticleTreeForPage($pageSlug, $language)
-    : [];
+$defaultLanguage = defined('DEFAULT_LANG') ? DEFAULT_LANG : (string) app_config('default_lang', 'fr');
+$attachedArticles = [];
+if ($pageSlug !== '') {
+    $attachedArticles = blog_repository()->publishedArticleTreeForPage($pageSlug, $language);
+
+    if ($attachedArticles === [] && $language !== $defaultLanguage) {
+        $attachedArticles = blog_repository()->publishedArticleTreeForPage($pageSlug, $defaultLanguage);
+    }
+}
 $toAbsoluteImageUrl = static function (string $src): string {
     if (preg_match('#^https?://#i', $src) === 1) {
         return $src;
@@ -126,6 +132,56 @@ if ($attachedArticles !== []) {
             $blogReturnUrl = app_url(ltrim($candidateBlogReturn, '/'));
         }
     }
+    $discussionsEnabled = (bool) app_config('site.discussions.enabled', true);
+    $discussionRequireAccount = $discussionsEnabled && (bool) app_config('site.discussions.require_account', false);
+    $discussionRepository = $discussionsEnabled ? blog_discussion_repository() : null;
+    $discussionSubmitPath = app_url('core/blog/submit_discussion.php');
+    $honeypotField = trim((string) app_config('site.discussions.honeypot_field', 'website'));
+    if (preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{1,40}$/', $honeypotField) !== 1) {
+        $honeypotField = 'website';
+    }
+
+    $recaptchaConfig = app_config('site.discussions.recaptcha', []);
+    $recaptchaConfig = is_array($recaptchaConfig) ? $recaptchaConfig : [];
+    $recaptchaSiteKey = trim((string) ($recaptchaConfig['site_key'] ?? ''));
+    $recaptchaEnabled = $discussionsEnabled
+        && (bool) ($recaptchaConfig['enabled'] ?? false)
+        && $recaptchaSiteKey !== '';
+    $discussionFlashBucket = [];
+    if ($discussionsEnabled) {
+        ensure_session_started();
+
+        $discussionFlashBucket = is_array($_SESSION['_blog_discussion_flash'] ?? null)
+            ? $_SESSION['_blog_discussion_flash']
+            : [];
+
+        if (!is_array($_SESSION['_blog_discussion_form_nonces'] ?? null)) {
+            $_SESSION['_blog_discussion_form_nonces'] = [];
+        }
+
+        $maxFormAge = max(60, (int) app_config('site.discussions.max_form_age_seconds', 7200));
+        $cutoff = time() - $maxFormAge;
+        foreach ($_SESSION['_blog_discussion_form_nonces'] as $nonceKey => $noncePayload) {
+            if (!is_array($noncePayload) || (int) ($noncePayload['issued_at'] ?? 0) < $cutoff) {
+                unset($_SESSION['_blog_discussion_form_nonces'][$nonceKey]);
+            }
+        }
+    }
+
+    $currentRequestUri = is_string($_SERVER['REQUEST_URI'] ?? null) ? (string) $_SERVER['REQUEST_URI'] : '';
+    $currentRequestPath = request_path($currentRequestUri);
+    if ($currentRequestPath === '/') {
+        $currentRequestPath = normalize_public_route((string) ($page['route'] ?? '')) ?? '/';
+    }
+    $currentRequestQuery = [];
+    $currentRequestQueryRaw = parse_url($currentRequestUri, PHP_URL_QUERY);
+    if (is_string($currentRequestQueryRaw) && $currentRequestQueryRaw !== '') {
+        parse_str($currentRequestQueryRaw, $currentRequestQuery);
+        if (!is_array($currentRequestQuery)) {
+            $currentRequestQuery = [];
+        }
+    }
+    unset($currentRequestQuery['open_article']);
 
     $slugifyBlogFilterValue = static function (string $value): string {
         $normalized = trim($value);
@@ -262,6 +318,29 @@ if ($attachedArticles !== []) {
         </a>
       </p>
       <?php endif; ?>
+      <style>
+        .page-attached-article-body,
+        .page-attached-article-body p,
+        .page-attached-article-body ul,
+        .page-attached-article-body ol,
+        .page-attached-article-body li,
+        .page-attached-article-body blockquote,
+        .page-attached-article-body strong,
+        .page-attached-article-body em,
+        .page-attached-article-body span {
+          color: rgb(30 44 69) !important;
+        }
+
+        .page-attached-article-body h2,
+        .page-attached-article-body h3,
+        .page-attached-article-body h4 {
+          color: rgb(31 58 109) !important;
+        }
+
+        .page-attached-article-body a {
+          color: rgb(25 70 140) !important;
+        }
+      </style>
       <div class="page-attached-articles-accordion">
         <?php foreach ($attachedChronicleArticles as $articleIndex => $article): ?>
         <?php
@@ -272,6 +351,20 @@ if ($attachedArticles !== []) {
         $content = trim((string) ($article['content'] ?? ''));
         $excerpt = trim((string) ($article['excerpt'] ?? ''));
         $featuredImage = $resolveFeaturedImage($article);
+        $approvedDiscussions = [];
+        $discussionFlash = null;
+        $discussionOldInput = ['author' => '', 'email' => '', 'content' => ''];
+        $discussionCsrfToken = '';
+        $discussionNonce = '';
+        $articleSlug = $slug;
+        $articleLanguage = trim((string) ($article['lang'] ?? ''));
+        if ($articleLanguage === '') {
+            $articleLanguage = $language;
+        }
+        $discussionAnchorId = 'discussion-form-' . ($slug !== '' ? $slug : (string) $articleIndex);
+        $discussionTitleId = 'blog-discussions-title-' . ($slug !== '' ? $slug : (string) $articleIndex);
+        $discussionFieldPrefix = 'discussion-' . ($slug !== '' ? $slug : (string) $articleIndex);
+        $returnToDiscussionUrl = '';
         $tags = array_values(array_filter(
             array_map('strval', is_array($article['tags'] ?? null) ? $article['tags'] : []),
             static fn (string $tag): bool => trim($tag) !== ''
@@ -286,6 +379,36 @@ if ($attachedArticles !== []) {
 
         if (!$hasOpenArticleMatch && $openArticleSlug !== '') {
             $shouldOpen = $articleIndex === 0;
+        }
+
+        if ($discussionsEnabled && $slug !== '' && $discussionRepository !== null) {
+            $discussionScope = 'blog_discussion_' . hash('sha256', $articleLanguage . ':' . $slug);
+            $approvedDiscussions = $discussionRepository->approvedForArticle($slug, $articleLanguage);
+            $discussionFlash = is_array($discussionFlashBucket[$discussionScope] ?? null)
+                ? $discussionFlashBucket[$discussionScope]
+                : null;
+            unset($_SESSION['_blog_discussion_flash'][$discussionScope]);
+
+            if (is_array($discussionFlash['old'] ?? null)) {
+                $discussionOldInput['author'] = trim((string) ($discussionFlash['old']['author'] ?? ''));
+                $discussionOldInput['email'] = trim((string) ($discussionFlash['old']['email'] ?? ''));
+                $discussionOldInput['content'] = trim((string) ($discussionFlash['old']['content'] ?? ''));
+            }
+
+            $discussionCsrfToken = csrf_token($discussionScope);
+            $discussionNonce = bin2hex(random_bytes(16));
+            $_SESSION['_blog_discussion_form_nonces'][$discussionNonce] = [
+                'scope' => $discussionScope,
+                'issued_at' => time(),
+            ];
+
+            $returnQuery = $currentRequestQuery;
+            $returnQuery['open_article'] = $slug;
+            $returnToDiscussionUrl = $currentRequestPath;
+            if ($returnQuery !== []) {
+                $returnToDiscussionUrl .= '?' . http_build_query($returnQuery);
+            }
+            $returnToDiscussionUrl .= '#discussion-form-' . rawurlencode($slug);
         }
         ?>
         <details id="attached-article-<?php echo htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'); ?>" class="page-attached-article" <?php echo $shouldOpen ? 'open' : ''; ?>>
@@ -338,11 +461,14 @@ if ($attachedArticles !== []) {
             </p>
             <?php endif; ?>
             <?php if ($content !== ''): ?>
-            <article class="blog-article-body">
+            <article class="blog-article-body page-attached-article-body">
               <?php echo (string) $article['content']; ?>
             </article>
             <?php elseif ($excerpt !== ''): ?>
             <p class="blog-card-excerpt"><?php echo htmlspecialchars($excerpt, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php endif; ?>
+            <?php if ($discussionsEnabled && $slug !== ''): ?>
+            <?php require TEMPLATES_PATH . '/partials/blog/discussion_panel.php'; ?>
             <?php endif; ?>
           </div>
         </details>

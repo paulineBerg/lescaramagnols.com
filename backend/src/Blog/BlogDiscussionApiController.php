@@ -44,7 +44,7 @@ final class BlogDiscussionApiController
         }
 
         $scope = $this->discussionScope($slug, $language);
-        $redirectUrl = $this->articleUrl($slug, $language);
+        $redirectUrl = $this->resolveRedirectUrl($request, $payload, $slug, $language);
         $article = $this->articleRepository->findPublished($slug, $language);
 
         if (!is_array($article)) {
@@ -64,7 +64,7 @@ final class BlogDiscussionApiController
 
             $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_DISABLED'));
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         if ((bool) app_config('site.discussions.require_account', false)) {
@@ -80,7 +80,7 @@ final class BlogDiscussionApiController
 
             $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ACCOUNT_REQUIRED'));
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         $token = is_string($payload['csrf_token'] ?? null) ? $payload['csrf_token'] : null;
@@ -97,13 +97,13 @@ final class BlogDiscussionApiController
 
             $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_SESSION_EXPIRED'), $payload);
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         if (!$this->validateFormNonce($scope, (string) ($payload['form_nonce'] ?? ''))) {
             $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_FORM_EXPIRED'), $payload);
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         $honeypotField = $this->honeypotFieldName();
@@ -121,7 +121,7 @@ final class BlogDiscussionApiController
 
             $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_SPAM_BLOCKED'), $payload);
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)) ?? 'unknown';
@@ -157,7 +157,7 @@ final class BlogDiscussionApiController
                 $payload
             );
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         $perIpLimiter->hit();
@@ -173,14 +173,14 @@ final class BlogDiscussionApiController
             $errorMessage = implode(' ', array_map('strval', $sanitized['errors']));
             $this->setFlash($scope, 'error', $errorMessage, $payload);
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         $recaptchaError = $this->validateRecaptcha($request, $payload, $slug, $language);
         if ($recaptchaError !== null) {
             $this->setFlash($scope, 'error', $recaptchaError, $payload);
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         $userAgent = (string) ($request->header('User-Agent') ?? '');
@@ -210,7 +210,7 @@ final class BlogDiscussionApiController
 
             $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_SAVE_FAILED'), $payload);
 
-            return $this->redirect($redirectUrl . '#discussion-form');
+            return $this->redirect($redirectUrl);
         }
 
         $this->eventLogger->content(
@@ -229,7 +229,7 @@ final class BlogDiscussionApiController
             (string) t('TXT_BLOG_DISCUSSION_SUCCESS_PENDING')
         );
 
-        return $this->redirect($redirectUrl . '#discussion-form');
+        return $this->redirect($redirectUrl);
     }
 
     /**
@@ -326,6 +326,60 @@ final class BlogDiscussionApiController
     private function articleUrl(string $slug, string $language): string
     {
         return app_url($language . '/blog/article/' . rawurlencode($slug));
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function resolveRedirectUrl(Request $request, array $payload, string $slug, string $language): string
+    {
+        $fallback = $this->articleUrl($slug, $language) . '#discussion-form';
+        $candidate = trim((string) ($payload['return_to'] ?? ''));
+
+        if ($candidate === '' || preg_match('/[\r\n]/', $candidate) === 1) {
+            return $fallback;
+        }
+
+        $parts = parse_url($candidate);
+        if (!is_array($parts)) {
+            return $fallback;
+        }
+
+        $path = normalize_public_route((string) ($parts['path'] ?? ''));
+        if (!is_string($path) || $path === '' || preg_match('#^/(?:core|admin)(?:/|$)#', $path) === 1) {
+            return $fallback;
+        }
+
+        if (isset($parts['scheme']) || isset($parts['host'])) {
+            $baseParts = parse_url(app_base_url($request));
+            $baseHost = app_host_strip_port((string) ($baseParts['host'] ?? ''));
+            $candidateHost = app_host_strip_port((string) ($parts['host'] ?? ''));
+            $baseScheme = strtolower((string) ($baseParts['scheme'] ?? ''));
+            $candidateScheme = strtolower((string) ($parts['scheme'] ?? ''));
+            $basePort = (int) ($baseParts['port'] ?? 0);
+            $candidatePort = (int) ($parts['port'] ?? 0);
+
+            if ($baseHost === '' || $candidateHost === '' || !hash_equals($baseHost, $candidateHost)) {
+                return $fallback;
+            }
+
+            if ($candidateScheme !== '' && $baseScheme !== '' && $candidateScheme !== $baseScheme) {
+                return $fallback;
+            }
+
+            if ($candidatePort !== 0 && $basePort !== 0 && $candidatePort !== $basePort) {
+                return $fallback;
+            }
+        }
+
+        $query = isset($parts['query']) && is_string($parts['query']) && $parts['query'] !== ''
+            ? '?' . $parts['query']
+            : '';
+        $fragment = isset($parts['fragment']) && is_string($parts['fragment']) && $parts['fragment'] !== ''
+            ? '#' . $parts['fragment']
+            : '';
+
+        return app_url(ltrim($path, '/'), $request) . $query . $fragment;
     }
 
     private function normalizeSlug(string $slug): string

@@ -62,6 +62,7 @@ Mise a jour 2026-03-20 (editeur pages, iframe) :
 Mise a jour 2026-03-21 (articles blog, publication planifiee) :
 - ajout du statut `scheduled` dans l'admin articles avec date de publication programmee dediee.
 - publication automatique sans cron : un article planifie devient visible sur le front (liste, detail, RSS, sitemap) des que sa date est atteinte.
+- ajout d'une commande CLI `backend/core/tools/publish_scheduled_blog_articles.php` pour promouvoir les articles arrives a echeance en `published`, avec rappel du binaire PHP et de la ligne cron dans `Parametres > Observabilite ops`.
 
 Mise a jour 2026-03-21 (images editoriales V1) :
 - admin articles : ajout d'une image de couverture (URL ou upload), avec metadonnees SEO (`alt`, `title`, `caption`, dimensions).

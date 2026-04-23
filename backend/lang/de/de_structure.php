@@ -340,6 +340,10 @@ return [
     'TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_HELP' => 'Nutzen Sie "Immer benachrichtigen" kurz fuer den Versandtest und wechseln Sie dann zurueck in den Alarmmodus.',
     'TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_NOTE' => 'Zugehoerige Systemkonfiguration: /etc/caramagnols/check-log-alerts.env (Webhook, E-Mails, Timeout).',
     'TXT_ADMIN_SETTINGS_LOG_ALERTS_SAVE' => 'Log-Alerts speichern',
+    'TXT_ADMIN_SETTINGS_BLOG_PUBLISH_PHP_BINARY_LABEL' => 'Erkannter PHP-Binaerpfad',
+    'TXT_ADMIN_SETTINGS_BLOG_PUBLISH_SCRIPT_PATH_LABEL' => 'Skript fuer geplante Veroeffentlichung',
+    'TXT_ADMIN_SETTINGS_BLOG_PUBLISH_CRON_COMMAND_LABEL' => 'Empfohlener Cron-Befehl',
+    'TXT_ADMIN_SETTINGS_BLOG_PUBLISH_CRON_COMMAND_HELP' => 'Jede Minute oder alle 5 Minuten ausfuehren, damit geplante Blogartikel bei Erreichen ihres Datums auf veroeffentlicht gesetzt werden.',
 
     // Instagram
     'TXT_INSTAGRAM_LATEST_POSTS' => 'Neueste Instagram-Posts',

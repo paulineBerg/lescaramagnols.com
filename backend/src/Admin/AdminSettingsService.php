@@ -168,6 +168,27 @@ final class AdminSettingsService
         return $path !== '' ? $path : ROOT_PATH . '/var/cache/instagram-feed.json';
     }
 
+    private function detectedPhpBinary(): string
+    {
+        $binary = trim((string) env('PHP_CLI_BINARY', PHP_BINARY));
+
+        return $binary !== '' ? $binary : 'php';
+    }
+
+    private function scheduledBlogPublishScriptPath(): string
+    {
+        return ROOT_PATH . '/core/tools/publish_scheduled_blog_articles.php';
+    }
+
+    private function scheduledBlogPublishCronCommand(): string
+    {
+        return sprintf(
+            '* * * * * %s %s >/dev/null 2>&1',
+            escapeshellarg($this->detectedPhpBinary()),
+            escapeshellarg($this->scheduledBlogPublishScriptPath())
+        );
+    }
+
     /**
      * @return array<string, string>
      */
@@ -1277,6 +1298,9 @@ final class AdminSettingsService
             ],
             'logAlerts' => [
                 'notifyOn' => $logAlertsNotifyOn,
+                'blogPublishPhpBinary' => $this->detectedPhpBinary(),
+                'blogPublishScriptPath' => $this->scheduledBlogPublishScriptPath(),
+                'blogPublishCronCommand' => $this->scheduledBlogPublishCronCommand(),
             ],
             'translations' => [
                 'languages' => $translationLanguages,
