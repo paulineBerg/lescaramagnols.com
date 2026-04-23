@@ -267,6 +267,12 @@ Variantes attendues selon le type d'article:
 - article d'experience ou `notre voiture` : commencer par l'evenement declencheur (achat, decouverte, cadeau, transport, restauration); decrire l'etat initial, les decisions prises, les travaux ou usages, puis la place actuelle de l'objet dans notre histoire
 - article territoire / promenade : dire d'abord ou se trouve le lieu, sa taille, son relief, sa saisonnalite ou sa fonction; ensuite expliquer ce que l'on voit vraiment, ce qu'il faut regarder, les contraintes et le bon moment pour venir
 - page partenaire ou vitrine : presentation sobre, activite, savoir-faire, evolution, services, liens utiles; ne pas glisser vers la plaquette commerciale
+- article de blog : garder le meme style editorial, la meme structure logique et la meme exigence de precision que pour une page, mais avec une lecture plus rapide et plus directe
+- article de blog : le blog complete les pages editoriales; une page peut etre plus complete et plus developpee, tandis qu'un article de blog doit aller plus vite a lire sans devenir superficiel
+- article de blog : dans `80 %` des cas, viser `1000` a `1500` mots
+- article de blog : dans `20 %` des cas, viser `800` a `1000` mots quand le sujet est plus simple, plus ponctuel ou tres visuel
+- article de blog : depasser `1800` mots doit rester exceptionnel et etre reserve a un sujet qui le justifie clairement
+- article de blog : le maillage interne est obligatoire, avec des liens vers des pages complementaires et des sujets lies, mais jamais vers la page actuelle elle-meme
 
 Regles de structuration HTML/editoriale:
 - un seul `h1` visible par article
@@ -285,6 +291,7 @@ Regles de structuration HTML/editoriale:
 - en fin d'articles ajouter les sources si possible, dans la section : EditRegion11 - Post-scriptum
 - les sources s'ouvrent dans un nouvel onglet
 - le bloc de maillage interne doit se situer dans la section : EditRegion4 - Apres corps
+- ne pas creer de section intitulee `A lire`, `À lire` ou `À lire aussi`; le maillage interne doit rester sobre, descriptif et integre au parcours editorial, sans bloc standardise de recommandation
 
 Metadonnees et completude editoriale:
 - renseigner un titre d'article distinct, lisible et utile hors contexte
