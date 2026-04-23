@@ -489,17 +489,17 @@ final class AdminTileService
     {
         $normalized = trim($name);
         if ($normalized === '') {
-            return 'Nouveau groupe (copie)';
+            return 'Nouveau groupe - copie';
         }
 
-        if (preg_match('/^(.*)\s+\(copie(?:\s+(\d+))?\)$/u', $normalized, $matches) === 1) {
+        if (preg_match('/^(.*?)(?:\s*-\s*copie|\s+\(copie\))(?:\s+(\d+))?$/u', $normalized, $matches) === 1) {
             $baseName = trim((string) ($matches[1] ?? ''));
             $copyIndex = max(2, (int) ($matches[2] ?? 1) + 1);
 
-            return sprintf('%s (copie %d)', $baseName !== '' ? $baseName : 'Nouveau groupe', $copyIndex);
+            return sprintf('%s - copie %d', $baseName !== '' ? $baseName : 'Nouveau groupe', $copyIndex);
         }
 
-        return $normalized . ' (copie)';
+        return $normalized . ' - copie';
     }
 
     /**

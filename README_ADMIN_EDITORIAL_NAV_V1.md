@@ -104,6 +104,10 @@ Mise a jour 2026-04-22 (tuiles after_body) :
 - script de migration legacy disponible : `php backend/core/tools/migrate_legacy_page_tiles.php` puis `--apply` apres backup SQL
 - migration auto-retro normalisee sur `1` tuile par marque, triee par ordre alphabetique, avec ajout de `Citroën`
 
+Mise a jour 2026-04-23 (tuiles, duplication) :
+- le bouton `Dupliquer` du catalogue `Tuiles` recopie maintenant tout le groupe, y compris les items, leurs traductions, leurs cibles et leurs medias
+- le groupe duplique est cree avec un titre suffixe en ` - copie`, puis ` - copie 2`, ` - copie 3`, etc.
+
 Mise a jour 2026-04-22 (mega menu desktop, sections longues) :
 - dans le mega menu desktop, une meme section ne rend pas plus de `5` liens consecutifs par colonne.
 - au dela de ce seuil, le rendu ouvre une colonne voisine dans le meme bloc au lieu d imposer un faux sous-groupe editorial.
