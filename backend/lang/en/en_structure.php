@@ -162,6 +162,8 @@ return [
     'TXT_SITE_BRAND' => 'LesCaramagnols',
     'TXT_PAGE_DEFAULT_TITLE' => 'Les Caramagnols',
     'TXT_PAGE_NOT_FOUND_TITLE' => 'Page not found',
+    'TXT_PAGE_INTERNAL_ERROR_TITLE' => 'Internal error',
+    'TXT_PAGE_INTERNAL_ERROR_BODY' => 'Unable to process this request right now.',
     'TXT_UI_OK' => 'OK',
     'TXT_SEARCH_LABEL' => 'Search',
     'TXT_SEARCH_PLACEHOLDER' => 'Search...',

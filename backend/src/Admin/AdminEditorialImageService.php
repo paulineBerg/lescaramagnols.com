@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Caramagnols\Admin;
 
+use Caramagnols\Http\PublicUrlNormalizer;
+
 final class AdminEditorialImageService
 {
     private const ALLOWED_MIME_TO_EXTENSION = [
@@ -273,24 +275,7 @@ final class AdminEditorialImageService
 
     public static function sanitizePublicImageSource(string $src): string
     {
-        $src = trim($src);
-        if ($src === '') {
-            return '';
-        }
-
-        if (preg_match('#^https?://#i', $src) === 1) {
-            return $src;
-        }
-
-        if (preg_match('#^/assets/images/#', $src) === 1) {
-            return $src;
-        }
-
-        if (preg_match('#^/uploads/editorial/#', $src) === 1) {
-            return $src;
-        }
-
-        return '';
+        return PublicUrlNormalizer::normalizeImageSource($src, null, false);
     }
 
     private static function sanitizeInlineText(string $value, int $maxLength): string

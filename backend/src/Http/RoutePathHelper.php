@@ -25,20 +25,7 @@ final class RoutePathHelper
 
     public static function normalizePublicRoute(?string $route): ?string
     {
-        if (!is_string($route)) {
-            return null;
-        }
-
-        $route = str_replace('\\', '/', trim($route));
-        if ($route === '' || $route === '#') {
-            return null;
-        }
-
-        if (preg_match('#^https?://#i', $route) === 1) {
-            return $route;
-        }
-
-        return '/' . ltrim($route, '/');
+        return PublicUrlNormalizer::normalizeRoute($route);
     }
 
     /**
@@ -47,11 +34,10 @@ final class RoutePathHelper
     public static function publicRouteVariants(string $route): array
     {
         $normalized = self::normalizePublicRoute($route);
-        if ($normalized === null || preg_match('#^https?://#i', $normalized) === 1) {
+        if ($normalized === null || $normalized === '' || $normalized[0] !== '/') {
             return [];
         }
 
         return [$normalized];
     }
 }
-

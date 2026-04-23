@@ -576,6 +576,186 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('Plan du template standard', $response->body);
     }
 
+    public function testLegacyLanguageApiPathRedirectsToCanonicalEndpoint(): void
+    {
+        $response = $this->frontController()->handle($this->request('GET', '/bouger/core/api/lang.php?lang=fr'));
+
+        $this->assertSame(301, $response->status);
+        $this->assertSame('/core/api/lang.php?lang=fr', $response->headers['Location'] ?? null);
+    }
+
+    public function testLegacyImagePathRedirectsToCanonicalPublishedAsset(): void
+    {
+        $response = $this->frontController()->handle($this->request('GET', '/images/structure/banniere.jpg'));
+
+        $this->assertSame(301, $response->status);
+        $this->assertSame('/assets/images/structure/banniere.jpg', $response->headers['Location'] ?? null);
+    }
+
+    public function testMissingLegacyImagePathFallsBackToPlaceholderAsset(): void
+    {
+        $response = $this->frontController()->handle($this->request('GET', '/images/does-not-exist.jpg'));
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/assets/images/structure/logo.png', $response->headers['Location'] ?? null);
+    }
+
+    public function testLegacySitePathRedirectsToCanonicalStructuredPageRoute(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'villages',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Villages',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $response = $this->frontController()->handle(
+            $this->request('GET', '/bouger/site/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php?lang=fr')
+        );
+
+        $this->assertSame(301, $response->status);
+        $this->assertSame(
+            '/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php?lang=fr',
+            $response->headers['Location'] ?? null
+        );
+    }
+
+    public function testLegacyMovedPageRouteRedirectsToCanonicalStructuredPage(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'dyna-z12',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/auto-retro/panhard/la-dyna-modele-z12.php',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'La Dyna Z12',
+                                ],
+                            ],
+                        ],
+                        [
+                            'slug' => 'aronde-history',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/auto-retro/simca/histoire-simca-aronde-icone-francaise.php',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Histoire de l’Aronde',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $panhardResponse = $this->frontController()->handle(
+            $this->request('GET', '/auto-retro-panhard-la-dyna-modele-z12.php')
+        );
+        $this->assertSame(301, $panhardResponse->status);
+        $this->assertSame(
+            '/auto-retro/panhard/la-dyna-modele-z12.php',
+            $panhardResponse->headers['Location'] ?? null
+        );
+
+        $simcaResponse = $this->frontController()->handle(
+            $this->request('GET', '/auto-retro/simca/simca-aronde-icone-francaise.php')
+        );
+        $this->assertSame(301, $simcaResponse->status);
+        $this->assertSame(
+            '/auto-retro/simca/histoire-simca-aronde-icone-francaise.php',
+            $simcaResponse->headers['Location'] ?? null
+        );
+    }
+
+    public function testDynamicPageRewritesLegacyBlockLinksAndAvoidsBrokenImages(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'balade',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/bouger/les-animations-dans-le-golfe-de-sttropez.php',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Animations',
+                                    'blocks' => [
+                                        'EditRegion3' => '<p><a href="site/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php">Villages</a></p>'
+                                            . '<img src="/images/structure/banniere.jpg" alt="Banniere">'
+                                            . '<img src="/images/does-not-exist.jpg" alt="Manquante">',
+                                    ],
+                                ],
+                            ],
+                        ],
+                        [
+                            'slug' => 'villages',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Villages',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $response = $this->frontController()->handle(
+            $this->request('GET', '/bouger/les-animations-dans-le-golfe-de-sttropez.php')
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString(
+            'href="/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php"',
+            $response->body
+        );
+        $this->assertStringContainsString(
+            'src="/assets/images/structure/banniere.jpg"',
+            $response->body
+        );
+        $this->assertStringContainsString(
+            'src="/assets/images/structure/logo.png"',
+            $response->body
+        );
+    }
+
     public function testDynamicPageRendersArticlesAttachedToItsSlugAtBottom(): void
     {
         global $appConfig;
@@ -717,6 +897,36 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertLessThan(
             strpos($response->body, 'article-accroche'),
             strpos($response->body, 'article-recent')
+        );
+    }
+
+    public function testBlogArticleRenderRewritesLegacyLocalUrls(): void
+    {
+        $this->writeBlogArticle([
+            'title' => 'Article histoire',
+            'slug' => 'article-histoire',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-20 10:00:00',
+            'content' => '<p><a href="https://www.lescaramagnols.com/auto-retro/austin/histoire-de-austin.php?lang=en">Austin</a></p>'
+                . '<img src="/images/structure/banniere.jpg" alt="Banniere">'
+                . '<img src="/images/does-not-exist.jpg" alt="Manquante">',
+        ]);
+
+        $response = $this->frontController()->handle($this->request('GET', '/blog/article/article-histoire'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString(
+            'href="/auto-retro/austin/histoire-de-austin.php?lang=en"',
+            $response->body
+        );
+        $this->assertStringContainsString(
+            'src="/assets/images/structure/banniere.jpg"',
+            $response->body
+        );
+        $this->assertStringContainsString(
+            'src="/assets/images/structure/logo.png"',
+            $response->body
         );
     }
 
@@ -1090,6 +1300,68 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertFileExists($accessLogPath);
         $logContents = (string) file_get_contents($accessLogPath);
         $this->assertStringContainsString('"request_id":"req-front-1234"', $logContents);
+    }
+
+    public function testUnhandledRenderFailureIsLoggedAndReturnedAsHttp500(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Association',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $layoutPath = TEMPLATES_PATH . '/partials/layout.php';
+        $originalLayout = (string) file_get_contents($layoutPath);
+        file_put_contents($layoutPath, "<?php\nthrow new RuntimeException('Simulated layout failure');\n");
+
+        try {
+            $response = $this->frontController()->handle(
+                $this->request(
+                    'GET',
+                    '/association',
+                    [],
+                    [],
+                    '198.51.100.26',
+                    [
+                        'User-Agent' => 'FailureTest/1.0',
+                        'X-Request-Id' => 'req-front-500',
+                    ]
+                )
+            );
+
+            $this->assertSame(500, $response->status);
+            $this->assertSame('req-front-500', $response->headers['X-Request-Id'] ?? null);
+            $this->assertStringContainsString('Impossible actuellement de traiter cette demande.', $response->body);
+
+            $accessLogPath = $this->logDir . '/access.log';
+            $this->assertFileExists($accessLogPath);
+
+            $logContents = (string) file_get_contents($accessLogPath);
+            $this->assertStringContainsString('site.request.error', $logContents);
+            $this->assertStringContainsString('"request_id":"req-front-500"', $logContents);
+            $this->assertStringContainsString('"status":500', $logContents);
+            $this->assertStringContainsString('FailureTest/1.0', $logContents);
+        } finally {
+            file_put_contents($layoutPath, $originalLayout);
+        }
     }
 
     private function frontController(): FrontController

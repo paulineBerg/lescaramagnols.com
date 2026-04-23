@@ -68,7 +68,13 @@ final class FrontController
         app_request_context_set($this->requestContext($request, $requestId));
 
         try {
-            $response = $this->dispatch($request);
+            try {
+                $response = $this->dispatch($request);
+            } catch (\Throwable $exception) {
+                $this->logRequestError($request, $exception);
+                $response = $this->internalServerErrorResponse();
+            }
+
             $response->headers['X-Request-Id'] = $requestId;
 
             return $response;
@@ -79,6 +85,16 @@ final class FrontController
 
     private function dispatch(Request $request): Response
     {
+        $canonicalRedirect = $this->canonicalRedirectResponse($request);
+        if ($canonicalRedirect !== null) {
+            return $canonicalRedirect;
+        }
+
+        $missingImageFallback = $this->missingImageFallbackResponse($request);
+        if ($missingImageFallback !== null) {
+            return $missingImageFallback;
+        }
+
         $routeInfo = $this->dispatcher->dispatch($request->method(), request_path($request->uri()));
 
         if ($routeInfo[0] === Dispatcher::FOUND) {
@@ -165,6 +181,91 @@ final class FrontController
         return $this->pageResponse($request);
     }
 
+    private function canonicalRedirectResponse(Request $request): ?Response
+    {
+        if (!in_array($request->method(), ['GET', 'HEAD'], true)) {
+            return null;
+        }
+
+        $currentPath = request_path($request->uri());
+        $normalizedPath = normalize_public_route($currentPath);
+        if (!is_string($normalizedPath) || $normalizedPath === $currentPath || $normalizedPath === '') {
+            return null;
+        }
+
+        if ($this->isLegacyImagePath($currentPath)) {
+            if (PublicUrlNormalizer::publicPathExists($normalizedPath)) {
+                return $this->redirectResponse($request, $normalizedPath, 301);
+            }
+
+            return $this->redirectResponse($request, PublicUrlNormalizer::missingImagePlaceholderPath(), 302, false);
+        }
+
+        if ($this->isKnownPublicPath($normalizedPath)) {
+            return $this->redirectResponse($request, $normalizedPath, 301);
+        }
+
+        return null;
+    }
+
+    private function missingImageFallbackResponse(Request $request): ?Response
+    {
+        if (!in_array($request->method(), ['GET', 'HEAD'], true)) {
+            return null;
+        }
+
+        $currentPath = request_path($request->uri());
+        if (!$this->isManagedImagePath($currentPath) || PublicUrlNormalizer::publicPathExists($currentPath)) {
+            return null;
+        }
+
+        $fallbackPath = PublicUrlNormalizer::missingImagePlaceholderPath();
+        if ($currentPath === $fallbackPath || !PublicUrlNormalizer::publicPathExists($fallbackPath)) {
+            return null;
+        }
+
+        return $this->redirectResponse($request, $fallbackPath, 302, false);
+    }
+
+    private function redirectResponse(Request $request, string $path, int $status, bool $preserveQueryString = true): Response
+    {
+        $location = $path;
+        if ($preserveQueryString) {
+            $queryString = parse_url($request->uri(), PHP_URL_QUERY);
+            if (is_string($queryString) && $queryString !== '') {
+                $location .= '?' . $queryString;
+            }
+        }
+
+        return new Response($status, ['Location' => $location], '');
+    }
+
+    private function isKnownPublicPath(string $path): bool
+    {
+        if ($path === '') {
+            return false;
+        }
+
+        if ($this->dispatcher->dispatch('GET', $path)[0] === Dispatcher::FOUND) {
+            return true;
+        }
+
+        return resolve_route($path) !== 'pages/404.php';
+    }
+
+    private function isLegacyImagePath(string $path): bool
+    {
+        return preg_match('#^/(?:images|structure/images)/.+$#i', $path) === 1;
+    }
+
+    private function isManagedImagePath(string $path): bool
+    {
+        return preg_match(
+            '#^/(?:assets/images|images|structure/images|uploads/editorial)/.+\.(?:avif|gif|jpe?g|png|svg|webp)$#i',
+            $path
+        ) === 1;
+    }
+
     private function robotsTxtResponse(Request $request): Response
     {
         $adminPath = $this->adminRouteResolver->canonicalPath('login');
@@ -240,18 +341,59 @@ final class FrontController
 
         $pageMetaDescription = null;
 
+        $pageBufferLevel = ob_get_level();
         ob_start();
-        include $pagePath;
-        $content = ob_get_clean();
+        try {
+            include $pagePath;
+            $content = ob_get_clean();
+        } catch (\Throwable $exception) {
+            $this->discardOutputBuffers($pageBufferLevel);
+            throw $exception;
+        }
 
+        $layoutBufferLevel = ob_get_level();
         ob_start();
-        require TEMPLATES_PATH . '/partials/layout.php';
-        $body = ob_get_clean();
+        try {
+            require TEMPLATES_PATH . '/partials/layout.php';
+            $body = ob_get_clean();
+        } catch (\Throwable $exception) {
+            $this->discardOutputBuffers($layoutBufferLevel);
+            throw $exception;
+        }
 
         $response = new Response($statusCode, [], (string) $body);
         $this->logPageVisit($request, $response, $pageFile, $isNotFound, (microtime(true) - $startedAt) * 1000);
 
         return $response;
+    }
+
+    private function internalServerErrorResponse(): Response
+    {
+        $title = function_exists('t')
+            ? (string) t('TXT_PAGE_INTERNAL_ERROR_TITLE')
+            : 'Erreur interne';
+        $message = function_exists('t')
+            ? (string) t('TXT_PAGE_INTERNAL_ERROR_BODY')
+            : 'Impossible actuellement de traiter cette demande.';
+
+        $body = implode('', [
+            '<!DOCTYPE html>',
+            '<html lang="', htmlspecialchars((string) (defined('CURRENT_LANG') ? CURRENT_LANG : 'fr'), ENT_QUOTES, 'UTF-8'), '">',
+            '<head>',
+            '<meta charset="utf-8">',
+            '<meta name="viewport" content="width=device-width, initial-scale=1">',
+            '<title>', htmlspecialchars($title, ENT_QUOTES, 'UTF-8'), '</title>',
+            '</head>',
+            '<body>',
+            '<main>',
+            '<h1>', htmlspecialchars($title, ENT_QUOTES, 'UTF-8'), '</h1>',
+            '<p>', htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), '</p>',
+            '</main>',
+            '</body>',
+            '</html>',
+        ]);
+
+        return new Response(500, ['Content-Type' => 'text/html; charset=UTF-8'], $body);
     }
 
     private function logPageVisit(
@@ -289,6 +431,40 @@ final class FrontController
             ],
             $isNotFound ? 'warning' : 'info'
         );
+    }
+
+    private function logRequestError(Request $request, \Throwable $exception): void
+    {
+        $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)) ?? 'unknown';
+        $userAgent = trim((string) ($request->header('User-Agent') ?? ''));
+        $referer = trim((string) ($request->header('Referer') ?? $request->header('Referrer') ?? ''));
+        $queryString = parse_url($request->uri(), PHP_URL_QUERY);
+
+        $this->eventLogger->access(
+            'site.request.error',
+            [
+                'ip' => $clientIp,
+                'method' => $request->method(),
+                'uri' => $request->uri(),
+                'path' => request_path($request->uri()),
+                'status' => 500,
+                'query' => is_string($queryString) ? $queryString : '',
+                'referer' => $referer,
+                'user_agent' => $userAgent,
+                'exception' => $exception::class,
+                'error' => trim($exception->getMessage()),
+                'file' => $exception->getFile(),
+                'line' => $exception->getLine(),
+            ],
+            'error'
+        );
+    }
+
+    private function discardOutputBuffers(int $targetLevel): void
+    {
+        while (ob_get_level() > $targetLevel) {
+            ob_end_clean();
+        }
     }
 
     private function resolveRequestId(Request $request): string

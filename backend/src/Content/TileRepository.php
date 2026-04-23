@@ -303,7 +303,7 @@ final class TileRepository
 
             return $this->groupSummariesCache = $summaries;
         } catch (\Throwable $exception) {
-            error_log('[tile_repository] ' . $exception->getMessage());
+            $this->reportFailure($exception);
 
             return $this->groupSummariesCache = [];
         }
@@ -433,7 +433,7 @@ final class TileRepository
                 $pdo->rollBack();
             }
 
-            error_log('[tile_repository] ' . $exception->getMessage());
+            $this->reportFailure($exception);
 
             return false;
         }
@@ -459,7 +459,7 @@ final class TileRepository
 
             return $delete->rowCount() > 0;
         } catch (\Throwable $exception) {
-            error_log('[tile_repository] ' . $exception->getMessage());
+            $this->reportFailure($exception);
 
             return false;
         }
@@ -661,7 +661,7 @@ final class TileRepository
                 $pdo->rollBack();
             }
 
-            error_log('[tile_repository] ' . $exception->getMessage());
+            $this->reportFailure($exception);
 
             return false;
         }
@@ -682,7 +682,7 @@ final class TileRepository
 
             return true;
         } catch (\Throwable $exception) {
-            error_log('[tile_repository] ' . $exception->getMessage());
+            $this->reportFailure($exception);
 
             return false;
         }
@@ -775,7 +775,7 @@ final class TileRepository
 
             return $references;
         } catch (\Throwable $exception) {
-            error_log('[tile_repository] ' . $exception->getMessage());
+            $this->reportFailure($exception);
 
             return [];
         }
@@ -892,7 +892,7 @@ final class TileRepository
                 $result[$groupId] = $group;
             }
         } catch (\Throwable $exception) {
-            error_log('[tile_repository] ' . $exception->getMessage());
+            $this->reportFailure($exception);
         }
 
         return $result;
@@ -1092,7 +1092,7 @@ final class TileRepository
 
             return $this->pagePlacementsCache[$cacheKey] = $placements;
         } catch (\Throwable $exception) {
-            error_log('[tile_repository] ' . $exception->getMessage());
+            $this->reportFailure($exception);
 
             return $this->pagePlacementsCache[$cacheKey] = [];
         }
@@ -1734,5 +1734,19 @@ final class TileRepository
         }
 
         return $normalized;
+    }
+
+    private function reportFailure(\Throwable $exception): void
+    {
+        if ($this->isExpectedConfigurationFailure($exception)) {
+            return;
+        }
+
+        error_log('[tile_repository] ' . $exception->getMessage());
+    }
+
+    private function isExpectedConfigurationFailure(\Throwable $exception): bool
+    {
+        return str_contains($exception->getMessage(), 'Configuration SQL éditoriale incomplète.');
     }
 }

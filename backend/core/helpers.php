@@ -538,6 +538,26 @@ function page_tile_renderer(): PageTileRenderer
     return $renderer;
 }
 
+function render_page_tiles_after_body(string $pageSlug, string $language): string
+{
+    $normalizedSlug = trim($pageSlug);
+    if ($normalizedSlug === '') {
+        return '';
+    }
+
+    $normalizedLanguage = trim($language) !== '' ? trim($language) : 'fr';
+
+    try {
+        return page_tile_renderer()->renderAfterBody($normalizedSlug, $normalizedLanguage);
+    } catch (\Throwable $exception) {
+        if (!str_contains($exception->getMessage(), 'Configuration SQL éditoriale incomplète.')) {
+            error_log('[page_tile_renderer] ' . $exception->getMessage());
+        }
+
+        return '';
+    }
+}
+
 function navigation_repository(?string $path = null): NavigationRepository
 {
     return new NavigationRepository($path ?? ROOT_PATH . '/data/menus.json');

@@ -52,6 +52,8 @@ Mise a jour 2026-04-16 :
   - erreurs de validation / persistance
 - `access.log`
   - visites front-office GET (`site.visit.page`, `site.visit.not_found`)
+  - erreurs HTTP 500 capturees par le front-controller (`site.request.error`)
+  - fatals/uncaught exceptions web captures au niveau bootstrap (`site.request.fatal`)
   - statut HTTP + metriques de rendu (`render_ms`)
   - contexte visiteur (`ip`, `user_agent`, `referer`, `query`, `visitor_id`)
 
@@ -95,6 +97,31 @@ Seuils par defaut :
 - ne pas journaliser de mot de passe ni de token CSRF
 - preferer des evenements courts et structures
 - garder les logs utiles pour l'audit, pas pour du debug front verbeux
+
+## Capture Des Erreurs HTTP
+
+- `backend/src/Http/FrontController.php` journalise maintenant les exceptions non gerees sous `site.request.error`
+- contexte attendu :
+  - `request_id`
+  - `method`
+  - `uri`
+  - `path`
+  - `status=500`
+  - `referer`
+  - `user_agent`
+  - `exception`
+  - `error`
+  - `file`
+  - `line`
+- le front-controller renvoie ensuite une page `500` minimale avec `X-Request-Id`
+
+Filet de securite supplementaire :
+- `backend/core/bootstrap.php` enregistre `site.request.fatal` pour les fatals web et les exceptions non rattrapees qui surviennent avant le logging HTTP nominal
+- si `AppEventLogger` n'est pas encore disponible, le bootstrap emet un fallback compact via `error_log`
+
+Limite importante :
+- une entree publique legacy qui contourne `backend/public/index.php` et le bootstrap du depot contournera aussi cette observabilite
+- en production, toute racine historique ou wrapper legacy doit donc deleguer vers `backend/public/index.php` plutot que conserver sa propre logique
 
 ## Scheduler systemd (preprod/prod)
 

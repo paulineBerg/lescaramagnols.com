@@ -40,6 +40,10 @@ $parentArticle = is_array($article['parent_article'] ?? null) ? $article['parent
 $childArticles = is_array($article['child_articles'] ?? null) ? $article['child_articles'] : [];
 $articleSlug = (string) ($article['slug'] ?? '');
 $articleLanguage = (string) ($article['lang'] ?? (defined('CURRENT_LANG') ? CURRENT_LANG : app_config('default_lang', 'fr')));
+$renderedArticleContent = \Caramagnols\Http\PublicUrlNormalizer::rewriteHtmlFragment(
+    (string) ($article['content'] ?? ''),
+    '/' . trim($articleLanguage, '/') . '/blog/article/' . ($articleSlug !== '' ? $articleSlug : 'article')
+);
 $slugifyBlogFilterValue = static function (string $value): string {
     $normalized = trim($value);
     if ($normalized === '') {
@@ -233,7 +237,7 @@ $blocks['EditRegion2'] = ob_get_clean();
 ob_start();
 ?>
 <article class="blog-article-body">
-  <?php echo (string) ($article['content'] ?? ''); ?>
+  <?php echo $renderedArticleContent; ?>
 </article>
 <?php
 $blocks['EditRegion3'] = ob_get_clean();

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Caramagnols\Content;
 
+use Caramagnols\Http\PublicUrlNormalizer;
+
 final class PagePayloadNormalizer
 {
     public function __construct(
@@ -49,6 +51,9 @@ final class PagePayloadNormalizer
         if ($blocks === null || $regions === null || $translations === null) {
             return null;
         }
+
+        $blocks = $this->normalizeBlocks($blocks, $route);
+        $translations = $this->normalizeTranslationBlocks($translations, $route);
 
         return [
             'slug' => $slug,
@@ -97,11 +102,12 @@ final class PagePayloadNormalizer
 
         $blocks = array_merge(
             self::blockDefaults(),
-            $this->renderer->renderRegions($baseRegions),
+            $this->renderer->renderRegions($baseRegions, (string) ($page['route'] ?? '')),
             $baseBlocks,
-            $this->renderer->renderRegions($translationRegions),
+            $this->renderer->renderRegions($translationRegions, (string) ($page['route'] ?? '')),
             $translationBlocks
         );
+        $blocks = $this->normalizeBlocks($blocks, (string) ($page['route'] ?? ''));
 
         $metaBase = is_array($page['meta'] ?? null) ? $page['meta'] : [];
         $metaTranslated = is_array($translation['meta'] ?? null) ? $translation['meta'] : [];
@@ -203,5 +209,45 @@ final class PagePayloadNormalizer
     private function normalizeRoute(string $route): ?string
     {
         return normalize_public_route($route);
+    }
+
+    /**
+     * @param array<string, mixed> $blocks
+     * @return array<string, mixed>
+     */
+    private function normalizeBlocks(array $blocks, string $route): array
+    {
+        foreach ($blocks as $blockName => $blockValue) {
+            if (!is_string($blockName)) {
+                continue;
+            }
+
+            if (!is_string($blockValue) || trim($blockValue) === '') {
+                continue;
+            }
+
+            $blocks[$blockName] = PublicUrlNormalizer::rewriteHtmlFragment($blockValue, $route);
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $translations
+     * @return array<string, array<string, mixed>>
+     */
+    private function normalizeTranslationBlocks(array $translations, string $route): array
+    {
+        foreach ($translations as $language => $translation) {
+            if (!is_string($language) || !is_array($translation)) {
+                continue;
+            }
+
+            $blocks = is_array($translation['blocks'] ?? null) ? $translation['blocks'] : [];
+            $translation['blocks'] = $this->normalizeBlocks($blocks, $route);
+            $translations[$language] = $translation;
+        }
+
+        return $translations;
     }
 }

@@ -361,6 +361,8 @@ if ($attachedArticles !== []) {
         if ($articleLanguage === '') {
             $articleLanguage = $language;
         }
+        $articleContentRoute = '/' . trim($articleLanguage, '/') . '/blog/article/' . ($slug !== '' ? $slug : 'article');
+        $content = \Caramagnols\Http\PublicUrlNormalizer::rewriteHtmlFragment($content, $articleContentRoute);
         $discussionAnchorId = 'discussion-form-' . ($slug !== '' ? $slug : (string) $articleIndex);
         $discussionTitleId = 'blog-discussions-title-' . ($slug !== '' ? $slug : (string) $articleIndex);
         $discussionFieldPrefix = 'discussion-' . ($slug !== '' ? $slug : (string) $articleIndex);
@@ -595,7 +597,7 @@ if (is_array($instagramView) && !empty($instagramView['enabled'])) {
     $blocks['EditRegion11'] = $existingPostscript . ob_get_clean();
 }
 
-$pageTilesHtml = $pageSlug !== '' ? page_tile_renderer()->renderAfterBody($pageSlug, $language) : '';
+$pageTilesHtml = $pageSlug !== '' ? render_page_tiles_after_body($pageSlug, $language) : '';
 if ($pageTilesHtml !== '') {
     $existingAfterBody = (string) ($blocks['EditRegion4'] ?? '');
     $blocks['EditRegion4'] = $existingAfterBody . $pageTilesHtml;

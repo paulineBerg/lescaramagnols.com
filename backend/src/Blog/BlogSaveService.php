@@ -6,6 +6,7 @@ namespace Caramagnols\Blog;
 
 use Caramagnols\Admin\AdminEditorialImageService;
 use Caramagnols\Content\PageRepository;
+use Caramagnols\Http\PublicUrlNormalizer;
 use Caramagnols\Logging\AppEventLogger;
 
 final class BlogSaveService
@@ -84,6 +85,7 @@ final class BlogSaveService
         if ($content === '') {
             $errors[] = 'Le contenu est obligatoire.';
         }
+        $content = PublicUrlNormalizer::rewriteHtmlFragment($content, '/blog/article/' . $slug);
 
         $author = sanitize_text_field((string) ($payload['author'] ?? $actorIdentifier ?? ''), 120);
         $category = sanitize_text_field((string) ($payload['category'] ?? ''), 120);

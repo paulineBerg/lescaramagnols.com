@@ -19,7 +19,7 @@ final class RoutePathHelperTest extends TestCase
     {
         $this->assertSame('/contact', RoutePathHelper::normalizePublicRoute('contact'));
         $this->assertSame('https://example.test/a', RoutePathHelper::normalizePublicRoute('https://example.test/a'));
+        $this->assertSame('/assets/images/structure/banniere.jpg', RoutePathHelper::normalizePublicRoute('/images/structure/banniere.jpg'));
         $this->assertNull(RoutePathHelper::normalizePublicRoute('#'));
     }
 }
-

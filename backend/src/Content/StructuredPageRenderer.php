@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Caramagnols\Content;
 
+use Caramagnols\Http\PublicUrlNormalizer;
+
 final class StructuredPageRenderer
 {
     private const ALLOWED_HTML_TAGS = [
@@ -62,7 +64,7 @@ final class StructuredPageRenderer
      * @param array<string, mixed> $regions
      * @return array<string, string>
      */
-    public function renderRegions(array $regions): array
+    public function renderRegions(array $regions, ?string $pageRoute = null): array
     {
         $blocks = [];
 
@@ -72,16 +74,16 @@ final class StructuredPageRenderer
                 continue;
             }
 
-            $blocks[$slot] = $this->renderRegionValue($value);
+            $blocks[$slot] = $this->renderRegionValue($value, $pageRoute);
         }
 
         return $blocks;
     }
 
-    private function renderRegionValue(mixed $value): string
+    private function renderRegionValue(mixed $value, ?string $pageRoute = null): string
     {
         if (is_string($value)) {
-            return $this->sanitizeRichText($value);
+            return $this->sanitizeRichText($value, $pageRoute);
         }
 
         if (!is_array($value)) {
@@ -92,18 +94,18 @@ final class StructuredPageRenderer
             $html = '';
 
             foreach ($value as $item) {
-                $html .= $this->renderRegionValue($item);
+                $html .= $this->renderRegionValue($item, $pageRoute);
             }
 
             return $html;
         }
 
         if (isset($value['component']) && is_string($value['component'])) {
-            return $this->renderComponent($value);
+            return $this->renderComponent($value, $pageRoute);
         }
 
         if (isset($value['html']) && is_string($value['html'])) {
-            return $this->sanitizeRichText($value['html']);
+            return $this->sanitizeRichText($value['html'], $pageRoute);
         }
 
         return '';
@@ -112,12 +114,12 @@ final class StructuredPageRenderer
     /**
      * @param array<string, mixed> $component
      */
-    private function renderComponent(array $component): string
+    private function renderComponent(array $component, ?string $pageRoute = null): string
     {
         return match ($component['component']) {
             'heading' => $this->renderHeading($component),
             'facts' => $this->renderFacts($component),
-            'rich_text' => $this->renderRichTextComponent($component),
+            'rich_text' => $this->renderRichTextComponent($component, $pageRoute),
             'contact_form' => $this->renderContactForm($component),
             default => '',
         };
@@ -210,14 +212,14 @@ final class StructuredPageRenderer
     /**
      * @param array<string, mixed> $component
      */
-    private function renderRichTextComponent(array $component): string
+    private function renderRichTextComponent(array $component, ?string $pageRoute = null): string
     {
         $html = (string) ($component['html'] ?? '');
         if ($html === '') {
             return '';
         }
 
-        return $this->sanitizeRichText($html);
+        return $this->sanitizeRichText($html, $pageRoute);
     }
 
     /**
@@ -334,13 +336,15 @@ final class StructuredPageRenderer
         return '<img ' . implode(' ', $attributes) . '>';
     }
 
-    private function sanitizeRichText(string $html): string
+    private function sanitizeRichText(string $html, ?string $pageRoute = null): string
     {
         $sanitized = trim($html);
 
         if (function_exists('sanitize_text_field')) {
             $sanitized = sanitize_text_field($html, null, self::ALLOWED_HTML_TAGS);
         }
+
+        $sanitized = PublicUrlNormalizer::rewriteHtmlFragment($sanitized, $pageRoute);
 
         return $this->sanitizeIframeEmbeds($sanitized);
     }
@@ -530,24 +534,7 @@ final class StructuredPageRenderer
 
     private function sanitizeImageSrc(string $src): string
     {
-        $src = trim($src);
-        if ($src === '') {
-            return '';
-        }
-
-        if (preg_match('#^/assets/images/#', $src) === 1) {
-            return $src;
-        }
-
-        if (preg_match('#^/uploads/editorial/#', $src) === 1) {
-            return $src;
-        }
-
-        if (preg_match('#^https?://#i', $src) === 1) {
-            return $src;
-        }
-
-        return '';
+        return PublicUrlNormalizer::normalizeImageSource($src);
     }
 
     private function escape(string $value): string
