@@ -197,9 +197,9 @@ final class AdminEditorialImageService
 
             $relativePath = '/' . ltrim($relativePath, '/');
             $dimensions = @getimagesize((string) $fileInfo->getPathname());
-            $width = is_array($dimensions) ? $this->normalizeDimension($dimensions[0] ?? null, 1, 8192) : null;
-            $height = is_array($dimensions) ? $this->normalizeDimension($dimensions[1] ?? null, 1, 8192) : null;
-            $mime = is_array($dimensions) && is_string($dimensions['mime'] ?? null)
+            $width = is_array($dimensions) ? $this->normalizeDimension($dimensions[0], 1, 8192) : null;
+            $height = is_array($dimensions) ? $this->normalizeDimension($dimensions[1], 1, 8192) : null;
+            $mime = is_array($dimensions) && is_string($dimensions['mime'])
                 ? strtolower((string) $dimensions['mime'])
                 : (self::extensionToMime($extension) ?? 'application/octet-stream');
 
@@ -214,7 +214,7 @@ final class AdminEditorialImageService
 
         usort(
             $entries,
-            static fn (array $left, array $right): int => ((int) ($right['mtime'] ?? 0)) <=> ((int) ($left['mtime'] ?? 0))
+            static fn (array $left, array $right): int => ((int) $right['mtime']) <=> ((int) $left['mtime'])
         );
 
         $entries = array_slice($entries, 0, max(0, $limit));
@@ -222,10 +222,10 @@ final class AdminEditorialImageService
         return array_values(
             array_map(
                 static fn (array $entry): array => [
-                    'src' => (string) ($entry['src'] ?? ''),
+                    'src' => (string) $entry['src'],
                     'width' => isset($entry['width']) ? (is_int($entry['width']) ? $entry['width'] : null) : null,
                     'height' => isset($entry['height']) ? (is_int($entry['height']) ? $entry['height'] : null) : null,
-                    'mime' => (string) ($entry['mime'] ?? 'application/octet-stream'),
+                    'mime' => (string) $entry['mime'],
                 ],
                 $entries
             )
@@ -356,8 +356,8 @@ final class AdminEditorialImageService
         }
 
         $dimensions = @getimagesize($tmpName);
-        $width = is_array($dimensions) ? $this->normalizeDimension($dimensions[0] ?? null, 1, 8192) : null;
-        $height = is_array($dimensions) ? $this->normalizeDimension($dimensions[1] ?? null, 1, 8192) : null;
+        $width = is_array($dimensions) ? $this->normalizeDimension($dimensions[0], 1, 8192) : null;
+        $height = is_array($dimensions) ? $this->normalizeDimension($dimensions[1], 1, 8192) : null;
         $originalName = is_string($file['name'] ?? null) ? (string) $file['name'] : '';
 
         return [
@@ -414,7 +414,7 @@ final class AdminEditorialImageService
     }
 
     /**
-     * @return \GdImage|resource|null
+     * @return \GdImage|false|null
      */
     private function createImageResourceFromFile(string $filePath, string $mimeType): mixed
     {

@@ -617,7 +617,7 @@ final class LegacyTileMigrationService
         }
 
         foreach (self::AUTO_RETRO_MODEL_OVERVIEW_PAGES as $brand => $pageSlug) {
-            $targetSlug = self::AUTO_RETRO_EXEMPLAR_TARGETS[$brand] ?? self::AUTO_RETRO_HISTORY_TARGETS[$brand];
+            $targetSlug = self::AUTO_RETRO_EXEMPLAR_TARGETS[$brand];
             if ($targetSlug === $pageSlug) {
                 $targetSlug = self::AUTO_RETRO_HISTORY_TARGETS[$brand];
             }
@@ -971,10 +971,10 @@ final class LegacyTileMigrationService
             $items[] = $this->pageItem(
                 $brandKey,
                 $sortOrder,
-                (string) ($brand['color'] ?? 'bleu'),
-                (string) ($brand['image'] ?? ''),
+                (string) $brand['color'],
+                (string) $brand['image'],
                 (string) ($targets[$brandKey] ?? ''),
-                $this->sameLabelTranslations((string) ($brand['label'] ?? $brandKey)),
+                $this->sameLabelTranslations((string) $brand['label']),
                 $tileSizes[$brandIndex] ?? TileRepository::DEFAULT_SIZE
             );
 
@@ -1087,8 +1087,8 @@ final class LegacyTileMigrationService
             return $meta;
         }
 
-        $meta['width'] = isset($size[0]) ? max(1, (int) $size[0]) : null;
-        $meta['height'] = isset($size[1]) ? max(1, (int) $size[1]) : null;
+        $meta['width'] = max(1, (int) $size[0]);
+        $meta['height'] = max(1, (int) $size[1]);
 
         return $meta;
     }

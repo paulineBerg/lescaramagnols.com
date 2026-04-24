@@ -587,44 +587,6 @@ final class AdminNavigationService
     }
 
     /**
-     * @param array<int, string>|null $preferredPrefixes
-     * @return array{text: string|null, translationKey: string|null}
-     */
-    private function normalizeLocalizedValueFromPost(
-        mixed $textValue,
-        mixed $translationKeyValue,
-        ?array $preferredPrefixes = null
-    ): array {
-        $text = $this->stringOrNull($textValue);
-        $translationKey = $this->stringOrNull($translationKeyValue);
-
-        if ($translationKey !== null) {
-            $translatedValue = $this->translateKey($translationKey);
-            if ($text === null || $text === $translationKey || ($translatedValue !== null && $text === $translatedValue)) {
-                return [
-                    'text' => null,
-                    'translationKey' => $translationKey,
-                ];
-            }
-        }
-
-        if ($text !== null && function_exists('translation_key_for_text')) {
-            $resolvedKey = translation_key_for_text($text, $preferredPrefixes);
-            if (is_string($resolvedKey) && $resolvedKey !== '') {
-                return [
-                    'text' => null,
-                    'translationKey' => $resolvedKey,
-                ];
-            }
-        }
-
-        return [
-            'text' => $text,
-            'translationKey' => null,
-        ];
-    }
-
-    /**
      * @param array<string, mixed> $canonical
      */
     private function validateCanonical(array $canonical): ?string

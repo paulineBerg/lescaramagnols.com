@@ -241,10 +241,10 @@ final class TileRepository
     {
         return array_map(
             static fn (array $summary): array => [
-                'id' => (int) ($summary['id'] ?? 0),
-                'name' => (string) ($summary['name'] ?? ''),
-                'theme' => (string) ($summary['theme'] ?? self::DEFAULT_THEME),
-                'tileCount' => (int) ($summary['tileCount'] ?? 0),
+                'id' => (int) $summary['id'],
+                'name' => (string) $summary['name'],
+                'theme' => (string) $summary['theme'],
+                'tileCount' => (int) $summary['tileCount'],
             ],
             $this->listGroupSummaries()
         );
@@ -567,7 +567,7 @@ final class TileRepository
                     $groupIds[] = (int) $placement['group_id'];
                 }
 
-        $groups = $this->loadGroupsByIds(array_values(array_unique($groupIds)));
+                $groups = $this->loadGroupsByIds(array_values(array_unique($groupIds)));
                 $insertPlacement = $pdo->prepare(
                     sprintf(
                         'INSERT INTO `%s`

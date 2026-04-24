@@ -383,6 +383,7 @@ h3 {
 
 .page-tile-groups {
   --page-tile-gap: clamp(0.45rem, 1vw, 0.9rem);
+
   display: grid;
   gap: clamp(1rem, 1.8vw, 1.75rem);
   width: 100%;
@@ -409,8 +410,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--page-tile-gap);
-  justify-content: stretch;
-  align-content: start;
+  place-content: start stretch;
 }
 
 .page-tile {
@@ -658,7 +658,7 @@ h3 {
   text-shadow: none;
 }
 
-@media (max-width: 63.99rem) {
+@media (width <= 63.99rem) {
   .page-tile-group__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -668,7 +668,7 @@ h3 {
   }
 }
 
-@media (max-width: 47.99rem) {
+@media (width <= 47.99rem) {
   .page-tile-group__grid {
     grid-template-columns: 1fr;
     justify-content: stretch;

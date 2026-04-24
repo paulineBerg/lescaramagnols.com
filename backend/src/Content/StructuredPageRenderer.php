@@ -357,7 +357,7 @@ final class StructuredPageRenderer
 
         $sanitized = preg_replace_callback(
             '/<iframe\b([^>]*)>(?:\s*<\/iframe>)?/i',
-            fn (array $matches): string => $this->sanitizeIframeTag((string) ($matches[1] ?? '')),
+            fn (array $matches): string => $this->sanitizeIframeTag((string) $matches[1]),
             $html
         );
 
@@ -424,7 +424,7 @@ final class StructuredPageRenderer
         );
 
         foreach ($matches as $match) {
-            $name = strtolower((string) ($match[1] ?? ''));
+            $name = strtolower((string) $match[1]);
             if ($name === '' || array_key_exists($name, $attributes)) {
                 continue;
             }

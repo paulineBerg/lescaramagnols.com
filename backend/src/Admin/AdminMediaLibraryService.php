@@ -331,12 +331,12 @@ final class AdminMediaLibraryService
         usort(
             $items,
             static function (array $left, array $right): int {
-                $byDate = ((int) ($right['mtime'] ?? 0)) <=> ((int) ($left['mtime'] ?? 0));
+                $byDate = ((int) $right['mtime']) <=> ((int) $left['mtime']);
                 if ($byDate !== 0) {
                     return $byDate;
                 }
 
-                return strcmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+                return strcmp((string) $left['name'], (string) $right['name']);
             }
         );
 
@@ -997,7 +997,7 @@ final class AdminMediaLibraryService
             }
 
             $temporaryPath = tempnam(sys_get_temp_dir(), 'cara-media-zip-');
-            if (!is_string($temporaryPath) || $temporaryPath === '') {
+            if (!is_string($temporaryPath)) {
                 fclose($stream);
                 $errors[] = 'Impossible de creer un fichier temporaire pour import ZIP.';
                 continue;
@@ -1265,7 +1265,7 @@ final class AdminMediaLibraryService
         }
 
         $archivePath = tempnam(sys_get_temp_dir(), 'cara-media-export-');
-        if (!is_string($archivePath) || $archivePath === '') {
+        if (!is_string($archivePath)) {
             return [
                 'success' => false,
                 'error' => 'Impossible de preparer l archive dexport.',
@@ -1454,8 +1454,8 @@ final class AdminMediaLibraryService
         $policy = self::MEDIA_GOVERNANCE_POLICIES[$normalizedContext] ?? self::MEDIA_GOVERNANCE_POLICIES['page'];
         $imageExtensions = array_values(array_unique(array_map(static fn (string $ext): string => strtolower(trim($ext)), $policy['imageExtensions'])));
         $videoExtensions = array_values(array_unique(array_map(static fn (string $ext): string => strtolower(trim($ext)), $policy['videoExtensions'])));
-        $imageMaxBytes = max(0, (int) ($policy['imageMaxBytes'] ?? 0));
-        $videoMaxBytes = max(0, (int) ($policy['videoMaxBytes'] ?? 0));
+        $imageMaxBytes = max(0, (int) $policy['imageMaxBytes']);
+        $videoMaxBytes = max(0, (int) $policy['videoMaxBytes']);
 
         return [
             'context' => $normalizedContext,
@@ -1782,8 +1782,8 @@ final class AdminMediaLibraryService
         if (str_starts_with($mimeType, 'image/')) {
             $dimensions = @getimagesize($absolutePath);
             if (is_array($dimensions)) {
-                $width = is_numeric($dimensions[0] ?? null) ? (int) $dimensions[0] : null;
-                $height = is_numeric($dimensions[1] ?? null) ? (int) $dimensions[1] : null;
+                $width = is_numeric($dimensions[0]) ? (int) $dimensions[0] : null;
+                $height = is_numeric($dimensions[1]) ? (int) $dimensions[1] : null;
             }
         }
 
@@ -2026,7 +2026,7 @@ final class AdminMediaLibraryService
     }
 
     /**
-     * @return \GdImage|resource|null
+     * @return \GdImage|false|null
      */
     private function createImageResourceFromFile(string $filePath, string $mimeType): mixed
     {

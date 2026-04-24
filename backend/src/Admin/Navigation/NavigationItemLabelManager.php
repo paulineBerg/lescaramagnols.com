@@ -60,7 +60,7 @@ final class NavigationItemLabelManager
 
     /**
      * @param array<string, mixed>|null $label
-     * @param callable(string): ?string|null $translationResolver
+     * @param callable(string): ?string $translationResolver
      */
     public function labelToString(?array $label, ?string $preferredLanguage, callable $translationResolver): ?string
     {
@@ -261,4 +261,3 @@ final class NavigationItemLabelManager
         return $normalized === '' ? null : $normalized;
     }
 }
-

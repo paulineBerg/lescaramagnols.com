@@ -47,9 +47,9 @@ $existingDatabaseOverride = load_override_file($databaseOverridePath);
 $existingAdminOverride = load_override_file($adminOverridePath);
 
 $dbPrefix = trim((string) (
-    $options['db-prefix']
-    ?? ($existingDatabaseOverride['prefix'] ?? '')
-    ?? 'car_'
+    array_key_exists('db-prefix', $options)
+        ? $options['db-prefix']
+        : ($existingDatabaseOverride['prefix'] ?? 'car_')
 ));
 
 if ($dbPrefix === '') {
@@ -62,30 +62,34 @@ if (preg_match('/^[a-z][a-z0-9_]*$/', $dbPrefix) !== 1) {
 }
 
 $dbHost = trim((string) (
-    $options['db-host']
-    ?? ($existingDatabaseOverride['host'] ?? '')
-    ?? env('DB_HOST', '127.0.0.1')
+    array_key_exists('db-host', $options)
+        ? $options['db-host']
+        : (array_key_exists('host', $existingDatabaseOverride) ? $existingDatabaseOverride['host'] : env('DB_HOST', '127.0.0.1'))
 ));
-$dbPort = (int) ($options['db-port'] ?? ($existingDatabaseOverride['port'] ?? env('DB_PORT', 3306)));
+$dbPort = (int) (
+    array_key_exists('db-port', $options)
+        ? $options['db-port']
+        : (array_key_exists('port', $existingDatabaseOverride) ? $existingDatabaseOverride['port'] : env('DB_PORT', 3306))
+);
 $dbName = trim((string) (
-    $options['db-name']
-    ?? ($existingDatabaseOverride['name'] ?? '')
-    ?? env('DB_NAME', '')
+    array_key_exists('db-name', $options)
+        ? $options['db-name']
+        : (array_key_exists('name', $existingDatabaseOverride) ? $existingDatabaseOverride['name'] : env('DB_NAME', ''))
 ));
 $dbUser = trim((string) (
-    $options['db-user']
-    ?? ($existingDatabaseOverride['user'] ?? '')
-    ?? env('DB_USER', '')
+    array_key_exists('db-user', $options)
+        ? $options['db-user']
+        : (array_key_exists('user', $existingDatabaseOverride) ? $existingDatabaseOverride['user'] : env('DB_USER', ''))
 ));
 $dbPassword = (string) (
-    $options['db-password']
-    ?? ($existingDatabaseOverride['password'] ?? '')
-    ?? env('DB_PASSWORD', '')
+    array_key_exists('db-password', $options)
+        ? $options['db-password']
+        : (array_key_exists('password', $existingDatabaseOverride) ? $existingDatabaseOverride['password'] : env('DB_PASSWORD', ''))
 );
 $dbCharset = trim((string) (
-    $options['db-charset']
-    ?? ($existingDatabaseOverride['charset'] ?? '')
-    ?? env('DB_CHARSET', 'utf8mb4')
+    array_key_exists('db-charset', $options)
+        ? $options['db-charset']
+        : (array_key_exists('charset', $existingDatabaseOverride) ? $existingDatabaseOverride['charset'] : env('DB_CHARSET', 'utf8mb4'))
 ));
 
 if ($dbHost === '' || $dbPort <= 0 || $dbName === '' || $dbUser === '') {
@@ -102,11 +106,15 @@ if (preg_match('/^[A-Za-z0-9_]+$/', $dbCharset) !== 1) {
 }
 
 $adminIdentifier = trim((string) (
-    $options['admin-identifier']
-    ?? $options['admin-email']
-    ?? ($existingAdminOverride['identifier'] ?? '')
-    ?? ($existingAdminOverride['email'] ?? '')
-    ?? env('ADMIN_IDENTIFIER', env('ADMIN_EMAIL', ''))
+    array_key_exists('admin-identifier', $options)
+        ? $options['admin-identifier']
+        : (array_key_exists('admin-email', $options)
+            ? $options['admin-email']
+            : (array_key_exists('identifier', $existingAdminOverride)
+                ? $existingAdminOverride['identifier']
+                : (array_key_exists('email', $existingAdminOverride)
+                    ? $existingAdminOverride['email']
+                    : env('ADMIN_IDENTIFIER', env('ADMIN_EMAIL', '')))))
 ));
 
 if ($adminIdentifier === '') {
@@ -127,7 +135,7 @@ if ($rawAdminPassword !== '') {
     }
 
     $generatedHash = password_hash($rawAdminPassword, PASSWORD_DEFAULT);
-    if (!is_string($generatedHash) || $generatedHash === '') {
+    if (!is_string($generatedHash)) {
         fwrite(STDERR, "Impossible de generer un hash admin.\n");
         exit(1);
     }

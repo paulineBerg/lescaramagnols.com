@@ -13,6 +13,22 @@ if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', realpath(__DIR__ . '/../'));
 }
 
+$runtimeDirectories = [
+    ROOT_PATH . '/var',
+    ROOT_PATH . '/var/cache',
+    ROOT_PATH . '/var/log',
+    ROOT_PATH . '/var/phpstan',
+    ROOT_PATH . '/var/rate-limits',
+];
+
+foreach ($runtimeDirectories as $runtimeDirectory) {
+    if (is_dir($runtimeDirectory)) {
+        continue;
+    }
+
+    @mkdir($runtimeDirectory, 0775, true);
+}
+
 // 1bis. Autoload Composer (classes PSR-4, libs externes)
 $autoload = ROOT_PATH . '/vendor/autoload.php';
 if (file_exists($autoload)) {
@@ -119,15 +135,15 @@ if (PHP_SAPI !== 'cli' && !defined('CARAMAGNOLS_BOOTSTRAP_ERROR_HANDLERS_REGISTE
         }
 
         $fatalTypes = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
-        if (!in_array((int) ($error['type'] ?? 0), $fatalTypes, true)) {
+        if (!in_array((int) $error['type'], $fatalTypes, true)) {
             return;
         }
 
         $logBootstrapFailure('site.request.fatal', [
-            'fatal_type' => (int) ($error['type'] ?? 0),
-            'error' => trim((string) ($error['message'] ?? '')),
-            'file' => (string) ($error['file'] ?? ''),
-            'line' => (int) ($error['line'] ?? 0),
+            'fatal_type' => (int) $error['type'],
+            'error' => trim((string) $error['message']),
+            'file' => (string) $error['file'],
+            'line' => (int) $error['line'],
         ]);
     });
 }

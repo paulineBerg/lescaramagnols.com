@@ -391,7 +391,7 @@ final class AdminBlogService
         ];
         $form = $this->mapFormData($payload);
 
-        $selectedPageSlug = trim((string) ($payload['page_slug'] ?? ''));
+        $selectedPageSlug = trim((string) $payload['page_slug']);
         if ($selectedPageSlug === '') {
             return [
                 'success' => false,

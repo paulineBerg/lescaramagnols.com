@@ -146,8 +146,8 @@ final class AdminTileService
         usort(
             $options,
             static fn (array $left, array $right): int => strcasecmp(
-                (string) ($left['title'] ?? $left['slug'] ?? ''),
-                (string) ($right['title'] ?? $right['slug'] ?? '')
+                (string) $left['title'],
+                (string) $right['title']
             )
         );
 
@@ -499,7 +499,7 @@ final class AdminTileService
         }
 
         if (preg_match('/^(.*?)(?:\s*-\s*copie|\s+\(copie\))(?:\s+(\d+))?$/u', $normalized, $matches) === 1) {
-            $baseName = trim((string) ($matches[1] ?? ''));
+            $baseName = trim((string) $matches[1]);
             $copyIndex = max(2, (int) ($matches[2] ?? 1) + 1);
 
             return sprintf('%s - copie %d', $baseName !== '' ? $baseName : 'Nouveau groupe', $copyIndex);

@@ -4,6 +4,11 @@ if (!defined('ROOT_PATH')) {
     define('ROOT_PATH', __DIR__);
 }
 
+$phpstanRuntimeDirectory = __DIR__ . '/var/phpstan';
+if (!is_dir($phpstanRuntimeDirectory)) {
+    @mkdir($phpstanRuntimeDirectory, 0775, true);
+}
+
 $autoload = __DIR__ . '/vendor/autoload.php';
 if (file_exists($autoload)) {
     require_once $autoload;

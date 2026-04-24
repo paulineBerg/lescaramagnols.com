@@ -80,6 +80,10 @@ ALL_CHANGED="$TMP_DIR/all_changed.txt"
 CHANGED_FILES="$TMP_DIR/changed_files.txt"
 DELETED_FILES="$TMP_DIR/deleted_files.txt"
 
+: > "$ALL_CHANGED"
+: > "$CHANGED_FILES"
+: > "$DELETED_FILES"
+
 if [[ "$ALL_CHANGES" -eq 1 ]]; then
   {
     git -C "$REPO_ROOT" diff --name-only -- backend

@@ -135,12 +135,12 @@ final class PublicUrlNormalizer
         $rewritten = preg_replace_callback(
             '/\b(href|src|poster)\s*=\s*(["\'])(.*?)\2/is',
             static function (array $matches) use ($baseRoute): string {
-                $attribute = strtolower((string) ($matches[1] ?? ''));
-                $quote = (string) ($matches[2] ?? '"');
-                $value = (string) ($matches[3] ?? '');
+                $attribute = strtolower((string) $matches[1]);
+                $quote = (string) $matches[2];
+                $value = (string) $matches[3];
                 $normalized = self::normalizeHtmlAttributeUrl($value, $baseRoute, $attribute !== 'href');
 
-                return (string) ($matches[1] ?? $attribute)
+                return (string) $matches[1]
                     . '='
                     . $quote
                     . htmlspecialchars($normalized, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
@@ -212,7 +212,7 @@ final class PublicUrlNormalizer
 
         $trimmed = trim($path, '/');
         if ($trimmed !== '' && preg_match('#(?:^|/)site/(.+)$#i', $trimmed, $matches) === 1) {
-            $path = '/' . ltrim((string) ($matches[1] ?? ''), '/');
+            $path = '/' . ltrim((string) $matches[1], '/');
         }
 
         if (preg_match('#/core/api/lang\.php$#i', $path) === 1) {
@@ -220,9 +220,9 @@ final class PublicUrlNormalizer
         }
 
         if (preg_match('#^/structure/images/(.+)$#i', $path, $matches) === 1) {
-            $path = '/assets/images/structure/' . ltrim((string) ($matches[1] ?? ''), '/');
+            $path = '/assets/images/structure/' . ltrim((string) $matches[1], '/');
         } elseif (preg_match('#^/images/(.+)$#i', $path, $matches) === 1) {
-            $path = '/assets/images/' . ltrim((string) ($matches[1] ?? ''), '/');
+            $path = '/assets/images/' . ltrim((string) $matches[1], '/');
         }
 
         $path = preg_replace('#^/assets/images/images/#i', '/assets/images/', $path) ?? $path;

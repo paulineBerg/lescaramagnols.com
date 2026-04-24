@@ -47,7 +47,7 @@ final class AdminLogAlertsSettingsManager
 
     /**
      * @param array{notifyOn: string} $logAlerts
-     * @return array{data: array{notifyOn: string}, error: string|null}
+     * @return array{data: array{notifyOn?: string}, error: string|null}
      */
     public function normalizeConfig(array $logAlerts): array
     {

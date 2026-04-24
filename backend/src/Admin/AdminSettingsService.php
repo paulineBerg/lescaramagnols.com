@@ -955,7 +955,7 @@ final class AdminSettingsService
                         'rotation_interval_ms' => (int) ($previousInstagram['rotationIntervalMs'] ?? 5500) !== $siteOverride['instagram']['rotation_interval_ms'],
                     ],
                     'log_alerts' => [
-                        'notify_on' => (string) ($previousLogAlerts['notifyOn'] ?? 'alerts') !== (string) ($siteOverride['log_alerts']['notify_on'] ?? 'alerts'),
+                        'notify_on' => (string) $previousLogAlerts['notifyOn'] !== (string) $siteOverride['log_alerts']['notify_on'],
                     ],
                     'i18n_overrides' => $previousTranslations !== $this->normalizeI18nOverrides($siteOverride['i18n_overrides']),
                 ],

@@ -341,7 +341,7 @@ function post_webhook_notification(string $url, array $payload, int $timeout): a
     }
 
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    if (!is_string($json) || $json === '') {
+    if (!is_string($json)) {
         return [
             'success' => false,
             'status' => 0,
@@ -365,7 +365,7 @@ function post_webhook_notification(string $url, array $payload, int $timeout): a
     ]);
 
     $response = @file_get_contents($trimmedUrl, false, $context);
-    $headers = isset($http_response_header) && is_array($http_response_header) ? $http_response_header : [];
+    $headers = is_array($http_response_header) ? $http_response_header : [];
     $status = http_status_from_headers($headers);
 
     if ($status >= 200 && $status < 300) {
