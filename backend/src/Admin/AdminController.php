@@ -12,6 +12,8 @@ use Caramagnols\Logging\AppEventLogger;
 
 final class AdminController
 {
+    private const LIST_FILTER_RESET_QUERY_PARAM = 'reset_filters';
+
     private AppEventLogger $eventLogger;
     private AdminPageService $pageService;
     private AdminBlogService $blogService;
@@ -92,6 +94,146 @@ final class AdminController
             site_available_languages(),
             (string) app_config('default_lang', 'fr')
         );
+    }
+
+    /**
+     * @param array<int, string> $filterKeys
+     * @param callable(array<string, mixed>): array<string, mixed> $normalizer
+     * @param array<string, mixed> $defaults
+     * @return array{filters: array<string, mixed>, resetRequested: bool}
+     */
+    private function resolveRememberedListFilters(
+        Request $request,
+        string $scope,
+        array $filterKeys,
+        callable $normalizer,
+        array $defaults
+    ): array {
+        $query = is_array($request->query()) ? $request->query() : [];
+
+        if ($this->isResetFiltersRequest($query)) {
+            $this->clearRememberedListFilters($scope);
+
+            return [
+                'filters' => $normalizer([]),
+                'resetRequested' => true,
+            ];
+        }
+
+        $hasExplicitFilters = $this->requestContainsAnyFilterKey($query, $filterKeys);
+        $effectiveInput = $query;
+
+        if (!$hasExplicitFilters) {
+            $remembered = $this->rememberedListFilters($scope);
+            foreach ($filterKeys as $filterKey) {
+                if (array_key_exists($filterKey, $effectiveInput) || !array_key_exists($filterKey, $remembered)) {
+                    continue;
+                }
+
+                $effectiveInput[$filterKey] = $remembered[$filterKey];
+            }
+        }
+
+        $filters = $normalizer($effectiveInput);
+
+        if ($hasExplicitFilters) {
+            $remembered = [];
+
+            foreach ($filterKeys as $filterKey) {
+                $value = $filters[$filterKey] ?? ($defaults[$filterKey] ?? null);
+                $defaultValue = $defaults[$filterKey] ?? null;
+
+                if ($value !== $defaultValue) {
+                    $remembered[$filterKey] = $value;
+                }
+            }
+
+            if ($remembered === []) {
+                $this->clearRememberedListFilters($scope);
+            } else {
+                $this->storeRememberedListFilters($scope, $remembered);
+            }
+        }
+
+        return [
+            'filters' => $filters,
+            'resetRequested' => false,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @param array<int, string> $filterKeys
+     */
+    private function requestContainsAnyFilterKey(array $input, array $filterKeys): bool
+    {
+        foreach ($filterKeys as $filterKey) {
+            if (array_key_exists($filterKey, $input)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     */
+    private function isResetFiltersRequest(array $input): bool
+    {
+        $raw = $input[self::LIST_FILTER_RESET_QUERY_PARAM] ?? null;
+
+        if (is_bool($raw)) {
+            return $raw;
+        }
+
+        $normalized = strtolower(trim((string) $raw));
+
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function rememberedListFilters(string $scope): array
+    {
+        $stored = $_SESSION[$this->listFiltersSessionKey($scope)] ?? null;
+
+        return is_array($stored) ? $stored : [];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    private function storeRememberedListFilters(string $scope, array $filters): void
+    {
+        $_SESSION[$this->listFiltersSessionKey($scope)] = $filters;
+    }
+
+    private function clearRememberedListFilters(string $scope): void
+    {
+        unset($_SESSION[$this->listFiltersSessionKey($scope)]);
+    }
+
+    /**
+     * @param array<string, scalar|null> $query
+     */
+    private function buildFilterResetUrl(string $basePath, array $query = []): string
+    {
+        $params = $query;
+        $params[self::LIST_FILTER_RESET_QUERY_PARAM] = '1';
+
+        return $basePath . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+    }
+
+    private function listFiltersSessionKey(string $scope): string
+    {
+        $normalizedScope = strtolower((string) preg_replace('/[^a-z0-9_-]+/i', '_', trim($scope)));
+        if ($normalizedScope === '') {
+            $normalizedScope = 'default';
+        }
+
+        return admin_session_key() . '_list_filters_' . $normalizedScope;
     }
 
     /**
@@ -289,9 +431,23 @@ final class AdminController
 
         $query = $request->query();
         $deletedSlug = is_string($query['deleted'] ?? null) ? rawurldecode($query['deleted']) : null;
-        $statusFilter = is_string($query['status'] ?? null) ? $query['status'] : null;
-        $languageFilter = is_string($query['lang'] ?? null) ? $query['lang'] : null;
-        $search = is_string($query['q'] ?? null) ? $query['q'] : null;
+        $defaultFilters = $this->pageService->normalizeListFilters([]);
+        $filterState = $this->resolveRememberedListFilters(
+            $request,
+            'pages',
+            ['status', 'lang', 'q'],
+            fn (array $input): array => $this->pageService->normalizeListFilters($input),
+            $defaultFilters
+        );
+
+        if ($filterState['resetRequested']) {
+            return $this->redirect($this->routeResolver->canonicalPath('pages'));
+        }
+
+        $filters = $filterState['filters'];
+        $statusFilter = is_string($filters['status'] ?? null) ? $filters['status'] : null;
+        $languageFilter = is_string($filters['lang'] ?? null) ? $filters['lang'] : null;
+        $search = is_string($filters['q'] ?? null) ? $filters['q'] : '';
 
         return $this->renderPage(
             'pages_list.php',
@@ -303,9 +459,10 @@ final class AdminController
                 'supportedStatuses' => $this->pageService->supportedStatuses(),
                 'statusFilter' => $statusFilter,
                 'languageFilter' => $languageFilter,
-                'searchQuery' => $search ?? '',
+                'searchQuery' => $search,
                 'pages' => $this->pageService->listPages($statusFilter, $languageFilter, $search),
                 'createPageUrl' => $this->routeResolver->pageCreatePath(),
+                'pagesResetUrl' => $this->buildFilterResetUrl($this->routeResolver->canonicalPath('pages')),
                 'message' => $deletedSlug !== null && $deletedSlug !== ''
                     ? sprintf('Page "%s" supprimée avec toutes ses traductions.', $deletedSlug)
                     : null,
@@ -735,7 +892,20 @@ final class AdminController
         $deletedLanguage = is_string($query['deleted_lang'] ?? null) ? rawurldecode((string) $query['deleted_lang']) : null;
         $deletedDiscussions = (int) ($query['deleted_discussions'] ?? 0);
         $detachedChildren = (int) ($query['detached_children'] ?? 0);
-        $filters = $this->blogService->normalizeFilters($query);
+        $defaultFilters = $this->blogService->normalizeFilters([]);
+        $filterState = $this->resolveRememberedListFilters(
+            $request,
+            'articles',
+            ['status', 'lang', 'category', 'tag', 'q'],
+            fn (array $input): array => $this->blogService->normalizeFilters($input),
+            $defaultFilters
+        );
+
+        if ($filterState['resetRequested']) {
+            return $this->redirect($this->routeResolver->canonicalPath('articles'));
+        }
+
+        $filters = $filterState['filters'];
         $message = null;
 
         if ($saved) {
@@ -768,6 +938,7 @@ final class AdminController
                 'availableTags' => $this->blogService->availableTags($filters['lang']),
                 'articles' => $this->blogService->listArticles($filters),
                 'createArticleUrl' => $this->routeResolver->articleCreatePath(),
+                'articlesResetUrl' => $this->buildFilterResetUrl($this->routeResolver->canonicalPath('articles')),
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
             ]
@@ -945,7 +1116,20 @@ final class AdminController
 
         $message = null;
         $error = null;
-        $filters = $this->discussionService->normalizeFilters($request->query());
+        $defaultFilters = $this->discussionService->normalizeFilters([]);
+        $filterState = $this->resolveRememberedListFilters(
+            $request,
+            'discussions',
+            ['status', 'lang', 'q'],
+            fn (array $input): array => $this->discussionService->normalizeFilters($input),
+            $defaultFilters
+        );
+
+        if ($filterState['resetRequested']) {
+            return $this->redirect($this->routeResolver->canonicalPath('discussions'));
+        }
+
+        $filters = $filterState['filters'];
 
         if ($request->method() === 'POST') {
             $body = is_array($request->body()) ? $request->body() : [];
@@ -1013,6 +1197,7 @@ final class AdminController
                 'discussionCounts' => $view['counts'],
                 'availableLanguages' => $this->discussionService->availableLanguages(),
                 'supportedStatuses' => $this->discussionService->supportedStatuses(),
+                'discussionsResetUrl' => $this->buildFilterResetUrl($this->routeResolver->canonicalPath('discussions')),
             ]
         );
     }
@@ -1028,7 +1213,29 @@ final class AdminController
         $folder = $this->mediaLibraryService->normalizeFolderPath(
             is_string($query['folder'] ?? null) ? (string) $query['folder'] : ''
         );
-        $filters = $this->mediaLibraryService->normalizeFilters(is_array($query) ? $query : []);
+        $defaultFilters = $this->mediaLibraryService->normalizeFilters([]);
+        $filterState = $this->resolveRememberedListFilters(
+            $request,
+            'media',
+            ['q', 'type', 'min_size_kb', 'max_size_kb', 'date_from', 'date_to', 'sort'],
+            fn (array $input): array => $this->mediaLibraryService->normalizeFilters($input),
+            $defaultFilters
+        );
+
+        if ($filterState['resetRequested']) {
+            $query = [];
+            if ($folder !== '') {
+                $query['folder'] = $folder;
+            }
+
+            return $this->redirect(
+                $query === []
+                    ? $this->routeResolver->canonicalPath('media')
+                    : $this->routeResolver->canonicalPath('media') . '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986)
+            );
+        }
+
+        $filters = $filterState['filters'];
         $message = null;
         $error = null;
 
@@ -1334,6 +1541,10 @@ final class AdminController
                 'message' => $message,
                 'error' => $error,
                 'mediaView' => $this->mediaLibraryService->viewModel($folder, $filters),
+                'mediaResetUrl' => $this->buildFilterResetUrl(
+                    $this->routeResolver->canonicalPath('media'),
+                    $folder !== '' ? ['folder' => $folder] : []
+                ),
             ]
         );
     }
@@ -1500,7 +1711,20 @@ final class AdminController
 
         $message = null;
         $error = null;
-        $filters = $this->logService->normalizeFilters($request->query());
+        $defaultFilters = $this->logService->normalizeFilters([]);
+        $filterState = $this->resolveRememberedListFilters(
+            $request,
+            'logs',
+            ['q', 'channel', 'level', 'date_from', 'date_to'],
+            fn (array $input): array => $this->logService->normalizeFilters($input),
+            $defaultFilters
+        );
+
+        if ($filterState['resetRequested']) {
+            return $this->redirect($this->routeResolver->canonicalPath('logs'));
+        }
+
+        $filters = $filterState['filters'];
 
         if ($request->method() === 'POST') {
             $body = $request->body();
@@ -1577,6 +1801,7 @@ final class AdminController
                 'message' => $message,
                 'error' => $error,
                 'logsView' => $this->logService->viewModel($filters),
+                'logsResetUrl' => $this->buildFilterResetUrl($this->routeResolver->canonicalPath('logs')),
             ]
         );
     }

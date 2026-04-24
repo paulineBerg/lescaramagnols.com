@@ -72,7 +72,7 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
     </div>
 
     <div class="actions-inline admin-pages-filters-actions">
-      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Réinitialiser</a>
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($pagesResetUrl ?? $adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Réinitialiser</a>
       <button type="submit">Filtrer</button>
     </div>
   </form>

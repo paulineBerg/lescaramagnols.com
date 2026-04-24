@@ -209,7 +209,7 @@ $sortLabels = [
     </div>
 
     <div class="actions-inline media-manager-filters-actions">
-      <a class="button-link button-link-muted" href="<?php echo $escape($mediaUrlWithFolder($currentFolder, false)); ?>">Reinitialiser</a>
+      <a class="button-link button-link-muted" href="<?php echo $escape((string) ($mediaResetUrl ?? $mediaUrlWithFolder($currentFolder, false))); ?>">Reinitialiser</a>
       <button type="submit">Filtrer</button>
     </div>
   </form>

@@ -27,13 +27,17 @@ final class PageTileRenderer
             return '';
         }
 
+        $currentPage = $this->pageRepository->findBySlug($pageSlug);
+        $currentPageRoute = is_array($currentPage)
+            ? (normalize_public_route((string) ($currentPage['route'] ?? '')) ?? '')
+            : '';
         $groupsHtml = '';
         foreach ($placements as $placement) {
             if (!is_array($placement)) {
                 continue;
             }
 
-            $groupHtml = $this->renderPlacement($placement, $language);
+            $groupHtml = $this->renderPlacement($placement, $language, $pageSlug, $currentPageRoute);
             if ($groupHtml === '') {
                 continue;
             }
@@ -53,15 +57,19 @@ final class PageTileRenderer
     /**
      * @param array<string, mixed> $placement
      */
-    private function renderPlacement(array $placement, string $language): string
-    {
+    private function renderPlacement(
+        array $placement,
+        string $language,
+        string $currentPageSlug,
+        string $currentPageRoute
+    ): string {
         $group = is_array($placement['group'] ?? null) ? $placement['group'] : [];
         $items = is_array($group['items'] ?? null) ? $group['items'] : [];
         $overrides = is_array($placement['overrides'] ?? null) ? $placement['overrides'] : [];
         $groupName = trim((string) ($group['name'] ?? ''));
         $theme = trim((string) ($group['theme'] ?? TileRepository::DEFAULT_THEME));
 
-        $tilesHtml = '';
+        $tiles = [];
         foreach ($items as $item) {
             if (!is_array($item)) {
                 continue;
@@ -69,14 +77,20 @@ final class PageTileRenderer
 
             $itemUid = trim((string) ($item['item_uid'] ?? ''));
             $override = is_array($overrides[$itemUid] ?? null) ? $overrides[$itemUid] : [];
-            $tileHtml = $this->renderTile($item, $override, $language);
+            $tileHtml = $this->renderTile($item, $override, $language, $currentPageSlug, $currentPageRoute);
             if ($tileHtml === '') {
                 continue;
             }
 
-            $tilesHtml .= $tileHtml;
+            $tiles[] = [
+                'html' => $tileHtml,
+                'size' => TileRepository::normalizeTileSizeValue(
+                    (string) ($item['tile_size'] ?? TileRepository::DEFAULT_SIZE)
+                ),
+            ];
         }
 
+        $tilesHtml = $this->renderTileGridHtml($tiles);
         if ($tilesHtml === '') {
             return '';
         }
@@ -96,17 +110,65 @@ final class PageTileRenderer
     }
 
     /**
+     * @param array<int, array{html: string, size: string}> $tiles
+     */
+    private function renderTileGridHtml(array $tiles): string
+    {
+        $html = '';
+        $smallTilesHtml = '';
+
+        foreach ($tiles as $tile) {
+            if ($tile['size'] === 'small') {
+                $smallTilesHtml .= $tile['html'];
+                continue;
+            }
+
+            $html .= $this->renderSmallTileCluster($smallTilesHtml);
+            $smallTilesHtml = '';
+            $html .= $tile['html'];
+        }
+
+        return $html . $this->renderSmallTileCluster($smallTilesHtml);
+    }
+
+    private function renderSmallTileCluster(string $tilesHtml): string
+    {
+        if ($tilesHtml === '') {
+            return '';
+        }
+
+        $fallbackStyle = 'display:grid;'
+            . 'grid-column:span 2;'
+            . 'grid-row:span 2;'
+            . 'grid-template-columns:repeat(2,minmax(0,1fr));'
+            . 'grid-template-rows:repeat(2,minmax(0,1fr));'
+            . 'gap:var(--page-tile-gap,.55rem);'
+            . 'height:100%;'
+            . 'min-width:0;'
+            . 'min-height:0;';
+
+        return '<div class="page-tile-small-cluster" style="' . $fallbackStyle . '">'
+            . $tilesHtml
+            . '</div>';
+    }
+
+    /**
      * @param array<string, mixed> $item
      * @param array<string, mixed> $override
      */
-    private function renderTile(array $item, array $override, string $language): string
-    {
+    private function renderTile(
+        array $item,
+        array $override,
+        string $language,
+        string $currentPageSlug,
+        string $currentPageRoute
+    ): string {
         if (($override['is_visible'] ?? null) === false) {
             return '';
         }
 
         $target = $this->resolveTarget($item, $override);
-        if ($target === null) {
+        if ($target === null || $this->isCurrentPageTarget($target, $currentPageSlug, $currentPageRoute)) {
             return '';
         }
 
@@ -196,7 +258,7 @@ final class PageTileRenderer
     /**
      * @param array<string, mixed> $item
      * @param array<string, mixed> $override
-     * @return array{href: string, new_tab: bool}|null
+     * @return array{href: string, new_tab: bool, page_slug: string, normalized_path: ?string}|null
      */
     private function resolveTarget(array $item, array $override): ?array
     {
@@ -223,6 +285,8 @@ final class PageTileRenderer
             return [
                 'href' => $pageRoute,
                 'new_tab' => $newTab,
+                'page_slug' => trim((string) ($page['slug'] ?? $pageSlug)),
+                'normalized_path' => $pageRoute,
             ];
         }
 
@@ -235,6 +299,8 @@ final class PageTileRenderer
             return [
                 'href' => $normalizedRoute,
                 'new_tab' => $newTab,
+                'page_slug' => '',
+                'normalized_path' => $normalizedRoute,
             ];
         }
 
@@ -246,7 +312,25 @@ final class PageTileRenderer
         return [
             'href' => $normalizedUrl,
             'new_tab' => $newTab,
+            'page_slug' => '',
+            'normalized_path' => str_starts_with($normalizedUrl, '/')
+                ? (normalize_public_route($normalizedUrl) ?? null)
+                : null,
         ];
+    }
+
+    /**
+     * @param array{href: string, new_tab: bool, page_slug: string, normalized_path: ?string} $target
+     */
+    private function isCurrentPageTarget(array $target, string $currentPageSlug, string $currentPageRoute): bool
+    {
+        if ($currentPageSlug !== '' && trim((string) ($target['page_slug'] ?? '')) === $currentPageSlug) {
+            return true;
+        }
+
+        $targetPath = trim((string) ($target['normalized_path'] ?? ''));
+
+        return $currentPageRoute !== '' && $targetPath !== '' && $targetPath === $currentPageRoute;
     }
 
     /**

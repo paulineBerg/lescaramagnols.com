@@ -79,6 +79,29 @@ final class AdminPageService
     }
 
     /**
+     * @param array<string, mixed> $query
+     * @return array{status: ?string, lang: ?string, q: string}
+     */
+    public function normalizeListFilters(array $query): array
+    {
+        $status = is_string($query['status'] ?? null) ? trim((string) $query['status']) : '';
+        if (!in_array($status, $this->supportedStatuses(), true)) {
+            $status = '';
+        }
+
+        $language = is_string($query['lang'] ?? null) ? strtolower(trim((string) $query['lang'])) : '';
+        if (!in_array($language, $this->availableLanguages, true)) {
+            $language = '';
+        }
+
+        return [
+            'status' => $status !== '' ? $status : null,
+            'lang' => $language !== '' ? $language : null,
+            'q' => is_string($query['q'] ?? null) ? trim((string) $query['q']) : '',
+        ];
+    }
+
+    /**
      * @return array<int, array{slug: string, title: string, route: string, status: string}>
      */
     public function pageReferenceOptions(): array

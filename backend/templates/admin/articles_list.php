@@ -111,7 +111,7 @@ $scheduledCount = count(array_filter($articles, static fn (array $article): bool
 
     <div class="actions-inline admin-articles-filters-actions">
       <button type="submit">Filtrer</button>
-      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Réinitialiser</a>
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesResetUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Réinitialiser</a>
     </div>
   </form>
 </section>

@@ -101,6 +101,9 @@ Mise a jour 2026-04-22 (tuiles after_body) :
 - l ecran `pages_edit` ne sert qu a rattacher un groupe a une page, definir son ordre, regler la visibilite locale d une tuile et, si besoin, remplacer sa cible par une page du site
 - les surcharges plus anciennes de type route, URL ou textes traduits restent conservees si elles existent deja, mais ne sont plus exposees dans l UI simplifiee de `pages_edit`
 - rendu front `windows10-classic` base sur les assets existants, avec grille dense type W10 cote serveur, hover leger seulement et pile verticale sur mobile
+- en rendu public desktop, les groupes successifs partagent le meme maillage visuel afin qu une tuile du groupe suivant puisse combler l espace libre de la ligne precedente si sa taille le permet
+- en rendu public, le libelle d une tuile `medium` ne doit pas etre tronque par `...`; le retour a la ligne est autorise pour afficher le titre complet dans la tuile
+- une tuile qui pointe vers la page actuellement rendue est masquee automatiquement cote public
 - script de migration legacy disponible : `php backend/core/tools/migrate_legacy_page_tiles.php` puis `--apply` apres backup SQL
 - migration auto-retro normalisee sur `1` tuile par marque, triee par ordre alphabetique, avec ajout de `Citroën`
 
@@ -794,6 +797,7 @@ Implementation livree :
   - ecrans `pages`, `pages_new`, `pages_edit`
 - `backend/templates/admin/pages_list.php`
   - liste filtrable par statut, type, langue et recherche
+  - les filtres de liste admin sont gardes en memoire en session jusqu a reinitialisation explicite
 - `backend/templates/admin/pages_form.php`
   - edition multi-langue
   - support `regions` structurees ou `EditRegion*` legacy

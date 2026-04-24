@@ -969,6 +969,94 @@ final class AdminControllerTest extends TestCase
         );
     }
 
+    public function testPagesListRemembersFiltersUntilReset(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'simca-aronde',
+                            'type' => 'structured_page',
+                            'status' => 'draft',
+                            'route' => '/auto-retro/simca/histoire-simca-aronde',
+                            'translations' => [
+                                'fr' => ['title' => 'Simca Aronde'],
+                                'en' => ['title' => 'Simca Aronde'],
+                            ],
+                        ],
+                        [
+                            'slug' => 'mercedes-slk',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/auto-retro/mercedes/histoire-de-mercedes',
+                            'translations' => [
+                                'fr' => ['title' => 'Mercedes SLK'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $filteredResponse = $controller->handle(
+            'pages',
+            $this->request(
+                'GET',
+                '/admin/pages',
+                [
+                    'status' => 'draft',
+                    'lang' => 'fr',
+                    'q' => 'simca',
+                ]
+            )
+        );
+
+        $this->assertSame(200, $filteredResponse->status);
+        $this->assertStringContainsString('value="simca"', $filteredResponse->body);
+        $this->assertStringContainsString('option value="draft" selected', $filteredResponse->body);
+        $this->assertStringContainsString('option value="fr" selected', $filteredResponse->body);
+        $this->assertStringContainsString('/admin/pages?reset_filters=1', $filteredResponse->body);
+        $this->assertStringContainsString('simca-aronde', $filteredResponse->body);
+        $this->assertStringNotContainsString('mercedes-slk', $filteredResponse->body);
+
+        $rememberedResponse = $controller->handle('pages', $this->request('GET', '/admin/pages'));
+
+        $this->assertSame(200, $rememberedResponse->status);
+        $this->assertStringContainsString('value="simca"', $rememberedResponse->body);
+        $this->assertStringContainsString('option value="draft" selected', $rememberedResponse->body);
+        $this->assertStringContainsString('option value="fr" selected', $rememberedResponse->body);
+        $this->assertStringContainsString('simca-aronde', $rememberedResponse->body);
+        $this->assertStringNotContainsString('mercedes-slk', $rememberedResponse->body);
+
+        $resetResponse = $controller->handle(
+            'pages',
+            $this->request(
+                'GET',
+                '/admin/pages',
+                ['reset_filters' => '1']
+            )
+        );
+
+        $this->assertSame(302, $resetResponse->status);
+        $this->assertSame('/admin/pages', $resetResponse->headers['Location']);
+
+        $clearedResponse = $controller->handle('pages', $this->request('GET', '/admin/pages'));
+
+        $this->assertSame(200, $clearedResponse->status);
+        $this->assertStringNotContainsString('value="simca"', $clearedResponse->body);
+        $this->assertStringNotContainsString('option value="draft" selected', $clearedResponse->body);
+        $this->assertStringNotContainsString('option value="fr" selected', $clearedResponse->body);
+        $this->assertStringContainsString('simca-aronde', $clearedResponse->body);
+        $this->assertStringContainsString('mercedes-slk', $clearedResponse->body);
+    }
+
     public function testPagesDeleteIsBlockedWhenPageIsUsedInNavigation(): void
     {
         file_put_contents(

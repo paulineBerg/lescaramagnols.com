@@ -254,7 +254,7 @@ foreach ($entries as $entry) {
     </div>
 
     <div class="actions-inline admin-logs-filters-actions">
-      <a class="button-link button-link-muted" href="<?php echo $escape((string) ($adminLogsUrl ?? admin_url('logs'))); ?>">Réinitialiser</a>
+      <a class="button-link button-link-muted" href="<?php echo $escape((string) ($logsResetUrl ?? $adminLogsUrl ?? admin_url('logs'))); ?>">Réinitialiser</a>
       <button type="submit">Filtrer</button>
     </div>
   </form>

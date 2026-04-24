@@ -237,6 +237,143 @@ final class PageTileRendererTest extends TestCase
         $this->assertStringNotContainsString('Cache', $html);
     }
 
+    public function testRenderAfterBodyGroupsSmallTilesInTwoByTwoCluster(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            (string) json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'page-source',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/page-source',
+                            'translations' => [
+                                'fr' => ['title' => 'Page source'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $pageRepository = new PageRepository($this->pagesFile);
+        $tileRepository = $this->tileRepositoryWithCaches(
+            [
+                'page-source|' . TileRepository::DEFAULT_REGION => [
+                    [
+                        'id' => 100,
+                        'page_slug' => 'page-source',
+                        'region_key' => TileRepository::DEFAULT_REGION,
+                        'group_id' => 1,
+                        'sort_order' => 10,
+                        'overrides' => [],
+                    ],
+                ],
+            ],
+            [
+                1 => [
+                    'id' => 1,
+                    'name' => 'Maillage transversal',
+                    'theme' => TileRepository::DEFAULT_THEME,
+                    'items' => [
+                        $this->smallTileItem(1, 'dyna-z12', 'Dyna Z12', '/dyna-z12'),
+                        $this->smallTileItem(2, 'notre-dyna', 'Notre Dyna', '/notre-dyna'),
+                        $this->smallTileItem(3, 'notre-mini', 'Notre Mini', '/notre-mini'),
+                        $this->smallTileItem(4, 'notre-slk', 'Notre SLK', '/notre-slk'),
+                    ],
+                ],
+            ]
+        );
+
+        $renderer = new PageTileRenderer($tileRepository, $pageRepository, 'fr');
+        $html = $renderer->renderAfterBody('page-source', 'fr');
+
+        $this->assertStringContainsString('page-tile-small-cluster', $html);
+        $this->assertStringContainsString('grid-column:span 2', $html);
+        $this->assertStringContainsString('grid-row:span 2', $html);
+        $this->assertStringContainsString('grid-template-columns:repeat(2,minmax(0,1fr))', $html);
+        $this->assertStringContainsString('grid-template-rows:repeat(2,minmax(0,1fr))', $html);
+        $this->assertSame(4, substr_count($html, 'page-tile--size-small'));
+        $this->assertMatchesRegularExpression(
+            '/page-tile-small-cluster.*Dyna Z12.*Notre Dyna.*Notre Mini.*Notre SLK.*<\\/div><\\/div>/s',
+            $html
+        );
+    }
+
+    public function testRenderAfterBodyHidesTilesThatPointToCurrentPage(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            (string) json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'page-source',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/page-source',
+                            'translations' => [
+                                'fr' => ['title' => 'Page source'],
+                            ],
+                        ],
+                        [
+                            'slug' => 'page-cible',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/page-cible',
+                            'translations' => [
+                                'fr' => ['title' => 'Page cible'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $pageRepository = new PageRepository($this->pagesFile);
+        $tileRepository = $this->tileRepositoryWithCaches(
+            [
+                'page-source|' . TileRepository::DEFAULT_REGION => [
+                    [
+                        'id' => 100,
+                        'page_slug' => 'page-source',
+                        'region_key' => TileRepository::DEFAULT_REGION,
+                        'group_id' => 1,
+                        'sort_order' => 10,
+                        'overrides' => [],
+                    ],
+                ],
+            ],
+            [
+                1 => [
+                    'id' => 1,
+                    'name' => 'Auto-reference',
+                    'theme' => TileRepository::DEFAULT_THEME,
+                    'items' => [
+                        $this->pageTileItem(1, 'self-page', 'Page en cours', 'page-source'),
+                        $this->routeTileItem(2, 'self-route', 'Route courante', '/page-source'),
+                        $this->routeTileItem(3, 'sibling-route', 'Page cible', '/page-cible'),
+                    ],
+                ],
+            ]
+        );
+
+        $renderer = new PageTileRenderer($tileRepository, $pageRepository, 'fr');
+        $html = $renderer->renderAfterBody('page-source', 'fr');
+
+        $this->assertStringNotContainsString('Page en cours', $html);
+        $this->assertStringNotContainsString('Route courante', $html);
+        $this->assertStringContainsString('Page cible', $html);
+        $this->assertStringContainsString('href="/page-cible"', $html);
+        $this->assertSame(1, substr_count($html, 'page-tile page-tile--size-medium'));
+    }
+
     /**
      * @param array<string, array<int, array<string, mixed>>> $placementsCache
      * @param array<int, array<string, mixed>> $groupCache
@@ -259,5 +396,98 @@ final class PageTileRendererTest extends TestCase
         $groupsProperty->setValue($repository, $groupCache);
 
         return $repository;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function smallTileItem(int $id, string $uid, string $label, string $route): array
+    {
+        return [
+            'id' => $id,
+            'item_uid' => $uid,
+            'sort_order' => $id * 10,
+            'tile_size' => 'small',
+            'color_token' => 'orange',
+            'image_src' => '',
+            'image_width' => null,
+            'image_height' => null,
+            'target' => [
+                'type' => 'route',
+                'pageSlug' => '',
+                'route' => $route,
+                'url' => '',
+            ],
+            'open_in_new_tab' => false,
+            'translations' => [
+                'fr' => [
+                    'label' => $label,
+                    'alt' => $label,
+                    'title' => $label,
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function routeTileItem(int $id, string $uid, string $label, string $route): array
+    {
+        return [
+            'id' => $id,
+            'item_uid' => $uid,
+            'sort_order' => $id * 10,
+            'tile_size' => 'medium',
+            'color_token' => 'bleuvert',
+            'image_src' => '',
+            'image_width' => null,
+            'image_height' => null,
+            'target' => [
+                'type' => 'route',
+                'pageSlug' => '',
+                'route' => $route,
+                'url' => '',
+            ],
+            'open_in_new_tab' => false,
+            'translations' => [
+                'fr' => [
+                    'label' => $label,
+                    'alt' => $label,
+                    'title' => $label,
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function pageTileItem(int $id, string $uid, string $label, string $pageSlug): array
+    {
+        return [
+            'id' => $id,
+            'item_uid' => $uid,
+            'sort_order' => $id * 10,
+            'tile_size' => 'medium',
+            'color_token' => 'bleuvert',
+            'image_src' => '',
+            'image_width' => null,
+            'image_height' => null,
+            'target' => [
+                'type' => 'page',
+                'pageSlug' => $pageSlug,
+                'route' => '',
+                'url' => '',
+            ],
+            'open_in_new_tab' => false,
+            'translations' => [
+                'fr' => [
+                    'label' => $label,
+                    'alt' => $label,
+                    'title' => $label,
+                ],
+            ],
+        ];
     }
 }

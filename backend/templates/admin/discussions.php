@@ -73,7 +73,7 @@ $formatDate = static function (string $value): string {
 
     <div class="actions-inline admin-articles-filters-actions">
       <button type="submit">Filtrer</button>
-      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($adminDiscussionsUrl ?? admin_url('discussions')), ENT_QUOTES, 'UTF-8'); ?>">Réinitialiser</a>
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($discussionsResetUrl ?? $adminDiscussionsUrl ?? admin_url('discussions')), ENT_QUOTES, 'UTF-8'); ?>">Réinitialiser</a>
     </div>
   </form>
 </section>
