@@ -55,6 +55,8 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - deployer : cd frontend && npm run build
 - copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
 bash .ops-sync/bin/pull-caramagnols-db.sh --live
+- copier le SQL editorial local vers OVH : cd /home/surfacepro8/www/caramagnols
+bash backend/tools/push-local-sql-to-ovh.sh --live
 
 - Lancer en dev :
   - Recommandé : `./dev.sh`
