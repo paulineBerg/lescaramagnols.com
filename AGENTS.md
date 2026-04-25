@@ -298,6 +298,9 @@ Regles de structuration HTML/editoriale:
 - le corps de l'article ne doit pas citer les sources par des tournures d'attribution; les liens de provenance restent regroupes en fin d'article dans `Sources`
 - le bloc de maillage interne doit se situer dans la section : EditRegion4 - Apres corps
 - ne pas creer de section intitulee `A lire`, `À lire` ou `À lire aussi`; le maillage interne doit rester sobre, descriptif et integre au parcours editorial, sans bloc standardise de recommandation
+- pour les pages publiques `/auto-retro/**`, ajouter en fin de `EditRegion4 - Apres corps` un court paragraphe de maillage interne quand une page liee existe dans le registre editorial courant
+- ce maillage auto-retro doit rester limite a `1` ou `2` phrases, pointer vers `1` page prioritaire et au plus `1` page complementaire, ne jamais lier la page a elle-meme, ne pas creer de lien mort et ne pas dupliquer un paragraphe deja present
+- pour appliquer ce maillage sur le registre JSON, utiliser l'outil idempotent `php backend/core/tools/add_auto_retro_internal_links.php`; le relancer en `--dry-run` avant ecriture pour verifier les pages et routes ciblees
 
 Metadonnees et completude editoriale:
 - renseigner un titre d'article distinct, lisible et utile hors contexte
