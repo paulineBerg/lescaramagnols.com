@@ -90,6 +90,21 @@ Le nettoyage est volontairement limité :
 - il ne touche pas `backend/public/assets/index.php`
 - il ne touche pas `backend/public/assets/rss.php`
 
+## Controle De Deploiement
+
+Le script `backend/core/tools/check_vite_assets.php` verifie le contrat entre `backend/public/.vite/manifest.json` et les fichiers publies sous `backend/public/`.
+
+Il controle notamment :
+- le fichier principal `file` de chaque entree du manifest
+- les feuilles `css`
+- les fichiers listes dans `assets`
+
+Les scripts `backend/tools/deploy-fast.sh` et `backend/tools/deploy-release.sh` l'executent :
+- localement avant toute ecriture distante
+- sur la cible OVH apres rsync et mise a jour des permissions
+
+Si un fichier hashe reference par le manifest manque, le deploiement s'arrete avec la liste des fichiers absents.
+
 ## Audit Images Historiques
 
 Le script `frontend/tools/audit-images.mjs` produit un etat de dette image exploitable :

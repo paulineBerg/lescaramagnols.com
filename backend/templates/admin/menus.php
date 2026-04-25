@@ -1375,7 +1375,7 @@ if (function_exists('mb_strimwidth')) {
     </section>
 
     <?php if ($selectedDescriptor !== null && $selectedInputName !== ''): ?>
-    <dialog class="region-modal menu-editor-dialog" id="menu-editor-dialog" aria-labelledby="menu-editor-title">
+    <dialog class="region-modal menu-editor-dialog" id="menu-editor-dialog" aria-labelledby="menu-editor-title" data-region-modal-static="true">
       <div class="region-modal__surface">
         <div class="region-modal__header">
           <div>
@@ -1408,7 +1408,7 @@ if (function_exists('mb_strimwidth')) {
     </dialog>
     <?php endif; ?>
 
-    <dialog class="region-modal menu-system-dialog" id="menu-system-banner-dialog" aria-labelledby="menu-system-banner-title">
+    <dialog class="region-modal menu-system-dialog" id="menu-system-banner-dialog" aria-labelledby="menu-system-banner-title" data-region-modal-static="true">
       <div class="region-modal__surface">
         <div class="region-modal__header">
           <div>
@@ -1511,7 +1511,7 @@ if (function_exists('mb_strimwidth')) {
       </div>
     </dialog>
 
-    <dialog class="region-modal menu-system-dialog" id="menu-system-backtotop-dialog" aria-labelledby="menu-system-backtotop-title">
+    <dialog class="region-modal menu-system-dialog" id="menu-system-backtotop-dialog" aria-labelledby="menu-system-backtotop-title" data-region-modal-static="true">
       <div class="region-modal__surface">
         <div class="region-modal__header">
           <div>
@@ -1603,7 +1603,7 @@ if (function_exists('mb_strimwidth')) {
       </div>
     </dialog>
 
-    <dialog class="region-modal menu-system-dialog" id="menu-system-footer-notice-dialog" aria-labelledby="menu-system-footer-notice-title">
+    <dialog class="region-modal menu-system-dialog" id="menu-system-footer-notice-dialog" aria-labelledby="menu-system-footer-notice-title" data-region-modal-static="true">
       <div class="region-modal__surface">
         <div class="region-modal__header">
           <div>

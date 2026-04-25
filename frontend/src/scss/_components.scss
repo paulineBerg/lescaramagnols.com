@@ -116,8 +116,9 @@ $img-frames: (
 .ImgLargeurContenu
 /* stylelint-enable selector-class-pattern */ {
   img {
-    width: 1000px;
-    height: 562px;
+    width: 100%;
+    max-width: 1000px;
+    height: auto;
   }
 }
 

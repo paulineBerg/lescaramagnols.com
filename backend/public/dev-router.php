@@ -1,5 +1,7 @@
 <?php
 // Dev router pour php -S : sert les assets statiques puis délègue au routeur applicatif.
+define('CARAMAGNOLS_LOCAL_DEV_ROUTER', true);
+
 $publicDir = realpath(__DIR__);
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/');
 

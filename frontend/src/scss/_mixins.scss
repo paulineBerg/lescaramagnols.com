@@ -41,8 +41,8 @@
 // Mixin pour les conteneurs d'image avec taille configurable
 @mixin image-frame($width, $height, $enforce-size: false) {
   @if $enforce-size {
-    width: $width;
-    height: $height;
+    width: min(100%, $width);
+    height: auto;
   } @else {
     max-width: $width;
     max-height: $height;

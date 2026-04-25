@@ -227,6 +227,8 @@ Ce qu'il faut eviter:
 - langage publicitaire ou promesses marketing
 - mots et tournures uses quand ils remplacent l'information
 - aucune recopie directe d'une source
+- les references de source dans le corps editorial, du type `d'apres`, `selon`, `source`, `l'office de tourisme publie`, `le site officiel rappelle`, `la commune presente`, ou leurs equivalents en `en` et `de`
+- les formulations qui racontent la recherche documentaire au lieu de raconter le sujet; transformer ces passages en faits sobres, et garder les sources uniquement dans la section `Sources`
 
 Tournures a employer avec parcimonie:
 - `icone`, `emblematique`, `mythique`, `legendaire`, `incontournable`
@@ -293,6 +295,7 @@ Regles de structuration HTML/editoriale:
 - si une fiche technique est utile, la presenter comme un bloc lisible et structure, pas comme un pave compact
 - en fin d'articles ajouter les sources si possible, dans la section : EditRegion11 - Post-scriptum
 - les sources s'ouvrent dans un nouvel onglet
+- le corps de l'article ne doit pas citer les sources par des tournures d'attribution; les liens de provenance restent regroupes en fin d'article dans `Sources`
 - le bloc de maillage interne doit se situer dans la section : EditRegion4 - Apres corps
 - ne pas creer de section intitulee `A lire`, `À lire` ou `À lire aussi`; le maillage interne doit rester sobre, descriptif et integre au parcours editorial, sans bloc standardise de recommandation
 
@@ -365,6 +368,8 @@ Regles de poids et de rendu:
 - preferer un fichier optimise plutot qu'un original inutilement lourd
 - verifier apres insertion que le rendu reste stable sur mobile comme sur desktop
 - une illustration documentaire ne doit pas prendre toute la largeur par accident
+- lors d'un redimensionnement responsive d'image, conserver le ratio naturel: fixer au plus une largeur ou un `max-width`, et laisser `height: auto`
+- ne pas combiner une largeur fluide avec une hauteur fixe sur une image editoriale; si un cadrage visuel est necessaire, utiliser un conteneur dimensionne avec `aspect-ratio` et `object-fit`, pas une image deformee
 
 ### 10.3 Droits, sources et provenance
 
@@ -504,6 +509,15 @@ Procedure recommandee pour un envoi cible en prod OVH MySQL:
 - conserver le chemin exact du backup prod cree avant ecriture pour pouvoir revenir en arriere rapidement
 - si l'operation porte sur des pages seulement, ne pas embarquer navigation, blog ou autres registres dans le meme passage sans besoin explicite
 
+Regle de rapatriement des backups prod sur PC:
+- lorsqu'un backup prod SQL ou autre doit etre conserve localement, le creer d'abord sur OVH dans un emplacement temporaire maitrise
+- compresser le backup avant transfert, par exemple en `.sql.gz`, `.json.gz` ou archive equivalente selon le contenu
+- rapatrier ensuite le backup compresse sur le PC, de preference hors depot Git dans `/home/surfacepro8/backups/caramagnols/prod/`
+- verifier explicitement la taille du fichier distant et du fichier local apres transfert; ne jamais considerer un backup vide ou tronque comme valide
+- appliquer des permissions restrictives au fichier local quand il contient des donnees sensibles, par exemple `chmod 600`
+- supprimer la copie temporaire OVH des qu'elle n'est plus necessaire au rollback immediat
+- ne jamais placer un backup prod dans `backend/`, `frontend/`, `public/`, `backend/data/`, `backend/var/` ou tout chemin deployable/versionnable du projet
+
 Attention:
 - `backend/data/` melange donnees versionnees, donnees derivees et runtime
 - ne pas traiter tout `backend/data/` comme un espace libre de modifications opportunistes
@@ -523,6 +537,15 @@ Regles:
 - ne jamais securiser uniquement cote frontend
 - ne jamais exposer de secrets, tokens, mots de passe, stack traces ou payloads complets dans les logs ou dans le HTML
 - tout nouvel endpoint admin ou POST sensible doit verifier auth, droits et CSRF
+
+Regle de connexion admin locale sans mot de passe:
+- un bypass de mot de passe admin n'est autorise que pour l'ergonomie locale et jamais comme mecanisme de production
+- le garde-fou doit etre code en dur: environnement non-production explicite et adresse distante reellement loopback (`127.0.0.1`, `::1` ou equivalent IPv4 mappe)
+- ne jamais accepter ce bypass en se basant seulement sur `HTTP_HOST`, `SERVER_NAME`, un proxy, un header forwarde ou une option de configuration
+- meme si `local_passwordless_localhost` est active par erreur sur OVH, le code doit refuser le bypass quand `APP_ENV=production`, `prod` ou `live`
+- quand ce bypass local est autorise, ne pas demander de mot de passe ni de code TOTP sur le formulaire local
+- la connexion locale sans mot de passe doit creer une session admin normale, conserver CSRF, timeout, re-auth et logs de securite
+- l'activation doit rester dans une configuration locale non versionnee, par exemple `backend/config/admin.override.php`, jamais dans un fichier public, versionne ou deployable
 
 Sources de verite a respecter:
 - `backend/src/Security/*`
@@ -589,6 +612,15 @@ Regles:
 - ne pas commit les artefacts generes ignores par Git
 - ne pas corriger un probleme produit en editant un fichier publie si la source existe dans `frontend/src/` ou un outil de publication
 - ne pas oublier que `npm run build` applique aussi les budgets frontend et le `postbuild`
+
+Regle de deploiement propre:
+- tout deploiement vers OVH doit produire un backend de production minimal et nettoye automatiquement
+- les scripts de deploiement doivent exclure et nettoyer les fichiers de developpement, test, documentation, sauvegarde et temporaires qui ne sont pas necessaires au runtime production
+- fichiers et dossiers non-prod a exclure/nettoyer au minimum: `tests/`, `docs/`, `README*`, `phpunit.xml`, `phpstan*`, `phpcs.xml`, `package*.json`, `replace_image_paths.php`, `public/dev-router.php`, `.env.example`, `.env.production`, `.env.bak.*`, `*.bak`, `*.old`, `*.orig`, `*.tmp`, `*~`, `.DS_Store`, `Thumbs.db`
+- la prod doit conserver uniquement les secrets et donnees runtime attendus: `.env`, `config/*.override.php`, `public/uploads/**`, `var/**`, `data/logs/**`, `data/snapshots/**`
+- apres synchronisation, executer un controle automatique de proprete de l'arborescence prod et faire echouer le deploiement si un residu non-prod reste present
+- apres synchronisation, executer aussi le controle du manifest Vite pour verifier que chaque asset reference existe reellement sous `backend/public/assets/`
+- ne pas creer automatiquement de copies `.env.bak.*` dans le backend prod a chaque deploiement; si un rollback de secret est necessaire, faire une sauvegarde explicite, ciblee et hors webroot
 
 ## 16. Tests et verification minimale
 

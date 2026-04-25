@@ -2819,7 +2819,9 @@ $adminMenu = [
             return;
           }
 
-          dialog.close();
+          if (dialog.open) {
+            dialog.close();
+          }
           const trigger = activeTriggerByDialog.get(dialog);
           focusWithoutScroll(trigger);
         };
@@ -2862,6 +2864,8 @@ $adminMenu = [
         });
 
         dialogs.forEach((dialog) => {
+          const isStaticDialog = dialog.getAttribute('data-region-modal-static') === 'true';
+
           dialog.querySelectorAll('[data-region-modal-close]').forEach((button) => {
             if (!(button instanceof HTMLElement)) {
               return;
@@ -2870,16 +2874,18 @@ $adminMenu = [
             button.addEventListener('click', () => closeDialog(dialog));
           });
 
-          dialog.addEventListener('click', (event) => {
-            const rect = dialog.getBoundingClientRect();
-            const clickedOutside = event.clientX < rect.left
-              || event.clientX > rect.right
-              || event.clientY < rect.top
-              || event.clientY > rect.bottom;
-
-            if (clickedOutside) {
-              closeDialog(dialog);
+          dialog.addEventListener('cancel', (event) => {
+            if (isStaticDialog) {
+              event.preventDefault();
             }
+          });
+
+          dialog.addEventListener('click', (event) => {
+            if (isStaticDialog || event.target !== dialog) {
+              return;
+            }
+
+            closeDialog(dialog);
           });
 
           dialog.addEventListener('close', () => {

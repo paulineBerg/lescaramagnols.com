@@ -250,6 +250,39 @@ function admin_verify_password(string $password): bool
     return password_verify($password, $hash);
 }
 
+function admin_local_passwordless_localhost_configured(): bool
+{
+    $raw = app_config('admin.local_passwordless_localhost', false);
+    if (is_bool($raw)) {
+        return $raw;
+    }
+
+    $normalized = strtolower(trim((string) $raw));
+
+    return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+}
+
+function admin_is_non_production_environment(): bool
+{
+    $env = strtolower(trim((string) app_config('env', '')));
+
+    return $env !== '' && !in_array($env, ['production', 'prod', 'live'], true);
+}
+
+function admin_is_real_localhost_request(): bool
+{
+    $remoteAddr = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+
+    return in_array($remoteAddr, ['127.0.0.1', '::1', '::ffff:127.0.0.1'], true);
+}
+
+function admin_local_passwordless_localhost_allowed(): bool
+{
+    return admin_local_passwordless_localhost_configured()
+        && admin_is_non_production_environment()
+        && admin_is_real_localhost_request();
+}
+
 function admin_normalize_totp_secret(string $secret): string
 {
     $secret = strtoupper(trim($secret));
@@ -313,6 +346,10 @@ function admin_is_local_request(): bool
 function admin_totp_should_challenge(): bool
 {
     if (!admin_totp_enabled()) {
+        return false;
+    }
+
+    if (admin_local_passwordless_localhost_allowed()) {
         return false;
     }
 
@@ -498,12 +535,18 @@ function admin_current_user(): ?array
 function admin_login(string $identifier, string $password, ?string $totpCode = null): bool
 {
     $identifier = trim($identifier);
+    $password = trim($password);
     $expectedIdentifier = admin_expected_identifier();
     $hash = app_config('admin.password_hash', null);
     $maskedIdentifier = \Caramagnols\Logging\AppEventLogger::maskIdentifier($identifier);
+    $passwordlessLocalhost = admin_local_passwordless_localhost_allowed();
     admin_set_login_failure_reason(null);
 
-    if ($identifier === '' || $password === '' || $expectedIdentifier === '' || !is_string($hash) || $hash === '') {
+    if (
+        $identifier === ''
+        || $expectedIdentifier === ''
+        || (!$passwordlessLocalhost && ($password === '' || !is_string($hash) || $hash === ''))
+    ) {
         admin_set_login_failure_reason('configuration_or_payload_incomplete');
         if (function_exists('app_event_logger')) {
             app_event_logger()->security(
@@ -529,7 +572,7 @@ function admin_login(string $identifier, string $password, ?string $totpCode = n
         return false;
     }
 
-    if (!password_verify($password, $hash)) {
+    if (!$passwordlessLocalhost && !password_verify($password, (string) $hash)) {
         admin_set_login_failure_reason('password_mismatch');
         if (function_exists('app_event_logger')) {
             app_event_logger()->security(
@@ -590,6 +633,13 @@ function admin_login(string $identifier, string $password, ?string $totpCode = n
     admin_set_login_failure_reason(null);
 
     if (function_exists('app_event_logger')) {
+        if ($passwordlessLocalhost) {
+            app_event_logger()->security(
+                'admin.login.local_passwordless',
+                ['identifier' => \Caramagnols\Logging\AppEventLogger::maskIdentifier($authenticatedIdentifier)]
+            );
+        }
+
         app_event_logger()->security(
             'admin.login.success',
             ['identifier' => \Caramagnols\Logging\AppEventLogger::maskIdentifier((string) ($_SESSION[admin_session_key()]['identifier'] ?? ''))]

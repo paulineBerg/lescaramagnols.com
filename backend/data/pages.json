@@ -2284,23 +2284,182 @@
             "meta": []
         },
         {
-            "slug": "site-bouger-animations-les-voiles-latines-a-sttropez",
+            "slug": "bouger-animations-les-voiles-latines-a-sttropez",
             "type": "structured_page",
             "status": "published",
-            "title": "Les Voiles Latines A Sttropez",
+            "title": "Les Voiles latines à Saint-Tropez",
             "layout": "standard_page",
             "route": "/bouger/animations/les-voiles-latines-a-sttropez.php",
             "blocks": [],
             "regions": [],
             "translations": {
-                "fr": {
-                    "title": "Les Voiles Latines A Sttropez",
+                "de": {
+                    "title": "Lateinersegel in Saint-Tropez",
                     "blocks": [],
-                    "regions": [],
-                    "meta": []
+                    "regions": {
+                        "after_body": {
+                            "component": "rich_text",
+                            "html": "<h2>Den nautischen Besuch verlängern</h2><p>Die Voiles latines gehören zu einer größeren Familie maritimer Termine und Spaziergänge rund um den Golf.</p><ul><li><a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php\">Zurück zu den wiederkehrenden Veranstaltungen im Golf</a></li><li><a href=\"/bouger/animations/regates-et-voiles-golfe-saint-tropez.php\">Regatten und große Segeltermine ansehen</a></li><li><a href=\"/bouger/se-promener-a-sttropez.php\">Spaziergang durch Saint-Tropez</a></li><li><a href=\"/bouger/se-promener-dans-le-golfe-de-sttropez.php\">Spaziergang im Golf von Saint-Tropez</a></li></ul>"
+                        },
+                        "aside": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-002.webp\" alt=\"Boote mit Lateinersegeln im Hafen von Saint-Tropez im Jahr 2015\" title=\"Boote bei den Voiles latines 2015\" width=\"500\" height=\"500\" loading=\"lazy\"></div><div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/senequier_aux_voiles_latines_de_2015.webp\" alt=\"Traditionelle Boote vor Sénéquier während der Voiles latines 2015\" title=\"Sénéquier bei den Voiles latines 2015\" width=\"500\" height=\"500\" loading=\"lazy\"></div>"
+                        },
+                        "body": {
+                            "component": "rich_text",
+                            "html": "<h2>Ein Treffen rund um den alten Hafen</h2>\n<p>Die Veranstaltung entstand 2001 in Saint-Tropez, rund um den Hafen und die tropézischen Segelkreise. Sie sucht nicht die Größe der großen Herbstregatten. Im Mittelpunkt stehen kleinere Einheiten, Arbeitsboote, Holzrümpfe und Segel, die lange für Fischerei, Küstenschifffahrt und kurze Verbindungen zwischen Mittelmeerufern genutzt wurden.</p>\n<p>Der Termin konnte je nach Jahr wechseln, mit Ausgaben im Frühjahr oder späten Frühjahr. Für einen Besuch ist das wichtig: Vor der Anreise sollte das offizielle Programm gelesen werden, denn Daten, belegte Kais, Fahrten und angekündigte Werkstätten können sich von Ausgabe zu Ausgabe ändern.</p>\n<h2>Was ein Lateinersegel erzählt</h2>\n<p>Ein Lateinersegel erkennt man an seiner dreieckigen Form und der langen, schräg gesetzten Spiere. Es verlangt genaues Können, weil Rigg, Wind und Boot ohne Automatismus aufeinander reagieren. An den Kais zeigt sich diese Erinnerung in Pointus, Marseiller und katalanischen Booten, Feluken, Gozzos, Tarquiers und Tartanons.</p>\n<p>Diese Namen sind nicht nur malerische Wörter. Sie bezeichnen Nutzungen, Häfen, Bauweisen und Arten zu segeln. Der Pointu bleibt zum Beispiel eng mit der provenzalischen Küstenfischerei verbunden. Breitere Rümpfe, Spieren, Tauwerk und bemalte Bordwände geben jedem Boot eine gut lesbare Präsenz, auch für Besucher ohne technische Vorkenntnisse.</p>\n<h2>Boote, Besatzungen und Handgriffe</h2>\n<p>Die Voiles latines sind auf den wartenden Kais ebenso interessant wie auf dem Wasser. Besatzungen bereiten Segel vor, justieren Leinen, beobachten den Wind und bringen nach der Ausfahrt wieder Ordnung in das Boot. Stände und Werkstätten zu Schiffszimmerei, Tauwerk oder traditionellem Handwerk zeigen, dass dieses Erbe lebendig bleibt, wenn Wissen von Hand zu Hand weitergegeben wird.</p>\n<p>Auch Gastronomie und mediterrane Kulturen gehörten zum Geist des Treffens. Sie geben dem Termin einen weiteren Rahmen, ohne die Boote zur Kulisse zu machen. Der Kern bleibt derselbe: verstehen, wie eine alte Art zu segeln weiterexistiert, nicht als starre Nachstellung, sondern als Praxis von Vereinen, Eigentümern und Begeisterten.</p>\n<h2>Saint-Tropez anders betrachten</h2>\n<p>Dieses Treffen gibt dem alten Hafen eine andere Lesart. Saint-Tropez erscheint nicht nur als mondäner Hafen oder Sommerbild, sondern als alter maritimer Ort, verbunden mit Fischern, Werften, Küstentausch und Mittelmeer-Know-how. Die Boote sind oft bescheiden in ihrer Größe, aber sie zwingen dazu, die Linie eines Rumpfs, die Stellung eines Segels und die Geduld einer Besatzung genauer anzusehen.</p>\n<p>Für Besucher bleibt der passende Rhythmus einfach: über die Kais gehen, die Bootsnamen lesen, bei gutem Wind die Ausfahrten beobachten und später in den Hafen zurückkehren, wenn die Boote wieder festgemacht sind. Die Voiles latines verlangen keine Jagd nach dem großen Spektakel. Sie erschließen sich besser im Detail, nahe am lackierten Holz, an gehissten Segeln und an Gesprächen am Ponton.</p>"
+                        },
+                        "bottom": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015.webp\" alt=\"Traditionelles Boot bei den Voiles latines in Saint-Tropez im Jahr 2015\" title=\"Voiles latines 2015\" width=\"334\" height=\"334\" loading=\"lazy\"></div>"
+                        },
+                        "hero": {
+                            "component": "rich_text",
+                            "html": "<h1>Lateinersegel in Saint-Tropez</h1>\n<p>In Saint-Tropez holen die Voiles latines eine alte Mittelmeer-Segelei in den alten Hafen zurück: niedrige Holzrümpfe, schräg gesetzte Spieren und dreieckige Segel. Das Treffen besteht seit 2001 und stellt traditionelle Boote aus dem Mittelmeerraum in den Mittelpunkt. Die hier bewahrten Bilder stammen von der Ausgabe 2015 und halten die Erinnerung an einen überschaubaren Termin fest, zwischen maritimem Erbe, Besatzungen und handwerklichen Gesten.</p>"
+                        },
+                        "intro": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-003.webp\" alt=\"Boote mit Lateinersegeln im Hafen von Saint-Tropez im Jahr 2015\" title=\"Lateinersegel in Saint-Tropez\" width=\"500\" height=\"281\" loading=\"lazy\"></div>"
+                        },
+                        "left": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-001.webp\" alt=\"Detail eines traditionellen Bootes bei den Voiles latines 2015\" title=\"Detail eines traditionellen Bootes\" width=\"250\" height=\"334\" loading=\"lazy\"></div>"
+                        },
+                        "postscript": {
+                            "component": "rich_text",
+                            "html": "<p>Quellen</p><ul><li><a href=\"https://www.portsainttropez.com/en/lateen-sails/\" target=\"_blank\" rel=\"noopener noreferrer\">Hafen von Saint-Tropez - Lateen Sails</a></li><li><a href=\"https://www.sainttropeztourisme.com/de/veranstaltungen-in-saint-tropez/die-grossen-ereignisse/les-voiles-latines-in-saint-tropez/\" target=\"_blank\" rel=\"noopener noreferrer\">Saint-Tropez Tourismus - Les Voiles Latines</a></li><li><a href=\"https://www.culture.gouv.fr/fr/content/download/203168/file/L%27art%20de%20la%20navigation%20sous%20voile%20latine_VF.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Französisches Kulturministerium - Navigation unter Lateinersegel</a></li></ul>"
+                        },
+                        "right": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-004.webp\" alt=\"Boote mit Lateinersegeln in Saint-Tropez im Jahr 2015\" title=\"Boote mit Lateinersegeln\" width=\"500\" height=\"500\" loading=\"lazy\"></div>"
+                        }
+                    },
+                    "meta": {
+                        "description": "Lateinersegel in Saint-Tropez: ein Treffen traditioneller Mittelmeerboote seit 2001 rund um den alten Hafen, zwischen Segeln, Handwerk und maritimem Erbe.",
+                        "image": {
+                            "src": "/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-003.jpg",
+                            "alt": "Boote mit Lateinersegeln im Hafen von Saint-Tropez im Jahr 2015",
+                            "title": "Lateinersegel in Saint-Tropez",
+                            "width": 500,
+                            "height": 281
+                        }
+                    }
+                },
+                "en": {
+                    "title": "Lateen sails in Saint-Tropez",
+                    "blocks": [],
+                    "regions": {
+                        "after_body": {
+                            "component": "rich_text",
+                            "html": "<h2>Continue the nautical visit</h2><p>Les Voiles latines belong to a wider family of maritime events and walks around the gulf.</p><ul><li><a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php\">Return to recurring events in the gulf</a></li><li><a href=\"/bouger/animations/regates-et-voiles-golfe-saint-tropez.php\">See regattas and major sailing events</a></li><li><a href=\"/bouger/se-promener-a-sttropez.php\">Walk through Saint-Tropez</a></li><li><a href=\"/bouger/se-promener-dans-le-golfe-de-sttropez.php\">Walk around the Gulf of Saint-Tropez</a></li></ul>"
+                        },
+                        "aside": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-002.webp\" alt=\"Lateen sail boats in the harbour of Saint-Tropez in 2015\" title=\"Boats during Les Voiles latines 2015\" width=\"500\" height=\"500\" loading=\"lazy\"></div><div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/senequier_aux_voiles_latines_de_2015.webp\" alt=\"Traditional boats moored near Sénéquier during Les Voiles latines 2015\" title=\"Sénéquier during Les Voiles latines 2015\" width=\"500\" height=\"500\" loading=\"lazy\"></div>"
+                        },
+                        "body": {
+                            "component": "rich_text",
+                            "html": "<h2>A gathering born around the old harbour</h2>\n<p>The event appeared in Saint-Tropez in 2001, around the harbour and local sailing circles. It does not seek the scale of the major autumn regattas. It focuses instead on small craft, working boats, timber frames and sails once used for fishing, coastal trade and short links between Mediterranean shores.</p>\n<p>The timing has varied over the years, with editions held in spring or late spring. That matters when planning a visit: before coming, check the official calendar, because dates, occupied quays, sailing sessions and announced workshops can change from one edition to the next.</p>\n<h2>What a lateen sail tells</h2>\n<p>A lateen sail is recognised by its triangular shape and its long spar set at an angle. It requires precise handling, because rig, wind and boat movement answer one another without automation. On the quays, this memory appears through pointus, Marseille and Catalan boats, feluccas, gozzos, tarquiers and tartanons.</p>\n<p>These names are not just picturesque vocabulary. They refer to uses, harbours, building methods and ways of sailing. The pointu, for instance, remains closely linked with Provençal coastal fishing. Wider hulls, spars, ropes and painted sides give each boat a readable presence, even for visitors who do not know the technical details.</p>\n<h2>Boats, crews and manual skills</h2>\n<p>Les Voiles latines are as interesting in the waiting moments along the quays as during the sailing itself. Crews prepare sails, adjust lines, watch the wind and put back in order what the outing has shifted. Stands and workshops around ship carpentry, ropework or traditional crafts show that this heritage stays alive when knowledge is passed on by hand.</p>\n<p>Food and Mediterranean cultures have also been part of the gathering’s spirit. They give the event a broader frame without turning the boats into background scenery. The central subject remains the same: understanding how an old form of sailing continues to exist, not as a fixed reenactment, but as a practice carried by associations, owners and enthusiasts.</p>\n<h2>Looking at Saint-Tropez differently</h2>\n<p>This gathering gives the old harbour another reading. Saint-Tropez no longer appears only as a fashionable port or a summer image, but as an old maritime place connected with fishermen, boatyards, coastal exchanges and Mediterranean skills. The boats are often modest in size, yet they make you look closely at a hull line, a sail setting and the patience of a crew.</p>\n<p>For visitors, the right rhythm is simple: walk along the quays, take time to read the boat names, watch departures if the wind allows, then return to the harbour to see the boats moored. Les Voiles latines are not about chasing a large spectacle. They are better discovered through details, close to varnished wood, hoisted sails and pontoon conversations.</p>"
+                        },
+                        "bottom": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015.webp\" alt=\"Traditional boat during Les Voiles latines in Saint-Tropez in 2015\" title=\"Les Voiles latines 2015\" width=\"334\" height=\"334\" loading=\"lazy\"></div>"
+                        },
+                        "hero": {
+                            "component": "rich_text",
+                            "html": "<h1>Lateen sails in Saint-Tropez</h1>\n<p>In Saint-Tropez, Les Voiles latines bring an old form of Mediterranean sailing back to the old harbour: low wooden hulls, slanting spars and triangular sails. The gathering has existed since 2001 and highlights traditional boats from around the Mediterranean. The images kept here come from the 2015 edition and preserve the memory of a modest, practical event built around maritime heritage, crews and workshop skills.</p>"
+                        },
+                        "intro": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-003.webp\" alt=\"Lateen-rigged boats in the harbour of Saint-Tropez in 2015\" title=\"Lateen sails in Saint-Tropez\" width=\"500\" height=\"281\" loading=\"lazy\"></div>"
+                        },
+                        "left": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-001.webp\" alt=\"Detail of a traditional boat during Les Voiles latines 2015\" title=\"Traditional boat detail\" width=\"250\" height=\"334\" loading=\"lazy\"></div>"
+                        },
+                        "postscript": {
+                            "component": "rich_text",
+                            "html": "<p>Sources</p><ul><li><a href=\"https://www.portsainttropez.com/en/lateen-sails/\" target=\"_blank\" rel=\"noopener noreferrer\">Port of Saint-Tropez - Lateen Sails</a></li><li><a href=\"https://www.sainttropeztourisme.com/en/events-in-saint-tropez/major-events/les-voiles-latines-in-saint-tropez/\" target=\"_blank\" rel=\"noopener noreferrer\">Saint-Tropez Tourism - Les Voiles Latines</a></li><li><a href=\"https://www.culture.gouv.fr/fr/content/download/203168/file/L%27art%20de%20la%20navigation%20sous%20voile%20latine_VF.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">French Ministry of Culture - lateen-sail navigation</a></li></ul>"
+                        },
+                        "right": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-004.webp\" alt=\"Lateen sail boats moored in Saint-Tropez in 2015\" title=\"Lateen sail boats\" width=\"500\" height=\"500\" loading=\"lazy\"></div>"
+                        }
+                    },
+                    "meta": {
+                        "description": "Lateen sails in Saint-Tropez: a traditional Mediterranean boat gathering born in 2001 around the old harbour, between sailing, craft skills and maritime heritage.",
+                        "image": {
+                            "src": "/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-003.jpg",
+                            "alt": "Lateen-rigged boats in the harbour of Saint-Tropez in 2015",
+                            "title": "Lateen sails in Saint-Tropez",
+                            "width": 500,
+                            "height": 281
+                        }
+                    }
+                },
+                "fr": {
+                    "title": "Les Voiles latines à Saint-Tropez",
+                    "blocks": [],
+                    "regions": {
+                        "after_body": {
+                            "component": "rich_text",
+                            "html": "<h2>Prolonger la découverte nautique</h2><p>Les Voiles latines s’inscrivent dans une famille plus large de rendez-vous maritimes et de balades autour du golfe.</p><ul><li><a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php\">Revenir aux animations récurrentes du golfe</a></li><li><a href=\"/bouger/animations/regates-et-voiles-golfe-saint-tropez.php\">Voir les régates et grands rendez-vous de voile</a></li><li><a href=\"/bouger/se-promener-a-sttropez.php\">Se promener à Saint-Tropez</a></li><li><a href=\"/bouger/se-promener-dans-le-golfe-de-sttropez.php\">Se promener dans le golfe de Saint-Tropez</a></li></ul>"
+                        },
+                        "aside": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-002.webp\" alt=\"Bateaux à voiles latines dans le port de Saint-Tropez en 2015\" title=\"Bateaux aux Voiles latines 2015\" width=\"500\" height=\"500\" loading=\"lazy\"></div><div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/senequier_aux_voiles_latines_de_2015.webp\" alt=\"Bateaux traditionnels amarrés devant Sénéquier pendant les Voiles latines 2015\" title=\"Sénéquier aux Voiles latines 2015\" width=\"500\" height=\"500\" loading=\"lazy\"></div>"
+                        },
+                        "body": {
+                            "component": "rich_text",
+                            "html": "<h2>Un rendez-vous né autour du vieux port</h2>\n<p>La manifestation apparaît à Saint-Tropez en 2001, autour du port et des milieux nautiques tropéziens. Elle ne cherche pas l’échelle des grandes régates d’automne. Elle s’attache plutôt aux petites unités, aux bateaux de travail, aux charpentes de bois et aux voiles qui ont longtemps servi à pêcher, caboter et relier les rives de Méditerranée.</p>\n<p>Le calendrier a pu varier selon les années, avec des éditions placées au printemps ou à la fin du printemps. C’est un point important pour préparer une visite : avant de venir, il faut relire l’agenda officiel, car les dates, les quais occupés, les navigations et les ateliers annoncés peuvent changer d’une édition à l’autre.</p>\n<h2>Ce que raconte une voile latine</h2>\n<p>La voile latine se reconnaît à sa forme triangulaire et à sa longue antenne montée en oblique. Elle demande un savoir-faire précis, car le gréement, le vent et la manœuvre du bateau se répondent sans automatisme. Sur les quais, on retrouve cette mémoire dans les pointus, les barques marseillaises ou catalanes, les felouques, les gozzos, les tarquiers et les tartanons.</p>\n<p>Ces noms ne sont pas de simples mots pittoresques. Ils désignent des usages, des ports, des manières de construire et de naviguer. Le pointu, par exemple, reste lié à la pêche côtière provençale. Les coques plus larges, les antennes, les cordages et les couleurs de coque donnent à chaque bateau une présence très lisible, même pour un visiteur qui ne connaît pas les détails techniques.</p>\n<h2>Des bateaux, des équipages et des gestes</h2>\n<p>Les Voiles latines valent autant par l’attente sur les quais que par les sorties en mer. On y voit les équipages préparer les voiles, ajuster les bouts, regarder le vent et remettre en ordre ce que la navigation a déplacé. Les stands et ateliers autour de la charpenterie de marine, du matelotage ou de l’artisanat traditionnel rappellent que ce patrimoine reste vivant lorsqu’il se transmet par la main.</p>\n<p>La gastronomie et les cultures méditerranéennes ont aussi fait partie de l’esprit du rassemblement. Elles donnent un cadre plus large au rendez-vous, sans transformer les bateaux en décor. Le sujet principal reste le même : comprendre comment une navigation ancienne continue d’exister, non pas comme une reconstitution figée, mais comme une pratique portée par des associations, des propriétaires et des passionnés.</p>\n<h2>Regarder Saint-Tropez autrement</h2>\n<p>Ce rendez-vous donne au vieux port une lecture différente. Saint-Tropez n’y apparaît plus seulement comme un port mondain ou une image d’été, mais comme un lieu maritime ancien, lié aux pêcheurs, aux chantiers, aux échanges côtiers et aux savoir-faire de Méditerranée. Les bateaux sont souvent modestes par la taille, mais ils obligent à regarder la ligne d’une coque, le réglage d’une voile et la patience d’un équipage.</p>\n<p>Pour le visiteur, le bon rythme reste simple : passer sur les quais, prendre le temps de lire les noms, observer les départs si le vent le permet, puis revenir au port pour voir les bateaux amarrés. Les Voiles latines ne demandent pas de courir après le grand spectacle. Elles se découvrent mieux dans le détail, au plus près des bois vernis, des voiles hissées et des conversations de ponton.</p>"
+                        },
+                        "bottom": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015.webp\" alt=\"Bateau traditionnel pendant les Voiles latines de Saint-Tropez 2015\" title=\"Voiles latines 2015\" width=\"334\" height=\"334\" loading=\"lazy\"></div>"
+                        },
+                        "hero": {
+                            "component": "rich_text",
+                            "html": "<h1>Les Voiles latines à Saint-Tropez</h1>\n<p>À Saint-Tropez, les Voiles latines ramènent sur le vieux port une navigation ancienne, faite de coques basses, d’antennes obliques et de voiles triangulaires. Le rassemblement existe depuis 2001 et met en avant des bateaux traditionnels venus du monde méditerranéen. Les images conservées ici datent de l’édition 2015 et gardent la mémoire d’un rendez-vous à taille humaine, entre patrimoine maritime, équipages et gestes d’atelier.</p>"
+                        },
+                        "intro": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-003.webp\" alt=\"Voiliers à gréement latin dans le port de Saint-Tropez en 2015\" title=\"Voiles latines à Saint-Tropez\" width=\"500\" height=\"281\" loading=\"lazy\"></div>"
+                        },
+                        "left": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-001.webp\" alt=\"Détail d’un bateau traditionnel aux Voiles latines 2015\" title=\"Détail de bateau traditionnel\" width=\"250\" height=\"334\" loading=\"lazy\"></div>"
+                        },
+                        "postscript": {
+                            "component": "rich_text",
+                            "html": "<p>Sources</p><ul><li><a href=\"https://www.portsainttropez.com/les-voiles-latines/\" target=\"_blank\" rel=\"noopener noreferrer\">Port de Saint-Tropez - Les Voiles Latines</a></li><li><a href=\"https://www.sainttropeztourisme.com/fr/evenements-saint-tropez/les-grands-evenements/les-voiles-latines-saint-tropez/\" target=\"_blank\" rel=\"noopener noreferrer\">Saint-Tropez Tourisme - Les Voiles Latines</a></li><li><a href=\"https://www.culture.gouv.fr/fr/content/download/203168/file/L%27art%20de%20la%20navigation%20sous%20voile%20latine_VF.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Ministère de la Culture - L’art de la navigation sous voile latine</a></li></ul>"
+                        },
+                        "right": {
+                            "component": "rich_text",
+                            "html": "<div class=\"img\"><img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-004.webp\" alt=\"Bateaux à voiles latines amarrés à Saint-Tropez en 2015\" title=\"Bateaux à voiles latines\" width=\"500\" height=\"500\" loading=\"lazy\"></div>"
+                        }
+                    },
+                    "meta": {
+                        "description": "Les Voiles latines à Saint-Tropez, un rassemblement de bateaux traditionnels méditerranéens né en 2001 autour du vieux port, entre navigation, artisanat et patrimoine maritime.",
+                        "image": {
+                            "src": "/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-003.jpg",
+                            "alt": "Voiliers à gréement latin dans le port de Saint-Tropez en 2015",
+                            "title": "Voiles latines à Saint-Tropez",
+                            "width": 500,
+                            "height": 281
+                        }
+                    }
                 }
             },
-            "meta": []
+            "meta": {
+                "description": "Les Voiles latines à Saint-Tropez, un rassemblement de bateaux traditionnels méditerranéens né en 2001 autour du vieux port, entre navigation, artisanat et patrimoine maritime.",
+                "image": {
+                    "src": "/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-003.jpg",
+                    "alt": "Voiliers à gréement latin dans le port de Saint-Tropez en 2015",
+                    "title": "Voiles latines à Saint-Tropez",
+                    "width": 500,
+                    "height": 281
+                }
+            }
         },
         {
             "slug": "site-bouger-les-animations-dans-le-golfe-de-sttropez",

@@ -98,6 +98,9 @@ ADMIN_TOTP_ENABLED=true
 ADMIN_TOTP_SECRET=JBSWY3DPEHPK3PXP
 ADMIN_TOTP_SKIP_LOCALHOST=true
 
+# Local seulement, ignore en production meme si active par erreur
+ADMIN_LOCAL_PASSWORDLESS_LOCALHOST=false
+
 # Secrets API (hors Git)
 DISCUSSIONS_RECAPTCHA_SITE_KEY=
 DISCUSSIONS_RECAPTCHA_SECRET_KEY=
@@ -126,6 +129,14 @@ Les valeurs sont enregistrees dans `backend/config/admin.override.php` (fichier 
 - Localhost: laisser `FORCE_HTTPS_ON_LOCALHOST=false` si aucun endpoint TLS local n'ecoute.
 - Si vous forcez HTTPS en local, il faut un serveur qui ecoute en TLS sur le port cible (ex: 18443), sinon navigateur => `ERR_CONNECTION_REFUSED`.
 
+## Connexion Admin Locale Sans Mot De Passe
+
+Le mode `local_passwordless_localhost` est reserve au poste de developpement.
+Il ne fonctionne que si l'environnement applicatif n'est pas `production`, `prod` ou `live`, et si l'adresse distante reelle est loopback (`127.0.0.1`, `::1` ou equivalent IPv4 mappe).
+Le code ne tient pas compte de `HTTP_HOST`, `SERVER_NAME` ni des headers proxy pour ce bypass.
+Quand ce mode est autorise, le formulaire local ne demande ni mot de passe ni code TOTP.
+La session creee reste une session admin normale: CSRF, timeout, re-authentification et logs de securite restent actifs.
+
 ## Checklist De Verification
 
 1. Webroot public pointe vers `backend/public` uniquement.
@@ -138,6 +149,7 @@ Les valeurs sont enregistrees dans `backend/config/admin.override.php` (fichier 
 8. Aucun secret n'est committe dans le depot.
 9. `backend/public/.htaccess` est deployee en prod (redirect HTTPS/host canonique + blocages de fichiers sensibles).
 10. `composer check-security-headers -- --url=https://preprod.votredomaine.tld` est vert avant go-live.
+11. Si `local_passwordless_localhost` est active en local, verifier qu'un `APP_ENV=production` ou une adresse non-loopback refuse toujours la connexion sans mot de passe.
 
 ## Execution Ticket W1-03 (2026-03-20)
 

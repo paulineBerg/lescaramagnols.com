@@ -15,9 +15,11 @@ final class AuthTest extends TestCase
         $_SESSION = [];
 
         global $appConfig;
+        $appConfig['env'] = 'testing';
         $appConfig['admin']['email'] = 'admin@example.com';
         $appConfig['admin']['password_hash'] = password_hash('topsecret', PASSWORD_DEFAULT);
         $appConfig['admin']['session_key'] = '_admin_user_test';
+        $appConfig['admin']['local_passwordless_localhost'] = false;
         $appConfig['admin']['inactivity_timeout_seconds'] = 1200;
         $appConfig['admin']['reauth_timeout_seconds'] = 600;
         $appConfig['admin']['totp_enabled'] = false;
@@ -25,6 +27,9 @@ final class AuthTest extends TestCase
         $appConfig['admin']['totp_skip_localhost'] = true;
         $appConfig['admin']['totp_period_seconds'] = 30;
         $appConfig['admin']['totp_allowed_drift_steps'] = 1;
+
+        $_SERVER['REMOTE_ADDR'] = '198.51.100.10';
+        unset($_SERVER['HTTP_HOST'], $_SERVER['SERVER_NAME']);
     }
 
     public function testAdminLoginSuccess(): void
@@ -42,6 +47,40 @@ final class AuthTest extends TestCase
     public function testAdminLoginFailure(): void
     {
         $this->assertFalse(admin_login('admin@example.com', 'wrong-password'));
+        $this->assertFalse(admin_is_authenticated());
+    }
+
+    public function testAdminLocalPasswordlessLoginAllowsOnlyNonProductionLoopback(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['local_passwordless_localhost'] = true;
+        $appConfig['env'] = 'development';
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+
+        $this->assertTrue(admin_login('admin@example.com', ''));
+        $this->assertTrue(admin_is_authenticated());
+    }
+
+    public function testAdminLocalPasswordlessLoginIsRejectedInProduction(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['local_passwordless_localhost'] = true;
+        $appConfig['env'] = 'production';
+        $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+
+        $this->assertFalse(admin_login('admin@example.com', ''));
+        $this->assertFalse(admin_is_authenticated());
+    }
+
+    public function testAdminLocalPasswordlessLoginIgnoresSpoofedLocalhostHost(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['local_passwordless_localhost'] = true;
+        $appConfig['env'] = 'development';
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.42';
+        $_SERVER['HTTP_HOST'] = 'localhost';
+
+        $this->assertFalse(admin_login('admin@example.com', ''));
         $this->assertFalse(admin_is_authenticated());
     }
 

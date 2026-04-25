@@ -317,6 +317,9 @@ $adminIdentifier = trim((string) (
     ?? env('ADMIN_IDENTIFIER', env('ADMIN_EMAIL', ''))
 ));
 $adminPasswordHash = trim((string) ($adminOverride['password_hash'] ?? env('ADMIN_PASSWORD_HASH', '')));
+$adminLocalPasswordlessLocalhost = array_key_exists('local_passwordless_localhost', $adminOverride)
+    ? filter_var($adminOverride['local_passwordless_localhost'], FILTER_VALIDATE_BOOLEAN)
+    : filter_var(env('ADMIN_LOCAL_PASSWORDLESS_LOCALHOST', false), FILTER_VALIDATE_BOOLEAN);
 $normalizeAdminTotpSecret = static function (mixed $secret): string {
     $normalized = strtoupper(trim((string) $secret));
     $normalized = preg_replace('/[\s\-=]+/', '', $normalized) ?? $normalized;
@@ -346,8 +349,10 @@ if ($adminReauthTimeoutSeconds > $adminInactivityTimeoutSeconds) {
     $adminReauthTimeoutSeconds = $adminInactivityTimeoutSeconds;
 }
 
+$appEnv = defined('CARAMAGNOLS_LOCAL_DEV_ROUTER') ? 'development' : env('APP_ENV', 'development');
+
 $appConfig = [
-    'env' => env('APP_ENV', 'development'),
+    'env' => $appEnv,
     'base_url' => env('BASE_URL', '/'),
     'default_lang' => env('DEFAULT_LANG', 'fr'),
     'database' => array_merge($databaseDefaults, $databaseOverride),
@@ -382,6 +387,7 @@ $appConfig = [
         ),
         'login_rate_limit_attempts' => max(1, (int) env('ADMIN_LOGIN_RATE_LIMIT_ATTEMPTS', 5)),
         'login_rate_limit_window' => max(60, (int) env('ADMIN_LOGIN_RATE_LIMIT_WINDOW', 900)),
+        'local_passwordless_localhost' => (bool) $adminLocalPasswordlessLocalhost,
         'inactivity_timeout_seconds' => $adminInactivityTimeoutSeconds,
         'reauth_timeout_seconds' => $adminReauthTimeoutSeconds,
         'totp_enabled' => (bool) $adminTotpEnabled,

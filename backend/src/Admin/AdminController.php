@@ -292,6 +292,7 @@ final class AdminController
         }
         $submittedIdentifier = admin_configured_identifier();
         $totpRequired = admin_totp_should_challenge();
+        $passwordRequired = !admin_local_passwordless_localhost_allowed();
 
         if ($request->method() === 'POST') {
             $body = $request->body();
@@ -341,6 +342,7 @@ final class AdminController
                             'error' => $error,
                             'csrfToken' => admin_csrf_token(),
                             'submittedIdentifier' => $submittedIdentifier,
+                            'passwordRequired' => $passwordRequired,
                             'loginPath' => $this->routeResolver->loginPath(),
                             'contentTemplate' => 'login.php',
                         ]
@@ -386,6 +388,7 @@ final class AdminController
                 'error' => $error,
                 'csrfToken' => admin_csrf_token(),
                 'submittedIdentifier' => $submittedIdentifier,
+                'passwordRequired' => $passwordRequired,
                 'loginPath' => $this->routeResolver->loginPath(),
                 'totpRequired' => $totpRequired,
             ]

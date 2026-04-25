@@ -21,10 +21,12 @@
       autofocus
     />
   </div>
+  <?php if (($passwordRequired ?? true)): ?>
   <div class="field">
     <label for="password">Mot de passe</label>
     <input id="password" name="password" type="password" required />
   </div>
+  <?php endif; ?>
   <?php if (!empty($totpRequired)): ?>
   <div class="field">
     <label for="totp_code">Code 2FA (TOTP)</label>

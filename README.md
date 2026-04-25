@@ -544,8 +544,11 @@ Scripts :
 - `backend/tools/check-log-alerts-runner.sh` : runner exploitation pour `check_log_alerts.php` (utilisable en scheduler).
 - `backend/tools/systemd/install-check-log-alerts-systemd.sh` : installation timer `systemd` preprod/prod.
 - Les deux scripts preservent `.env` et `backend/config/*.override.php` (config admin runtime).
-- `deploy-release.sh` exclut aussi les artefacts runtime/locaux non produits : `backend/var/**`, `backend/data/logs/**`, `backend/data/snapshots/**`, `backend/data/*.bak`.
+- Les deux scripts excluent et nettoient automatiquement les fichiers non-prod : `tests/`, `docs/`, `README*`, `phpunit.xml`, `phpstan*`, `phpcs.xml`, `package*.json`, `replace_image_paths.php`, `backend/public/dev-router.php`, `.env.example`, `.env.production`, `.env.bak.*`, `*.bak`, `*.old`, `*.orig`, `*.tmp`, `*~`, `.DS_Store`, `Thumbs.db`.
+- `deploy-release.sh` exclut aussi les artefacts runtime/locaux non produits : `backend/var/**`, `backend/data/logs/**`, `backend/data/snapshots/**`.
 - Les deux scripts regenerent `backend/public/sitemap.xml` sur la cible.
+- Les deux scripts executent `backend/core/tools/check_vite_assets.php` avant et apres synchronisation : si `backend/public/.vite/manifest.json` reference un fichier absent de `backend/public/assets/`, le deploiement echoue au lieu de laisser un front sans JavaScript ou CSS.
+- Les deux scripts executent `backend/core/tools/check_prod_tree.php --clean` sur la cible : la release echoue si le backend prod conserve un residu de developpement, test, documentation, backup ou temporaire apres nettoyage.
 
 Variables requises :
 
@@ -582,9 +585,14 @@ Cas `composer.lock` modifie localement :
 
 - utiliser `deploy-release.sh` (ou `deploy-fast.sh --with-vendor`) pour pousser `vendor/` sur OVH si Composer n'est pas disponible en SSH.
 
+Cas frontend modifie :
+
+- executer d'abord `cd frontend && npm run build` pour regenerer et publier localement `backend/public/.vite/manifest.json` et les fichiers hashes sous `backend/public/assets/`
+- lancer ensuite le deploiement ; le controle Vite bloque si un fichier reference par le manifest manque localement ou sur OVH apres sync
+
 Rollback minimal :
 
-1. Restaurer `.env` backup si necessaire (`.env.bak.YYYY-MM-DD-HHMMSS` cree avant deploy).
+1. Restaurer `.env` depuis une sauvegarde manuelle si necessaire.
 2. Redeployer la derniere archive stable (zip ou release precedente).
 3. Purger le cache runtime :
 

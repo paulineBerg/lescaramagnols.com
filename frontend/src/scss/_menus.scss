@@ -1069,8 +1069,11 @@
 
 #menu-gauche img,
 #menu-droit img {
+  box-sizing: border-box;
+  display: block;
   width: 100%;
   height: auto;
+  border: 0.12rem solid vars.$color-white;
   border-radius: 0.18rem;
   transition: transform 0.3s ease;
 }

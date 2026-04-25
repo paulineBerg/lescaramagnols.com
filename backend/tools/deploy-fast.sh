@@ -7,11 +7,27 @@ LOCAL_BACKEND="${LOCAL_BACKEND:-${REPO_ROOT}/backend}"
 REMOTE_HOST="${REMOTE_HOST:-}"
 REMOTE_BACKEND="${REMOTE_BACKEND:-}"
 SITEMAP_BASE_URL="${SITEMAP_BASE_URL:-}"
+VITE_ASSET_CHECKER="core/tools/check_vite_assets.php"
+PROD_TREE_CHECKER="core/tools/check_prod_tree.php"
 
 DRY_RUN=0
 WITH_VENDOR=0
 NO_CACHE_CLEAR=0
 ALL_CHANGES=0
+
+is_deploy_excluded_path() {
+  case "$1" in
+    .env|.env.*|config/*.override.php|vendor|vendor/*|node_modules|node_modules/*|tests|tests/*|docs|docs/*|README*|var|var/*|phpunit.xml|phpstan.neon*|phpstan.bootstrap.php|phpcs.xml|package.json|package-lock.json|npm-shrinkwrap.json|replace_image_paths.php|data/snapshots|data/snapshots/*|data/logs|data/logs/*|*.bak|*.old|*.orig|*.tmp|*~|.DS_Store|Thumbs.db|public/assets/images|public/assets/images/*|public/uploads|public/uploads/*|public/dev-router.php)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
+cleanup_remote_non_prod_files() {
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$PROD_TREE_CHECKER' --root=. --clean"
+}
 
 usage() {
   cat <<'USAGE'
@@ -25,6 +41,8 @@ Description:
   - Preserves remote .env
   - Preserves remote config/*.override.php (admin runtime settings)
   - Preserves runtime editorial uploads under backend/public/uploads/editorial/
+  - Excludes and cleans non-production dev/test/docs/temp files
+  - Checks Vite manifest assets locally before deploy and remotely after sync
   - Generates static sitemap at backend/public/sitemap.xml
   - Clears runtime cache after deploy (unless --no-cache-clear)
 
@@ -69,6 +87,16 @@ if [[ ! -d "$LOCAL_BACKEND" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" ]]; then
+  echo "Vite asset checker not found: $LOCAL_BACKEND/$VITE_ASSET_CHECKER" >&2
+  exit 1
+fi
+
+if [[ ! -f "$LOCAL_BACKEND/$PROD_TREE_CHECKER" ]]; then
+  echo "Production tree checker not found: $LOCAL_BACKEND/$PROD_TREE_CHECKER" >&2
+  exit 1
+fi
+
 if ! git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
   echo "Git repository not found from $REPO_ROOT" >&2
   exit 1
@@ -99,11 +127,9 @@ while IFS= read -r rel_path; do
   [[ "$rel_path" == backend/* ]] || continue
 
   path="${rel_path#backend/}"
-  case "$path" in
-    .env|.env.*|config/*.override.php|vendor/*|node_modules/*|tests/*|docs/*|README*|var/*|phpunit.xml|phpstan.neon*|phpcs.xml|data/snapshots/*|data/logs/*|data/*.bak|public/assets/images/*|public/uploads/*)
-      continue
-      ;;
-  esac
+  if is_deploy_excluded_path "$path"; then
+    continue
+  fi
 
   if [[ -e "$LOCAL_BACKEND/$path" ]]; then
     printf '%s\n' "$path" >> "$CHANGED_FILES"
@@ -139,12 +165,14 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   if [[ "$WITH_VENDOR" -eq 1 && -d "$LOCAL_BACKEND/vendor" ]]; then
     echo "[dry-run] vendor/ would be synced."
   fi
+  echo "[dry-run] Non-production remote files would be cleaned if this deploy ran."
   echo "[dry-run] No remote command executed."
   exit 0
 fi
 
+php "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" --public-root="$LOCAL_BACKEND/public"
+
 ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND'"
-ssh "$REMOTE_HOST" "test -f '$REMOTE_BACKEND/.env' && cp '$REMOTE_BACKEND/.env' '$REMOTE_BACKEND/.env.bak.$(date +%F-%H%M%S)' || true"
 
 RSYNC_FLAGS=(-azv --info=progress2)
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -155,6 +183,10 @@ if [[ -s "$CHANGED_FILES" ]]; then
   rsync "${RSYNC_FLAGS[@]}" --files-from="$CHANGED_FILES" "$LOCAL_BACKEND/" "$REMOTE_HOST:$REMOTE_BACKEND/"
 fi
 
+ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/core/tools'"
+rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" "$REMOTE_HOST:$REMOTE_BACKEND/$VITE_ASSET_CHECKER"
+rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/$PROD_TREE_CHECKER" "$REMOTE_HOST:$REMOTE_BACKEND/$PROD_TREE_CHECKER"
+
 if [[ "$WITH_VENDOR" -eq 1 && -d "$LOCAL_BACKEND/vendor" ]]; then
   rsync "${RSYNC_FLAGS[@]}" --delete "$LOCAL_BACKEND/vendor/" "$REMOTE_HOST:$REMOTE_BACKEND/vendor/"
 fi
@@ -162,6 +194,8 @@ fi
 if [[ -s "$DELETED_FILES" ]]; then
   ssh "$REMOTE_HOST" "while IFS= read -r rel; do [ -n \"\$rel\" ] || continue; rm -rf -- '$REMOTE_BACKEND'/\"\$rel\"; done" < "$DELETED_FILES"
 fi
+
+cleanup_remote_non_prod_files
 
 if [[ -n "$SITEMAP_BASE_URL" ]]; then
   escaped_sitemap_base_url="$(printf '%q' "$SITEMAP_BASE_URL")"
@@ -175,6 +209,8 @@ find '$REMOTE_BACKEND' -type f -exec chmod 644 {} \; && \
 test ! -f '$REMOTE_BACKEND/.env' || chmod 640 '$REMOTE_BACKEND/.env' && \
 mkdir -p '$REMOTE_BACKEND/var/cache' '$REMOTE_BACKEND/var/log' && \
 chmod -R 775 '$REMOTE_BACKEND/var'"
+
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$VITE_ASSET_CHECKER' --public-root=public"
 
 if [[ "$NO_CACHE_CLEAR" -eq 0 ]]; then
   ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\"]); } echo \"cache_cleared\n\";'"

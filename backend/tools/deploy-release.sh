@@ -7,10 +7,16 @@ LOCAL_BACKEND="${LOCAL_BACKEND:-${REPO_ROOT}/backend}"
 REMOTE_HOST="${REMOTE_HOST:-}"
 REMOTE_BACKEND="${REMOTE_BACKEND:-}"
 SITEMAP_BASE_URL="${SITEMAP_BASE_URL:-}"
+VITE_ASSET_CHECKER="core/tools/check_vite_assets.php"
+PROD_TREE_CHECKER="core/tools/check_prod_tree.php"
 
 DRY_RUN=0
 NO_VENDOR=0
 NO_CACHE_CLEAR=0
+
+cleanup_remote_non_prod_files() {
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$PROD_TREE_CHECKER' --root=. --clean"
+}
 
 usage() {
   cat <<'USAGE'
@@ -24,7 +30,9 @@ Description:
   - Keeps remote config/*.override.php in place (admin runtime settings)
   - Keeps runtime editorial uploads under backend/public/uploads/editorial/
   - Preserves runtime/local artifact directories under backend/var/, backend/data/logs/ and backend/data/snapshots/
+  - Excludes and cleans non-production dev/test/docs/temp files
   - Syncs backend/vendor/ by default (OVH without composer)
+  - Checks Vite manifest assets locally before deploy and remotely after sync
   - Generates static sitemap at backend/public/sitemap.xml
   - Clears runtime cache after deploy (unless --no-cache-clear)
 
@@ -67,6 +75,16 @@ if [[ ! -d "$LOCAL_BACKEND" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" ]]; then
+  echo "Vite asset checker not found: $LOCAL_BACKEND/$VITE_ASSET_CHECKER" >&2
+  exit 1
+fi
+
+if [[ ! -f "$LOCAL_BACKEND/$PROD_TREE_CHECKER" ]]; then
+  echo "Production tree checker not found: $LOCAL_BACKEND/$PROD_TREE_CHECKER" >&2
+  exit 1
+fi
+
 echo "Deploy mode: release"
 echo "Dry run: $DRY_RUN"
 echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
@@ -80,12 +98,14 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   if [[ "$NO_VENDOR" -eq 0 && -d "$LOCAL_BACKEND/vendor" ]]; then
     echo "[dry-run] vendor/ would be synced."
   fi
+  echo "[dry-run] Non-production remote files would be cleaned if this deploy ran."
   echo "[dry-run] No remote command executed."
   exit 0
 fi
 
+php "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" --public-root="$LOCAL_BACKEND/public"
+
 ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND'"
-ssh "$REMOTE_HOST" "test -f '$REMOTE_BACKEND/.env' && cp '$REMOTE_BACKEND/.env' '$REMOTE_BACKEND/.env.bak.$(date +%F-%H%M%S)' || true"
 
 RSYNC_FLAGS=(-azv --delete --info=progress2)
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -105,17 +125,32 @@ rsync "${RSYNC_FLAGS[@]}" \
   --exclude="README*" \
   --exclude="phpunit.xml" \
   --exclude="phpstan.neon*" \
+  --exclude="phpstan.bootstrap.php" \
   --exclude="phpcs.xml" \
+  --exclude="package.json" \
+  --exclude="package-lock.json" \
+  --exclude="npm-shrinkwrap.json" \
+  --exclude="replace_image_paths.php" \
+  --exclude="*.bak" \
+  --exclude="*.old" \
+  --exclude="*.orig" \
+  --exclude="*.tmp" \
+  --exclude="*~" \
+  --exclude=".DS_Store" \
+  --exclude="Thumbs.db" \
   --exclude="data/logs/" \
   --exclude="data/snapshots/" \
   --exclude="data/*.bak" \
   --exclude="var/" \
   --exclude="public/uploads/" \
+  --exclude="public/dev-router.php" \
   "$LOCAL_BACKEND/" "$REMOTE_HOST:$REMOTE_BACKEND/"
 
 if [[ "$NO_VENDOR" -eq 0 && -d "$LOCAL_BACKEND/vendor" ]]; then
   rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/vendor/" "$REMOTE_HOST:$REMOTE_BACKEND/vendor/"
 fi
+
+cleanup_remote_non_prod_files
 
 if [[ -n "$SITEMAP_BASE_URL" ]]; then
   escaped_sitemap_base_url="$(printf '%q' "$SITEMAP_BASE_URL")"
@@ -129,6 +164,8 @@ find '$REMOTE_BACKEND' -type f -exec chmod 644 {} \; && \
 test ! -f '$REMOTE_BACKEND/.env' || chmod 640 '$REMOTE_BACKEND/.env' && \
 mkdir -p '$REMOTE_BACKEND/var/cache' '$REMOTE_BACKEND/var/log' && \
 chmod -R 775 '$REMOTE_BACKEND/var'"
+
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$VITE_ASSET_CHECKER' --public-root=public"
 
 if [[ "$NO_CACHE_CLEAR" -eq 0 ]]; then
   ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\"]); } echo \"cache_cleared\n\";'"
