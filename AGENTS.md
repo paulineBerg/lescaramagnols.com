@@ -5,6 +5,18 @@ Version de reference: 2026-04-22
 Ce fichier est la source de verite pour le depot `/home/surfacepro8/www/caramagnols`.
 Son but est de fixer des regles communes de developpement, d'architecture, de langage, de verification et de documentation, a partir des conventions reelles du projet.
 
+## 0. Mode d'emploi rapide
+
+Ordre de travail recommande:
+- lire ce fichier avant toute intervention, puis lire les documents de reference utiles au domaine touche
+- identifier la nature du changement: code, contenu editorial, media, stockage, build, deploiement ou exploitation
+- reperer la source canonique avant d'ecrire: `backend/src/` pour la logique moderne, `frontend/src/` pour les assets et interactions, `backend/data/pages.json` comme registre de travail/versionnement editorial, SQL comme source active quand `EDITORIAL_STORAGE=sql`
+- ne modifier que le perimetre necessaire; ne pas melanger code produit, contenu editorial, artefacts generes et operations de production dans un meme passage sans raison explicite
+- pour une modification editoriale en mode SQL actif, faire un backup adapte, importer la correction en SQL via les repositories/outils prevus, regenerer l'index de recherche et verifier le rendu public cible
+- pour un media public durable, versionner la source dans `frontend/src/assets/images/**`, produire `jpg` et `webp`, publier vers `backend/public/assets` via le pipeline, puis verifier dimensions, droits, sources et rendu
+- terminer par les validations adaptees au risque: JSON, PHP, frontend, index, build, smoke HTTP ou verification manuelle ciblee
+- signaler explicitement toute divergence restante entre JSON, SQL, prod, index ou assets publies
+
 ## 1. Portee et autorite
 
 Regles de gouvernance:
@@ -192,13 +204,13 @@ Regles:
 
 Le site doit garder une voix editoriale stable sur l'ensemble de ses pages publiques, qu'il s'agisse d'auto-retro, de territoire, de vie du club ou de pages partenaires.
 
-Positionnement editorial:
+### 9.1 Positionnement editorial
 - le style recherche est litteraire, mais maitrise
 - il ne doit etre ni platement administratif, ni lyrique, ni publicitaire
 - l'effet litteraire doit venir de la precision, du rythme, du regard et du detail juste, pas d'une accumulation d'adjectifs
 - un article doit donner au lecteur la sensation d'un sujet reellement observe, situe et compris
 
-Ligne editoriale commune:
+### 9.2 Ligne editoriale commune
 - pas d'invention
 - partir d'un fait concret avant tout effet de style: date, lieu, situation, etat, usage, observation ou repere technique
 - garder une voix claire, calme, vivante et incarnee
@@ -209,7 +221,7 @@ Ligne editoriale commune:
 - sur les sujets historiques, patrimoniaux ou pratiques, preferer une voix informative stable plutot qu'un recit artificiellement intime
 - `fr` reste le texte maitre; `en` et `de` doivent adapter le ton sans traduction mot a mot rigide
 
-Ce qu'il faut viser:
+### 9.3 Style vise
 - phrases fluides, le plus souvent courtes a moyennes
 - paragraphes de `4` a `10` phrases
 - une idee principale par paragraphe
@@ -218,7 +230,7 @@ Ce qu'il faut viser:
 - des intertitres qui annoncent un angle reel, pas un simple effet de manche
 - une progression nette: ouverture concrete, developpement organise, fermeture breve
 
-Ce qu'il faut eviter:
+### 9.4 Ce qu'il faut eviter
 - surenchere adjectivale, superlatifs automatiques et emphase patrimoniale
 - conclusion grandiloquente, morale abstraite ou phrase de remplissage
 - ouverture vague sans date, lieu, contexte ni fait observable
@@ -230,7 +242,7 @@ Ce qu'il faut eviter:
 - les references de source dans le corps editorial, du type `d'apres`, `selon`, `source`, `l'office de tourisme publie`, `le site officiel rappelle`, `la commune presente`, ou leurs equivalents en `en` et `de`
 - les formulations qui racontent la recherche documentaire au lieu de raconter le sujet; transformer ces passages en faits sobres, et garder les sources uniquement dans la section `Sources`
 
-Tournures a employer avec parcimonie:
+### 9.5 Tournures a employer avec parcimonie
 - `icone`, `emblematique`, `mythique`, `legendaire`, `incontournable`
 - `charme`, `ecrin`, `joyau`, `petit bijou`
 - `role crucial`, `empreinte indelebile`, `tournant de l'histoire`
@@ -239,7 +251,7 @@ Tournures a employer avec parcimonie:
 Regle de fond:
 - ces mots ne sont pas interdits par principe, mais ils ne doivent apparaitre que s'ils sont historiquement justes, rares et soutenus par un fait
 
-Architecture canonique d'un article/Page:
+### 9.6 Architecture canonique d'un article ou d'une page
 - `1` seul `h1`, descriptif, centre sur le sujet et son angle
 - juste sous le `h1`, un chapo ou paragraphe d'ouverture de `2` a `4` phrases
 - pour un article standard, `3` a `5` `h2`
@@ -258,14 +270,14 @@ Ordre recommande:
 - `h2` : ce qu'il faut retenir aujourd'hui, etat actuel, pratique de visite, philosophie de conservation ou de transmission
 - blocs optionnels : fiche technique, reperes pratiques, galerie, liens internes, sources si utiles
 
-Longueur indicative:
+### 9.7 Longueur indicative
 - si pas de demande spécifique, faire le meilleur choix de longueur selon le sujet traité
 - article court : environ `800` a `1000` mots quand le sujet est simple ou tres visuel
 - article standard : environ `1200` a `1800` mots
 - dossier long : au-dela de `2000` mots seulement si la matiere l'impose vraiment
 - ne pas allonger un article pour atteindre un volume arbitraire
 
-Variantes attendues selon le type d'article:
+### 9.8 Variantes attendues selon le type d'article
 - article historique de marque ou modele : commencer par situer la periode, le contexte industriel ou l'usage du modele; garder une chronologie lisible; n'ajouter les caracteristiques techniques que si elles eclairent le propos
 - article d'experience ou `notre voiture` : commencer par l'evenement declencheur (achat, decouverte, cadeau, transport, restauration); decrire l'etat initial, les decisions prises, les travaux ou usages, puis la place actuelle de l'objet dans notre histoire
 - article territoire / promenade : dire d'abord ou se trouve le lieu, sa taille, son relief, sa saisonnalite ou sa fonction; ensuite expliquer ce que l'on voit vraiment, ce qu'il faut regarder, les contraintes et le bon moment pour venir
@@ -279,7 +291,7 @@ Variantes attendues selon le type d'article:
 - article de blog : ne jamais commenter la fonction SEO, l'utilite editoriale, le statut de brouillon ou la structure de l'article lui-meme; le texte doit parler du sujet, pas de sa propre redaction
 - article de blog : proscrire les formulations meta du type `ce brouillon`, `cet article`, `page de reference`, `utile pour`, `pour le lecteur`, `le sujet gagne en clarte` ou `donne au sujet une fonction`; remplacer ces phrases par des faits, des dates, des usages, des contraintes ou des observations concretes
 
-Regles de structuration HTML/editoriale:
+### 9.9 Regles de structuration HTML et editoriale
 - un seul `h1` visible par article
 - respecter la hierarchie `h1` > `h2` > `h3` sans niveau saute
 - `EditRegion8 - Intro` ne peut contenir qu'une petite image d'appel ou un texte court
@@ -287,7 +299,7 @@ Regles de structuration HTML/editoriale:
 - ne pas utiliser `INTRO` pour loger un second corps d'article, un long developpement ou une grande image; si le contenu depasse ce role, le basculer dans `EditRegion3 - Corps` ou une autre region adaptee
 - rechercher, quand le sujet s'y prete, des images libre de droit pour agrementer les sections et ne pas se limiter aux visuels deja presents
 - ne pas laisser de `h2` ou `h3` vides
-- pas de tiret cadratin ou autres sigles qu'un clavier français n'a pas directement 
+- pas de tiret cadratin ou autres sigles qu'un clavier français n'a pas directement
 - preferer des paragraphes reels a des successions de lignes separees par `<br>`
 - reserver les listes `ul/li` aux reperes, etapes, caracteristiques ou points pratiques
 - sur les pages tres illustrees, garder des blocs de texte plus courts entre les images
@@ -298,11 +310,11 @@ Regles de structuration HTML/editoriale:
 - le corps de l'article ne doit pas citer les sources par des tournures d'attribution; les liens de provenance restent regroupes en fin d'article dans `Sources`
 - le bloc de maillage interne doit se situer dans la section : EditRegion4 - Apres corps
 - ne pas creer de section intitulee `A lire`, `À lire` ou `À lire aussi`; le maillage interne doit rester sobre, descriptif et integre au parcours editorial, sans bloc standardise de recommandation
-- pour les pages publiques `/auto-retro/**`, ajouter en fin de `EditRegion4 - Apres corps` un court paragraphe de maillage interne quand une page liee existe dans le registre editorial courant
-- ce maillage auto-retro doit rester limite a `1` ou `2` phrases, pointer vers `1` page prioritaire et au plus `1` page complementaire, ne jamais lier la page a elle-meme, ne pas creer de lien mort et ne pas dupliquer un paragraphe deja present
+- pour les pages publiques `/auto-retro/**` exposees dans le menu Auto-retro / Bouger, ajouter en fin de `EditRegion4 - Apres corps` un court paragraphe de maillage interne quand une page liee existe dans le registre editorial courant
+- ce maillage auto-retro doit etre ajoute seulement s'il manque, rester limite a `1` ou `2` phrases, pointer vers `1` page prioritaire et au plus `1` page complementaire, ne jamais lier la page a elle-meme, ne pas creer de lien mort et ne pas dupliquer un paragraphe deja present
 - pour appliquer ce maillage sur le registre JSON, utiliser l'outil idempotent `php backend/core/tools/add_auto_retro_internal_links.php`; le relancer en `--dry-run` avant ecriture pour verifier les pages et routes ciblees
 
-Metadonnees et completude editoriale:
+### 9.10 Metadonnees et completude editoriale
 - renseigner un titre d'article distinct, lisible et utile hors contexte
 - renseigner un extrait qui resume l'angle de lecture sans recopier le `h1`
 - choisir une categorie stable et peu nombreuse; ne pas inventer des categories inutilement
@@ -312,7 +324,7 @@ Metadonnees et completude editoriale:
 - rattacher l'article a sa page parent ou a son article parent seulement si cela a un sens editorial reel
 - verifier que les liens internes servent la lecture et ne forcent pas un maillage artificiel
 
-Uniformite editoriale a l'echelle du site:
+### 9.11 Uniformite editoriale a l'echelle du site
 - un article = un angle dominant; ne pas melanger sans controle dossier historique complet, recit personnel, guide de visite et argumentaire commercial
 - chaque article doit repondre implicitement a `qu'est-ce que c'est`, `pourquoi ce sujet ici`, `qu'est-ce qui est concret`, `qu'est-ce que le lecteur retient`
 - chaque article doit conserver une densite utile: pas de remplissage pour "faire long"
@@ -345,7 +357,9 @@ Commande WSL de resynchronisation locale apres divergence prod:
 Regles de format pour les images:
 - format maitre: `jpg`
 - variante moderne a produire: `webp`
-- diffusion publique: preferer `webp` si le fichier existe, sinon `jpg`
+- a la creation d'une page publique, les references editoriales stockees (`html`, images structurees, image d'intro, couverture, `meta.image.src`) doivent pointer vers le `jpg` maitre quand il existe; ne pas enregistrer un `webp` en dur comme source principale de contenu
+- diffusion publique: servir le `webp` seulement lorsqu'une variante existe et que le navigateur l'accepte, via un mecanisme avec fallback `jpg` (`picture`/`source type="image/webp"`, `srcset`, `image-set()` CSS ou helper de rendu equivalent)
+- si le bloc ou le rendu ne dispose pas de ce mecanisme de fallback, garder le `jpg` en dur
 - ne pas upscaler un original plus petit pour atteindre une cible arbitraire
 - conserver le ratio reel du fichier; ne jamais etirer une image
 
@@ -470,7 +484,7 @@ Regles:
 - ne pas laisser vide l'image SEO Open Graph / Twitter si une image representative du sujet existe deja
 - si aucune image dediee n'est prevue, reutiliser l'image d'intro ou le visuel editorial le plus representatif de la page
 - preferer une image versionnee dans `frontend/src/assets/images/**`
-- pour l'image de partage reseaux sociaux, privilegier un fichier largement compatible; un `jpg` est acceptable meme si le corps de page diffuse un `webp`
+- pour l'image de partage reseaux sociaux, privilegier un fichier largement compatible; utiliser un `jpg` sauf besoin explicite documente, meme si le rendu HTML peut proposer un `webp` en fallback moderne
 - l'image choisie doit etre descriptive du sujet reel, pas un decor generique ni un montage faible
 - l'attribut `alt` de l'image SEO reste factuel et traduit dans `fr`, `en` et `de`
 - le champ `title` de l'image SEO reste court, descriptif et sobre
@@ -487,17 +501,32 @@ Ce qu'il faut eviter:
 
 ## 11. Stockage editorial et donnees
 
+### 11.1 Modes de persistence
+
 Le projet supporte plusieurs modes de persistence editoriale:
 - `EDITORIAL_STORAGE=json|dual-write|sql`
 - `BLOG_STORAGE=json|dual-write|sql`
 
-Regles:
+### 11.2 Source active JSON et SQL
+
+- le JSON reste utile comme format de travail, versionnement Git, export, backup cible et payload de migration
+- quand `EDITORIAL_STORAGE=sql`, la base SQL est la source active du rendu local/prod; une page presente seulement dans `backend/data/pages.json` ne doit pas etre consideree comme publiee dans l'environnement actif
+- apres toute creation ou modification editoriale faite dans le registre JSON alors que le stockage actif est `sql`, importer la correction en SQL via un workflow adapte avant de conclure que la page est disponible
+- privilegier un import SQL cible quand seules quelques pages ou entrees de navigation sont concernees; reserver l'import complet `pages.json`/navigation vers SQL aux synchronisations assumees
+- apres import SQL, regenerer l'index de recherche depuis le stockage actif et verifier le rendu public cible
+- si JSON et SQL restent volontairement divergents en fin de tache, le signaler explicitement avec les slugs/routes concernes
+
+### 11.3 Regles generales de persistence
+
 - ne pas ecrire directement dans plusieurs stockages sans passer par les facades/repositories prevus
 - toute nouvelle logique de persistence doit respecter les interfaces existantes et les modes de stockage configures
 - si une evolution touche pages, navigation, blog ou discussions, considerer l'impact sur `json`, `dual-write` et `sql`
 - avant une operation destructive, privilegier les outils et scripts deja prevus (`editorial_backup_restore`, imports SQL, etc.)
+- ne jamais modifier des donnees SQL, locales ou distantes, sans directive specifique et explicite pour cette operation; si une correction SQL est demandee, faire d'abord un backup adapte, limiter l'ecriture au perimetre vise et documenter la verification effectuee
 
-Procedure recommandee pour un envoi cible en prod OVH MySQL:
+### 11.4 Envoi cible en production OVH MySQL
+
+Procedure recommandee:
 - en cas de divergence entre le local et la prod sur l'edito public, la prod OVH est la source de verite tant qu'un pull de resynchronisation n'a pas ete rejoue en local
 - pour une mise a jour editoriale ciblee en production OVH, ne pas faire de `restore` complet si seules une ou quelques pages doivent etre envoyees
 - avant toute nouvelle ecriture sur OVH, relire l'etat prod reel de la page ou des pages visees; ne pas supposer que le local est encore a jour
@@ -512,7 +541,8 @@ Procedure recommandee pour un envoi cible en prod OVH MySQL:
 - conserver le chemin exact du backup prod cree avant ecriture pour pouvoir revenir en arriere rapidement
 - si l'operation porte sur des pages seulement, ne pas embarquer navigation, blog ou autres registres dans le meme passage sans besoin explicite
 
-Regle de rapatriement des backups prod sur PC:
+### 11.5 Rapatriement des backups prod sur PC
+
 - lorsqu'un backup prod SQL ou autre doit etre conserve localement, le creer d'abord sur OVH dans un emplacement temporaire maitrise
 - compresser le backup avant transfert, par exemple en `.sql.gz`, `.json.gz` ou archive equivalente selon le contenu
 - rapatrier ensuite le backup compresse sur le PC, de preference hors depot Git dans `/home/surfacepro8/backups/caramagnols/prod/`
@@ -521,7 +551,8 @@ Regle de rapatriement des backups prod sur PC:
 - supprimer la copie temporaire OVH des qu'elle n'est plus necessaire au rollback immediat
 - ne jamais placer un backup prod dans `backend/`, `frontend/`, `public/`, `backend/data/`, `backend/var/` ou tout chemin deployable/versionnable du projet
 
-Attention:
+### 11.6 Attention sur `backend/data/`
+
 - `backend/data/` melange donnees versionnees, donnees derivees et runtime
 - ne pas traiter tout `backend/data/` comme un espace libre de modifications opportunistes
 - ne pas ecraser logs, caches et donnees generees pour "corriger" un bug produit
@@ -709,6 +740,8 @@ Toujours:
 - respecter le front-controller, le bootstrap commun et les wrappers de compatibilite existants
 - preferer `backend/src/` pour la logique moderne
 - garder `frontend/src/` comme source canonique des assets et interactions
+- identifier le stockage editorial actif avant de conclure qu'une page est publiee
+- synchroniser SQL apres modification JSON quand `EDITORIAL_STORAGE=sql`
 - maitriser les droits, les sources et la taille des images ajoutees
 - utiliser i18n pour les textes visibles
 - verifier avant de conclure
@@ -717,6 +750,7 @@ Toujours:
 Jamais:
 - coder la logique metier dans `backend/public/` ou dans les templates
 - modifier un artefact genere a la place de sa source
+- considerer un contenu uniquement present en JSON comme disponible si le rendu actif lit SQL
 - contourner la securite existante
 - laisser du debug temporaire
 - exposer des secrets

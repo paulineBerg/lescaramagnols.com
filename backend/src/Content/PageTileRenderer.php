@@ -32,12 +32,14 @@ final class PageTileRenderer
             ? (normalize_public_route((string) ($currentPage['route'] ?? '')) ?? '')
             : '';
         $groupsHtml = '';
+        /** @var array<string, bool> $renderedTargetKeys */
+        $renderedTargetKeys = [];
         foreach ($placements as $placement) {
             if (!is_array($placement)) {
                 continue;
             }
 
-            $groupHtml = $this->renderPlacement($placement, $language, $pageSlug, $currentPageRoute);
+            $groupHtml = $this->renderPlacement($placement, $language, $pageSlug, $currentPageRoute, $renderedTargetKeys);
             if ($groupHtml === '') {
                 continue;
             }
@@ -56,12 +58,14 @@ final class PageTileRenderer
 
     /**
      * @param array<string, mixed> $placement
+     * @param array<string, bool> $renderedTargetKeys
      */
     private function renderPlacement(
         array $placement,
         string $language,
         string $currentPageSlug,
-        string $currentPageRoute
+        string $currentPageRoute,
+        array &$renderedTargetKeys
     ): string {
         $group = is_array($placement['group'] ?? null) ? $placement['group'] : [];
         $items = is_array($group['items'] ?? null) ? $group['items'] : [];
@@ -77,7 +81,14 @@ final class PageTileRenderer
 
             $itemUid = trim((string) ($item['item_uid'] ?? ''));
             $override = is_array($overrides[$itemUid] ?? null) ? $overrides[$itemUid] : [];
-            $tileHtml = $this->renderTile($item, $override, $language, $currentPageSlug, $currentPageRoute);
+            $tileHtml = $this->renderTile(
+                $item,
+                $override,
+                $language,
+                $currentPageSlug,
+                $currentPageRoute,
+                $renderedTargetKeys
+            );
             if ($tileHtml === '') {
                 continue;
             }
@@ -155,13 +166,15 @@ final class PageTileRenderer
     /**
      * @param array<string, mixed> $item
      * @param array<string, mixed> $override
+     * @param array<string, bool> $renderedTargetKeys
      */
     private function renderTile(
         array $item,
         array $override,
         string $language,
         string $currentPageSlug,
-        string $currentPageRoute
+        string $currentPageRoute,
+        array &$renderedTargetKeys
     ): string {
         if (($override['is_visible'] ?? null) === false) {
             return '';
@@ -171,6 +184,13 @@ final class PageTileRenderer
         if ($target === null || $this->isCurrentPageTarget($target, $currentPageSlug, $currentPageRoute)) {
             return '';
         }
+
+        $targetKey = $this->targetDeduplicationKey($target);
+        if (isset($renderedTargetKeys[$targetKey])) {
+            return '';
+        }
+
+        $renderedTargetKeys[$targetKey] = true;
 
         $label = $this->resolveTranslatedText(
             is_array($item['translations'] ?? null) ? $item['translations'] : [],
@@ -253,6 +273,19 @@ final class PageTileRenderer
             . ($summary !== '' ? '<span class="page-tile__summary">' . $this->escape($summary) . '</span>' : '')
             . '</div>'
             . '</div></a>';
+    }
+
+    /**
+     * @param array{href: string, new_tab: bool, page_slug: string, normalized_path: ?string} $target
+     */
+    private function targetDeduplicationKey(array $target): string
+    {
+        $normalizedPath = trim((string) ($target['normalized_path'] ?? ''));
+        if ($normalizedPath !== '') {
+            return 'path:' . $normalizedPath;
+        }
+
+        return 'href:' . trim((string) $target['href']);
     }
 
     /**

@@ -111,6 +111,80 @@ final class NavigationViewModelBuilderTest extends TestCase
         $this->assertSame('/association', $viewModel['sideRight'][0]['href'] ?? null);
     }
 
+    public function testBuildResolvesLegacyPrefixedPageSlugTargets(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'site-sava-sava-auto-retro-rioz',
+                            'type' => PageRepository::TYPE_STRUCTURED_PAGE,
+                            'status' => PageRepository::STATUS_PUBLISHED,
+                            'route' => '/sava/sava-auto-retro-rioz.php',
+                            'translations' => [
+                                'fr' => ['title' => 'SAVA'],
+                            ],
+                        ],
+                        [
+                            'slug' => 'site-bc-boulyetcailloux-des-bijoux-artisanaux',
+                            'type' => PageRepository::TYPE_STRUCTURED_PAGE,
+                            'status' => PageRepository::STATUS_PUBLISHED,
+                            'route' => '/bc/boulyetcailloux-des-bijoux-artisanaux.php',
+                            'translations' => [
+                                'fr' => ['title' => 'B&C Bijoux'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $builder = new NavigationViewModelBuilder(new PageRepository($this->pagesFile), ['fr', 'en']);
+        $viewModel = $builder->build(
+            [
+                'meta' => ['version' => 2],
+                'locations' => [
+                    'primary' => [
+                        [
+                            'id' => 'primary-sava',
+                            'kind' => 'page',
+                            'label' => [
+                                'defaultLanguage' => 'fr',
+                                'translations' => ['fr' => 'SAVA'],
+                            ],
+                            'target' => ['pageSlug' => 'sava-sava-auto-retro-rioz', 'route' => null, 'url' => null],
+                            'children' => [],
+                        ],
+                        [
+                            'id' => 'primary-bc',
+                            'kind' => 'page',
+                            'label' => [
+                                'defaultLanguage' => 'fr',
+                                'translations' => ['fr' => 'B&C BIJOUX'],
+                            ],
+                            'target' => [
+                                'pageSlug' => 'boulyetcailloux-des-bijoux-artisanaux',
+                                'route' => null,
+                                'url' => null,
+                            ],
+                            'children' => [],
+                        ],
+                    ],
+                ],
+            ],
+            'fr',
+            '/sava/sava-auto-retro-rioz.php'
+        );
+
+        $this->assertSame('/sava/sava-auto-retro-rioz.php', $viewModel['primary'][0]['href'] ?? null);
+        $this->assertTrue($viewModel['primary'][0]['active'] ?? false);
+        $this->assertSame('/bc/boulyetcailloux-des-bijoux-artisanaux.php', $viewModel['primary'][1]['href'] ?? null);
+    }
+
     public function testBuildRewritesLanguageLinksOnCurrentRequest(): void
     {
         $builder = new NavigationViewModelBuilder(new PageRepository($this->pagesFile), ['fr', 'de', 'en']);

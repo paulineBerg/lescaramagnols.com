@@ -46,6 +46,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -58,6 +59,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -65,7 +67,7 @@
             "titre": "Austin Mini Mayfair : une Mini plus soignée pour la fin des années 1980",
             "contenu": "Austin Mini Mayfair : une Mini plus soignée pour la fin des années 1980 Lancée en septembre 1982, la Mini Mayfair remplace la Mini 1000 HLE et marque un tournant discret mais important dans la longue carrière de la Mini classique. La base reste celle d’une petite traction de 998 cm3, mais la présent…",
             "url": "/auto-retro/austin/la-mini-mayfair.php",
-            "image": "/assets/images/autoretro/austin/austin.webp",
+            "image": "/assets/images/autoretro/austin/austin.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -77,11 +79,12 @@
             "titre": "Citroën 2CV AZ (1954-1956)",
             "contenu": "Citroën 2CV AZ (1954-1956) : le moment où la 2CV devient vraiment polyvalente Lorsque la 2CV AZ apparaît en octobre 1954, elle ne renie pas la 2CV d’origine. Elle en garde la légèreté, la simplicité mécanique et ce sens très Citroën du service rendu plutôt que de l’effet. Mais avec son bicylindre 42…",
             "url": "/auto-retro/citroen/la-2cv-az-1954-1956.php",
-            "image": "/assets/images/autoretro/citroen/citroen_2cv_az_1957_engine.webp",
+            "image": "/assets/images/autoretro/citroen/citroen_2cv_az_1957_engine.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -89,7 +92,7 @@
             "titre": "Citroën 2CV AZA : évolution, moteur 18 ch et place dans la gamme 2CV",
             "contenu": "Citroën 2CV AZA : la 2CV de 18 ch qui installe la maturité du modèle En février 1963, Citroën rebaptise l’AZ en AZA et porte la puissance du bicylindre à 18 ch. La vitesse maximale annoncée atteint 95 km/h, la consommation reste donnée à 6 l/100 km et, surtout, la 2CV gagne l’aisance qui lui manquai…",
             "url": "/auto-retro/citroen/la-2cv-aza.php",
-            "image": "/assets/images/autoretro/citroen/citroen_2cv_aza_azam_sixties_rundvald.webp",
+            "image": "/assets/images/autoretro/citroen/citroen_2cv_aza_azam_sixties_rundvald.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -102,11 +105,12 @@
             "titre": "Histoire de Citroën",
             "contenu": "Histoire de Citroën : industrie, confort et grandes ruptures techniques Citroën n’a jamais été une marque française tout à fait ordinaire. Dès 1919, elle lie production de série, méthode industrielle, publicité spectaculaire et solutions techniques immédiatement perceptibles dans l’usage. De la Type…",
             "url": "/auto-retro/citroen/histoire-de-citroen.php",
-            "image": "/assets/images/autoretro/citroen/citroen_traction_avant_7a_1934.webp",
+            "image": "/assets/images/autoretro/citroen/citroen_traction_avant_7a_1934.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -114,11 +118,12 @@
             "titre": "Histoire de la 2CV",
             "contenu": "Histoire de la 2CV : du projet TPV à une mécanique populaire très aboutie La 2CV a souvent été racontée comme une voiture modeste devenue symbole national. C’est juste, mais c’est insuffisant. Sa vraie singularité tient à la rigueur de son programme technique : poids contenu, traction avant, bicylin…",
             "url": "/auto-retro/citroen/la-2cv-une-passion-francaise.php",
-            "image": "/assets/images/autoretro/citroen/citroen_2cv_a_az_1954_malartre.webp",
+            "image": "/assets/images/autoretro/citroen/citroen_2cv_a_az_1954_malartre.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -131,6 +136,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -143,6 +149,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -150,10 +157,11 @@
             "titre": "LA DYNA MODELE Z12",
             "contenu": "Panhard Dyna Z12 : histoire, caractéristiques techniques et intérêt en collection La Panhard Dyna Z12 est l’une des versions les plus intéressantes de la famille Dyna Z. Produite entre août 1956 et octobre 1958, elle correspond à une phase importante de l’évolution du modèle, lorsque Panhard cherche…",
             "url": "/auto-retro/panhard/la-dyna-modele-z12.php",
-            "image": "/assets/images/autoretro/panhard/dynaz12/panhard_dyna_z_1957_france_domestic.webp",
+            "image": "/assets/images/autoretro/panhard/dynaz12/panhard_dyna_z_1957_france_domestic.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion8",
                 "EditRegion11"
             ]
@@ -167,6 +175,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -179,6 +188,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -191,6 +201,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -203,6 +214,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -215,6 +227,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -227,6 +240,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -239,6 +253,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -251,6 +266,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -263,6 +279,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -274,7 +291,8 @@
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
-                "EditRegion3"
+                "EditRegion3",
+                "EditRegion4"
             ]
         },
         {
@@ -286,6 +304,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -293,11 +312,12 @@
             "titre": "Notre Renault Twingo Hélios de 1999 dans le golfe de Saint-Tropez",
             "contenu": "Notre Renault Twingo Hélios de 1999 Achetée en mai 2023 pour remplacer la petite Ford Ka qui nous servait d’appoint, notre Twingo Hélios de mars 1999 est vite devenue plus qu’une solution pratique. Ramenée de la région parisienne puis revue pendant l’hiver 2023-2024, elle sert aujourd'hui pour les t…",
             "url": "/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php",
-            "image": "/assets/images/autoretro/twingo.webp",
+            "image": "/assets/images/autoretro/twingo.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -310,6 +330,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -322,6 +343,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -334,6 +356,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -346,6 +369,20 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
+                "EditRegion4",
+                "EditRegion11"
+            ]
+        },
+        {
+            "titre": "Renault Twingo série 1 phase 2 : la petite Renault qui devient adulte",
+            "contenu": "Renault Twingo série 1 phase 2 : la petite Renault qui devient adulte Entre 1998 et 2000, la première Renault Twingo entre dans une phase importante de sa carrière. Elle garde sa silhouette monocorps, sa banquette coulissante et son visage immédiatement reconnaissable, mais reçoit des boucliers revu…",
+            "url": "/auto-retro/renault/twingo-serie1-phase2.php",
+            "image": "/assets/images/autoretro/renault/renault_twingo_serie1_phase2_rear.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
+                "EditRegion4",
                 "EditRegion11"
             ]
         },
@@ -358,25 +395,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
-                "EditRegion11"
-            ]
-        }
-    ],
-    "boulyetcailloux-des-bijoux-artisanaux": [
-        {
-            "titre": "Boulyetcailloux Des Bijoux Artisanaux",
-            "contenu": "Bouly&Cailloux : une boutique artisanale présentée sur Les Caramagnols Bouly&Cailloux réunit des créations faites main. La boutique peut intéresser les lecteurs qui aiment les petites séries, les objets simples et le travail manuel. Bouly&Cailloux est un projet artisanal centré sur des bijoux et pet…",
-            "url": "/boulyetcailloux-des-bijoux-artisanaux.php",
-            "image": null,
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion3",
                 "EditRegion4",
-                "EditRegion5",
-                "EditRegion6",
-                "EditRegion7",
-                "EditRegion9",
                 "EditRegion11"
             ]
         }
@@ -386,7 +405,7 @@
             "titre": "Animations récurrentes dans le golfe de Saint-Tropez",
             "contenu": "Animations récurrentes dans le golfe de Saint-Tropez Dans le golfe de Saint-Tropez, l’année n’avance pas au même pas selon les saisons. Les marchés tiennent le fil du quotidien, les fêtes de mai réveillent les traditions, la voile marque le printemps et l’automne, puis l’été concentre festivals, con…",
             "url": "/bouger/les-animations-dans-le-golfe-de-sttropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/marche_lices_saint_tropez_commons.webp",
+            "image": "/assets/images/bouger/animations/recurrentes/marche_lices_saint_tropez_commons.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -398,7 +417,7 @@
             "titre": "Bravades et fêtes traditionnelles dans le golfe de Saint-Tropez",
             "contenu": "Bravades et fêtes traditionnelles dans le golfe de Saint-Tropez Les fêtes traditionnelles du golfe ne se lisent pas comme de simples animations. Elles tiennent à des dates, à des gestes transmis, à des associations, à des processions et parfois à des bruits que l’on n’entend pas dans les autres mome…",
             "url": "/bouger/animations/bravades-et-fetes-traditionnelles-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/bravades_saint_tropez_commons.webp",
+            "image": "/assets/images/bouger/animations/recurrentes/bravades_saint_tropez_commons.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -410,7 +429,7 @@
             "titre": "Festivals et soirées d’été dans le golfe de Saint-Tropez",
             "contenu": "Festivals et soirées d’été dans le golfe de Saint-Tropez L’été du golfe ne se limite pas aux plages. Les villages déplacent une partie de leur vie vers les places, les théâtres de plein air, les châteaux, les ports et les rues anciennes. La programmation change chaque année, mais quelques rendez-vou…",
             "url": "/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/chateau_grimaud_commons.webp",
+            "image": "/assets/images/bouger/animations/recurrentes/chateau_grimaud_commons.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -429,7 +448,7 @@
             "titre": "Les Voiles latines à Saint-Tropez",
             "contenu": "Les Voiles latines à Saint-Tropez À Saint-Tropez, les Voiles latines ramènent sur le vieux port une navigation ancienne, faite de coques basses, d’antennes obliques et de voiles triangulaires. Le rassemblement existe depuis 2001 et met en avant des bateaux traditionnels venus du monde méditerranéen.…",
             "url": "/bouger/animations/les-voiles-latines-a-sttropez.php",
-            "image": "/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-002.webp",
+            "image": "/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-002.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -441,7 +460,7 @@
             "titre": "Marchés provençaux et nocturnes dans le golfe de Saint-Tropez",
             "contenu": "Marchés provençaux et nocturnes dans le golfe de Saint-Tropez Les marchés sont les rendez-vous les plus réguliers du golfe. Ils ne demandent pas de grand programme, mais ils disent beaucoup d’une commune : l’heure du matin, la place choisie, les produits de saison, les habitants qui se croisent avan…",
             "url": "/bouger/animations/marches-provencaux-et-nocturnes-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/marche_lices_saint_tropez_commons.webp",
+            "image": "/assets/images/bouger/animations/recurrentes/marche_lices_saint_tropez_commons.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -453,7 +472,7 @@
             "titre": "Noël et animations d’hiver dans le golfe de Saint-Tropez",
             "contenu": "Noël et animations d’hiver dans le golfe de Saint-Tropez L’hiver change la mesure du golfe. Les ports restent là, les villages se referment un peu, et les animations se concentrent autour des marchés, des illuminations, des rendez-vous familiaux et des programmes publiés commune par commune. La sais…",
             "url": "/bouger/animations/noel-et-hiver-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/saint_tropez_nuit_commons.webp",
+            "image": "/assets/images/bouger/animations/recurrentes/saint_tropez_nuit_commons.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -465,7 +484,7 @@
             "titre": "Régates et grands rendez-vous de voile dans le golfe de Saint-Tropez",
             "contenu": "Régates et grands rendez-vous de voile dans le golfe de Saint-Tropez Dans le golfe, la voile n’est pas seulement un décor de port. Elle organise une partie du calendrier, depuis les régates de club jusqu’aux grands rassemblements visibles sur tout le plan d’eau. Le vent, les parcours et les horaires…",
             "url": "/bouger/animations/regates-et-voiles-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/voiles_saint_tropez_commons.webp",
+            "image": "/assets/images/bouger/animations/recurrentes/voiles_saint_tropez_commons.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -670,6 +689,25 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3"
+            ]
+        }
+    ],
+    "boulyetcailloux-des-bijoux-artisanaux": [
+        {
+            "titre": "Boulyetcailloux Des Bijoux Artisanaux",
+            "contenu": "Bouly&Cailloux : une boutique artisanale présentée sur Les Caramagnols Bouly&Cailloux réunit des créations faites main. La boutique peut intéresser les lecteurs qui aiment les petites séries, les objets simples et le travail manuel. Bouly&Cailloux est un projet artisanal centré sur des bijoux et pet…",
+            "url": "/boulyetcailloux-des-bijoux-artisanaux.php",
+            "image": null,
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
+                "EditRegion4",
+                "EditRegion5",
+                "EditRegion6",
+                "EditRegion7",
+                "EditRegion9",
+                "EditRegion11"
             ]
         }
     ]

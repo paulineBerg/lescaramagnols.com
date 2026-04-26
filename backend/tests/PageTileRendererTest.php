@@ -374,6 +374,82 @@ final class PageTileRendererTest extends TestCase
         $this->assertSame(1, substr_count($html, 'page-tile page-tile--size-medium'));
     }
 
+    public function testRenderAfterBodyHidesDuplicateTargetsAcrossGroups(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            (string) json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'page-source',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/page-source',
+                            'translations' => [
+                                'fr' => ['title' => 'Page source'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $pageRepository = new PageRepository($this->pagesFile);
+        $tileRepository = $this->tileRepositoryWithCaches(
+            [
+                'page-source|' . TileRepository::DEFAULT_REGION => [
+                    [
+                        'id' => 100,
+                        'page_slug' => 'page-source',
+                        'region_key' => TileRepository::DEFAULT_REGION,
+                        'group_id' => 1,
+                        'sort_order' => 10,
+                        'overrides' => [],
+                    ],
+                    [
+                        'id' => 101,
+                        'page_slug' => 'page-source',
+                        'region_key' => TileRepository::DEFAULT_REGION,
+                        'group_id' => 2,
+                        'sort_order' => 20,
+                        'overrides' => [],
+                    ],
+                ],
+            ],
+            [
+                1 => [
+                    'id' => 1,
+                    'name' => 'Groupe 1',
+                    'theme' => TileRepository::DEFAULT_THEME,
+                    'items' => [
+                        $this->routeTileItem(1, 'citroen-history', 'Histoire 2CV', '/auto-retro/citroen/la-2cv-az-1954-1956.php'),
+                    ],
+                ],
+                2 => [
+                    'id' => 2,
+                    'name' => 'Groupe 2',
+                    'theme' => TileRepository::DEFAULT_THEME,
+                    'items' => [
+                        $this->routeTileItem(2, 'citroen-duplicate', 'Citroën 2cv az', '/auto-retro/citroen/la-2cv-az-1954-1956.php'),
+                        $this->routeTileItem(3, 'mini', 'Austin Mini Mayfair', '/auto-retro/austin/la-mini-mayfair.php'),
+                    ],
+                ],
+            ]
+        );
+
+        $renderer = new PageTileRenderer($tileRepository, $pageRepository, 'fr');
+        $html = $renderer->renderAfterBody('page-source', 'fr');
+
+        $this->assertStringContainsString('Histoire 2CV', $html);
+        $this->assertStringNotContainsString('Citroën 2cv az', $html);
+        $this->assertStringContainsString('Austin Mini Mayfair', $html);
+        $this->assertSame(1, substr_count($html, 'href="/auto-retro/citroen/la-2cv-az-1954-1956.php"'));
+        $this->assertSame(2, substr_count($html, 'page-tile page-tile--size-medium'));
+    }
+
     /**
      * @param array<string, array<int, array<string, mixed>>> $placementsCache
      * @param array<int, array<string, mixed>> $groupCache

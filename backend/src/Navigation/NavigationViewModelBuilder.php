@@ -12,6 +12,10 @@ final class NavigationViewModelBuilder
     private const FOOTER_NOTICE_FALLBACK_LANGUAGE = 'fr';
     private const DESKTOP_MEGA_SECTION_ITEM_LIMIT = 5;
     private string $runtimeLanguage = self::FOOTER_NOTICE_FALLBACK_LANGUAGE;
+    /**
+     * @var array<int, array<string, mixed>>|null
+     */
+    private ?array $allPagesCache = null;
 
     /**
      * @param array<int, string> $availableLanguages
@@ -472,8 +476,8 @@ final class NavigationViewModelBuilder
     {
         $pageSlug = $this->stringOrNull($target['pageSlug'] ?? null);
         if ($pageSlug !== null) {
-            $page = $this->pageRepository->findBySlug($pageSlug);
-            if ($page === null || ($page['status'] ?? PageRepository::STATUS_DRAFT) !== PageRepository::STATUS_PUBLISHED) {
+            $page = $this->resolvePublishedPageBySlug($pageSlug);
+            if ($page === null) {
                 return null;
             }
 
@@ -490,6 +494,54 @@ final class NavigationViewModelBuilder
         }
 
         return $this->stringOrNull($target['url'] ?? null);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolvePublishedPageBySlug(string $pageSlug): ?array
+    {
+        $exactPage = $this->pageRepository->findBySlug($pageSlug);
+        if ($exactPage !== null) {
+            return ($exactPage['status'] ?? PageRepository::STATUS_DRAFT) === PageRepository::STATUS_PUBLISHED
+                ? $exactPage
+                : null;
+        }
+
+        $prefixedPage = $this->pageRepository->findBySlug('site-' . $pageSlug);
+        if ($prefixedPage !== null) {
+            return ($prefixedPage['status'] ?? PageRepository::STATUS_DRAFT) === PageRepository::STATUS_PUBLISHED
+                ? $prefixedPage
+                : null;
+        }
+
+        foreach ($this->allPages() as $page) {
+            $candidateSlug = $this->stringOrNull($page['slug'] ?? null);
+            if (
+                $candidateSlug === null
+                || ($page['status'] ?? PageRepository::STATUS_DRAFT) !== PageRepository::STATUS_PUBLISHED
+            ) {
+                continue;
+            }
+
+            if (str_ends_with($candidateSlug, '-' . $pageSlug)) {
+                return $page;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function allPages(): array
+    {
+        if ($this->allPagesCache === null) {
+            $this->allPagesCache = $this->pageRepository->all();
+        }
+
+        return $this->allPagesCache;
     }
 
     private function resolveText(mixed $value, array $translations, ?string $fallback = null): ?string
