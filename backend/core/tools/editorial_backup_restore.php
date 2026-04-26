@@ -203,6 +203,7 @@ function restoreEditorial(string $backupPath): array
     }
 
     $incomingPageSlugs = [];
+    $incomingPagesBySlug = [];
     $savedPages = 0;
 
     foreach ($incomingPages as $page) {
@@ -216,8 +217,16 @@ function restoreEditorial(string $backupPath): array
         }
 
         $incomingPageSlugs[$slug] = true;
+        $incomingPagesBySlug[$slug] = $page;
+    }
+
+    $failedPages = [];
+
+    foreach ($incomingPagesBySlug as $slug => $page) {
         if ($pageRepository->savePage($page, $slug)) {
             $savedPages++;
+        } else {
+            $failedPages[$slug] = $page;
         }
     }
 
@@ -225,6 +234,25 @@ function restoreEditorial(string $backupPath): array
         if (!isset($incomingPageSlugs[$existingSlug])) {
             $pageRepository->deletePage($existingSlug);
         }
+    }
+
+    foreach ($failedPages as $slug => $page) {
+        if ($pageRepository->findBySlug($slug) !== null) {
+            unset($failedPages[$slug]);
+            continue;
+        }
+
+        if ($pageRepository->savePage($page, $slug)) {
+            $savedPages++;
+            unset($failedPages[$slug]);
+        }
+    }
+
+    if ($failedPages !== []) {
+        throw new RuntimeException(sprintf(
+            'Restauration incomplète: page(s) non restaurée(s): %s.',
+            implode(', ', array_keys($failedPages))
+        ));
     }
 
     pages_cache_clear();
