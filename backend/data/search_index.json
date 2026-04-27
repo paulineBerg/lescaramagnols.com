@@ -1,8 +1,8 @@
 {
     "accueil": [
         {
-            "titre": "BIENVENUE SUR LES CARAMAGNOLS",
-            "contenu": "BIENVENUE SUR LES CARAMAGNOLS NOS VOITURES RETRO AU CŒUR DU GOLFE DE ST-TROPEZ Avec ses 250/300 jours d’ensoleillement par an, le golfe de St-Tropez est l’endroit rêvé pour promener avec nos voitures anciennes. Voitures Passion Profitez de notre passion pour les voitures anciennes, collection, auto-…",
+            "titre": "Les Caramagnols : voitures anciennes, routes du Sud et souvenirs dans le Golfe de Saint-Tropez",
+            "contenu": "Les Caramagnols : voitures anciennes, routes du Sud et souvenirs dans le Golfe de Saint-Tropez Voitures anciennes et balades dans le Golfe de Saint-Tropez Entre mer, villages et routes lumineuses, le Golfe de Saint-Tropez offre un décor idéal pour faire vivre nos voitures anciennes. Ici, chaque bala…",
             "url": "/",
             "image": "/assets/images/bouger/golfe/montage.jpg",
             "blocs_utilises": [
@@ -377,7 +377,7 @@
             "titre": "Renault Twingo série 1 phase 2 : la petite Renault qui devient adulte",
             "contenu": "Renault Twingo série 1 phase 2 : la petite Renault qui devient adulte Entre 1998 et 2000, la première Renault Twingo entre dans une phase importante de sa carrière. Elle garde sa silhouette monocorps, sa banquette coulissante et son visage immédiatement reconnaissable, mais reçoit des boucliers revu…",
             "url": "/auto-retro/renault/twingo-serie1-phase2.php",
-            "image": "/assets/images/autoretro/renault/renault_twingo_serie1_phase2_rear.jpg",
+            "image": "/assets/images/autoretro/renault/renault_twingo_serie1_phase2_liegeflaeche.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -681,10 +681,10 @@
     ],
     "sava": [
         {
-            "titre": "SAVA – Votre partenaire automobile à Rioz (70190)",
-            "contenu": "SAVA – Votre partenaire automobile à Rioz (70190) Une entreprise qui évolue avec passion et précision 2023 – Un atelier mobile au service du quotidien Créé par Julien Perrot, technicien qualifié et passionné d’automobile, SAVA démarre son activité avec un concept innovant : un garage mobile. Son fou…",
+            "titre": "SAVA à Rioz - garage, sellerie et restauration de voitures anciennes",
+            "contenu": "SAVA à Rioz - garage, sellerie et restauration de voitures anciennes Installé à Rioz, en Haute-Saône, SAVA accompagne les automobilistes et les passionnés de véhicules anciens avec une approche concrète : entretien, mécanique, sellerie et restauration progressive. 2023 - Les débuts avec un atelier m…",
             "url": "/sava/sava-auto-retro-rioz.php",
-            "image": "/assets/images/autoretro/sava_logo.jpg",
+            "image": "/assets/images/autoretro/sava.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",

@@ -189,6 +189,14 @@ h3 {
   font-size: vars.$font-size-small;
   color: vars.$color-blanc;
   margin: 0 auto;
+  text-align: center;
+
+  .piedpage-modele {
+    max-width: 90rem;
+    margin: 0.5rem auto 0;
+    line-height: 1.4;
+    text-align: center;
+  }
 }
 
 #menu3 {
