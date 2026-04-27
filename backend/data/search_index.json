@@ -694,20 +694,16 @@
     ],
     "boulyetcailloux-des-bijoux-artisanaux": [
         {
-            "titre": "Boulyetcailloux Des Bijoux Artisanaux",
-            "contenu": "Bouly&Cailloux : une boutique artisanale présentée sur Les Caramagnols Bouly&Cailloux réunit des créations faites main. La boutique peut intéresser les lecteurs qui aiment les petites séries, les objets simples et le travail manuel. Bouly&Cailloux est un projet artisanal centré sur des bijoux et pet…",
+            "titre": "Bouly&Cailloux - bijoux artisanaux en pierres naturelles faits main",
+            "contenu": "Bouly&Cailloux - bijoux artisanaux en pierres naturelles faits main Bouly&Cailloux est né d’un travail manuel simple : assembler des pierres naturelles, choisir les bonnes associations et créer des bijoux portés au quotidien. Chaque pièce est réalisée à la main, sans production industrielle, avec un…",
             "url": "/boulyetcailloux-des-bijoux-artisanaux.php",
-            "image": null,
+            "image": "/assets/images/boulyetcailloux/boulyetcailloux-bijoux-artisanaux.jpg",
             "blocs_utilises": [
                 "EditRegion1",
-                "EditRegion2",
                 "EditRegion3",
                 "EditRegion4",
-                "EditRegion5",
-                "EditRegion6",
                 "EditRegion7",
-                "EditRegion9",
-                "EditRegion11"
+                "EditRegion9"
             ]
         }
     ]
