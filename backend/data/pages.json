@@ -7390,6 +7390,70 @@
                     "height": 640
                 }
             }
+        },
+        {
+            "slug": "blog",
+            "type": "structured_page",
+            "status": "published",
+            "title": "Le Blog Les Caramagnols",
+            "layout": "standard_page",
+            "route": "/blog",
+            "blocks": [],
+            "regions": [],
+            "translations": {
+                "fr": {
+                    "title": "Le Blog Les Caramagnols",
+                    "blocks": [],
+                    "regions": {
+                        "hero": {
+                            "component": "heading",
+                            "title": "Le Blog Les Caramagnols"
+                        },
+                        "intro": {
+                            "component": "rich_text",
+                            "html": "<p>Retrouvez les articles publiés autour de nos pages auto-rétro, balades, villages, patrimoine et vie locale. Chaque article complète une page principale du site et permet d’approfondir un sujet précis.</p>"
+                        }
+                    },
+                    "meta": {
+                        "description": "Retrouvez les articles publiés autour de nos pages auto-rétro, balades, villages, patrimoine et vie locale sur le blog Les Caramagnols."
+                    }
+                },
+                "en": {
+                    "title": "The Les Caramagnols Blog",
+                    "blocks": [],
+                    "regions": {
+                        "hero": {
+                            "component": "heading",
+                            "title": "The Les Caramagnols Blog"
+                        },
+                        "intro": {
+                            "component": "rich_text",
+                            "html": "<p>Find the articles published around our classic car pages, walks, villages, heritage and local life. Each article extends a main page on the site and explores one precise subject in more depth.</p>"
+                        }
+                    },
+                    "meta": {
+                        "description": "Find the articles published around our classic cars, walks, villages, heritage and local life on the Les Caramagnols blog."
+                    }
+                },
+                "de": {
+                    "title": "Der Blog von Les Caramagnols",
+                    "blocks": [],
+                    "regions": {
+                        "hero": {
+                            "component": "heading",
+                            "title": "Der Blog von Les Caramagnols"
+                        },
+                        "intro": {
+                            "component": "rich_text",
+                            "html": "<p>Hier finden Sie die veröffentlichten Artikel rund um unsere Oldtimer-Seiten, Spaziergänge, Dörfer, Kulturerbe und das lokale Leben. Jeder Artikel ergänzt eine Hauptseite der Website und vertieft ein klar umrissenes Thema.</p>"
+                        }
+                    },
+                    "meta": {
+                        "description": "Finden Sie im Blog von Les Caramagnols veröffentlichte Artikel zu Oldtimern, Spaziergängen, Dörfern, Kulturerbe und lokalem Leben."
+                    }
+                }
+            },
+            "meta": []
         }
     ]
 }

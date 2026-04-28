@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Caramagnols\Feed\RssFeedService;
 use Caramagnols\Blog\JsonBlogRepository;
+use Caramagnols\Content\PageRepository;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -11,12 +12,34 @@ require_once __DIR__ . '/../core/bootstrap.php';
 final class RssFeedServiceTest extends TestCase
 {
     private string $blogDataDir;
+    private string $pagesFile;
 
     protected function setUp(): void
     {
         $this->blogDataDir = sys_get_temp_dir() . '/caramagnols-rss-' . bin2hex(random_bytes(6));
+        $this->pagesFile = ROOT_PATH . '/var/rss-pages-' . bin2hex(random_bytes(6)) . '.json';
 
         mkdir($this->blogDataDir, 0777, true);
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            )
+        );
 
         file_put_contents(
             $this->blogDataDir . '/bonjour.fr.json',
@@ -25,6 +48,7 @@ final class RssFeedServiceTest extends TestCase
                     'status' => 'published',
                     'title' => 'Bonjour',
                     'slug' => 'bonjour',
+                    'page_slug' => 'association',
                     'date' => '2026-03-10 08:30:00',
                     'content' => '<p>Contenu <strong>bonjour</strong> pour le flux.</p>',
                 ],
@@ -73,11 +97,21 @@ final class RssFeedServiceTest extends TestCase
         }
 
         @rmdir($this->blogDataDir);
+
+        if (file_exists($this->pagesFile)) {
+            @unlink($this->pagesFile);
+        }
     }
 
     public function testRenderIncludesOnlyPublishedArticlesSortedByDateDesc(): void
     {
-        $service = new RssFeedService(new JsonBlogRepository($this->blogDataDir), 'https://example.test');
+        $service = new RssFeedService(
+            new JsonBlogRepository($this->blogDataDir),
+            'https://example.test',
+            ['fr', 'en', 'de'],
+            'fr',
+            new PageRepository($this->pagesFile)
+        );
 
         $xml = $service->render('fr');
 
@@ -85,7 +119,11 @@ final class RssFeedServiceTest extends TestCase
         $this->assertStringContainsString('<title>Nouveau</title>', $xml);
         $this->assertStringContainsString('<title>Bonjour</title>', $xml);
         $this->assertStringNotContainsString('Brouillon', $xml);
-        $this->assertStringContainsString('https://example.test/fr/blog/article/nouveau', $xml);
+        $this->assertStringContainsString('https://example.test/blog/article/nouveau', $xml);
+        $this->assertStringContainsString(
+            'https://example.test/fr/association?open_article=bonjour#attached-article-bonjour',
+            $xml
+        );
         $this->assertStringContainsString('Contenu bonjour pour le flux.', $xml);
         $this->assertLessThan(
             strpos($xml, '<title>Bonjour</title>'),
@@ -99,7 +137,8 @@ final class RssFeedServiceTest extends TestCase
             new JsonBlogRepository($this->blogDataDir),
             'https://example.test',
             ['fr', 'en', 'de'],
-            'fr'
+            'fr',
+            new PageRepository($this->pagesFile)
         );
 
         $response = $service->response('es');

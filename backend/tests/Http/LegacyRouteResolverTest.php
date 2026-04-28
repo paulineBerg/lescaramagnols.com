@@ -53,7 +53,7 @@ final class LegacyRouteResolverTest extends TestCase
 
     protected function tearDown(): void
     {
-        unset($GLOBALS['currentDynamicPage'], $GLOBALS['currentBlogArticle'], $GLOBALS['currentBlogArticles'], $GLOBALS['currentBlogFilters']);
+        unset($GLOBALS['currentDynamicPage'], $GLOBALS['currentBlogArticle'], $GLOBALS['currentBlogArticles'], $GLOBALS['currentBlogFilters'], $GLOBALS['currentBlogHubPage']);
 
         if (file_exists($this->pagesFile)) {
             unlink($this->pagesFile);

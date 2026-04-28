@@ -14,6 +14,7 @@ final class BlogSaveService
     private AppEventLogger $eventLogger;
     private PageRepository $pageRepository;
     private BlogTaxonomy $taxonomy;
+    private BlogPublicUrlResolver $publicUrlResolver;
 
     public function __construct(
         private readonly BlogRepositoryInterface $repository,
@@ -24,6 +25,11 @@ final class BlogSaveService
         $this->eventLogger = $eventLogger ?? app_event_logger();
         $this->pageRepository = $pageRepository ?? page_repository(pages_data_path());
         $this->taxonomy = $taxonomy ?? BlogTaxonomy::fromDefaultConfig();
+        $this->publicUrlResolver = new BlogPublicUrlResolver(
+            $this->repository,
+            $this->pageRepository,
+            (string) app_config('default_lang', 'fr')
+        );
     }
 
     /**
@@ -88,7 +94,12 @@ final class BlogSaveService
         if ($content === '') {
             $errors[] = 'Le contenu est obligatoire.';
         }
-        $content = PublicUrlNormalizer::rewriteHtmlFragment($content, '/blog/article/' . $slug);
+        $contentBaseRoute = $this->publicUrlResolver->publicPathForArticle([
+            'slug' => $slug,
+            'lang' => $language,
+            'page_slug' => $payload['page_slug'] ?? '',
+        ]) ?? $this->publicUrlResolver->fallbackArticlePath($slug, $language);
+        $content = PublicUrlNormalizer::rewriteHtmlFragment($content, $contentBaseRoute);
 
         $author = sanitize_text_field((string) ($payload['author'] ?? $actorIdentifier ?? ''), 120);
         $rawTags = is_array($payload['tags'] ?? null) ? $payload['tags'] : [];

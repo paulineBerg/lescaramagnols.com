@@ -187,7 +187,7 @@ return [
 
     // Blog
     'TXT_BLOG_PAGE_LABEL' => 'Blog',
-    'TXT_BLOG_SITE_TITLE' => 'Caramagnols Blog',
+    'TXT_BLOG_SITE_TITLE' => 'The Les Caramagnols Blog',
     'TXT_BLOG_ARTICLE_DEFAULT_TITLE' => 'Article',
     'TXT_BLOG_PUBLISHED_ON' => 'Published on',
     'TXT_BLOG_BY' => 'by',
@@ -245,7 +245,16 @@ return [
     'TXT_BLOG_FILTER_CURRENT' => 'Active filter',
     'TXT_BLOG_FILTER_BY_CATEGORY' => 'Category',
     'TXT_BLOG_FILTER_BY_TAG' => 'Tag',
+    'TXT_BLOG_FILTER_CATEGORIES' => 'Categories',
+    'TXT_BLOG_FILTER_ALL_CATEGORIES' => 'All categories',
     'TXT_BLOG_FILTER_RESET' => 'View all articles',
+    'TXT_BLOG_ATTACHED_TO' => 'Attached to',
+    'TXT_BLOG_READ_ARTICLE' => 'Read the article',
+    'TXT_BLOG_RESULTS_RANGE' => 'Articles %d to %d of %d',
+    'TXT_BLOG_PAGINATION_LABEL' => 'Blog pagination',
+    'TXT_BLOG_PAGE_PREVIOUS' => 'Previous articles',
+    'TXT_BLOG_PAGE_NEXT' => 'Next page',
+    'TXT_BLOG_PAGE_X_OF_Y' => 'Page %d of %d',
     'TXT_BLOG_RETURN_TO_FILTERED_RESULTS' => 'Back to filtered results',
     'TXT_CHRONICLE_TITLE' => 'Chronicle through time',
 

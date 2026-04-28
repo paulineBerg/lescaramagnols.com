@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Caramagnols\Feed;
 
 use Caramagnols\Blog\BlogRepositoryInterface;
+use Caramagnols\Blog\BlogPublicUrlResolver;
+use Caramagnols\Content\PageRepository;
 use Caramagnols\Http\Response;
 
 final class RssFeedService
 {
+    private BlogPublicUrlResolver $publicUrlResolver;
+
     /**
      * @param array<int, string> $availableLanguages
      */
@@ -16,8 +20,14 @@ final class RssFeedService
         private readonly BlogRepositoryInterface $blogRepository,
         private readonly string $baseUrl,
         private readonly array $availableLanguages = ['fr', 'en', 'de'],
-        private readonly string $defaultLanguage = 'fr'
+        private readonly string $defaultLanguage = 'fr',
+        ?PageRepository $pageRepository = null
     ) {
+        $this->publicUrlResolver = new BlogPublicUrlResolver(
+            $this->blogRepository,
+            $pageRepository ?? page_repository(pages_data_path()),
+            $this->defaultLanguage
+        );
     }
 
     public function response(?string $requestedLanguage): Response
@@ -83,7 +93,11 @@ final class RssFeedService
 
             $items[] = [
                 'title' => $title,
-                'link' => $this->buildUrl($language . '/blog/article/' . rawurlencode($slug)),
+                'link' => $this->buildUrl(ltrim(
+                    $this->publicUrlResolver->publicPathForArticle($data)
+                        ?? $this->publicUrlResolver->fallbackArticlePath($slug, $language),
+                    '/'
+                )),
                 'pubDate' => date(DATE_RSS, $timestamp),
                 'description' => $this->excerpt($content),
                 'timestamp' => $timestamp,

@@ -73,6 +73,7 @@ final class SiteSummaryServiceTest extends TestCase
                     'title' => 'Bonjour',
                     'slug' => 'bonjour',
                     'lang' => 'fr',
+                    'page_slug' => 'association',
                     'date' => '2026-03-20 08:30:00',
                     'content' => '<p>Publié FR.</p>',
                 ],
@@ -142,7 +143,10 @@ final class SiteSummaryServiceTest extends TestCase
         $this->assertStringContainsString('<a href="/">Accueil</a>', $html);
         $this->assertStringContainsString('<a href="/accueil/association.php">Association</a>', $html);
         $this->assertStringContainsString('<a href="/blog">Blog</a>', $html);
-        $this->assertStringContainsString('<a href="/blog/article/bonjour">Bonjour</a>', $html);
+        $this->assertStringContainsString(
+            '<a href="/fr/accueil/association.php?open_article=bonjour#attached-article-bonjour">Bonjour</a>',
+            $html
+        );
         $this->assertStringNotContainsString('Brouillon', $html);
     }
 

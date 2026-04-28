@@ -187,7 +187,7 @@ return [
 
     // Blog
     'TXT_BLOG_PAGE_LABEL' => 'Blog',
-    'TXT_BLOG_SITE_TITLE' => 'Blog des Caramagnols',
+    'TXT_BLOG_SITE_TITLE' => 'Le Blog Les Caramagnols',
     'TXT_BLOG_ARTICLE_DEFAULT_TITLE' => 'Article',
     'TXT_BLOG_PUBLISHED_ON' => 'Publié le',
     'TXT_BLOG_BY' => 'par',
@@ -245,7 +245,16 @@ return [
     'TXT_BLOG_FILTER_CURRENT' => 'Filtre actif',
     'TXT_BLOG_FILTER_BY_CATEGORY' => 'Catégorie',
     'TXT_BLOG_FILTER_BY_TAG' => 'Tag',
+    'TXT_BLOG_FILTER_CATEGORIES' => 'Catégories',
+    'TXT_BLOG_FILTER_ALL_CATEGORIES' => 'Toutes les catégories',
     'TXT_BLOG_FILTER_RESET' => 'Voir tous les articles',
+    'TXT_BLOG_ATTACHED_TO' => 'Rattaché à',
+    'TXT_BLOG_READ_ARTICLE' => 'Lire l’article',
+    'TXT_BLOG_RESULTS_RANGE' => 'Articles %d à %d sur %d',
+    'TXT_BLOG_PAGINATION_LABEL' => 'Pagination du blog',
+    'TXT_BLOG_PAGE_PREVIOUS' => 'Articles précédents',
+    'TXT_BLOG_PAGE_NEXT' => 'Page suivante',
+    'TXT_BLOG_PAGE_X_OF_Y' => 'Page %d sur %d',
     'TXT_BLOG_RETURN_TO_FILTERED_RESULTS' => 'Retour aux résultats filtrés',
     'TXT_CHRONICLE_TITLE' => 'Chronique au fil du temps',
 

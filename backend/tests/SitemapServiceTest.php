@@ -60,6 +60,7 @@ final class SitemapServiceTest extends TestCase
                     'title' => 'Bonjour',
                     'slug' => 'bonjour',
                     'lang' => 'fr',
+                    'page_slug' => 'association',
                     'date' => '2026-03-20 08:30:00',
                     'content' => '<p>Publié FR.</p>',
                 ],
@@ -127,7 +128,10 @@ final class SitemapServiceTest extends TestCase
         $this->assertStringContainsString('<?xml version="1.0" encoding="UTF-8"?>', $xml);
         $this->assertStringContainsString('<loc>https://example.test/</loc>', $xml);
         $this->assertStringContainsString('<loc>https://example.test/association</loc>', $xml);
-        $this->assertStringContainsString('<loc>https://example.test/blog/article/bonjour</loc>', $xml);
+        $this->assertStringContainsString(
+            '<loc>https://example.test/fr/association?open_article=bonjour#attached-article-bonjour</loc>',
+            $xml
+        );
         $this->assertStringContainsString('<loc>https://example.test/en/blog/article/hallo</loc>', $xml);
         $this->assertStringNotContainsString('/brouillon</loc>', $xml);
     }

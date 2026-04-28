@@ -22,6 +22,15 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
   <?php if ($pageRobotsValue !== ''): ?>
   <meta name="robots" content="<?= htmlspecialchars($pageRobotsValue, ENT_QUOTES, 'UTF-8') ?>" />
   <?php endif; ?>
+  <?php
+  $pageCanonicalValue = trim((string) ($pageCanonicalUrl ?? ''));
+  if ($pageCanonicalValue === '') {
+      $pageCanonicalValue = trim((string) ($GLOBALS['pageCanonicalUrl'] ?? ''));
+  }
+  ?>
+  <?php if ($pageCanonicalValue !== ''): ?>
+  <link rel="canonical" href="<?= htmlspecialchars($pageCanonicalValue, ENT_QUOTES, 'UTF-8') ?>" />
+  <?php endif; ?>
   <?php if (!empty($pageMetaImage)): ?>
   <meta property="og:image" content="<?= htmlspecialchars((string) $pageMetaImage, ENT_QUOTES, 'UTF-8') ?>" />
   <meta name="twitter:card" content="summary_large_image" />

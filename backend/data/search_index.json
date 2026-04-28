@@ -706,5 +706,17 @@
                 "EditRegion9"
             ]
         }
+    ],
+    "blog": [
+        {
+            "titre": "Le Blog Les Caramagnols",
+            "contenu": "Le Blog Les Caramagnols Retrouvez les articles publiés autour de nos pages auto-rétro, balades, villages, patrimoine et vie locale. Chaque article complète une page principale du site et permet d’approfondir un sujet précis.",
+            "url": "/blog",
+            "image": null,
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion8"
+            ]
+        }
     ]
 }

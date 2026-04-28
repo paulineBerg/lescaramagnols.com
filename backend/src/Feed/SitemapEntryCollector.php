@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Caramagnols\Feed;
 
 use Caramagnols\Blog\BlogRepositoryInterface;
+use Caramagnols\Blog\BlogPublicUrlResolver;
 use Caramagnols\Content\PageRepository;
 
 final class SitemapEntryCollector
 {
+    private BlogPublicUrlResolver $publicUrlResolver;
+
     /**
      * @param array<int, string> $availableLanguages
      */
@@ -19,6 +22,11 @@ final class SitemapEntryCollector
         private readonly array $availableLanguages = ['fr', 'en', 'de'],
         private readonly string $defaultLanguage = 'fr'
     ) {
+        $this->publicUrlResolver = new BlogPublicUrlResolver(
+            $this->blogRepository,
+            $this->pageRepository,
+            $this->defaultLanguage
+        );
     }
 
     /**
@@ -57,7 +65,7 @@ final class SitemapEntryCollector
 
                 $this->addPath(
                     $entries,
-                    $this->blogArticlePath($slug, $language),
+                    $this->blogArticlePath($article, $slug, $language),
                     'blog_article',
                     $language,
                     $this->articleTitle($article, $slug),
@@ -149,7 +157,7 @@ final class SitemapEntryCollector
 
             $this->addPath(
                 $entries,
-                $this->blogArticlePath($slug, $language),
+                $this->blogArticlePath($article, $slug, $language),
                 'blog_article',
                 $language,
                 $this->articleTitle($article, $slug),
@@ -229,12 +237,13 @@ final class SitemapEntryCollector
         return $language === $this->defaultLanguage ? '/blog' : '/' . rawurlencode($language) . '/blog';
     }
 
-    private function blogArticlePath(string $slug, string $language): string
+    /**
+     * @param array<string, mixed> $article
+     */
+    private function blogArticlePath(array $article, string $slug, string $language): string
     {
-        $language = $this->normalizeLanguage($language);
-        $path = '/blog/article/' . rawurlencode($slug);
-
-        return $language === $this->defaultLanguage ? $path : '/' . rawurlencode($language) . $path;
+        return $this->publicUrlResolver->publicPathForArticle($article)
+            ?? $this->publicUrlResolver->fallbackArticlePath($slug, $language);
     }
 
     /**

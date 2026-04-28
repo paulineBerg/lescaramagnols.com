@@ -8,6 +8,12 @@ if (!is_array($article)) {
     return;
 }
 
+$defaultLanguage = defined('DEFAULT_LANG') ? DEFAULT_LANG : (string) app_config('default_lang', 'fr');
+$publicUrlResolver = new \Caramagnols\Blog\BlogPublicUrlResolver(
+    blog_repository(),
+    page_repository(pages_data_path()),
+    $defaultLanguage
+);
 $pageTitle = (string) ($article['title'] ?? t('TXT_BLOG_ARTICLE_DEFAULT_TITLE')) . ' · ' . t('TXT_BLOG_PAGE_LABEL');
 $pageBodyClass = 'page-blog-article';
 $featuredImage = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata(
@@ -39,7 +45,25 @@ if ($pageMetaImageAlt === '') {
 $parentArticle = is_array($article['parent_article'] ?? null) ? $article['parent_article'] : null;
 $childArticles = is_array($article['child_articles'] ?? null) ? $article['child_articles'] : [];
 $articleSlug = (string) ($article['slug'] ?? '');
-$articleLanguage = (string) ($article['lang'] ?? (defined('CURRENT_LANG') ? CURRENT_LANG : app_config('default_lang', 'fr')));
+$articleLanguage = (string) ($article['lang'] ?? (defined('CURRENT_LANG') ? CURRENT_LANG : $defaultLanguage));
+$articleFallbackPath = $articleSlug !== ''
+    ? $publicUrlResolver->fallbackArticlePath($articleSlug, $articleLanguage)
+    : $publicUrlResolver->blogIndexPath($articleLanguage, false);
+$articlePublicPath = $publicUrlResolver->publicPathForArticle($article) ?? $articleFallbackPath;
+$articleAttachedPath = $publicUrlResolver->attachedPathForArticle($article);
+$articleLegacyLanguagePrefixedPath = $publicUrlResolver->isDefaultLanguage($articleLanguage)
+    ? '/' . rawurlencode($articleLanguage) . $articleFallbackPath
+    : $articleFallbackPath;
+$pageCanonicalUrl = app_url(ltrim($articlePublicPath, '/'));
+$GLOBALS['pageCanonicalUrl'] = $pageCanonicalUrl;
+$requestUri = is_string($_SERVER['REQUEST_URI'] ?? null) ? (string) $_SERVER['REQUEST_URI'] : '';
+$requestPath = normalize_public_route((string) (parse_url($requestUri, PHP_URL_PATH) ?? $articleFallbackPath)) ?? $articleFallbackPath;
+if (
+    $articleAttachedPath !== null
+    && ($requestPath === $articleFallbackPath || $requestPath === $articleLegacyLanguagePrefixedPath)
+) {
+    $pageRobots = 'noindex,follow';
+}
 $blogTaxonomy = \Caramagnols\Blog\BlogTaxonomy::fromDefaultConfig();
 $articleCategorySlug = $blogTaxonomy->resolveCategorySlug($article['category'] ?? null);
 $articleCategoryLabel = $articleCategorySlug !== null
@@ -59,8 +83,20 @@ foreach (is_array($article['tags'] ?? null) ? $article['tags'] : [] as $rawTag) 
 }
 $renderedArticleContent = \Caramagnols\Http\PublicUrlNormalizer::rewriteHtmlFragment(
     (string) ($article['content'] ?? ''),
-    '/' . trim($articleLanguage, '/') . '/blog/article/' . ($articleSlug !== '' ? $articleSlug : 'article')
+    $articlePublicPath
 );
+$resolveArticleUrl = static function (array $candidate) use ($publicUrlResolver, $articleLanguage): string {
+    $slug = trim((string) ($candidate['slug'] ?? ''));
+    if ($slug === '') {
+        return app_url(ltrim($publicUrlResolver->blogIndexPath($articleLanguage, false), '/'));
+    }
+
+    $language = trim((string) ($candidate['lang'] ?? $articleLanguage));
+    $path = $publicUrlResolver->publicPathForArticle($candidate)
+        ?? $publicUrlResolver->fallbackArticlePath($slug, $language);
+
+    return app_url(ltrim($path, '/'));
+};
 $slugifyBlogFilterValue = static function (string $value): string {
     $normalized = trim($value);
     if ($normalized === '') {
@@ -229,7 +265,7 @@ ob_start();
         <div class="content-facts-item">
           <dt><?php echo htmlspecialchars(t('TXT_BLOG_PARENT_ARTICLE'), ENT_QUOTES, 'UTF-8'); ?></dt>
           <dd>
-            <a href="<?php echo htmlspecialchars(app_url(CURRENT_LANG . '/blog/article/' . rawurlencode((string) ($parentArticle['slug'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>">
+            <a href="<?php echo htmlspecialchars($resolveArticleUrl($parentArticle), ENT_QUOTES, 'UTF-8'); ?>">
               <?php echo htmlspecialchars((string) ($parentArticle['title'] ?? ($parentArticle['slug'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
             </a>
           </dd>
@@ -284,11 +320,8 @@ ob_start();
   <h2 id="blog-children-title" class="content-callout-title"><?php echo htmlspecialchars(t('TXT_BLOG_RELATED_ARTICLES'), ENT_QUOTES, 'UTF-8'); ?></h2>
   <ul class="blog-child-list">
     <?php foreach ($childArticles as $childArticle): ?>
-    <?php
-    $childUrl = app_url(CURRENT_LANG . '/blog/article/' . rawurlencode((string) ($childArticle['slug'] ?? '')));
-    ?>
     <li class="blog-child-list-item">
-      <a class="blog-child-link" href="<?php echo htmlspecialchars($childUrl, ENT_QUOTES, 'UTF-8'); ?>">
+      <a class="blog-child-link" href="<?php echo htmlspecialchars($resolveArticleUrl($childArticle), ENT_QUOTES, 'UTF-8'); ?>">
         <?php echo htmlspecialchars((string) ($childArticle['title'] ?? t('TXT_BLOG_NO_TITLE')), ENT_QUOTES, 'UTF-8'); ?>
       </a>
       <span class="blog-child-meta">
@@ -305,11 +338,8 @@ ob_start();
   <h2 id="blog-taxonomy-related-title" class="content-callout-title"><?php echo htmlspecialchars(t('TXT_BLOG_SUGGESTED_ARTICLES'), ENT_QUOTES, 'UTF-8'); ?></h2>
   <ul class="blog-child-list">
     <?php foreach ($relatedSuggestions as $relatedArticle): ?>
-    <?php
-    $relatedUrl = app_url(CURRENT_LANG . '/blog/article/' . rawurlencode((string) ($relatedArticle['slug'] ?? '')));
-    ?>
     <li class="blog-child-list-item">
-      <a class="blog-child-link" href="<?php echo htmlspecialchars($relatedUrl, ENT_QUOTES, 'UTF-8'); ?>">
+      <a class="blog-child-link" href="<?php echo htmlspecialchars($resolveArticleUrl($relatedArticle), ENT_QUOTES, 'UTF-8'); ?>">
         <?php echo htmlspecialchars((string) ($relatedArticle['title'] ?? t('TXT_BLOG_NO_TITLE')), ENT_QUOTES, 'UTF-8'); ?>
       </a>
       <span class="blog-child-meta">
@@ -326,7 +356,7 @@ ob_start();
 $discussionAnchorId = 'discussion-form';
 $discussionTitleId = 'blog-discussions-title';
 $discussionFieldPrefix = 'discussion';
-$returnToDiscussionUrl = '';
+$returnToDiscussionUrl = app_url(ltrim($articleFallbackPath, '/')) . '#discussion-form';
 require TEMPLATES_PATH . '/partials/blog/discussion_panel.php';
 ?>
 <?php endif; ?>

@@ -65,6 +65,7 @@ final class LegacyRouteResolver
 
             $GLOBALS['currentBlogArticles'] = $articles;
             $GLOBALS['currentBlogFilters'] = $filters;
+            $GLOBALS['currentBlogHubPage'] = $this->pageRepository->findPublishedStructuredByRoute('/blog', $language, $defaultLanguage);
 
             return 'pages/blog/index.php';
         }
@@ -115,7 +116,7 @@ final class LegacyRouteResolver
     private function resetRouteContext(): void
     {
         unset($GLOBALS['currentDynamicPage']);
-        unset($GLOBALS['currentBlogArticles'], $GLOBALS['currentBlogArticle'], $GLOBALS['currentBlogFilters']);
+        unset($GLOBALS['currentBlogArticles'], $GLOBALS['currentBlogArticle'], $GLOBALS['currentBlogFilters'], $GLOBALS['currentBlogHubPage']);
     }
 
     private function normalizeRoute(string $uri): string

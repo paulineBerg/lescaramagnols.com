@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use Caramagnols\Blog\BlogDiscussionApiController;
+use Caramagnols\Blog\BlogPublicUrlResolver;
 use Caramagnols\Blog\JsonBlogDiscussionRepository;
 use Caramagnols\Blog\JsonBlogRepository;
+use Caramagnols\Content\PageRepository;
 use Caramagnols\Http\Request;
 use PHPUnit\Framework\TestCase;
 
@@ -14,6 +16,7 @@ final class BlogDiscussionApiControllerTest extends TestCase
 {
     private string $blogDir;
     private string $discussionDir;
+    private string $pagesFile;
 
     protected function setUp(): void
     {
@@ -22,8 +25,30 @@ final class BlogDiscussionApiControllerTest extends TestCase
 
         $this->blogDir = sys_get_temp_dir() . '/caramagnols-blog-discussion-api-blog-' . bin2hex(random_bytes(6));
         $this->discussionDir = sys_get_temp_dir() . '/caramagnols-blog-discussion-api-discussions-' . bin2hex(random_bytes(6));
+        $this->pagesFile = ROOT_PATH . '/var/blog-discussion-pages-' . bin2hex(random_bytes(6)) . '.json';
         mkdir($this->blogDir, 0777, true);
         mkdir($this->discussionDir, 0777, true);
+
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            )
+        );
 
         file_put_contents(
             $this->blogDir . '/bonjour.fr.json',
@@ -78,6 +103,10 @@ final class BlogDiscussionApiControllerTest extends TestCase
 
             @rmdir($dir);
         }
+
+        if (file_exists($this->pagesFile)) {
+            @unlink($this->pagesFile);
+        }
     }
 
     public function testSubmitCreatesPendingDiscussionAndRedirectsToArticle(): void
@@ -119,7 +148,7 @@ final class BlogDiscussionApiControllerTest extends TestCase
         );
 
         $this->assertSame(303, $response->status);
-        $this->assertStringContainsString('/fr/blog/article/bonjour#discussion-form', (string) ($response->headers['Location'] ?? ''));
+        $this->assertStringContainsString('/blog/article/bonjour#discussion-form', (string) ($response->headers['Location'] ?? ''));
 
         $repository = new JsonBlogDiscussionRepository($this->discussionDir);
         $rows = $repository->all();
@@ -260,7 +289,7 @@ final class BlogDiscussionApiControllerTest extends TestCase
         );
 
         $this->assertSame(303, $response->status);
-        $this->assertStringContainsString('/fr/blog/article/bonjour#discussion-form', (string) ($response->headers['Location'] ?? ''));
+        $this->assertStringContainsString('/blog/article/bonjour#discussion-form', (string) ($response->headers['Location'] ?? ''));
 
         $repository = new JsonBlogDiscussionRepository($this->discussionDir);
         $this->assertSame([], $repository->all());
@@ -308,9 +337,74 @@ final class BlogDiscussionApiControllerTest extends TestCase
         );
 
         $this->assertSame(303, $response->status);
-        $this->assertStringContainsString('/fr/blog/article/bonjour#discussion-form', (string) ($response->headers['Location'] ?? ''));
+        $this->assertStringContainsString('/blog/article/bonjour#discussion-form', (string) ($response->headers['Location'] ?? ''));
 
         $repository = new JsonBlogDiscussionRepository($this->discussionDir);
         $this->assertSame([], $repository->all());
+    }
+
+    public function testSubmitFallsBackToAttachedParentUrlWhenArticleHasPublishedPage(): void
+    {
+        file_put_contents(
+            $this->blogDir . '/bonjour-parent.fr.json',
+            json_encode(
+                [
+                    'title' => 'Bonjour parent',
+                    'slug' => 'bonjour-parent',
+                    'lang' => 'fr',
+                    'status' => 'published',
+                    'date' => '2026-03-18 10:00:00',
+                    'page_slug' => 'association',
+                    'content' => '<p>Contenu.</p>',
+                ],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $scope = 'blog_discussion_' . hash('sha256', 'fr:bonjour-parent');
+        $token = csrf_token($scope);
+        $nonce = bin2hex(random_bytes(16));
+        $_SESSION['_blog_discussion_form_nonces'][$nonce] = [
+            'scope' => $scope,
+            'issued_at' => time() - 3,
+        ];
+
+        $repository = new JsonBlogRepository($this->blogDir);
+        $controller = new BlogDiscussionApiController(
+            $repository,
+            new JsonBlogDiscussionRepository($this->discussionDir),
+            null,
+            null,
+            new BlogPublicUrlResolver($repository, new PageRepository($this->pagesFile), 'fr')
+        );
+
+        $response = $controller->submit(
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/core/blog/submit_discussion.php',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                ],
+                [],
+                [
+                    'article_slug' => 'bonjour-parent',
+                    'article_lang' => 'fr',
+                    'csrf_token' => $token,
+                    'form_nonce' => $nonce,
+                    'website' => '',
+                    'author' => 'Pauline',
+                    'email' => 'pauline@example.com',
+                    'content' => 'Bonjour a tous',
+                ],
+                [],
+                ['Host' => 'example.test']
+            )
+        );
+
+        $this->assertSame(303, $response->status);
+        $this->assertStringContainsString(
+            '/fr/association?open_article=bonjour-parent#discussion-form-bonjour-parent',
+            (string) ($response->headers['Location'] ?? '')
+        );
     }
 }

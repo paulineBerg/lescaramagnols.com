@@ -934,6 +934,256 @@ final class FrontControllerHttpTest extends TestCase
         );
     }
 
+    public function testBlogHubPrefersAttachedParentUrlsAndKeepsFallbackWithoutBlogReturn(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $this->writeBlogArticle([
+            'title' => 'Article attache',
+            'slug' => 'article-attache',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-20 10:00:00',
+            'content' => '<p>Attache.</p>',
+            'page_slug' => 'association',
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'Article solo',
+            'slug' => 'article-solo',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-21 10:00:00',
+            'content' => '<p>Solo.</p>',
+        ]);
+
+        $response = $this->frontController()->handle($this->request('GET', '/blog'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString(
+            '/fr/association?open_article=article-attache#attached-article-article-attache',
+            $response->body
+        );
+        $this->assertStringContainsString(
+            '/blog/article/article-solo',
+            $response->body
+        );
+        $this->assertStringNotContainsString('blog_return=', $response->body);
+    }
+
+    public function testBlogHubRendersEditorialPageCardsAndPagination(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                        [
+                            'slug' => 'blog',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/blog',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Le Blog Les Caramagnols',
+                                    'regions' => [
+                                        'hero' => [
+                                            'component' => 'heading',
+                                            'title' => 'Le Blog Les Caramagnols',
+                                        ],
+                                        'intro' => [
+                                            'component' => 'rich_text',
+                                            'html' => '<p>Chaque article complète une page principale du site et permet d’approfondir un sujet précis.</p>',
+                                        ],
+                                    ],
+                                    'meta' => [
+                                        'description' => 'Hub éditorial Les Caramagnols.',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+            )
+        );
+
+        for ($index = 1; $index <= 13; $index++) {
+            $this->writeBlogArticle([
+                'title' => 'Article ' . $index,
+                'slug' => 'article-' . $index,
+                'lang' => 'fr',
+                'status' => 'published',
+                'date' => sprintf('2026-04-%02d 10:00:00', 30 - $index),
+                'category' => $index % 2 === 0 ? 'patrimoine' : 'auto-retro',
+                'tags' => ['histoire', 'collection', 'modele'],
+                'content' => '<p>Contenu ' . $index . '.</p>',
+                'excerpt' => 'Extrait ' . $index . '.',
+                'page_slug' => $index === 1 ? 'association' : '',
+                'featured_image' => [
+                    'src' => '/uploads/editorial/article-' . $index . '.jpg',
+                    'alt' => 'Visuel ' . $index,
+                    'title' => 'Visuel ' . $index,
+                    'width' => 1200,
+                    'height' => 630,
+                ],
+            ]);
+        }
+
+        $response = $this->frontController()->handle($this->request('GET', '/fr/blog'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Le Blog Les Caramagnols', $response->body);
+        $this->assertStringContainsString('Chaque article complète une page principale du site', $response->body);
+        $this->assertSame(12, substr_count($response->body, 'class="blog-card blog-hub-card"'));
+        $this->assertStringContainsString(
+            '/fr/association?open_article=article-1#attached-article-article-1',
+            $response->body
+        );
+        $this->assertStringContainsString('Rattaché à', $response->body);
+        $this->assertStringContainsString('Lire l’article', $response->body);
+        $this->assertStringContainsString('/fr/blog?page=2', $response->body);
+        $this->assertStringContainsString('Page 1 sur 2', $response->body);
+        $this->assertStringNotContainsString('Article 13', $response->body);
+        $this->assertStringNotContainsString('blog_return=', $response->body);
+        $this->assertStringNotContainsString('/tag/', $response->body);
+
+        $pageTwoResponse = $this->frontController()->handle($this->request('GET', '/fr/blog?page=2'));
+
+        $this->assertSame(200, $pageTwoResponse->status);
+        $this->assertStringContainsString('Article 13', $pageTwoResponse->body);
+        $this->assertStringContainsString('Page 2 sur 2', $pageTwoResponse->body);
+        $this->assertStringContainsString('Articles 13 à 13 sur 13', $pageTwoResponse->body);
+    }
+
+    public function testBlogArticleRouteRedirectsToAttachedParentUrlWhenPageSlugExists(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => ['title' => 'Association'],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $this->writeBlogArticle([
+            'title' => 'Article attache',
+            'slug' => 'article-attache',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-20 10:00:00',
+            'content' => '<p>Attache.</p>',
+            'page_slug' => 'association',
+        ]);
+
+        $response = $this->frontController()->handle($this->request('GET', '/blog/article/article-attache'));
+
+        $this->assertSame(301, $response->status);
+        $this->assertSame(
+            '/fr/association?open_article=article-attache#attached-article-article-attache',
+            $response->headers['Location'] ?? null
+        );
+    }
+
+    public function testDynamicPageUsesAttachedCanonicalWhenOpenArticleIsRequested(): void
+    {
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Association',
+                                    'regions' => [
+                                        'body' => [
+                                            'component' => 'rich_text',
+                                            'html' => '<p>Contenu de page.</p>',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $this->writeBlogArticle([
+            'title' => 'Article attache',
+            'slug' => 'article-attache',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-20 10:00:00',
+            'content' => '<p>Attache.</p>',
+            'page_slug' => 'association',
+        ]);
+
+        $response = $this->frontController()->handle(
+            $this->request('GET', '/association?open_article=article-attache')
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('rel="canonical"', $response->body);
+        $this->assertStringContainsString(
+            '/fr/association?open_article=article-attache#attached-article-article-attache',
+            $response->body
+        );
+    }
+
     public function testDynamicPageRendersSharedMediaGalleryFromRootMeta(): void
     {
         file_put_contents(
@@ -1123,6 +1373,48 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('id="nav-menu-3"', $response->body);
         $this->assertStringContainsString('Mentions légales', $response->body);
         $this->assertStringContainsString('Plan du site', $response->body);
+    }
+
+    public function testHeaderNavigationIncludesBlogEntryFromCanonicalRegistry(): void
+    {
+        menus_data_set_path_override(null);
+        navigation_view_model_cache_clear();
+
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'home',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Accueil',
+                                    'regions' => [
+                                        'hero' => [
+                                            'component' => 'heading',
+                                            'title' => 'Accueil',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $response = $this->frontController()->handle($this->request('GET', '/'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('href="/fr/blog"', $response->body);
+        $this->assertMatchesRegularExpression('/>\s*Blog\s*</', $response->body);
     }
 
     public function testSitemapRouteReturnsPublishedPagesAndArticlesOnly(): void

@@ -12,17 +12,24 @@ final class BlogDiscussionApiController
 {
     private AppEventLogger $eventLogger;
     private RecaptchaVerifier $recaptchaVerifier;
+    private BlogPublicUrlResolver $publicUrlResolver;
 
     public function __construct(
         private readonly BlogRepositoryInterface $articleRepository,
         private readonly BlogDiscussionRepositoryInterface $discussionRepository,
         ?RecaptchaVerifier $recaptchaVerifier = null,
-        ?AppEventLogger $eventLogger = null
+        ?AppEventLogger $eventLogger = null,
+        ?BlogPublicUrlResolver $publicUrlResolver = null
     ) {
         require_once ROOT_PATH . '/core/rate_limiter.php';
 
         $this->recaptchaVerifier = $recaptchaVerifier ?? new RecaptchaVerifier();
         $this->eventLogger = $eventLogger ?? app_event_logger();
+        $this->publicUrlResolver = $publicUrlResolver ?? new BlogPublicUrlResolver(
+            $this->articleRepository,
+            page_repository(pages_data_path()),
+            (string) app_config('default_lang', 'fr')
+        );
     }
 
     public function submit(Request $request): Response
@@ -325,7 +332,10 @@ final class BlogDiscussionApiController
 
     private function articleUrl(string $slug, string $language): string
     {
-        return app_url($language . '/blog/article/' . rawurlencode($slug));
+        $path = $this->publicUrlResolver->publicPathForPublishedArticleSlug($slug, $language)
+            ?? $this->publicUrlResolver->fallbackArticlePath($slug, $language);
+
+        return app_url(ltrim($path, '/'));
     }
 
     /**
@@ -333,7 +343,13 @@ final class BlogDiscussionApiController
      */
     private function resolveRedirectUrl(Request $request, array $payload, string $slug, string $language): string
     {
-        $fallback = $this->articleUrl($slug, $language) . '#discussion-form';
+        $attachedPath = $this->publicUrlResolver->attachedPathForPublishedArticleSlug($slug, $language);
+        $attachedDiscussionBasePath = is_string($attachedPath)
+            ? preg_replace('/#.*$/', '', $attachedPath)
+            : null;
+        $fallback = is_string($attachedDiscussionBasePath) && $attachedDiscussionBasePath !== ''
+            ? app_url(ltrim((string) $attachedDiscussionBasePath, '/'), $request) . '#discussion-form-' . rawurlencode($slug)
+            : $this->articleUrl($slug, $language) . '#discussion-form';
         $candidate = trim((string) ($payload['return_to'] ?? ''));
 
         if ($candidate === '' || preg_match('/[\r\n]/', $candidate) === 1) {

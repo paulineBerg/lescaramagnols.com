@@ -433,8 +433,11 @@ Le workflow de planification automatique doit respecter la stratégie ci-dessous
 
 Principe:
 - regrouper les brouillons par `page_slug` (cluster éditorial)
+- à l’intérieur d’un cluster, raisonner par article logique (`slug`) et non par variante de langue
+- le quota `published + scheduled` se calcule par `slug` distinct, jamais par entrée `fr` / `en` / `de`
 - sélectionner un cluster actif (même page) dont la somme `published + scheduled` est inférieure à `5`
-- choisir le prochain brouillon le plus ancien de ce cluster
+- choisir le prochain brouillon le plus ancien de ce cluster, puis planifier ensemble toutes ses variantes brouillon disponibles à la même date
+- si un `slug` a déjà une variante `scheduled` ou `published`, aligner les brouillons restants sur cette date existante au lieu de créer une seconde date
 - si un ou plusieurs clusters actifs existent, privilégier celui avec le plus petit total `published + scheduled`
 - si tous les clusters ont `>=5` articles publiés/planifiés, choisir le brouillon le plus ancien toutes langues confondues
 - calculer la date planifiée:
@@ -641,6 +644,23 @@ Le projet supporte plusieurs modes de persistence editoriale:
 - privilegier un import SQL cible quand seules quelques pages ou entrees de navigation sont concernees; reserver l'import complet `pages.json`/navigation vers SQL aux synchronisations assumees
 - apres import SQL, regenerer l'index de recherche depuis le stockage actif et verifier le rendu public cible
 - si JSON et SQL restent volontairement divergents en fin de tache, le signaler explicitement avec les slugs/routes concernes
+
+### 11.2 bis Coherence pages/navigation entre SQL, JSON, admin et front
+
+- avant d'affirmer qu'une page, un menu ou un article "existe", "n'existe pas", "est publie" ou "est visible", identifier d'abord le stockage actif reel puis verifier separement:
+  - le repository actif (`page_repository()`, `navigation_repository()`, `blog_repository()`)
+  - le fallback JSON versionne (`backend/data/pages.json`, `backend/data/menus.json`, blog JSON si concerne)
+  - le rendu admin cible (`admin/pages`, `admin/menus`, `admin/articles`) quand la demande parle de l'interface d'administration
+  - le rendu front cible ou le view model/runtime qui l'alimente
+- ne jamais conclure depuis un seul helper dont le contrat de stockage n'a pas ete relu; en cas de doute, instancier explicitement un repository en mode `json` ou `sql` pour comparer les deux et ne pas deviner le comportement
+- pour `pages` et `navigation`, une correction n'est pas consideree complete si elle laisse un decrochage silencieux entre base SQL active, fichier JSON de fallback/versionnement, admin et front; si un ecart reste volontairement present, le documenter explicitement
+- quand une page publique depend d'une entree de menu, ou qu'un menu depend d'une page publique, corriger les deux dans le meme passage de travail pour garder `admin/pages`, `admin/menus` et le front coherents
+- apres une ecriture SQL sur `pages` ou `navigation`, verifier au minimum:
+  - la presence de la page ou de l'entree via le repository actif
+  - la resolution du lien public via le runtime de navigation ou `NavigationViewModelBuilder`
+  - la presence cote admin si la demande mentionne `admin/pages` ou `admin/menus`
+  - l'index de recherche si une page publique est ajoutee, retiree ou rendue visible
+- avant de dire qu'un menu "existait deja", controler la source active et non le seul snapshot JSON; inversement, avant de dire qu'une page "n'existe pas", verifier aussi si elle est presente dans le fallback JSON alors qu'elle manque en SQL
 
 ### 11.3 Regles generales de persistence
 

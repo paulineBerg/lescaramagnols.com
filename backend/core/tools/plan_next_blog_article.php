@@ -53,10 +53,20 @@ if ($result['scheduled'] > 0 || !$linksRebuild['dry_run']) {
 }
 
 if (!$dryRun && $result['scheduled'] > 0) {
+    $languages = array_values(
+        array_filter(
+            is_array($result['selected']['langs'] ?? null) ? $result['selected']['langs'] : [],
+            static fn ($value): bool => is_string($value) && trim($value) !== ''
+        )
+    );
+    $languageLabel = $languages !== []
+        ? implode(', ', $languages)
+        : (string) ($result['selected']['lang'] ?? '');
+
     $message = sprintf(
         "Article planifie: %s (%s) sur page %s en %s\n",
         (string) ($result['selected']['slug'] ?? ''),
-        (string) ($result['selected']['lang'] ?? ''),
+        $languageLabel,
         (string) ($result['selected']['page_slug'] ?? ''),
         (string) ($result['selected']['scheduled_at'] ?? '')
     );
@@ -69,6 +79,7 @@ if ($jsonOutput) {
         'status' => $result['scheduled'] > 0 ? 'scheduled' : 'noop',
         'dry_run' => (bool) $result['dry_run'],
         'scheduled_count' => $result['scheduled'],
+        'article_count' => (int) $result['article_count'],
         'reason' => (string) $result['reason'],
         'selected' => $result['selected'],
         'links_rebuild' => [

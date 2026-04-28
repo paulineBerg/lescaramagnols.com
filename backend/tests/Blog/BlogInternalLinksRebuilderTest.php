@@ -150,7 +150,7 @@ final class BlogInternalLinksRebuilderTest extends TestCase
         $this->assertSame(1, $result['changed']);
         $source = $repository->find('article-source', 'fr');
         $this->assertSame(
-            '<p>Voir <a href="/fr/blog">ce texte</a>.</p>',
+            '<p>Voir <a href="/blog">ce texte</a>.</p>',
             $source['content'] ?? ''
         );
     }

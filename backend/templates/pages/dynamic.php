@@ -26,6 +26,25 @@ $blocks = is_array($page['blocks'] ?? null) ? $page['blocks'] : [];
 $pageSlug = trim((string) ($page['slug'] ?? ''));
 $language = defined('CURRENT_LANG') ? CURRENT_LANG : (defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr');
 $defaultLanguage = defined('DEFAULT_LANG') ? DEFAULT_LANG : (string) app_config('default_lang', 'fr');
+$publicUrlResolver = new \Caramagnols\Blog\BlogPublicUrlResolver(
+    blog_repository(),
+    page_repository(pages_data_path()),
+    $defaultLanguage
+);
+$attachedArticlePathForCurrentPage = static function (array $article) use ($publicUrlResolver, $page, $language): ?string {
+    $slug = trim((string) ($article['slug'] ?? ''));
+    $articleLanguage = trim((string) ($article['lang'] ?? ''));
+    if ($articleLanguage === '') {
+        $articleLanguage = $language;
+    }
+
+    $pageRoute = normalize_public_route((string) ($page['route'] ?? ''));
+    if ($pageRoute === null) {
+        return null;
+    }
+
+    return $publicUrlResolver->attachedPathForPageRoute($slug, $articleLanguage, $pageRoute);
+};
 $attachedArticles = [];
 if ($pageSlug !== '') {
     $attachedArticles = blog_repository()->publishedArticleTreeForPage($pageSlug, $language);
@@ -293,6 +312,7 @@ if ($attachedArticles !== []) {
         $attachedChronicleArticles = $attachedArticles;
     }
 
+    $openArticle = null;
     $hasOpenArticleMatch = false;
     if ($openArticleSlug !== '') {
         foreach ($attachedChronicleArticles as $articleCandidate) {
@@ -302,8 +322,18 @@ if ($attachedArticles !== []) {
 
             if (trim((string) ($articleCandidate['slug'] ?? '')) === $openArticleSlug) {
                 $hasOpenArticleMatch = true;
+                $openArticle = $articleCandidate;
                 break;
             }
+        }
+    }
+
+    if (is_array($openArticle)) {
+        $openArticlePublicPath = $attachedArticlePathForCurrentPage($openArticle)
+            ?? $publicUrlResolver->publicPathForArticle($openArticle);
+        if (is_string($openArticlePublicPath) && $openArticlePublicPath !== '') {
+            $pageCanonicalUrl = app_url(ltrim($openArticlePublicPath, '/'));
+            $GLOBALS['pageCanonicalUrl'] = $pageCanonicalUrl;
         }
     }
 
@@ -361,7 +391,9 @@ if ($attachedArticles !== []) {
         if ($articleLanguage === '') {
             $articleLanguage = $language;
         }
-        $articleContentRoute = '/' . trim($articleLanguage, '/') . '/blog/article/' . ($slug !== '' ? $slug : 'article');
+        $articleContentRoute = $attachedArticlePathForCurrentPage($article)
+            ?? $publicUrlResolver->publicPathForArticle($article)
+            ?? $publicUrlResolver->fallbackArticlePath($slug !== '' ? $slug : 'article', $articleLanguage);
         $content = \Caramagnols\Http\PublicUrlNormalizer::rewriteHtmlFragment($content, $articleContentRoute);
         $discussionAnchorId = 'discussion-form-' . ($slug !== '' ? $slug : (string) $articleIndex);
         $discussionTitleId = 'blog-discussions-title-' . ($slug !== '' ? $slug : (string) $articleIndex);
@@ -464,7 +496,7 @@ if ($attachedArticles !== []) {
             <?php endif; ?>
             <?php if ($content !== ''): ?>
             <article class="blog-article-body page-attached-article-body">
-              <?php echo (string) $article['content']; ?>
+              <?php echo $content; ?>
             </article>
             <?php elseif ($excerpt !== ''): ?>
             <p class="blog-card-excerpt"><?php echo htmlspecialchars($excerpt, ENT_QUOTES, 'UTF-8'); ?></p>

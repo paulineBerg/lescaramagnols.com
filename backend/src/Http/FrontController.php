@@ -66,6 +66,8 @@ final class FrontController
         $requestId = $this->resolveRequestId($request);
         app_request_id($requestId);
         app_request_context_set($this->requestContext($request, $requestId));
+        $legacyRequestState = $this->captureLegacyRequestGlobals();
+        $this->applyLegacyRequestGlobals($request);
 
         try {
             try {
@@ -79,6 +81,7 @@ final class FrontController
 
             return $response;
         } finally {
+            $this->restoreLegacyRequestGlobals($legacyRequestState);
             app_request_context_clear();
         }
     }
@@ -117,7 +120,7 @@ final class FrontController
                     (string) app_config('default_lang', 'fr')
                 );
 
-                $query = $request->query();
+                $query = $this->queryParameters($request);
                 $language = is_string($query['lang'] ?? null) ? $query['lang'] : null;
 
                 return $rssService->response($language);
@@ -189,6 +192,15 @@ final class FrontController
 
         $currentPath = request_path($request->uri());
         $normalizedPath = normalize_public_route($currentPath);
+
+        $blogArticlePath = is_string($normalizedPath) && $normalizedPath !== ''
+            ? $normalizedPath
+            : $currentPath;
+        $blogArticleRedirect = $this->blogArticleCanonicalRedirectResponse($request, $blogArticlePath);
+        if ($blogArticleRedirect !== null) {
+            return $blogArticleRedirect;
+        }
+
         if (!is_string($normalizedPath) || $normalizedPath === $currentPath || $normalizedPath === '') {
             return null;
         }
@@ -206,6 +218,51 @@ final class FrontController
         }
 
         return null;
+    }
+
+    private function blogArticleCanonicalRedirectResponse(Request $request, string $path): ?Response
+    {
+        if (
+            preg_match('#^/(?:([a-z]{2}(?:-[a-z]{2})?)/)?blog/article/([^/]+)$#i', $path, $matches) !== 1
+        ) {
+            return null;
+        }
+
+        $defaultLanguage = (string) app_config('default_lang', 'fr');
+        $requestedLanguage = strtolower(trim((string) $matches[1]));
+        $language = in_array($requestedLanguage, site_available_languages(), true)
+            ? $requestedLanguage
+            : $defaultLanguage;
+        $slug = strtolower(trim((string) $matches[2]));
+        $slug = preg_replace('/[^a-z0-9-]+/i', '-', $slug) ?? '';
+        $slug = trim($slug, '-');
+
+        if ($slug === '') {
+            return null;
+        }
+
+        $repository = blog_repository();
+        $article = $repository->findPublished($slug, $language);
+        if (!is_array($article) && $language !== $defaultLanguage) {
+            $article = $repository->findPublished($slug, $defaultLanguage);
+        }
+
+        if (!is_array($article)) {
+            return null;
+        }
+
+        $resolver = new \Caramagnols\Blog\BlogPublicUrlResolver(
+            $repository,
+            page_repository(pages_data_path()),
+            $defaultLanguage
+        );
+        $canonicalPath = $resolver->attachedPathForArticle($article);
+
+        if ($canonicalPath === null) {
+            return null;
+        }
+
+        return $this->redirectResponse($request, $canonicalPath, 301, false);
     }
 
     private function missingImageFallbackResponse(Request $request): ?Response
@@ -287,7 +344,7 @@ final class FrontController
     {
         require_once ROOT_PATH . '/core/api/lang.php';
 
-        $query = $request->query();
+        $query = $this->queryParameters($request);
         $language = is_string($query['lang'] ?? null) ? $query['lang'] : null;
 
         return lang_api_response($language, $request->header('If-None-Match'));
@@ -340,6 +397,7 @@ final class FrontController
         }
 
         $pageMetaDescription = null;
+        unset($GLOBALS['pageCanonicalUrl']);
 
         $pageBufferLevel = ob_get_level();
         ob_start();
@@ -349,6 +407,13 @@ final class FrontController
         } catch (\Throwable $exception) {
             $this->discardOutputBuffers($pageBufferLevel);
             throw $exception;
+        }
+
+        if (!isset($pageCanonicalUrl) || trim((string) $pageCanonicalUrl) === '') {
+            $pageCanonicalUrl = $this->resolveDynamicAttachedArticleCanonicalUrl($request);
+        }
+        if (is_string($pageCanonicalUrl ?? null) && trim($pageCanonicalUrl) !== '') {
+            $GLOBALS['pageCanonicalUrl'] = $pageCanonicalUrl;
         }
 
         $layoutBufferLevel = ob_get_level();
@@ -362,6 +427,7 @@ final class FrontController
         }
 
         $response = new Response($statusCode, [], (string) $body);
+        unset($GLOBALS['pageCanonicalUrl']);
         $this->logPageVisit($request, $response, $pageFile, $isNotFound, (microtime(true) - $startedAt) * 1000);
 
         return $response;
@@ -465,6 +531,132 @@ final class FrontController
         while (ob_get_level() > $targetLevel) {
             ob_end_clean();
         }
+    }
+
+    /**
+     * @return array{server: array<string, mixed>, get: array<string, mixed>, post: array<string, mixed>, cookie: array<string, mixed>, files: array<string, mixed>}
+     */
+    private function captureLegacyRequestGlobals(): array
+    {
+        return [
+            'server' => $_SERVER,
+            'get' => $_GET,
+            'post' => $_POST,
+            'cookie' => $_COOKIE,
+            'files' => $_FILES,
+        ];
+    }
+
+    private function applyLegacyRequestGlobals(Request $request): void
+    {
+        $_GET = $this->queryParameters($request);
+        $_POST = $request->body();
+        $_COOKIE = $request->cookies();
+        $_FILES = $request->files();
+
+        $_SERVER['REQUEST_METHOD'] = $request->method();
+        $_SERVER['REQUEST_URI'] = $request->uri();
+        $_SERVER['QUERY_STRING'] = (string) (parse_url($request->uri(), PHP_URL_QUERY) ?? '');
+
+        $this->applyOptionalServerValue('REMOTE_ADDR', $request->server('REMOTE_ADDR'));
+        $this->applyOptionalServerValue('SERVER_PORT', $request->server('SERVER_PORT'));
+        $this->applyOptionalServerValue('HTTPS', $request->server('HTTPS'));
+        $this->applyOptionalServerValue('HTTP_HOST', $request->header('Host'));
+        $this->applyOptionalServerValue('HTTP_X_FORWARDED_PROTO', $request->header('X-Forwarded-Proto'));
+        $this->applyOptionalServerValue('HTTP_X_FORWARDED_FOR', $request->header('X-Forwarded-For'));
+        $this->applyOptionalServerValue('HTTP_X_REAL_IP', $request->header('X-Real-IP'));
+    }
+
+    /**
+     * @param array{server: array<string, mixed>, get: array<string, mixed>, post: array<string, mixed>, cookie: array<string, mixed>, files: array<string, mixed>} $state
+     */
+    private function restoreLegacyRequestGlobals(array $state): void
+    {
+        $_SERVER = $state['server'];
+        $_GET = $state['get'];
+        $_POST = $state['post'];
+        $_COOKIE = $state['cookie'];
+        $_FILES = $state['files'];
+    }
+
+    private function applyOptionalServerValue(string $key, mixed $value): void
+    {
+        if ($value === null) {
+            unset($_SERVER[$key]);
+            return;
+        }
+
+        if (is_scalar($value)) {
+            $_SERVER[$key] = (string) $value;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function queryParameters(Request $request): array
+    {
+        $query = $request->query();
+        if ($query !== []) {
+            return $query;
+        }
+
+        $queryString = parse_url($request->uri(), PHP_URL_QUERY);
+        if (!is_string($queryString) || $queryString === '') {
+            return [];
+        }
+
+        parse_str($queryString, $query);
+
+        return is_array($query) ? $query : [];
+    }
+
+    private function resolveDynamicAttachedArticleCanonicalUrl(Request $request): ?string
+    {
+        $query = $this->queryParameters($request);
+        $openArticleSlug = is_string($query['open_article'] ?? null) ? trim((string) $query['open_article']) : '';
+        $openArticleSlug = preg_replace('/[^a-z0-9-]+/i', '-', strtolower($openArticleSlug)) ?? '';
+        $openArticleSlug = trim($openArticleSlug, '-');
+
+        $page = $GLOBALS['currentDynamicPage'] ?? null;
+        if (!is_array($page) || $openArticleSlug === '') {
+            return null;
+        }
+
+        $pageSlug = trim((string) ($page['slug'] ?? ''));
+        $pageRoute = normalize_public_route((string) ($page['route'] ?? ''));
+        if ($pageSlug === '' || $pageRoute === null) {
+            return null;
+        }
+
+        $defaultLanguage = (string) app_config('default_lang', 'fr');
+        $language = defined('CURRENT_LANG') ? (string) CURRENT_LANG : $defaultLanguage;
+        $repository = blog_repository();
+        $article = $repository->findPublished($openArticleSlug, $language);
+        if (!is_array($article) && $language !== $defaultLanguage) {
+            $article = $repository->findPublished($openArticleSlug, $defaultLanguage);
+        }
+
+        if (!is_array($article) || trim((string) ($article['page_slug'] ?? '')) !== $pageSlug) {
+            return null;
+        }
+
+        $resolver = new \Caramagnols\Blog\BlogPublicUrlResolver(
+            $repository,
+            page_repository(pages_data_path()),
+            $defaultLanguage
+        );
+        $path = $resolver->attachedPathForPageRoute(
+            $openArticleSlug,
+            (string) ($article['lang'] ?? $language),
+            $pageRoute
+        );
+
+        if (!is_string($path) || $path === '') {
+            return null;
+        }
+
+        return app_url(ltrim($path, '/'), $request);
     }
 
     private function resolveRequestId(Request $request): string

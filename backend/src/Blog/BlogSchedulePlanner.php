@@ -12,12 +12,14 @@ final class BlogSchedulePlanner
     private const SCHEDULE_INTERVAL_DAYS = 11;
 
     private AppEventLogger $eventLogger;
+    private string $defaultLanguage;
 
     public function __construct(
         private readonly BlogRepositoryInterface $repository,
         ?AppEventLogger $logger = null
     ) {
         $this->eventLogger = $logger ?? app_event_logger();
+        $this->defaultLanguage = strtolower(trim((string) app_config('default_lang', 'fr')));
     }
 
     /**
@@ -43,29 +45,36 @@ final class BlogSchedulePlanner
             ];
         }
 
-        $scheduledDate = $candidate['scheduledDate'];
-        $article = $candidate['article'];
+        $scheduledDate = (int) $candidate['scheduledDate'];
+        $primaryArticle = $candidate['primaryArticle'];
+        $draftArticles = $candidate['draftArticles'];
+        $languages = $candidate['languages'];
         $scheduledAt = date('Y-m-d H:i:s', $scheduledDate);
-        $scheduledArticle = $article;
-        $scheduledArticle['status'] = 'scheduled';
-        $scheduledArticle['date'] = $scheduledAt;
 
         $scheduled = 0;
         if (!$dryRun) {
-            $this->repository->save(
-                $scheduledArticle,
-                $article['slug'] ?? null,
-                $article['lang'] ?? null
-            );
+            foreach ($draftArticles as $article) {
+                $scheduledArticle = $article;
+                $scheduledArticle['status'] = 'scheduled';
+                $scheduledArticle['date'] = $scheduledAt;
 
-            $scheduled = 1;
+                $this->repository->save(
+                    $scheduledArticle,
+                    $article['slug'] ?? null,
+                    $article['lang'] ?? null
+                );
+                $scheduled++;
+            }
+
             $this->eventLogger->content(
                 'blog.article.schedule_next',
                 [
                     'reason' => $candidate['reason'],
-                    'slug' => $article['slug'] ?? '',
-                    'lang' => $article['lang'] ?? '',
-                    'page_slug' => $article['page_slug'] ?? '',
+                    'slug' => $primaryArticle['slug'] ?? '',
+                    'lang' => $primaryArticle['lang'] ?? '',
+                    'langs' => $languages,
+                    'scheduled_variant_count' => count($draftArticles),
+                    'page_slug' => $primaryArticle['page_slug'] ?? '',
                     'scheduled_date' => $scheduledAt,
                 ]
             );
@@ -75,15 +84,17 @@ final class BlogSchedulePlanner
             'dry_run' => $dryRun,
             'scheduled' => $scheduled,
             'selected' => [
-                'slug' => (string) ($article['slug'] ?? ''),
-                'lang' => (string) ($article['lang'] ?? ''),
-                'page_slug' => (string) ($article['page_slug'] ?? ''),
+                'slug' => (string) ($primaryArticle['slug'] ?? ''),
+                'lang' => (string) ($primaryArticle['lang'] ?? ''),
+                'langs' => $languages,
+                'page_slug' => (string) ($primaryArticle['page_slug'] ?? ''),
                 'scheduled_at' => $scheduledAt,
-                'title' => (string) ($article['title'] ?? ''),
-                'status' => (string) ($article['status'] ?? 'draft'),
+                'title' => (string) ($primaryArticle['title'] ?? ''),
+                'status' => (string) ($primaryArticle['status'] ?? 'draft'),
                 'reason' => (string) $candidate['reason'],
                 'cluster_page_slug' => (string) $candidate['clusterPageSlug'],
                 'cluster_published_scheduled_count' => $candidate['clusterCount'],
+                'variant_count' => count($draftArticles),
             ],
             'reason' => (string) $candidate['reason'],
             'article_count' => 1,
@@ -95,8 +106,8 @@ final class BlogSchedulePlanner
      */
     private function selectNextDraftCandidate(int $now): ?array
     {
-        $clusters = [];
-        $allDrafts = [];
+        $clusterPublishedOrScheduledSlugs = [];
+        $groups = [];
         $latestScheduled = null;
 
         foreach ($this->repository->allArticles() as $article) {
@@ -105,17 +116,38 @@ final class BlogSchedulePlanner
             }
 
             $pageSlug = $this->normalizePageSlug((string) ($article['page_slug'] ?? ''));
-            $status = $this->normalizeStatus((string) ($article['status'] ?? 'draft'));
+            $slug = $this->normalizeSlug((string) ($article['slug'] ?? ''));
+            if ($slug === '') {
+                continue;
+            }
 
-            if (!isset($clusters[$pageSlug])) {
-                $clusters[$pageSlug] = [
-                    'publishedOrScheduled' => 0,
-                    'drafts' => [],
+            $status = $this->normalizeStatus((string) ($article['status'] ?? 'draft'));
+            $groupKey = $pageSlug . "\n" . $slug;
+
+            if (!isset($groups[$groupKey])) {
+                $groups[$groupKey] = [
+                    'pageSlug' => $pageSlug,
+                    'slug' => $slug,
+                    'articles' => [],
+                    'draftArticles' => [],
+                    'draftOldestTimestamp' => PHP_INT_MAX,
+                    'latestScheduledDate' => null,
+                    'latestPublishedDate' => null,
                 ];
             }
 
+            $groups[$groupKey]['articles'][] = $article;
+
             if ($status === 'published' || $status === 'scheduled') {
-                $clusters[$pageSlug]['publishedOrScheduled']++;
+                $clusterPublishedOrScheduledSlugs[$pageSlug][$slug] = true;
+                $articleDate = $this->parseDateTimestamp((string) ($article['date'] ?? ''));
+
+                if ($status === 'published') {
+                    $groups[$groupKey]['latestPublishedDate'] = $this->maxTimestamp(
+                        $groups[$groupKey]['latestPublishedDate'],
+                        $articleDate
+                    );
+                }
             }
 
             if ($status === 'scheduled') {
@@ -123,30 +155,64 @@ final class BlogSchedulePlanner
                 if ($scheduledAt !== null && ($latestScheduled === null || $scheduledAt > $latestScheduled)) {
                     $latestScheduled = $scheduledAt;
                 }
+
+                $groups[$groupKey]['latestScheduledDate'] = $this->maxTimestamp(
+                    $groups[$groupKey]['latestScheduledDate'],
+                    $scheduledAt
+                );
             }
 
             if ($status !== 'draft') {
                 continue;
             }
 
-            $draft = [
-                'article' => $article,
-                'created_at' => $this->draftDateTimestamp($article),
+            $groups[$groupKey]['draftArticles'][] = $article;
+            $groups[$groupKey]['draftOldestTimestamp'] = min(
+                (int) $groups[$groupKey]['draftOldestTimestamp'],
+                $this->draftDateTimestamp($article)
+            );
+        }
+
+        $clusters = [];
+        $allDraftGroups = [];
+
+        foreach ($groups as $group) {
+            $pageSlug = (string) $group['pageSlug'];
+            if (!isset($clusters[$pageSlug])) {
+                $clusters[$pageSlug] = [
+                    'publishedOrScheduled' => count($clusterPublishedOrScheduledSlugs[$pageSlug] ?? []),
+                    'draftGroups' => [],
+                ];
+            }
+
+            if ($group['draftArticles'] === []) {
+                continue;
+            }
+
+            $draftGroup = [
+                'pageSlug' => $pageSlug,
+                'slug' => (string) $group['slug'],
+                'draftArticles' => $this->sortArticlesByLanguagePreference($group['draftArticles']),
+                'draftOldestTimestamp' => (int) $group['draftOldestTimestamp'],
+                'languages' => $this->extractLanguages($group['draftArticles']),
+                'primaryArticle' => $this->selectPrimaryArticle($group['draftArticles'], $group['articles']),
+                'publicationReferenceDate' => $group['latestScheduledDate'] ?? $group['latestPublishedDate'],
             ];
-            $clusters[$pageSlug]['drafts'][] = $draft;
-            $allDrafts[] = $draft;
+
+            $clusters[$pageSlug]['draftGroups'][] = $draftGroup;
+            $allDraftGroups[] = $draftGroup;
         }
 
         $activeClusters = [];
         foreach ($clusters as $pageSlug => $cluster) {
             if (
                 $cluster['publishedOrScheduled'] < self::MAX_CLUSTER_PUBLISHED_OR_SCHEDULED
-                && $cluster['drafts'] !== []
+                && $cluster['draftGroups'] !== []
             ) {
                 $activeClusters[] = [
                     'pageSlug' => $pageSlug,
                     'publishedOrScheduled' => (int) $cluster['publishedOrScheduled'],
-                    'drafts' => $cluster['drafts'],
+                    'draftGroups' => $cluster['draftGroups'],
                 ];
             }
         }
@@ -160,42 +226,27 @@ final class BlogSchedulePlanner
                         return $countDiff;
                     }
 
-                    $leftDraft = $left['drafts'][0] ?? ['created_at' => PHP_INT_MAX];
-                    $rightDraft = $right['drafts'][0] ?? ['created_at' => PHP_INT_MAX];
-                    if (!is_array($leftDraft) || !is_array($rightDraft)) {
+                    $leftDraftGroup = self::selectHighestPriorityDraftGroup($left['draftGroups']);
+                    $rightDraftGroup = self::selectHighestPriorityDraftGroup($right['draftGroups']);
+                    if (!is_array($leftDraftGroup) || !is_array($rightDraftGroup)) {
                         return 0;
                     }
 
-                    $leftTime = (int) ($leftDraft['created_at'] ?? PHP_INT_MAX);
-                    $rightTime = (int) ($rightDraft['created_at'] ?? PHP_INT_MAX);
-                    if ($leftTime !== $rightTime) {
-                        return $leftTime <=> $rightTime;
-                    }
-
-                    return strcasecmp(
-                        (string) ($left['drafts'][0]['article']['slug'] ?? ''),
-                        (string) ($right['drafts'][0]['article']['slug'] ?? '')
-                    );
+                    return self::compareDraftGroups($leftDraftGroup, $rightDraftGroup);
                 }
             );
 
             $selected = $activeClusters[0];
-            if (!isset($selected['drafts']) || $selected['drafts'] === []) {
+            $draftGroup = self::selectHighestPriorityDraftGroup($selected['draftGroups']);
+            if (!is_array($draftGroup)) {
                 return null;
             }
 
-            $draft = $this->selectOldestDraft($selected['drafts']);
-            if (!is_array($draft)) {
-                return null;
-            }
-
-            $scheduledDate = $this->scheduledDateForNow($now, $latestScheduled);
-            if ($scheduledDate === null) {
-                return null;
-            }
-
+            $scheduledDate = $this->scheduledDateForGroup($now, $latestScheduled, $draftGroup);
             return [
-                'article' => $draft,
+                'draftArticles' => $draftGroup['draftArticles'],
+                'primaryArticle' => $draftGroup['primaryArticle'],
+                'languages' => $draftGroup['languages'],
                 'reason' => 'cluster_with_available_slots',
                 'clusterPageSlug' => (string) $selected['pageSlug'],
                 'clusterCount' => (int) $selected['publishedOrScheduled'],
@@ -203,25 +254,23 @@ final class BlogSchedulePlanner
             ];
         }
 
-        if ($allDrafts === []) {
+        if ($allDraftGroups === []) {
             return null;
         }
 
-        $draft = $this->selectOldestDraft($allDrafts);
-        if (!is_array($draft)) {
+        $draftGroup = self::selectHighestPriorityDraftGroup($allDraftGroups);
+        if (!is_array($draftGroup)) {
             return null;
         }
 
-        $scheduledDate = $this->scheduledDateForNow($now, $latestScheduled);
-        if ($scheduledDate === null) {
-            return null;
-        }
-
-        $fallbackClusterSlug = $this->normalizePageSlug((string) ($draft['page_slug'] ?? ''));
+        $scheduledDate = $this->scheduledDateForGroup($now, $latestScheduled, $draftGroup);
+        $fallbackClusterSlug = $this->normalizePageSlug((string) ($draftGroup['pageSlug'] ?? ''));
         $fallbackClusterCount = $clusters[$fallbackClusterSlug]['publishedOrScheduled'] ?? 0;
 
         return [
-            'article' => $draft,
+            'draftArticles' => $draftGroup['draftArticles'],
+            'primaryArticle' => $draftGroup['primaryArticle'],
+            'languages' => $draftGroup['languages'],
             'reason' => 'fallback_oldest_draft',
             'clusterPageSlug' => $fallbackClusterSlug,
             'clusterCount' => (int) $fallbackClusterCount,
@@ -230,55 +279,53 @@ final class BlogSchedulePlanner
     }
 
     /**
-     * @param array<int, array{article: array<string, mixed>, created_at: int}> $drafts
+     * @param array<int, array<string, mixed>> $draftGroups
      * @return array<string, mixed>|null
      */
-    private function selectOldestDraft(array $drafts): ?array
+    private static function selectHighestPriorityDraftGroup(array $draftGroups): ?array
     {
-        if ($drafts === []) {
+        if ($draftGroups === []) {
             return null;
         }
 
         usort(
-            $drafts,
-            static function (array $left, array $right): int {
-                $leftTs = (int) ($left['created_at'] ?? PHP_INT_MAX);
-                $rightTs = (int) ($right['created_at'] ?? PHP_INT_MAX);
-                if ($leftTs !== $rightTs) {
-                    return $leftTs <=> $rightTs;
-                }
-
-                $leftSlug = (string) ($left['article']['slug'] ?? '');
-                $rightSlug = (string) ($right['article']['slug'] ?? '');
-                $leftLang = (string) ($left['article']['lang'] ?? '');
-                $rightLang = (string) ($right['article']['lang'] ?? '');
-
-                $slugCompare = strcasecmp($leftSlug, $rightSlug);
-                if ($slugCompare !== 0) {
-                    return $slugCompare;
-                }
-
-                return strcasecmp($leftLang, $rightLang);
-            }
+            $draftGroups,
+            self::compareDraftGroups(...)
         );
 
-        return $drafts[0]['article'] ?? null;
+        return $draftGroups[0];
     }
 
-    private function scheduledDateForNow(int $now, ?int $latestScheduled): ?int
+    private function scheduledDateForNow(int $now, ?int $latestScheduled): int
     {
         if ($latestScheduled === null) {
-            $nextTimestamp = strtotime('+' . self::SCHEDULE_INTERVAL_DAYS . ' days', $now);
-            return is_int($nextTimestamp) ? $nextTimestamp : null;
+            return strtotime('+' . self::SCHEDULE_INTERVAL_DAYS . ' days', $now);
         }
 
-        $scheduledDate = strtotime('+' . self::SCHEDULE_INTERVAL_DAYS . ' days', $latestScheduled);
-        return is_int($scheduledDate) ? $scheduledDate : null;
+        return strtotime('+' . self::SCHEDULE_INTERVAL_DAYS . ' days', $latestScheduled);
+    }
+
+    /**
+     * @param array<string, mixed> $draftGroup
+     */
+    private function scheduledDateForGroup(int $now, ?int $latestScheduled, array $draftGroup): int
+    {
+        $referenceDate = $draftGroup['publicationReferenceDate'] ?? null;
+        if (is_int($referenceDate)) {
+            return $referenceDate;
+        }
+
+        return $this->scheduledDateForNow($now, $latestScheduled);
     }
 
     private function normalizePageSlug(string $pageSlug): string
     {
         return trim((string) $pageSlug);
+    }
+
+    private function normalizeSlug(string $slug): string
+    {
+        return trim((string) $slug);
     }
 
     private function normalizeStatus(string $status): string
@@ -320,5 +367,140 @@ final class BlogSchedulePlanner
         }
 
         return PHP_INT_MAX;
+    }
+
+    /**
+     * @param array<string, mixed> $leftDraftGroup
+     * @param array<string, mixed> $rightDraftGroup
+     */
+    private static function compareDraftGroups(array $leftDraftGroup, array $rightDraftGroup): int
+    {
+        $leftHasPublication = isset($leftDraftGroup['publicationReferenceDate']) && is_int($leftDraftGroup['publicationReferenceDate']);
+        $rightHasPublication = isset($rightDraftGroup['publicationReferenceDate']) && is_int($rightDraftGroup['publicationReferenceDate']);
+        if ($leftHasPublication !== $rightHasPublication) {
+            return $leftHasPublication ? -1 : 1;
+        }
+
+        $leftTime = (int) ($leftDraftGroup['draftOldestTimestamp'] ?? PHP_INT_MAX);
+        $rightTime = (int) ($rightDraftGroup['draftOldestTimestamp'] ?? PHP_INT_MAX);
+        if ($leftTime !== $rightTime) {
+            return $leftTime <=> $rightTime;
+        }
+
+        $slugCompare = strcasecmp(
+            (string) ($leftDraftGroup['slug'] ?? ''),
+            (string) ($rightDraftGroup['slug'] ?? '')
+        );
+        if ($slugCompare !== 0) {
+            return $slugCompare;
+        }
+
+        return strcasecmp(
+            (string) ($leftDraftGroup['pageSlug'] ?? ''),
+            (string) ($rightDraftGroup['pageSlug'] ?? '')
+        );
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $articles
+     * @return array<int, array<string, mixed>>
+     */
+    private function sortArticlesByLanguagePreference(array $articles): array
+    {
+        usort(
+            $articles,
+            fn (array $left, array $right): int => $this->compareLanguageCodes(
+                (string) ($left['lang'] ?? ''),
+                (string) ($right['lang'] ?? '')
+            )
+        );
+
+        return $articles;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $articles
+     * @return array<int, string>
+     */
+    private function extractLanguages(array $articles): array
+    {
+        $languages = [];
+        foreach ($articles as $article) {
+            $language = strtolower(trim((string) ($article['lang'] ?? '')));
+            if ($language === '') {
+                continue;
+            }
+
+            $languages[$language] = true;
+        }
+
+        $sortedLanguages = array_keys($languages);
+        usort($sortedLanguages, fn (string $left, string $right): int => $this->compareLanguageCodes($left, $right));
+
+        return array_values($sortedLanguages);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $preferredArticles
+     * @param array<int, array<string, mixed>> $fallbackArticles
+     * @return array<string, mixed>
+     */
+    private function selectPrimaryArticle(array $preferredArticles, array $fallbackArticles): array
+    {
+        $article = $this->articleForPreferredLanguage($preferredArticles);
+        if ($article !== null) {
+            return $article;
+        }
+
+        $article = $this->articleForPreferredLanguage($fallbackArticles);
+        if ($article !== null) {
+            return $article;
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $articles
+     * @return array<string, mixed>|null
+     */
+    private function articleForPreferredLanguage(array $articles): ?array
+    {
+        $sortedArticles = $this->sortArticlesByLanguagePreference($articles);
+
+        return $sortedArticles[0] ?? null;
+    }
+
+    private function compareLanguageCodes(string $left, string $right): int
+    {
+        $left = strtolower(trim($left));
+        $right = strtolower(trim($right));
+
+        if ($left === $right) {
+            return 0;
+        }
+
+        if ($left === $this->defaultLanguage) {
+            return -1;
+        }
+
+        if ($right === $this->defaultLanguage) {
+            return 1;
+        }
+
+        return strcasecmp($left, $right);
+    }
+
+    private function maxTimestamp(?int $current, ?int $candidate): ?int
+    {
+        if ($candidate === null) {
+            return $current;
+        }
+
+        if ($current === null || $candidate > $current) {
+            return $candidate;
+        }
+
+        return $current;
     }
 }

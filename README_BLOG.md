@@ -30,6 +30,7 @@ Actif :
 - taxonomie blog canonique : catégorie obligatoire, sous-catégorie optionnelle et tags autorisés
 - image de couverture article (URL ou upload admin) avec métadonnées (`alt`, `title`, `caption`, `width`, `height`)
 - lecture publique (`/blog`, `/blog/article/{slug}`)
+- hub `/blog` piloté par la route publique blog, avec titre et intro éditoriaux stockés dans `admin/pages` via la page publiée de route `/blog`
 - rendu des discussions publiques sous l’article blog et sous les chroniques blog rattachées aux pages dynamiques
 - flux RSS et sitemap basés sur les articles publiés
 - discussions publiques modérées (`pending`, `approved`, `rejected`)
@@ -233,9 +234,12 @@ Commande d’exécution automatique (CLI) :
 
 Règle de sélection 11 jours / rotation de séries :
 - regrouper les brouillons par `page_slug` (cluster)
+- à l’intérieur d’un cluster, raisonner par article logique (`slug`) et non par variante de langue
+- compter le quota `published + scheduled` par `slug` distinct, pas par entrée `fr` / `en` / `de`
 - ne pas dépasser `5` `published + scheduled` par cluster
 - prioriser le cluster actif ayant le moins d’articles publiés/planifiés
-- choisir dans ce cluster le brouillon le plus ancien
+- choisir dans ce cluster le brouillon le plus ancien, puis planifier ensemble toutes ses variantes brouillon disponibles à la même date
+- si un `slug` a déjà une variante `scheduled` ou `published`, aligner les brouillons restants sur cette date existante au lieu de créer une seconde date
 - si tous les clusters sont pleins, utiliser le brouillon le plus ancien global
 - date de planification = `+11 jours` après la date `scheduled` la plus récente (ou après « aujourd’hui » s’il n’y en a aucune)
 - conserver strictement les statuts `draft` / `scheduled` / `published` existants
