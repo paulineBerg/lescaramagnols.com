@@ -555,6 +555,7 @@ Scripts :
 - Les deux scripts excluent et nettoient automatiquement les fichiers non-prod : `tests/`, `docs/`, `README*`, `phpunit.xml`, `phpstan*`, `phpcs.xml`, `package*.json`, `replace_image_paths.php`, `backend/public/dev-router.php`, `.env.example`, `.env.production`, `.env.bak.*`, `*.bak`, `*.old`, `*.orig`, `*.tmp`, `*~`, `.DS_Store`, `Thumbs.db`.
 - `deploy-release.sh` exclut aussi les artefacts runtime/locaux non produits : `backend/var/**`, `backend/data/logs/**`, `backend/data/snapshots/**`.
 - Les deux scripts regenerent `backend/public/sitemap.xml` sur la cible.
+- Le sommaire public peut etre regenere dans la page editoriale avec le meme collecteur que le sitemap : `php backend/core/tools/generate_site_summary.php --storage=json` pour le registre JSON versionne, ou sans `--storage` pour le stockage editorial actif. Utiliser `--dry-run --stdout` pour controler le HTML sans ecrire.
 - Les deux scripts executent `backend/core/tools/check_vite_assets.php` avant et apres synchronisation : si `backend/public/.vite/manifest.json` reference un fichier absent de `backend/public/assets/`, le deploiement echoue au lieu de laisser un front sans JavaScript ou CSS.
 - Les deux scripts executent `backend/core/tools/check_prod_tree.php --clean` sur la cible : la release echoue si le backend prod conserve un residu de developpement, test, documentation, backup ou temporaire apres nettoyage.
 

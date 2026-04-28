@@ -38,6 +38,7 @@
     "init-db-admin": "php core/tools/init_db_admin.php",
     "benchmark-routes": "php core/tools/benchmark_front_routes.php",
     "generate-sitemap": "php core/tools/generate_sitemap.php",
+    "generate-site-summary": "php core/tools/generate_site_summary.php",
     "check-log-alerts": "php core/tools/check_log_alerts.php",
     "check-security-headers": "php core/tools/check_security_headers.php",
     "check-instagram-feed": "php core/tools/check_instagram_feed.php",
