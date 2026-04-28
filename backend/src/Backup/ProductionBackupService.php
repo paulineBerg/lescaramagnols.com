@@ -353,6 +353,7 @@ final class ProductionBackupService
             '--quick',
             '--triggers',
             '--hex-blob',
+            '--no-tablespaces',
             '--databases',
             $databaseName,
         ];
@@ -401,21 +402,28 @@ final class ProductionBackupService
     {
         $stdoutPath = $tmpDirectory . '/command-' . bin2hex(random_bytes(8)) . '.stdout';
         $stderrPath = $tmpDirectory . '/command-' . bin2hex(random_bytes(8)) . '.stderr';
+        $exitCodePath = $tmpDirectory . '/command-' . bin2hex(random_bytes(8)) . '.status';
         $descriptors = [
             0 => ['file', '/dev/null', 'r'],
             1 => ['file', $stdoutPath, 'w'],
             2 => ['file', $stderrPath, 'w'],
         ];
 
-        $process = proc_open($command, $descriptors, $pipes, $this->rootPath);
+        $process = proc_open($this->commandWithExitCapture($command, $exitCodePath), $descriptors, $pipes, $this->rootPath);
         if (!is_resource($process)) {
+            @unlink($exitCodePath);
             throw new RuntimeException(sprintf('Impossible de lancer la commande: %s', $command[0] ?? 'commande'));
         }
 
         $exitCode = proc_close($process);
+        $capturedExitCode = $this->capturedExitCode($exitCodePath);
+        if ($capturedExitCode !== null) {
+            $exitCode = $capturedExitCode;
+        }
         $stderr = $this->readCommandError($stderrPath);
         @unlink($stdoutPath);
         @unlink($stderrPath);
+        @unlink($exitCodePath);
 
         if ($exitCode !== 0) {
             throw new RuntimeException(sprintf(
@@ -431,14 +439,16 @@ final class ProductionBackupService
      */
     private function runStreamingGzipCommand(array $command, string $targetPath, string $stderrPath): void
     {
+        $exitCodePath = dirname($stderrPath) . '/command-' . bin2hex(random_bytes(8)) . '.status';
         $descriptors = [
             0 => ['file', '/dev/null', 'r'],
             1 => ['pipe', 'w'],
             2 => ['file', $stderrPath, 'w'],
         ];
 
-        $process = proc_open($command, $descriptors, $pipes, $this->rootPath);
+        $process = proc_open($this->commandWithExitCapture($command, $exitCodePath), $descriptors, $pipes, $this->rootPath);
         if (!is_resource($process)) {
+            @unlink($exitCodePath);
             throw new RuntimeException('Impossible de lancer mysqldump.');
         }
 
@@ -446,6 +456,7 @@ final class ProductionBackupService
         if (!is_resource($gzip)) {
             proc_terminate($process);
             proc_close($process);
+            @unlink($exitCodePath);
             throw new RuntimeException(sprintf('Impossible d’écrire le dump compressé: %s', $targetPath));
         }
 
@@ -466,6 +477,11 @@ final class ProductionBackupService
         }
 
         $exitCode = proc_close($process);
+        $capturedExitCode = $this->capturedExitCode($exitCodePath);
+        if ($capturedExitCode !== null) {
+            $exitCode = $capturedExitCode;
+        }
+        @unlink($exitCodePath);
         if ($exitCode !== 0) {
             throw new RuntimeException(sprintf(
                 'Dump SQL en échec (code %d): %s',
@@ -473,6 +489,31 @@ final class ProductionBackupService
                 $this->readCommandError($stderrPath) ?: 'aucun détail'
             ));
         }
+    }
+
+    /**
+     * @param array<int, string> $command
+     * @return array<int, string>
+     */
+    private function commandWithExitCapture(array $command, string $exitCodePath): array
+    {
+        $shellCommand = implode(' ', array_map('escapeshellarg', $command))
+            . '; __caramagnols_status=$?; '
+            . 'printf "%s" "$__caramagnols_status" > ' . escapeshellarg($exitCodePath)
+            . '; exit "$__caramagnols_status"';
+
+        return ['/bin/sh', '-c', $shellCommand];
+    }
+
+    private function capturedExitCode(string $exitCodePath): ?int
+    {
+        if (!is_file($exitCodePath)) {
+            return null;
+        }
+
+        $content = trim((string) file_get_contents($exitCodePath));
+
+        return preg_match('/^\d+$/', $content) === 1 ? (int) $content : null;
     }
 
     private function readCommandError(string $path): string

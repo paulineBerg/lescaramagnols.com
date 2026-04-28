@@ -97,13 +97,17 @@ final class CronJobRunner
         ?DateTimeImmutable $scheduledAt
     ): array {
         $command = array_merge([$this->phpBinary, $scriptPath], $args);
+        $exitCodePath = $this->lockDirectory . '/cron-exit-' . preg_replace('/[^a-zA-Z0-9_-]+/', '-', $code)
+            . '-' . bin2hex(random_bytes(6)) . '.status';
+        $processCommand = $this->commandWithExitCapture($command, $exitCodePath);
         $descriptors = [
             0 => ['file', '/dev/null', 'r'],
             1 => ['pipe', 'w'],
             2 => ['pipe', 'w'],
         ];
-        $process = proc_open($command, $descriptors, $pipes, $this->rootPath);
+        $process = proc_open($processCommand, $descriptors, $pipes, $this->rootPath);
         if (!is_resource($process)) {
+            @unlink($exitCodePath);
             throw new RuntimeException(sprintf('Impossible de lancer le job cron: %s', $code));
         }
 
@@ -120,27 +124,13 @@ final class CronJobRunner
             $stdout .= $this->readPipe($pipes[1]);
             $stderr .= $this->readPipe($pipes[2]);
 
-            $status = proc_get_status($process);
-            if (!is_array($status)) {
-                break;
-            }
-
-            if ($status['running'] !== true) {
-                $statusExitCode = is_int($status['exitcode']) ? (int) $status['exitcode'] : null;
-                if ($statusExitCode !== null && $statusExitCode >= 0) {
-                    $exitCode = $statusExitCode;
-                }
+            if (feof($pipes[1]) && feof($pipes[2])) {
                 break;
             }
 
             if ((microtime(true) - $startedMicrotime) >= $timeoutSeconds) {
                 $timedOut = true;
-                proc_terminate($process);
-                usleep(200000);
-                $status = proc_get_status($process);
-                if (is_array($status) && $status['running'] === true) {
-                    proc_terminate($process, 9);
-                }
+                $this->terminateProcess($process);
                 break;
             }
 
@@ -152,9 +142,13 @@ final class CronJobRunner
         fclose($pipes[1]);
         fclose($pipes[2]);
         $closedExitCode = proc_close($process);
+        if ($exitCode === null) {
+            $exitCode = $this->capturedExitCode($exitCodePath);
+        }
         if ($exitCode === null && $closedExitCode >= 0) {
             $exitCode = $closedExitCode;
         }
+        @unlink($exitCodePath);
         $finishedAt = new DateTimeImmutable();
         $durationMs = (int) round((microtime(true) - $startedMicrotime) * 1000);
 
@@ -186,6 +180,45 @@ final class CronJobRunner
             'message' => $message,
             'command' => $command,
         ];
+    }
+
+    /**
+     * @param array<int, string> $command
+     * @return array<int, string>
+     */
+    private function commandWithExitCapture(array $command, string $exitCodePath): array
+    {
+        $shellCommand = implode(' ', array_map('escapeshellarg', $command))
+            . '; __caramagnols_status=$?; '
+            . 'printf "%s" "$__caramagnols_status" > ' . escapeshellarg($exitCodePath)
+            . '; exit "$__caramagnols_status"';
+
+        return ['/bin/sh', '-c', $shellCommand];
+    }
+
+    private function capturedExitCode(string $exitCodePath): ?int
+    {
+        if (!is_file($exitCodePath)) {
+            return null;
+        }
+
+        $content = trim((string) file_get_contents($exitCodePath));
+
+        return preg_match('/^\d+$/', $content) === 1 ? (int) $content : null;
+    }
+
+    /**
+     * @param resource $process
+     */
+    private function terminateProcess($process): void
+    {
+        proc_terminate($process);
+        usleep(200000);
+
+        $status = proc_get_status($process);
+        if (is_array($status) && $status['running'] === true) {
+            proc_terminate($process, 9);
+        }
     }
 
     private function normalizeScriptPath(string $scriptPath): string

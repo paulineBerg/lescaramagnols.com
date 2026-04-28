@@ -84,6 +84,47 @@ final class ProductionBackupServiceTest extends TestCase
         ]);
     }
 
+    public function testSqlBackupUsesNoTablespacesForOvhDumps(): void
+    {
+        $backendRoot = $this->tmpRoot . '/backend';
+        $backupRoot = $this->tmpRoot . '/backups';
+        $argsPath = $this->tmpRoot . '/mysqldump-args.txt';
+        $mysqldumpPath = $this->tmpRoot . '/mysqldump-fake.sh';
+        mkdir($backendRoot, 0777, true);
+
+        file_put_contents(
+            $mysqldumpPath,
+            "#!/bin/sh\nprintf '%s\n' \"\$@\" > " . escapeshellarg($argsPath) . "\nprintf 'CREATE TABLE t (id INT);\\n'\n"
+        );
+        chmod($mysqldumpPath, 0700);
+
+        $service = new ProductionBackupService(
+            $backendRoot,
+            $backupRoot,
+            [
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'name' => 'caramagnols',
+                'user' => 'caramagnols',
+                'password' => 'secret',
+                'charset' => 'utf8mb4',
+            ],
+            'car_',
+            'tar',
+            $mysqldumpPath,
+            7
+        );
+
+        $result = $service->run([
+            'scope' => 'sql',
+        ]);
+
+        $this->assertTrue($result['success']);
+        $this->assertIsArray($result['sql']);
+        $this->assertFileExists($argsPath);
+        $this->assertStringContainsString("--no-tablespaces\n", (string) file_get_contents($argsPath));
+    }
+
     private function removeDirectoryRecursively(string $directory): void
     {
         if (!is_dir($directory)) {
