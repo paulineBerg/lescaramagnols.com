@@ -25,6 +25,7 @@ $discussionNonce = (string) ($discussionNonce ?? '');
 $honeypotField = trim((string) ($honeypotField ?? 'website'));
 $discussionRequireAccount = (bool) ($discussionRequireAccount ?? false);
 $recaptchaEnabled = (bool) ($recaptchaEnabled ?? false);
+$recaptchaMode = \Caramagnols\Blog\DiscussionRecaptchaMode::normalize($recaptchaMode ?? null);
 $recaptchaSiteKey = trim((string) ($recaptchaSiteKey ?? ''));
 $returnToDiscussionUrl = trim((string) ($returnToDiscussionUrl ?? ''));
 $approvedDiscussions = is_array($approvedDiscussions ?? null) ? $approvedDiscussions : [];
@@ -51,7 +52,7 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
   <?php endif; ?>
 
   <?php if ($approvedDiscussions === []): ?>
-  <p class="blog-discussion-empty"><?php echo htmlspecialchars(t('TXT_BLOG_NO_VALIDATED_MESSAGES'), ENT_QUOTES, 'UTF-8'); ?></p>
+  <p class="blog-discussion-empty" data-discussion-empty-state><?php echo htmlspecialchars(t('TXT_BLOG_NO_VALIDATED_MESSAGES'), ENT_QUOTES, 'UTF-8'); ?></p>
   <?php else: ?>
   <ul class="blog-discussion-list">
     <?php foreach ($approvedDiscussions as $discussion): ?>
@@ -76,11 +77,25 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
   <?php else: ?>
   <div class="blog-discussion-compose">
     <p class="blog-discussion-intro blog-discussion-intro-compose"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_MODERATION_NOTICE'), ENT_QUOTES, 'UTF-8'); ?></p>
-    <form class="blog-discussion-form" method="post" action="<?php echo htmlspecialchars($discussionSubmitPath, ENT_QUOTES, 'UTF-8'); ?>" data-discussion-form>
+    <form
+      class="blog-discussion-form"
+      method="post"
+      action="<?php echo htmlspecialchars($discussionSubmitPath, ENT_QUOTES, 'UTF-8'); ?>"
+      data-discussion-form
+      data-recaptcha-enabled="<?php echo $recaptchaEnabled ? '1' : '0'; ?>"
+      data-recaptcha-mode="<?php echo htmlspecialchars($recaptchaMode, ENT_QUOTES, 'UTF-8'); ?>"
+      data-recaptcha-site-key="<?php echo htmlspecialchars($recaptchaSiteKey, ENT_QUOTES, 'UTF-8'); ?>"
+      data-recaptcha-action="<?php echo htmlspecialchars(\Caramagnols\Blog\DiscussionRecaptchaMode::V3_ACTION, ENT_QUOTES, 'UTF-8'); ?>"
+      data-recaptcha-error-not-ready="<?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_ERROR_RECAPTCHA_NOT_READY'), ENT_QUOTES, 'UTF-8'); ?>"
+      data-discussion-log-endpoint="/core/blog/log_discussion_client.php"
+    >
       <input type="hidden" name="article_slug" value="<?php echo htmlspecialchars($articleSlug, ENT_QUOTES, 'UTF-8'); ?>" />
       <input type="hidden" name="article_lang" value="<?php echo htmlspecialchars($articleLanguage, ENT_QUOTES, 'UTF-8'); ?>" />
       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($discussionCsrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
       <input type="hidden" name="form_nonce" value="<?php echo htmlspecialchars($discussionNonce, ENT_QUOTES, 'UTF-8'); ?>" />
+      <?php if ($recaptchaEnabled && \Caramagnols\Blog\DiscussionRecaptchaMode::usesScoreVerification($recaptchaMode)): ?>
+      <input type="hidden" name="g-recaptcha-response" value="" />
+      <?php endif; ?>
       <?php if ($returnToDiscussionUrl !== ''): ?>
       <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($returnToDiscussionUrl, ENT_QUOTES, 'UTF-8'); ?>" />
       <?php endif; ?>
@@ -107,12 +122,23 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
 
       <?php if ($recaptchaEnabled): ?>
       <div class="blog-discussion-recaptcha">
+        <?php if (\Caramagnols\Blog\DiscussionRecaptchaMode::isVisibleWidget($recaptchaMode)): ?>
         <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars($recaptchaSiteKey, ENT_QUOTES, 'UTF-8'); ?>"></div>
+        <?php endif; ?>
         <small><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_RECAPTCHA_NOTICE'), ENT_QUOTES, 'UTF-8'); ?></small>
       </div>
       <?php endif; ?>
 
-      <p class="blog-discussion-notice blog-discussion-notice-info" data-discussion-submit-feedback hidden role="status" aria-live="polite">
+      <p
+        class="blog-discussion-notice blog-discussion-notice-info"
+        data-discussion-submit-feedback
+        data-feedback-pending-message="<?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT_PENDING_MESSAGE'), ENT_QUOTES, 'UTF-8'); ?>"
+        data-feedback-error-message="<?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_ERROR_RECAPTCHA_NOT_READY'), ENT_QUOTES, 'UTF-8'); ?>"
+        data-feedback-request-error-message="<?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_ERROR_REQUEST_FAILED'), ENT_QUOTES, 'UTF-8'); ?>"
+        hidden
+        role="status"
+        aria-live="polite"
+      >
         <?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT_PENDING_MESSAGE'), ENT_QUOTES, 'UTF-8'); ?>
       </p>
 

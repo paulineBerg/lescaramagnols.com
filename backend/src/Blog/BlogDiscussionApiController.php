@@ -34,6 +34,8 @@ final class BlogDiscussionApiController
 
     public function submit(Request $request): Response
     {
+        $expectsJson = $this->wantsJsonResponse($request);
+
         if ($request->method() !== 'POST') {
             return Response::json(['error' => (string) t('TXT_BLOG_DISCUSSION_ERROR_METHOD_NOT_ALLOWED')], 405);
         }
@@ -47,15 +49,35 @@ final class BlogDiscussionApiController
         $language = $this->normalizeLanguage((string) ($payload['article_lang'] ?? (app_config('default_lang', 'fr'))));
 
         if ($slug === '') {
-            return new Response(400, ['Content-Type' => 'text/plain; charset=utf-8'], (string) t('TXT_BLOG_DISCUSSION_ERROR_INVALID_ARTICLE'));
+            return $this->submitErrorResponse($expectsJson, 400, (string) t('TXT_BLOG_DISCUSSION_ERROR_INVALID_ARTICLE'));
         }
 
         $scope = $this->discussionScope($slug, $language);
         $redirectUrl = $this->resolveRedirectUrl($request, $payload, $slug, $language);
         $article = $this->articleRepository->findPublished($slug, $language);
+        $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)) ?? 'unknown';
+
+        $this->eventLogger->content(
+            'blog.discussion.submit_received',
+            [
+                'slug' => $slug,
+                'lang' => $language,
+                'ip' => $clientIp,
+                'has_recaptcha_token' => trim((string) ($payload['g-recaptcha-response'] ?? '')) !== '',
+                'recaptcha_token_length' => strlen(trim((string) ($payload['g-recaptcha-response'] ?? ''))),
+                'return_to' => trim((string) ($payload['return_to'] ?? '')),
+                'referer' => (string) ($request->header('Referer') ?? ''),
+                'user_agent' => (string) ($request->header('User-Agent') ?? ''),
+            ]
+        );
 
         if (!is_array($article)) {
-            return new Response(404, ['Content-Type' => 'text/plain; charset=utf-8'], (string) t('TXT_BLOG_DISCUSSION_ERROR_ARTICLE_NOT_FOUND'));
+            return $this->submitErrorResponse(
+                $expectsJson,
+                404,
+                (string) t('TXT_BLOG_DISCUSSION_ERROR_ARTICLE_NOT_FOUND'),
+                $scope
+            );
         }
 
         if (!(bool) app_config('site.discussions.enabled', true)) {
@@ -69,9 +91,13 @@ final class BlogDiscussionApiController
                 'warning'
             );
 
-            $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_DISABLED'));
-
-            return $this->redirect($redirectUrl);
+            return $this->submitErrorResponse(
+                $expectsJson,
+                403,
+                (string) t('TXT_BLOG_DISCUSSION_ERROR_DISABLED'),
+                $scope,
+                $redirectUrl
+            );
         }
 
         if ((bool) app_config('site.discussions.require_account', false)) {
@@ -85,9 +111,13 @@ final class BlogDiscussionApiController
                 'warning'
             );
 
-            $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ACCOUNT_REQUIRED'));
-
-            return $this->redirect($redirectUrl);
+            return $this->submitErrorResponse(
+                $expectsJson,
+                403,
+                (string) t('TXT_BLOG_DISCUSSION_ACCOUNT_REQUIRED'),
+                $scope,
+                $redirectUrl
+            );
         }
 
         $token = is_string($payload['csrf_token'] ?? null) ? $payload['csrf_token'] : null;
@@ -102,15 +132,25 @@ final class BlogDiscussionApiController
                 'warning'
             );
 
-            $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_SESSION_EXPIRED'), $payload);
-
-            return $this->redirect($redirectUrl);
+            return $this->submitErrorResponse(
+                $expectsJson,
+                422,
+                (string) t('TXT_BLOG_DISCUSSION_ERROR_SESSION_EXPIRED'),
+                $scope,
+                $redirectUrl,
+                $payload
+            );
         }
 
         if (!$this->validateFormNonce($scope, (string) ($payload['form_nonce'] ?? ''))) {
-            $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_FORM_EXPIRED'), $payload);
-
-            return $this->redirect($redirectUrl);
+            return $this->submitErrorResponse(
+                $expectsJson,
+                422,
+                (string) t('TXT_BLOG_DISCUSSION_ERROR_FORM_EXPIRED'),
+                $scope,
+                $redirectUrl,
+                $payload
+            );
         }
 
         $honeypotField = $this->honeypotFieldName();
@@ -126,12 +166,16 @@ final class BlogDiscussionApiController
                 'warning'
             );
 
-            $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_SPAM_BLOCKED'), $payload);
-
-            return $this->redirect($redirectUrl);
+            return $this->submitErrorResponse(
+                $expectsJson,
+                422,
+                (string) t('TXT_BLOG_DISCUSSION_ERROR_SPAM_BLOCKED'),
+                $scope,
+                $redirectUrl,
+                $payload
+            );
         }
 
-        $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)) ?? 'unknown';
         $perIpLimiter = new \FileRateLimiter(
             'blog-discussion:' . $language . ':' . $slug . ':' . $clientIp,
             max(1, (int) app_config('site.discussions.rate_limit_per_ip', 6)),
@@ -157,14 +201,14 @@ final class BlogDiscussionApiController
                 'warning'
             );
 
-            $this->setFlash(
-                $scope,
-                'error',
+            return $this->submitErrorResponse(
+                $expectsJson,
+                429,
                 sprintf((string) t('TXT_BLOG_DISCUSSION_ERROR_RATE_LIMIT'), $retryAfter),
+                $scope,
+                $redirectUrl,
                 $payload
             );
-
-            return $this->redirect($redirectUrl);
         }
 
         $perIpLimiter->hit();
@@ -178,16 +222,27 @@ final class BlogDiscussionApiController
 
         if (($sanitized['errors'] ?? []) !== []) {
             $errorMessage = implode(' ', array_map('strval', $sanitized['errors']));
-            $this->setFlash($scope, 'error', $errorMessage, $payload);
 
-            return $this->redirect($redirectUrl);
+            return $this->submitErrorResponse(
+                $expectsJson,
+                422,
+                $errorMessage,
+                $scope,
+                $redirectUrl,
+                $payload
+            );
         }
 
         $recaptchaError = $this->validateRecaptcha($request, $payload, $slug, $language);
         if ($recaptchaError !== null) {
-            $this->setFlash($scope, 'error', $recaptchaError, $payload);
-
-            return $this->redirect($redirectUrl);
+            return $this->submitErrorResponse(
+                $expectsJson,
+                422,
+                $recaptchaError,
+                $scope,
+                $redirectUrl,
+                $payload
+            );
         }
 
         $userAgent = (string) ($request->header('User-Agent') ?? '');
@@ -215,9 +270,14 @@ final class BlogDiscussionApiController
                 'error'
             );
 
-            $this->setFlash($scope, 'error', (string) t('TXT_BLOG_DISCUSSION_ERROR_SAVE_FAILED'), $payload);
-
-            return $this->redirect($redirectUrl);
+            return $this->submitErrorResponse(
+                $expectsJson,
+                500,
+                (string) t('TXT_BLOG_DISCUSSION_ERROR_SAVE_FAILED'),
+                $scope,
+                $redirectUrl,
+                $payload
+            );
         }
 
         $this->eventLogger->content(
@@ -230,13 +290,54 @@ final class BlogDiscussionApiController
             ]
         );
 
-        $this->setFlash(
+        return $this->submitSuccessResponse(
+            $expectsJson,
+            (string) t('TXT_BLOG_DISCUSSION_SUCCESS_PENDING'),
             $scope,
-            'success',
-            (string) t('TXT_BLOG_DISCUSSION_SUCCESS_PENDING')
+            $redirectUrl,
+            [
+                'discussion' => [
+                    'id' => (string) ($saved['id'] ?? ''),
+                    'status' => (string) ($saved['status'] ?? 'pending'),
+                ],
+            ]
+        );
+    }
+
+    public function logClientEvent(Request $request): Response
+    {
+        if ($request->method() !== 'POST') {
+            return Response::json(['error' => (string) t('TXT_BLOG_DISCUSSION_ERROR_METHOD_NOT_ALLOWED')], 405);
+        }
+
+        $payload = $request->json();
+        if ($payload === []) {
+            $payload = $request->body();
+        }
+
+        $slug = $this->normalizeSlug((string) ($payload['article_slug'] ?? ''));
+        $language = $this->normalizeLanguage((string) ($payload['article_lang'] ?? (app_config('default_lang', 'fr'))));
+        $stage = $this->normalizeClientEventStage((string) ($payload['stage'] ?? 'unknown'));
+        $level = $this->normalizeClientEventLevel((string) ($payload['level'] ?? 'info'));
+        $mode = DiscussionRecaptchaMode::normalize($payload['mode'] ?? null);
+
+        $this->eventLogger->content(
+            'blog.discussion.client_telemetry',
+            [
+                'slug' => $slug,
+                'lang' => $language,
+                'stage' => $stage,
+                'level' => $level,
+                'mode' => $mode,
+                'page' => $this->normalizeClientPage((string) ($payload['page'] ?? '')),
+                'referer' => (string) ($request->header('Referer') ?? ''),
+                'user_agent' => (string) ($request->header('User-Agent') ?? ''),
+                'details' => $this->sanitizeClientEventDetails($payload['details'] ?? []),
+            ],
+            $level
         );
 
-        return $this->redirect($redirectUrl);
+        return new Response(204, ['Cache-Control' => 'no-store'], '');
     }
 
     /**
@@ -246,6 +347,7 @@ final class BlogDiscussionApiController
     {
         $recaptcha = app_config('site.discussions.recaptcha', []);
         $recaptcha = is_array($recaptcha) ? $recaptcha : [];
+        $mode = DiscussionRecaptchaMode::normalize($recaptcha['mode'] ?? null);
 
         $enabled = (bool) ($recaptcha['enabled'] ?? false);
         if (!$enabled) {
@@ -280,6 +382,20 @@ final class BlogDiscussionApiController
             max(3, (int) ($recaptcha['timeout_seconds'] ?? 8))
         );
 
+        $this->eventLogger->content(
+            'blog.discussion.recaptcha.verify_result',
+            [
+                'slug' => $slug,
+                'lang' => $language,
+                'mode' => $mode,
+                'success' => (bool) ($verification['success'] ?? false),
+                'score' => is_numeric($verification['score'] ?? null) ? (float) $verification['score'] : null,
+                'action' => is_string($verification['action'] ?? null) ? (string) $verification['action'] : null,
+                'error_codes' => is_array($verification['errorCodes'] ?? null) ? $verification['errorCodes'] : [],
+                'token_length' => strlen($token),
+            ]
+        );
+
         if (($verification['success'] ?? false) !== true) {
             $this->eventLogger->security(
                 'blog.discussion.recaptcha.failed',
@@ -294,24 +410,205 @@ final class BlogDiscussionApiController
             return (string) t('TXT_BLOG_DISCUSSION_ERROR_RECAPTCHA_INVALID');
         }
 
-        $minimumScore = (float) ($recaptcha['minimum_score'] ?? 0.5);
-        $score = $verification['score'] ?? null;
-        if ($score !== null && is_numeric($score) && (float) $score < $minimumScore) {
-            $this->eventLogger->security(
-                'blog.discussion.recaptcha.low_score',
-                [
-                    'slug' => $slug,
-                    'lang' => $language,
-                    'score' => (float) $score,
-                    'minimum_score' => $minimumScore,
-                ],
-                'warning'
-            );
+        if (DiscussionRecaptchaMode::usesScoreVerification($mode)) {
+            $action = trim((string) ($verification['action'] ?? ''));
+            if ($action !== DiscussionRecaptchaMode::V3_ACTION) {
+                $this->eventLogger->security(
+                    'blog.discussion.recaptcha.invalid_action',
+                    [
+                        'slug' => $slug,
+                        'lang' => $language,
+                        'action' => $action,
+                    ],
+                    'warning'
+                );
 
-            return (string) t('TXT_BLOG_DISCUSSION_ERROR_RECAPTCHA_LOW_SCORE');
+                return (string) t('TXT_BLOG_DISCUSSION_ERROR_RECAPTCHA_INVALID');
+            }
+
+            $minimumScore = (float) ($recaptcha['minimum_score'] ?? 0.5);
+            $score = $verification['score'] ?? null;
+            if (!is_numeric($score) || (float) $score < $minimumScore) {
+                $this->eventLogger->security(
+                    'blog.discussion.recaptcha.low_score',
+                    [
+                        'slug' => $slug,
+                        'lang' => $language,
+                        'score' => is_numeric($score) ? (float) $score : null,
+                        'minimum_score' => $minimumScore,
+                    ],
+                    'warning'
+                );
+
+                return (string) t('TXT_BLOG_DISCUSSION_ERROR_RECAPTCHA_LOW_SCORE');
+            }
         }
 
         return null;
+    }
+
+    private function wantsJsonResponse(Request $request): bool
+    {
+        $requestedWith = strtolower(trim((string) ($request->header('X-Requested-With') ?? '')));
+        if ($requestedWith === 'xmlhttprequest') {
+            return true;
+        }
+
+        $accept = strtolower((string) ($request->header('Accept') ?? ''));
+
+        return str_contains($accept, 'application/json');
+    }
+
+    private function submitErrorResponse(
+        bool $expectsJson,
+        int $status,
+        string $message,
+        string $scope = '',
+        string $redirectUrl = '',
+        array $payload = []
+    ): Response {
+        if ($expectsJson) {
+            $responsePayload = [
+                'ok' => false,
+                'message' => $message,
+            ];
+
+            if ($scope !== '') {
+                $responsePayload['form'] = $this->issueFormState($scope);
+            }
+
+            return Response::json($responsePayload, $status, ['Cache-Control' => 'no-store']);
+        }
+
+        if ($scope !== '') {
+            $this->setFlash($scope, 'error', $message, $payload);
+        }
+
+        if ($redirectUrl === '') {
+            return new Response($status, ['Content-Type' => 'text/plain; charset=utf-8'], $message);
+        }
+
+        return $this->redirect($redirectUrl);
+    }
+
+    private function submitSuccessResponse(
+        bool $expectsJson,
+        string $message,
+        string $scope,
+        string $redirectUrl,
+        array $extra = []
+    ): Response {
+        if ($expectsJson) {
+            $responsePayload = array_merge(
+                [
+                    'ok' => true,
+                    'message' => $message,
+                    'form' => $this->issueFormState($scope),
+                ],
+                $extra
+            );
+
+            return Response::json($responsePayload, 201, ['Cache-Control' => 'no-store']);
+        }
+
+        $this->setFlash($scope, 'success', $message);
+
+        return $this->redirect($redirectUrl);
+    }
+
+    /**
+     * @return array{csrf_token:string,form_nonce:string}
+     */
+    private function issueFormState(string $scope): array
+    {
+        ensure_session_started();
+
+        $nonce = bin2hex(random_bytes(16));
+        $_SESSION['_blog_discussion_form_nonces'][$nonce] = [
+            'scope' => $scope,
+            'issued_at' => time(),
+        ];
+
+        return [
+            'csrf_token' => csrf_token($scope),
+            'form_nonce' => $nonce,
+        ];
+    }
+
+    private function normalizeClientEventStage(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[^a-z0-9._-]+/', '-', $value) ?? '';
+        $value = trim($value, '-');
+
+        return $value !== '' ? substr($value, 0, 64) : 'unknown';
+    }
+
+    private function normalizeClientEventLevel(string $value): string
+    {
+        $value = strtolower(trim($value));
+
+        return in_array($value, ['debug', 'info', 'warning', 'error'], true) ? $value : 'info';
+    }
+
+    private function normalizeClientPage(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $parts = parse_url($value);
+        if (!is_array($parts)) {
+            return substr($value, 0, 200);
+        }
+
+        $path = normalize_public_route((string) ($parts['path'] ?? '')) ?? '';
+        $query = isset($parts['query']) && is_string($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+        $fragment = isset($parts['fragment']) && is_string($parts['fragment']) && $parts['fragment'] !== '' ? '#' . $parts['fragment'] : '';
+
+        return substr($path . $query . $fragment, 0, 200);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function sanitizeClientEventDetails(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $details = [];
+        foreach ($value as $key => $detailValue) {
+            $normalizedKey = strtolower(trim((string) $key));
+            $normalizedKey = preg_replace('/[^a-z0-9_-]+/', '_', $normalizedKey) ?? '';
+            $normalizedKey = trim($normalizedKey, '_');
+            if ($normalizedKey === '') {
+                continue;
+            }
+
+            if (is_bool($detailValue) || is_int($detailValue) || is_float($detailValue) || $detailValue === null) {
+                $details[$normalizedKey] = $detailValue;
+                continue;
+            }
+
+            if (is_string($detailValue)) {
+                $details[$normalizedKey] = function_exists('mb_substr') ? mb_substr($detailValue, 0, 300) : substr($detailValue, 0, 300);
+                continue;
+            }
+
+            if (is_array($detailValue)) {
+                $details[$normalizedKey] = array_map(
+                    static fn (mixed $item): string|int|float|bool|null => is_scalar($item) || $item === null
+                        ? (is_string($item) ? (function_exists('mb_substr') ? mb_substr($item, 0, 120) : substr($item, 0, 120)) : $item)
+                        : gettype($item),
+                    array_slice(array_values($detailValue), 0, 20)
+                );
+            }
+        }
+
+        return $details;
     }
 
     private function honeypotFieldName(): string

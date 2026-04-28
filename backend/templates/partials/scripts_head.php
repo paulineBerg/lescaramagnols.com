@@ -54,6 +54,7 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
   <?php $discussionSettings = is_array(app_config('site.discussions', [])) ? app_config('site.discussions', []) : []; ?>
   <?php $discussionRecaptcha = is_array($discussionSettings['recaptcha'] ?? null) ? $discussionSettings['recaptcha'] : []; ?>
   <?php $discussionRecaptchaEnabled = !empty($discussionRecaptcha['enabled']) && trim((string) ($discussionRecaptcha['site_key'] ?? '')) !== ''; ?>
+  <?php $discussionRecaptchaMode = \Caramagnols\Blog\DiscussionRecaptchaMode::normalize($discussionRecaptcha['mode'] ?? null); ?>
   <?php if ($discussionRecaptchaEnabled): ?>
   <?php
   $configuredServices = array_values(array_filter(
@@ -77,6 +78,7 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
           'require_account' => !empty($discussionSettings['require_account']),
           'recaptcha' => [
               'enabled' => $discussionRecaptchaEnabled,
+              'mode' => $discussionRecaptchaMode,
               'site_key' => trim((string) ($discussionRecaptcha['site_key'] ?? '')),
           ],
       ],

@@ -71,6 +71,20 @@ Mise a jour 2026-04-28 (taxonomie blog) :
 - une sauvegarde article est refusee si la categorie manque, si un tag est inconnu, si plus de `5` tags sont envoyes ou si la sous-categorie ne correspond pas a la categorie.
 - le diagnostic `php backend/core/tools/diagnose_blog_taxonomy.php` permet d identifier les variantes existantes avant migration.
 
+Mise a jour 2026-04-28 (backups production) :
+- ajout d'une section `Parametres > Sauvegardes` affichant le dossier cible, la retention, le script CLI et la commande cron recommandee.
+- ajout de `backend/core/tools/backup_production.php` pour produire une archive du dossier backend prod et un dump SQL compresses, avec verrouillage, manifestes et refus d'ecrire dans le backend ou le webroot.
+- la section admin permet de modifier le dossier racine, les dossiers fichiers/SQL/manifestes, la retention, les binaires CLI et la connexion SQL utilisee par le dump; le mot de passe SQL n'est jamais reaffiche et peut seulement etre remplace.
+- la configuration peut aussi rester systeme/env (`PRODUCTION_BACKUP_ROOT`, `PRODUCTION_BACKUP_RETENTION_DAYS`, `PRODUCTION_BACKUP_TAR_BINARY`, `PRODUCTION_BACKUP_MYSQLDUMP_BINARY`) et n'expose pas de secret SQL dans l'admin.
+
+Mise a jour 2026-04-28 (Cron Center) :
+- ajout d'une section `Parametres > Cron Center` pour piloter des jobs PHP locaux stockes en SQL (`cron_jobs`) avec historique limite aux 100 dernieres executions par job (`cron_runs`).
+- le cron OVH doit appeler un seul point d'entree : `php backend/core/tools/run_cron_center.php --quiet`; Cron Center decide ensuite quels jobs actifs doivent partir selon leur expression cron.
+- les jobs par defaut sont actifs : publication des articles planifies, backup production et alertes logs.
+- chaque job peut etre teste manuellement depuis l'admin ; l'action lance le script PHP autorise, journalise l'execution SQL et met a jour la derniere execution.
+- les scripts administrables sont limites a une liste autorisee dans `backend/core/tools/*.php` (extensible par `CRON_CENTER_ALLOWED_SCRIPTS`), les arguments sont passes par JSON controle, et stdout/stderr/code retour sont conserves dans l'historique SQL.
+- les evenements `cron.*` sont journalises via `AppEventLogger` et filtrables dans `Admin > Logs`.
+
 Mise a jour 2026-03-21 (images editoriales V1) :
 - admin articles : ajout d'une image de couverture (URL ou upload), avec metadonnees SEO (`alt`, `title`, `caption`, dimensions).
 - admin pages : ajout d'une image SEO par langue (stockee en `translations[*].meta.image`) avec upload.

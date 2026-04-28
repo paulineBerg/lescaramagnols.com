@@ -6,6 +6,7 @@ namespace Caramagnols\Admin;
 
 use Caramagnols\Blog\BlogSaveService;
 use Caramagnols\Content\PageRepository;
+use Caramagnols\Cron\CronJobRepository;
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
 use Caramagnols\Logging\AppEventLogger;
@@ -20,6 +21,7 @@ final class AdminController
     private AdminDiscussionService $discussionService;
     private AdminNavigationService $navigationService;
     private AdminSettingsService $settingsService;
+    private AdminCronCenterService $cronCenterService;
     private AdminLogService $logService;
     private AdminMediaLibraryService $mediaLibraryService;
     private AdminTileService $tileService;
@@ -38,7 +40,8 @@ final class AdminController
         ?AdminDiscussionService $discussionService = null,
         ?AdminSerializedFormNormalizer $serializedFormNormalizer = null,
         ?AdminEditorialImageService $editorialImageService = null,
-        ?AdminTileService $tileService = null
+        ?AdminTileService $tileService = null,
+        ?AdminCronCenterService $cronCenterService = null
     ) {
         require_once ROOT_PATH . '/core/auth/admin.php';
         require_once ROOT_PATH . '/core/menu_loader.php';
@@ -76,6 +79,10 @@ final class AdminController
             ROOT_PATH . '/config/admin.override.php',
             $this->eventLogger,
             ROOT_PATH . '/config/site.override.php'
+        );
+        $this->cronCenterService = $cronCenterService ?? new AdminCronCenterService(
+            new CronJobRepository(editorial_database()),
+            $this->eventLogger
         );
         $this->logService = $logService ?? new AdminLogService(app_sql_log_store());
         $this->mediaLibraryService = $mediaLibraryService ?? new AdminMediaLibraryService(
@@ -1636,7 +1643,7 @@ final class AdminController
 
         $message = null;
         $error = null;
-        $view = $this->settingsService->viewModel();
+        $view = $this->settingsViewWithCron($this->settingsService->viewModel());
         $openSettingsSection = null;
 
         if ($request->method() === 'POST') {
@@ -1645,7 +1652,7 @@ final class AdminController
             $requestedSettingsSection = is_string($body['settings_section'] ?? null)
                 ? trim((string) $body['settings_section'])
                 : '';
-            $allowedSettingsSections = ['database', 'admin', 'url', 'head', 'tarteaucitron', 'discussions', 'instagram', 'observability', 'translations', 'security'];
+            $allowedSettingsSections = ['database', 'admin', 'url', 'head', 'tarteaucitron', 'discussions', 'instagram', 'observability', 'backup', 'cron', 'translations', 'security'];
             if (in_array($requestedSettingsSection, $allowedSettingsSections, true)) {
                 $openSettingsSection = $requestedSettingsSection;
             }
@@ -1665,13 +1672,27 @@ final class AdminController
                     ? trim((string) $body['settings_action'])
                     : 'save';
 
-                if ($settingsAction === 'instagram_test' && $openSettingsSection === 'instagram') {
+                if (str_starts_with($settingsAction, 'cron_') && $openSettingsSection === 'cron') {
+                    $result = $this->cronCenterService->handle(
+                        is_array($body) ? $body : [],
+                        admin_current_identifier()
+                    );
+                    $result['view'] = $this->settingsViewWithCron(
+                        $this->settingsService->viewModel(),
+                        is_array($result['view'] ?? null) ? $result['view'] : null
+                    );
+                } elseif ($settingsAction === 'instagram_test' && $openSettingsSection === 'instagram') {
                     $result = $this->settingsService->testInstagramConnection(
                         is_array($body) ? $body : [],
                         admin_current_identifier()
                     );
                 } elseif ($settingsAction === 'cache_clear') {
                     $result = $this->settingsService->clearCaches(
+                        admin_current_identifier()
+                    );
+                } elseif ($settingsAction === 'backup_save' && $openSettingsSection === 'backup') {
+                    $result = $this->settingsService->saveBackup(
+                        is_array($body) ? $body : [],
                         admin_current_identifier()
                     );
                 } else {
@@ -1683,13 +1704,17 @@ final class AdminController
 
                 $message = $result['message'];
                 $error = $result['error'];
-                $view = $result['view'];
+                $view = $this->settingsViewWithCron(is_array($result['view'] ?? null) ? $result['view'] : []);
 
                 if (($result['success'] ?? false) === true && is_string($result['adminIdentifier'] ?? null)) {
                     admin_update_authenticated_identifier((string) $result['adminIdentifier']);
                 }
 
-                if (($result['success'] ?? false) === true && !($settingsAction === 'instagram_test' && $openSettingsSection === 'instagram')) {
+                if (($result['success'] ?? false) === true && str_starts_with($settingsAction, 'cron_')) {
+                    $openSettingsSection = 'cron';
+                } elseif (($result['success'] ?? false) === true && $settingsAction === 'backup_save') {
+                    $openSettingsSection = 'backup';
+                } elseif (($result['success'] ?? false) === true && !($settingsAction === 'instagram_test' && $openSettingsSection === 'instagram')) {
                     $openSettingsSection = null;
                 }
             }
@@ -1707,6 +1732,22 @@ final class AdminController
                 'settingsView' => $view,
             ]
         );
+    }
+
+    /**
+     * @param array<string, mixed> $view
+     * @param array<string, mixed>|null $cronCenterView
+     * @return array<string, mixed>
+     */
+    private function settingsViewWithCron(array $view, ?array $cronCenterView = null): array
+    {
+        if ($cronCenterView === null && is_array($view['cronCenter'] ?? null)) {
+            return $view;
+        }
+
+        $view['cronCenter'] = $cronCenterView ?? $this->cronCenterService->viewModel();
+
+        return $view;
     }
 
     private function logs(Request $request): Response

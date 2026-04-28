@@ -119,7 +119,7 @@ git stash pop "stash@{0}"
 - **Dashboard admin** : la page `/<base_path>/<ADMIN_LOGIN_PATH>/dashboard` synthétise les éléments clés de pilotage et met en priorité la modération des discussions (`pending`).
 - **Entrées publiques harmonisées** : RSS, sitemap (`/sitemap.xml`), robots (`/robots.txt`), admin et API blog passent par `backend/public/index.php`. Le sitemap est servi dynamiquement (avec possibilité de générer aussi `backend/public/sitemap.xml` en déploiement). Les anciens fichiers publics `rss.php` et les anciens wrappers admin ne sont plus que des shims de compatibilité.
 - **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir des templates). Dossier `backend/data/` pour les fichiers dérivés (index, articles blog JSON, logs applicatifs) et pour les pages dynamiques JSON.
-- **Exploitation/perf** : scripts CLI `composer benchmark-routes` (temps de rendu routes critiques, option `--storage=json|sql|dual-write`), `composer check-log-alerts` (seuils login failure/rate-limit/403/429 + notification webhook/email), `composer check-instagram-feed` (probe bloc Instagram accueil). Un pack systemd est fourni pour l'ordonnancement en preprod/prod (`backend/tools/systemd/*` + `backend/tools/check-log-alerts-runner.sh`). Le mode `notify_on` des alertes logs est pilotable depuis `Admin > Parametres > Observabilite ops` (sans exposer les secrets webhook/email).
+- **Exploitation/perf** : scripts CLI `composer benchmark-routes` (temps de rendu routes critiques, option `--storage=json|sql|dual-write`), `composer cron-center` (coordination des jobs planifies SQL pour le cron OVH), `composer check-log-alerts` (seuils login failure/rate-limit/403/429 + notification webhook/email), `composer backup-production` (archive backend + dump SQL), `composer check-instagram-feed` (probe bloc Instagram accueil). Un pack systemd est fourni pour l'ordonnancement en preprod/prod (`backend/tools/systemd/*` + `backend/tools/check-log-alerts-runner.sh`). Le mode `notify_on` des alertes logs est pilotable depuis `Admin > Parametres > Observabilite ops` (sans exposer les secrets webhook/email), et `Admin > Parametres > Cron Center` expose le point d'entree OVH, les jobs, le test manuel par job et l'historique.
 - **Base de données (optionnelle pour l’instant)** : schema MySQL legacy (`backend/sql/install.sql`) + schema editorial (`backend/sql/editorial/*.sql`), initialisables via `composer init-db-admin --working-dir=backend -- ...`. Le fichier `config/database.override.php` permet de surcharger les parametres issus de `.env`.
 
 ---
@@ -218,6 +218,7 @@ public/index.php
   - soumission publique de messages sous article via `POST /core/blog/submit_discussion.php`
   - file de moderation admin via `/<base_path>/<ADMIN_LOGIN_PATH>/discussions`
   - section de configuration anti-bot/reCAPTCHA dans `settings`
+  - support explicite des deux modes de clés Google : `v2 checkbox` et `v3 score`
   - stratégie sécurité retenue : contribution publique sans compte client obligatoire + modération + anti-bot multicouche
 - Stabilisation architecture (19 mars 2026) :
   - `backend/core/router.php` et `backend/core/menu_loader.php` sont désormais des wrappers de compatibilité
@@ -443,6 +444,7 @@ Puis relancer la meme commande sans `--dry-run` pour appliquer.
 - `php backend/core/tools/generate_favicon.php` : régénère les favicons depuis `frontend/src/assets/images/structure/logo.*`.
 - `php backend/core/tools/editorial_backup_restore.php backup [--output=...] [--storage=json|sql|dual-write]` : exporte un backup complet pages/navigation/blog/discussions.
 - `php backend/core/tools/editorial_backup_restore.php restore <backup.json> --force [--storage=json|sql|dual-write]` : restaure ce backup (commande destructive).
+- `php backend/core/tools/backup_production.php [--scope=all|files|sql] [--dry-run] [--json] [--quiet]` : crée un backup production hors webroot avec archive du dossier backend (`.tar.gz`) et dump SQL (`.sql.gz`), puis applique la rétention.
 
 ### Conversion images
 ```bash
@@ -471,6 +473,7 @@ Copier `backend/.env.example` vers `backend/.env`, puis ajuster :
 - SMTP : `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT`, `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD`, `MAIL_SMTP_ENCRYPTION`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
 - Admin : `ADMIN_LOGIN_PATH`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`, `ADMIN_LANGUAGE` (`fr`, `en` ou `de`; défaut `DEFAULT_LANG`).
 - HTTPS/proxy : `FORCE_HTTPS`, `FORCE_HTTPS_ON_LOCALHOST`, `TRUST_PROXY_HEADERS`.
+- Backups production : `PRODUCTION_BACKUP_ROOT`, `PRODUCTION_BACKUP_RETENTION_DAYS`, `PRODUCTION_BACKUP_TAR_BINARY`, `PRODUCTION_BACKUP_MYSQLDUMP_BINARY`, `PHP_CLI_BINARY`. Ces valeurs, ainsi que la connexion SQL utilisee par le dump, peuvent aussi etre ajustees depuis `Admin > Parametres > Sauvegardes`; le mot de passe SQL n'est jamais reaffiche et les chemins de sortie restent refuses s'ils pointent dans le backend ou le webroot.
 - Exemple par défaut : `ADMIN_LOGIN_PATH=admin`.
 - `ADMIN_PASSWORD_HASH` est volontairement vide dans `.env.example` tant qu’aucun compte admin n’est créé.
 - Vérifier les permissions du `.env` (600 ou 640, hors `public/`).  
@@ -551,6 +554,8 @@ Scripts :
 - `backend/tools/deploy-release.sh` : sync complet backend (release).
 - `backend/tools/check-log-alerts-runner.sh` : runner exploitation pour `check_log_alerts.php` (utilisable en scheduler).
 - `backend/tools/systemd/install-check-log-alerts-systemd.sh` : installation timer `systemd` preprod/prod.
+- `backend/core/tools/run_cron_center.php` : point d'entree unique pour le cron OVH ; il charge les jobs actifs stockes en SQL, applique leurs expressions cron et journalise les executions. Le Cron Center admin peut aussi lancer un job manuellement pour test, avec les memes verrous et journaux. Les scripts executables restent limites a la liste autorisee `core/tools/*.php` (extension possible via `CRON_CENTER_ALLOWED_SCRIPTS`).
+- `backend/core/tools/backup_production.php` : backup production du dossier backend et dump SQL compresse, appele directement ou via Cron Center.
 - Les deux scripts preservent `.env` et `backend/config/*.override.php` (config admin runtime).
 - Les deux scripts excluent et nettoient automatiquement les fichiers non-prod : `tests/`, `docs/`, `README*`, `phpunit.xml`, `phpstan*`, `phpcs.xml`, `package*.json`, `replace_image_paths.php`, `backend/public/dev-router.php`, `.env.example`, `.env.production`, `.env.bak.*`, `*.bak`, `*.old`, `*.orig`, `*.tmp`, `*~`, `.DS_Store`, `Thumbs.db`.
 - `deploy-release.sh` exclut aussi les artefacts runtime/locaux non produits : `backend/var/**`, `backend/data/logs/**`, `backend/data/snapshots/**`.

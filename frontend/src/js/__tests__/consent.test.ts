@@ -74,6 +74,7 @@ describe('cookie consent', () => {
       discussions: {
         recaptcha: {
           enabled: true,
+          mode: 'v3_score',
           site_key: 'site-key-123'
         }
       }
@@ -83,6 +84,7 @@ describe('cookie consent', () => {
 
     expect(window.tarteaucitron?.job).toContain('recaptcha');
     expect((window.tarteaucitron as any)?.user?.recaptcha_hl).toBe('en');
+    expect((window.tarteaucitron as any)?.user?.recaptchaapi).toBe('site-key-123');
   });
 
   it('n initialise pas tarteaucitron quand il est desactive en runtime', () => {

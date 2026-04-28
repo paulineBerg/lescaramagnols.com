@@ -40,6 +40,8 @@
     "generate-sitemap": "php core/tools/generate_sitemap.php",
     "generate-site-summary": "php core/tools/generate_site_summary.php",
     "check-log-alerts": "php core/tools/check_log_alerts.php",
+    "backup-production": "php core/tools/backup_production.php",
+    "cron-center": "php core/tools/run_cron_center.php",
     "check-security-headers": "php core/tools/check_security_headers.php",
     "check-instagram-feed": "php core/tools/check_instagram_feed.php",
     "lint": [

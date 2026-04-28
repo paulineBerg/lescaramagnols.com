@@ -106,15 +106,17 @@ final class FrontControllerHttpTest extends TestCase
         }
         @rmdir($this->blogDir);
 
-        foreach ([
-            $this->pagesFile,
-            $this->pagesFile . '.bak',
-            $this->menusFile,
-            $this->menusFile . '.bak',
-            $this->databaseOverrideFile,
-            $this->adminOverrideFile,
-            $this->instagramCacheFile,
-        ] as $file) {
+        foreach (
+            [
+                $this->pagesFile,
+                $this->pagesFile . '.bak',
+                $this->menusFile,
+                $this->menusFile . '.bak',
+                $this->databaseOverrideFile,
+                $this->adminOverrideFile,
+                $this->instagramCacheFile,
+            ] as $file
+        ) {
             if (file_exists($file)) {
                 unlink($file);
             }
@@ -897,11 +899,33 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('name="article_slug" value="article-recent"', $response->body);
         $this->assertStringContainsString('name="article_lang" value="fr"', $response->body);
         $this->assertStringContainsString('open_article=article-recent', $response->body);
-        $this->assertStringContainsString('core/blog/submit_discussion.php', $response->body);
+        $this->assertStringContainsString('/core/blog/submit_discussion.php', $response->body);
+        $this->assertStringContainsString('data-discussion-log-endpoint="/core/blog/log_discussion_client.php"', $response->body);
         $this->assertLessThan(
             strpos($response->body, 'article-accroche'),
             strpos($response->body, 'article-recent')
         );
+    }
+
+    public function testDiscussionClientLogEndpointAcceptsJsonPayload(): void
+    {
+        $response = $this->frontController()->handle(
+            $this->jsonRequest('POST', '/core/blog/log_discussion_client.php', [
+                'article_slug' => 'article-recent',
+                'article_lang' => 'fr',
+                'stage' => 'recaptcha_client_failure',
+                'level' => 'error',
+                'mode' => 'v3_score',
+                'page' => '/fr/auto-retro/austin/histoire-de-austin.php?open_article=article-recent',
+                'details' => [
+                    'error_message' => 'recaptcha-execute-timeout',
+                    'execute_timeout_ms' => 12000,
+                ],
+            ])
+        );
+
+        $this->assertSame(204, $response->status);
+        $this->assertSame('no-store', $response->headers['Cache-Control'] ?? null);
     }
 
     public function testBlogArticleRenderRewritesLegacyLocalUrls(): void
@@ -1343,6 +1367,18 @@ final class FrontControllerHttpTest extends TestCase
                                 ],
                             ],
                         ],
+                        [
+                            'slug' => 'blog',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/blog',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Le Blog Les Caramagnols',
+                                ],
+                            ],
+                        ],
                     ],
                 ],
                 JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
@@ -1457,8 +1493,23 @@ final class FrontControllerHttpTest extends TestCase
         $response = $this->frontController()->handle($this->request('GET', '/'));
 
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('href="/fr/blog"', $response->body);
-        $this->assertMatchesRegularExpression('/>\s*Blog\s*</', $response->body);
+        $canonicalNavigation = load_navigation_canonical();
+        $blogItem = null;
+
+        foreach (($canonicalNavigation['locations']['primary'] ?? []) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            if (($item['target']['pageSlug'] ?? null) === 'blog') {
+                $blogItem = $item;
+                break;
+            }
+        }
+
+        $this->assertIsArray($blogItem);
+        $this->assertSame('blog', $blogItem['target']['pageSlug'] ?? null);
+        $this->assertMatchesRegularExpression('/>\s*Blog\s*</i', $response->body);
     }
 
     public function testSitemapRouteReturnsPublishedPagesAndArticlesOnly(): void
@@ -1738,8 +1789,7 @@ final class FrontControllerHttpTest extends TestCase
         array $post = [],
         string $remoteAddr = '127.0.0.1',
         array $headers = []
-    ): Request
-    {
+    ): Request {
         return new Request(
             [
                 'REQUEST_METHOD' => $method,

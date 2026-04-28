@@ -86,6 +86,7 @@ final class ScriptsHeadPartialTest extends TestCase
             'enabled' => true,
             'recaptcha' => [
                 'enabled' => true,
+                'mode' => 'v3_score',
                 'site_key' => 'site-key-123',
                 'secret_key' => 'secret-key-123',
             ],
@@ -97,6 +98,7 @@ final class ScriptsHeadPartialTest extends TestCase
 
         $this->assertStringContainsString('"services":["youtube","recaptcha"]', $html);
         $this->assertStringContainsString('"discussions":{"enabled":true', $html);
+        $this->assertStringContainsString('"mode":"v3_score"', $html);
         $this->assertStringContainsString('"site_key":"site-key-123"', $html);
     }
 

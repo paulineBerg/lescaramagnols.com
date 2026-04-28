@@ -51,6 +51,7 @@ $siteUrlOverride = is_array($siteOverride['url'] ?? null) ? $siteOverride['url']
 $siteDiscussionsOverride = is_array($siteOverride['discussions'] ?? null) ? $siteOverride['discussions'] : [];
 $siteInstagramOverride = is_array($siteOverride['instagram'] ?? null) ? $siteOverride['instagram'] : [];
 $siteLogAlertsOverride = is_array($siteOverride['log_alerts'] ?? null) ? $siteOverride['log_alerts'] : [];
+$siteBackupOverride = is_array($siteOverride['backup'] ?? null) ? $siteOverride['backup'] : [];
 $normalizeI18nOverrides = static function (mixed $overrides): array {
     if (!is_array($overrides)) {
         return [];
@@ -146,6 +147,7 @@ $siteDiscussionsDefaults = [
 ];
 $siteDiscussionsRecaptchaDefaults = [
     'enabled' => false,
+    'mode' => 'v2_checkbox',
     'site_key' => '',
     'secret_key' => '',
     'minimum_score' => 0.5,
@@ -164,6 +166,47 @@ $siteInstagramDefaults = [
 $siteLogAlertsDefaults = [
     'notify_on' => trim((string) env('LOG_ALERTS_NOTIFY_ON', 'alerts')),
 ];
+$productionBackupRoot = trim((string) env(
+    'PRODUCTION_BACKUP_ROOT',
+    env('PRODUCTION_BACKUP_DIR', dirname(ROOT_PATH) . '/backups')
+));
+if ($productionBackupRoot === '') {
+    $productionBackupRoot = dirname(ROOT_PATH) . '/backups';
+}
+$productionBackupRetentionDays = max(1, min(365, (int) env('PRODUCTION_BACKUP_RETENTION_DAYS', 14)));
+$productionBackupTarBinary = trim((string) env('PRODUCTION_BACKUP_TAR_BINARY', 'tar'));
+if ($productionBackupTarBinary === '') {
+    $productionBackupTarBinary = 'tar';
+}
+$productionBackupMysqldumpBinary = trim((string) env('PRODUCTION_BACKUP_MYSQLDUMP_BINARY', 'mysqldump'));
+if ($productionBackupMysqldumpBinary === '') {
+    $productionBackupMysqldumpBinary = 'mysqldump';
+}
+$productionBackupConfig = [
+    'root_dir' => $productionBackupRoot,
+    'retention_days' => $productionBackupRetentionDays,
+    'tar_binary' => $productionBackupTarBinary,
+    'mysqldump_binary' => $productionBackupMysqldumpBinary,
+    'php_binary' => trim((string) env('PHP_CLI_BINARY', PHP_BINARY)) ?: 'php',
+    'files_dir' => '',
+    'sql_dir' => '',
+    'manifest_dir' => '',
+];
+$productionBackupConfig = array_merge(
+    $productionBackupConfig,
+    array_intersect_key($siteBackupOverride, $productionBackupConfig)
+);
+$productionBackupConfig['root_dir'] = trim((string) ($productionBackupConfig['root_dir'] ?? ''));
+if ($productionBackupConfig['root_dir'] === '') {
+    $productionBackupConfig['root_dir'] = dirname(ROOT_PATH) . '/backups';
+}
+$productionBackupConfig['retention_days'] = max(1, min(365, (int) ($productionBackupConfig['retention_days'] ?? 14)));
+$productionBackupConfig['tar_binary'] = trim((string) ($productionBackupConfig['tar_binary'] ?? 'tar')) ?: 'tar';
+$productionBackupConfig['mysqldump_binary'] = trim((string) ($productionBackupConfig['mysqldump_binary'] ?? 'mysqldump')) ?: 'mysqldump';
+$productionBackupConfig['php_binary'] = trim((string) ($productionBackupConfig['php_binary'] ?? 'php')) ?: 'php';
+$productionBackupConfig['files_dir'] = trim((string) ($productionBackupConfig['files_dir'] ?? ''));
+$productionBackupConfig['sql_dir'] = trim((string) ($productionBackupConfig['sql_dir'] ?? ''));
+$productionBackupConfig['manifest_dir'] = trim((string) ($productionBackupConfig['manifest_dir'] ?? ''));
 $normalizeBooleanValue = static function (mixed $value, bool $fallback): bool {
     if ($value === null) {
         return $fallback;
@@ -430,6 +473,7 @@ $appConfig = [
             'honeypot_field' => trim((string) ($siteDiscussionsConfig['honeypot_field'] ?? 'website')),
             'recaptcha' => [
                 'enabled' => (bool) ($siteDiscussionsConfig['recaptcha']['enabled'] ?? false),
+                'mode' => \Caramagnols\Blog\DiscussionRecaptchaMode::normalize($siteDiscussionsConfig['recaptcha']['mode'] ?? null),
                 'site_key' => $envDiscussionRecaptchaSiteKey !== ''
                     ? $envDiscussionRecaptchaSiteKey
                     : trim((string) ($siteDiscussionsConfig['recaptcha']['site_key'] ?? '')),
@@ -464,6 +508,16 @@ $appConfig = [
     'logging' => [
         'retention_files' => max(2, min(90, (int) env('LOG_RETENTION_FILES', 14))),
         'rotation_max_bytes' => max(262144, min(104857600, (int) env('LOG_ROTATION_MAX_BYTES', 5242880))),
+    ],
+    'backup' => [
+        'root_dir' => $productionBackupConfig['root_dir'],
+        'retention_days' => $productionBackupConfig['retention_days'],
+        'tar_binary' => $productionBackupConfig['tar_binary'],
+        'mysqldump_binary' => $productionBackupConfig['mysqldump_binary'],
+        'php_binary' => $productionBackupConfig['php_binary'],
+        'files_dir' => $productionBackupConfig['files_dir'],
+        'sql_dir' => $productionBackupConfig['sql_dir'],
+        'manifest_dir' => $productionBackupConfig['manifest_dir'],
     ],
 ];
 

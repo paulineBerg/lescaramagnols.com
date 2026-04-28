@@ -8,6 +8,8 @@ $tarteaucitron = is_array($view['tarteaucitron'] ?? null) ? $view['tarteaucitron
 $discussions = is_array($view['discussions'] ?? null) ? $view['discussions'] : [];
 $instagram = is_array($view['instagram'] ?? null) ? $view['instagram'] : [];
 $logAlerts = is_array($view['logAlerts'] ?? null) ? $view['logAlerts'] : [];
+$backup = is_array($view['backup'] ?? null) ? $view['backup'] : [];
+$cronCenter = is_array($view['cronCenter'] ?? null) ? $view['cronCenter'] : [];
 $translations = is_array($view['translations'] ?? null) ? $view['translations'] : [];
 $storage = is_array($view['storage'] ?? null) ? $view['storage'] : [];
 $openSection = is_string($openSettingsSection ?? null) ? (string) $openSettingsSection : null;
@@ -89,6 +91,64 @@ if (!in_array($logAlertsNotifyOn, ['alerts', 'always'], true)) {
 $scheduledBlogPublishPhpBinary = trim((string) ($logAlerts['blogPublishPhpBinary'] ?? 'php'));
 $scheduledBlogPublishScriptPath = trim((string) ($logAlerts['blogPublishScriptPath'] ?? ''));
 $scheduledBlogPublishCronCommand = trim((string) ($logAlerts['blogPublishCronCommand'] ?? ''));
+$backupDatabase = is_array($backup['database'] ?? null) ? $backup['database'] : [];
+$backupRoot = trim((string) ($backup['backupRoot'] ?? ''));
+$backupRetentionDays = max(1, (int) ($backup['retentionDays'] ?? 14));
+$backupCronCommand = trim((string) ($backup['cronCommand'] ?? ''));
+$backupDryRunCommand = trim((string) ($backup['dryRunCommand'] ?? ''));
+$backupPhpBinary = trim((string) ($backup['phpBinary'] ?? 'php'));
+$backupTarBinary = trim((string) ($backup['tarBinary'] ?? 'tar'));
+$backupMysqldumpBinary = trim((string) ($backup['mysqldumpBinary'] ?? 'mysqldump'));
+$backupScriptPath = trim((string) ($backup['scriptPath'] ?? ''));
+$backupFilesDirectory = trim((string) ($backup['filesDirectory'] ?? ''));
+$backupSqlDirectory = trim((string) ($backup['sqlDirectory'] ?? ''));
+$backupManifestDirectory = trim((string) ($backup['manifestDirectory'] ?? ''));
+$backupRootOutsideRoot = !empty($backup['backupRootOutsideRoot']);
+$backupDatabaseConfigured = !empty($backupDatabase['configured']);
+$backupDatabasePasswordConfigured = !empty($backupDatabase['passwordConfigured']);
+$cronAvailable = !empty($cronCenter['available']);
+$cronScheduler = is_array($cronCenter['scheduler'] ?? null) ? $cronCenter['scheduler'] : [];
+$cronJobs = is_array($cronCenter['jobs'] ?? null) ? $cronCenter['jobs'] : [];
+$cronRuns = is_array($cronCenter['recentRuns'] ?? null) ? $cronCenter['recentRuns'] : [];
+$cronAllowedScripts = is_array($cronCenter['allowedScripts'] ?? null) ? $cronCenter['allowedScripts'] : [];
+$cronEmptyJobForm = is_array($cronCenter['emptyJobForm'] ?? null) ? $cronCenter['emptyJobForm'] : [];
+$cronOvhCommand = trim((string) ($cronCenter['ovhCronCommand'] ?? ''));
+$cronRunnerPath = trim((string) ($cronCenter['runnerPath'] ?? ''));
+$cronPhpBinary = trim((string) ($cronCenter['phpBinary'] ?? 'php'));
+$cronLogsUrl = trim((string) ($cronCenter['logsUrl'] ?? ''));
+$cronError = is_string($cronCenter['error'] ?? null) ? (string) $cronCenter['error'] : null;
+$cronActiveJobsCount = 0;
+$cronFailedJobsCount = 0;
+foreach ($cronJobs as $cronJob) {
+    if (!is_array($cronJob)) {
+        continue;
+    }
+
+    if ((string) ($cronJob['status'] ?? '') === 'active') {
+        $cronActiveJobsCount++;
+    }
+
+    if (in_array((string) ($cronJob['last_status'] ?? ''), ['failed', 'timeout'], true)) {
+        $cronFailedJobsCount++;
+    }
+}
+$cronStatusLabel = trim((string) ($cronScheduler['status'] ?? ''));
+if ($cronStatusLabel === '') {
+    $cronStatusLabel = $cronAvailable ? 'jamais lancé' : 'indisponible';
+}
+$formatCronDate = static function (mixed $value): string {
+    $raw = trim((string) $value);
+    if ($raw === '') {
+        return '—';
+    }
+
+    $timestamp = strtotime($raw);
+    if (!is_int($timestamp)) {
+        return $raw;
+    }
+
+    return date('d/m/Y H:i:s', $timestamp);
+};
 $logAlertsModeSummary = $logAlertsNotifyOn === 'always'
     ? $translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_ALWAYS', 'Toujours notifier')
     : $translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_ALERTS', 'Uniquement en cas d’alerte');
@@ -296,6 +356,45 @@ $autostartAttr = static function (string $section, ?string $openSection): string
       <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_CARD_DETAIL', 'Pilotage du déclenchement webhook/email pour le scheduler de surveillance.'), ENT_QUOTES, 'UTF-8'); ?>
     </p>
     <span class="settings-section-card__cta"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_CARD_CTA', 'Configurer les alertes logs'), ENT_QUOTES, 'UTF-8'); ?></span>
+  </button>
+
+  <button
+    type="button"
+    class="settings-section-card"
+    data-region-modal-open="settings-dialog-backup"
+    data-settings-section-card="backup"
+    aria-haspopup="dialog"
+    <?php echo $autostartAttr('backup', $openSection); ?>
+  >
+    <p class="settings-section-card__eyebrow">Section</p>
+    <h2 class="settings-section-card__title"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_CARD_TITLE', 'Sauvegardes'), ENT_QUOTES, 'UTF-8'); ?></h2>
+    <p class="settings-section-card__summary">
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_CARD_SUMMARY', 'Dossier production + dump SQL'), ENT_QUOTES, 'UTF-8'); ?><br />
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_CARD_ROOT', 'Racine'), ENT_QUOTES, 'UTF-8'); ?>:
+      <?php echo htmlspecialchars($backupRoot !== '' ? $backupRoot : '-', ENT_QUOTES, 'UTF-8'); ?><br />
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_CARD_RETENTION', 'Rétention'), ENT_QUOTES, 'UTF-8'); ?>:
+      <?php echo (int) $backupRetentionDays; ?> jour<?php echo $backupRetentionDays > 1 ? 's' : ''; ?>
+    </p>
+    <span class="settings-section-card__cta"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_CARD_CTA', 'Voir les commandes de backup'), ENT_QUOTES, 'UTF-8'); ?></span>
+  </button>
+
+  <button
+    type="button"
+    class="settings-section-card"
+    data-region-modal-open="settings-dialog-cron"
+    data-settings-section-card="cron"
+    aria-haspopup="dialog"
+    <?php echo $autostartAttr('cron', $openSection); ?>
+  >
+    <p class="settings-section-card__eyebrow"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_CARD_EYEBROW', 'Planification'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <h2 class="settings-section-card__title"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_CARD_TITLE', 'Cron Center'), ENT_QUOTES, 'UTF-8'); ?></h2>
+    <p class="settings-section-card__summary">
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_CARD_SUMMARY', 'Coordination scheduler + jobs PHP locaux'), ENT_QUOTES, 'UTF-8'); ?><br />
+      <?php echo (int) $cronActiveJobsCount; ?> job<?php echo $cronActiveJobsCount > 1 ? 's' : ''; ?> actif<?php echo $cronActiveJobsCount > 1 ? 's' : ''; ?> ·
+      <?php echo htmlspecialchars($cronStatusLabel, ENT_QUOTES, 'UTF-8'); ?><br />
+      <?php echo (int) $cronFailedJobsCount; ?> job<?php echo $cronFailedJobsCount > 1 ? 's' : ''; ?> en alerte
+    </p>
+    <span class="settings-section-card__cta"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_CARD_CTA', 'Ouvrir le Cron Center'), ENT_QUOTES, 'UTF-8'); ?></span>
   </button>
 
   <button
@@ -753,6 +852,14 @@ $autostartAttr = static function (string $section, ?string $openSection): string
 
         <div class="settings-dialog__grid">
           <div class="field">
+            <label for="discussion_recaptcha_mode">Mode reCAPTCHA</label>
+            <select id="discussion_recaptcha_mode" name="discussions[recaptcha_mode]">
+              <option value="v2_checkbox"<?php echo (($discussions['recaptchaMode'] ?? 'v2_checkbox') === 'v2_checkbox') ? ' selected' : ''; ?>>v2 case à cocher visible</option>
+              <option value="v3_score"<?php echo (($discussions['recaptchaMode'] ?? 'v2_checkbox') === 'v3_score') ? ' selected' : ''; ?>>v3 invisible par score</option>
+            </select>
+            <small>Choisir le mode qui correspond exactement au type de clés Google enregistré.</small>
+          </div>
+          <div class="field">
             <label for="discussion_recaptcha_site_key">reCAPTCHA Site Key (publique)</label>
             <input id="discussion_recaptcha_site_key" name="discussions[recaptcha_site_key]" type="text" value="<?php echo htmlspecialchars((string) ($discussions['recaptchaSiteKey'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="6Lc..." />
           </div>
@@ -764,6 +871,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
           <div class="field">
             <label for="discussion_recaptcha_minimum_score">Score minimum (v3)</label>
             <input id="discussion_recaptcha_minimum_score" name="discussions[recaptcha_minimum_score]" type="number" min="0" max="1" step="0.1" value="<?php echo htmlspecialchars((string) ($discussions['recaptchaMinimumScore'] ?? 0.5), ENT_QUOTES, 'UTF-8'); ?>" />
+            <small>Utilisé uniquement quand le mode v3 invisible est sélectionné.</small>
           </div>
           <div class="field">
             <label for="discussion_recaptcha_timeout_seconds">Délai API (secondes)</label>
@@ -896,6 +1004,421 @@ $autostartAttr = static function (string $section, ?string $openSection): string
       </div>
     </div>
   </form>
+</dialog>
+
+<dialog class="region-modal settings-dialog" id="settings-dialog-backup" aria-labelledby="settings-dialog-backup-title">
+  <form method="post" action="<?php echo htmlspecialchars($settingsAction, ENT_QUOTES, 'UTF-8'); ?>" class="settings-dialog__form" autocomplete="off" novalidate>
+    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+    <input type="hidden" name="settings_section" value="backup" />
+    <input type="hidden" name="settings_action" value="backup_save" />
+    <div class="region-modal__surface">
+    <div class="region-modal__header">
+      <div>
+        <p class="region-modal__eyebrow">Paramètres</p>
+        <h3 id="settings-dialog-backup-title"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DIALOG_TITLE', 'Sauvegardes production'), ENT_QUOTES, 'UTF-8'); ?></h3>
+        <p><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DIALOG_LEAD', 'Le backup se lance en CLI ou par cron. Aucun dump SQL ni archive fichier n’est déclenché depuis la requête web admin.'), ENT_QUOTES, 'UTF-8'); ?></p>
+      </div>
+      <button type="button" class="button-muted" data-region-modal-close>Fermer</button>
+    </div>
+    <div class="region-modal__body settings-dialog__body">
+      <?php if (!$backupRootOutsideRoot): ?>
+      <p class="notice notice-error" role="alert">
+        <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_ROOT_UNSAFE', 'Le dossier de backup configuré est dans le backend ou le webroot. Le script refusera d’écrire tant qu’il n’est pas placé hors du site.'), ENT_QUOTES, 'UTF-8'); ?>
+      </p>
+      <?php endif; ?>
+      <div class="settings-dialog__grid">
+        <div class="field">
+          <label for="backup-root-path"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_ROOT_LABEL', 'Dossier racine des backups'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="backup-root-path" name="backup[root_dir]" type="text" value="<?php echo htmlspecialchars($backupRoot, ENT_QUOTES, 'UTF-8'); ?>" required />
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_ROOT_HELP', 'Doit rester hors backend/public. Par défaut, le script utilise un dossier backups à côté du backend.'), ENT_QUOTES, 'UTF-8'); ?></small>
+        </div>
+        <div class="field">
+          <label for="backup-retention-days"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_RETENTION_LABEL', 'Rétention'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="backup-retention-days" name="backup[retention_days]" type="number" min="1" max="365" value="<?php echo (int) $backupRetentionDays; ?>" required />
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_RETENTION_HELP', 'Nombre de jours conservés avant nettoyage automatique des anciennes archives et anciens dumps.'), ENT_QUOTES, 'UTF-8'); ?></small>
+        </div>
+        <div class="field">
+          <label for="backup-files-directory"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_FILES_DIR_LABEL', 'Archives du dossier'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="backup-files-directory" name="backup[files_dir]" type="text" value="<?php echo htmlspecialchars($backupFilesDirectory, ENT_QUOTES, 'UTF-8'); ?>" required />
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_FILES_DIR_HELP', 'Dossier où seront écrites les archives .tar.gz du site. Il doit rester hors du dossier public.'), ENT_QUOTES, 'UTF-8'); ?></small>
+        </div>
+        <div class="field">
+          <label for="backup-sql-directory"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_SQL_DIR_LABEL', 'Dumps SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="backup-sql-directory" name="backup[sql_dir]" type="text" value="<?php echo htmlspecialchars($backupSqlDirectory, ENT_QUOTES, 'UTF-8'); ?>" required />
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_SQL_DIR_HELP', 'Dossier où seront écrits les dumps .sql.gz de la base. Ne le place jamais dans backend/public.'), ENT_QUOTES, 'UTF-8'); ?></small>
+        </div>
+        <div class="field">
+          <label for="backup-manifest-directory"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_MANIFEST_DIR_LABEL', 'Manifestes'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="backup-manifest-directory" name="backup[manifest_dir]" type="text" value="<?php echo htmlspecialchars($backupManifestDirectory, ENT_QUOTES, 'UTF-8'); ?>" required />
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_MANIFEST_DIR_HELP', 'Dossier des fichiers de résumé: date, fichiers générés, tailles, empreintes et erreurs éventuelles.'), ENT_QUOTES, 'UTF-8'); ?></small>
+        </div>
+      </div>
+      <section class="card">
+        <h4><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_LABEL', 'Base sauvegardée'), ENT_QUOTES, 'UTF-8'); ?></h4>
+        <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_HELP', 'Connexion SQL utilisée par le site et par le dump mysqldump. Le mot de passe n’est jamais réaffiché; remplis-le uniquement pour le remplacer.'), ENT_QUOTES, 'UTF-8'); ?></p>
+        <div class="settings-dialog__grid">
+          <div class="field">
+            <label for="backup-database-host"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_HOST_LABEL', 'Hôte SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="backup-database-host" name="backup[database_host]" type="text" value="<?php echo htmlspecialchars((string) ($backupDatabase['host'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_HOST_HELP', 'Chez OVH, c’est souvent un nom du type bp269148-001.eu.clouddb.ovh.net, sans l’utilisateur et sans le port.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          </div>
+          <div class="field">
+            <label for="backup-database-port"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PORT_LABEL', 'Port SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="backup-database-port" name="backup[database_port]" type="number" min="1" max="65535" value="<?php echo (int) ($backupDatabase['port'] ?? 3306); ?>" required />
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PORT_HELP', 'Port fourni par OVH. Exemple courant CloudDB : 35987.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          </div>
+          <div class="field">
+            <label for="backup-database-name"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_NAME_LABEL', 'Nom de la base'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="backup-database-name" name="backup[database_name]" type="text" value="<?php echo htmlspecialchars((string) ($backupDatabase['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_NAME_HELP', 'Nom exact de la base à exporter, par exemple CarBDbase.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          </div>
+          <div class="field">
+            <label for="backup-database-user"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_USER_LABEL', 'Utilisateur SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="backup-database-user" name="backup[database_user]" type="text" value="<?php echo htmlspecialchars((string) ($backupDatabase['user'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_USER_HELP', 'Identifiant SQL fourni par OVH, par exemple bp269148-ovh.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          </div>
+          <div class="field">
+            <label for="backup-database-password"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PASSWORD_LABEL', 'Mot de passe SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="backup-database-password" name="backup[database_password]" type="password" value="" autocomplete="new-password" />
+            <small>
+              <?php echo $backupDatabasePasswordConfigured
+                  ? htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PASSWORD_KEEP_HELP', 'Mot de passe déjà enregistré. Laisse vide pour le conserver, remplis uniquement pour le remplacer.'), ENT_QUOTES, 'UTF-8')
+                  : htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PASSWORD_SET_HELP', 'Mot de passe requis pour que mysqldump puisse exporter la base SQL.'), ENT_QUOTES, 'UTF-8'); ?>
+            </small>
+          </div>
+        </div>
+        <p class="<?php echo $backupDatabaseConfigured ? 'notice-muted' : 'notice notice-error'; ?>">
+          <?php echo $backupDatabaseConfigured
+              ? htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_READY', 'Configuration SQL lisible. Le mot de passe n’est pas affiché.'), ENT_QUOTES, 'UTF-8')
+              : htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_MISSING', 'Configuration SQL incomplète: le backup SQL échouera tant que DB_NAME et DB_USER manquent.'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+      </section>
+      <div class="field">
+        <label for="backup-php-binary"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_PHP_BINARY_LABEL', 'Binaire PHP détecté'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input id="backup-php-binary" name="backup[php_binary]" type="text" value="<?php echo htmlspecialchars($backupPhpBinary, ENT_QUOTES, 'UTF-8'); ?>" required />
+        <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_PHP_BINARY_HELP', 'Binaire utilisé par la commande cron OVH pour lancer les scripts PHP CLI.'), ENT_QUOTES, 'UTF-8'); ?></small>
+      </div>
+      <div class="settings-dialog__grid">
+        <div class="field">
+          <label for="backup-tar-binary"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_TAR_BINARY_LABEL', 'Binaire tar'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="backup-tar-binary" name="backup[tar_binary]" type="text" value="<?php echo htmlspecialchars($backupTarBinary, ENT_QUOTES, 'UTF-8'); ?>" required />
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_TAR_BINARY_HELP', 'Commande utilisée pour compresser le dossier de production en archive .tar.gz.'), ENT_QUOTES, 'UTF-8'); ?></small>
+        </div>
+        <div class="field">
+          <label for="backup-mysqldump-binary"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_MYSQLDUMP_BINARY_LABEL', 'Binaire mysqldump'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="backup-mysqldump-binary" name="backup[mysqldump_binary]" type="text" value="<?php echo htmlspecialchars($backupMysqldumpBinary, ENT_QUOTES, 'UTF-8'); ?>" required />
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_MYSQLDUMP_BINARY_HELP', 'Commande utilisée pour exporter la base SQL. Sur certains hébergements, le chemin complet peut être nécessaire.'), ENT_QUOTES, 'UTF-8'); ?></small>
+        </div>
+      </div>
+      <div class="field">
+        <label for="backup-script-path"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_SCRIPT_PATH_LABEL', 'Script de backup'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input id="backup-script-path" type="text" value="<?php echo htmlspecialchars($backupScriptPath, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+      </div>
+      <div class="field">
+        <label for="backup-cron-command"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_CRON_COMMAND_LABEL', 'Commande cron recommandée'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input id="backup-cron-command" type="text" value="<?php echo htmlspecialchars($backupCronCommand, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+        <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_CRON_COMMAND_HELP', 'Exécution quotidienne recommandée. Le script crée une archive .tar.gz du backend et un dump .sql.gz, puis applique la rétention.'), ENT_QUOTES, 'UTF-8'); ?></small>
+      </div>
+      <div class="field">
+        <label for="backup-dry-run-command"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DRY_RUN_COMMAND_LABEL', 'Commande de vérification'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input id="backup-dry-run-command" type="text" value="<?php echo htmlspecialchars($backupDryRunCommand, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+      </div>
+      <p class="settings-dialog__summary">
+        <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_ENV_NOTE', 'Configuration système possible dans .env : PRODUCTION_BACKUP_ROOT, PRODUCTION_BACKUP_RETENTION_DAYS, PRODUCTION_BACKUP_TAR_BINARY et PRODUCTION_BACKUP_MYSQLDUMP_BINARY.'), ENT_QUOTES, 'UTF-8'); ?>
+      </p>
+    </div>
+    <div class="region-modal__actions actions-inline actions-inline-end">
+      <button type="button" class="button-muted" data-region-modal-close>Annuler</button>
+      <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_SAVE_BUTTON', 'Enregistrer les sauvegardes'), ENT_QUOTES, 'UTF-8'); ?></button>
+    </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="region-modal settings-dialog" id="settings-dialog-cron" aria-labelledby="settings-dialog-cron-title">
+  <div class="region-modal__surface">
+    <div class="region-modal__header">
+      <div>
+        <p class="region-modal__eyebrow"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_DIALOG_EYEBROW', 'Tâche cron'), ENT_QUOTES, 'UTF-8'); ?></p>
+        <h3 id="settings-dialog-cron-title"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_DIALOG_TITLE', 'Cron Center'), ENT_QUOTES, 'UTF-8'); ?></h3>
+        <p><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_DIALOG_LEAD', 'Tableau de bord des exécutions planifiées, statut du scheduler, point d’entrée OVH, jobs et journaux.'), ENT_QUOTES, 'UTF-8'); ?></p>
+      </div>
+      <button type="button" class="button-muted" data-region-modal-close>Fermer</button>
+    </div>
+    <div class="region-modal__body settings-dialog__body">
+      <?php if (!$cronAvailable && $cronError !== null): ?>
+      <p class="notice notice-error" role="alert">
+        <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_UNAVAILABLE', 'Cron Center indisponible :'), ENT_QUOTES, 'UTF-8'); ?>
+        <?php echo htmlspecialchars($cronError, ENT_QUOTES, 'UTF-8'); ?>
+      </p>
+      <?php endif; ?>
+
+      <div class="settings-dialog__grid">
+        <div class="field">
+          <label for="cron-center-status"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_STATUS_LABEL', 'Statut scheduler'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="cron-center-status" type="text" value="<?php echo htmlspecialchars($cronStatusLabel, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+        </div>
+        <div class="field">
+          <label for="cron-center-last-run"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_LAST_RUN_LABEL', 'Dernière coordination'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="cron-center-last-run" type="text" value="<?php echo htmlspecialchars($formatCronDate($cronScheduler['finishedAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" readonly />
+        </div>
+        <div class="field">
+          <label for="cron-center-jobs-count"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_JOBS_COUNT_LABEL', 'Jobs actifs'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="cron-center-jobs-count" type="text" value="<?php echo (int) $cronActiveJobsCount; ?> / <?php echo count($cronJobs); ?>" readonly />
+        </div>
+        <div class="field">
+          <label for="cron-center-alerts-count"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_ALERTS_COUNT_LABEL', 'Jobs en alerte'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="cron-center-alerts-count" type="text" value="<?php echo (int) $cronFailedJobsCount; ?>" readonly />
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="cron-center-ovh-command"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_OVH_COMMAND_LABEL', 'Commande OVH'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input id="cron-center-ovh-command" type="text" value="<?php echo htmlspecialchars($cronOvhCommand, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+        <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_OVH_COMMAND_HELP', 'OVH appelle ce script chaque minute. Cron Center décide ensuite quels jobs PHP locaux doivent partir.'), ENT_QUOTES, 'UTF-8'); ?></small>
+      </div>
+      <div class="settings-dialog__grid">
+        <div class="field">
+          <label for="cron-center-runner-path"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_RUNNER_PATH_LABEL', 'Script de coordination'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="cron-center-runner-path" type="text" value="<?php echo htmlspecialchars($cronRunnerPath, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+        </div>
+        <div class="field">
+          <label for="cron-center-php-binary"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_PHP_BINARY_LABEL', 'Binaire PHP détecté'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="cron-center-php-binary" type="text" value="<?php echo htmlspecialchars($cronPhpBinary, ENT_QUOTES, 'UTF-8'); ?>" readonly />
+        </div>
+      </div>
+      <p class="settings-dialog__summary">
+        <a href="<?php echo htmlspecialchars($cronLogsUrl !== '' ? $cronLogsUrl : admin_url('logs'), ENT_QUOTES, 'UTF-8'); ?>">
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_LOGS_LINK', 'Voir les logs Cron Center dans Admin > Logs'), ENT_QUOTES, 'UTF-8'); ?>
+        </a>
+      </p>
+
+      <datalist id="cron-center-script-paths">
+        <?php foreach ($cronAllowedScripts as $scriptPath): ?>
+        <option value="<?php echo htmlspecialchars((string) $scriptPath, ENT_QUOTES, 'UTF-8'); ?>"></option>
+        <?php endforeach; ?>
+      </datalist>
+
+      <section class="card">
+        <h4><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_ADD_TITLE', 'Ajouter un script PHP local'), ENT_QUOTES, 'UTF-8'); ?></h4>
+        <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_ADD_LEAD', 'Le cron OVH appelle un seul script de coordination. Les jobs ci-dessous restent limités aux scripts PHP locaux de backend/core/tools/.'), ENT_QUOTES, 'UTF-8'); ?></p>
+        <form method="post" action="<?php echo htmlspecialchars($settingsAction, ENT_QUOTES, 'UTF-8'); ?>" class="admin-form-grid" autocomplete="off" novalidate>
+          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+          <input type="hidden" name="settings_section" value="cron" />
+          <input type="hidden" name="settings_action" value="cron_create" />
+          <div class="field">
+            <label for="cron-job-code"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_JOB_CODE_LABEL', 'Code job'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="cron-job-code" name="cron_job[code]" type="text" value="<?php echo htmlspecialchars((string) ($cronEmptyJobForm['code'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="publiarticles" pattern="[a-z0-9][a-z0-9_-]{1,63}" required />
+          </div>
+          <div class="field">
+            <label for="cron-job-name"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_JOB_NAME_LABEL', 'Nom'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="cron-job-name" name="cron_job[name]" type="text" value="<?php echo htmlspecialchars((string) ($cronEmptyJobForm['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Publication articles" required />
+          </div>
+          <div class="field">
+            <label for="cron-job-script-path"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_SCRIPT_PATH_LABEL', 'Chemin du script PHP local'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="cron-job-script-path" name="cron_job[script_path]" type="text" list="cron-center-script-paths" value="<?php echo htmlspecialchars((string) ($cronEmptyJobForm['script_path'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_SCRIPT_PATH_HELP', 'Chemin relatif à backend, limité à core/tools/*.php.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          </div>
+          <div class="field">
+            <label for="cron-job-status"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_ACTIVATION_LABEL', 'Activation'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <select id="cron-job-status" name="cron_job[status]">
+              <option value="active" selected><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_STATUS_ACTIVE', 'Actif'), ENT_QUOTES, 'UTF-8'); ?></option>
+              <option value="inactive"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_STATUS_INACTIVE', 'Inactif'), ENT_QUOTES, 'UTF-8'); ?></option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="cron-job-schedule"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_EXPRESSION_LABEL', 'Expression cron'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="cron-job-schedule" name="cron_job[schedule_expression]" type="text" value="<?php echo htmlspecialchars((string) ($cronEmptyJobForm['schedule_expression'] ?? '*/5 * * * *'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="00 12 * * *" required />
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_EXPRESSION_HELP', 'Format : minute heure jour mois jour_semaine. Exemple 00 12 * * * = tous les jours à 12:00.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          </div>
+          <div class="field">
+            <label for="cron-job-timeout"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TIMEOUT_LABEL', 'Timeout'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="cron-job-timeout" name="cron_job[timeout_seconds]" type="number" min="5" max="3600" value="<?php echo htmlspecialchars((string) ($cronEmptyJobForm['timeout_seconds'] ?? 300), ENT_QUOTES, 'UTF-8'); ?>" required />
+          </div>
+          <div class="field">
+            <label for="cron-job-description"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_DESCRIPTION_LABEL', 'Description'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <textarea id="cron-job-description" name="cron_job[description]" rows="4"><?php echo htmlspecialchars((string) ($cronEmptyJobForm['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+          </div>
+          <div class="field">
+            <label for="cron-job-arguments-json"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_ARGUMENTS_LABEL', 'Paramètres JSON'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <textarea id="cron-job-arguments-json" name="cron_job[arguments_json]" rows="4" spellcheck="false"><?php echo htmlspecialchars((string) ($cronEmptyJobForm['arguments_json'] ?? "{\n  \"args\": []\n}"), ENT_QUOTES, 'UTF-8'); ?></textarea>
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_ARGUMENTS_HELP', 'Objet JSON optionnel, par exemple {"args":["--quiet"]}. stdout, stderr et code retour sont journalisés.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          </div>
+          <div class="actions-inline actions-inline-end">
+            <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_CREATE_BUTTON', 'Créer le job script'), ENT_QUOTES, 'UTF-8'); ?></button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h4><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_JOBS_TITLE', 'Jobs créés'), ENT_QUOTES, 'UTF-8'); ?></h4>
+        <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_MANUAL_TEST_HELP', 'Le test manuel exécute réellement le script autorisé et écrit le résultat dans l’historique.'), ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php if ($cronJobs === []): ?>
+        <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_NO_JOBS', 'Aucun job cron enregistré.'), ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php else: ?>
+        <div class="table-shell">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TABLE_JOB', 'Job'), ENT_QUOTES, 'UTF-8'); ?></th>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TABLE_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></th>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TABLE_SCHEDULE', 'Planification'), ENT_QUOTES, 'UTF-8'); ?></th>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TABLE_LAST_RUN', 'Dernière exécution'), ENT_QUOTES, 'UTF-8'); ?></th>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TABLE_NEXT_RUN', 'Prochaine exécution'), ENT_QUOTES, 'UTF-8'); ?></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($cronJobs as $cronJob): ?>
+              <?php
+              if (!is_array($cronJob)) {
+                  continue;
+              }
+
+              $cronJobCode = (string) ($cronJob['code'] ?? '');
+              $cronJobHtmlId = preg_replace('/[^a-z0-9_-]+/i', '-', $cronJobCode) ?: 'job';
+              $cronJobActive = (string) ($cronJob['status'] ?? '') === 'active';
+              $cronJobDefault = !empty($cronJob['is_default']);
+              $cronJobLastStatus = trim((string) ($cronJob['last_status'] ?? ''));
+              $cronJobAlert = in_array($cronJobLastStatus, ['failed', 'timeout'], true);
+              ?>
+              <tr>
+                <td>
+                  <strong><?php echo htmlspecialchars((string) ($cronJob['name'] ?? $cronJobCode), ENT_QUOTES, 'UTF-8'); ?></strong><br />
+                  <code><?php echo htmlspecialchars($cronJobCode, ENT_QUOTES, 'UTF-8'); ?></code><br />
+                  <small><?php echo htmlspecialchars((string) ($cronJob['script_path'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
+                  <?php if ($cronJobDefault): ?>
+                  <br /><small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_DEFAULT_JOB_LABEL', 'Job par défaut'), ENT_QUOTES, 'UTF-8'); ?></small>
+                  <?php endif; ?>
+                  <details>
+                    <summary><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_EDIT_SUMMARY', 'Modifier'), ENT_QUOTES, 'UTF-8'); ?></summary>
+                    <form method="post" action="<?php echo htmlspecialchars($settingsAction, ENT_QUOTES, 'UTF-8'); ?>" class="admin-form-grid" autocomplete="off" novalidate>
+                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="settings_section" value="cron" />
+                      <input type="hidden" name="settings_action" value="cron_save" />
+                      <input type="hidden" name="cron_job[code]" value="<?php echo htmlspecialchars($cronJobCode, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <div class="field">
+                        <label for="cron-job-name-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_JOB_NAME_LABEL', 'Nom'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input id="cron-job-name-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>" name="cron_job[name]" type="text" value="<?php echo htmlspecialchars((string) ($cronJob['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
+                      </div>
+                      <div class="field">
+                        <label for="cron-job-script-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_SCRIPT_PATH_LABEL', 'Chemin du script PHP local'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input id="cron-job-script-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>" name="cron_job[script_path]" type="text" list="cron-center-script-paths" value="<?php echo htmlspecialchars((string) ($cronJob['script_path'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
+                      </div>
+                      <div class="field">
+                        <label for="cron-job-status-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_ACTIVATION_LABEL', 'Activation'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <select id="cron-job-status-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>" name="cron_job[status]">
+                          <option value="active"<?php echo $cronJobActive ? ' selected' : ''; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_STATUS_ACTIVE', 'Actif'), ENT_QUOTES, 'UTF-8'); ?></option>
+                          <option value="inactive"<?php echo !$cronJobActive ? ' selected' : ''; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_STATUS_INACTIVE', 'Inactif'), ENT_QUOTES, 'UTF-8'); ?></option>
+                        </select>
+                      </div>
+                      <div class="field">
+                        <label for="cron-job-schedule-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_EXPRESSION_LABEL', 'Expression cron'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input id="cron-job-schedule-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>" name="cron_job[schedule_expression]" type="text" value="<?php echo htmlspecialchars((string) ($cronJob['schedule_expression'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
+                      </div>
+                      <div class="field">
+                        <label for="cron-job-timeout-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TIMEOUT_LABEL', 'Timeout'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input id="cron-job-timeout-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>" name="cron_job[timeout_seconds]" type="number" min="5" max="3600" value="<?php echo htmlspecialchars((string) ($cronJob['timeout_seconds'] ?? 300), ENT_QUOTES, 'UTF-8'); ?>" required />
+                      </div>
+                      <div class="field">
+                        <label for="cron-job-description-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_DESCRIPTION_LABEL', 'Description'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <textarea id="cron-job-description-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>" name="cron_job[description]" rows="3"><?php echo htmlspecialchars((string) ($cronJob['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                      </div>
+                      <div class="field">
+                        <label for="cron-job-arguments-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_ARGUMENTS_LABEL', 'Paramètres JSON'), ENT_QUOTES, 'UTF-8'); ?></label>
+                        <textarea id="cron-job-arguments-<?php echo htmlspecialchars($cronJobHtmlId, ENT_QUOTES, 'UTF-8'); ?>" name="cron_job[arguments_json]" rows="4" spellcheck="false"><?php echo htmlspecialchars((string) ($cronJob['arguments_json'] ?? "{\n  \"args\": []\n}"), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                      </div>
+                      <div class="actions-inline actions-inline-end">
+                        <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_SAVE_BUTTON', 'Enregistrer le job'), ENT_QUOTES, 'UTF-8'); ?></button>
+                      </div>
+                    </form>
+                  </details>
+                </td>
+                <td>
+                  <span class="tag"><?php echo htmlspecialchars((string) ($cronJob['status_label'] ?? ($cronJobActive ? 'Actif' : 'Inactif')), ENT_QUOTES, 'UTF-8'); ?></span><br />
+                  <?php if ($cronJobLastStatus !== ''): ?>
+                  <small><?php echo htmlspecialchars($cronJobLastStatus, ENT_QUOTES, 'UTF-8'); ?><?php echo $cronJobAlert ? ' · alerte' : ''; ?></small>
+                  <?php endif; ?>
+                  <form method="post" action="<?php echo htmlspecialchars($settingsAction, ENT_QUOTES, 'UTF-8'); ?>" class="actions-inline" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+                    <input type="hidden" name="settings_section" value="cron" />
+                    <input type="hidden" name="settings_action" value="cron_toggle" />
+                    <input type="hidden" name="cron_job_code" value="<?php echo htmlspecialchars($cronJobCode, ENT_QUOTES, 'UTF-8'); ?>" />
+                    <input type="hidden" name="cron_job_status" value="<?php echo $cronJobActive ? 'inactive' : 'active'; ?>" />
+                    <button type="submit" class="button-muted button-small"><?php echo htmlspecialchars($cronJobActive ? $translate('TXT_ADMIN_SETTINGS_CRON_DISABLE_BUTTON', 'Désactiver') : $translate('TXT_ADMIN_SETTINGS_CRON_ENABLE_BUTTON', 'Activer'), ENT_QUOTES, 'UTF-8'); ?></button>
+                  </form>
+                  <form method="post" action="<?php echo htmlspecialchars($settingsAction, ENT_QUOTES, 'UTF-8'); ?>" class="actions-inline" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+                    <input type="hidden" name="settings_section" value="cron" />
+                    <input type="hidden" name="settings_action" value="cron_test" />
+                    <input type="hidden" name="cron_job_code" value="<?php echo htmlspecialchars($cronJobCode, ENT_QUOTES, 'UTF-8'); ?>" />
+                    <button type="submit" class="button-small"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TEST_BUTTON', 'Tester maintenant'), ENT_QUOTES, 'UTF-8'); ?></button>
+                  </form>
+                </td>
+                <td>
+                  <code><?php echo htmlspecialchars((string) ($cronJob['schedule_expression'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></code><br />
+                  <small><?php echo htmlspecialchars((string) ($cronJob['schedule_summary'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></small>
+                </td>
+                <td>
+                  <?php echo htmlspecialchars($formatCronDate($cronJob['last_run_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?><br />
+                  <?php if (($cronJob['last_duration_ms'] ?? null) !== null): ?>
+                  <small><?php echo (int) $cronJob['last_duration_ms']; ?> ms · code <?php echo $cronJob['last_exit_code'] === null ? '—' : (int) $cronJob['last_exit_code']; ?></small>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php echo htmlspecialchars($formatCronDate($cronJob['next_run_at'] ?? ($cronJob['next_run_display'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
+                  <?php if (!$cronJobDefault): ?>
+                  <form method="post" action="<?php echo htmlspecialchars($settingsAction, ENT_QUOTES, 'UTF-8'); ?>" class="actions-inline" autocomplete="off">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+                    <input type="hidden" name="settings_section" value="cron" />
+                    <input type="hidden" name="settings_action" value="cron_delete" />
+                    <input type="hidden" name="cron_job_code" value="<?php echo htmlspecialchars($cronJobCode, ENT_QUOTES, 'UTF-8'); ?>" />
+                    <button type="submit" class="button-danger button-small"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_DELETE_BUTTON', 'Supprimer'), ENT_QUOTES, 'UTF-8'); ?></button>
+                  </form>
+                  <?php endif; ?>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+        <?php endif; ?>
+      </section>
+
+      <section class="card">
+        <h4><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_HISTORY_TITLE', 'Dernières exécutions'), ENT_QUOTES, 'UTF-8'); ?></h4>
+        <?php if ($cronRuns === []): ?>
+        <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_NO_RUNS', 'Aucune exécution journalisée pour le moment.'), ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php else: ?>
+        <div class="table-shell">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TABLE_JOB', 'Job'), ENT_QUOTES, 'UTF-8'); ?></th>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TABLE_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></th>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_TABLE_LAST_RUN', 'Dernière exécution'), ENT_QUOTES, 'UTF-8'); ?></th>
+                <th><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_MESSAGE_LABEL', 'Message'), ENT_QUOTES, 'UTF-8'); ?></th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($cronRuns as $cronRun): ?>
+              <?php if (!is_array($cronRun)) { continue; } ?>
+              <tr>
+                <td><code><?php echo htmlspecialchars((string) ($cronRun['job_code'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></code></td>
+                <td><span class="tag"><?php echo htmlspecialchars((string) ($cronRun['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                <td><?php echo htmlspecialchars($formatCronDate($cronRun['started_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                <td><?php echo htmlspecialchars((string) ($cronRun['message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+        <?php endif; ?>
+      </section>
+    </div>
+    <div class="region-modal__actions actions-inline actions-inline-end">
+      <button type="button" class="button-muted" data-region-modal-close>Fermer</button>
+    </div>
+  </div>
 </dialog>
 
 <dialog class="region-modal settings-dialog" id="settings-dialog-translations" aria-labelledby="settings-dialog-translations-title">

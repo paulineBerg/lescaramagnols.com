@@ -71,6 +71,9 @@ trait EditorialSqlTestTrait
 
             foreach (
                 [
+                    'cron_runs',
+                    'cron_jobs',
+                    'cron_scheduler_state',
                     'blog_discussions',
                     'blog_articles',
                     'log_entries',

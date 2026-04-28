@@ -154,7 +154,7 @@ if ($attachedArticles !== []) {
     $discussionsEnabled = (bool) app_config('site.discussions.enabled', true);
     $discussionRequireAccount = $discussionsEnabled && (bool) app_config('site.discussions.require_account', false);
     $discussionRepository = $discussionsEnabled ? blog_discussion_repository() : null;
-    $discussionSubmitPath = app_url('core/blog/submit_discussion.php');
+    $discussionSubmitPath = '/core/blog/submit_discussion.php';
     $honeypotField = trim((string) app_config('site.discussions.honeypot_field', 'website'));
     if (preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{1,40}$/', $honeypotField) !== 1) {
         $honeypotField = 'website';
@@ -162,6 +162,7 @@ if ($attachedArticles !== []) {
 
     $recaptchaConfig = app_config('site.discussions.recaptcha', []);
     $recaptchaConfig = is_array($recaptchaConfig) ? $recaptchaConfig : [];
+    $recaptchaMode = \Caramagnols\Blog\DiscussionRecaptchaMode::normalize($recaptchaConfig['mode'] ?? null);
     $recaptchaSiteKey = trim((string) ($recaptchaConfig['site_key'] ?? ''));
     $recaptchaEnabled = $discussionsEnabled
         && (bool) ($recaptchaConfig['enabled'] ?? false)
@@ -436,11 +437,21 @@ if ($attachedArticles !== []) {
                 'issued_at' => time(),
             ];
 
-            $returnQuery = $currentRequestQuery;
-            $returnQuery['open_article'] = $slug;
-            $returnToDiscussionUrl = $currentRequestPath;
-            if ($returnQuery !== []) {
-                $returnToDiscussionUrl .= '?' . http_build_query($returnQuery);
+            $canonicalDiscussionPath = $attachedArticlePathForCurrentPage($article);
+            if (is_string($canonicalDiscussionPath) && trim($canonicalDiscussionPath) !== '') {
+                $canonicalDiscussionParts = parse_url($canonicalDiscussionPath);
+                $canonicalDiscussionPathOnly = normalize_public_route((string) ($canonicalDiscussionParts['path'] ?? '')) ?? '';
+                $canonicalDiscussionQuery = isset($canonicalDiscussionParts['query']) && is_string($canonicalDiscussionParts['query']) && $canonicalDiscussionParts['query'] !== ''
+                    ? '?' . $canonicalDiscussionParts['query']
+                    : '';
+                $returnToDiscussionUrl = $canonicalDiscussionPathOnly . $canonicalDiscussionQuery;
+            } else {
+                $returnQuery = $currentRequestQuery;
+                $returnQuery['open_article'] = $slug;
+                $returnToDiscussionUrl = $currentRequestPath;
+                if ($returnQuery !== []) {
+                    $returnToDiscussionUrl .= '?' . http_build_query($returnQuery);
+                }
             }
             $returnToDiscussionUrl .= '#discussion-form-' . rawurlencode($slug);
         }

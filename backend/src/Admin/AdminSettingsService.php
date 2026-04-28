@@ -6,6 +6,8 @@ namespace Caramagnols\Admin;
 
 use Caramagnols\Admin\Settings\AdminLogAlertsSettingsManager;
 use Caramagnols\Admin\Settings\AdminTranslationSettingsManager;
+use Caramagnols\Backup\ProductionBackupService;
+use Caramagnols\Blog\DiscussionRecaptchaMode;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Social\InstagramFeedService;
 
@@ -127,6 +129,7 @@ final class AdminSettingsService
             'maxFormAgeSeconds' => (int) app_config('site.discussions.max_form_age_seconds', 7200),
             'honeypotField' => trim((string) app_config('site.discussions.honeypot_field', 'website')),
             'recaptchaEnabled' => $this->normalizeBooleanValue(app_config('site.discussions.recaptcha.enabled', false), false),
+            'recaptchaMode' => DiscussionRecaptchaMode::normalize(app_config('site.discussions.recaptcha.mode', DiscussionRecaptchaMode::V2_CHECKBOX)),
             'recaptchaSiteKey' => trim((string) app_config('site.discussions.recaptcha.site_key', '')),
             'recaptchaSecretKey' => trim((string) app_config('site.discussions.recaptcha.secret_key', '')),
             'recaptchaMinimumScore' => (float) app_config('site.discussions.recaptcha.minimum_score', 0.5),
@@ -170,7 +173,7 @@ final class AdminSettingsService
 
     private function detectedPhpBinary(): string
     {
-        $binary = trim((string) env('PHP_CLI_BINARY', PHP_BINARY));
+        $binary = trim((string) app_config('backup.php_binary', env('PHP_CLI_BINARY', PHP_BINARY)));
 
         return $binary !== '' ? $binary : 'php';
     }
@@ -187,6 +190,69 @@ final class AdminSettingsService
             escapeshellarg($this->detectedPhpBinary()),
             escapeshellarg($this->scheduledBlogPublishScriptPath())
         );
+    }
+
+    private function productionBackupScriptPath(): string
+    {
+        return ROOT_PATH . '/core/tools/backup_production.php';
+    }
+
+    private function productionBackupCronCommand(): string
+    {
+        return sprintf(
+            '25 2 * * * %s %s --quiet >/dev/null 2>&1',
+            escapeshellarg($this->detectedPhpBinary()),
+            escapeshellarg($this->productionBackupScriptPath())
+        );
+    }
+
+    private function productionBackupDryRunCommand(): string
+    {
+        return sprintf(
+            '%s %s --dry-run',
+            escapeshellarg($this->detectedPhpBinary()),
+            escapeshellarg($this->productionBackupScriptPath())
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function configuredBackupSettings(): array
+    {
+        $description = ProductionBackupService::fromRuntimeConfig($this->eventLogger)->describe();
+
+        return array_merge($description, [
+            'phpBinary' => $this->detectedPhpBinary(),
+            'scriptPath' => $this->productionBackupScriptPath(),
+            'cronCommand' => $this->productionBackupCronCommand(),
+            'dryRunCommand' => $this->productionBackupDryRunCommand(),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function configuredBackupForm(): array
+    {
+        $backup = $this->configuredBackupSettings();
+
+        return [
+            'rootDir' => (string) ($backup['backupRoot'] ?? dirname(ROOT_PATH) . '/backups'),
+            'retentionDays' => (string) ($backup['retentionDays'] ?? 14),
+            'filesDir' => (string) ($backup['filesDirectory'] ?? ''),
+            'sqlDir' => (string) ($backup['sqlDirectory'] ?? ''),
+            'manifestDir' => (string) ($backup['manifestDirectory'] ?? ''),
+            'phpBinary' => (string) ($backup['phpBinary'] ?? 'php'),
+            'tarBinary' => (string) ($backup['tarBinary'] ?? 'tar'),
+            'mysqldumpBinary' => (string) ($backup['mysqldumpBinary'] ?? 'mysqldump'),
+            'databaseHost' => (string) ($backup['database']['host'] ?? app_config('database.host', '127.0.0.1')),
+            'databasePort' => (string) ($backup['database']['port'] ?? app_config('database.port', 3306)),
+            'databaseName' => (string) ($backup['database']['name'] ?? app_config('database.name', '')),
+            'databaseUser' => (string) ($backup['database']['user'] ?? app_config('database.user', '')),
+            'databasePassword' => '',
+            'databasePrefix' => (string) app_config('database_prefix', 'car_'),
+        ];
     }
 
     /**
@@ -288,6 +354,7 @@ final class AdminSettingsService
             'maxFormAgeSeconds' => (string) ($payload['max_form_age_seconds'] ?? ($fallback['maxFormAgeSeconds'] ?? 7200)),
             'honeypotField' => trim((string) ($payload['honeypot_field'] ?? ($fallback['honeypotField'] ?? 'website'))),
             'recaptchaEnabled' => $this->postBoolean($payload, 'recaptcha_enabled', $this->normalizeBooleanValue($fallback['recaptchaEnabled'] ?? false, false)),
+            'recaptchaMode' => trim((string) ($payload['recaptcha_mode'] ?? ($fallback['recaptchaMode'] ?? DiscussionRecaptchaMode::V2_CHECKBOX))),
             'recaptchaSiteKey' => trim((string) ($payload['recaptcha_site_key'] ?? ($fallback['recaptchaSiteKey'] ?? ''))),
             'recaptchaSecretKey' => trim((string) ($payload['recaptcha_secret_key'] ?? '')),
             'recaptchaMinimumScore' => (string) ($payload['recaptcha_minimum_score'] ?? ($fallback['recaptchaMinimumScore'] ?? 0.5)),
@@ -476,6 +543,12 @@ final class AdminSettingsService
             return ['data' => [], 'error' => 'Le nom du champ honeypot est invalide.'];
         }
 
+        $recaptchaModeRaw = trim((string) ($discussions['recaptchaMode'] ?? ''));
+        $recaptchaMode = DiscussionRecaptchaMode::normalize($recaptchaModeRaw);
+        if ($recaptchaModeRaw !== '' && $recaptchaMode !== $recaptchaModeRaw) {
+            return ['data' => [], 'error' => 'Le mode reCAPTCHA est invalide.'];
+        }
+
         $recaptchaMinimumScore = (float) ($discussions['recaptchaMinimumScore'] ?? 0.5);
         if ($recaptchaMinimumScore < 0 || $recaptchaMinimumScore > 1) {
             return ['data' => [], 'error' => 'Le score minimum reCAPTCHA doit être compris entre 0 et 1.'];
@@ -514,6 +587,7 @@ final class AdminSettingsService
                 'maxFormAgeSeconds' => (int) $maxFormAgeSeconds,
                 'honeypotField' => $honeypotField,
                 'recaptchaEnabled' => $recaptchaEnabled,
+                'recaptchaMode' => $recaptchaMode,
                 'recaptchaSiteKey' => $recaptchaSiteKey,
                 'recaptchaSecretKey' => $recaptchaSecretKey,
                 'recaptchaMinimumScore' => $recaptchaMinimumScore,
@@ -600,6 +674,75 @@ final class AdminSettingsService
     private function normalizeLogAlertsConfig(array $logAlerts): array
     {
         return $this->logAlertsSettingsManager->normalizeConfig($logAlerts);
+    }
+
+    /**
+     * @param array<string, mixed> $backup
+     * @return array{data: array<string, mixed>, error: string|null}
+     */
+    private function normalizeBackupConfig(array $backup): array
+    {
+        $rootDir = $this->normalizeBackupPath((string) ($backup['rootDir'] ?? ''));
+        if ($rootDir === null) {
+            return ['data' => [], 'error' => 'Le dossier racine des backups doit être un chemin absolu valide.'];
+        }
+
+        $retentionDays = filter_var((string) ($backup['retentionDays'] ?? ''), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => 365],
+        ]);
+        if ($retentionDays === false) {
+            return ['data' => [], 'error' => 'La rétention backup doit être comprise entre 1 et 365 jours.'];
+        }
+
+        $filesDir = $this->normalizeOptionalBackupPath((string) ($backup['filesDir'] ?? ''), $rootDir . '/files');
+        if ($filesDir === null) {
+            return ['data' => [], 'error' => 'Le dossier des archives doit être un chemin absolu valide.'];
+        }
+
+        $sqlDir = $this->normalizeOptionalBackupPath((string) ($backup['sqlDir'] ?? ''), $rootDir . '/sql');
+        if ($sqlDir === null) {
+            return ['data' => [], 'error' => 'Le dossier des dumps SQL doit être un chemin absolu valide.'];
+        }
+
+        $manifestDir = $this->normalizeOptionalBackupPath((string) ($backup['manifestDir'] ?? ''), $rootDir . '/manifests');
+        if ($manifestDir === null) {
+            return ['data' => [], 'error' => 'Le dossier des manifestes doit être un chemin absolu valide.'];
+        }
+
+        foreach ([$rootDir, $filesDir, $sqlDir, $manifestDir] as $directory) {
+            if (!$this->isBackupOutputPathSafe($directory)) {
+                return ['data' => [], 'error' => 'Les dossiers de backup doivent rester hors backend/public et hors dossier backend.'];
+            }
+        }
+
+        $phpBinary = $this->normalizeBackupBinary((string) ($backup['phpBinary'] ?? 'php'));
+        if ($phpBinary === null) {
+            return ['data' => [], 'error' => 'Le binaire PHP est invalide.'];
+        }
+
+        $tarBinary = $this->normalizeBackupBinary((string) ($backup['tarBinary'] ?? 'tar'));
+        if ($tarBinary === null) {
+            return ['data' => [], 'error' => 'Le binaire tar est invalide.'];
+        }
+
+        $mysqldumpBinary = $this->normalizeBackupBinary((string) ($backup['mysqldumpBinary'] ?? 'mysqldump'));
+        if ($mysqldumpBinary === null) {
+            return ['data' => [], 'error' => 'Le binaire mysqldump est invalide.'];
+        }
+
+        return [
+            'data' => [
+                'root_dir' => $rootDir,
+                'retention_days' => (int) $retentionDays,
+                'files_dir' => $filesDir,
+                'sql_dir' => $sqlDir,
+                'manifest_dir' => $manifestDir,
+                'php_binary' => $phpBinary,
+                'tar_binary' => $tarBinary,
+                'mysqldump_binary' => $mysqldumpBinary,
+            ],
+            'error' => null,
+        ];
     }
 
     /**
@@ -848,6 +991,7 @@ final class AdminSettingsService
                 'honeypot_field' => (string) $discussionsConfig['data']['honeypotField'],
                 'recaptcha' => [
                     'enabled' => (bool) $discussionsConfig['data']['recaptchaEnabled'],
+                    'mode' => (string) $discussionsConfig['data']['recaptchaMode'],
                     'site_key' => (string) $discussionsConfig['data']['recaptchaSiteKey'],
                     'secret_key' => (string) $discussionsConfig['data']['recaptchaSecretKey'],
                     'minimum_score' => (float) $discussionsConfig['data']['recaptchaMinimumScore'],
@@ -866,6 +1010,16 @@ final class AdminSettingsService
             ],
             'log_alerts' => [
                 'notify_on' => (string) $logAlertsConfig['data']['notifyOn'],
+            ],
+            'backup' => [
+                'root_dir' => (string) app_config('backup.root_dir', dirname(ROOT_PATH) . '/backups'),
+                'retention_days' => max(1, min(365, (int) app_config('backup.retention_days', 14))),
+                'files_dir' => (string) app_config('backup.files_dir', ''),
+                'sql_dir' => (string) app_config('backup.sql_dir', ''),
+                'manifest_dir' => (string) app_config('backup.manifest_dir', ''),
+                'php_binary' => trim((string) app_config('backup.php_binary', env('PHP_CLI_BINARY', PHP_BINARY))) ?: 'php',
+                'tar_binary' => trim((string) app_config('backup.tar_binary', 'tar')) ?: 'tar',
+                'mysqldump_binary' => trim((string) app_config('backup.mysqldump_binary', 'mysqldump')) ?: 'mysqldump',
             ],
             'i18n_overrides' => $translationsConfig['data'],
         ];
@@ -943,6 +1097,7 @@ final class AdminSettingsService
                         'max_form_age_seconds' => (int) ($previousDiscussions['maxFormAgeSeconds'] ?? 7200) !== $siteOverride['discussions']['max_form_age_seconds'],
                         'honeypot_field' => (string) ($previousDiscussions['honeypotField'] ?? 'website') !== $siteOverride['discussions']['honeypot_field'],
                         'recaptcha_enabled' => (bool) ($previousDiscussions['recaptchaEnabled'] ?? false) !== $siteOverride['discussions']['recaptcha']['enabled'],
+                        'recaptcha_mode' => (string) ($previousDiscussions['recaptchaMode'] ?? DiscussionRecaptchaMode::V2_CHECKBOX) !== $siteOverride['discussions']['recaptcha']['mode'],
                         'recaptcha_site_key' => (string) ($previousDiscussions['recaptchaSiteKey'] ?? '') !== $siteOverride['discussions']['recaptcha']['site_key'],
                         'recaptcha_secret_key' => (string) ($previousDiscussions['recaptchaSecretKey'] ?? '') !== $siteOverride['discussions']['recaptcha']['secret_key'],
                     ],
@@ -976,6 +1131,157 @@ final class AdminSettingsService
             'error' => null,
             'view' => $this->viewModel(),
             'adminIdentifier' => $adminOverride['identifier'],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, message: string|null, error: string|null, view: array<string, mixed>, adminIdentifier: string|null}
+     */
+    public function saveBackup(array $payload, ?string $actorIdentifier = null): array
+    {
+        $backupPayload = is_array($payload['backup'] ?? null) ? $payload['backup'] : [];
+        $configuredBackup = $this->configuredBackupForm();
+        $backupForm = [
+            'rootDir' => trim((string) ($backupPayload['root_dir'] ?? ($configuredBackup['rootDir'] ?? ''))),
+            'retentionDays' => trim((string) ($backupPayload['retention_days'] ?? ($configuredBackup['retentionDays'] ?? '14'))),
+            'filesDir' => trim((string) ($backupPayload['files_dir'] ?? ($configuredBackup['filesDir'] ?? ''))),
+            'sqlDir' => trim((string) ($backupPayload['sql_dir'] ?? ($configuredBackup['sqlDir'] ?? ''))),
+            'manifestDir' => trim((string) ($backupPayload['manifest_dir'] ?? ($configuredBackup['manifestDir'] ?? ''))),
+            'phpBinary' => trim((string) ($backupPayload['php_binary'] ?? ($configuredBackup['phpBinary'] ?? 'php'))),
+            'tarBinary' => trim((string) ($backupPayload['tar_binary'] ?? ($configuredBackup['tarBinary'] ?? 'tar'))),
+            'mysqldumpBinary' => trim((string) ($backupPayload['mysqldump_binary'] ?? ($configuredBackup['mysqldumpBinary'] ?? 'mysqldump'))),
+        ];
+        $databaseForm = [
+            'host' => trim((string) ($backupPayload['database_host'] ?? ($configuredBackup['databaseHost'] ?? app_config('database.host', '127.0.0.1')))),
+            'port' => trim((string) ($backupPayload['database_port'] ?? ($configuredBackup['databasePort'] ?? app_config('database.port', 3306)))),
+            'name' => trim((string) ($backupPayload['database_name'] ?? ($configuredBackup['databaseName'] ?? app_config('database.name', '')))),
+            'user' => trim((string) ($backupPayload['database_user'] ?? ($configuredBackup['databaseUser'] ?? app_config('database.user', '')))),
+            'password' => (string) ($backupPayload['database_password'] ?? ''),
+            'prefix' => trim((string) ($configuredBackup['databasePrefix'] ?? app_config('database_prefix', 'car_'))),
+        ];
+
+        $backupConfig = $this->normalizeBackupConfig($backupForm);
+        if ($backupConfig['error'] !== null) {
+            return [
+                'success' => false,
+                'message' => null,
+                'error' => $backupConfig['error'],
+                'view' => $this->viewModel(),
+                'adminIdentifier' => null,
+            ];
+        }
+
+        $databaseConfig = $this->normalizeDatabaseConfig($databaseForm);
+        if ($databaseConfig['error'] !== null) {
+            return [
+                'success' => false,
+                'message' => null,
+                'error' => $databaseConfig['error'],
+                'view' => $this->viewModel(),
+                'adminIdentifier' => null,
+            ];
+        }
+
+        $previousBackup = [
+            'root_dir' => (string) app_config('backup.root_dir', ''),
+            'retention_days' => (int) app_config('backup.retention_days', 14),
+            'files_dir' => (string) app_config('backup.files_dir', ''),
+            'sql_dir' => (string) app_config('backup.sql_dir', ''),
+            'manifest_dir' => (string) app_config('backup.manifest_dir', ''),
+            'php_binary' => (string) app_config('backup.php_binary', env('PHP_CLI_BINARY', PHP_BINARY)),
+            'tar_binary' => (string) app_config('backup.tar_binary', 'tar'),
+            'mysqldump_binary' => (string) app_config('backup.mysqldump_binary', 'mysqldump'),
+        ];
+        $previousDatabase = [
+            'host' => (string) app_config('database.host', ''),
+            'port' => (int) app_config('database.port', 3306),
+            'name' => (string) app_config('database.name', ''),
+            'user' => (string) app_config('database.user', ''),
+            'password' => (string) app_config('database.password', ''),
+            'charset' => (string) app_config('database.charset', 'utf8mb4'),
+            'prefix' => (string) app_config('database_prefix', 'car_'),
+        ];
+        $databasePassword = $databaseConfig['data']['password'] !== ''
+            ? (string) $databaseConfig['data']['password']
+            : $previousDatabase['password'];
+        $databaseOverride = [
+            'host' => (string) $databaseConfig['data']['host'],
+            'port' => (int) $databaseConfig['data']['port'],
+            'name' => (string) $databaseConfig['data']['name'],
+            'user' => (string) $databaseConfig['data']['user'],
+            'password' => $databasePassword,
+            'charset' => $previousDatabase['charset'] !== '' ? $previousDatabase['charset'] : 'utf8mb4',
+            'prefix' => (string) $databaseConfig['data']['prefix'],
+        ];
+        $databaseChanged = $previousDatabase['host'] !== $databaseOverride['host']
+            || $previousDatabase['port'] !== $databaseOverride['port']
+            || $previousDatabase['name'] !== $databaseOverride['name']
+            || $previousDatabase['user'] !== $databaseOverride['user']
+            || (string) $databaseConfig['data']['password'] !== '';
+
+        $siteOverride = $this->readPhpArrayFile($this->siteOverridePath);
+        $siteOverride['backup'] = $backupConfig['data'];
+
+        try {
+            if ($databaseChanged) {
+                $this->writePhpArrayFile($this->databaseOverridePath, $databaseOverride);
+                $this->applyDatabaseRuntimeConfig($databaseOverride);
+            }
+
+            $this->writePhpArrayFile($this->siteOverridePath, $siteOverride);
+            $this->applyBackupRuntimeConfig($backupConfig['data']);
+        } catch (\Throwable $exception) {
+            $this->eventLogger->security(
+                'admin.settings.backup_save_failed',
+                [
+                    'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                    'exception' => $exception->getMessage(),
+                ],
+                'error'
+            );
+
+            return [
+                'success' => false,
+                'message' => null,
+                'error' => 'Impossible de sauvegarder les paramètres de backup.',
+                'view' => $this->viewModel(),
+                'adminIdentifier' => null,
+            ];
+        }
+
+        $this->eventLogger->security(
+            'admin.settings.backup_saved',
+            [
+                'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                'backup_changes' => [
+                    'root_dir' => $previousBackup['root_dir'] !== $backupConfig['data']['root_dir'],
+                    'retention_days' => $previousBackup['retention_days'] !== $backupConfig['data']['retention_days'],
+                    'files_dir' => $previousBackup['files_dir'] !== $backupConfig['data']['files_dir'],
+                    'sql_dir' => $previousBackup['sql_dir'] !== $backupConfig['data']['sql_dir'],
+                    'manifest_dir' => $previousBackup['manifest_dir'] !== $backupConfig['data']['manifest_dir'],
+                    'php_binary' => $previousBackup['php_binary'] !== $backupConfig['data']['php_binary'],
+                    'tar_binary' => $previousBackup['tar_binary'] !== $backupConfig['data']['tar_binary'],
+                    'mysqldump_binary' => $previousBackup['mysqldump_binary'] !== $backupConfig['data']['mysqldump_binary'],
+                ],
+                'database_changes' => [
+                    'host' => $previousDatabase['host'] !== $databaseOverride['host'],
+                    'port' => $previousDatabase['port'] !== $databaseOverride['port'],
+                    'name' => $previousDatabase['name'] !== $databaseOverride['name'],
+                    'user' => $previousDatabase['user'] !== $databaseOverride['user'],
+                    'password' => (string) $databaseConfig['data']['password'] !== '',
+                ],
+                'site_override' => basename($this->siteOverridePath),
+                'database_override' => $databaseChanged ? basename($this->databaseOverridePath) : null,
+            ]
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Paramètres de backup sauvegardés.',
+            'error' => null,
+            'view' => $this->viewModel(),
+            'adminIdentifier' => null,
         ];
     }
 
@@ -1279,6 +1585,7 @@ final class AdminSettingsService
                 'maxFormAgeSeconds' => (int) ($discussions['maxFormAgeSeconds'] ?? 7200),
                 'honeypotField' => (string) ($discussions['honeypotField'] ?? 'website'),
                 'recaptchaEnabled' => $this->normalizeBooleanValue($discussions['recaptchaEnabled'] ?? false, false),
+                'recaptchaMode' => DiscussionRecaptchaMode::normalize($discussions['recaptchaMode'] ?? DiscussionRecaptchaMode::V2_CHECKBOX),
                 'recaptchaSiteKey' => (string) ($discussions['recaptchaSiteKey'] ?? ''),
                 'recaptchaSecretKey' => '',
                 'recaptchaSecretKeyConfigured' => $discussionRecaptchaSecretConfigured,
@@ -1302,6 +1609,7 @@ final class AdminSettingsService
                 'blogPublishScriptPath' => $this->scheduledBlogPublishScriptPath(),
                 'blogPublishCronCommand' => $this->scheduledBlogPublishCronCommand(),
             ],
+            'backup' => $this->configuredBackupSettings(),
             'translations' => [
                 'languages' => $translationLanguages,
                 'textByLanguage' => $translationTextareas,
@@ -1575,6 +1883,7 @@ final class AdminSettingsService
                 'honeypot_field' => trim((string) ($siteOverride['discussions']['honeypot_field'] ?? 'website')),
                 'recaptcha' => [
                     'enabled' => $this->normalizeBooleanValue($siteOverride['discussions']['recaptcha']['enabled'] ?? false, false),
+                    'mode' => DiscussionRecaptchaMode::normalize($siteOverride['discussions']['recaptcha']['mode'] ?? DiscussionRecaptchaMode::V2_CHECKBOX),
                     'site_key' => trim((string) ($siteOverride['discussions']['recaptcha']['site_key'] ?? '')),
                     'secret_key' => trim((string) ($siteOverride['discussions']['recaptcha']['secret_key'] ?? '')),
                     'minimum_score' => max(0.0, min(1.0, (float) ($siteOverride['discussions']['recaptcha']['minimum_score'] ?? 0.5))),
@@ -1601,6 +1910,10 @@ final class AdminSettingsService
             ],
             'i18n_overrides' => $this->normalizeI18nOverrides($siteOverride['i18n_overrides'] ?? []),
         ]);
+
+        if (is_array($siteOverride['backup'] ?? null)) {
+            $this->applyBackupRuntimeConfig($siteOverride['backup']);
+        }
     }
 
     /**
@@ -2216,6 +2529,119 @@ final class AdminSettingsService
         }
 
         @chmod($path, 0600);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function readPhpArrayFile(string $path): array
+    {
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $data = require $path;
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * @param array<string, mixed> $backupConfig
+     */
+    private function applyBackupRuntimeConfig(array $backupConfig): void
+    {
+        global $appConfig;
+
+        if (!is_array($appConfig)) {
+            return;
+        }
+
+        $appConfig['backup'] = array_merge((array) ($appConfig['backup'] ?? []), [
+            'root_dir' => (string) ($backupConfig['root_dir'] ?? ''),
+            'retention_days' => max(1, min(365, (int) ($backupConfig['retention_days'] ?? 14))),
+            'files_dir' => (string) ($backupConfig['files_dir'] ?? ''),
+            'sql_dir' => (string) ($backupConfig['sql_dir'] ?? ''),
+            'manifest_dir' => (string) ($backupConfig['manifest_dir'] ?? ''),
+            'php_binary' => trim((string) ($backupConfig['php_binary'] ?? 'php')) ?: 'php',
+            'tar_binary' => trim((string) ($backupConfig['tar_binary'] ?? 'tar')) ?: 'tar',
+            'mysqldump_binary' => trim((string) ($backupConfig['mysqldump_binary'] ?? 'mysqldump')) ?: 'mysqldump',
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $databaseConfig
+     */
+    private function applyDatabaseRuntimeConfig(array $databaseConfig): void
+    {
+        global $appConfig;
+
+        if (!is_array($appConfig)) {
+            return;
+        }
+
+        $appConfig['database'] = [
+            'host' => (string) ($databaseConfig['host'] ?? ''),
+            'port' => (int) ($databaseConfig['port'] ?? 3306),
+            'name' => (string) ($databaseConfig['name'] ?? ''),
+            'user' => (string) ($databaseConfig['user'] ?? ''),
+            'password' => (string) ($databaseConfig['password'] ?? ''),
+            'charset' => (string) ($databaseConfig['charset'] ?? 'utf8mb4'),
+        ];
+        $appConfig['database_prefix'] = (string) ($databaseConfig['prefix'] ?? $appConfig['database_prefix'] ?? 'car_');
+    }
+
+    private function normalizeBackupPath(string $path): ?string
+    {
+        $path = trim(str_replace('\\', '/', $path));
+        if ($path === '') {
+            return null;
+        }
+
+        if (!str_starts_with($path, '/') || preg_match('/[\x00-\x1F\x7F]/', $path) === 1 || strlen($path) > 500) {
+            return null;
+        }
+
+        return rtrim((string) preg_replace('#/+#', '/', $path), '/');
+    }
+
+    private function normalizeOptionalBackupPath(string $path, string $fallback): ?string
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return $fallback;
+        }
+
+        return $this->normalizeBackupPath($path);
+    }
+
+    private function normalizeBackupBinary(string $binary): ?string
+    {
+        $binary = trim(str_replace('\\', '/', $binary));
+        if ($binary === '') {
+            return null;
+        }
+
+        if (preg_match('/[\x00-\x20\x7F]/', $binary) === 1 || strlen($binary) > 240) {
+            return null;
+        }
+
+        if (preg_match('#^[A-Za-z0-9._/-]+$#', $binary) !== 1) {
+            return null;
+        }
+
+        return $binary;
+    }
+
+    private function isBackupOutputPathSafe(string $path): bool
+    {
+        $normalizedPath = rtrim((string) preg_replace('#/+#', '/', $path), '/');
+        $backendRoot = rtrim((string) preg_replace('#/+#', '/', ROOT_PATH), '/');
+        $publicRoot = $backendRoot . '/public';
+
+        return $normalizedPath !== $backendRoot
+            && $normalizedPath !== $publicRoot
+            && !str_starts_with($normalizedPath . '/', $backendRoot . '/')
+            && !str_starts_with($normalizedPath . '/', $publicRoot . '/');
     }
 
     private function isOutsideWebroot(string $path): bool

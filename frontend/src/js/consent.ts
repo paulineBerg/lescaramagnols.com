@@ -19,6 +19,7 @@ type RuntimeTarteaucitronConfig = {
 type RuntimeDiscussionsConfig = {
   recaptcha?: {
     enabled?: boolean;
+    mode?: string;
     site_key?: string;
   };
 };
@@ -56,6 +57,7 @@ const DEFAULT_YOUTUBE_WIDTH = '560';
 const DEFAULT_YOUTUBE_HEIGHT = '315';
 const ORIENTATIONS = ['top', 'bottom', 'middle'] as const;
 const ICON_POSITIONS = ['BottomRight', 'BottomLeft', 'TopRight', 'TopLeft'] as const;
+const RECAPTCHA_MODES = ['v2_checkbox', 'v3_score'] as const;
 
 const normalizeLanguage = (language: string) => {
   const normalized = language.trim().toLowerCase();
@@ -180,6 +182,7 @@ const resolveRuntimeConfig = () => {
   const recaptcha = discussions?.recaptcha;
   const recaptchaSiteKey = resolveString(recaptcha?.site_key, '');
   const recaptchaEnabled = resolveBoolean(recaptcha?.enabled, false) && recaptchaSiteKey !== '';
+  const recaptchaMode = resolveChoice(recaptcha?.mode, RECAPTCHA_MODES, 'v2_checkbox');
 
   return {
     enabled: resolveBoolean(runtime?.enabled, true),
@@ -197,6 +200,7 @@ const resolveRuntimeConfig = () => {
     userConfig: resolveUserConfig(runtime?.user_config_json),
     services: resolveServices(runtime?.services),
     recaptchaEnabled,
+    recaptchaMode,
     recaptchaSiteKey,
     youtubeTitleFallback: resolveString(i18n?.youtube_title_fallback, 'YouTube video')
   };
@@ -371,6 +375,9 @@ export const initCookieConsent = (language: string) => {
   if (runtimeConfig.recaptchaEnabled) {
     tarteaucitron.user = tarteaucitron.user || {};
     tarteaucitron.user.recaptcha_hl = normalizedLanguage;
+    if (runtimeConfig.recaptchaMode === 'v3_score') {
+      tarteaucitron.user.recaptchaapi = runtimeConfig.recaptchaSiteKey;
+    }
   }
 
   const hasYoutubeEmbeds = convertYoutubeEmbeds(runtimeConfig.youtubeTitleFallback) > 0;

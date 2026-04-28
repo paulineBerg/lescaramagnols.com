@@ -2268,6 +2268,8 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('data-region-modal-open="settings-dialog-tarteaucitron"', $response->body);
         $this->assertStringContainsString('data-region-modal-open="settings-dialog-instagram"', $response->body);
         $this->assertStringContainsString('data-region-modal-open="settings-dialog-observability"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-backup"', $response->body);
+        $this->assertStringContainsString('data-region-modal-open="settings-dialog-cron"', $response->body);
         $this->assertStringContainsString('data-region-modal-open="settings-dialog-translations"', $response->body);
         $this->assertStringContainsString('id="settings-dialog-security"', $response->body);
         $this->assertStringContainsString('name="tarteaucitron[privacy_url]" type="text" value="/" placeholder="/"', $response->body);
@@ -2278,6 +2280,29 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('name="log_alerts[notify_on]"', $response->body);
         $this->assertStringContainsString('id="blog-publish-php-binary"', $response->body);
         $this->assertStringContainsString('publish_scheduled_blog_articles.php', $response->body);
+        $this->assertStringContainsString('id="backup-cron-command"', $response->body);
+        $this->assertStringContainsString('backup_production.php', $response->body);
+        $this->assertStringContainsString('name="backup[root_dir]"', $response->body);
+        $this->assertStringContainsString('name="backup[retention_days]"', $response->body);
+        $this->assertStringContainsString('name="backup[files_dir]"', $response->body);
+        $this->assertStringContainsString('name="backup[sql_dir]"', $response->body);
+        $this->assertStringContainsString('name="backup[manifest_dir]"', $response->body);
+        $this->assertStringContainsString('name="backup[php_binary]"', $response->body);
+        $this->assertStringContainsString('name="backup[tar_binary]"', $response->body);
+        $this->assertStringContainsString('name="backup[mysqldump_binary]"', $response->body);
+        $this->assertStringContainsString('name="backup[database_host]"', $response->body);
+        $this->assertStringContainsString('name="backup[database_port]"', $response->body);
+        $this->assertStringContainsString('name="backup[database_name]"', $response->body);
+        $this->assertStringContainsString('name="backup[database_user]"', $response->body);
+        $this->assertStringContainsString('name="backup[database_password]"', $response->body);
+        $this->assertStringContainsString('Connexion SQL utilisee par le site et par le dump mysqldump', $response->body);
+        $this->assertStringContainsString('id="cron-center-ovh-command"', $response->body);
+        $this->assertStringContainsString('run_cron_center.php', $response->body);
+        $this->assertStringContainsString('name="cron_job[code]"', $response->body);
+        $this->assertStringContainsString('Job', $response->body);
+        $this->assertStringContainsString('Planification', $response->body);
+        $this->assertStringContainsString('Derniere execution', $response->body);
+        $this->assertStringContainsString('Prochaine execution', $response->body);
         $this->assertStringContainsString('name="translations[fr]"', $response->body);
         $this->assertStringContainsString('Dictionnaire existant FR', $response->body);
         $this->assertStringContainsString('name="settings_action" value="cache_clear"', $response->body);
@@ -2320,6 +2345,86 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('Icône en bas à droite', $consentCard);
         $this->assertStringNotContainsString('bannière bottom', $consentCard);
         $this->assertStringNotContainsString('Icône BottomRight', $consentCard);
+
+        $backupCardStart = strpos($response->body, 'data-settings-section-card="backup"');
+        $this->assertIsInt($backupCardStart);
+        $backupCardEnd = strpos($response->body, '</button>', $backupCardStart);
+        $this->assertIsInt($backupCardEnd);
+
+        $backupCard = substr($response->body, $backupCardStart, $backupCardEnd - $backupCardStart);
+        $this->assertStringContainsString('Sauvegardes', $backupCard);
+        $this->assertStringContainsString('Dossier production + dump SQL', $backupCard);
+        $this->assertStringNotContainsString('Produktionsordner', $backupCard);
+
+        $cronCardStart = strpos($response->body, 'data-settings-section-card="cron"');
+        $this->assertIsInt($cronCardStart);
+        $cronCardEnd = strpos($response->body, '</button>', $cronCardStart);
+        $this->assertIsInt($cronCardEnd);
+
+        $cronCard = substr($response->body, $cronCardStart, $cronCardEnd - $cronCardStart);
+        $this->assertStringContainsString('Cron Center', $cronCard);
+        $this->assertStringContainsString('Coordination scheduler + jobs PHP locaux', $cronCard);
+        $this->assertStringNotContainsString('Scheduler-Koordination', $cronCard);
+    }
+
+    public function testSettingsBackupSectionSavesEditableFields(): void
+    {
+        $backupRoot = sys_get_temp_dir() . '/caramagnols-admin-backup-root-' . bin2hex(random_bytes(4));
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'settings_section' => 'backup',
+                    'settings_action' => 'backup_save',
+                    'backup' => [
+                        'root_dir' => $backupRoot,
+                        'retention_days' => '21',
+                        'files_dir' => $backupRoot . '/archives',
+                        'sql_dir' => $backupRoot . '/dumps',
+                        'manifest_dir' => $backupRoot . '/manifestes',
+                        'php_binary' => 'php',
+                        'tar_binary' => 'tar',
+                        'mysqldump_binary' => 'mysqldump',
+                        'database_host' => 'bp269148-001.eu.clouddb.ovh.net',
+                        'database_port' => '35987',
+                        'database_name' => 'CarBDbase',
+                        'database_user' => 'bp269148-ovh',
+                        'database_password' => 'sql-backup-secret',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Paramètres de backup sauvegardés.', $response->body);
+        $this->assertStringNotContainsString('sql-backup-secret', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+        $this->assertFileExists($this->siteOverrideFile);
+        $this->assertFileExists($this->databaseOverrideFile);
+
+        $siteOverride = require $this->siteOverrideFile;
+        $databaseOverride = require $this->databaseOverrideFile;
+        $this->assertIsArray($siteOverride);
+        $this->assertIsArray($databaseOverride);
+        $this->assertSame($backupRoot, $siteOverride['backup']['root_dir'] ?? null);
+        $this->assertSame(21, $siteOverride['backup']['retention_days'] ?? null);
+        $this->assertSame($backupRoot . '/archives', $siteOverride['backup']['files_dir'] ?? null);
+        $this->assertSame($backupRoot . '/dumps', $siteOverride['backup']['sql_dir'] ?? null);
+        $this->assertSame($backupRoot . '/manifestes', $siteOverride['backup']['manifest_dir'] ?? null);
+        $this->assertSame('php', $siteOverride['backup']['php_binary'] ?? null);
+        $this->assertSame('bp269148-001.eu.clouddb.ovh.net', $databaseOverride['host'] ?? null);
+        $this->assertSame(35987, $databaseOverride['port'] ?? null);
+        $this->assertSame('CarBDbase', $databaseOverride['name'] ?? null);
+        $this->assertSame('bp269148-ovh', $databaseOverride['user'] ?? null);
+        $this->assertSame('sql-backup-secret', $databaseOverride['password'] ?? null);
     }
 
     public function testSettingsCacheClearActionDeletesInstagramCacheFile(): void
@@ -2465,6 +2570,14 @@ final class AdminControllerTest extends TestCase
                         'user_config_json' => '{"googletagmanagerId":"GTM-MKG2FFBZ","googleadsId":"AW-123456789"}',
                         'services' => ['youtube', ' vimeo ', '', 'YouTube'],
                     ],
+                    'discussions' => [
+                        'recaptcha_enabled' => '1',
+                        'recaptcha_mode' => 'v3_score',
+                        'recaptcha_site_key' => 'site-key-123',
+                        'recaptcha_secret_key' => 'secret-key-123',
+                        'recaptcha_minimum_score' => '0.7',
+                        'recaptcha_timeout_seconds' => '11',
+                    ],
                     'instagram' => [
                         'enabled' => '1',
                         'username' => '@paulineetnoel',
@@ -2527,6 +2640,12 @@ final class AdminControllerTest extends TestCase
         $this->assertFalse((bool) ($siteOverride['tarteaucitron']['bing_consent_mode'] ?? true));
         $this->assertSame('{"googleadsId":"AW-123456789","googletagmanagerId":"GTM-MKG2FFBZ"}', $siteOverride['tarteaucitron']['user_config_json'] ?? null);
         $this->assertSame(['youtube', 'vimeo'], $siteOverride['tarteaucitron']['services'] ?? null);
+        $this->assertTrue((bool) ($siteOverride['discussions']['recaptcha']['enabled'] ?? false));
+        $this->assertSame('v3_score', $siteOverride['discussions']['recaptcha']['mode'] ?? null);
+        $this->assertSame('site-key-123', $siteOverride['discussions']['recaptcha']['site_key'] ?? null);
+        $this->assertSame('secret-key-123', $siteOverride['discussions']['recaptcha']['secret_key'] ?? null);
+        $this->assertSame(0.7, $siteOverride['discussions']['recaptcha']['minimum_score'] ?? null);
+        $this->assertSame(11, $siteOverride['discussions']['recaptcha']['timeout_seconds'] ?? null);
         $this->assertTrue((bool) ($siteOverride['instagram']['enabled'] ?? false));
         $this->assertSame('paulineetnoel', $siteOverride['instagram']['username'] ?? null);
         $this->assertSame('17841400011122233', $siteOverride['instagram']['user_id'] ?? null);

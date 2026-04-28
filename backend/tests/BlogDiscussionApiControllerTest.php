@@ -157,6 +157,112 @@ final class BlogDiscussionApiControllerTest extends TestCase
         $this->assertSame('Pauline', $rows[0]['author']);
     }
 
+    public function testSubmitReturnsJsonSuccessForAjaxRequests(): void
+    {
+        $scope = 'blog_discussion_' . hash('sha256', 'fr:bonjour');
+        $token = csrf_token($scope);
+        $nonce = bin2hex(random_bytes(16));
+        $_SESSION['_blog_discussion_form_nonces'][$nonce] = [
+            'scope' => $scope,
+            'issued_at' => time() - 3,
+        ];
+
+        $controller = new BlogDiscussionApiController(
+            new JsonBlogRepository($this->blogDir),
+            new JsonBlogDiscussionRepository($this->discussionDir)
+        );
+
+        $response = $controller->submit(
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/core/blog/submit_discussion.php',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                ],
+                [],
+                [
+                    'article_slug' => 'bonjour',
+                    'article_lang' => 'fr',
+                    'csrf_token' => $token,
+                    'form_nonce' => $nonce,
+                    'website' => '',
+                    'author' => 'Pauline',
+                    'email' => 'pauline@example.com',
+                    'content' => 'Bonjour à tous',
+                ],
+                [],
+                [
+                    'Host' => 'example.test',
+                    'Accept' => 'application/json',
+                    'X-Requested-With' => 'XMLHttpRequest',
+                ]
+            )
+        );
+
+        $this->assertSame(201, $response->status);
+        $this->assertSame('application/json; charset=utf-8', $response->headers['Content-Type'] ?? null);
+
+        $payload = json_decode($response->body, true);
+        $this->assertIsArray($payload);
+        $this->assertTrue((bool) ($payload['ok'] ?? false));
+        $this->assertSame('Merci. Votre message est enregistré et en attente de validation par l’équipe.', (string) ($payload['message'] ?? ''));
+        $this->assertNotSame('', (string) ($payload['form']['csrf_token'] ?? ''));
+        $this->assertNotSame('', (string) ($payload['form']['form_nonce'] ?? ''));
+    }
+
+    public function testSubmitReturnsJsonErrorForAjaxRequestsAndRefreshesFormState(): void
+    {
+        $scope = 'blog_discussion_' . hash('sha256', 'fr:bonjour');
+        $token = csrf_token($scope);
+        $nonce = bin2hex(random_bytes(16));
+        $_SESSION['_blog_discussion_form_nonces'][$nonce] = [
+            'scope' => $scope,
+            'issued_at' => time() - 3,
+        ];
+
+        $controller = new BlogDiscussionApiController(
+            new JsonBlogRepository($this->blogDir),
+            new JsonBlogDiscussionRepository($this->discussionDir)
+        );
+
+        $response = $controller->submit(
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/core/blog/submit_discussion.php',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                ],
+                [],
+                [
+                    'article_slug' => 'bonjour',
+                    'article_lang' => 'fr',
+                    'csrf_token' => $token,
+                    'form_nonce' => $nonce,
+                    'website' => '',
+                    'author' => 'Pauline',
+                    'email' => 'pauline@example.com',
+                    'content' => '',
+                ],
+                [],
+                [
+                    'Host' => 'example.test',
+                    'Accept' => 'application/json',
+                    'X-Requested-With' => 'XMLHttpRequest',
+                ]
+            )
+        );
+
+        $this->assertSame(422, $response->status);
+        $payload = json_decode($response->body, true);
+        $this->assertIsArray($payload);
+        $this->assertFalse((bool) ($payload['ok'] ?? true));
+        $this->assertStringContainsString('vide', (string) ($payload['message'] ?? ''));
+        $this->assertNotSame('', (string) ($payload['form']['csrf_token'] ?? ''));
+        $this->assertNotSame('', (string) ($payload['form']['form_nonce'] ?? ''));
+        $this->assertNotSame($nonce, (string) ($payload['form']['form_nonce'] ?? ''));
+    }
+
+
     public function testSubmitRejectsFilledHoneypotField(): void
     {
         $scope = 'blog_discussion_' . hash('sha256', 'fr:bonjour');

@@ -49,6 +49,8 @@ Mise a jour 2026-04-16 :
   - rate limit sur endpoints sensibles
 - `content.log`
   - sauvegardes editoriales (menus, pages, blog)
+  - télémétrie client discussion blog (`blog.discussion.client_telemetry`)
+  - coordination Cron Center (`cron.scheduler.*`, `cron.job.*`)
   - erreurs de validation / persistance
 - `access.log`
   - visites front-office GET (`site.visit.page`, `site.visit.not_found`)
@@ -84,6 +86,11 @@ Ces operations sont volontairement non bloquantes (les erreurs de rotation n'int
   - mode permanent (meme sans alerte) : `--notify-on=always`
 - sequence go-live/J+1/J+7 :
   - voir `docs/v1-go-live-runbook.md`
+- coordonner les jobs planifies SQL depuis le point d'entree OVH :
+  - `composer cron-center`
+  - `composer cron-center -- --dry-run`
+  - `composer cron-center -- --job=publish_scheduled_blog_articles`
+  - l'historique SQL conserve les 100 dernieres executions par job
 
 Seuils par defaut :
 - `admin.login.failed >= 10`

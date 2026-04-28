@@ -149,7 +149,7 @@ $discussionFlash = null;
 $discussionOldInput = ['author' => '', 'email' => '', 'content' => ''];
 $discussionCsrfToken = '';
 $discussionNonce = '';
-$discussionSubmitPath = app_url('core/blog/submit_discussion.php');
+$discussionSubmitPath = '/core/blog/submit_discussion.php';
 $excludedRelatedSlugs = [];
 if ($parentArticle !== null) {
     $excludedRelatedSlugs[] = (string) ($parentArticle['slug'] ?? '');
@@ -170,6 +170,7 @@ if (preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{1,40}$/', $honeypotField) !== 1) {
 
 $recaptchaConfig = app_config('site.discussions.recaptcha', []);
 $recaptchaConfig = is_array($recaptchaConfig) ? $recaptchaConfig : [];
+$recaptchaMode = \Caramagnols\Blog\DiscussionRecaptchaMode::normalize($recaptchaConfig['mode'] ?? null);
 $recaptchaSiteKey = trim((string) ($recaptchaConfig['site_key'] ?? ''));
 $recaptchaEnabled = $discussionsEnabled
     && (bool) ($recaptchaConfig['enabled'] ?? false)

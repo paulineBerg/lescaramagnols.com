@@ -16,6 +16,7 @@ $filteredCount = (int) ($logsView['filteredCount'] ?? 0);
 $totalCount = (int) ($logsView['totalCount'] ?? 0);
 $limit = (int) ($logsView['limit'] ?? 200);
 $storageMessage = is_string($logsView['storageMessage'] ?? null) ? $logsView['storageMessage'] : null;
+$cronLogsUrl = (string) ($adminLogsUrl ?? admin_url('logs')) . '?q=cron.';
 $levelLabels = [
     'debug' => 'Debug',
     'info' => 'Info',
@@ -49,8 +50,25 @@ $contextDetailLabels = [
     'mode' => 'Mode',
     'lang' => 'Langue',
     'filters' => 'Filtres',
+    'job_code' => 'Job cron',
+    'job_name' => 'Nom du job',
+    'script_path' => 'Script',
+    'schedule_expression' => 'Planification',
+    'scheduled_at' => 'Planifié pour',
+    'started_at' => 'Démarré',
+    'finished_at' => 'Terminé',
+    'exit_code' => 'Code retour',
+    'duration_ms' => 'Durée',
+    'jobs_checked' => 'Jobs vérifiés',
+    'jobs_due' => 'Jobs dus',
+    'jobs_executed' => 'Jobs exécutés',
+    'now' => 'Date scheduler',
+    'stdout_text' => 'Stdout',
+    'stderr_text' => 'Stderr',
+    'message' => 'Message',
+    'dry_run' => 'Dry-run',
 ];
-$priorityContextKeys = ['actor', 'identifier', 'ip', 'visitor_id', 'uri', 'query', 'method', 'referer', 'user_agent', 'page', 'template', 'slug', 'status', 'action', 'reason', 'retry_after', 'error', 'exception', 'path', 'storage', 'mode', 'lang', 'deleted_count', 'created', 'filters'];
+$priorityContextKeys = ['actor', 'identifier', 'ip', 'visitor_id', 'uri', 'query', 'method', 'referer', 'user_agent', 'page', 'template', 'slug', 'job_code', 'job_name', 'script_path', 'schedule_expression', 'scheduled_at', 'status', 'action', 'exit_code', 'duration_ms', 'jobs_checked', 'jobs_due', 'jobs_executed', 'now', 'message', 'reason', 'retry_after', 'error', 'exception', 'path', 'stdout_text', 'stderr_text', 'storage', 'mode', 'lang', 'deleted_count', 'created', 'filters'];
 $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 $stringifyContextValue = static function (mixed $value): string {
     if (is_bool($value)) {
@@ -141,6 +159,7 @@ $channelCounts = [
     'content' => 0,
     'access' => 0,
 ];
+$cronEntriesCount = 0;
 $levelCounts = [
     'debug' => 0,
     'info' => 0,
@@ -157,6 +176,10 @@ foreach ($entries as $entry) {
 
     if (array_key_exists($level, $levelCounts)) {
         $levelCounts[$level]++;
+    }
+
+    if (str_starts_with((string) ($entry['event'] ?? ''), 'cron.')) {
+        $cronEntriesCount++;
     }
 }
 ?>
@@ -175,7 +198,7 @@ foreach ($entries as $entry) {
     <strong class="dashboard-kpi-value"><?php echo (int) ($channelCounts['security'] ?? 0); ?></strong>
     <p class="dashboard-kpi-label">Lecture Rapide</p>
     <p class="dashboard-kpi-detail"><?php echo (int) ($channelCounts['content'] ?? 0); ?> entrée(s) contenu · <?php echo (int) ($channelCounts['access'] ?? 0); ?> entrée(s) visites.</p>
-    <p class="dashboard-kpi-detail">Debug <?php echo (int) ($levelCounts['debug'] ?? 0); ?> · Warning <?php echo (int) ($levelCounts['warning'] ?? 0); ?> · Erreur <?php echo (int) ($levelCounts['error'] ?? 0); ?></p>
+    <p class="dashboard-kpi-detail">Cron <?php echo (int) $cronEntriesCount; ?> · Debug <?php echo (int) ($levelCounts['debug'] ?? 0); ?> · Warning <?php echo (int) ($levelCounts['warning'] ?? 0); ?> · Erreur <?php echo (int) ($levelCounts['error'] ?? 0); ?></p>
   </article>
 
   <article class="card dashboard-kpi-card">
@@ -255,6 +278,7 @@ foreach ($entries as $entry) {
 
     <div class="actions-inline admin-logs-filters-actions">
       <a class="button-link button-link-muted" href="<?php echo $escape((string) ($logsResetUrl ?? $adminLogsUrl ?? admin_url('logs'))); ?>">Réinitialiser</a>
+      <a class="button-link button-link-muted" href="<?php echo $escape($cronLogsUrl); ?>">Logs cron</a>
       <button type="submit">Filtrer</button>
     </div>
   </form>

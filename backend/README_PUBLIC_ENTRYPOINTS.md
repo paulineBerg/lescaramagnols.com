@@ -32,7 +32,10 @@ Les entrées publiques de référence sont désormais :
 - `/core/blog/save_article.php`
   - alias POST legacy vers l'écriture blog gouvernée
 - `/core/blog/submit_discussion.php`
-  - soumission publique d'une discussion sous article (modération manuelle)
+  - soumission publique d'une discussion sous article (modération manuelle), via shim public déléguant au front-controller
+  - renvoie une redirection `303` pour le fallback HTML classique et une réponse JSON `application/json` pour les soumissions `fetch/XMLHttpRequest`
+- `/core/blog/log_discussion_client.php`
+  - télémétrie légère côté navigateur pour diagnostiquer les échecs de soumission discussions/reCAPTCHA avant même le POST final, via shim public déléguant au front-controller
 - `/rss`
   - flux RSS rendu par `backend/src/Feed/RssFeedService.php`
 - `/sitemap.xml`

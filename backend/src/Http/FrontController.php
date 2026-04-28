@@ -31,6 +31,7 @@ final class FrontController
             $routes->addRoute('GET', '/core/api/lang.php', ['type' => 'api-lang']);
             $routes->addRoute('POST', '/core/blog/save_article.php', ['type' => 'blog', 'action' => 'save_article']);
             $routes->addRoute('POST', '/core/blog/submit_discussion.php', ['type' => 'blog', 'action' => 'submit_discussion']);
+            $routes->addRoute('POST', '/core/blog/log_discussion_client.php', ['type' => 'blog', 'action' => 'log_discussion_client']);
 
             $routes->addRoute('GET', '/rss', ['type' => 'rss']);
             $routes->addRoute('GET', '/rss.php', ['type' => 'redirect', 'location' => '/rss', 'status' => 301]);
@@ -156,6 +157,15 @@ final class FrontController
                         null,
                         app_event_logger()
                     ))->submit($request);
+                }
+
+                if ($action === 'log_discussion_client') {
+                    return (new BlogDiscussionApiController(
+                        blog_repository(),
+                        blog_discussion_repository(),
+                        null,
+                        app_event_logger()
+                    ))->logClientEvent($request);
                 }
 
                 return Response::json(['error' => 'Action blog inconnue.'], 404);
