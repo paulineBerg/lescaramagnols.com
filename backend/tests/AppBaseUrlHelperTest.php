@@ -32,6 +32,8 @@ final class AppBaseUrlHelperTest extends TestCase
     {
         global $appConfig;
 
+        unset($_SERVER['HTTP_HOST']);
+
         $appConfig['site']['url'] = [
             'domain' => 'www.example.com',
             'ssl_domain' => 'secure.example.com',
@@ -44,6 +46,8 @@ final class AppBaseUrlHelperTest extends TestCase
     public function testAppBaseUrlUsesConfiguredSslDomainAndBasePathForHttps(): void
     {
         global $appConfig;
+
+        unset($_SERVER['HTTP_HOST']);
 
         $appConfig['site']['url'] = [
             'domain' => 'www.example.com',
@@ -98,5 +102,26 @@ final class AppBaseUrlHelperTest extends TestCase
         );
 
         $this->assertSame('http://127.0.0.1:8000/catalogue', app_base_url($request));
+    }
+
+    public function testAppBaseUrlPrefersLocalRequestHostOverConfiguredPublicHost(): void
+    {
+        global $appConfig;
+
+        $appConfig['site']['url'] = [
+            'domain' => 'example.com',
+            'ssl_domain' => 'example.com',
+            'base_path' => '/',
+        ];
+
+        $request = new Request(
+            ['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/blog'],
+            [],
+            [],
+            [],
+            ['Host' => '127.0.0.1:8000']
+        );
+
+        $this->assertSame('http://127.0.0.1:8000', app_base_url($request));
     }
 }

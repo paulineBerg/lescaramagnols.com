@@ -144,6 +144,10 @@ function app_base_url(?Request $request = null): string
             $canUseConfiguredHost = false;
         }
 
+        if (!app_host_is_local_or_private($preferredHost) && $requestHost !== '' && app_host_is_local_or_private($requestHost)) {
+            $canUseConfiguredHost = false;
+        }
+
         if ($canUseConfiguredHost) {
             return rtrim($scheme . '://' . $preferredHost, '/') . ($basePath === '/' ? '' : $basePath);
         }
