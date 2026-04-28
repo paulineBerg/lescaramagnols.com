@@ -10,6 +10,7 @@ use Caramagnols\Backup\ProductionBackupService;
 use Caramagnols\Blog\DiscussionRecaptchaMode;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Social\InstagramFeedService;
+use Caramagnols\Support\PhpCliBinary;
 
 final class AdminSettingsService
 {
@@ -173,9 +174,7 @@ final class AdminSettingsService
 
     private function detectedPhpBinary(): string
     {
-        $binary = trim((string) app_config('backup.php_binary', env('PHP_CLI_BINARY', PHP_BINARY)));
-
-        return $binary !== '' ? $binary : 'php';
+        return PhpCliBinary::detect(app_config('backup.php_binary', null), env('PHP_CLI_BINARY', null), PHP_BINARY, PHP_SAPI);
     }
 
     private function scheduledBlogPublishScriptPath(): string
@@ -715,9 +714,9 @@ final class AdminSettingsService
             }
         }
 
-        $phpBinary = $this->normalizeBackupBinary((string) ($backup['phpBinary'] ?? 'php'));
+        $phpBinary = PhpCliBinary::normalize((string) ($backup['phpBinary'] ?? 'php'));
         if ($phpBinary === null) {
-            return ['data' => [], 'error' => 'Le binaire PHP est invalide.'];
+            return ['data' => [], 'error' => 'Le binaire PHP CLI est invalide.'];
         }
 
         $tarBinary = $this->normalizeBackupBinary((string) ($backup['tarBinary'] ?? 'tar'));
@@ -1017,7 +1016,7 @@ final class AdminSettingsService
                 'files_dir' => (string) app_config('backup.files_dir', ''),
                 'sql_dir' => (string) app_config('backup.sql_dir', ''),
                 'manifest_dir' => (string) app_config('backup.manifest_dir', ''),
-                'php_binary' => trim((string) app_config('backup.php_binary', env('PHP_CLI_BINARY', PHP_BINARY))) ?: 'php',
+                'php_binary' => $this->detectedPhpBinary(),
                 'tar_binary' => trim((string) app_config('backup.tar_binary', 'tar')) ?: 'tar',
                 'mysqldump_binary' => trim((string) app_config('backup.mysqldump_binary', 'mysqldump')) ?: 'mysqldump',
             ],
@@ -1189,7 +1188,7 @@ final class AdminSettingsService
             'files_dir' => (string) app_config('backup.files_dir', ''),
             'sql_dir' => (string) app_config('backup.sql_dir', ''),
             'manifest_dir' => (string) app_config('backup.manifest_dir', ''),
-            'php_binary' => (string) app_config('backup.php_binary', env('PHP_CLI_BINARY', PHP_BINARY)),
+            'php_binary' => $this->detectedPhpBinary(),
             'tar_binary' => (string) app_config('backup.tar_binary', 'tar'),
             'mysqldump_binary' => (string) app_config('backup.mysqldump_binary', 'mysqldump'),
         ];
@@ -2562,7 +2561,7 @@ final class AdminSettingsService
             'files_dir' => (string) ($backupConfig['files_dir'] ?? ''),
             'sql_dir' => (string) ($backupConfig['sql_dir'] ?? ''),
             'manifest_dir' => (string) ($backupConfig['manifest_dir'] ?? ''),
-            'php_binary' => trim((string) ($backupConfig['php_binary'] ?? 'php')) ?: 'php',
+                'php_binary' => PhpCliBinary::detect($backupConfig['php_binary'] ?? null, env('PHP_CLI_BINARY', null), PHP_BINARY, PHP_SAPI),
             'tar_binary' => trim((string) ($backupConfig['tar_binary'] ?? 'tar')) ?: 'tar',
             'mysqldump_binary' => trim((string) ($backupConfig['mysqldump_binary'] ?? 'mysqldump')) ?: 'mysqldump',
         ]);

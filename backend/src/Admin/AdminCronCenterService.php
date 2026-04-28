@@ -10,6 +10,7 @@ use Caramagnols\Cron\CronJobRunner;
 use Caramagnols\Cron\CronScheduler;
 use Caramagnols\Cron\CronScriptPolicy;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\Support\PhpCliBinary;
 use DateTimeImmutable;
 
 final class AdminCronCenterService
@@ -355,9 +356,7 @@ final class AdminCronCenterService
 
     private function detectedPhpBinary(): string
     {
-        $binary = trim((string) env('PHP_CLI_BINARY', PHP_BINARY));
-
-        return $binary !== '' ? $binary : 'php';
+        return PhpCliBinary::detect(app_config('backup.php_binary', null), env('PHP_CLI_BINARY', null), PHP_BINARY, PHP_SAPI);
     }
 
     private function runnerPath(): string

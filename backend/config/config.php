@@ -187,7 +187,7 @@ $productionBackupConfig = [
     'retention_days' => $productionBackupRetentionDays,
     'tar_binary' => $productionBackupTarBinary,
     'mysqldump_binary' => $productionBackupMysqldumpBinary,
-    'php_binary' => trim((string) env('PHP_CLI_BINARY', PHP_BINARY)) ?: 'php',
+    'php_binary' => \Caramagnols\Support\PhpCliBinary::detect(null, env('PHP_CLI_BINARY', null), PHP_BINARY, PHP_SAPI),
     'files_dir' => '',
     'sql_dir' => '',
     'manifest_dir' => '',
@@ -203,7 +203,12 @@ if ($productionBackupConfig['root_dir'] === '') {
 $productionBackupConfig['retention_days'] = max(1, min(365, (int) ($productionBackupConfig['retention_days'] ?? 14)));
 $productionBackupConfig['tar_binary'] = trim((string) ($productionBackupConfig['tar_binary'] ?? 'tar')) ?: 'tar';
 $productionBackupConfig['mysqldump_binary'] = trim((string) ($productionBackupConfig['mysqldump_binary'] ?? 'mysqldump')) ?: 'mysqldump';
-$productionBackupConfig['php_binary'] = trim((string) ($productionBackupConfig['php_binary'] ?? 'php')) ?: 'php';
+$productionBackupConfig['php_binary'] = \Caramagnols\Support\PhpCliBinary::detect(
+    $productionBackupConfig['php_binary'] ?? null,
+    env('PHP_CLI_BINARY', null),
+    PHP_BINARY,
+    PHP_SAPI
+);
 $productionBackupConfig['files_dir'] = trim((string) ($productionBackupConfig['files_dir'] ?? ''));
 $productionBackupConfig['sql_dir'] = trim((string) ($productionBackupConfig['sql_dir'] ?? ''));
 $productionBackupConfig['manifest_dir'] = trim((string) ($productionBackupConfig['manifest_dir'] ?? ''));
