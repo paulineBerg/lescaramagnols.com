@@ -7,8 +7,11 @@
     <exclude name="Generic.Files.LineLength"/>
   </rule>
   <exclude-pattern>core/*</exclude-pattern>
+  <exclude-pattern>core/tools/diagnose_blog_taxonomy.php</exclude-pattern>
   <exclude-pattern>config/*</exclude-pattern>
+  <exclude-pattern>config/blog_taxonomy.php</exclude-pattern>
   <exclude-pattern>public/*</exclude-pattern>
   <exclude-pattern>vendor/*</exclude-pattern>
   <exclude-pattern>data/*</exclude-pattern>
+  <exclude-pattern>src/Blog/BlogTaxonomy.php</exclude-pattern>
 </ruleset>
