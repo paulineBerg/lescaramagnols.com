@@ -305,6 +305,9 @@ Ordre recommande:
 - pour `INTRO`, privilegier d'abord une petite image; si aucune image n'est utile, limiter le texte a un bloc tres court
 - ne pas utiliser `INTRO` pour loger un second corps d'article, un long developpement ou une grande image; si le contenu depasse ce role, le basculer dans `EditRegion3 - Corps` ou une autre region adaptee
 - rechercher, quand le sujet s'y prete, des images libre de droit pour agrementer les sections et ne pas se limiter aux visuels deja presents
+- pour un article de blog: image de couverture obligatoire, un texte d'intro compact et minimum une image utile dans le corps
+- pour un article de blog: au moins 1 image dans le contenu est obligatoire, une 2e image dans le contenu seulement si elle apporte une information précise (repere technique, comparaison, etat, usage)
+- pour un article de blog: éviter les images décoratives, l'empilement ou la répétition du meme visuel; prioriser des images utiles, structurantes et non redondantes entre intro/couverture et corps
 - ne pas laisser de `h2` ou `h3` vides
 - pas de tiret cadratin ou autres sigles qu'un clavier français n'a pas directement
 - preferer des paragraphes reels a des successions de lignes separees par `<br>`
@@ -326,7 +329,7 @@ Ordre recommande:
 - renseigner un extrait qui resume l'angle de lecture sans recopier le `h1`
 - choisir une categorie stable et peu nombreuse; ne pas inventer des categories inutilement
 - choisir des tags concrets: marque, lieu, theme, usage, restauration, technique
-- si une image de couverture est utilisee, remplir `alt`, `title`, `caption`, `width` et `height` quand l'information existe
+- image de couverture obligatoire pour tout article de blog, avec `alt`, `title`, `caption`, `width` et `height` quand l'information existe
 - l'attribut `alt` decrit l'image factuellement; la legende apporte le contexte editorial si necessaire
 - rattacher l'article a sa page parent ou a son article parent seulement si cela a un sens editorial reel
 - verifier que les liens internes servent la lecture et ne forcent pas un maillage artificiel

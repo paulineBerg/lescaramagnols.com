@@ -237,8 +237,14 @@ Règles :
 
 ## Images article (V1)
 
-La V1 ajoute une image de couverture optionnelle par article :
-- saisie manuelle via chemin public (`/assets/images/...` ou `/uploads/editorial/...`) ou URL `https://...`
+La création d'un article de blog doit respecter les règles médias suivantes (V1) :
+- image de couverture obligatoire par article
+- minimum une image dans le contenu (hors intro), utile et lisible, placée selon la structure éditoriale
+- une seconde image dans le contenu est possible si elle apporte une information réelle (comparatif, repère technique, preuve visuelle utile)
+- pas d'images décoratives, d'empilement visuel ni de doublons entre couverture et corps
+- si le sujet le justifie, privilégier une courte galerie finale plutôt qu'une accumulation de visuels en plein texte
+- image de couverture doit porter `alt`, `title`, `caption`, `width` et `height` quand l'information existe
+- saisie manuelle via chemin public (`/assets/images/...`) ou URL `https://...`
 - upload admin sécurisé (JPG/PNG/WebP/GIF/AVIF) vers `backend/public/uploads/editorial/article/YYYY/MM`
 - dimensions explicitables pour limiter les CLS
 - rendu front sur :

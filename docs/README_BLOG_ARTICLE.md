@@ -44,6 +44,17 @@ Exemple :
 - a éviter : `L'article doit insister sur la corrosion.`
 - attendu : `La corrosion se vérifie d'abord sur les bas de caisse, les planchers, les passages de roue et les points d'ancrage. Une mécanique saine ne compense pas une caisse affaiblie.`
 
+## Média (obligatoire)
+
+Pour chaque article de blog :
+
+- image de couverture obligatoire
+- minimum une image dans le corps de texte (ou une région équivalente), pour clarifier le sujet
+- seconde image de corps autorisée uniquement si elle apporte une information précise (comparatif, pièce, mécanique, usage, repère terrain)
+- pas d'images décoratives, pas de doublons visuels entre couverture et corps
+- images limitées et utiles, structurées autour du récit éditorial
+- champs `alt`, `title`, `caption`, `width`, `height` renseignés quand possible
+
 ## Articles pratiques
 
 Un article pratique doit servir une décision ou un geste réel.
