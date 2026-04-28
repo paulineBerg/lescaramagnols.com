@@ -960,7 +960,7 @@ $adminMenu = [
 
       .admin-logs-filters-grid {
         display: grid;
-        grid-template-columns: minmax(18rem, 2.4fr) repeat(2, minmax(10rem, 1fr)) repeat(2, minmax(9rem, 0.9fr)) auto;
+        grid-template-columns: minmax(18rem, 2.4fr) repeat(2, minmax(10rem, 1fr)) repeat(2, minmax(9rem, 0.9fr));
         gap: 0.85rem 1rem;
         align-items: end;
       }
@@ -987,18 +987,21 @@ $adminMenu = [
       }
 
       .admin-logs-filters-actions {
+        grid-column: 1 / -1;
         justify-content: flex-end;
         align-self: end;
         padding-bottom: 0.05rem;
-        white-space: nowrap;
-        flex-direction: row-reverse;
+        min-width: 0;
+        max-width: 100%;
       }
 
       .admin-logs-filters-actions .button-link,
       .admin-logs-filters-actions button {
-        min-width: 11.25rem;
+        flex: 0 1 11.25rem;
+        min-width: min(11.25rem, 100%);
         min-height: 2.65rem;
         padding: 0.62rem 0.95rem;
+        white-space: normal;
       }
 
       .admin-articles-filters-card {
@@ -2634,6 +2637,11 @@ $adminMenu = [
         .admin-logs-filters-search,
         .admin-logs-filters-actions {
           grid-column: auto;
+        }
+
+        .admin-logs-filters-actions .button-link,
+        .admin-logs-filters-actions button {
+          flex-basis: 100%;
         }
 
         .admin-articles-filters-grid {
