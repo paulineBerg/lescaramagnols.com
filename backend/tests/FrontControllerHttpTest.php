@@ -1087,6 +1087,50 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('Articles 13 à 13 sur 13', $pageTwoResponse->body);
     }
 
+    /**
+     * @runInSeparateProcess
+     */
+    public function testBlogHubRendersFooterMenuItems(): void
+    {
+        file_put_contents(
+            $this->menusFile,
+            json_encode(
+                [
+                    'menu3' => [
+                        [
+                            'titre' => 'Mentions légales',
+                            'chemin' => '/mentions-legales',
+                        ],
+                        [
+                            'titre' => 'Sommaire',
+                            'chemin' => '/plan-du-site',
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $this->writeBlogArticle([
+            'title' => 'Article blog',
+            'slug' => 'article-blog',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-04-20 10:00:00',
+            'category' => 'auto-retro',
+            'tags' => ['histoire', 'collection', 'modele'],
+            'content' => '<p>Contenu blog.</p>',
+            'excerpt' => 'Extrait blog.',
+        ]);
+
+        $response = $this->frontController()->handle($this->request('GET', '/blog'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('id="nav-menu-3"', $response->body);
+        $this->assertStringContainsString('Mentions légales', $response->body);
+        $this->assertStringContainsString('Sommaire', $response->body);
+    }
+
     public function testBlogArticleRouteRedirectsToAttachedParentUrlWhenPageSlugExists(): void
     {
         file_put_contents(

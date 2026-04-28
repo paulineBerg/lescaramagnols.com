@@ -24,5 +24,4 @@ ob_start();
 </aside>
 <?php
 $blocks['EditRegion3'] = ob_get_clean();
-
-require __DIR__ . '/../../partials/layout.php';
+// Le layout global est rendu par FrontController::pageResponse().

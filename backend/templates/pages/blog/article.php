@@ -362,5 +362,4 @@ require TEMPLATES_PATH . '/partials/blog/discussion_panel.php';
 <?php endif; ?>
 <?php
 $blocks['EditRegion4'] = ob_get_clean();
-
-require __DIR__ . '/../../partials/layout.php';
+// Le layout global est rendu par FrontController::pageResponse().
