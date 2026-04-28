@@ -119,7 +119,9 @@ Chaque slug de blog public doit disposer de trois fichiers éditoriaux alignés 
 - `slug.en.json`
 - `slug.de.json`
 
-Le français reste la version maître. Les versions anglaise et allemande doivent adapter le texte, les liens et le ton; elles ne doivent pas être des coquilles vides ni des traductions non relues.
+Le français est la version maître. Les versions anglaise et allemande doivent refléter le fond français sans omission, ajout non justifié ni changement de sens : mêmes faits, mêmes limites, mêmes liens utiles, même rattachement, même taxonomie et informations pratiques équivalentes. L’adaptation naturelle du ton et de la formulation est admise, mais elle ne doit pas modifier le contenu éditorial.
+
+Les versions anglaise et allemande doivent donc rester complètes et relues; jamais coquilles vides, jamais résumés approximatifs de la version française.
 
 ### Cible canonique des liens internes
 

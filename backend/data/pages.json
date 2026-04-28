@@ -4346,9 +4346,25 @@
                     "title": "Unterwegs in den Dörfern des Golfs von Saint-Tropez",
                     "blocks": [],
                     "regions": {
+                        "after_body": {
+                            "component": "rich_text",
+                            "html": "<h2>Sich Zeit nehmen für Gassen, Plätze und Häfen</h2>\n <p>\n Im Golf von Saint-Tropez bedeutet ein Spaziergang nicht nur, von einem Punkt zum anderen zu gehen.\n Er lädt dazu ein, langsamer zu werden, genauer hinzusehen, stehen zu bleiben und die eigene Stimmung jedes Dorfes aufzunehmen.\n Schmale Gassen, Treppen, blühende Durchgänge, kleine Plätze und Aussichtspunkte bilden eine lebendige Kulisse,\n einfach im ersten Eindruck und doch voller Charakter.\n </p>\n <p>\n Am Morgen hebt das Licht die Farben der Häuser und die Bewegung in den alten Ortskernen hervor.\n Am späten Tag bekommen Kais, Terrassen und Plätze eine andere Wirkung,\n weicher, ruhiger und oft besser geeignet für einen Spaziergang ohne festes Ziel.\n Durch die Dörfer des Golfs von Saint-Tropez zu gehen, ist damit zugleich ein Landschaftserlebnis\n und ein entspannter Moment im Alltag.\n </p>\n <h2>Warum die Dörfer des Golfs von Saint-Tropez wählen?</h2>\n <p>\n Wegen ihrer Atmosphäre, ihrer Vielfalt, ihres Kulturerbes und der Freude, durch Orte zu gehen,\n die einen eigenen Charakter bewahrt haben. Zwischen Meer, Hügeln, alten Gassen und mediterranen Häfen\n zeigt jeder Spaziergang ein anderes Gesicht des Golfs.\n </p>"
+                        },
+                        "aside": {
+                            "component": "rich_text",
+                            "html": "<div class=\"border\" id=\"bloc-haut\">\n<p>\n Ein Spaziergang durch die Dörfer des Golfs von Saint-Tropez zeigt eine andere Seite der Küste im Var.\n Abseits des bekanntesten Bildes der Küste bieten diese Dörfer ruhige Gassen, schattige Plätze,\n farbige Fassaden, Märkte, kleine Häfen und eine typisch provenzalische Atmosphäre.\n </p>\n</div>"
+                        },
+                        "body": {
+                            "component": "rich_text",
+                            "html": "<h2>Ein Spaziergang zwischen provenzalischem Charakter und mediterraner Ruhe</h2>\n <p>\n Jedes Dorf im Golf von Saint-Tropez hat seinen eigenen Rhythmus, seine eigene Identität und seine eigene Stimmung.\n Man kommt hierher, um ohne Eile zu gehen, die Details einer alten Gasse zu betrachten,\n eine unauffällige Terrasse zu genießen, einen belebten kleinen Platz zu queren oder einem Hafen mit Booten zu folgen.\n Der Spaziergang wird so zu einer einfachen Art, das Gebiet zu verstehen, über Fassaden,\n Blickachsen und Licht, das sich je nach Tageszeit verändert.\n </p>\n <p>\n Diese Wege lassen auch die Vielfalt des Golfs besser erkennen.\n Manche Dörfer überzeugen durch ihre Echtheit, andere durch ihre Öffnung zum Meer,\n andere durch ihr Relief, ihr Kulturerbe oder ihre intimere Atmosphäre.\n Gerade diese Vielfalt macht die Spaziergänge angenehm und gibt Anlass, mehrere Orte zu erkunden.\n </p>"
+                        },
+                        "hero": {
+                            "component": "rich_text",
+                            "html": "<h1>Unterwegs in den Dörfern des Golfs von Saint-Tropez</h1>"
+                        },
                         "postscript": {
                             "component": "rich_text",
-                            "html": "<p>\n Die Dörfer im Golf von Saint-Tropez zu erkunden bedeutet, sich für eine ruhigere,\n aufmerksamere und authentischere Entdeckung der Region zu entscheiden – zwischen Kulturerbe,\n Spaziergängen und der provenzalischen Lebensart.\n</p>"
+                            "html": "<p>\n Die Dörfer im Golf von Saint-Tropez zu erkunden bedeutet, sich für eine ruhigere,\n aufmerksamere und authentischere Entdeckung der Region zu entscheiden, zwischen Kulturerbe,\n Spaziergängen und provenzalischer Lebensart.\n</p>"
                         }
                     },
                     "meta": {
@@ -4366,6 +4382,22 @@
                     "title": "Exploring the Villages of the Gulf of Saint-Tropez",
                     "blocks": [],
                     "regions": {
+                        "after_body": {
+                            "component": "rich_text",
+                            "html": "<h2>Taking time to discover lanes, squares and harbours</h2>\n <p>\n In the Gulf of Saint-Tropez, a walk is not only a way of going from one point to another.\n It invites you to slow down, look around, stop for a moment and feel the atmosphere of each village.\n Narrow lanes, stairways, flowered passages, small squares and viewpoints create a living setting,\n simple in appearance and full of character.\n </p>\n <p>\n In the morning, the light brings out the colours of the houses and the movement of the old centres.\n Late in the day, quays, terraces and village squares take on another mood,\n softer, calmer and often better suited to wandering without a fixed plan.\n Walking through the villages of the Gulf of Saint-Tropez is therefore both a landscape experience\n and a relaxed moment in daily life.\n </p>\n <h2>Why choose the villages of the Gulf of Saint-Tropez?</h2>\n <p>\n For their atmosphere, their variety, their heritage and the pleasure of walking through places\n that have kept a real character. Between sea, hills, old lanes and Mediterranean harbours,\n each walk reveals another face of the gulf.\n </p>"
+                        },
+                        "aside": {
+                            "component": "rich_text",
+                            "html": "<div class=\"border\" id=\"bloc-haut\">\n<p>\n Walking through the villages of the Gulf of Saint-Tropez means discovering another side of the Var coast.\n Away from the best-known image of the shoreline, these villages offer quiet lanes, shaded squares,\n colourful facades, markets, small harbours and a typically Provençal atmosphere.\n </p>\n</div>"
+                        },
+                        "body": {
+                            "component": "rich_text",
+                            "html": "<h2>A walk between Provençal character and Mediterranean softness</h2>\n <p>\n Each village in the Gulf of Saint-Tropez has its own rhythm, identity and atmosphere.\n You come here to walk without hurry, notice the details of an old lane,\n enjoy a discreet terrace, cross a lively little square or follow a harbour lined with boats.\n The walk then becomes a simple way to understand the area, through facades,\n perspectives and light that change with the hour of the day.\n </p>\n <p>\n These walks also make the diversity of the gulf easier to appreciate.\n Some villages stand out for their authenticity, others for their opening onto the sea,\n others for their relief, their heritage or their more intimate atmosphere.\n This variety is exactly what makes the walks pleasant and gives you a reason to explore several places.\n </p>"
+                        },
+                        "hero": {
+                            "component": "rich_text",
+                            "html": "<h1>Exploring the villages of the Gulf of Saint-Tropez</h1>"
+                        },
                         "postscript": {
                             "component": "rich_text",
                             "html": "<p>\n Exploring the villages of the Gulf of Saint-Tropez means choosing a calmer,\n more attentive and more authentic way to discover the area, combining heritage,\n walks and the Provençal art of living.\n</p>"

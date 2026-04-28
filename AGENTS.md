@@ -196,6 +196,7 @@ Regles:
 - ne pas contourner `CURRENT_LANG`, `DEFAULT_LANG` et les helpers de traduction deja en place
 - dans l'admin, ne pas utiliser directement la langue publique du visiteur ni le cookie public pour les libelles d'interface; les textes admin doivent passer par la langue d'interface administrateur (`admin_interface_language()` / `admin_translate()`) afin d'eviter tout melange `fr`/`en`/`de`
 - `fr` reste le texte maitre pour les pages editoriales, mais toute creation, modification significative ou suppression d'une page doit etre repercutee sur `en` et `de` dans le meme passage de travail si possible
+- pour les pages et articles publics, les versions `en` et `de` doivent refleter fidelement la version `fr`: traduction correcte, meme fond, memes faits, memes limites, memes liens utiles et memes informations pratiques, sans omission, ajout non justifie ni changement de sens; seule l'adaptation naturelle de ton, de formulation et d'expression locale est admise
 - toute nouvelle creation editoriale publique doit etre preparee nativement en `fr`, `en` et `de`; ne pas creer seulement `fr` avec l'idee de revenir plus tard, sauf blocage explicite documente
 - apres creation d'une page publique en `fr`, preparer aussi ses versions `en` et `de` avant cloture ou signaler explicitement si elles restent a faire
 - apres modification d'une page publique en `fr`, mettre a jour `en` et `de` pour conserver un registre editorial aligne
@@ -220,7 +221,7 @@ Le site doit garder une voix editoriale stable sur l'ensemble de ses pages publi
 - conclure court, sans morale generale ni formule vide
 - sur les sujets personnels, assumer `nous`, `notre`, `nos` quand cela correspond a une experience reelle
 - sur les sujets historiques, patrimoniaux ou pratiques, preferer une voix informative stable plutot qu'un recit artificiellement intime
-- `fr` reste le texte maitre; `en` et `de` doivent adapter le ton sans traduction mot a mot rigide
+- `fr` reste le texte maitre; `en` et `de` doivent adapter le ton sans traduction mot a mot rigide, mais sans retirer, ajouter ou deformer une information de fond
 
 ### 9.3 Style vise
 - phrases fluides, le plus souvent courtes a moyennes

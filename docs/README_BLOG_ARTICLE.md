@@ -93,4 +93,4 @@ Pour chaque slug publié ou préparé à la publication, trois fichiers doivent 
 - `backend/data/blog/<slug>.en.json`
 - `backend/data/blog/<slug>.de.json`
 
-Le français est la version maître. Les versions anglaise et allemande adaptent le texte pour rester naturelles dans chaque langue. Elles conservent les mêmes faits, le même rattachement, la même taxonomie et un maillage interne équivalent.
+Le français est la version maître. Les versions anglaise et allemande adaptent le texte pour rester naturelles dans chaque langue, mais elles doivent refléter le fond français sans omission, ajout non justifié ni changement de sens. Elles conservent les mêmes faits, les mêmes limites, le même rattachement, la même taxonomie, les mêmes informations pratiques et un maillage interne équivalent.
