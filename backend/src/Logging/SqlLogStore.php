@@ -11,6 +11,12 @@ use PDO;
 
 final class SqlLogStore
 {
+    /** @var array<int, string> */
+    private const SENSITIVE_CHANNELS = ['security'];
+
+    /** @var array<int, string> */
+    private const SENSITIVE_LEVELS = ['warning', 'error', 'critical', 'alert', 'emergency'];
+
     public function __construct(private readonly EditorialDatabase $database)
     {
     }
@@ -209,6 +215,58 @@ final class SqlLogStore
     }
 
     /**
+     * @return array{
+     *     deleted: int,
+     *     regularDeleted: int,
+     *     sensitiveDeleted: int,
+     *     regularMatched: int,
+     *     sensitiveMatched: int,
+     *     retentionDays: int,
+     *     sensitiveRetentionDays: int,
+     *     cutoff: string,
+     *     sensitiveCutoff: string,
+     *     dryRun: bool
+     * }
+     */
+    public function purgeOlderThan(
+        int $retentionDays,
+        int $sensitiveRetentionDays,
+        bool $dryRun = false,
+        ?DateTimeInterface $now = null
+    ): array {
+        $retentionDays = $this->normalizeRetentionDays($retentionDays);
+        $sensitiveRetentionDays = max($retentionDays, $this->normalizeRetentionDays($sensitiveRetentionDays));
+        $referenceDate = DateTimeImmutable::createFromInterface($now ?? new DateTimeImmutable());
+        $cutoff = $referenceDate->modify(sprintf('-%d days', $retentionDays))->format('Y-m-d H:i:s');
+        $sensitiveCutoff = $referenceDate->modify(sprintf('-%d days', $sensitiveRetentionDays))->format('Y-m-d H:i:s');
+
+        $this->database->ensureReady();
+
+        $regularMatched = $this->countPurgeCandidates($cutoff, false);
+        $sensitiveMatched = $this->countPurgeCandidates($sensitiveCutoff, true);
+        $regularDeleted = 0;
+        $sensitiveDeleted = 0;
+
+        if (!$dryRun) {
+            $regularDeleted = $this->deletePurgeCandidates($cutoff, false);
+            $sensitiveDeleted = $this->deletePurgeCandidates($sensitiveCutoff, true);
+        }
+
+        return [
+            'deleted' => $regularDeleted + $sensitiveDeleted,
+            'regularDeleted' => $regularDeleted,
+            'sensitiveDeleted' => $sensitiveDeleted,
+            'regularMatched' => $regularMatched,
+            'sensitiveMatched' => $sensitiveMatched,
+            'retentionDays' => $retentionDays,
+            'sensitiveRetentionDays' => $sensitiveRetentionDays,
+            'cutoff' => $cutoff,
+            'sensitiveCutoff' => $sensitiveCutoff,
+            'dryRun' => $dryRun,
+        ];
+    }
+
+    /**
      * @return array<int, string>
      */
     private function distinctValues(string $column): array
@@ -231,6 +289,64 @@ final class SqlLogStore
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    private function countPurgeCandidates(string $cutoff, bool $sensitive): int
+    {
+        $query = $this->buildPurgeQuery(
+            sprintf('SELECT COUNT(*) FROM `%s`', $this->database->table('log_entries')),
+            $sensitive
+        );
+        $statement = $this->database->pdo()->prepare($query);
+        $statement->execute(['cutoff' => $cutoff]);
+        $count = $statement->fetchColumn();
+
+        return is_numeric($count) ? (int) $count : 0;
+    }
+
+    private function deletePurgeCandidates(string $cutoff, bool $sensitive): int
+    {
+        $query = $this->buildPurgeQuery(
+            sprintf('DELETE FROM `%s`', $this->database->table('log_entries')),
+            $sensitive
+        );
+        $statement = $this->database->pdo()->prepare($query);
+        $statement->execute(['cutoff' => $cutoff]);
+
+        return $statement->rowCount();
+    }
+
+    private function buildPurgeQuery(string $prefix, bool $sensitive): string
+    {
+        $channels = $this->quoteValues(self::SENSITIVE_CHANNELS);
+        $levels = $this->quoteValues(self::SENSITIVE_LEVELS);
+        $sensitiveCondition = sprintf('(`channel` IN (%s) OR `level` IN (%s))', $channels, $levels);
+
+        return sprintf(
+            '%s WHERE `created_at` < :cutoff AND %s',
+            $prefix,
+            $sensitive ? $sensitiveCondition : 'NOT ' . $sensitiveCondition
+        );
+    }
+
+    /**
+     * @param array<int, string> $values
+     */
+    private function quoteValues(array $values): string
+    {
+        return implode(', ', array_map(
+            function (string $value): string {
+                $quoted = $this->database->pdo()->quote($value);
+
+                return is_string($quoted) ? $quoted : "'" . str_replace("'", "''", $value) . "'";
+            },
+            $values
+        ));
+    }
+
+    private function normalizeRetentionDays(int $days): int
+    {
+        return max(1, min(3650, $days));
     }
 
     /**

@@ -29,6 +29,7 @@ final class CronJobRepositoryTest extends TestCase
         $this->assertContains('publish_scheduled_blog_articles', $codes);
         $this->assertContains('backup_production', $codes);
         $this->assertContains('check_log_alerts', $codes);
+        $this->assertContains('purge_sql_logs', $codes);
 
         foreach ($jobs as $job) {
             $this->assertSame('active', $job['status']);

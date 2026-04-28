@@ -351,6 +351,15 @@ final class CronJobRepository
                 'schedule_expression' => '*/15 * * * *',
                 'timeout_seconds' => 300,
             ],
+            [
+                'code' => 'purge_sql_logs',
+                'name' => 'Purge logs SQL',
+                'description' => 'Supprime les entrées SQL anciennes des journaux admin selon la rétention configurée.',
+                'script_path' => 'core/tools/purge_sql_logs.php',
+                'arguments' => ['args' => ['--days=90', '--keep-sensitive-days=365']],
+                'schedule_expression' => '40 3 * * *',
+                'timeout_seconds' => 300,
+            ],
         ];
     }
 

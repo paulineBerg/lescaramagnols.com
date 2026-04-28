@@ -80,6 +80,35 @@ final class SqlLogStoreTest extends TestCase
         $this->assertSame('content', $store->listEntries([], 10)[0]['channel'] ?? null);
     }
 
+    public function testPurgeOlderThanKeepsRecentAndSensitiveLogsLonger(): void
+    {
+        $store = new SqlLogStore($this->editorialSqlDatabase());
+        $now = new \DateTimeImmutable('2026-04-28 12:00:00');
+
+        $store->insert('content', 'info', 'old.content', [], new \DateTimeImmutable('2026-01-01 10:00:00'));
+        $store->insert('content', 'info', 'recent.content', [], new \DateTimeImmutable('2026-04-20 10:00:00'));
+        $store->insert('security', 'warning', 'kept.security', [], new \DateTimeImmutable('2026-01-01 10:00:00'));
+        $store->insert('security', 'error', 'old.security', [], new \DateTimeImmutable('2025-01-01 10:00:00'));
+
+        $dryRun = $store->purgeOlderThan(30, 365, true, $now);
+
+        $this->assertSame(1, $dryRun['regularMatched']);
+        $this->assertSame(1, $dryRun['sensitiveMatched']);
+        $this->assertSame(0, $dryRun['deleted']);
+        $this->assertSame(4, $store->countEntries([]));
+
+        $result = $store->purgeOlderThan(30, 365, false, $now);
+
+        $this->assertSame(1, $result['regularDeleted']);
+        $this->assertSame(1, $result['sensitiveDeleted']);
+        $this->assertSame(2, $result['deleted']);
+        $this->assertSame(2, $store->countEntries([]));
+        $this->assertSame(1, $store->countEntries(['channel' => 'content']));
+        $this->assertSame(1, $store->countEntries(['channel' => 'security']));
+        $this->assertSame('recent.content', $store->listEntries(['channel' => 'content'], 10)[0]['event'] ?? null);
+        $this->assertSame('kept.security', $store->listEntries(['channel' => 'security'], 10)[0]['event'] ?? null);
+    }
+
     public function testAppEventLoggerAlsoWritesIntoSqlThroughLoggerFactory(): void
     {
         $store = new SqlLogStore($this->editorialSqlDatabase());

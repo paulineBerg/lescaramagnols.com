@@ -47,6 +47,7 @@ final class CronScriptPolicy
             'core/tools/publish_scheduled_blog_articles.php',
             'core/tools/backup_production.php',
             'core/tools/check_log_alerts.php',
+            'core/tools/purge_sql_logs.php',
             'core/tools/plan_next_blog_article.php',
             'core/tools/generate_search_index.php',
             'core/tools/generate_sitemap.php',

@@ -80,7 +80,7 @@ Mise a jour 2026-04-28 (backups production) :
 Mise a jour 2026-04-28 (Cron Center) :
 - ajout d'une section `Parametres > Cron Center` pour piloter des jobs PHP locaux stockes en SQL (`cron_jobs`) avec historique limite aux 100 dernieres executions par job (`cron_runs`).
 - le cron OVH doit appeler un seul point d'entree : `php backend/core/tools/run_cron_center.php --quiet`; Cron Center decide ensuite quels jobs actifs doivent partir selon leur expression cron.
-- les jobs par defaut sont actifs : publication des articles planifies, backup production et alertes logs.
+- les jobs par defaut sont actifs : publication des articles planifies, backup production, alertes logs et purge automatique des logs SQL.
 - chaque job peut etre teste manuellement depuis l'admin ; l'action lance le script PHP autorise, journalise l'execution SQL et met a jour la derniere execution.
 - les scripts administrables sont limites a une liste autorisee dans `backend/core/tools/*.php` (extensible par `CRON_CENTER_ALLOWED_SCRIPTS`), les arguments sont passes par JSON controle, et stdout/stderr/code retour sont conserves dans l'historique SQL.
 - les evenements `cron.*` sont journalises via `AppEventLogger` et filtrables dans `Admin > Logs`.

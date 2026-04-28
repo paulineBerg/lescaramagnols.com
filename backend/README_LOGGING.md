@@ -73,6 +73,11 @@ Configuration (`backend/.env` / `.env.example`) :
 
 Ces operations sont volontairement non bloquantes (les erreurs de rotation n'interrompent pas la requete).
 
+Les logs SQL visibles dans `Admin > Logs` sont purges par le job Cron Center `purge_sql_logs` :
+- retention standard par defaut : `90` jours
+- retention renforcee par defaut : `365` jours pour le canal `security` et les niveaux `warning`/`error`/`critical`/`alert`/`emergency`
+- le job est actif par defaut, planifie a `03:40`, et ses arguments peuvent etre ajustes dans `Parametres > Cron Center`
+
 ## Scripts D Exploitation
 
 - verifier les alertes de base sur une fenetre glissante :
@@ -84,6 +89,10 @@ Ces operations sont volontairement non bloquantes (les erreurs de rotation n'int
   - `composer check-log-alerts -- --strict --webhook-url=https://ops.exemple.tld/hooks/log-alerts`
   - `composer check-log-alerts -- --strict --email-to=ops@example.com,astreinte@example.com`
   - mode permanent (meme sans alerte) : `--notify-on=always`
+- purger les logs SQL visibles dans l'admin :
+  - `composer purge-sql-logs -- --dry-run`
+  - `composer purge-sql-logs -- --days=90 --keep-sensitive-days=365`
+  - plage supportee pour `--days` et `--keep-sensitive-days` : `1` a `3650`
 - sequence go-live/J+1/J+7 :
   - voir `docs/v1-go-live-runbook.md`
 - coordonner les jobs planifies SQL depuis le point d'entree OVH :
