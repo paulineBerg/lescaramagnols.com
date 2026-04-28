@@ -223,6 +223,23 @@ La planification ne dépend pas d’un cron :
 - publication automatique à la lecture publique dès que la date est atteinte,
 - comportement appliqué de manière homogène sur les repositories JSON et SQL.
 
+Commande d’exécution automatique (CLI) :
+- `php backend/core/tools/plan_next_blog_article.php`
+- options :
+  - `--dry-run` : simule la sélection et affiche le résultat sans persister
+  - `--json` : sortie JSON pour intégration CI/exploitation
+  - `--now=YYYY-MM-DD HH:MM:SS` : référence temporelle pour calcul de date (facultatif)
+- en cas de succès, la commande met à jour l’article en statut `scheduled` et relance le maillage interne sur les articles `published`/`scheduled`.
+
+Règle de sélection 11 jours / rotation de séries :
+- regrouper les brouillons par `page_slug` (cluster)
+- ne pas dépasser `5` `published + scheduled` par cluster
+- prioriser le cluster actif ayant le moins d’articles publiés/planifiés
+- choisir dans ce cluster le brouillon le plus ancien
+- si tous les clusters sont pleins, utiliser le brouillon le plus ancien global
+- date de planification = `+11 jours` après la date `scheduled` la plus récente (ou après « aujourd’hui » s’il n’y en a aucune)
+- conserver strictement les statuts `draft` / `scheduled` / `published` existants
+
 Commande cron optionnelle :
 - `php backend/core/tools/publish_scheduled_blog_articles.php`
 - cette commande promeut réellement les articles `scheduled` arrivés à échéance en statut `published`
@@ -293,6 +310,8 @@ Preuves :
 - `backend/tests/Blog/SqlBlogRepositoryTest.php`
 - `backend/tests/Blog/SqlBlogDiscussionRepositoryTest.php`
 - `backend/tests/Blog/DualWriteBlogRepositoryTest.php`
+- `backend/tests/Blog/BlogSchedulePlannerTest.php`
+- `backend/tests/Blog/BlogInternalLinksRebuilderTest.php`
 - `backend/tests/BlogDiscussionApiControllerTest.php`
 - `backend/tests/RssFeedServiceTest.php`
 - `backend/tests/SitemapServiceTest.php`

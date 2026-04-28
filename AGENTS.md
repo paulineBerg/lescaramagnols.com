@@ -427,6 +427,36 @@ Controle avant sauvegarde ou publication:
 - verifier unicite des slugs, statut attendu, rattachement `page_slug`, taxonomie, liens internes, absence de lien mort et absence de derive vers une autre page parent
 - si une incoherence est detectee, corriger la structure, le titre, le slug, la taxonomie ou le maillage avant de produire ou publier l'article
 
+### 9.15 Planification automatique des articles de blog
+
+Le workflow de planification automatique doit respecter la stratégie ci-dessous.
+
+Principe:
+- regrouper les brouillons par `page_slug` (cluster éditorial)
+- sélectionner un cluster actif (même page) dont la somme `published + scheduled` est inférieure à `5`
+- choisir le prochain brouillon le plus ancien de ce cluster
+- si un ou plusieurs clusters actifs existent, privilégier celui avec le plus petit total `published + scheduled`
+- si tous les clusters ont `>=5` articles publiés/planifiés, choisir le brouillon le plus ancien toutes langues confondues
+- calculer la date planifiée:
+  - si aucune date `scheduled` n’existe: aujourd’hui + `11` jours
+  - sinon: dernière date `scheduled` + `11` jours
+- passer le brouillon en `scheduled` (jamais en `published`)
+- ne pas modifier le statut des autres valeurs
+
+Après chaque sélection qui modifie une date de planification, relancer le maillage interne des articles publiés ou planifiés :
+- reconstruire les liens internes pour chaque article avec statut `published` ou `scheduled`
+- utiliser la route du parent (`/fr|en|de/<route-parent>?open_article=<slug>#attached-article-<slug>`) quand :
+  - la cible est publiée
+  - ou la cible est `scheduled` avec date atteinte
+  - ou une page parent publiée est disponible pour encadrer la navigation
+- en l’absence de page parent publiée et si la cible n’est pas visible, utiliser `/fr|en|de/blog` comme route de repli (jamais une URL 404)
+- ne pas cibler de route qui provoquerait un 404 (`/blog/article/<slug>` n’est qu’un fallback technique)
+- conserver la règle de visibilité `published` / `scheduled` au moment du recalcul des liens
+
+Commande d’exécution :
+- `php backend/core/tools/plan_next_blog_article.php [--dry-run] [--json] [--now=YYYY-MM-DD HH:MM:SS]`
+- exécute la règle de sélection, met à jour l’article choisi, puis reconstruit le maillage interne si une planification a été créée.
+
 ## 10. Politique media du site
 
 La politique media est commune a tout le site: pages editoriales, articles blog, auto-retro, territoire, pages partenaires et contenus annexes.
