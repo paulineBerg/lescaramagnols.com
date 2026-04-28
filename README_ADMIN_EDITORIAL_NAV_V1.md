@@ -84,6 +84,7 @@ Mise a jour 2026-04-28 (Cron Center) :
 - chaque job peut etre teste manuellement depuis l'admin ; l'action lance le script PHP autorise, journalise l'execution SQL et met a jour la derniere execution.
 - les scripts administrables sont limites a une liste autorisee dans `backend/core/tools/*.php` (extensible par `CRON_CENTER_ALLOWED_SCRIPTS`), les arguments sont passes par JSON controle, et stdout/stderr/code retour sont conserves dans l'historique SQL.
 - les evenements `cron.*` sont journalises via `AppEventLogger` et filtrables dans `Admin > Logs`.
+- le push editorial `backend/tools/push-local-sql-to-ovh.sh --live` capture les reglages admin Cron/Sauvegardes avant et apres restauration SQL ; il echoue si les champs editables de `cron_jobs` ou la configuration de backup prod ont change.
 
 Mise a jour 2026-03-21 (images editoriales V1) :
 - admin articles : ajout d'une image de couverture (URL ou upload), avec metadonnees SEO (`alt`, `title`, `caption`, dimensions).

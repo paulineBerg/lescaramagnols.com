@@ -9,6 +9,7 @@ REMOTE_BACKEND="${REMOTE_BACKEND:-/home/lescaramgl-ssh/caramagnols/backend}"
 SITEMAP_BASE_URL="${SITEMAP_BASE_URL:-https://www.lescaramagnols.com}"
 BACKUP_ROOT="${BACKUP_ROOT:-/home/surfacepro8/backups/caramagnols}"
 PHP_BIN="${PHP_BIN:-php}"
+ADMIN_RUNTIME_SNAPSHOT_TOOL="core/tools/export_admin_runtime_settings.php"
 
 LIVE=0
 DRY_RUN=0
@@ -27,16 +28,19 @@ Description:
   La commande passe par core/tools/editorial_backup_restore.php, pas par un dump MySQL brut.
   Par defaut elle couvre pages, navigation, articles de blog et tuiles.
   Elle exclut les donnees runtime/sensibles: utilisateurs, logs, meta schema, commentaires legacy et discussions de blog.
+  Elle verifie aussi que les reglages admin Cron Center et Sauvegardes restent inchanges.
   Elle synchronise aussi les assets publies par le build frontend: manifest Vite, bundles CSS/JS et images publiques.
 
 Etapes:
   - synchronise les assets frontend publies, sauf --no-assets
   - met a jour l'outil de sync editorial sur OVH
+  - capture les reglages admin runtime prod avant ecriture
   - cree un backup SQL local
   - cree un backup SQL prod OVH avant ecriture et le rapatrie hors depot
   - affiche un diff local/prod et bloque les suppressions sauf --allow-delete
   - copie le payload local vers OVH avec controle de taille
   - restaure le payload en prod avec --storage=sql
+  - compare les reglages admin Cron/Sauvegardes avant/apres restauration
   - regenere index de recherche, sitemap et caches
   - cree un backup prod apres ecriture et compare son contenu au local
   - lance les controles prod
@@ -90,6 +94,11 @@ if [[ ! -f "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$LOCAL_BACKEND/$ADMIN_RUNTIME_SNAPSHOT_TOOL" ]]; then
+  echo "Outil snapshot reglages admin introuvable dans $LOCAL_BACKEND." >&2
+  exit 1
+fi
+
 echo "Push SQL editorial local -> OVH"
 echo "Local backend: $LOCAL_BACKEND"
 echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
@@ -139,6 +148,8 @@ REMOTE_BACKUP_GZ="${REMOTE_BACKUP_JSON}.gz"
 REMOTE_PAYLOAD="var/backups/editorial-local-sql-payload-${STAMP}.json"
 REMOTE_AFTER_JSON="var/backups/editorial-prod-sql-after-local-push-${STAMP}.json"
 REMOTE_AFTER_GZ="${REMOTE_AFTER_JSON}.gz"
+REMOTE_ADMIN_BEFORE_JSON="var/backups/admin-runtime-before-local-push-${STAMP}.json"
+REMOTE_ADMIN_AFTER_JSON="var/backups/admin-runtime-after-local-push-${STAMP}.json"
 TMP_JSON="$(mktemp "/tmp/editorial-local-sql-payload-${STAMP}.XXXXXX.json")"
 
 cleanup_local() {
@@ -147,7 +158,7 @@ cleanup_local() {
 trap cleanup_local EXIT
 
 if [[ "$SYNC_ASSETS" -eq 1 ]]; then
-  echo "[1/10] Synchronisation des assets frontend publies"
+  echo "[1/12] Synchronisation des assets frontend publies"
   "$PHP_BIN" "$LOCAL_BACKEND/core/tools/check_vite_assets.php" --public-root="$LOCAL_BACKEND/public"
   ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/public/.vite' '$REMOTE_BACKEND/public/assets'"
   rsync -az "$LOCAL_BACKEND/public/.vite/" "$REMOTE_HOST:$REMOTE_BACKEND/public/.vite/"
@@ -165,30 +176,38 @@ if [[ "$SYNC_ASSETS" -eq 1 ]]; then
     "$LOCAL_BACKEND/public/assets/" "$REMOTE_HOST:$REMOTE_BACKEND/public/assets/"
   ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/check_vite_assets.php --public-root=public"
 else
-  echo "[1/10] Synchronisation des assets frontend publies ignoree (--no-assets)"
+  echo "[1/12] Synchronisation des assets frontend publies ignoree (--no-assets)"
 fi
 
-echo "[2/10] Mise a jour de l'outil de sync editorial sur OVH"
+echo "[2/12] Mise a jour des outils de sync editorial sur OVH"
 ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/core/tools'"
 rsync -az "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" "$REMOTE_HOST:$REMOTE_BACKEND/core/tools/editorial_backup_restore.php"
+rsync -az "$LOCAL_BACKEND/$ADMIN_RUNTIME_SNAPSHOT_TOOL" "$REMOTE_HOST:$REMOTE_BACKEND/$ADMIN_RUNTIME_SNAPSHOT_TOOL"
 
-echo "[3/10] Backup SQL local"
+echo "[3/12] Snapshot reglages admin prod avant ecriture"
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && mkdir -p var/backups && php '$ADMIN_RUNTIME_SNAPSHOT_TOOL' --output='$REMOTE_ADMIN_BEFORE_JSON' && stat -c '%s %n' '$REMOTE_ADMIN_BEFORE_JSON'"
+scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_ADMIN_BEFORE_JSON" "$PROD_DIR/"
+PROD_ADMIN_BEFORE_LOCAL="$PROD_DIR/$(basename "$REMOTE_ADMIN_BEFORE_JSON")"
+chmod 600 "$PROD_ADMIN_BEFORE_LOCAL"
+stat -c '%a %s %n' "$PROD_ADMIN_BEFORE_LOCAL"
+
+echo "[4/12] Backup SQL local"
 "$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" backup "${SYNC_FLAGS[@]}" --output="$LOCAL_JSON"
 gzip -f "$LOCAL_JSON"
 chmod 600 "$LOCAL_GZ"
 stat -c '%a %s %n' "$LOCAL_GZ"
 
-echo "[4/10] Backup SQL prod OVH avant ecriture"
+echo "[5/12] Backup SQL prod OVH avant ecriture"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && mkdir -p var/backups && php core/tools/editorial_backup_restore.php backup $REMOTE_SYNC_FLAGS --output='$REMOTE_BACKUP_JSON' && gzip -f '$REMOTE_BACKUP_JSON' && stat -c '%s %n' '$REMOTE_BACKUP_GZ'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_BACKUP_GZ" "$PROD_DIR/"
 PROD_BEFORE_LOCAL="$PROD_DIR/$(basename "$REMOTE_BACKUP_GZ")"
 chmod 600 "$PROD_BEFORE_LOCAL"
 stat -c '%a %s %n' "$PROD_BEFORE_LOCAL"
 
-echo "[5/10] Diff editorial local -> prod"
+echo "[6/12] Diff editorial local -> prod"
 "$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" diff "$LOCAL_GZ" "$PROD_BEFORE_LOCAL" "${DIFF_FLAGS[@]}"
 
-echo "[6/10] Copie du payload local vers OVH"
+echo "[7/12] Copie du payload local vers OVH"
 gzip -dc "$LOCAL_GZ" > "$TMP_JSON"
 chmod 600 "$TMP_JSON"
 LOCAL_SIZE="$(stat -c '%s' "$TMP_JSON")"
@@ -200,20 +219,33 @@ if [[ "$LOCAL_SIZE" != "$REMOTE_SIZE" ]]; then
   exit 1
 fi
 
-echo "[7/10] Restore SQL prod et regeneration"
+echo "[8/12] Restore SQL prod et regeneration"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php restore '$REMOTE_PAYLOAD' $REMOTE_RESTORE_FLAGS && php core/tools/generate_search_index.php && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url='$SITEMAP_BASE_URL' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_after_sql_restore\n\";'"
 
-echo "[8/10] Backup prod apres ecriture"
+echo "[9/12] Verification reglages admin Cron/Sauvegardes"
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$ADMIN_RUNTIME_SNAPSHOT_TOOL' --output='$REMOTE_ADMIN_AFTER_JSON' && stat -c '%s %n' '$REMOTE_ADMIN_AFTER_JSON'"
+scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_ADMIN_AFTER_JSON" "$PROD_DIR/"
+PROD_ADMIN_AFTER_LOCAL="$PROD_DIR/$(basename "$REMOTE_ADMIN_AFTER_JSON")"
+chmod 600 "$PROD_ADMIN_AFTER_LOCAL"
+stat -c '%a %s %n' "$PROD_ADMIN_AFTER_LOCAL"
+if ! cmp -s "$PROD_ADMIN_BEFORE_LOCAL" "$PROD_ADMIN_AFTER_LOCAL"; then
+  echo "Refus: les reglages admin Cron/Sauvegardes ont change pendant la restauration SQL." >&2
+  diff -u "$PROD_ADMIN_BEFORE_LOCAL" "$PROD_ADMIN_AFTER_LOCAL" || true
+  exit 1
+fi
+echo "Reglages admin Cron/Sauvegardes inchanges."
+
+echo "[10/12] Backup prod apres ecriture"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php backup $REMOTE_SYNC_FLAGS --output='$REMOTE_AFTER_JSON' && gzip -f '$REMOTE_AFTER_JSON' && stat -c '%s %n' '$REMOTE_AFTER_GZ'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_AFTER_GZ" "$PROD_DIR/"
 PROD_AFTER_LOCAL="$PROD_DIR/$(basename "$REMOTE_AFTER_GZ")"
 chmod 600 "$PROD_AFTER_LOCAL"
 stat -c '%a %s %n' "$PROD_AFTER_LOCAL"
 
-echo "[9/10] Comparaison local/prod apres restore"
+echo "[11/12] Comparaison local/prod apres restore"
 "$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" compare "$LOCAL_GZ" "$PROD_AFTER_LOCAL" "${SYNC_FLAGS[@]}"
 
-echo "[10/10] Controles prod"
+echo "[12/12] Controles prod"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/check_vite_assets.php --public-root=public && php core/tools/check_prod_tree.php --root=. && php core/tools/check_env.php --env=production --strict-prod-security"
 
 if command -v composer >/dev/null 2>&1; then
@@ -225,10 +257,12 @@ if [[ "$KEEP_REMOTE_BACKUPS" -eq 1 ]]; then
   ssh "$REMOTE_HOST" "rm -f '$REMOTE_BACKEND/$REMOTE_PAYLOAD'"
   echo "Backups conserves sur OVH a la demande."
 else
-  ssh "$REMOTE_HOST" "rm -f '$REMOTE_BACKEND/$REMOTE_PAYLOAD' '$REMOTE_BACKEND/$REMOTE_BACKUP_GZ' '$REMOTE_BACKEND/$REMOTE_AFTER_GZ'"
+  ssh "$REMOTE_HOST" "rm -f '$REMOTE_BACKEND/$REMOTE_PAYLOAD' '$REMOTE_BACKEND/$REMOTE_BACKUP_GZ' '$REMOTE_BACKEND/$REMOTE_AFTER_GZ' '$REMOTE_BACKEND/$REMOTE_ADMIN_BEFORE_JSON' '$REMOTE_BACKEND/$REMOTE_ADMIN_AFTER_JSON'"
 fi
 
 echo "Push SQL editorial local -> OVH termine."
 echo "Backup local source: $LOCAL_GZ"
 echo "Backup prod avant: $PROD_BEFORE_LOCAL"
 echo "Backup prod apres: $PROD_AFTER_LOCAL"
+echo "Snapshot reglages admin avant: $PROD_ADMIN_BEFORE_LOCAL"
+echo "Snapshot reglages admin apres: $PROD_ADMIN_AFTER_LOCAL"

@@ -61,6 +61,7 @@ cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.c
 
 - copier le SQL editorial local vers OVH : cd /home/surfacepro8/www/caramagnols
 bash backend/tools/push-local-sql-to-ovh.sh --live
+  - ce push SQL editorial preserve les reglages runtime admin : `Parametres > Cron Center` (`cron_jobs`) et `Parametres > Sauvegardes` (`config/*.override.php`). Le script capture un snapshot avant/apres et echoue si ces reglages changent.
 - copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
 bash .ops-sync/bin/pull-caramagnols-db.sh --live
 
@@ -557,6 +558,7 @@ Scripts :
 - `backend/core/tools/run_cron_center.php` : point d'entree unique pour le cron OVH ; il charge les jobs actifs stockes en SQL, applique leurs expressions cron et journalise les executions. Le Cron Center admin peut aussi lancer un job manuellement pour test, avec les memes verrous et journaux. Les scripts executables restent limites a la liste autorisee `core/tools/*.php` (extension possible via `CRON_CENTER_ALLOWED_SCRIPTS`).
 - `backend/core/tools/backup_production.php` : backup production du dossier backend et dump SQL compresse, appele directement ou via Cron Center.
 - Les deux scripts preservent `.env` et `backend/config/*.override.php` (config admin runtime).
+- `backend/tools/push-local-sql-to-ovh.sh --live` ne synchronise que le contenu editorial SQL. Il verifie en plus que les reglages admin Cron Center et Sauvegardes de prod restent identiques avant/apres restauration.
 - Les deux scripts excluent et nettoient automatiquement les fichiers non-prod : `tests/`, `docs/`, `README*`, `phpunit.xml`, `phpstan*`, `phpcs.xml`, `package*.json`, `replace_image_paths.php`, `backend/public/dev-router.php`, `.env.example`, `.env.production`, `.env.bak.*`, `*.bak`, `*.old`, `*.orig`, `*.tmp`, `*~`, `.DS_Store`, `Thumbs.db`.
 - `deploy-release.sh` exclut aussi les artefacts runtime/locaux non produits : `backend/var/**`, `backend/data/logs/**`, `backend/data/snapshots/**`.
 - Les deux scripts regenerent `backend/public/sitemap.xml` sur la cible.
