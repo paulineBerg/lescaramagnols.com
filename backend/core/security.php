@@ -256,8 +256,38 @@ function apply_security_headers(): void
         $devOrigins = ["http://127.0.0.1:5173", "http://localhost:5173"];
     }
 
+    $thirdPartySources = public_csp_third_party_sources();
+
+    $scriptSrc = array_values(array_unique(array_merge(["'self'", "'nonce-{$nonce}'"], $devOrigins, $thirdPartySources['script'])));
+    $styleSrc  = array_values(array_unique(array_merge(["'self'", "'unsafe-inline'"], $devOrigins)));
+    $connectSrc = array_values(array_unique(array_merge(["'self'"], $devOrigins, $thirdPartySources['connect'])));
+    $frameSrc = array_values(array_unique(array_merge(["'self'"], $thirdPartySources['frame'])));
+
+    $csp = sprintf(
+        "default-src 'self'; script-src %s; style-src %s; img-src 'self' data: https: http:; connect-src %s; font-src 'self'; frame-src %s; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';",
+        implode(' ', $scriptSrc),
+        implode(' ', $styleSrc),
+        implode(' ', $connectSrc),
+        implode(' ', $frameSrc)
+    );
+
+    header('Content-Security-Policy: ' . $csp, false);
+
+    $secure = request_is_secure();
+    if ($secure) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload', false);
+    }
+}
+
+/**
+ * @return array{script: list<string>, connect: list<string>, frame: list<string>}
+ */
+function public_csp_third_party_sources(): array
+{
     $scriptThirdParty = [];
     $connectThirdParty = [];
+    $frameThirdParty = ['https://www.youtube-nocookie.com'];
+
     $configuredConsentServices = app_config('site.tarteaucitron.services', []);
     $configuredConsentServices = is_array($configuredConsentServices) ? $configuredConsentServices : [];
     $normalizedConsentServices = array_map(
@@ -274,21 +304,22 @@ function apply_security_headers(): void
         $connectThirdParty[] = 'https://www.googleadservices.com';
     }
 
-    $scriptSrc = array_values(array_unique(array_merge(["'self'", "'nonce-{$nonce}'"], $devOrigins, $scriptThirdParty)));
-    $styleSrc  = array_values(array_unique(array_merge(["'self'", "'unsafe-inline'"], $devOrigins)));
-    $connectSrc = array_values(array_unique(array_merge(["'self'"], $devOrigins, $connectThirdParty)));
+    $discussionRecaptcha = app_config('site.discussions.recaptcha', []);
+    $discussionRecaptcha = is_array($discussionRecaptcha) ? $discussionRecaptcha : [];
+    $discussionRecaptchaEnabled = !empty($discussionRecaptcha['enabled'])
+        && trim((string) ($discussionRecaptcha['site_key'] ?? '')) !== '';
 
-    $csp = sprintf(
-        "default-src 'self'; script-src %s; style-src %s; img-src 'self' data: https: http:; connect-src %s; font-src 'self'; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';",
-        implode(' ', $scriptSrc),
-        implode(' ', $styleSrc),
-        implode(' ', $connectSrc)
-    );
-
-    header('Content-Security-Policy: ' . $csp, false);
-
-    $secure = request_is_secure();
-    if ($secure) {
-        header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload', false);
+    if (in_array('recaptcha', $normalizedConsentServices, true) || $discussionRecaptchaEnabled) {
+        $scriptThirdParty[] = 'https://www.google.com';
+        $scriptThirdParty[] = 'https://www.gstatic.com';
+        $connectThirdParty[] = 'https://www.google.com';
+        $frameThirdParty[] = 'https://www.google.com';
+        $frameThirdParty[] = 'https://recaptcha.google.com';
     }
+
+    return [
+        'script' => array_values(array_unique($scriptThirdParty)),
+        'connect' => array_values(array_unique($connectThirdParty)),
+        'frame' => array_values(array_unique($frameThirdParty)),
+    ];
 }
