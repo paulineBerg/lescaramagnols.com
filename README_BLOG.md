@@ -101,6 +101,26 @@ Diagnostic :
 
 Le blog ne doit pas fonctionner comme une collection isolée. Chaque article publié est rattaché à une page parent (`page_slug`) et cette page parent sert de page pilier, de page de contexte ou de page d’entrée éditoriale.
 
+## Qualité éditoriale attendue
+
+Un article de blog doit être publiable tel quel dès sa création. Il ne doit pas ressembler à une note de préparation, à une consigne SEO ou à un plan de rédaction.
+
+Règles obligatoires :
+- écrire un article fini, lisible, concret et vrai, sans promesse de réécriture ultérieure
+- parler du sujet au lecteur, jamais de l’article lui-même
+- supprimer les tournures méta : `ce brouillon`, `cet article`, `l'article doit`, `le but est`, `version publiée`, `utile pour`, `pour le lecteur`, `le premier réflexe utile consiste à`, `segmenter le sujet`
+- remplacer les généralités par des faits observables : dates, modèles, pièces, gestes d’entretien, symptômes, contraintes de restauration, état de marché, contexte industriel, limites connues
+- dire clairement quand une réponse dépend du modèle exact, de l’état de la voiture, du pays, de la disponibilité des pièces ou du niveau de restauration
+- refuser le remplissage, les certitudes de façade et les conclusions abstraites
+- conserver un maillage interne sobre et utile, intégré dans une phrase normale
+
+Chaque slug de blog public doit disposer de trois fichiers éditoriaux alignés :
+- `slug.fr.json`
+- `slug.en.json`
+- `slug.de.json`
+
+Le français reste la version maître. Les versions anglaise et allemande doivent adapter le texte, les liens et le ton; elles ne doivent pas être des coquilles vides ni des traductions non relues.
+
 ### Cible canonique des liens internes
 
 Quand l’article possède une page parent publiée, les liens internes vers cet article doivent viser la lecture attachée sous la page parent :

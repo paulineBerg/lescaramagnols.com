@@ -909,6 +909,8 @@ final class AdminController
         }
 
         $filters = $filterState['filters'];
+        $articles = $this->blogService->listArticles($filters);
+        $articleListSummary = $this->blogService->summarizeArticles($articles);
         $message = null;
 
         if ($saved) {
@@ -939,7 +941,8 @@ final class AdminController
                 'supportedStatuses' => $this->blogService->supportedStatuses(),
                 'availableCategoryOptions' => $this->blogService->availableCategoryOptions($filters['lang']),
                 'availableTagOptions' => $this->blogService->availableTagOptions($filters['lang']),
-                'articles' => $this->blogService->listArticles($filters),
+                'articles' => $articles,
+                'articleListSummary' => $articleListSummary,
                 'createArticleUrl' => $this->routeResolver->articleCreatePath(),
                 'articlesResetUrl' => $this->buildFilterResetUrl($this->routeResolver->canonicalPath('articles')),
                 'csrfToken' => admin_csrf_token(),
@@ -2009,8 +2012,12 @@ final class AdminController
     {
         $user = admin_current_user();
         $loginAt = is_array($user) ? (int) ($user['login_at'] ?? time()) : time();
+        $adminInterfaceLanguage = function_exists('admin_interface_language')
+            ? admin_interface_language()
+            : strtolower(trim((string) app_config('default_lang', 'fr')));
         $defaultContext = [
             'activeMenu' => 'dashboard',
+            'adminInterfaceLanguage' => $adminInterfaceLanguage,
             'adminIdentifier' => is_array($user)
                 ? (string) ($user['identifier'] ?? $user['email'] ?? admin_configured_identifier())
                 : admin_configured_identifier(),
@@ -2036,12 +2043,12 @@ final class AdminController
             'adminSessionTimeoutSeconds' => admin_inactivity_timeout_seconds(),
             'adminSessionWarningLeadSeconds' => min(120, admin_inactivity_timeout_seconds()),
             'adminSessionDecisionSeconds' => 120,
-            'adminSessionWarningTitle' => (string) t('TXT_ADMIN_SESSION_WARNING_TITLE'),
-            'adminSessionWarningMessage' => (string) t('TXT_ADMIN_SESSION_WARNING_MESSAGE'),
-            'adminSessionWarningCountdownTemplate' => (string) t('TXT_ADMIN_SESSION_WARNING_COUNTDOWN_TEMPLATE'),
-            'adminSessionWarningConfirmLabel' => (string) t('TXT_ADMIN_SESSION_WARNING_CONFIRM'),
-            'adminSessionWarningLogoutLabel' => (string) t('TXT_ADMIN_SESSION_WARNING_LOGOUT'),
-            'adminSessionWarningNetworkError' => (string) t('TXT_ADMIN_SESSION_WARNING_NETWORK_ERROR'),
+            'adminSessionWarningTitle' => admin_translate('TXT_ADMIN_SESSION_WARNING_TITLE', 'Session en fin de validité'),
+            'adminSessionWarningMessage' => admin_translate('TXT_ADMIN_SESSION_WARNING_MESSAGE', 'Voulez-vous prolonger la session ?'),
+            'adminSessionWarningCountdownTemplate' => admin_translate('TXT_ADMIN_SESSION_WARNING_COUNTDOWN_TEMPLATE', 'Déconnexion automatique dans %d secondes.'),
+            'adminSessionWarningConfirmLabel' => admin_translate('TXT_ADMIN_SESSION_WARNING_CONFIRM', 'Oui, prolonger'),
+            'adminSessionWarningLogoutLabel' => admin_translate('TXT_ADMIN_SESSION_WARNING_LOGOUT', 'Non, se déconnecter'),
+            'adminSessionWarningNetworkError' => admin_translate('TXT_ADMIN_SESSION_WARNING_NETWORK_ERROR', 'Session expirée ou inaccessible. Merci de vous reconnecter.'),
         ];
 
         $body = $this->renderTemplate(

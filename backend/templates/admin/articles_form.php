@@ -1,6 +1,10 @@
 <?php
 $formData = is_array($formData ?? null) ? $formData : [];
 $translate = static function (string $key, string $fallback): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
     if (!function_exists('t')) {
         return $fallback;
     }

@@ -348,6 +348,10 @@ $adminReauthTimeoutSeconds = max(60, min(86400, $adminReauthTimeoutSeconds));
 if ($adminReauthTimeoutSeconds > $adminInactivityTimeoutSeconds) {
     $adminReauthTimeoutSeconds = $adminInactivityTimeoutSeconds;
 }
+$adminLanguage = strtolower(trim((string) env('ADMIN_LANGUAGE', env('ADMIN_LANG', env('DEFAULT_LANG', 'fr')))));
+if (!in_array($adminLanguage, ['fr', 'en', 'de'], true)) {
+    $adminLanguage = 'fr';
+}
 
 $appEnv = defined('CARAMAGNOLS_LOCAL_DEV_ROUTER') ? 'development' : env('APP_ENV', 'development');
 
@@ -376,6 +380,7 @@ $appConfig = [
     ],
     'admin' => [
         'login_path' => env('ADMIN_LOGIN_PATH', 'admin'),
+        'language' => $adminLanguage,
         'identifier' => $adminIdentifier,
         'email' => $adminIdentifier,
         'password_hash' => $adminPasswordHash,

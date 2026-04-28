@@ -92,12 +92,16 @@ if (!in_array($menuItemLabelDefaultLanguage, $menuItemLabelLanguages, true)) {
     $menuItemLabelDefaultLanguage = $menuItemLabelLanguages[0];
 }
 
-$currentLanguage = defined('CURRENT_LANG') ? $normalizeLanguageCode((string) CURRENT_LANG) : null;
+$currentLanguage = function_exists('admin_interface_language') ? $normalizeLanguageCode(admin_interface_language()) : null;
 if ($currentLanguage === null) {
     $currentLanguage = $menuItemLabelDefaultLanguage;
 }
 
 $translate = static function (string $key, string $fallback = ''): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
     if (!function_exists('t')) {
         return $fallback;
     }
@@ -158,7 +162,12 @@ $localizedValueToString = static function (mixed $value) use ($stringOrNull, $no
         return null;
     }
 
-    if (function_exists('t')) {
+    if (function_exists('admin_translate')) {
+        $translated = admin_translate($translationKey);
+        if (is_string($translated) && $translated !== '' && $translated !== '[[' . $translationKey . ']]') {
+            return $translated;
+        }
+    } elseif (function_exists('t')) {
         $translated = t($translationKey);
         if (is_string($translated) && $translated !== '' && $translated !== '[[' . $translationKey . ']]') {
             return $translated;

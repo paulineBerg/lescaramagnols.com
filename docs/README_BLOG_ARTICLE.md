@@ -1,254 +1,96 @@
-# Analyse stratégique : quels sujets de blog créer
+# Guide de rédaction des articles de blog
 
-## 1. Analyse approfondie
+Ce document complète `AGENTS.md` et `README_BLOG.md` pour la rédaction des articles de blog. Il fixe la forme attendue avant sauvegarde dans `backend/data/blog/*.json` ou import SQL.
 
-### Objectif réel
-Ton blog n’est pas un blog “générique” :
-- il est intégré à un **site hybride (auto rétro + territoire + club)** :contentReference[oaicite:0]{index=0}  
-- il est actuellement un **MVP JSON éditorial** :contentReference[oaicite:1]{index=1}  
+## Principe
 
-👉 Donc ton objectif réel n’est PAS “écrire des articles”  
-👉 C’est :
-- générer du trafic SEO
-- structurer ton univers éditorial
-- renforcer tes pages principales (auto + tourisme)
-- alimenter ton site sans complexifier l’admin
+Un article de blog n'est pas une note de travail. Il doit être lisible et terminé dès le premier jet.
 
----
+Le texte parle au lecteur à travers le sujet traité : une voiture, une marque, une pièce, un geste d'entretien, une période industrielle, une balade ou une expérience réelle. Il ne parle jamais de sa propre fonction, de son intérêt SEO, de sa version future ni du travail de rédaction.
 
-### Problèmes actuels (implicites mais critiques)
+## Style attendu
 
-1. **Absence de ligne éditoriale claire**
-   → tu écris des pages (Saint-Tropez, voitures…) mais pas encore une stratégie de blog
+Règles de fond :
+- commencer par un fait concret : date, modèle, usage, lieu, panne, pièce, décision d'achat, état d'une voiture ou repère historique
+- écrire court à moyen, sans emphase et sans phrases de remplissage
+- donner des informations vérifiables plutôt que des intentions générales
+- dire quand une réponse dépend du modèle exact, de l'état de la voiture, du pays, de la disponibilité des pièces ou de la qualité d'une restauration
+- conserver une voix claire, directe et sobre
+- intégrer les liens internes dans des phrases utiles, sans bloc standardisé
 
-2. **Risque de contenu dispersé**
-   → tourisme / auto / perso / technique mélangés sans hiérarchie
+## Tournures interdites
 
-3. **Blog sous-exploité techniquement**
-   - pas de moteur de recherche connecté
-   - pas de maillage SEO fort
-   - pas de cluster thématique
+Ces formulations doivent être supprimées ou réécrites avant validation :
+- `ce brouillon`
+- `cet article`
+- `l'article doit`
+- `le but est`
+- `le bon brouillon`
+- `version publiée`
+- `utile pour le lecteur`
+- `pour le lecteur`
+- `le premier réflexe utile consiste à`
+- `segmenter le sujet`
+- `un bon article`
+- `un article pratique utile`
+- `page de référence`
+- `le sujet gagne en clarté`
+- `donne au sujet une fonction`
+- `certitudes de façade`
 
-4. **Perte de potentiel SEO**
-   → aujourd’hui tes pages sont “isolées”, pas renforcées par des articles satellites
+Remplacement attendu : écrire directement le fait, le contrôle, la limite ou le conseil pratique.
 
----
+Exemple :
+- a éviter : `L'article doit insister sur la corrosion.`
+- attendu : `La corrosion se vérifie d'abord sur les bas de caisse, les planchers, les passages de roue et les points d'ancrage. Une mécanique saine ne compense pas une caisse affaiblie.`
 
-### Cause principale
+## Articles pratiques
 
-👉 Tu n’as pas encore structuré ton blog comme un **outil SEO + éditorial**,  
-mais comme un espace de contenu libre.
+Un article pratique doit servir une décision ou un geste réel.
 
----
+Il précise :
+- le modèle ou la famille de modèles concernée
+- les points à contrôler
+- les signes d'alerte
+- les limites du conseil donné
+- les cas où un spécialiste, une documentation d'atelier ou un club devient nécessaire
 
-## 2. Meilleure solution globale (choix unique)
+Il ne promet pas de solution universelle. Si le sujet dépend du modèle, le texte le dit et oriente le lecteur vers les vérifications concrètes.
 
-### 👉 Créer un blog structuré en 3 piliers éditoriaux
+## Articles historiques
 
-C’est la solution la plus efficace car :
-- cohérente avec ton site actuel
-- exploite ton contenu existant
-- maximise le SEO
-- reste simple à gérer en JSON
+Un article historique garde une chronologie lisible.
 
----
+Il précise :
+- les dates utiles
+- les personnes ou groupes industriels concernés
+- le rôle de l'usine, de la gamme ou du contexte économique quand ils expliquent vraiment le sujet
+- ce que la période change pour les modèles visibles aujourd'hui
 
-## 3. Structure éditoriale recommandée (obligatoire)
+Il évite les grands résumés abstraits. Une fusion, une usine ou une crise industrielle doit toujours être reliée à une conséquence concrète : badge, gamme, moteur, plateforme, production, pièces, image publique ou usage en collection.
 
-### PILIER 1 — AUTO RÉTRO (trafic passion / technique)
-### PILIER 2 — TERRITOIRE (trafic local SEO)
-### PILIER 3 — VIE DU CLUB / HUMAIN (différenciation + storytelling)
+## Articles en série
 
----
+Une série rattachée à une page pilier doit rester cohérente.
 
-## 4. Sujets d’articles (STRATÉGIQUES)
+Chaque article couvre un angle unique. Il ne répète pas la page parent et ne détourne pas le lecteur vers un autre dossier sans raison éditoriale solide.
 
-### 🔴 PILIER 1 — AUTO RÉTRO (priorité SEO forte)
+Contrôles avant sauvegarde :
+- slug unique
+- `lang` disponible en `fr`, `en` et `de`
+- titre précis
+- extrait distinct du titre
+- catégorie et tags issus de `backend/config/blog_taxonomy.php`
+- page parent cohérente
+- aucun lien vers l'article lui-même
+- aucun lien mort
+- absence des tournures interdites listées plus haut
 
-Objectif : capter du trafic Google technique
+## Langues
 
-**Sujets à créer :**
+Pour chaque slug publié ou préparé à la publication, trois fichiers doivent exister :
+- `backend/data/blog/<slug>.fr.json`
+- `backend/data/blog/<slug>.en.json`
+- `backend/data/blog/<slug>.de.json`
 
-- Comment identifier une Panhard Dyna Z12 (numéro de série, versions…)
-- Différences entre Dyna Z Luxe, Luxe Spécial, Grand Standing
-- Guide complet : entretenir une Mini Austin ancienne
-- Les pannes fréquentes sur les voitures anciennes
-- Comment restaurer une voiture ancienne sans la dénaturer
-- Faut-il restaurer ou conserver “dans son jus” ?
-- Assurance voiture ancienne : ce qu’il faut savoir
-- Acheter une voiture ancienne : pièges à éviter
-- Les voitures françaises méconnues des années 50
-
-👉 Pourquoi c’est le meilleur choix :
-- forte recherche Google
-- lien direct avec tes pages voitures
-- crédibilité technique
-
----
-
-### 🟠 PILIER 2 — TERRITOIRE (SEO local massif)
-
-Objectif : capter trafic tourisme + renforcer pages existantes
-
-**Sujets à créer :**
-
-- Que faire dans le Golfe de Saint-Tropez hors saison
-- Les plus beaux villages autour de Saint-Tropez
-- Gassin vs Ramatuelle : lequel visiter ?
-- Les routes panoramiques du Var à faire en voiture ancienne
-- Les plages secrètes du Golfe de Saint-Tropez
-- Itinéraire 1 jour / 3 jours dans le Golfe
-- Les marchés provençaux à ne pas manquer
-- Pourquoi Saint-Tropez est devenu mythique
-
-👉 Pourquoi c’est le meilleur choix :
-- énorme volume SEO
-- parfait pour maillage vers tes pages existantes
-- attire un public large
-
----
-
-### 🟡 PILIER 3 — VIE / HISTOIRE / CLUB (différenciation)
-
-Objectif : créer de la valeur unique (Google + humain)
-
-**Sujets à créer :**
-
-- L’histoire de notre Mini : une voiture, un souvenir
-- Restaurer une voiture en famille : retour d’expérience
-- Pourquoi on aime les voitures anciennes aujourd’hui
-- Une sortie en ancienne dans le Var : récit
-- Les coulisses de la restauration de la Dyna Z
-- Comment une voiture devient “familiale”
-- Nos erreurs lors de nos restaurations
-
-👉 Pourquoi c’est le meilleur choix :
-- contenu unique (impossible à copier)
-- engagement
-- identité forte
-
----
-
-## 5. Modifications complètes à faire
-
-### ❌ À supprimer
-- logique “articles au hasard”
-- mélange non structuré des sujets
-
-### ✅ À mettre en place
-
-1. **Catégories fixes (3 maximum)**
-   - auto-retro
-   - tourisme
-   - club
-
-2. **Tags SEO structurés**
-   - marques (Panhard, Austin…)
-   - lieux (Saint-Tropez, Gassin…)
-   - thèmes (restauration, technique…)
-
-3. **Règle stricte : 1 article = 1 objectif**
-   - soit SEO
-   - soit storytelling
-   - jamais les deux mélangés
-
-4. **Maillage obligatoire**
-   - chaque article doit pointer vers :
-     - 1 page principale
-     - 1 autre article
-
----
-
-## 6. Plan d’action détaillé
-
-### Étape 1 : Définir la structure
-- Créer 3 catégories fixes
-- Mettre à jour ton blog JSON avec ces catégories
-- Refuser toute autre catégorie
-
-⚠️ Piège : créer trop de catégories → perte SEO
-
----
-
-### Étape 2 : Créer 10 articles SEO prioritaires
-Ordre conseillé :
-1. Identification Panhard
-2. Différences Dyna Z
-3. Guide achat voiture ancienne
-4. Entretien Mini
-5. Itinéraire Golfe St-Tropez
-6. Villages autour de St-Tropez
-7. Routes panoramiques
-8. Plages secrètes
-9. Hors saison St-Tropez
-10. Assurance voiture ancienne
-
-⚠️ Piège : écrire trop long sans structure SEO
-
----
-
-### Étape 3 : Créer 5 articles storytelling
-- Mini de Noël
-- Twingo remise en état
-- Dyna Z histoire
-- sortie dans le Var
-- erreurs de restauration
-
-⚠️ Piège : faire des textes trop “perso” sans valeur lecteur
-
----
-
-### Étape 4 : Optimiser chaque article
-Pour chaque article :
-- 1 H1 clair
-- 3 à 5 H2
-- mots-clés intégrés
-- liens internes
-- résumé SEO
-
-⚠️ Piège : écrire “beau” mais pas optimisé
-
----
-
-### Étape 5 : Publier régulièrement
-- 2 articles / semaine au début
-- puis 1 / semaine
-
-⚠️ Piège : publier en masse puis arrêter
-
----
-
-## 7. Vision finale
-
-Une fois appliqué :
-
-- ton blog devient :
-  - un **générateur de trafic SEO**
-  - un **support de tes pages principales**
-  - une **preuve d’expertise**
-
-- ton site aura :
-  - une structure claire
-  - un contenu cohérent
-  - un positionnement unique (auto + territoire + humain)
-
-- et surtout :
-👉 chaque article travaillera pour le site (pas juste “exister”)
-
----
-
-## Conclusion
-
-Le problème n’est pas “quels sujets écrire”.
-
-👉 Le vrai sujet est :
-**structurer ton blog comme un outil stratégique**
-
-Et la meilleure solution est :
-👉 **3 piliers + contenu ciblé + maillage SEO**
-
----
-
-Si tu veux, je peux maintenant :
-- te générer un **calendrier éditorial sur 3 mois**
-- ou te créer **les 5 premiers articles prêts à publier** (optimisés SEO)
+Le français est la version maître. Les versions anglaise et allemande adaptent le texte pour rester naturelles dans chaque langue. Elles conservent les mêmes faits, le même rattachement, la même taxonomie et un maillage interne équivalent.

@@ -46,6 +46,7 @@ final class AdminControllerTest extends TestCase
         $appConfig['database'] = self::$baselineDatabaseConfig;
         $appConfig['database_prefix'] = self::$baselineDatabasePrefix ?? 'car_';
         $appConfig['admin']['email'] = 'admin@example.com';
+        $appConfig['admin']['language'] = 'fr';
         $appConfig['admin']['password_hash'] = password_hash('topsecret', PASSWORD_DEFAULT);
         $appConfig['admin']['session_key'] = '_admin_controller_test';
         $appConfig['admin']['login_path'] = 'admin';
@@ -58,6 +59,7 @@ final class AdminControllerTest extends TestCase
         $appConfig['admin']['totp_enabled'] = false;
         $appConfig['admin']['totp_secret'] = '';
         $appConfig['admin']['totp_skip_localhost'] = true;
+        $GLOBALS['langTranslations'] = load_translations_cached('fr');
         $appConfig['site']['head_metadata_html'] = '';
         $appConfig['site']['url'] = [
             'domain' => '',
@@ -326,6 +328,26 @@ final class AdminControllerTest extends TestCase
             'status' => 'published',
             'date' => '2026-03-17 10:00:00',
             'content' => '<p>Sortie.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'Monthly outing',
+            'slug' => 'sortie-du-mois',
+            'lang' => 'en',
+            'status' => 'published',
+            'date' => '2026-03-17 10:00:00',
+            'content' => '<p>Outing.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'Monatsausfahrt',
+            'slug' => 'sortie-du-mois',
+            'lang' => 'de',
+            'status' => 'published',
+            'date' => '2026-03-17 10:00:00',
+            'content' => '<p>Ausfahrt.</p>',
             'category' => 'Sorties',
             'tags' => ['Club'],
         ]);
@@ -1379,6 +1401,26 @@ final class AdminControllerTest extends TestCase
             'category' => 'Sorties',
             'tags' => ['Club'],
         ]);
+        $this->writeBlogArticle([
+            'title' => 'Monthly outing',
+            'slug' => 'sortie-du-mois',
+            'lang' => 'en',
+            'status' => 'published',
+            'date' => '2026-03-17 10:00:00',
+            'content' => '<p>Outing.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'Monatsausfahrt',
+            'slug' => 'sortie-du-mois',
+            'lang' => 'de',
+            'status' => 'published',
+            'date' => '2026-03-17 10:00:00',
+            'content' => '<p>Ausfahrt.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
 
         admin_login('admin@example.com', 'topsecret');
         $controller = $this->controller();
@@ -1388,6 +1430,14 @@ final class AdminControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Articles visibles', $response->body);
         $this->assertStringContainsString('Articles publiés', $response->body);
+        $this->assertMatchesRegularExpression(
+            '/<strong class="dashboard-kpi-value">1<\/strong>\s*<p class="dashboard-kpi-label">Articles visibles<\/p>/',
+            $response->body
+        );
+        $this->assertMatchesRegularExpression(
+            '/<strong class="dashboard-kpi-value">1<\/strong>\s*<p class="dashboard-kpi-label">Articles publiés<\/p>/',
+            $response->body
+        );
         $this->assertStringContainsString('class="card dashboard-kpi-card"', $response->body);
         $this->assertStringContainsString('article_action', $response->body);
         $this->assertStringContainsString('Supprimer', $response->body);
@@ -2232,6 +2282,44 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('Dictionnaire existant FR', $response->body);
         $this->assertStringContainsString('name="settings_action" value="cache_clear"', $response->body);
         $this->assertStringContainsString('Vider le cache', $response->body);
+    }
+
+    public function testSettingsPageKeepsAdminLanguageWhenPublicTranslationsAreDifferent(): void
+    {
+        global $appConfig;
+
+        $appConfig['admin']['language'] = 'fr';
+        $GLOBALS['langTranslations'] = load_translations_cached('de');
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle('settings', $this->request('GET', '/admin/settings'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('<html lang="fr">', $response->body);
+        $cardStart = strpos($response->body, 'data-settings-section-card="observability"');
+        $this->assertIsInt($cardStart);
+        $cardEnd = strpos($response->body, '</button>', $cardStart);
+        $this->assertIsInt($cardEnd);
+
+        $observabilityCard = substr($response->body, $cardStart, $cardEnd - $cardStart);
+        $this->assertStringContainsString('Observabilite ops', $observabilityCard);
+        $this->assertStringContainsString('Canal logs', $observabilityCard);
+        $this->assertStringNotContainsString('Ops-Observabilitaet', $observabilityCard);
+        $this->assertStringNotContainsString('Log-Kanal', $observabilityCard);
+        $this->assertStringNotContainsString('Nur bei Alarm', $observabilityCard);
+
+        $consentCardStart = strpos($response->body, 'data-settings-section-card="tarteaucitron"');
+        $this->assertIsInt($consentCardStart);
+        $consentCardEnd = strpos($response->body, '</button>', $consentCardStart);
+        $this->assertIsInt($consentCardEnd);
+
+        $consentCard = substr($response->body, $consentCardStart, $consentCardEnd - $consentCardStart);
+        $this->assertStringContainsString('bannière en bas', $consentCard);
+        $this->assertStringContainsString('Icône en bas à droite', $consentCard);
+        $this->assertStringNotContainsString('bannière bottom', $consentCard);
+        $this->assertStringNotContainsString('Icône BottomRight', $consentCard);
     }
 
     public function testSettingsCacheClearActionDeletesInstagramCacheFile(): void

@@ -1,9 +1,14 @@
 <?php
 $filters = is_array($filters ?? null) ? $filters : ['status' => null, 'lang' => null, 'category' => null, 'tag' => null, 'q' => ''];
 $articles = is_array($articles ?? null) ? $articles : [];
+$articleListSummary = is_array($articleListSummary ?? null) ? $articleListSummary : [];
 $categoryOptions = is_array($availableCategoryOptions ?? null) ? array_values($availableCategoryOptions) : [];
 $tagOptions = is_array($availableTagOptions ?? null) ? array_values($availableTagOptions) : [];
 $translate = static function (string $key, string $fallback): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
     if (!function_exists('t')) {
         return $fallback;
     }
@@ -20,18 +25,28 @@ $statusLabels = [
     'scheduled' => $translate('TXT_ADMIN_ARTICLE_STATUS_SCHEDULED', 'Planifié'),
     'published' => $translate('TXT_ADMIN_ARTICLE_STATUS_PUBLISHED', 'Publié'),
 ];
-$draftCount = count(array_filter($articles, static fn (array $article): bool => ($article['status'] ?? '') === 'draft'));
-$publishedCount = count(array_filter(
+$legacyDraftCount = count(array_filter(
+    $articles,
+    static fn (array $article): bool => ($article['status'] ?? '') === 'draft'
+));
+$legacyPublishedCount = count(array_filter(
     $articles,
     static fn (array $article): bool => (string) ($article['effectiveStatus'] ?? ($article['status'] ?? '')) === 'published'
 ));
-$scheduledCount = count(array_filter($articles, static fn (array $article): bool => ($article['status'] ?? '') === 'scheduled'));
+$legacyScheduledCount = count(array_filter(
+    $articles,
+    static fn (array $article): bool => ($article['status'] ?? '') === 'scheduled'
+));
+$visibleArticleCount = (int) ($articleListSummary['total'] ?? count($articles));
+$draftCount = (int) ($articleListSummary['drafts'] ?? $legacyDraftCount);
+$publishedCount = (int) ($articleListSummary['published'] ?? $legacyPublishedCount);
+$scheduledCount = (int) ($articleListSummary['scheduled'] ?? $legacyScheduledCount);
 ?>
 
 <section class="cards-grid dashboard-kpis">
   <article class="card dashboard-kpi-card">
     <span class="tag">Éditorial</span>
-    <strong class="dashboard-kpi-value"><?php echo count($articles); ?></strong>
+    <strong class="dashboard-kpi-value"><?php echo $visibleArticleCount; ?></strong>
     <p class="dashboard-kpi-label">Articles visibles</p>
     <p class="dashboard-kpi-detail">Gestion moderne des articles éditoriaux avec catégorie principale et tags.</p>
     <p class="dashboard-kpi-detail">Le front s’appuie sur ces taxonomies pour la filtration rapide côté serveur.</p>

@@ -14,6 +14,10 @@ $discussionsRejected = (int) ($discussionSummary['rejected'] ?? 0);
 $discussionsUrl = (string) ($adminDiscussionsUrl ?? admin_url('discussions'));
 $pendingDiscussionsUrl = $discussionsUrl . (str_contains($discussionsUrl, '?') ? '&' : '?') . 'status=pending';
 $translate = static function (string $key, string $fallback): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
     if (!function_exists('t')) {
         return $fallback;
     }

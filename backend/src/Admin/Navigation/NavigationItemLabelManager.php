@@ -238,11 +238,14 @@ final class NavigationItemLabelManager
 
     private function translateKey(string $key): ?string
     {
-        if (!function_exists('t')) {
+        if (function_exists('admin_translate')) {
+            $translated = admin_translate($key);
+        } elseif (function_exists('t')) {
+            $translated = t($key);
+        } else {
             return null;
         }
 
-        $translated = t($key);
         if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
             return null;
         }

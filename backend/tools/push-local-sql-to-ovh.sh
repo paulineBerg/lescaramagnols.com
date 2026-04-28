@@ -13,20 +13,28 @@ PHP_BIN="${PHP_BIN:-php}"
 LIVE=0
 DRY_RUN=0
 KEEP_REMOTE_BACKUPS=0
+ALLOW_DELETE=0
+INCLUDE_DISCUSSIONS=0
+SYNC_ASSETS=1
 
 usage() {
   cat <<'USAGE'
 Usage:
-  bash backend/tools/push-local-sql-to-ovh.sh --live [--keep-remote-backups]
+  bash backend/tools/push-local-sql-to-ovh.sh --live [--allow-delete] [--include-discussions] [--no-assets] [--keep-remote-backups]
 
 Description:
-  Copie le contenu editorial SQL local vers la production OVH.
+  Synchronise le contenu editorial SQL local vers la production OVH.
   La commande passe par core/tools/editorial_backup_restore.php, pas par un dump MySQL brut.
-  Elle couvre pages, navigation, blog et discussions.
+  Par defaut elle couvre pages, navigation, articles de blog et tuiles.
+  Elle exclut les donnees runtime/sensibles: utilisateurs, logs, meta schema, commentaires legacy et discussions de blog.
+  Elle synchronise aussi les assets publies par le build frontend: manifest Vite, bundles CSS/JS et images publiques.
 
 Etapes:
+  - synchronise les assets frontend publies, sauf --no-assets
+  - met a jour l'outil de sync editorial sur OVH
   - cree un backup SQL local
   - cree un backup SQL prod OVH avant ecriture et le rapatrie hors depot
+  - affiche un diff local/prod et bloque les suppressions sauf --allow-delete
   - copie le payload local vers OVH avec controle de taille
   - restaure le payload en prod avec --storage=sql
   - regenere index de recherche, sitemap et caches
@@ -36,6 +44,9 @@ Etapes:
 
 Options:
   --live                 Obligatoire pour autoriser l'ecriture prod.
+  --allow-delete         Autorise les suppressions detectees par le diff editorial.
+  --include-discussions  Inclut aussi les discussions de blog; a eviter sauf besoin explicite.
+  --no-assets            Ne pousse pas les assets frontend publies.
   --dry-run              Affiche la configuration puis sort sans ecriture.
   --keep-remote-backups  Conserve les backups temporaires aussi sur OVH.
   -h, --help             Affiche cette aide.
@@ -47,6 +58,9 @@ while (($#)); do
     --live) LIVE=1 ;;
     --dry-run) DRY_RUN=1 ;;
     --keep-remote-backups) KEEP_REMOTE_BACKUPS=1 ;;
+    --allow-delete) ALLOW_DELETE=1 ;;
+    --include-discussions) INCLUDE_DISCUSSIONS=1 ;;
+    --no-assets) SYNC_ASSETS=0 ;;
     -h|--help)
       usage
       exit 0
@@ -81,10 +95,36 @@ echo "Local backend: $LOCAL_BACKEND"
 echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
 echo "Backups: $BACKUP_ROOT"
 echo "Sitemap base URL: $SITEMAP_BASE_URL"
+echo "Allow delete: $ALLOW_DELETE"
+echo "Include discussions: $INCLUDE_DISCUSSIONS"
+echo "Sync assets: $SYNC_ASSETS"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "[dry-run] Aucune sauvegarde ni ecriture distante ne sera lancee."
   exit 0
+fi
+
+SYNC_FLAGS=(--storage=sql)
+DIFF_FLAGS=(--storage=sql)
+RESTORE_FLAGS=(--force --storage=sql)
+REMOTE_SYNC_FLAGS="--storage=sql"
+REMOTE_DIFF_FLAGS="--storage=sql"
+REMOTE_RESTORE_FLAGS="--force --storage=sql"
+
+if [[ "$INCLUDE_DISCUSSIONS" -eq 1 ]]; then
+  SYNC_FLAGS+=(--include-discussions)
+  DIFF_FLAGS+=(--include-discussions)
+  RESTORE_FLAGS+=(--include-discussions)
+  REMOTE_SYNC_FLAGS="$REMOTE_SYNC_FLAGS --include-discussions"
+  REMOTE_DIFF_FLAGS="$REMOTE_DIFF_FLAGS --include-discussions"
+  REMOTE_RESTORE_FLAGS="$REMOTE_RESTORE_FLAGS --include-discussions"
+fi
+
+if [[ "$ALLOW_DELETE" -eq 1 ]]; then
+  DIFF_FLAGS+=(--allow-delete)
+  RESTORE_FLAGS+=(--allow-delete)
+  REMOTE_DIFF_FLAGS="$REMOTE_DIFF_FLAGS --allow-delete"
+  REMOTE_RESTORE_FLAGS="$REMOTE_RESTORE_FLAGS --allow-delete"
 fi
 
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -106,20 +146,49 @@ cleanup_local() {
 }
 trap cleanup_local EXIT
 
-echo "[1/8] Backup SQL local"
-"$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" backup --storage=sql --output="$LOCAL_JSON"
+if [[ "$SYNC_ASSETS" -eq 1 ]]; then
+  echo "[1/10] Synchronisation des assets frontend publies"
+  "$PHP_BIN" "$LOCAL_BACKEND/core/tools/check_vite_assets.php" --public-root="$LOCAL_BACKEND/public"
+  ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/public/.vite' '$REMOTE_BACKEND/public/assets'"
+  rsync -az "$LOCAL_BACKEND/public/.vite/" "$REMOTE_HOST:$REMOTE_BACKEND/public/.vite/"
+  rsync -az --prune-empty-dirs \
+    --include='*/' \
+    --include='*.css' \
+    --include='*.js' \
+    --include='*.jpg' \
+    --include='*.jpeg' \
+    --include='*.png' \
+    --include='*.webp' \
+    --include='*.gif' \
+    --include='*.svg' \
+    --exclude='*' \
+    "$LOCAL_BACKEND/public/assets/" "$REMOTE_HOST:$REMOTE_BACKEND/public/assets/"
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/check_vite_assets.php --public-root=public"
+else
+  echo "[1/10] Synchronisation des assets frontend publies ignoree (--no-assets)"
+fi
+
+echo "[2/10] Mise a jour de l'outil de sync editorial sur OVH"
+ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/core/tools'"
+rsync -az "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" "$REMOTE_HOST:$REMOTE_BACKEND/core/tools/editorial_backup_restore.php"
+
+echo "[3/10] Backup SQL local"
+"$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" backup "${SYNC_FLAGS[@]}" --output="$LOCAL_JSON"
 gzip -f "$LOCAL_JSON"
 chmod 600 "$LOCAL_GZ"
 stat -c '%a %s %n' "$LOCAL_GZ"
 
-echo "[2/8] Backup SQL prod OVH avant ecriture"
-ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && mkdir -p var/backups && php core/tools/editorial_backup_restore.php backup --storage=sql --output='$REMOTE_BACKUP_JSON' && gzip -f '$REMOTE_BACKUP_JSON' && stat -c '%s %n' '$REMOTE_BACKUP_GZ'"
+echo "[4/10] Backup SQL prod OVH avant ecriture"
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && mkdir -p var/backups && php core/tools/editorial_backup_restore.php backup $REMOTE_SYNC_FLAGS --output='$REMOTE_BACKUP_JSON' && gzip -f '$REMOTE_BACKUP_JSON' && stat -c '%s %n' '$REMOTE_BACKUP_GZ'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_BACKUP_GZ" "$PROD_DIR/"
 PROD_BEFORE_LOCAL="$PROD_DIR/$(basename "$REMOTE_BACKUP_GZ")"
 chmod 600 "$PROD_BEFORE_LOCAL"
 stat -c '%a %s %n' "$PROD_BEFORE_LOCAL"
 
-echo "[3/8] Copie du payload local vers OVH"
+echo "[5/10] Diff editorial local -> prod"
+"$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" diff "$LOCAL_GZ" "$PROD_BEFORE_LOCAL" "${DIFF_FLAGS[@]}"
+
+echo "[6/10] Copie du payload local vers OVH"
 gzip -dc "$LOCAL_GZ" > "$TMP_JSON"
 chmod 600 "$TMP_JSON"
 LOCAL_SIZE="$(stat -c '%s' "$TMP_JSON")"
@@ -131,62 +200,27 @@ if [[ "$LOCAL_SIZE" != "$REMOTE_SIZE" ]]; then
   exit 1
 fi
 
-echo "[4/8] Restore SQL prod et regeneration"
-ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php restore '$REMOTE_PAYLOAD' --force --storage=sql && php core/tools/generate_search_index.php && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url='$SITEMAP_BASE_URL' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\"]); } echo \"cache_cleared_after_sql_restore\n\";'"
+echo "[7/10] Restore SQL prod et regeneration"
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php restore '$REMOTE_PAYLOAD' $REMOTE_RESTORE_FLAGS && php core/tools/generate_search_index.php && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url='$SITEMAP_BASE_URL' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_after_sql_restore\n\";'"
 
-echo "[5/8] Backup prod apres ecriture"
-ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php backup --storage=sql --output='$REMOTE_AFTER_JSON' && gzip -f '$REMOTE_AFTER_JSON' && stat -c '%s %n' '$REMOTE_AFTER_GZ'"
+echo "[8/10] Backup prod apres ecriture"
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php backup $REMOTE_SYNC_FLAGS --output='$REMOTE_AFTER_JSON' && gzip -f '$REMOTE_AFTER_JSON' && stat -c '%s %n' '$REMOTE_AFTER_GZ'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_AFTER_GZ" "$PROD_DIR/"
 PROD_AFTER_LOCAL="$PROD_DIR/$(basename "$REMOTE_AFTER_GZ")"
 chmod 600 "$PROD_AFTER_LOCAL"
 stat -c '%a %s %n' "$PROD_AFTER_LOCAL"
 
-echo "[6/8] Comparaison local/prod apres restore"
-"$PHP_BIN" -r '
-function readBackup(string $path): array {
-    $raw = (string) file_get_contents($path);
-    if (str_ends_with($path, ".gz")) {
-        $decoded = gzdecode($raw);
-        if (!is_string($decoded)) {
-            fwrite(STDERR, "Backup gzip illisible: {$path}\n");
-            exit(1);
-        }
-        $raw = $decoded;
-    }
-    $data = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
-    return is_array($data) ? $data : [];
-}
-function normalizeBackup(array $data): array {
-    unset($data["meta"]["generatedAt"], $data["meta"]["storageMode"], $data["meta"]["paths"]);
-    if (isset($data["pages"]["pages"]) && is_array($data["pages"]["pages"])) {
-        usort($data["pages"]["pages"], static fn (array $left, array $right): int => strcmp((string) ($left["slug"] ?? ""), (string) ($right["slug"] ?? "")));
-    }
-    if (isset($data["blog"]["articles"]) && is_array($data["blog"]["articles"])) {
-        usort($data["blog"]["articles"], static fn (array $left, array $right): int => strcmp((string) ($left["lang"] ?? "fr") . ":" . (string) ($left["slug"] ?? ""), (string) ($right["lang"] ?? "fr") . ":" . (string) ($right["slug"] ?? "")));
-    }
-    return $data;
-}
-function hashBackup(array $data): string {
-    return hash("sha256", json_encode(normalizeBackup($data), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
-}
-$localHash = hashBackup(readBackup($argv[1]));
-$prodHash = hashBackup(readBackup($argv[2]));
-echo "local_hash={$localHash}\nprod_after_hash={$prodHash}\n";
-if ($localHash !== $prodHash) {
-    fwrite(STDERR, "Le backup prod apres restore ne correspond pas au backup local.\n");
-    exit(1);
-}
-echo "content_match\n";
-' "$LOCAL_GZ" "$PROD_AFTER_LOCAL"
+echo "[9/10] Comparaison local/prod apres restore"
+"$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" compare "$LOCAL_GZ" "$PROD_AFTER_LOCAL" "${SYNC_FLAGS[@]}"
 
-echo "[7/8] Controles prod"
+echo "[10/10] Controles prod"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/check_vite_assets.php --public-root=public && php core/tools/check_prod_tree.php --root=. && php core/tools/check_env.php --env=production --strict-prod-security"
 
 if command -v composer >/dev/null 2>&1; then
   composer check-security-headers --working-dir="$LOCAL_BACKEND" -- --url="$SITEMAP_BASE_URL"
 fi
 
-echo "[8/8] Nettoyage des temporaires"
+echo "[cleanup] Nettoyage des temporaires"
 if [[ "$KEEP_REMOTE_BACKUPS" -eq 1 ]]; then
   ssh "$REMOTE_HOST" "rm -f '$REMOTE_BACKEND/$REMOTE_PAYLOAD'"
   echo "Backups conserves sur OVH a la demande."

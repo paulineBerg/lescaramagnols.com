@@ -13,6 +13,10 @@ $storage = is_array($view['storage'] ?? null) ? $view['storage'] : [];
 $openSection = is_string($openSettingsSection ?? null) ? (string) $openSettingsSection : null;
 $settingsAction = (string) ($adminSettingsUrl ?? admin_url('settings'));
 $translate = static function (string $key, string $fallback): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
     if (!function_exists('t')) {
         return $fallback;
     }
@@ -23,6 +27,42 @@ $translate = static function (string $key, string $fallback): string {
     }
 
     return $translated;
+};
+$adminInterfaceLanguage = function_exists('admin_interface_language') ? admin_interface_language() : 'fr';
+$settingChoiceLabels = [
+    'orientation' => [
+        'fr' => ['bottom' => 'en bas', 'top' => 'en haut', 'middle' => 'au centre'],
+        'en' => ['bottom' => 'bottom', 'top' => 'top', 'middle' => 'middle'],
+        'de' => ['bottom' => 'unten', 'top' => 'oben', 'middle' => 'mittig'],
+    ],
+    'iconPosition' => [
+        'fr' => [
+            'BottomRight' => 'en bas à droite',
+            'BottomLeft' => 'en bas à gauche',
+            'TopRight' => 'en haut à droite',
+            'TopLeft' => 'en haut à gauche',
+        ],
+        'en' => [
+            'BottomRight' => 'bottom right',
+            'BottomLeft' => 'bottom left',
+            'TopRight' => 'top right',
+            'TopLeft' => 'top left',
+        ],
+        'de' => [
+            'BottomRight' => 'unten rechts',
+            'BottomLeft' => 'unten links',
+            'TopRight' => 'oben rechts',
+            'TopLeft' => 'oben links',
+        ],
+    ],
+];
+$settingChoiceLabel = static function (string $group, string $value) use ($adminInterfaceLanguage, $settingChoiceLabels): string {
+    $labelsByLanguage = is_array($settingChoiceLabels[$group] ?? null) ? $settingChoiceLabels[$group] : [];
+    $labels = is_array($labelsByLanguage[$adminInterfaceLanguage] ?? null)
+        ? $labelsByLanguage[$adminInterfaceLanguage]
+        : (is_array($labelsByLanguage['fr'] ?? null) ? $labelsByLanguage['fr'] : []);
+
+    return is_string($labels[$value] ?? null) ? $labels[$value] : $value;
 };
 $metadataConfigured = trim((string) ($head['metadataHtml'] ?? '')) !== '';
 $tarteaucitronServices = array_values(array_filter(
@@ -199,8 +239,8 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">Gestion tarteaucitron</h2>
     <p class="settings-section-card__summary">
-      <?php echo !empty($tarteaucitron['enabled']) ? 'Activé' : 'Désactivé'; ?> · bannière <?php echo htmlspecialchars((string) ($tarteaucitron['orientation'] ?? 'bottom'), ENT_QUOTES, 'UTF-8'); ?><br />
-      Icône <?php echo htmlspecialchars((string) ($tarteaucitron['iconPosition'] ?? 'BottomRight'), ENT_QUOTES, 'UTF-8'); ?> · <?php echo $tarteaucitronServiceCount; ?> service<?php echo $tarteaucitronServiceCount > 1 ? 's' : ''; ?><br />
+      <?php echo !empty($tarteaucitron['enabled']) ? 'Activé' : 'Désactivé'; ?> · bannière <?php echo htmlspecialchars($settingChoiceLabel('orientation', (string) ($tarteaucitron['orientation'] ?? 'bottom')), ENT_QUOTES, 'UTF-8'); ?><br />
+      Icône <?php echo htmlspecialchars($settingChoiceLabel('iconPosition', (string) ($tarteaucitron['iconPosition'] ?? 'BottomRight')), ENT_QUOTES, 'UTF-8'); ?> · <?php echo $tarteaucitronServiceCount; ?> service<?php echo $tarteaucitronServiceCount > 1 ? 's' : ''; ?><br />
       Variables JS: <?php echo (int) $tarteaucitronUserConfigCount; ?>
     </p>
     <span class="settings-section-card__cta">Configurer le consentement</span>
@@ -500,7 +540,8 @@ $autostartAttr = static function (string $section, ?string $openSection): string
           <div class="field">
             <label for="tarteaucitron_orientation">Position de la bannière</label>
             <select id="tarteaucitron_orientation" name="tarteaucitron[orientation]">
-              <?php foreach (['bottom' => 'Bas', 'top' => 'Haut', 'middle' => 'Milieu'] as $value => $label): ?>
+              <?php foreach (['bottom', 'top', 'middle'] as $value): ?>
+              <?php $label = $settingChoiceLabel('orientation', $value); ?>
               <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (($tarteaucitron['orientation'] ?? 'bottom') === $value) ? ' selected' : ''; ?>><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
@@ -509,7 +550,8 @@ $autostartAttr = static function (string $section, ?string $openSection): string
             <label for="tarteaucitron_icon_position">Position de l’icône</label>
             <select id="tarteaucitron_icon_position" name="tarteaucitron[icon_position]">
               <?php foreach (['BottomRight', 'BottomLeft', 'TopRight', 'TopLeft'] as $value): ?>
-              <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (($tarteaucitron['iconPosition'] ?? 'BottomRight') === $value) ? ' selected' : ''; ?>><?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php $label = $settingChoiceLabel('iconPosition', $value); ?>
+              <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (($tarteaucitron['iconPosition'] ?? 'BottomRight') === $value) ? ' selected' : ''; ?>><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
           </div>

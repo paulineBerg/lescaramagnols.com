@@ -127,8 +127,10 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
             <div class="actions-inline admin-pages-row-actions">
               <a class="button-link admin-pages-row-action" href="<?php echo htmlspecialchars($pageEditPath, ENT_QUOTES, 'UTF-8'); ?>">Éditer</a>
               <?php
-              $deleteWarningTemplate = (string) t('TXT_ADMIN_PAGES_DELETE_WARNING_TEMPLATE');
-              if ($deleteWarningTemplate === 'TXT_ADMIN_PAGES_DELETE_WARNING_TEMPLATE') {
+              $deleteWarningTemplate = function_exists('admin_translate')
+                  ? admin_translate('TXT_ADMIN_PAGES_DELETE_WARNING_TEMPLATE')
+                  : (function_exists('t') ? (string) t('TXT_ADMIN_PAGES_DELETE_WARNING_TEMPLATE') : '');
+              if ($deleteWarningTemplate === '' || $deleteWarningTemplate === '[[TXT_ADMIN_PAGES_DELETE_WARNING_TEMPLATE]]') {
                   $deleteWarningTemplate = "ATTENTION : suppression definitive de la page \"%s\".\nToutes les traductions associees seront supprimees.";
               }
 

@@ -1483,8 +1483,8 @@ final class AdminNavigationService
 
     private function adminPreferredLanguage(): string
     {
-        if (defined('CURRENT_LANG') && is_string(CURRENT_LANG) && trim(CURRENT_LANG) !== '') {
-            return strtolower(trim(CURRENT_LANG));
+        if (function_exists('admin_interface_language')) {
+            return admin_interface_language();
         }
 
         return strtolower(trim((string) app_config('default_lang', 'fr')));
@@ -1493,11 +1493,18 @@ final class AdminNavigationService
     private function translateKey(?string $key): ?string
     {
         $key = $this->stringOrNull($key);
-        if ($key === null || !function_exists('t')) {
+        if ($key === null) {
             return null;
         }
 
-        $translated = t($key);
+        if (function_exists('admin_translate')) {
+            $translated = admin_translate($key);
+        } elseif (function_exists('t')) {
+            $translated = t($key);
+        } else {
+            return null;
+        }
+
         if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
             return null;
         }

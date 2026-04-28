@@ -194,6 +194,7 @@ Regles:
 - toute nouvelle cle doit etre ajoutee de maniere coherente dans `backend/lang/fr.php`, `backend/lang/en.php`, `backend/lang/de.php`
 - toute logique de resolution de langue doit passer par le socle existant (`LanguageResolver`, `Translator`, `lang_bootstrap`)
 - ne pas contourner `CURRENT_LANG`, `DEFAULT_LANG` et les helpers de traduction deja en place
+- dans l'admin, ne pas utiliser directement la langue publique du visiteur ni le cookie public pour les libelles d'interface; les textes admin doivent passer par la langue d'interface administrateur (`admin_interface_language()` / `admin_translate()`) afin d'eviter tout melange `fr`/`en`/`de`
 - `fr` reste le texte maitre pour les pages editoriales, mais toute creation, modification significative ou suppression d'une page doit etre repercutee sur `en` et `de` dans le meme passage de travail si possible
 - toute nouvelle creation editoriale publique doit etre preparee nativement en `fr`, `en` et `de`; ne pas creer seulement `fr` avec l'idee de revenir plus tard, sauf blocage explicite documente
 - apres creation d'une page publique en `fr`, preparer aussi ses versions `en` et `de` avant cloture ou signaler explicitement si elles restent a faire
@@ -290,6 +291,11 @@ Ordre recommande:
 - article de blog : le maillage interne est obligatoire, avec des liens vers des pages complementaires et des sujets lies, mais jamais vers la page actuelle elle-meme
 - article de blog : ne jamais commenter la fonction SEO, l'utilite editoriale, le statut de brouillon ou la structure de l'article lui-meme; le texte doit parler du sujet, pas de sa propre redaction
 - article de blog : proscrire les formulations meta du type `ce brouillon`, `cet article`, `page de reference`, `utile pour`, `pour le lecteur`, `le sujet gagne en clarte` ou `donne au sujet une fonction`; remplacer ces phrases par des faits, des dates, des usages, des contraintes ou des observations concretes
+- article de blog : livrer une version finie des le premier jet; ne jamais ecrire en pensant qu'une version publiee devra etre completee plus tard
+- article de blog : s'adresser au lecteur par le sujet lui-meme, sans commenter l'intention de redaction; eviter les phrases du type `l'article doit`, `le but est`, `le premier reflexe utile consiste a`, `il faut segmenter le sujet`, `un bon article`, `un article pratique utile`
+- article de blog : privilegier les informations qui servent vraiment la lecture: symptomes, controles, dates, modele concerne, pieces, contraintes d'achat, entretien, usage, limites connues, couts possibles, disponibilite, chronologie et faits industriels verifies
+- article de blog : refuser le remplissage, les certitudes de facade et les generalites pedagogiques; quand une information depend du modele, de l'etat ou du marche, le dire clairement et expliquer ce que le lecteur peut verifier concretement
+- article de blog : chaque slug public doit exister en `fr`, `en` et `de`; `fr` reste la version maitre, mais `en` et `de` doivent etre de vrais articles adaptes, pas des coquilles vides ni des traductions automatiques non relues
 
 ### 9.9 Regles de structuration HTML et editoriale
 - un seul `h1` visible par article

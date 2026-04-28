@@ -1,5 +1,8 @@
 <?php
 $isLoginPage = ($contentTemplate ?? '') === 'login.php';
+$adminInterfaceLanguage = is_string($adminInterfaceLanguage ?? null) && trim((string) $adminInterfaceLanguage) !== ''
+    ? strtolower(trim((string) $adminInterfaceLanguage))
+    : (function_exists('admin_interface_language') ? admin_interface_language() : 'fr');
 $adminMenu = [
     ['id' => 'dashboard', 'label' => 'Tableau de bord', 'href' => $adminDashboardUrl ?? admin_url('dashboard'), 'icon' => '📊'],
     ['id' => 'pages', 'label' => 'Pages', 'href' => $adminPagesUrl ?? admin_url('pages'), 'icon' => '📝'],
@@ -13,7 +16,7 @@ $adminMenu = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<?php echo htmlspecialchars($adminInterfaceLanguage, ENT_QUOTES, 'UTF-8'); ?>">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -140,6 +140,90 @@ final class AdminBlogService
     }
 
     /**
+     * @param array<int, array<string, mixed>> $articles
+     * @return array{
+     *   total: int,
+     *   published: int,
+     *   drafts: int,
+     *   scheduled: int,
+     *   rootArticles: int,
+     *   childArticles: int,
+     *   manualOrderedChildren: int,
+     *   categories: int,
+     *   tags: int,
+     *   byLanguage: array<string, int>
+     * }
+     */
+    public function summarizeArticles(array $articles): array
+    {
+        $summary = $this->emptyArticleSummary();
+
+        $groups = [];
+        foreach ($articles as $index => $article) {
+            $slug = trim((string) ($article['slug'] ?? ''));
+            if ($slug === '') {
+                $slug = '__article_' . (string) $index;
+            }
+
+            if (!isset($groups[$slug])) {
+                $groups[$slug] = [
+                    'status' => 'draft',
+                    'parentSlug' => '',
+                    'hasManualOrder' => false,
+                ];
+            }
+
+            $effectiveStatus = is_string($article['effectiveStatus'] ?? null)
+                ? $this->normalizeStatus((string) $article['effectiveStatus'])
+                : $this->resolveEffectiveStatus($article);
+            $groups[$slug]['status'] = $this->prioritizedSummaryStatus(
+                (string) $groups[$slug]['status'],
+                $effectiveStatus
+            );
+
+            $language = (string) ($article['lang'] ?? $this->defaultLanguage);
+            if (array_key_exists($language, $summary['byLanguage'])) {
+                $summary['byLanguage'][$language]++;
+            }
+
+            $parentSlug = trim((string) ($article['parentSlug'] ?? $article['parent_slug'] ?? ''));
+            if ($parentSlug !== '') {
+                $groups[$slug]['parentSlug'] = $parentSlug;
+            }
+
+            $childSortOrder = $article['childSortOrder'] ?? $article['child_sort_order'] ?? null;
+            if ($childSortOrder !== null && $childSortOrder !== '') {
+                $groups[$slug]['hasManualOrder'] = true;
+            }
+        }
+
+        foreach ($groups as $group) {
+            $summary['total']++;
+
+            $status = (string) $group['status'];
+            if ($status === 'published') {
+                $summary['published']++;
+            } elseif ($status === 'scheduled') {
+                $summary['scheduled']++;
+            } else {
+                $summary['drafts']++;
+            }
+
+            if (trim((string) $group['parentSlug']) === '') {
+                $summary['rootArticles']++;
+            } else {
+                $summary['childArticles']++;
+
+                if (!empty($group['hasManualOrder'])) {
+                    $summary['manualOrderedChildren']++;
+                }
+            }
+        }
+
+        return $summary;
+    }
+
+    /**
      * @return array<int, string>
      */
     public function availableCategories(?string $language = null): array
@@ -234,7 +318,30 @@ final class AdminBlogService
      */
     public function dashboardSummary(): array
     {
-        $summary = [
+        $summary = $this->summarizeArticles($this->repository->allArticles());
+        $summary['categories'] = count($this->availableCategoryOptions($this->defaultLanguage));
+        $summary['tags'] = count($this->availableTagOptions($this->defaultLanguage));
+
+        return $summary;
+    }
+
+    /**
+     * @return array{
+     *   total: int,
+     *   published: int,
+     *   drafts: int,
+     *   scheduled: int,
+     *   rootArticles: int,
+     *   childArticles: int,
+     *   manualOrderedChildren: int,
+     *   categories: int,
+     *   tags: int,
+     *   byLanguage: array<string, int>
+     * }
+     */
+    private function emptyArticleSummary(): array
+    {
+        return [
             'total' => 0,
             'published' => 0,
             'drafts' => 0,
@@ -242,44 +349,24 @@ final class AdminBlogService
             'rootArticles' => 0,
             'childArticles' => 0,
             'manualOrderedChildren' => 0,
-            'categories' => count($this->availableCategoryOptions($this->defaultLanguage)),
-            'tags' => count($this->availableTagOptions($this->defaultLanguage)),
+            'categories' => 0,
+            'tags' => 0,
             'byLanguage' => array_fill_keys($this->availableLanguages, 0),
         ];
+    }
 
-        foreach ($this->repository->allArticles() as $article) {
-            $summary['total']++;
+    private function prioritizedSummaryStatus(string $currentStatus, string $candidateStatus): string
+    {
+        $priority = [
+            'draft' => 0,
+            'scheduled' => 1,
+            'published' => 2,
+        ];
 
-            $rawStatus = $this->normalizeStatus((string) ($article['status'] ?? 'draft'));
-            if ($rawStatus === 'scheduled') {
-                $summary['scheduled']++;
-            }
+        $current = $this->normalizeStatus($currentStatus);
+        $candidate = $this->normalizeStatus($candidateStatus);
 
-            if ($this->isEffectivelyPublished($article)) {
-                $summary['published']++;
-            } else {
-                $summary['drafts']++;
-            }
-
-            $language = (string) ($article['lang'] ?? $this->defaultLanguage);
-            if (array_key_exists($language, $summary['byLanguage'])) {
-                $summary['byLanguage'][$language]++;
-            }
-
-            $parentSlug = trim((string) ($article['parent_slug'] ?? ''));
-            if ($parentSlug === '') {
-                $summary['rootArticles']++;
-            } else {
-                $summary['childArticles']++;
-
-                $childSortOrder = $article['child_sort_order'] ?? null;
-                if ($childSortOrder !== null && $childSortOrder !== '') {
-                    $summary['manualOrderedChildren']++;
-                }
-            }
-        }
-
-        return $summary;
+        return ($priority[$candidate] ?? 0) > ($priority[$current] ?? 0) ? $candidate : $current;
     }
 
     /**

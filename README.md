@@ -52,13 +52,17 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - Installer frontend : `cd frontend && npm install`
 - Installer les hooks Git locaux : `make install-git-hooks`
 
-- deployer : cd frontend && npm run build
+
+- deployer :
+
+cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net" REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend" SITEMAP_BASE_URL="https://www.lescaramagnols.com" && cd frontend && npm run build && cd /home/surfacepro8/www/caramagnols && bash backend/tools/deploy-release.sh && bash backend/tools/push-local-sql-to-ovh.sh --live && ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_final\n\";'"
+
+
+
 - copier le SQL editorial local vers OVH : cd /home/surfacepro8/www/caramagnols
 bash backend/tools/push-local-sql-to-ovh.sh --live
-
 - copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
 bash .ops-sync/bin/pull-caramagnols-db.sh --live
-
 
 - Lancer en dev :
   - Recommandé : `./dev.sh`
@@ -465,7 +469,7 @@ Copier `backend/.env.example` vers `backend/.env`, puis ajuster :
 - `VITE_DEV_SERVER_URL` si Vite n'est pas expose sur `http://localhost:5173`.
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_TABLE_PREFIX`.
 - SMTP : `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT`, `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD`, `MAIL_SMTP_ENCRYPTION`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
-- Admin : `ADMIN_LOGIN_PATH`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`.
+- Admin : `ADMIN_LOGIN_PATH`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`, `ADMIN_LANGUAGE` (`fr`, `en` ou `de`; défaut `DEFAULT_LANG`).
 - HTTPS/proxy : `FORCE_HTTPS`, `FORCE_HTTPS_ON_LOCALHOST`, `TRUST_PROXY_HEADERS`.
 - Exemple par défaut : `ADMIN_LOGIN_PATH=admin`.
 - `ADMIN_PASSWORD_HASH` est volontairement vide dans `.env.example` tant qu’aucun compte admin n’est créé.

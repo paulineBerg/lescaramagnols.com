@@ -177,6 +177,65 @@ function admin_current_masked_identifier(): string
     return \Caramagnols\Logging\AppEventLogger::maskIdentifier(admin_current_identifier());
 }
 
+function admin_interface_language(): string
+{
+    $availableLanguages = function_exists('site_available_languages')
+        ? site_available_languages()
+        : ['fr', 'en', 'de'];
+    $availableLanguages = array_values(array_filter(
+        array_map(
+            static fn (mixed $language): string => is_string($language) ? strtolower(trim($language)) : '',
+            $availableLanguages
+        ),
+        static fn (string $language): bool => $language !== ''
+    ));
+
+    if ($availableLanguages === []) {
+        $availableLanguages = ['fr'];
+    }
+
+    $fallbackLanguage = strtolower(trim((string) app_config('default_lang', 'fr')));
+    if (!in_array($fallbackLanguage, $availableLanguages, true)) {
+        $fallbackLanguage = in_array('fr', $availableLanguages, true) ? 'fr' : $availableLanguages[0];
+    }
+
+    $configuredLanguage = app_config('admin.language', $fallbackLanguage);
+    $adminLanguage = is_scalar($configuredLanguage)
+        ? strtolower(trim((string) $configuredLanguage))
+        : '';
+
+    return in_array($adminLanguage, $availableLanguages, true) ? $adminLanguage : $fallbackLanguage;
+}
+
+/**
+ * @return array<string, string>
+ */
+function admin_interface_translations(): array
+{
+    if (!function_exists('load_translations_cached')) {
+        return [];
+    }
+
+    $translations = load_translations_cached(admin_interface_language());
+
+    return is_array($translations) ? $translations : [];
+}
+
+function admin_translate(string $key, string $fallback = ''): string
+{
+    $key = trim($key);
+    if ($key === '') {
+        return $fallback;
+    }
+
+    $translated = admin_interface_translations()[$key] ?? null;
+    if (is_string($translated) && $translated !== '' && $translated !== '[[' . $key . ']]') {
+        return $translated;
+    }
+
+    return $fallback !== '' ? $fallback : '[[' . $key . ']]';
+}
+
 function admin_inactivity_timeout_seconds(): int
 {
     $timeout = (int) app_config('admin.inactivity_timeout_seconds', 7200);
