@@ -2816,6 +2816,26 @@ $adminMenu = [
             element.focus();
           }
         };
+        const scrollModalTarget = (opener) => {
+          if (!(opener instanceof HTMLElement)) {
+            return;
+          }
+
+          const targetId = opener.getAttribute('data-region-modal-scroll-target');
+          if (targetId === null || targetId === '') {
+            return;
+          }
+
+          const target = document.getElementById(targetId);
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+
+          window.requestAnimationFrame(() => {
+            target.scrollIntoView({ block: 'start', inline: 'nearest' });
+            focusWithoutScroll(target);
+          });
+        };
 
         const closeDialog = (dialog) => {
           if (!(dialog instanceof HTMLDialogElement)) {
@@ -2863,7 +2883,9 @@ $adminMenu = [
           }
 
           opener.click();
+          scrollModalTarget(opener);
           opener.removeAttribute('data-region-modal-autostart');
+          opener.removeAttribute('data-region-modal-scroll-target');
         });
 
         dialogs.forEach((dialog) => {

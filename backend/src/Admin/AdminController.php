@@ -1645,6 +1645,7 @@ final class AdminController
         $error = null;
         $view = $this->settingsViewWithCron($this->settingsService->viewModel());
         $openSettingsSection = null;
+        $settingsAutoscrollTarget = null;
 
         if ($request->method() === 'POST') {
             $body = $request->body();
@@ -1710,6 +1711,10 @@ final class AdminController
                     admin_update_authenticated_identifier((string) $result['adminIdentifier']);
                 }
 
+                if ($settingsAction === 'cron_test' && $openSettingsSection === 'cron') {
+                    $settingsAutoscrollTarget = 'cron-center-history';
+                }
+
                 if (($result['success'] ?? false) === true && str_starts_with($settingsAction, 'cron_')) {
                     $openSettingsSection = 'cron';
                 } elseif (($result['success'] ?? false) === true && $settingsAction === 'backup_save') {
@@ -1729,6 +1734,7 @@ final class AdminController
                 'message' => $message,
                 'error' => $error,
                 'openSettingsSection' => $openSettingsSection,
+                'settingsAutoscrollTarget' => $settingsAutoscrollTarget,
                 'settingsView' => $view,
             ]
         );

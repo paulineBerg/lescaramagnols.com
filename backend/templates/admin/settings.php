@@ -13,6 +13,7 @@ $cronCenter = is_array($view['cronCenter'] ?? null) ? $view['cronCenter'] : [];
 $translations = is_array($view['translations'] ?? null) ? $view['translations'] : [];
 $storage = is_array($view['storage'] ?? null) ? $view['storage'] : [];
 $openSection = is_string($openSettingsSection ?? null) ? (string) $openSettingsSection : null;
+$autoscrollTarget = is_string($settingsAutoscrollTarget ?? null) ? (string) $settingsAutoscrollTarget : null;
 $settingsAction = (string) ($adminSettingsUrl ?? admin_url('settings'));
 $translate = static function (string $key, string $fallback): string {
     if (function_exists('admin_translate')) {
@@ -189,8 +190,17 @@ if (trim((string) ($url['sslDomain'] ?? '')) !== '') {
     $urlSummaryParts[] = 'HTTPS ' . trim((string) $url['sslDomain']);
 }
 $urlSummary = $urlSummaryParts !== [] ? implode(' · ', $urlSummaryParts) : 'Domaines hérités de la requête ou de l’environnement';
-$autostartAttr = static function (string $section, ?string $openSection): string {
-    return $openSection === $section ? ' data-region-modal-autostart="true"' : '';
+$autostartAttr = static function (string $section, ?string $openSection, ?string $autoscrollTarget): string {
+    if ($openSection !== $section) {
+        return '';
+    }
+
+    $attributes = ' data-region-modal-autostart="true"';
+    if ($autoscrollTarget !== null && preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{0,80}$/', $autoscrollTarget) === 1) {
+        $attributes .= ' data-region-modal-scroll-target="' . htmlspecialchars($autoscrollTarget, ENT_QUOTES, 'UTF-8') . '"';
+    }
+
+    return $attributes;
 };
 ?>
 <?php if (($message ?? null) !== null): ?>
@@ -223,7 +233,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-database"
     data-settings-section-card="database"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('database', $openSection); ?>
+    <?php echo $autostartAttr('database', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">Base SQL</h2>
@@ -240,7 +250,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-admin"
     data-settings-section-card="admin"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('admin', $openSection); ?>
+    <?php echo $autostartAttr('admin', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">Connexion admin</h2>
@@ -260,7 +270,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-url"
     data-settings-section-card="url"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('url', $openSection); ?>
+    <?php echo $autostartAttr('url', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">URL publique</h2>
@@ -277,7 +287,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-head"
     data-settings-section-card="head"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('head', $openSection); ?>
+    <?php echo $autostartAttr('head', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">Métadonnées globales du head</h2>
@@ -294,7 +304,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-tarteaucitron"
     data-settings-section-card="tarteaucitron"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('tarteaucitron', $openSection); ?>
+    <?php echo $autostartAttr('tarteaucitron', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">Gestion tarteaucitron</h2>
@@ -312,7 +322,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-discussions"
     data-settings-section-card="discussions"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('discussions', $openSection); ?>
+    <?php echo $autostartAttr('discussions', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">Discussions et anti-bot</h2>
@@ -329,7 +339,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-instagram"
     data-settings-section-card="instagram"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('instagram', $openSection); ?>
+    <?php echo $autostartAttr('instagram', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">Flux Instagram accueil</h2>
@@ -346,7 +356,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-observability"
     data-settings-section-card="observability"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('observability', $openSection); ?>
+    <?php echo $autostartAttr('observability', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_CARD_TITLE', 'Observabilité ops'), ENT_QUOTES, 'UTF-8'); ?></h2>
@@ -364,7 +374,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-backup"
     data-settings-section-card="backup"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('backup', $openSection); ?>
+    <?php echo $autostartAttr('backup', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_CARD_TITLE', 'Sauvegardes'), ENT_QUOTES, 'UTF-8'); ?></h2>
@@ -384,7 +394,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-cron"
     data-settings-section-card="cron"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('cron', $openSection); ?>
+    <?php echo $autostartAttr('cron', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_CARD_EYEBROW', 'Planification'), ENT_QUOTES, 'UTF-8'); ?></p>
     <h2 class="settings-section-card__title"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_CARD_TITLE', 'Cron Center'), ENT_QUOTES, 'UTF-8'); ?></h2>
@@ -403,7 +413,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
     data-region-modal-open="settings-dialog-translations"
     data-settings-section-card="translations"
     aria-haspopup="dialog"
-    <?php echo $autostartAttr('translations', $openSection); ?>
+    <?php echo $autostartAttr('translations', $openSection, $autoscrollTarget); ?>
   >
     <p class="settings-section-card__eyebrow">Section</p>
     <h2 class="settings-section-card__title">Traductions globales</h2>
@@ -1384,7 +1394,7 @@ $autostartAttr = static function (string $section, ?string $openSection): string
         <?php endif; ?>
       </section>
 
-      <section class="card">
+      <section class="card" id="cron-center-history" tabindex="-1">
         <h4><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_HISTORY_TITLE', 'Dernières exécutions'), ENT_QUOTES, 'UTF-8'); ?></h4>
         <?php if ($cronRuns === []): ?>
         <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_CRON_NO_RUNS', 'Aucune exécution journalisée pour le moment.'), ENT_QUOTES, 'UTF-8'); ?></p>

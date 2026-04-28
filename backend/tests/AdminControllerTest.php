@@ -3,12 +3,15 @@
 declare(strict_types=1);
 
 use Caramagnols\Admin\AdminController;
+use Caramagnols\Admin\AdminCronCenterService;
 use Caramagnols\Admin\AdminRouteResolver;
 use Caramagnols\Admin\AdminSettingsService;
+use Caramagnols\Cron\CronJobRepository;
 use Caramagnols\Http\Request;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Logging\LoggerFactory;
 use Caramagnols\Social\InstagramFeedService;
+use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -17,6 +20,8 @@ require_once ROOT_PATH . '/core/menu_loader.php';
 
 final class AdminControllerTest extends TestCase
 {
+    use EditorialSqlTestTrait;
+
     private static ?array $baselineDatabaseConfig = null;
     private static ?string $baselineDatabasePrefix = null;
 
@@ -150,6 +155,7 @@ final class AdminControllerTest extends TestCase
         }
         $this->uploadedRuntimeFiles = [];
 
+        $this->cleanupEditorialSqlDatabase();
         pages_data_set_path_override(null);
         menus_data_set_path_override(null);
         pages_cache_clear();
@@ -708,8 +714,8 @@ final class AdminControllerTest extends TestCase
         $this->assertFileExists($absoluteSharedMediaPath);
         $dimensions = @getimagesize($absoluteSharedMediaPath);
         $this->assertIsArray($dimensions);
-        $this->assertLessThanOrEqual(2048, (int) ($dimensions[0] ?? 0));
-        $this->assertLessThanOrEqual(2048, (int) ($dimensions[1] ?? 0));
+        $this->assertLessThanOrEqual(2048, (int) $dimensions[0]);
+        $this->assertLessThanOrEqual(2048, (int) $dimensions[1]);
     }
 
     public function testPagesEditShowsLayoutPlanForStructuredPages(): void
@@ -2297,6 +2303,7 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('name="backup[database_password]"', $response->body);
         $this->assertStringContainsString('Connexion SQL utilisee par le site et par le dump mysqldump', $response->body);
         $this->assertStringContainsString('id="cron-center-ovh-command"', $response->body);
+        $this->assertStringContainsString('id="cron-center-history"', $response->body);
         $this->assertStringContainsString('run_cron_center.php', $response->body);
         $this->assertStringContainsString('name="cron_job[code]"', $response->body);
         $this->assertStringContainsString('Job', $response->body);
@@ -2365,6 +2372,50 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('Cron Center', $cronCard);
         $this->assertStringContainsString('Coordination scheduler + jobs PHP locaux', $cronCard);
         $this->assertStringNotContainsString('Scheduler-Koordination', $cronCard);
+    }
+
+    public function testSettingsCronManualTestTargetsRecentRunsSection(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $logger = new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
+        $repository = new CronJobRepository($this->editorialSqlDatabase());
+        $repository->saveJob([
+            'code' => 'manual_check',
+            'name' => 'Manual check',
+            'description' => 'Safe manual test fixture.',
+            'script_path' => 'core/tools/check_vite_assets.php',
+            'arguments' => ['args' => ['--help']],
+            'schedule_expression' => '* * * * *',
+            'status' => 'active',
+            'timeout_seconds' => 30,
+        ]);
+
+        $controller = $this->controller(
+            null,
+            $logger,
+            new AdminCronCenterService($repository, $logger)
+        );
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'settings_section' => 'cron',
+                    'settings_action' => 'cron_test',
+                    'cron_job_code' => 'manual_check',
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Test manuel exécuté pour le job cron manual_check.', $response->body);
+        $this->assertStringContainsString('data-region-modal-autostart="true"', $response->body);
+        $this->assertStringContainsString('data-region-modal-scroll-target="cron-center-history"', $response->body);
+        $this->assertStringContainsString('id="cron-center-history"', $response->body);
     }
 
     public function testSettingsBackupSectionSavesEditableFields(): void
@@ -3008,7 +3059,7 @@ final class AdminControllerTest extends TestCase
         $instagramCacheFile = ROOT_PATH . '/var/admin-instagram-test-cache-' . uniqid('', true) . '.json';
         $instagramService = new InstagramFeedService(
             $instagramCacheFile,
-            static fn (string $url, int $timeout): ?array => [
+            static fn (string $url, int $timeout): array => [
                 'status' => 200,
                 'body' => json_encode(
                     [
@@ -3073,8 +3124,11 @@ final class AdminControllerTest extends TestCase
         }
     }
 
-    private function controller(?AdminSettingsService $settingsService = null, ?AppEventLogger $logger = null): AdminController
-    {
+    private function controller(
+        ?AdminSettingsService $settingsService = null,
+        ?AppEventLogger $logger = null,
+        ?AdminCronCenterService $cronCenterService = null
+    ): AdminController {
         $logger = $logger ?? new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
         $settingsService = $settingsService ?? new AdminSettingsService(
             $this->databaseOverrideFile,
@@ -3088,7 +3142,15 @@ final class AdminControllerTest extends TestCase
             $logger,
             null,
             null,
-            $settingsService
+            $settingsService,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            $cronCenterService
         );
     }
 
@@ -3144,7 +3206,7 @@ final class AdminControllerTest extends TestCase
         $width = max(1, $width);
         $height = max(1, $height);
         $temporaryPath = tempnam(sys_get_temp_dir(), 'cara-page-media-');
-        if (!is_string($temporaryPath) || $temporaryPath === '') {
+        if (!is_string($temporaryPath)) {
             self::fail('Impossible de creer un fichier temporaire image.');
         }
 
