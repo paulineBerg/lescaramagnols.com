@@ -78,7 +78,9 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-17 10:15:00',
                 'content' => '<p>Contenu publié.</p>',
-                'tags' => ['Austin', 'Club'],
+                'category' => 'histoire-industrie',
+                'subcategory' => 'origines-chronologie',
+                'tags' => ['austin', 'longbridge', 'bmc'],
             ],
             'admin@example.com'
         );
@@ -92,6 +94,9 @@ final class BlogSaveServiceTest extends TestCase
         $this->assertSame('published', $stored['status']);
         $this->assertSame('Premier article', $stored['title']);
         $this->assertSame('fr', $stored['lang']);
+        $this->assertSame('histoire-industrie', $stored['category']);
+        $this->assertSame('origines-chronologie', $stored['subcategory']);
+        $this->assertSame(['austin', 'longbridge', 'bmc'], $stored['tags']);
     }
 
     public function testSaveUpdatesExistingArticleAndRenamesOldFileWhenSlugChanges(): void
@@ -124,6 +129,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'draft',
                 'date' => '2026-03-17 12:30:00',
                 'content' => '<p>Contenu mis à jour.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'longbridge', 'bmc'],
             ],
             'admin@example.com'
         );
@@ -195,6 +202,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-17 12:30:00',
                 'content' => '<p>Parent mis a jour.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'longbridge', 'bmc'],
             ],
             'admin@example.com'
         );
@@ -219,6 +228,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-20 10:00:00',
                 'content' => '<p>Contenu.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'longbridge', 'bmc'],
                 'page_slug' => 'page-introuvable',
             ],
             'admin@example.com'
@@ -241,6 +252,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-20 10:00:00',
                 'content' => '<p>Contenu.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'longbridge', 'bmc'],
                 'page_slug' => 'association',
             ],
             'admin@example.com'
@@ -266,6 +279,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-21 11:00:00',
                 'content' => '<p>Contenu avec image.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'longbridge', 'bmc'],
                 'featured_image' => [
                     'src' => '/uploads/editorial/article/2026/03/article-avec-image-photo.jpg',
                     'alt' => '',
@@ -285,6 +300,95 @@ final class BlogSaveServiceTest extends TestCase
         $this->assertSame('Article avec image', $stored['featured_image']['alt'] ?? null);
         $this->assertSame(1280, $stored['featured_image']['width'] ?? null);
         $this->assertSame(720, $stored['featured_image']['height'] ?? null);
+    }
+
+    public function testSaveRejectsUnknownBlogTag(): void
+    {
+        $service = $this->service();
+
+        $result = $service->save(
+            [
+                'title' => 'Article tag invalide',
+                'slug' => 'article-tag-invalide',
+                'lang' => 'fr',
+                'status' => 'draft',
+                'date' => '2026-03-21 11:00:00',
+                'content' => '<p>Contenu.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'longbridge', 'tag libre'],
+            ],
+            'admin@example.com'
+        );
+
+        $this->assertFalse($result['ok']);
+        $this->assertContains('Le tag blog "tag libre" n’est pas autorisé.', $result['errors']);
+    }
+
+    public function testSaveRejectsMoreThanFiveBlogTags(): void
+    {
+        $service = $this->service();
+
+        $result = $service->save(
+            [
+                'title' => 'Article trop tague',
+                'slug' => 'article-trop-tague',
+                'lang' => 'fr',
+                'status' => 'draft',
+                'date' => '2026-03-21 11:00:00',
+                'content' => '<p>Contenu.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'longbridge', 'bmc', 'british-leyland', 'herbert-austin', 'austin-rover'],
+            ],
+            'admin@example.com'
+        );
+
+        $this->assertFalse($result['ok']);
+        $this->assertContains('Un article blog ne peut pas avoir plus de 5 tags.', $result['errors']);
+    }
+
+    public function testSaveRejectsDuplicateBlogTagsAfterNormalization(): void
+    {
+        $service = $this->service();
+
+        $result = $service->save(
+            [
+                'title' => 'Article tag doublon',
+                'slug' => 'article-tag-doublon',
+                'lang' => 'fr',
+                'status' => 'draft',
+                'date' => '2026-03-21 11:00:00',
+                'content' => '<p>Contenu.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'Austin', 'longbridge', 'bmc'],
+            ],
+            'admin@example.com'
+        );
+
+        $this->assertFalse($result['ok']);
+        $this->assertContains('Le tag blog "Austin" est un doublon.', $result['errors']);
+    }
+
+    public function testSaveRejectsSubcategoryFromAnotherCategory(): void
+    {
+        $service = $this->service();
+
+        $result = $service->save(
+            [
+                'title' => 'Article sous categorie invalide',
+                'slug' => 'article-sous-categorie-invalide',
+                'lang' => 'fr',
+                'status' => 'draft',
+                'date' => '2026-03-21 11:00:00',
+                'content' => '<p>Contenu.</p>',
+                'category' => 'histoire-industrie',
+                'subcategory' => 'mecanique-entretien',
+                'tags' => ['austin', 'longbridge', 'bmc'],
+            ],
+            'admin@example.com'
+        );
+
+        $this->assertFalse($result['ok']);
+        $this->assertContains('La sous-catégorie blog ne correspond pas à la catégorie sélectionnée.', $result['errors']);
     }
 
     private function service(): BlogSaveService

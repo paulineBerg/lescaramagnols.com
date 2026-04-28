@@ -331,6 +331,89 @@ Ordre recommande:
 - le maillage interne doit rester naturel et utile: pointer vers la page parent, les pages soeurs ou un contenu complementaire quand cela aide vraiment la lecture
 - si le sujet ne justifie pas un long texte, preferer un article plus court mais plus tenu
 
+### 9.12 Taxonomie obligatoire des articles de blog
+
+Source de verite:
+- la taxonomie blog canonique est `backend/config/blog_taxonomy.php`
+- elle definit les categories principales, les sous-categories, les tags autorises, les traductions `fr`, `en`, `de` et le statut SEO `index` ou `noindex`
+- aucune categorie, sous-categorie ou tag de blog ne doit etre cree automatiquement depuis une saisie libre
+
+Structure cible:
+- `3` a `4` categories principales maximum
+- `6` a `8` sous-categories maximum au total
+- `20` a `30` tags maximum dans le referentiel
+- chaque article de blog doit avoir `1` categorie obligatoire, `0` ou `1` sous-categorie et `3` a `5` tags autorises
+- les valeurs stockees doivent etre normalisees en minuscules, sans accents, au format `kebab-case`
+- les libelles publics et admin doivent provenir des traductions du referentiel, pas des slugs bruts
+
+Regles admin:
+- categorie par liste deroulante, jamais par champ libre
+- sous-categorie dependante de la categorie selectionnee
+- tags par cases a cocher ou autocomplete strictement limite au referentiel
+- refuser la sauvegarde si la categorie est absente, si un tag est inconnu, si plus de `5` tags sont envoyes, ou si la sous-categorie ne depend pas de la categorie
+
+Regles front et SEO:
+- afficher categorie, sous-categorie et tags avec les libelles traduits
+- les pages de categories importantes peuvent rester indexables
+- les pages de tags sont `noindex` par defaut pour eviter une indexation massive de pages faibles
+- les suggestions internes d'articles doivent privilegier la meme categorie, puis la meme sous-categorie, puis au moins `2` tags communs, avec `3` articles suggeres maximum
+
+Migration et controle:
+- utiliser `php backend/core/tools/diagnose_blog_taxonomy.php` pour detecter tags inconnus, accents, doublons, variantes et mappings necessaires
+- ne pas supprimer ou fusionner une taxonomie existante sans backup adapte du stockage actif
+- exemples de normalisation attendus: `mini austin` ou `Austin Mini` -> `mini-austin`, `saint tropez` ou `St Tropez` -> `saint-tropez`
+
+### 9.13 Maillage interne des articles de blog
+
+Principe:
+- chaque article de blog doit etre rattache a une page parent via `page_slug`; cette page parent est la page pilier ou la page de contexte editorial de l'article
+- quand une page parent publiee existe, le lien interne prioritaire vers l'article doit pointer vers la page parent avec ouverture de l'article attache: `/<lang>/<route-parent>?open_article=<slug>#attached-article-<slug>`
+- la route directe `/blog/article/<slug>` reste un fallback technique et ne doit pas devenir la cible principale du maillage interne si l'article est diffuse sous une page parent
+
+Priorite des liens:
+- `1` lien fort vers la page parent ou vers une ancre pertinente de cette page parent
+- liens vers articles freres de la meme page parent quand ils prolongent vraiment le sujet
+- liens vers article parent/enfant seulement si la relation editoriale est reelle
+- liens par taxonomie en soutien: meme sous-categorie, meme categorie, puis au moins `2` tags communs
+- ne pas lier un article a lui-meme, ne pas creer de lien mort et ne pas multiplier les liens vers des pages tag `noindex`
+
+Ancres et pages piliers:
+- ajouter une ancre stable uniquement sur une section durable d'une page pilier ou d'une page parent, jamais sur un paragraphe fragile
+- convention recommandee: identifiant HTML court, descriptif, en `kebab-case`, par exemple `#histoire-longbridge`, `#restauration-pieces`, `#modeles-austin`
+- si l'article vise une section precise de la page parent, preferer le lien vers cette ancre plutot qu'un lien vague vers le haut de page
+- ne pas ajouter des ancres en masse; une ancre est utile seulement si plusieurs contenus ou un article important doivent pointer vers ce repere
+
+Forme editoriale:
+- integrer les liens dans une phrase utile du corps ou dans une courte fermeture de maillage, sans bloc standardise intitule `A lire`, `À lire` ou `À lire aussi`
+- viser `2` a `4` liens internes utiles pour un article standard, moins pour un article court
+- privilegier les liens qui clarifient le parcours de lecture plutot que les liens poses pour remplir une contrainte SEO
+
+### 9.14 Series d'articles de blog rattachees a une page pilier
+
+Principe:
+- une serie d'articles de blog rattachee a une page parent doit former un dossier coherent autour de cette page pilier, pas une collection d'articles generiques
+- definir les themes, les slugs et le mot-cle principal de chaque article avant la production du contenu
+- ne pas creer de theme supplementaire si le dossier a deja une structure validee; completer ou resserrer la structure existante plutot que l'etendre par reflexe
+- chaque article doit couvrir un angle unique, une periode ou une question precise; ne pas melanger plusieurs periodes, familles de modeles ou intentions SEO dans le meme article
+- ne pas parler des autres pages parents deja creees quand elles sont hors sujet du dossier courant; les liens vers une autre page parent doivent rester exceptionnels, utiles et editorialement justifies
+
+Regles SEO et editorial:
+- `1` mot-cle principal par article; il doit guider le titre, le slug, l'extrait et l'ouverture, sans bourrage ni repetition artificielle
+- titre precis et non generique; eviter les titres du type `Histoire de la Mini`, `Tout savoir sur`, `Guide complet` quand l'article vise un angle plus etroit
+- dans le blog, le titre de l'article est le `h1` rendu par le template; le contenu stocke ne doit pas ajouter un second `h1` et doit structurer le propos en `h2` puis `h3` seulement si necessaire
+- utiliser la taxonomie autorisee existante: categorie logique, sous-categorie coherente si utile, `3` a `5` tags autorises; ne pas creer de tag ou categorie pour un seul article
+- rattacher chaque article a la page parent par `page_slug` et verifier que cette page est bien la page pilier attendue
+
+Maillage obligatoire d'un article de serie:
+- `1` lien vers la page principale ou vers une ancre stable de cette page
+- `1` lien vers un autre article du meme theme, rattache a la meme page parent
+- ne jamais lier l'article a lui-meme
+- ne pas utiliser un article d'un autre theme pour remplir artificiellement la contrainte de lien interne
+
+Controle avant sauvegarde ou publication:
+- verifier unicite des slugs, statut attendu, rattachement `page_slug`, taxonomie, liens internes, absence de lien mort et absence de derive vers une autre page parent
+- si une incoherence est detectee, corriger la structure, le titre, le slug, la taxonomie ou le maillage avant de produire ou publier l'article
+
 ## 10. Politique media du site
 
 La politique media est commune a tout le site: pages editoriales, articles blog, auto-retro, territoire, pages partenaires et contenus annexes.

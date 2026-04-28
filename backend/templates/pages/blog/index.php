@@ -2,6 +2,7 @@
 
 $language = defined('CURRENT_LANG') ? CURRENT_LANG : (defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr');
 $defaultLanguage = defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr';
+$blogTaxonomy = \Caramagnols\Blog\BlogTaxonomy::fromDefaultConfig();
 
 $articles = is_array($GLOBALS['currentBlogArticles'] ?? null)
     ? $GLOBALS['currentBlogArticles']
@@ -12,6 +13,10 @@ $blogFilters = is_array($GLOBALS['currentBlogFilters'] ?? null)
     : ['category' => null, 'tag' => null];
 $activeCategory = is_string($blogFilters['category'] ?? null) ? trim((string) $blogFilters['category']) : '';
 $activeTag = is_string($blogFilters['tag'] ?? null) ? trim((string) $blogFilters['tag']) : '';
+$activeCategorySlug = $blogTaxonomy->resolveCategorySlug($activeCategory) ?? $activeCategory;
+$activeTagSlug = $blogTaxonomy->resolveTagSlug($activeTag) ?? $activeTag;
+$activeCategoryLabel = $activeCategorySlug !== '' ? $blogTaxonomy->categoryLabel($activeCategorySlug, $language) : '';
+$activeTagLabel = $activeTagSlug !== '' ? $blogTaxonomy->tagLabel($activeTagSlug, $language) : '';
 
 $slugifyBlogFilterValue = static function (string $value): string {
     $normalized = trim($value);
@@ -57,8 +62,8 @@ $buildBlogFilterUrl = static function (?string $category = null, ?string $tag = 
 };
 $returnToBlogPath = normalize_public_route((string) (parse_url(
     $buildBlogFilterUrl(
-        $activeCategory !== '' ? $activeCategory : null,
-        $activeTag !== '' ? $activeTag : null
+        $activeCategorySlug !== '' ? $activeCategorySlug : null,
+        $activeTagSlug !== '' ? $activeTagSlug : null
     ),
     PHP_URL_PATH
 ) ?? '/')) ?? '/';
@@ -117,10 +122,10 @@ $resolveArticleDestinationUrl = static function (array $article) use (&$pageRout
 };
 
 $canonicalFilterUrl = null;
-if ($activeCategory !== '' || $activeTag !== '') {
+if ($activeCategorySlug !== '' || $activeTagSlug !== '') {
     $canonicalFilterUrl = $buildBlogFilterUrl(
-        $activeCategory !== '' ? $activeCategory : null,
-        $activeTag !== '' ? $activeTag : null
+        $activeCategorySlug !== '' ? $activeCategorySlug : null,
+        $activeTagSlug !== '' ? $activeTagSlug : null
     );
 
     $requestUri = is_string($_SERVER['REQUEST_URI'] ?? null) ? (string) $_SERVER['REQUEST_URI'] : '';
@@ -143,6 +148,7 @@ if ($activeCategory !== '' || $activeTag !== '') {
 }
 
 $pageTitle = t('TXT_BLOG_PAGE_LABEL') . ' · ' . t('TXT_SITE_BRAND');
+$pageRobots = $activeTagSlug !== '' ? 'noindex,follow' : 'index,follow';
 
 ob_start();
 ?>
@@ -156,20 +162,20 @@ $blocks['EditRegion1'] = ob_get_clean();
 
 ob_start();
 ?>
-<?php if ($activeCategory !== '' || $activeTag !== ''): ?>
+<?php if ($activeCategorySlug !== '' || $activeTagSlug !== ''): ?>
 <aside class="content-callout blog-filter-summary">
   <h2 class="content-callout-title"><?php echo htmlspecialchars(t('TXT_BLOG_FILTER_CURRENT'), ENT_QUOTES, 'UTF-8'); ?></h2>
   <p>
-    <?php if ($activeCategory !== ''): ?>
+    <?php if ($activeCategorySlug !== ''): ?>
       <?php echo htmlspecialchars(t('TXT_BLOG_FILTER_BY_CATEGORY'), ENT_QUOTES, 'UTF-8'); ?>:
-      <strong><?php echo htmlspecialchars($activeCategory, ENT_QUOTES, 'UTF-8'); ?></strong>
+      <strong><?php echo htmlspecialchars($activeCategoryLabel, ENT_QUOTES, 'UTF-8'); ?></strong>
     <?php endif; ?>
-    <?php if ($activeCategory !== '' && $activeTag !== ''): ?>
+    <?php if ($activeCategorySlug !== '' && $activeTagSlug !== ''): ?>
       <span>•</span>
     <?php endif; ?>
-    <?php if ($activeTag !== ''): ?>
+    <?php if ($activeTagSlug !== ''): ?>
       <?php echo htmlspecialchars(t('TXT_BLOG_FILTER_BY_TAG'), ENT_QUOTES, 'UTF-8'); ?>:
-      <strong><?php echo htmlspecialchars($activeTag, ENT_QUOTES, 'UTF-8'); ?></strong>
+      <strong><?php echo htmlspecialchars($activeTagLabel, ENT_QUOTES, 'UTF-8'); ?></strong>
     <?php endif; ?>
   </p>
   <p><a href="<?php echo htmlspecialchars($buildBlogFilterUrl(), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(t('TXT_BLOG_FILTER_RESET'), ENT_QUOTES, 'UTF-8'); ?></a></p>
@@ -189,7 +195,7 @@ ob_start();
     $renderBlogTree = static function (
         array $items,
         int $depth = 0
-    ) use (&$renderBlogTree, $buildBlogFilterUrl, $resolveArticleDestinationUrl, $resolveFeaturedImage): void {
+    ) use (&$renderBlogTree, $buildBlogFilterUrl, $resolveArticleDestinationUrl, $resolveFeaturedImage, $blogTaxonomy, $language): void {
         foreach ($items as $article) {
             $title = (string) ($article['title'] ?? t('TXT_BLOG_NO_TITLE'));
             $date = (string) ($article['date'] ?? '');
@@ -203,11 +209,16 @@ ob_start();
             $excerpt = function_exists('mb_substr') ? mb_substr($excerpt, 0, 280) : substr($excerpt, 0, 280);
             $articleUrl = $resolveArticleDestinationUrl($article);
             $childArticles = is_array($article['child_articles'] ?? null) ? $article['child_articles'] : [];
-            $category = trim((string) ($article['category'] ?? ''));
-            $tags = array_values(array_filter(
-                array_map('strval', is_array($article['tags'] ?? null) ? $article['tags'] : []),
-                static fn (string $tag): bool => trim($tag) !== ''
-            ));
+            $categorySlug = $blogTaxonomy->resolveCategorySlug($article['category'] ?? null);
+            $category = $categorySlug !== null ? $blogTaxonomy->categoryLabel($categorySlug, $language) : trim((string) ($article['category'] ?? ''));
+            $tags = [];
+            foreach (is_array($article['tags'] ?? null) ? $article['tags'] : [] as $rawTag) {
+                $tagSlug = $blogTaxonomy->resolveTagSlug($rawTag);
+                $tagLabel = $tagSlug !== null ? $blogTaxonomy->tagLabel($tagSlug, $language) : trim((string) $rawTag);
+                if ($tagLabel !== '') {
+                    $tags[] = ['slug' => $tagSlug ?? $tagLabel, 'label' => $tagLabel];
+                }
+            }
             ?>
             <article class="blog-card<?php echo $depth > 0 ? ' blog-card-child' : ''; ?>">
               <p class="blog-card-meta">
@@ -224,13 +235,13 @@ ob_start();
               <?php if ($category !== '' || $tags !== []): ?>
               <p class="blog-card-filter-meta">
                 <?php if ($category !== ''): ?>
-                <a class="blog-filter-chip" href="<?php echo htmlspecialchars($buildBlogFilterUrl($category, null), ENT_QUOTES, 'UTF-8'); ?>">
+                <a class="blog-filter-chip" href="<?php echo htmlspecialchars($buildBlogFilterUrl($categorySlug ?? $category, null), ENT_QUOTES, 'UTF-8'); ?>">
                   <?php echo htmlspecialchars(t('TXT_BLOG_FILTER_BY_CATEGORY'), ENT_QUOTES, 'UTF-8'); ?>: <?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>
                 </a>
                 <?php endif; ?>
                 <?php foreach ($tags as $tag): ?>
-                <a class="blog-filter-chip" href="<?php echo htmlspecialchars($buildBlogFilterUrl(null, $tag), ENT_QUOTES, 'UTF-8'); ?>">
-                  <?php echo htmlspecialchars(t('TXT_BLOG_FILTER_BY_TAG'), ENT_QUOTES, 'UTF-8'); ?>: <?php echo htmlspecialchars($tag, ENT_QUOTES, 'UTF-8'); ?>
+                <a class="blog-filter-chip" href="<?php echo htmlspecialchars($buildBlogFilterUrl(null, (string) $tag['slug']), ENT_QUOTES, 'UTF-8'); ?>">
+                  <?php echo htmlspecialchars(t('TXT_BLOG_FILTER_BY_TAG'), ENT_QUOTES, 'UTF-8'); ?>: <?php echo htmlspecialchars((string) $tag['label'], ENT_QUOTES, 'UTF-8'); ?>
                 </a>
                 <?php endforeach; ?>
               </p>

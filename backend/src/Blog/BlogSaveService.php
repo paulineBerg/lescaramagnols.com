@@ -13,14 +13,17 @@ final class BlogSaveService
 {
     private AppEventLogger $eventLogger;
     private PageRepository $pageRepository;
+    private BlogTaxonomy $taxonomy;
 
     public function __construct(
         private readonly BlogRepositoryInterface $repository,
         ?AppEventLogger $eventLogger = null,
-        ?PageRepository $pageRepository = null
+        ?PageRepository $pageRepository = null,
+        ?BlogTaxonomy $taxonomy = null
     ) {
         $this->eventLogger = $eventLogger ?? app_event_logger();
         $this->pageRepository = $pageRepository ?? page_repository(pages_data_path());
+        $this->taxonomy = $taxonomy ?? BlogTaxonomy::fromDefaultConfig();
     }
 
     /**
@@ -88,7 +91,15 @@ final class BlogSaveService
         $content = PublicUrlNormalizer::rewriteHtmlFragment($content, '/blog/article/' . $slug);
 
         $author = sanitize_text_field((string) ($payload['author'] ?? $actorIdentifier ?? ''), 120);
-        $category = sanitize_text_field((string) ($payload['category'] ?? ''), 120);
+        $rawTags = is_array($payload['tags'] ?? null) ? $payload['tags'] : [];
+        $taxonomyResult = $this->taxonomy->validateArticleTaxonomy(
+            $payload['category'] ?? '',
+            $payload['subcategory'] ?? '',
+            $rawTags
+        );
+        $errors = array_merge($errors, $taxonomyResult['errors']);
+        $category = $taxonomyResult['category'];
+        $subcategory = $taxonomyResult['subcategory'];
         $excerpt = sanitize_text_field((string) ($payload['excerpt'] ?? $this->deriveExcerpt($content)), 320);
         $featuredImage = AdminEditorialImageService::sanitizeImageMetadata(
             is_array($payload['featured_image'] ?? null) ? $payload['featured_image'] : []
@@ -97,8 +108,7 @@ final class BlogSaveService
             $featuredImage['alt'] = $title;
         }
 
-        [$tags, $tagErrors] = sanitize_tags(is_array($payload['tags'] ?? null) ? $payload['tags'] : []);
-        $errors = array_merge($errors, $tagErrors);
+        $tags = $taxonomyResult['tags'];
 
         $translations = $payload['translations'] ?? [];
         if (!is_array($translations)) {
@@ -194,6 +204,7 @@ final class BlogSaveService
             'status' => $status,
             'author' => $author,
             'category' => $category,
+            'subcategory' => $subcategory,
             'date' => $date,
             'excerpt' => $excerpt,
             'content' => $content,

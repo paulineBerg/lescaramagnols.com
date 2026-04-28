@@ -7,12 +7,14 @@ namespace Caramagnols\Admin;
 use Caramagnols\Blog\BlogSaveService;
 use Caramagnols\Blog\BlogDiscussionRepositoryInterface;
 use Caramagnols\Blog\BlogRepositoryInterface;
+use Caramagnols\Blog\BlogTaxonomy;
 use Caramagnols\Content\PageRepository;
 
 final class AdminBlogService
 {
     private readonly PageRepository $pageRepository;
     private readonly BlogDiscussionRepositoryInterface $discussionRepository;
+    private readonly BlogTaxonomy $taxonomy;
 
     /**
      * @param array<int, string> $availableLanguages
@@ -23,10 +25,12 @@ final class AdminBlogService
         private readonly array $availableLanguages,
         private readonly string $defaultLanguage = 'fr',
         ?PageRepository $pageRepository = null,
-        ?BlogDiscussionRepositoryInterface $discussionRepository = null
+        ?BlogDiscussionRepositoryInterface $discussionRepository = null,
+        ?BlogTaxonomy $taxonomy = null
     ) {
         $this->pageRepository = $pageRepository ?? page_repository(pages_data_path());
         $this->discussionRepository = $discussionRepository ?? blog_discussion_repository();
+        $this->taxonomy = $taxonomy ?? BlogTaxonomy::fromDefaultConfig();
     }
 
     /**
@@ -64,8 +68,8 @@ final class AdminBlogService
         return [
             'status' => $status !== '' ? $status : null,
             'lang' => $language !== '' ? $language : null,
-            'category' => $this->normalizeTextFilter($query['category'] ?? null),
-            'tag' => $this->normalizeTextFilter($query['tag'] ?? null),
+            'category' => $this->taxonomy->resolveCategorySlug($query['category'] ?? null),
+            'tag' => $this->taxonomy->resolveTagSlug($query['tag'] ?? null),
             'q' => is_string($query['q'] ?? null) ? trim((string) $query['q']) : '',
         ];
     }
@@ -102,7 +106,7 @@ final class AdminBlogService
             }
 
             if ($filters['category'] !== null) {
-                $category = $this->normalizeTextFilter((string) ($article['category'] ?? ''));
+                $category = $this->taxonomy->resolveCategorySlug($article['category'] ?? null);
                 if ($category !== $filters['category']) {
                     return false;
                 }
@@ -111,7 +115,7 @@ final class AdminBlogService
             if ($filters['tag'] !== null) {
                 $found = false;
                 foreach (is_array($article['tags'] ?? null) ? $article['tags'] : [] as $rawTag) {
-                    if ($this->normalizeTextFilter((string) $rawTag) === $filters['tag']) {
+                    if ($this->taxonomy->resolveTagSlug($rawTag) === $filters['tag']) {
                         $found = true;
                         break;
                     }
@@ -140,7 +144,10 @@ final class AdminBlogService
      */
     public function availableCategories(?string $language = null): array
     {
-        return $this->repository->categories($language, false);
+        return array_map(
+            fn (array $option): string => $option['label'],
+            $this->availableCategoryOptions($language)
+        );
     }
 
     /**
@@ -148,7 +155,34 @@ final class AdminBlogService
      */
     public function availableTags(?string $language = null): array
     {
-        return $this->repository->tags($language, false);
+        return array_map(
+            fn (array $option): string => $option['label'],
+            $this->availableTagOptions($language)
+        );
+    }
+
+    /**
+     * @return array<int, array{slug: string, label: string, seo: string}>
+     */
+    public function availableCategoryOptions(?string $language = null): array
+    {
+        return $this->taxonomy->categoryOptions($language ?? $this->defaultLanguage);
+    }
+
+    /**
+     * @return array<int, array{slug: string, category: string, label: string, seo: string}>
+     */
+    public function availableSubcategoryOptions(?string $language = null): array
+    {
+        return $this->taxonomy->subcategoryOptions(null, $language ?? $this->defaultLanguage);
+    }
+
+    /**
+     * @return array<int, array{slug: string, label: string, seo: string}>
+     */
+    public function availableTagOptions(?string $language = null): array
+    {
+        return $this->taxonomy->tagOptions($language ?? $this->defaultLanguage);
     }
 
     /**
@@ -208,8 +242,8 @@ final class AdminBlogService
             'rootArticles' => 0,
             'childArticles' => 0,
             'manualOrderedChildren' => 0,
-            'categories' => count($this->repository->categories(null, false)),
-            'tags' => count($this->repository->tags(null, false)),
+            'categories' => count($this->availableCategoryOptions($this->defaultLanguage)),
+            'tags' => count($this->availableTagOptions($this->defaultLanguage)),
             'byLanguage' => array_fill_keys($this->availableLanguages, 0),
         ];
 
@@ -266,6 +300,8 @@ final class AdminBlogService
             'child_sort_order' => '',
             'excerpt' => '',
             'category' => '',
+            'subcategory' => '',
+            'tags' => [],
             'tags_input' => '',
             'featured_image_src' => '',
             'featured_image_alt' => '',
@@ -381,7 +417,8 @@ final class AdminBlogService
                 : (string) ($existing['child_sort_order'] ?? ''),
             'excerpt' => is_string($articleData['excerpt'] ?? null) ? trim((string) $articleData['excerpt']) : '',
             'category' => is_string($articleData['category'] ?? null) ? trim((string) $articleData['category']) : '',
-            'tags' => $this->parseTags(is_string($articleData['tags_input'] ?? null) ? (string) $articleData['tags_input'] : ''),
+            'subcategory' => is_string($articleData['subcategory'] ?? null) ? trim((string) $articleData['subcategory']) : '',
+            'tags' => $this->articleDataTags($articleData),
             'featured_image' => $this->buildFeaturedImagePayload($articleData),
             'content' => is_string($articleData['content'] ?? null) ? trim((string) $articleData['content']) : '',
             'previous_slug' => $currentSlug ?? '',
@@ -522,8 +559,12 @@ final class AdminBlogService
             'parentSlug' => (string) ($article['parent_slug'] ?? ''),
             'childSortOrder' => $article['child_sort_order'] ?? null,
             'excerpt' => (string) ($article['excerpt'] ?? ''),
-            'category' => trim((string) ($article['category'] ?? '')),
-            'tags' => array_values(array_map('strval', is_array($article['tags'] ?? null) ? $article['tags'] : [])),
+            'category' => $this->taxonomy->categoryLabel((string) ($article['category'] ?? ''), $language),
+            'subcategory' => $this->taxonomy->subcategoryLabel((string) ($article['subcategory'] ?? ''), $language),
+            'tags' => array_values(array_map(
+                fn (string $tag): string => $this->taxonomy->tagLabel($tag, $language),
+                array_map('strval', is_array($article['tags'] ?? null) ? $article['tags'] : [])
+            )),
             'editPath' => admin_route_resolver()->articleEditPath(
                 (string) ($article['slug'] ?? ''),
                 (string) ($article['lang'] ?? $this->defaultLanguage)
@@ -554,8 +595,19 @@ final class AdminBlogService
             ? (string) $childSortOrder
             : '';
         $data['excerpt'] = (string) ($article['excerpt'] ?? '');
-        $data['category'] = trim((string) ($article['category'] ?? ''));
-        $data['tags_input'] = implode(', ', array_map('strval', is_array($article['tags'] ?? null) ? $article['tags'] : []));
+        $category = $this->taxonomy->resolveCategorySlug($article['category'] ?? null);
+        $subcategory = $this->taxonomy->resolveSubcategorySlug($article['subcategory'] ?? null, $category);
+        $tags = [];
+        foreach (is_array($article['tags'] ?? null) ? $article['tags'] : [] as $tag) {
+            $tagSlug = $this->taxonomy->resolveTagSlug($tag);
+            if ($tagSlug !== null) {
+                $tags[$tagSlug] = $tagSlug;
+            }
+        }
+        $data['category'] = $category ?? trim((string) ($article['category'] ?? ''));
+        $data['subcategory'] = $subcategory ?? trim((string) ($article['subcategory'] ?? ''));
+        $data['tags'] = array_values($tags);
+        $data['tags_input'] = implode(', ', array_values($tags));
         $featuredImage = AdminEditorialImageService::sanitizeImageMetadata(
             is_array($article['featured_image'] ?? null) ? $article['featured_image'] : []
         );
@@ -609,6 +661,19 @@ final class AdminBlogService
         }
 
         return false;
+    }
+
+    /**
+     * @param array<string, mixed> $articleData
+     * @return array<int, string>
+     */
+    private function articleDataTags(array $articleData): array
+    {
+        if (is_array($articleData['tags'] ?? null)) {
+            return array_values(array_map('strval', $articleData['tags']));
+        }
+
+        return $this->parseTags(is_string($articleData['tags_input'] ?? null) ? (string) $articleData['tags_input'] : '');
     }
 
     /**

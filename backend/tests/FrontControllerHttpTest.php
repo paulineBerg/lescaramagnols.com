@@ -458,6 +458,8 @@ final class FrontControllerHttpTest extends TestCase
                     'slug' => 'article-front-controller',
                     'lang' => 'fr',
                     'status' => 'published',
+                    'category' => 'histoire-industrie',
+                    'tags' => ['austin', 'longbridge', 'bmc'],
                     'content' => '<p>Contenu front-controller.</p>',
                 ]
             )
@@ -482,6 +484,8 @@ final class FrontControllerHttpTest extends TestCase
                     'slug' => 'article-alias-legacy',
                     'lang' => 'fr',
                     'status' => 'draft',
+                    'category' => 'histoire-industrie',
+                    'tags' => ['austin', 'longbridge', 'bmc'],
                     'content' => '<p>Contenu alias.</p>',
                 ]
             )

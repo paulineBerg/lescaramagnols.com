@@ -18,6 +18,10 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
   <?php if ($pageMetaDescriptionValue !== ''): ?>
   <meta name="description" content="<?= htmlspecialchars($pageMetaDescriptionValue, ENT_QUOTES, 'UTF-8') ?>" />
   <?php endif; ?>
+  <?php $pageRobotsValue = trim((string) ($pageRobots ?? '')); ?>
+  <?php if ($pageRobotsValue !== ''): ?>
+  <meta name="robots" content="<?= htmlspecialchars($pageRobotsValue, ENT_QUOTES, 'UTF-8') ?>" />
+  <?php endif; ?>
   <?php if (!empty($pageMetaImage)): ?>
   <meta property="og:image" content="<?= htmlspecialchars((string) $pageMetaImage, ENT_QUOTES, 'UTF-8') ?>" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -28,6 +32,15 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
   <?php endif; ?>
   <link rel="icon" href="/assets/images/structure/favicon.ico" />
   <?php $globalHeadMetadataHtml = trim((string) app_config('site.head_metadata_html', '')); ?>
+  <?php
+  $globalHeadMetadataOutput = $globalHeadMetadataHtml;
+  if ($pageRobotsValue !== '' && $globalHeadMetadataOutput !== '') {
+      $withoutGlobalRobots = preg_replace('/<meta\s+[^>]*name=["\']robots["\'][^>]*>\s*/i', '', $globalHeadMetadataOutput);
+      if (is_string($withoutGlobalRobots)) {
+          $globalHeadMetadataOutput = trim($withoutGlobalRobots);
+      }
+  }
+  ?>
   <?php $tarteaucitronSettings = is_array(app_config('site.tarteaucitron', [])) ? app_config('site.tarteaucitron', []) : []; ?>
   <?php $discussionSettings = is_array(app_config('site.discussions', [])) ? app_config('site.discussions', []) : []; ?>
   <?php $discussionRecaptcha = is_array($discussionSettings['recaptcha'] ?? null) ? $discussionSettings['recaptcha'] : []; ?>
@@ -67,8 +80,8 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
   ];
   ?>
   <?php $cspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
-  <?php if ($globalHeadMetadataHtml !== ''): ?>
-  <?php echo $globalHeadMetadataHtml . "\n"; ?>
+  <?php if ($globalHeadMetadataOutput !== ''): ?>
+  <?php echo $globalHeadMetadataOutput . "\n"; ?>
   <?php endif; ?>
   <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
     window.caramagnolsRuntime = <?php echo json_encode($runtimeConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;

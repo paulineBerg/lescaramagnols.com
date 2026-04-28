@@ -64,6 +64,13 @@ Mise a jour 2026-03-21 (articles blog, publication planifiee) :
 - publication automatique sans cron : un article planifie devient visible sur le front (liste, detail, RSS, sitemap) des que sa date est atteinte.
 - ajout d'une commande CLI `backend/core/tools/publish_scheduled_blog_articles.php` pour promouvoir les articles arrives a echeance en `published`, avec rappel du binaire PHP et de la ligne cron dans `Parametres > Observabilite ops`.
 
+Mise a jour 2026-04-28 (taxonomie blog) :
+- l admin articles n accepte plus de categorie ou tag libre.
+- les categories, sous-categories, tags autorises, traductions et statuts SEO viennent de `backend/config/blog_taxonomy.php`.
+- la categorie est obligatoire, la sous-categorie est optionnelle et depend de la categorie, les tags sont selectionnes par cases a cocher avec une limite de `3` a `5`.
+- une sauvegarde article est refusee si la categorie manque, si un tag est inconnu, si plus de `5` tags sont envoyes ou si la sous-categorie ne correspond pas a la categorie.
+- le diagnostic `php backend/core/tools/diagnose_blog_taxonomy.php` permet d identifier les variantes existantes avant migration.
+
 Mise a jour 2026-03-21 (images editoriales V1) :
 - admin articles : ajout d'une image de couverture (URL ou upload), avec metadonnees SEO (`alt`, `title`, `caption`, dimensions).
 - admin pages : ajout d'une image SEO par langue (stockee en `translations[*].meta.image`) avec upload.
@@ -75,6 +82,29 @@ Mise a jour 2026-03-21 (images editoriales V1) :
 
 TODO V2 media :
 - etudier un module multimedia dedie (images + videos + metadata + droits d usage) avec bibliotheque unifiee admin et API de selection cross-contenus.
+
+## Taxonomie blog
+
+L ecran admin `Articles` utilise une taxonomie fermee, definie dans `backend/config/blog_taxonomy.php`.
+
+Regles de saisie :
+- categorie obligatoire par liste deroulante
+- sous-categorie optionnelle, filtree selon la categorie selectionnee
+- tags par cases a cocher uniquement
+- 3 a 5 tags autorises par article
+- aucune creation automatique de categorie, sous-categorie ou tag depuis le formulaire
+
+Validation serveur :
+- refus si la categorie est absente ou inconnue
+- refus si un tag n appartient pas au referentiel
+- refus si plus de `5` tags sont envoyes
+- refus si la sous-categorie ne depend pas de la categorie
+
+Bonnes pratiques :
+- garder peu de categories et peu de tags
+- ajouter un nouveau tag seulement s il servira a plusieurs articles
+- preferer un tag concret (`austin-seven`, `longbridge`, `moteur-a-series`) a une phrase longue
+- verifier les variantes existantes avec `php backend/core/tools/diagnose_blog_taxonomy.php` avant une migration ou une fusion
 
 Mise a jour 2026-03-21 (admin menus, suppression) :
 - bouton `Supprimer` du builder menus protege par une confirmation explicite.

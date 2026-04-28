@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\Http;
 
 use Caramagnols\Blog\BlogRepositoryInterface;
+use Caramagnols\Blog\BlogTaxonomy;
 use Caramagnols\Content\PageRepository;
 
 final class LegacyRouteResolver
@@ -16,7 +17,8 @@ final class LegacyRouteResolver
         private readonly PageRepository $pageRepository,
         private readonly BlogRepositoryInterface $blogRepository,
         private readonly array $availableLanguages,
-        private readonly string $defaultLanguage = 'fr'
+        private readonly string $defaultLanguage = 'fr',
+        private readonly ?BlogTaxonomy $blogTaxonomy = null
     ) {
     }
 
@@ -282,7 +284,7 @@ final class LegacyRouteResolver
             ? $this->blogRepository->categories($language, true)
             : $this->blogRepository->tags($language, true);
 
-        $resolved = $this->matchBlogFilterSlug($slug, $terms);
+        $resolved = $this->matchBlogFilterSlug($kind, $slug, $terms);
         if ($resolved !== null) {
             return $resolved;
         }
@@ -292,7 +294,7 @@ final class LegacyRouteResolver
                 ? $this->blogRepository->categories($defaultLanguage, true)
                 : $this->blogRepository->tags($defaultLanguage, true);
 
-            $resolved = $this->matchBlogFilterSlug($slug, $fallbackTerms);
+            $resolved = $this->matchBlogFilterSlug($kind, $slug, $fallbackTerms);
             if ($resolved !== null) {
                 return $resolved;
             }
@@ -304,16 +306,26 @@ final class LegacyRouteResolver
     /**
      * @param array<int, string> $terms
      */
-    private function matchBlogFilterSlug(string $slug, array $terms): ?string
+    private function matchBlogFilterSlug(string $kind, string $slug, array $terms): ?string
     {
+        $taxonomy = $this->blogTaxonomy ?? BlogTaxonomy::fromDefaultConfig();
+
         foreach ($terms as $term) {
             $normalizedTerm = $this->normalizeBlogFilterValue($term);
             if ($normalizedTerm === null) {
                 continue;
             }
 
+            $canonicalTerm = $kind === 'category'
+                ? $taxonomy->resolveCategorySlug($normalizedTerm)
+                : $taxonomy->resolveTagSlug($normalizedTerm);
+
+            if (is_string($canonicalTerm) && $this->slugifyBlogFilterValue($canonicalTerm) === $slug) {
+                return $canonicalTerm;
+            }
+
             if ($this->slugifyBlogFilterValue($normalizedTerm) === $slug) {
-                return $normalizedTerm;
+                return $canonicalTerm ?? $normalizedTerm;
             }
         }
 

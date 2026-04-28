@@ -13,8 +13,11 @@ final class SqlBlogRepository implements BlogRepositoryInterface
     private const TRANSLATIONS_META_KEY = '__article_meta';
     private const TRANSLATIONS_META_FEATURED_IMAGE_KEY = 'featured_image';
 
-    public function __construct(private readonly EditorialDatabase $database)
+    private BlogTaxonomy $taxonomy;
+
+    public function __construct(private readonly EditorialDatabase $database, ?BlogTaxonomy $taxonomy = null)
     {
+        $this->taxonomy = $taxonomy ?? BlogTaxonomy::fromDefaultConfig();
     }
 
     public function dataDir(): string
@@ -430,6 +433,7 @@ final class SqlBlogRepository implements BlogRepositoryInterface
             'status' => (string) ($article['status'] ?? 'draft'),
             'author' => $this->nullableString($article['author'] ?? null),
             'category' => $this->nullableString($article['category'] ?? null),
+            'subcategory' => $this->nullableString($article['subcategory'] ?? null),
             'date_value' => $this->nullableString($article['date'] ?? null),
             'excerpt' => $this->nullableString($article['excerpt'] ?? null),
             'content' => (string) ($article['content'] ?? ''),
@@ -453,11 +457,11 @@ final class SqlBlogRepository implements BlogRepositoryInterface
         $statement = $pdo->prepare(
             sprintf(
                 'INSERT INTO `%s`
-                    (`slug`, `lang`, `title`, `status`, `author`, `category`, `date_value`, `excerpt`, `content`,
+                    (`slug`, `lang`, `title`, `status`, `author`, `category`, `subcategory`, `date_value`, `excerpt`, `content`,
                      `tags_json`, `translations_json`, `comments_json`, `page_slug`, `parent_slug`, `parent_lang`,
                      `child_sort_order`, `created_at`, `updated_at`)
                  VALUES
-                    (:slug, :lang, :title, :status, :author, :category, :date_value, :excerpt, :content,
+                    (:slug, :lang, :title, :status, :author, :category, :subcategory, :date_value, :excerpt, :content,
                      :tags_json, :translations_json, :comments_json, :page_slug, :parent_slug, :parent_lang,
                      :child_sort_order, :created_at, :updated_at)',
                 $this->database->table('blog_articles')
@@ -482,6 +486,7 @@ final class SqlBlogRepository implements BlogRepositoryInterface
                      `status` = :status,
                      `author` = :author,
                      `category` = :category,
+                     `subcategory` = :subcategory,
                      `date_value` = :date_value,
                      `excerpt` = :excerpt,
                      `content` = :content,
@@ -515,6 +520,7 @@ final class SqlBlogRepository implements BlogRepositoryInterface
                      `status` = :status,
                      `author` = :author,
                      `category` = :category,
+                     `subcategory` = :subcategory,
                      `date_value` = :date_value,
                      `excerpt` = :excerpt,
                      `content` = :content,
@@ -565,6 +571,7 @@ final class SqlBlogRepository implements BlogRepositoryInterface
             'status' => (string) ($row['status'] ?? 'draft'),
             'author' => $row['author'] !== null ? (string) $row['author'] : '',
             'category' => $row['category'] !== null ? (string) $row['category'] : '',
+            'subcategory' => isset($row['subcategory']) && $row['subcategory'] !== null ? (string) $row['subcategory'] : '',
             'date' => $row['date_value'] !== null ? (string) $row['date_value'] : '',
             'excerpt' => $row['excerpt'] !== null ? (string) $row['excerpt'] : '',
             'content' => $row['content'] !== null ? (string) $row['content'] : '',
@@ -704,6 +711,7 @@ final class SqlBlogRepository implements BlogRepositoryInterface
         $article['slug'] = $this->normalizeOptionalSlug((string) ($article['slug'] ?? ''));
         $article['lang'] = $this->sanitizeLanguage((string) ($article['lang'] ?? 'fr'));
         $article['status'] = $this->normalizeStatus((string) ($article['status'] ?? 'draft'));
+        $article['subcategory'] = $this->normalizeStoredText((string) ($article['subcategory'] ?? ''));
         $article['parent_slug'] = $this->normalizeOptionalSlug((string) ($article['parent_slug'] ?? ''));
         $article['parent_lang'] = $article['parent_slug'] !== ''
             ? $this->sanitizeLanguage((string) ($article['parent_lang'] ?? $article['lang']))
@@ -780,6 +788,14 @@ final class SqlBlogRepository implements BlogRepositoryInterface
         $normalized = strtolower(trim($status));
 
         return in_array($normalized, ['draft', 'scheduled', 'published'], true) ? $normalized : 'draft';
+    }
+
+    private function normalizeStoredText(string $value): string
+    {
+        $normalized = trim($value);
+        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+
+        return $normalized;
     }
 
     private function normalizeStoredSortOrder(mixed $value): ?int
@@ -1007,19 +1023,19 @@ final class SqlBlogRepository implements BlogRepositoryInterface
     private function matchesFilters(array $article, ?string $category, ?string $tag): bool
     {
         if ($category !== null) {
-            $articleCategory = $this->normalizeTerm((string) ($article['category'] ?? ''));
-            if ($articleCategory !== $category) {
+            $articleCategory = $this->normalizeTaxonomyCategory((string) ($article['category'] ?? ''));
+            if ($articleCategory !== $this->normalizeTaxonomyCategory($category)) {
                 return false;
             }
         }
 
         if ($tag !== null) {
             $articleTags = array_map(
-                fn (mixed $rawTag): ?string => $this->normalizeTerm((string) $rawTag),
+                fn (mixed $rawTag): ?string => $this->normalizeTaxonomyTag((string) $rawTag),
                 is_array($article['tags'] ?? null) ? $article['tags'] : []
             );
 
-            if (!in_array($tag, array_filter($articleTags, static fn (?string $value): bool => $value !== null), true)) {
+            if (!in_array($this->normalizeTaxonomyTag($tag), array_filter($articleTags, static fn (?string $value): bool => $value !== null), true)) {
                 return false;
             }
         }
@@ -1077,5 +1093,15 @@ final class SqlBlogRepository implements BlogRepositoryInterface
         return function_exists('mb_strtolower')
             ? mb_strtolower($normalized, 'UTF-8')
             : strtolower($normalized);
+    }
+
+    private function normalizeTaxonomyCategory(?string $value): ?string
+    {
+        return $this->taxonomy->resolveCategorySlug($value) ?? $this->normalizeTerm($value);
+    }
+
+    private function normalizeTaxonomyTag(?string $value): ?string
+    {
+        return $this->taxonomy->resolveTagSlug($value) ?? $this->normalizeTerm($value);
     }
 }

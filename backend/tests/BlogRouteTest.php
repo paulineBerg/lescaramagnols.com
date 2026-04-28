@@ -102,6 +102,32 @@ final class BlogRouteTest extends TestCase
         $this->assertSame('enfant', $GLOBALS['currentBlogArticle']['child_articles'][0]['slug']);
     }
 
+    public function testBlogCategoryAndTagRoutesAcceptCanonicalTaxonomySlugs(): void
+    {
+        file_put_contents(
+            $this->blogDir . '/austin.fr.json',
+            json_encode(
+                [
+                    'title' => 'Austin',
+                    'slug' => 'austin',
+                    'lang' => 'fr',
+                    'status' => 'published',
+                    'category' => 'Histoire de marque',
+                    'tags' => ['Austin', 'Longbridge', 'BMC'],
+                    'date' => '2026-03-17 10:00:00',
+                    'content' => '<p>Austin.</p>',
+                ],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $this->assertSame('pages/blog/index.php', resolve_route('/blog/categorie/histoire-industrie/tag/longbridge'));
+        $this->assertCount(1, $GLOBALS['currentBlogArticles']);
+        $this->assertSame('austin', $GLOBALS['currentBlogArticles'][0]['slug']);
+        $this->assertSame('histoire-industrie', $GLOBALS['currentBlogFilters']['category']);
+        $this->assertSame('longbridge', $GLOBALS['currentBlogFilters']['tag']);
+    }
+
     public function testLegacyAdminTemplatesAreNoLongerRoutable(): void
     {
         $this->assertSame('pages/404.php', resolve_route('/admin/dashboard'));

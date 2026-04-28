@@ -40,6 +40,23 @@ $parentArticle = is_array($article['parent_article'] ?? null) ? $article['parent
 $childArticles = is_array($article['child_articles'] ?? null) ? $article['child_articles'] : [];
 $articleSlug = (string) ($article['slug'] ?? '');
 $articleLanguage = (string) ($article['lang'] ?? (defined('CURRENT_LANG') ? CURRENT_LANG : app_config('default_lang', 'fr')));
+$blogTaxonomy = \Caramagnols\Blog\BlogTaxonomy::fromDefaultConfig();
+$articleCategorySlug = $blogTaxonomy->resolveCategorySlug($article['category'] ?? null);
+$articleCategoryLabel = $articleCategorySlug !== null
+    ? $blogTaxonomy->categoryLabel($articleCategorySlug, $articleLanguage)
+    : trim((string) ($article['category'] ?? ''));
+$articleSubcategorySlug = $blogTaxonomy->resolveSubcategorySlug($article['subcategory'] ?? null, $articleCategorySlug);
+$articleSubcategoryLabel = $articleSubcategorySlug !== null
+    ? $blogTaxonomy->subcategoryLabel($articleSubcategorySlug, $articleLanguage)
+    : trim((string) ($article['subcategory'] ?? ''));
+$articleTagItems = [];
+foreach (is_array($article['tags'] ?? null) ? $article['tags'] : [] as $rawTag) {
+    $tagSlug = $blogTaxonomy->resolveTagSlug($rawTag);
+    $tagLabel = $tagSlug !== null ? $blogTaxonomy->tagLabel($tagSlug, $articleLanguage) : trim((string) $rawTag);
+    if ($tagLabel !== '') {
+        $articleTagItems[] = ['slug' => $tagSlug ?? $tagLabel, 'label' => $tagLabel];
+    }
+}
 $renderedArticleContent = \Caramagnols\Http\PublicUrlNormalizer::rewriteHtmlFragment(
     (string) ($article['content'] ?? ''),
     '/' . trim($articleLanguage, '/') . '/blog/article/' . ($articleSlug !== '' ? $articleSlug : 'article')
@@ -97,6 +114,19 @@ $discussionOldInput = ['author' => '', 'email' => '', 'content' => ''];
 $discussionCsrfToken = '';
 $discussionNonce = '';
 $discussionSubmitPath = app_url('core/blog/submit_discussion.php');
+$excludedRelatedSlugs = [];
+if ($parentArticle !== null) {
+    $excludedRelatedSlugs[] = (string) ($parentArticle['slug'] ?? '');
+}
+foreach ($childArticles as $childArticle) {
+    $excludedRelatedSlugs[] = (string) ($childArticle['slug'] ?? '');
+}
+$relatedSuggestions = (new \Caramagnols\Blog\BlogRelatedArticlesService($blogTaxonomy))->suggest(
+    $article,
+    blog_repository()->publishedArticles($articleLanguage),
+    array_values(array_filter($excludedRelatedSlugs, static fn (string $slug): bool => trim($slug) !== '')),
+    3
+);
 $honeypotField = trim((string) app_config('site.discussions.honeypot_field', 'website'));
 if (preg_match('/^[a-zA-Z][a-zA-Z0-9_-]{1,40}$/', $honeypotField) !== 1) {
     $honeypotField = 'website';
@@ -191,7 +221,7 @@ $blocks['EditRegion1'] = ob_get_clean();
 
 ob_start();
 ?>
-<?php if ($parentArticle !== null || ($article['category'] ?? '') !== '' || ($article['tags'] ?? []) !== []): ?>
+<?php if ($parentArticle !== null || $articleCategoryLabel !== '' || $articleSubcategoryLabel !== '' || $articleTagItems !== []): ?>
   <aside class="content-callout">
     <h2 class="content-callout-title"><?php echo htmlspecialchars(t('TXT_BLOG_METADATA'), ENT_QUOTES, 'UTF-8'); ?></h2>
     <dl class="content-facts">
@@ -205,24 +235,29 @@ ob_start();
           </dd>
         </div>
       <?php endif; ?>
-      <?php if (($article['category'] ?? '') !== ''): ?>
-        <?php $articleCategory = trim((string) $article['category']); ?>
+      <?php if ($articleCategoryLabel !== ''): ?>
         <div class="content-facts-item">
           <dt><?php echo htmlspecialchars(t('TXT_BLOG_CATEGORY'), ENT_QUOTES, 'UTF-8'); ?></dt>
           <dd>
-            <a class="blog-filter-chip" href="<?php echo htmlspecialchars($buildBlogFilterUrl($articleCategory, null), ENT_QUOTES, 'UTF-8'); ?>">
-              <?php echo htmlspecialchars($articleCategory, ENT_QUOTES, 'UTF-8'); ?>
+            <a class="blog-filter-chip" href="<?php echo htmlspecialchars($buildBlogFilterUrl($articleCategorySlug ?? $articleCategoryLabel, null), ENT_QUOTES, 'UTF-8'); ?>">
+              <?php echo htmlspecialchars($articleCategoryLabel, ENT_QUOTES, 'UTF-8'); ?>
             </a>
           </dd>
         </div>
       <?php endif; ?>
-      <?php if (is_array($article['tags'] ?? null) && $article['tags'] !== []): ?>
+      <?php if ($articleSubcategoryLabel !== ''): ?>
+        <div class="content-facts-item">
+          <dt><?php echo htmlspecialchars(t('TXT_BLOG_SUBCATEGORY'), ENT_QUOTES, 'UTF-8'); ?></dt>
+          <dd><?php echo htmlspecialchars($articleSubcategoryLabel, ENT_QUOTES, 'UTF-8'); ?></dd>
+        </div>
+      <?php endif; ?>
+      <?php if ($articleTagItems !== []): ?>
         <div class="content-facts-item">
           <dt><?php echo htmlspecialchars(t('TXT_BLOG_TAGS'), ENT_QUOTES, 'UTF-8'); ?></dt>
           <dd class="blog-filter-chip-list">
-            <?php foreach (array_values(array_filter(array_map('strval', $article['tags']), static fn (string $tag): bool => trim($tag) !== '')) as $tag): ?>
-              <a class="blog-filter-chip" href="<?php echo htmlspecialchars($buildBlogFilterUrl(null, $tag), ENT_QUOTES, 'UTF-8'); ?>">
-                <?php echo htmlspecialchars($tag, ENT_QUOTES, 'UTF-8'); ?>
+            <?php foreach ($articleTagItems as $tag): ?>
+              <a class="blog-filter-chip" href="<?php echo htmlspecialchars($buildBlogFilterUrl(null, (string) $tag['slug']), ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars((string) $tag['label'], ENT_QUOTES, 'UTF-8'); ?>
               </a>
             <?php endforeach; ?>
           </dd>
@@ -258,6 +293,27 @@ ob_start();
       </a>
       <span class="blog-child-meta">
         <?php echo htmlspecialchars((string) ($childArticle['date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+      </span>
+    </li>
+    <?php endforeach; ?>
+  </ul>
+</section>
+<?php endif; ?>
+
+<?php if ($relatedSuggestions !== []): ?>
+<section class="content-callout blog-children" aria-labelledby="blog-taxonomy-related-title">
+  <h2 id="blog-taxonomy-related-title" class="content-callout-title"><?php echo htmlspecialchars(t('TXT_BLOG_SUGGESTED_ARTICLES'), ENT_QUOTES, 'UTF-8'); ?></h2>
+  <ul class="blog-child-list">
+    <?php foreach ($relatedSuggestions as $relatedArticle): ?>
+    <?php
+    $relatedUrl = app_url(CURRENT_LANG . '/blog/article/' . rawurlencode((string) ($relatedArticle['slug'] ?? '')));
+    ?>
+    <li class="blog-child-list-item">
+      <a class="blog-child-link" href="<?php echo htmlspecialchars($relatedUrl, ENT_QUOTES, 'UTF-8'); ?>">
+        <?php echo htmlspecialchars((string) ($relatedArticle['title'] ?? t('TXT_BLOG_NO_TITLE')), ENT_QUOTES, 'UTF-8'); ?>
+      </a>
+      <span class="blog-child-meta">
+        <?php echo htmlspecialchars((string) ($relatedArticle['date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
       </span>
     </li>
     <?php endforeach; ?>

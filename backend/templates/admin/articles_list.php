@@ -1,6 +1,8 @@
 <?php
 $filters = is_array($filters ?? null) ? $filters : ['status' => null, 'lang' => null, 'category' => null, 'tag' => null, 'q' => ''];
 $articles = is_array($articles ?? null) ? $articles : [];
+$categoryOptions = is_array($availableCategoryOptions ?? null) ? array_values($availableCategoryOptions) : [];
+$tagOptions = is_array($availableTagOptions ?? null) ? array_values($availableTagOptions) : [];
 $translate = static function (string $key, string $fallback): string {
     if (!function_exists('t')) {
         return $fallback;
@@ -44,7 +46,7 @@ $scheduledCount = count(array_filter($articles, static fn (array $article): bool
     <p class="dashboard-kpi-label">Articles publiés</p>
     <p class="dashboard-kpi-detail"><?php echo $draftCount; ?> brouillon(s) visibles dans la vue courante.</p>
     <p class="dashboard-kpi-detail"><?php echo $scheduledCount; ?> article(s) planifié(s) dans la vue courante.</p>
-    <p class="dashboard-kpi-detail"><?php echo count(is_array($availableCategories ?? null) ? $availableCategories : []); ?> suggestion(s) de catégorie disponibles.</p>
+    <p class="dashboard-kpi-detail"><?php echo count($categoryOptions); ?> catégorie(s) canoniques disponibles.</p>
   </article>
 </section>
 
@@ -89,9 +91,10 @@ $scheduledCount = count(array_filter($articles, static fn (array $article): bool
       <label for="articles-category">Catégorie</label>
       <select id="articles-category" name="category">
         <option value="">Toutes</option>
-        <?php foreach (($availableCategories ?? []) as $category): ?>
-        <option value="<?php echo htmlspecialchars((string) $category, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($filters['category'] ?? null) === strtolower((string) $category) ? ' selected' : ''; ?>>
-          <?php echo htmlspecialchars((string) $category, ENT_QUOTES, 'UTF-8'); ?>
+        <?php foreach ($categoryOptions as $category): ?>
+        <?php $categorySlug = (string) ($category['slug'] ?? ''); ?>
+        <option value="<?php echo htmlspecialchars($categorySlug, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($filters['category'] ?? null) === $categorySlug ? ' selected' : ''; ?>>
+          <?php echo htmlspecialchars((string) ($category['label'] ?? $categorySlug), ENT_QUOTES, 'UTF-8'); ?>
         </option>
         <?php endforeach; ?>
       </select>
@@ -101,9 +104,10 @@ $scheduledCount = count(array_filter($articles, static fn (array $article): bool
       <label for="articles-tag">Tag</label>
       <select id="articles-tag" name="tag">
         <option value="">Tous</option>
-        <?php foreach (($availableTags ?? []) as $tag): ?>
-        <option value="<?php echo htmlspecialchars((string) $tag, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($filters['tag'] ?? null) === strtolower((string) $tag) ? ' selected' : ''; ?>>
-          <?php echo htmlspecialchars((string) $tag, ENT_QUOTES, 'UTF-8'); ?>
+        <?php foreach ($tagOptions as $tag): ?>
+        <?php $tagSlug = (string) ($tag['slug'] ?? ''); ?>
+        <option value="<?php echo htmlspecialchars($tagSlug, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($filters['tag'] ?? null) === $tagSlug ? ' selected' : ''; ?>>
+          <?php echo htmlspecialchars((string) ($tag['label'] ?? $tagSlug), ENT_QUOTES, 'UTF-8'); ?>
         </option>
         <?php endforeach; ?>
       </select>
@@ -130,6 +134,7 @@ $scheduledCount = count(array_filter($articles, static fn (array $article): bool
           <th>Langue</th>
           <th>Statut</th>
           <th>Catégorie</th>
+          <th>Sous-catégorie</th>
           <th>Tags</th>
           <th>Date</th>
           <th>Action</th>
@@ -177,7 +182,8 @@ $scheduledCount = count(array_filter($articles, static fn (array $article): bool
             </span>
             <?php endif; ?>
           </td>
-          <td><?php echo htmlspecialchars((string) ($article['category'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></td>
+          <td><?php echo htmlspecialchars((string) (($article['category'] ?? '') !== '' ? $article['category'] : '—'), ENT_QUOTES, 'UTF-8'); ?></td>
+          <td><?php echo htmlspecialchars((string) (($article['subcategory'] ?? '') !== '' ? $article['subcategory'] : '—'), ENT_QUOTES, 'UTF-8'); ?></td>
           <td>
             <?php $tags = is_array($article['tags'] ?? null) ? $article['tags'] : []; ?>
             <?php if ($tags === []): ?>

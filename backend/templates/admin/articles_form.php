@@ -60,6 +60,12 @@ if (!is_string($contentMediaPolicyJson) || $contentMediaPolicyJson === '') {
     $contentMediaPolicyJson = '{}';
 }
 $currentLanguage = (string) ($formData['lang'] ?? 'fr');
+$categoryOptions = is_array($availableCategoryOptions ?? null) ? array_values($availableCategoryOptions) : [];
+$subcategoryOptions = is_array($availableSubcategoryOptions ?? null) ? array_values($availableSubcategoryOptions) : [];
+$tagOptions = is_array($availableTagOptions ?? null) ? array_values($availableTagOptions) : [];
+$selectedTags = is_array($formData['tags'] ?? null)
+    ? array_values(array_map('strval', $formData['tags']))
+    : array_values(array_filter(array_map('trim', explode(',', (string) ($formData['tags_input'] ?? '')))));
 $featuredImageSrc = trim((string) ($formData['featured_image_src'] ?? ''));
 $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
 ?>
@@ -68,7 +74,7 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
   <article class="card">
     <h2><?php echo ($isNewArticle ?? false) ? 'Nouvel article' : 'Article du blog'; ?></h2>
     <p>
-      Une catégorie principale, plusieurs tags, puis filtres rapides automatiquement réutilisables sur le front.
+      Une catégorie principale, une sous-catégorie optionnelle et trois à cinq tags issus du référentiel blog.
       Les commentaires et traductions techniques déjà présents sont conservés à la sauvegarde.
     </p>
     <p class="actions-inline">
@@ -80,21 +86,21 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
   </article>
 
   <article class="card">
-    <h2>Référentiel existant</h2>
-    <p class="notice-muted">Saisis librement, avec suggestions issues des articles déjà enregistrés.</p>
+    <h2>Taxonomie blog</h2>
+    <p class="notice-muted">Source canonique limitée : pas de catégorie ni de tag libre.</p>
     <div class="field">
-      <label>Catégories existantes</label>
+      <label>Catégories autorisées</label>
       <div class="taxonomy-chip-list">
-        <?php foreach (($availableCategories ?? []) as $category): ?>
-        <span class="taxonomy-chip"><?php echo htmlspecialchars((string) $category, ENT_QUOTES, 'UTF-8'); ?></span>
+        <?php foreach ($categoryOptions as $category): ?>
+        <span class="taxonomy-chip"><?php echo htmlspecialchars((string) ($category['label'] ?? $category['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
         <?php endforeach; ?>
       </div>
     </div>
     <div class="field">
-      <label>Tags existants</label>
+      <label>Tags autorisés</label>
       <div class="taxonomy-chip-list">
-        <?php foreach (($availableTags ?? []) as $tag): ?>
-        <span class="taxonomy-chip"><?php echo htmlspecialchars((string) $tag, ENT_QUOTES, 'UTF-8'); ?></span>
+        <?php foreach ($tagOptions as $tag): ?>
+        <span class="taxonomy-chip"><?php echo htmlspecialchars((string) ($tag['label'] ?? $tag['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
         <?php endforeach; ?>
       </div>
     </div>
@@ -238,13 +244,54 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
 
       <div class="field">
         <label for="article-category">Catégorie</label>
-        <input id="article-category" name="article[category]" type="text" list="article-categories-list" value="<?php echo htmlspecialchars((string) ($formData['category'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+        <select id="article-category" name="article[category]" required data-blog-category-select>
+          <option value="" disabled<?php echo trim((string) ($formData['category'] ?? '')) === '' ? ' selected' : ''; ?>>Choisir une catégorie</option>
+          <?php foreach ($categoryOptions as $category): ?>
+          <?php $categorySlug = (string) ($category['slug'] ?? ''); ?>
+          <option value="<?php echo htmlspecialchars($categorySlug, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ((string) ($formData['category'] ?? '') === $categorySlug) ? ' selected' : ''; ?>>
+            <?php echo htmlspecialchars((string) ($category['label'] ?? $categorySlug), ENT_QUOTES, 'UTF-8'); ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="article-subcategory">Sous-catégorie</label>
+        <select id="article-subcategory" name="article[subcategory]" data-blog-subcategory-select>
+          <option value="">Aucune sous-catégorie</option>
+          <?php foreach ($subcategoryOptions as $subcategory): ?>
+          <?php
+          $subcategorySlug = (string) ($subcategory['slug'] ?? '');
+          $subcategoryCategory = (string) ($subcategory['category'] ?? '');
+          ?>
+          <option
+            value="<?php echo htmlspecialchars($subcategorySlug, ENT_QUOTES, 'UTF-8'); ?>"
+            data-category="<?php echo htmlspecialchars($subcategoryCategory, ENT_QUOTES, 'UTF-8'); ?>"
+            <?php echo ((string) ($formData['subcategory'] ?? '') === $subcategorySlug) ? ' selected' : ''; ?>
+          >
+            <?php echo htmlspecialchars((string) ($subcategory['label'] ?? $subcategorySlug), ENT_QUOTES, 'UTF-8'); ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
       </div>
 
       <div class="field admin-form-span-2">
         <label for="article-tags">Tags</label>
-        <input id="article-tags" name="article[tags_input]" type="text" value="<?php echo htmlspecialchars((string) ($formData['tags_input'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="austin, club, sortie" />
-        <p class="admin-form-help">Saisie libre, séparée par des virgules. Les tags existants restent proposés ci-dessus comme référence.</p>
+        <div id="article-tags" class="taxonomy-chip-list taxonomy-checkbox-list">
+          <?php foreach ($tagOptions as $tag): ?>
+          <?php $tagSlug = (string) ($tag['slug'] ?? ''); ?>
+          <label class="taxonomy-chip taxonomy-chip-checkbox">
+            <input
+              type="checkbox"
+              name="article[tags][]"
+              value="<?php echo htmlspecialchars($tagSlug, ENT_QUOTES, 'UTF-8'); ?>"
+              <?php echo in_array($tagSlug, $selectedTags, true) ? ' checked' : ''; ?>
+            />
+            <span><?php echo htmlspecialchars((string) ($tag['label'] ?? $tagSlug), ENT_QUOTES, 'UTF-8'); ?></span>
+          </label>
+          <?php endforeach; ?>
+        </div>
+        <p class="admin-form-help">Choisir 3 à 5 tags. Les tags libres et les tags créés automatiquement sont refusés.</p>
       </div>
 
       <div class="field admin-form-span-2">
@@ -373,12 +420,6 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
       <button type="submit">Sauvegarder</button>
     </div>
   </form>
-
-  <datalist id="article-categories-list">
-    <?php foreach (($availableCategories ?? []) as $category): ?>
-    <option value="<?php echo htmlspecialchars((string) $category, ENT_QUOTES, 'UTF-8'); ?>"></option>
-    <?php endforeach; ?>
-  </datalist>
 
   <dialog
     class="region-modal content-media-dialog"
@@ -1267,5 +1308,54 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
     }
 
     applyFilter();
+  })();
+</script>
+
+<script>
+  (() => {
+    const categorySelect = document.querySelector('[data-blog-category-select]');
+    const subcategorySelect = document.querySelector('[data-blog-subcategory-select]');
+    const tagCheckboxes = Array.from(document.querySelectorAll('input[name="article[tags][]"]'));
+
+    const syncSubcategories = () => {
+      if (!(categorySelect instanceof HTMLSelectElement) || !(subcategorySelect instanceof HTMLSelectElement)) {
+        return;
+      }
+
+      const activeCategory = categorySelect.value;
+      Array.from(subcategorySelect.options).forEach((option) => {
+        const category = option.getAttribute('data-category') || '';
+        const available = option.value === '' || category === activeCategory;
+        option.hidden = !available;
+        option.disabled = !available;
+      });
+
+      const selectedOption = subcategorySelect.selectedOptions[0] || null;
+      if (selectedOption instanceof HTMLOptionElement && selectedOption.disabled) {
+        subcategorySelect.value = '';
+      }
+    };
+
+    const syncTagLimit = () => {
+      const checkedCount = tagCheckboxes.filter((checkbox) => checkbox instanceof HTMLInputElement && checkbox.checked).length;
+      tagCheckboxes.forEach((checkbox) => {
+        if (checkbox instanceof HTMLInputElement && !checkbox.checked) {
+          checkbox.disabled = checkedCount >= 5;
+        }
+      });
+    };
+
+    if (categorySelect instanceof HTMLSelectElement) {
+      categorySelect.addEventListener('change', syncSubcategories);
+    }
+
+    tagCheckboxes.forEach((checkbox) => {
+      if (checkbox instanceof HTMLInputElement) {
+        checkbox.addEventListener('change', syncTagLimit);
+      }
+    });
+
+    syncSubcategories();
+    syncTagLimit();
   })();
 </script>

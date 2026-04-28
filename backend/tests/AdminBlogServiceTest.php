@@ -141,6 +141,8 @@ final class AdminBlogServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-20T10:00',
                 'content' => '<p>Contenu.</p>',
+                'category' => 'histoire-industrie',
+                'tags' => ['austin', 'longbridge', 'bmc'],
                 'page_slug' => '',
             ],
         ]);

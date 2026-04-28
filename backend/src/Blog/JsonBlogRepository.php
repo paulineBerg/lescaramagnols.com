@@ -8,8 +8,11 @@ use Caramagnols\Admin\AdminEditorialImageService;
 
 final class JsonBlogRepository implements BlogRepositoryInterface
 {
-    public function __construct(private readonly string $dataDir)
+    private BlogTaxonomy $taxonomy;
+
+    public function __construct(private readonly string $dataDir, ?BlogTaxonomy $taxonomy = null)
     {
+        $this->taxonomy = $taxonomy ?? BlogTaxonomy::fromDefaultConfig();
     }
 
     public function dataDir(): string
@@ -380,19 +383,19 @@ final class JsonBlogRepository implements BlogRepositoryInterface
     private function matchesFilters(array $article, ?string $category, ?string $tag): bool
     {
         if ($category !== null) {
-            $articleCategory = $this->normalizeTerm((string) ($article['category'] ?? ''));
-            if ($articleCategory !== $category) {
+            $articleCategory = $this->normalizeTaxonomyCategory((string) ($article['category'] ?? ''));
+            if ($articleCategory !== $this->normalizeTaxonomyCategory($category)) {
                 return false;
             }
         }
 
         if ($tag !== null) {
             $articleTags = array_map(
-                fn (mixed $rawTag): ?string => $this->normalizeTerm((string) $rawTag),
+                fn (mixed $rawTag): ?string => $this->normalizeTaxonomyTag((string) $rawTag),
                 is_array($article['tags'] ?? null) ? $article['tags'] : []
             );
 
-            if (!in_array($tag, array_filter($articleTags, static fn (?string $value): bool => $value !== null), true)) {
+            if (!in_array($this->normalizeTaxonomyTag($tag), array_filter($articleTags, static fn (?string $value): bool => $value !== null), true)) {
                 return false;
             }
         }
@@ -475,6 +478,7 @@ final class JsonBlogRepository implements BlogRepositoryInterface
         $article['slug'] = $this->normalizeOptionalSlug((string) ($article['slug'] ?? ''));
         $article['lang'] = $this->sanitizeLanguage((string) ($article['lang'] ?? 'fr'));
         $article['status'] = $this->normalizeStatus((string) ($article['status'] ?? 'draft'));
+        $article['subcategory'] = $this->normalizeStoredText((string) ($article['subcategory'] ?? ''));
         $article['parent_slug'] = $this->normalizeOptionalSlug((string) ($article['parent_slug'] ?? ''));
         $article['parent_lang'] = $article['parent_slug'] !== ''
             ? $this->sanitizeLanguage((string) ($article['parent_lang'] ?? $article['lang']))
@@ -501,6 +505,14 @@ final class JsonBlogRepository implements BlogRepositoryInterface
         $normalized = strtolower(trim($status));
 
         return in_array($normalized, ['draft', 'scheduled', 'published'], true) ? $normalized : 'draft';
+    }
+
+    private function normalizeStoredText(string $value): string
+    {
+        $normalized = trim($value);
+        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?? $normalized;
+
+        return $normalized;
     }
 
     private function normalizeStoredSortOrder(mixed $value): ?int
@@ -738,6 +750,16 @@ final class JsonBlogRepository implements BlogRepositoryInterface
         return function_exists('mb_strtolower')
             ? mb_strtolower($normalized, 'UTF-8')
             : strtolower($normalized);
+    }
+
+    private function normalizeTaxonomyCategory(?string $value): ?string
+    {
+        return $this->taxonomy->resolveCategorySlug($value) ?? $this->normalizeTerm($value);
+    }
+
+    private function normalizeTaxonomyTag(?string $value): ?string
+    {
+        return $this->taxonomy->resolveTagSlug($value) ?? $this->normalizeTerm($value);
     }
 
     /**

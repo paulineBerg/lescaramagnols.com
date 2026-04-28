@@ -9,7 +9,7 @@
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
-                "EditRegion7"
+                "EditRegion4"
             ]
         },
         {
@@ -42,19 +42,6 @@
             "contenu": "AUSTIN Austin ne se resume pas a la Mini. La marque nait a Longbridge en 1905, traverse deux guerres mondiales, change d’echelle avec l’Austin Seven de 1922, puis entre dans l’ere BMC avec l’A30 de 1952 et la petite Austin Seven de 1959 vite connue sous le nom de Mini. Austin occupe une place centra…",
             "url": "/auto-retro/austin/histoire-de-austin.php",
             "image": "/uploads/editorial/media/2026/04/herbert-austin-1905.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion3",
-                "EditRegion4",
-                "EditRegion11"
-            ]
-        },
-        {
-            "titre": "Austin et Morris Mini : histoire, technique et héritage",
-            "contenu": "Austin et Morris Mini : histoire, technique et héritage Présentée le 26 août 1959 par la British Motor Corporation, la Mini apparaît d’abord sous deux noms : Austin Seven et Morris Mini-Minor. Alec Issigonis la dessine pour loger quatre personnes dans une carrosserie de 3,05 m, avec une architecture…",
-            "url": "/auto-retro/austin/aventure-mini-austin.php",
-            "image": "/assets/images/autoretro/austin/1963_MkI_Mini.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -119,6 +106,19 @@
             "contenu": "Histoire de la 2CV : du projet TPV à une mécanique populaire très aboutie La 2CV a souvent été racontée comme une voiture modeste devenue symbole national. C’est juste, mais c’est insuffisant. Sa vraie singularité tient à la rigueur de son programme technique : poids contenu, traction avant, bicylin…",
             "url": "/auto-retro/citroen/la-2cv-une-passion-francaise.php",
             "image": "/assets/images/autoretro/citroen/citroen_2cv_a_az_1954_malartre.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
+                "EditRegion4",
+                "EditRegion11"
+            ]
+        },
+        {
+            "titre": "Histoire de la Mini Austin",
+            "contenu": "Histoire de la Mini Austin Présentée le 26 août 1959 par la British Motor Corporation, la Mini apparaît d’abord sous deux noms : Austin Seven et Morris Mini-Minor. Alec Issigonis la dessine pour loger quatre personnes dans une carrosserie de 3,05 m, avec une architecture qui deviendra une référence …",
+            "url": "/auto-retro/austin/aventure-mini-austin.php",
+            "image": "/assets/images/autoretro/austin/1963_MkI_Mini.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",

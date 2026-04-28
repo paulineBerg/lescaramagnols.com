@@ -27,6 +27,7 @@ Configuration :
 Actif :
 - sauvegarde d’article admin
 - workflow de statut admin `draft` / `scheduled` / `published`
+- taxonomie blog canonique : catégorie obligatoire, sous-catégorie optionnelle et tags autorisés
 - image de couverture article (URL ou upload admin) avec métadonnées (`alt`, `title`, `caption`, `width`, `height`)
 - lecture publique (`/blog`, `/blog/article/{slug}`)
 - rendu des discussions publiques sous l’article blog et sous les chroniques blog rattachées aux pages dynamiques
@@ -44,6 +45,7 @@ Hors périmètre :
 - impl JSON : `JsonBlogRepository`, `JsonBlogDiscussionRepository`
 - impl SQL : `SqlBlogRepository`, `SqlBlogDiscussionRepository`
 - bridge dual-write : `DualWriteBlogRepository`, `DualWriteBlogDiscussionRepository`
+- taxonomie : `backend/config/blog_taxonomy.php`, lue par `BlogTaxonomy`
 - câblage runtime : `backend/core/helpers.php` (`blog_storage_mode`, `blog_repository`, `blog_discussion_repository`)
 
 Tables SQL :
@@ -52,6 +54,142 @@ Tables SQL :
 
 Migration :
 - `backend/sql/editorial/005_blog.sql`
+- `backend/sql/editorial/011_blog_taxonomy_subcategory.sql`
+
+## Taxonomie blog
+
+La source de vérité unique est `backend/config/blog_taxonomy.php`. Elle contient :
+- catégories principales
+- sous-catégories dépendantes des catégories
+- tags autorisés
+- traductions `fr`, `en`, `de`
+- statut SEO `index` ou `noindex`
+
+Structure cible :
+- 4 catégories principales maximum
+- 8 sous-catégories maximum au total
+- 30 tags maximum dans le référentiel
+- 1 catégorie obligatoire par article
+- 0 ou 1 sous-catégorie
+- 3 à 5 tags maximum, tous issus du référentiel
+
+Normalisation :
+- valeurs stockées en minuscules, sans accents, au format `kebab-case`
+- pas de tag libre
+- pas de catégorie libre
+- pas de création automatique depuis une saisie
+- les libellés affichés viennent des traductions du référentiel
+
+SEO :
+- les catégories principales restent indexables quand elles portent un volume éditorial réel
+- les tags sont `noindex` par défaut
+- les pages filtrées par tag émettent `meta name="robots" content="noindex,follow"`
+
+Maillage :
+- les suggestions d’articles utilisent la taxonomie
+- priorité : même sous-catégorie, même catégorie, puis au moins 2 tags communs
+- limite : 3 articles suggérés maximum
+
+Diagnostic :
+- commande : `composer blog-taxonomy-diagnose`
+- équivalent direct : `php core/tools/diagnose_blog_taxonomy.php`
+- sortie JSON : `php core/tools/diagnose_blog_taxonomy.php --json`
+- le diagnostic détecte les catégories anciennes, tags inconnus, doublons, accents, variantes et mappings nécessaires
+- aucun nettoyage destructif ne doit être fait sans backup du stockage actif
+
+## Maillage interne blog
+
+Le blog ne doit pas fonctionner comme une collection isolée. Chaque article publié est rattaché à une page parent (`page_slug`) et cette page parent sert de page pilier, de page de contexte ou de page d’entrée éditoriale.
+
+### Cible canonique des liens internes
+
+Quand l’article possède une page parent publiée, les liens internes vers cet article doivent viser la lecture attachée sous la page parent :
+- format : `/<lang>/<route-parent>?open_article=<slug>#attached-article-<slug>`
+- exemple : `/fr/auto-retro/austin?open_article=austin-seven-voiture-populaire-anglaise#attached-article-austin-seven-voiture-populaire-anglaise`
+
+La route `/blog/article/<slug>` reste disponible comme fallback technique, mais elle ne doit pas être utilisée comme cible principale du maillage interne si l’article est diffusé sous une page parent.
+
+### Priorité éditoriale
+
+Ordre recommandé pour un article standard :
+- lien principal vers la page parent ou vers une ancre précise de cette page
+- liens vers articles frères rattachés à la même page parent
+- liens vers article parent ou enfant quand cette relation est définie dans le blog
+- liens vers articles proches par taxonomie : même sous-catégorie, même catégorie, puis au moins 2 tags communs
+- lien vers catégorie seulement si cela aide la navigation; éviter de pousser les pages tag dans le corps car elles sont `noindex`
+
+Limites :
+- 2 à 4 liens internes utiles pour un article standard
+- moins pour un article court
+- 3 articles suggérés maximum dans les blocs automatiques
+- aucun lien vers la page ou l’article actuellement affiché
+
+### Ancres sur pages piliers
+
+Ajouter une ancre seulement lorsqu’elle sert un vrai repère durable :
+- section d’histoire d’une marque
+- section technique ou restauration
+- bloc modèles
+- accès, parcours, visite ou contexte local
+- section destinée à recevoir plusieurs liens depuis le blog
+
+Convention :
+- utiliser un `id` HTML court, stable, descriptif et en `kebab-case`
+- exemples : `#histoire-longbridge`, `#restauration-pieces`, `#modeles-austin`, `#conduite-ancienne`
+- ne pas créer d’ancre sur un paragraphe ponctuel ou une phrase susceptible d’être réécrite
+- ne pas créer une ancre différente pour chaque article si une ancre pilier commune suffit
+
+Quand une ancre existe, le lien depuis l’article doit pointer vers la section utile de la page parent plutôt que vers le haut de page. Quand aucune section stable n’existe, il vaut mieux ajouter une courte section pilier claire que multiplier des liens vagues.
+
+### Forme dans les contenus
+
+Les liens doivent être intégrés dans des phrases éditoriales naturelles. Ne pas créer de section standardisée intitulée `A lire`, `À lire` ou `À lire aussi`. Une courte phrase de fermeture suffit souvent, par exemple pour relier une expérience de conduite à la page parent Austin, ou un article technique à une section restauration.
+
+## Séries d’articles rattachées à une page pilier
+
+Quand plusieurs articles sont créés autour d’une même page parent, ils doivent former un dossier clair et contrôlé. L’objectif est de renforcer la page pilier, pas de produire des articles généraux qui se concurrencent entre eux.
+
+### Préparation obligatoire
+
+Avant d’écrire les articles :
+- définir la page parent (`page_slug`) qui servira de page pilier
+- définir les thèmes du dossier sans en ajouter d’autres si la structure est déjà validée
+- définir les slugs publics avant rédaction
+- attribuer 1 mot-clé principal par article
+- vérifier qu’aucun article existant ne couvre déjà le même angle
+
+### Règles de contenu
+
+Chaque article doit avoir :
+- un titre précis, non générique
+- un angle unique
+- une période, un modèle ou une question bien délimitée
+- une catégorie logique, une sous-catégorie cohérente si utile, et 3 à 5 tags autorisés
+- une structure lisible : le titre de l’article est le H1 rendu par le template, le corps utilise des H2 et des H3 seulement si le contenu le justifie
+
+À éviter :
+- refaire un article général déjà couvert par la page pilier
+- mélanger plusieurs périodes dans un même article
+- dériver vers d’autres pages parents déjà créées quand elles ne font pas partie du dossier courant
+- créer une catégorie ou un tag pour un seul article
+
+### Maillage minimum
+
+Chaque article d’une série doit contenir :
+- 1 lien vers la page principale ou vers une ancre stable de cette page
+- 1 lien vers un autre article du même thème, rattaché à la même page parent
+
+Les liens doivent rester naturels. Si aucun article frère pertinent n’existe encore, créer les brouillons du thème dans un ordre cohérent puis relier les articles entre eux avant publication.
+
+### Contrôle de cohérence
+
+Avant sauvegarde ou publication, vérifier :
+- unicité des slugs
+- cohérence entre titre, slug, mot-clé principal et extrait
+- rattachement à la bonne page parent
+- taxonomie autorisée
+- absence de lien mort ou de lien vers l’article lui-même
+- absence de concurrence inutile avec la page pilier ou avec un autre article du même dossier
 
 ## Publication planifiée automatique
 
