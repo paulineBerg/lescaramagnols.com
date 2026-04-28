@@ -81,10 +81,16 @@ Contrôles avant sauvegarde :
 - titre précis
 - extrait distinct du titre
 - catégorie et tags issus de `backend/config/blog_taxonomy.php`
+- catégorie obligatoire parmi `auto-retro`, `territoire`, `vie-locale`, `patrimoine`
+- 0 ou 1 sous-catégorie, obligatoirement rattachée à la catégorie choisie
+- 3 à 5 tags autorisés, sans doublon ni variante libre
+- tags normalisés en `kebab-case`, sans accents ni majuscules
 - page parent cohérente
 - aucun lien vers l'article lui-même
 - aucun lien mort
 - absence des tournures interdites listées plus haut
+
+La taxonomie ne doit jamais être étendue depuis un article isolé. Si un besoin apparaît, vérifier d'abord que les tags génériques existants ne suffisent pas : `histoire`, `modele`, `version`, `restauration`, `entretien`, `mecanique`, `carrosserie`, `collection`, `route`, `experience`, `patrimoine`, `evenement`.
 
 ## Langues
 

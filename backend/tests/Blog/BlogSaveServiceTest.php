@@ -78,9 +78,9 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-17 10:15:00',
                 'content' => '<p>Contenu publié.</p>',
-                'category' => 'histoire-industrie',
-                'subcategory' => 'origines-chronologie',
-                'tags' => ['austin', 'longbridge', 'bmc'],
+                'category' => 'auto-retro',
+                'subcategory' => 'histoire-automobile',
+                'tags' => ['austin', 'histoire', 'voiture-ancienne'],
             ],
             'admin@example.com'
         );
@@ -94,9 +94,9 @@ final class BlogSaveServiceTest extends TestCase
         $this->assertSame('published', $stored['status']);
         $this->assertSame('Premier article', $stored['title']);
         $this->assertSame('fr', $stored['lang']);
-        $this->assertSame('histoire-industrie', $stored['category']);
-        $this->assertSame('origines-chronologie', $stored['subcategory']);
-        $this->assertSame(['austin', 'longbridge', 'bmc'], $stored['tags']);
+        $this->assertSame('auto-retro', $stored['category']);
+        $this->assertSame('histoire-automobile', $stored['subcategory']);
+        $this->assertSame(['austin', 'histoire', 'voiture-ancienne'], $stored['tags']);
     }
 
     public function testSaveUpdatesExistingArticleAndRenamesOldFileWhenSlugChanges(): void
@@ -129,8 +129,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'draft',
                 'date' => '2026-03-17 12:30:00',
                 'content' => '<p>Contenu mis à jour.</p>',
-                'category' => 'histoire-industrie',
-                'tags' => ['austin', 'longbridge', 'bmc'],
+                'category' => 'auto-retro',
+                'tags' => ['austin', 'histoire', 'voiture-ancienne'],
             ],
             'admin@example.com'
         );
@@ -202,8 +202,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-17 12:30:00',
                 'content' => '<p>Parent mis a jour.</p>',
-                'category' => 'histoire-industrie',
-                'tags' => ['austin', 'longbridge', 'bmc'],
+                'category' => 'auto-retro',
+                'tags' => ['austin', 'histoire', 'voiture-ancienne'],
             ],
             'admin@example.com'
         );
@@ -228,8 +228,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-20 10:00:00',
                 'content' => '<p>Contenu.</p>',
-                'category' => 'histoire-industrie',
-                'tags' => ['austin', 'longbridge', 'bmc'],
+                'category' => 'auto-retro',
+                'tags' => ['austin', 'histoire', 'voiture-ancienne'],
                 'page_slug' => 'page-introuvable',
             ],
             'admin@example.com'
@@ -252,8 +252,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-20 10:00:00',
                 'content' => '<p>Contenu.</p>',
-                'category' => 'histoire-industrie',
-                'tags' => ['austin', 'longbridge', 'bmc'],
+                'category' => 'auto-retro',
+                'tags' => ['austin', 'histoire', 'voiture-ancienne'],
                 'page_slug' => 'association',
             ],
             'admin@example.com'
@@ -279,8 +279,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'published',
                 'date' => '2026-03-21 11:00:00',
                 'content' => '<p>Contenu avec image.</p>',
-                'category' => 'histoire-industrie',
-                'tags' => ['austin', 'longbridge', 'bmc'],
+                'category' => 'auto-retro',
+                'tags' => ['austin', 'histoire', 'voiture-ancienne'],
                 'featured_image' => [
                     'src' => '/uploads/editorial/article/2026/03/article-avec-image-photo.jpg',
                     'alt' => '',
@@ -314,8 +314,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'draft',
                 'date' => '2026-03-21 11:00:00',
                 'content' => '<p>Contenu.</p>',
-                'category' => 'histoire-industrie',
-                'tags' => ['austin', 'longbridge', 'tag libre'],
+                'category' => 'auto-retro',
+                'tags' => ['austin', 'histoire', 'tag libre'],
             ],
             'admin@example.com'
         );
@@ -336,8 +336,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'draft',
                 'date' => '2026-03-21 11:00:00',
                 'content' => '<p>Contenu.</p>',
-                'category' => 'histoire-industrie',
-                'tags' => ['austin', 'longbridge', 'bmc', 'british-leyland', 'herbert-austin', 'austin-rover'],
+                'category' => 'auto-retro',
+                'tags' => ['austin', 'histoire', 'voiture-ancienne', 'modele', 'collection', 'route'],
             ],
             'admin@example.com'
         );
@@ -358,8 +358,8 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'draft',
                 'date' => '2026-03-21 11:00:00',
                 'content' => '<p>Contenu.</p>',
-                'category' => 'histoire-industrie',
-                'tags' => ['austin', 'Austin', 'longbridge', 'bmc'],
+                'category' => 'auto-retro',
+                'tags' => ['austin', 'Austin', 'histoire', 'voiture-ancienne'],
             ],
             'admin@example.com'
         );
@@ -380,9 +380,9 @@ final class BlogSaveServiceTest extends TestCase
                 'status' => 'draft',
                 'date' => '2026-03-21 11:00:00',
                 'content' => '<p>Contenu.</p>',
-                'category' => 'histoire-industrie',
-                'subcategory' => 'mecanique-entretien',
-                'tags' => ['austin', 'longbridge', 'bmc'],
+                'category' => 'auto-retro',
+                'subcategory' => 'golfe-saint-tropez',
+                'tags' => ['austin', 'histoire', 'voiture-ancienne'],
             ],
             'admin@example.com'
         );

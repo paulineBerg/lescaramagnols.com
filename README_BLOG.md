@@ -66,9 +66,9 @@ La source de vérité unique est `backend/config/blog_taxonomy.php`. Elle contie
 - statut SEO `index` ou `noindex`
 
 Structure cible :
-- 4 catégories principales maximum
-- 8 sous-catégories maximum au total
-- 30 tags maximum dans le référentiel
+- 4 catégories principales maximum : `auto-retro`, `territoire`, `vie-locale`, `patrimoine`
+- 8 sous-catégories maximum au total : `histoire-automobile`, `modeles-et-versions`, `restauration-et-entretien`, `conduite-et-collection`, `golfe-saint-tropez`, `villages-et-balades`, `evenements-et-animations`, `lieux-et-memoire`
+- 30 tags maximum dans le référentiel, tous réutilisables sur plusieurs contenus
 - 1 catégorie obligatoire par article
 - 0 ou 1 sous-catégorie
 - 3 à 5 tags maximum, tous issus du référentiel
@@ -78,6 +78,8 @@ Normalisation :
 - pas de tag libre
 - pas de catégorie libre
 - pas de création automatique depuis une saisie
+- pas de synonymes stockés : `mini`, `Austin Mini` et `mini austin` sont normalisés vers `mini-austin`
+- pas de tags trop spécifiques pour une seule variante quand un tag générique suffit (`modele`, `version`, `histoire`, `mecanique`, `collection`)
 - les libellés affichés viennent des traductions du référentiel
 
 SEO :
@@ -94,7 +96,8 @@ Diagnostic :
 - commande : `composer blog-taxonomy-diagnose`
 - équivalent direct : `php core/tools/diagnose_blog_taxonomy.php`
 - sortie JSON : `php core/tools/diagnose_blog_taxonomy.php --json`
-- le diagnostic détecte les catégories anciennes, tags inconnus, doublons, accents, variantes et mappings nécessaires
+- le diagnostic détecte les anomalies de référentiel, catégories anciennes, tags inconnus, doublons, accents, variantes et mappings nécessaires
+- la sortie doit conserver `taxonomy_config_issues: []` et `issues: []` avant commit
 - aucun nettoyage destructif ne doit être fait sans backup du stockage actif
 
 ## Maillage interne blog

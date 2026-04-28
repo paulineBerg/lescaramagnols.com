@@ -346,27 +346,30 @@ Source de verite:
 - aucune categorie, sous-categorie ou tag de blog ne doit etre cree automatiquement depuis une saisie libre
 
 Structure cible:
-- `3` a `4` categories principales maximum
-- `6` a `8` sous-categories maximum au total
-- `20` a `30` tags maximum dans le referentiel
+- `3` a `4` categories principales maximum; la cible courante est `auto-retro`, `territoire`, `vie-locale`, `patrimoine`
+- `6` a `8` sous-categories maximum au total; la cible courante est `histoire-automobile`, `modeles-et-versions`, `restauration-et-entretien`, `conduite-et-collection`, `golfe-saint-tropez`, `villages-et-balades`, `evenements-et-animations`, `lieux-et-memoire`
+- `20` a `30` tags maximum dans le referentiel; la cible courante est limitee a `30` tags reutilisables et non a des variantes de modele
 - chaque article de blog doit avoir `1` categorie obligatoire, `0` ou `1` sous-categorie et `3` a `5` tags autorises
 - les valeurs stockees doivent etre normalisees en minuscules, sans accents, au format `kebab-case`
 - les libelles publics et admin doivent provenir des traductions du referentiel, pas des slugs bruts
+- les tags de marque ou modele doivent rester controles: garder `mini-austin` plutot que creer `mini`, `Austin Mini` ou une variante libre; garder des tags generiques comme `histoire`, `modele`, `version`, `restauration`, `entretien`, `mecanique`, `collection`, `route`, `experience` quand ils servent plusieurs articles
 
 Regles admin:
 - categorie par liste deroulante, jamais par champ libre
 - sous-categorie dependante de la categorie selectionnee
 - tags par cases a cocher ou autocomplete strictement limite au referentiel
-- refuser la sauvegarde si la categorie est absente, si un tag est inconnu, si plus de `5` tags sont envoyes, ou si la sous-categorie ne depend pas de la categorie
+- refuser la sauvegarde si la categorie est absente, si plus d'une sous-categorie est envoyee, si un tag est inconnu, si moins de `3` ou plus de `5` tags sont envoyes, si un tag est duplique, ou si la sous-categorie ne depend pas de la categorie
 
 Regles front et SEO:
 - afficher categorie, sous-categorie et tags avec les libelles traduits
 - les pages de categories importantes peuvent rester indexables
 - les pages de tags sont `noindex` par defaut pour eviter une indexation massive de pages faibles
+- les pages filtrees par tag doivent emettre `noindex,follow`
 - les suggestions internes d'articles doivent privilegier la meme categorie, puis la meme sous-categorie, puis au moins `2` tags communs, avec `3` articles suggeres maximum
 
 Migration et controle:
 - utiliser `php backend/core/tools/diagnose_blog_taxonomy.php` pour detecter tags inconnus, accents, doublons, variantes et mappings necessaires
+- le diagnostic doit rester a zero sur `taxonomy_config_issues` et `issues` avant commit
 - ne pas supprimer ou fusionner une taxonomie existante sans backup adapte du stockage actif
 - exemples de normalisation attendus: `mini austin` ou `Austin Mini` -> `mini-austin`, `saint tropez` ou `St Tropez` -> `saint-tropez`
 

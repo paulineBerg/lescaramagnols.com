@@ -4,15 +4,16 @@
     "lang": "en",
     "status": "draft",
     "author": "Les Caramagnols",
-    "category": "technique-restauration",
+    "category": "auto-retro",
     "date": "2026-04-23 14:51:00",
     "excerpt": "Old Austins are understood by their production period: early Longbridge work, the Seven, volume production, BMC and shared components.",
     "content": "<p>Old Austins were not all built in the same way. Between the first Longbridge cars, the Austin Seven, post-war models and BMC cars, methods changed considerably. Production followed market size, factory capacity and group logic.</p>\n<p>Understanding that construction helps when reading a car today. Assembly, shared parts, bodywork, trim and corrosion points depend greatly on period.</p>\n<h2>Early cars close to craft production</h2>\n<p>At the start of the twentieth century, Austin built cars in a world less standardised than post-war production. Bodies, chassis, engines and trim required more hand work and adjustment.</p>\n<p>This still shows on restored early cars. Tolerances, assembly and details cannot be read like on a modern car. Looking for perfect alignment everywhere can lead to wrong conclusions.</p>\n<h2>The Seven and volume learning</h2>\n<p>With the Seven, Austin had to build more cars, more regularly and at lower cost. The car was simple, but that simplicity was organised. The aim was to make it affordable without losing the durability needed for family use.</p>\n<p>In restoration, that balance matters. Excessive modernisation or unnecessary replacement can remove what makes the car coherent.</p>\n<h2>Post-war rationalisation</h2>\n<p>After 1945 Austin had to rebuild, export and modernise. Bodies moved closer to structured volume production, OHV engines spread and models entered a more competitive market.</p>\n<p>The quality of a car from this period is read in the body, doors, running gear and correct parts. A well-preserved old car often explains production logic better than an over-polished restoration.</p>\n<h2>BMC and shared components</h2>\n<p>After 1952 BMC encouraged common bases, shared engines and related model families. Austin then belonged to an organisation where construction depended not only on one marque but on a group.</p>\n<p>This can make mechanical parts easier to find while complicating identification. Two related cars may share many components and still retain specific trim or details.</p>\n<h2>Read construction before judging the car</h2>\n<p>An old Austin is better assessed when its construction is understood. A proper check is not limited to appearance: it looks at what carries load, what has been repaired, what is original and what comes from another model.</p>\n<h2>Basic technical checks</h2>\n<p>The mechanics of an Austin or a Mini are checked in order, not by instinct. Engine identification, cooling condition, oil pressure, ignition, carburation, braking, suspension play and wiring quality give the first reliable picture.</p>\n<p>For an Austin model, the useful reading starts with the period and the role in the range. A family saloon, a small popular car and a sporting derivative do not answer the same need, even when they share the same industrial background.</p>\n<h2>Repair with method</h2>\n<p>The right method is to measure before replacing: compression, leaks, temperature, fluid condition, timing noise, braking and electrical charging. Replacing parts at random costs money and sometimes creates new faults.</p>\n<p>Any conclusion must therefore stay tied to the exact model, year and condition. Market, country, originality, parts availability and quality of previous work can change the practical answer. The technical frame gives direction, but the car itself gives the final evidence.</p>\n<p>The <a href=\"/en/auto-retro/austin/histoire-de-austin.php\">Austin</a> page provides the timeline. The <a href=\"/en/auto-retro/austin/aventure-mini-austin.php\">Austin and Morris Mini</a> then shows a mature case of compact volume construction.</p>",
     "tags": [
         "austin",
-        "longbridge",
-        "technique-automobile",
-        "restauration"
+        "voiture-ancienne",
+        "histoire",
+        "restauration",
+        "entretien"
     ],
     "featured_image": null,
     "page_slug": "auto-retro-austin-histoire-de-austin",
@@ -21,7 +22,7 @@
     "parent_slug": "",
     "parent_lang": "",
     "child_sort_order": null,
-    "updated_at": "2026-04-28T11:02:47+00:00",
+    "updated_at": "2026-04-28T11:30:36+00:00",
     "created_at": "2026-04-23T10:07:21+00:00",
-    "subcategory": "mecanique-entretien"
+    "subcategory": "restauration-et-entretien"
 }

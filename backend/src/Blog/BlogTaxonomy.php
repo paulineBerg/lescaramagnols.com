@@ -81,11 +81,11 @@ final class BlogTaxonomy
         $options = [];
         $defaultSeo = $this->tagDefaultSeoStatus();
 
-        foreach ($this->tags() as $slug => $labels) {
+        foreach ($this->tags() as $slug => $tag) {
             $options[] = [
                 'slug' => $slug,
-                'label' => $this->translatedLabel(is_array($labels) ? $labels : [], $language, $slug),
-                'seo' => $defaultSeo,
+                'label' => $this->labelFromNode(is_array($tag) ? $tag : [], $language, $slug),
+                'seo' => $this->seoStatus(is_array($tag) ? $tag : [], $defaultSeo),
             ];
         }
 
@@ -123,9 +123,9 @@ final class BlogTaxonomy
             return trim((string) $value);
         }
 
-        $labels = $this->tags()[$slug] ?? [];
+        $tag = $this->tags()[$slug] ?? [];
 
-        return $this->translatedLabel(is_array($labels) ? $labels : [], $language, $slug);
+        return $this->labelFromNode(is_array($tag) ? $tag : [], $language, $slug);
     }
 
     public function resolveCategorySlug(mixed $value): ?string
@@ -169,7 +169,14 @@ final class BlogTaxonomy
                 : 'La catégorie blog sélectionnée n’est pas autorisée.';
         }
 
-        $subcategoryValue = trim((string) $subcategory);
+        $subcategoryValues = is_array($subcategory)
+            ? array_values(array_filter(array_map('strval', $subcategory), static fn (string $value): bool => trim($value) !== ''))
+            : [trim((string) $subcategory)];
+        if (count($subcategoryValues) > 1) {
+            $errors[] = 'Un article blog ne peut avoir qu’une seule sous-catégorie.';
+        }
+
+        $subcategoryValue = trim((string) ($subcategoryValues[0] ?? ''));
         $subcategorySlug = '';
         if ($subcategoryValue !== '') {
             $resolvedSubcategory = $this->resolveSubcategorySlug($subcategoryValue);
@@ -310,7 +317,7 @@ final class BlogTaxonomy
     }
 
     /**
-     * @return array<string, array<string, string>>
+     * @return array<string, array<string, mixed>>
      */
     private function tags(): array
     {
@@ -341,6 +348,13 @@ final class BlogTaxonomy
     private function labelFromNode(array $node, string $language, string $fallback): string
     {
         $labels = is_array($node['label'] ?? null) ? $node['label'] : [];
+        if ($labels === []) {
+            $labels = array_filter(
+                $node,
+                static fn (mixed $value, string $key): bool => in_array($key, ['fr', 'en', 'de'], true) && is_string($value),
+                ARRAY_FILTER_USE_BOTH
+            );
+        }
 
         return $this->translatedLabel($labels, $language, $fallback);
     }
@@ -359,10 +373,10 @@ final class BlogTaxonomy
     /**
      * @param array<string, mixed> $node
      */
-    private function seoStatus(array $node): string
+    private function seoStatus(array $node, string $default = 'index'): string
     {
-        $status = (string) ($node['seo'] ?? 'index');
+        $status = (string) ($node['seo'] ?? $default);
 
-        return in_array($status, ['index', 'noindex'], true) ? $status : 'index';
+        return in_array($status, ['index', 'noindex'], true) ? $status : $default;
     }
 }

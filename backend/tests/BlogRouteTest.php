@@ -121,11 +121,11 @@ final class BlogRouteTest extends TestCase
             )
         );
 
-        $this->assertSame('pages/blog/index.php', resolve_route('/blog/categorie/histoire-industrie/tag/longbridge'));
+        $this->assertSame('pages/blog/index.php', resolve_route('/blog/categorie/auto-retro/tag/histoire'));
         $this->assertCount(1, $GLOBALS['currentBlogArticles']);
         $this->assertSame('austin', $GLOBALS['currentBlogArticles'][0]['slug']);
-        $this->assertSame('histoire-industrie', $GLOBALS['currentBlogFilters']['category']);
-        $this->assertSame('longbridge', $GLOBALS['currentBlogFilters']['tag']);
+        $this->assertSame('auto-retro', $GLOBALS['currentBlogFilters']['category']);
+        $this->assertSame('histoire', $GLOBALS['currentBlogFilters']['tag']);
     }
 
     public function testLegacyAdminTemplatesAreNoLongerRoutable(): void

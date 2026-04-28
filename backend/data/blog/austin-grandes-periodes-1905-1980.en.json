@@ -4,14 +4,14 @@
     "lang": "en",
     "status": "draft",
     "author": "Les Caramagnols",
-    "category": "histoire-industrie",
+    "category": "auto-retro",
     "date": "2026-04-23 14:59:00",
     "excerpt": "From Longbridge to the fading of the badge, Austin changed scale several times between 1905 and the 1980s.",
     "content": "<p>Austin was founded at Longbridge in 1905 with an engineer's ambition: to build solid cars in a factory that could grow with demand. The company did not begin with the small popular car. Its first models still belonged to a narrow market in which motoring was expensive and socially selective.</p>\n<p>The story becomes clearer when read in periods. Austin was first a maker of serious pre-war cars, then a mass producer through the Seven, a central name inside BMC after 1952, and finally a weakened badge inside the reorganisations that led to British Leyland and Austin Rover.</p>\n<h2>1905-1921: Longbridge, growth and financial pressure</h2>\n<p>Herbert Austin set up his company at Longbridge after leaving Wolseley. The site, near Birmingham, offered room for industrial expansion. Before the First World War, Austin mostly built medium and larger cars, robust and respected, but still far from everyday family motoring.</p>\n<p>Wartime production greatly enlarged the factory. After 1918, however, capacity alone was not enough. The range was still too dependent on large cars when many buyers were beginning to need simpler and cheaper transport. By the early 1920s the company was under serious strain.</p>\n<h2>1922-1939: the Austin Seven changes the scale</h2>\n<p>The Austin Seven appeared in 1922. Small, light and much more affordable than the earlier cars, it changed the company's position. Its modest engine, simple construction and lower price placed Austin in the world of practical family transport.</p>\n<p>The Seven remained in the range until 1939 and shaped Austin's public image for decades. It did not make the whole range inexpensive, but it gave the marque a reference model. Through licences and technical descendants, its influence also travelled beyond Britain.</p>\n<h2>1945-1959: rebuilding, the A-Series and BMC</h2>\n<p>After the Second World War, Austin restarted civilian production with updated pre-war models before renewing the range. The A-Series engine, associated with cars such as the A30, became one of the major technical markers of post-war British motoring.</p>\n<p>In 1952 Austin and Morris formed the British Motor Corporation. Austin remained highly visible, but it was no longer acting alone. Engines, platforms and bodies were increasingly shared across related marques. That gave industrial strength, while also creating overlaps that later became difficult to manage.</p>\n<h2>1959-1980: the Mini and the slow fading of Austin</h2>\n<p>The Mini of 1959, first sold as the Austin Seven and Morris Mini-Minor, gave Austin worldwide visibility. The paradox is that the model soon became more famous than the badge. Austin was still central, but its own identity became less distinct.</p>\n<p>Later reorganisations accelerated that movement. British Motor Holdings and then British Leyland gathered too many close marques, competing models and strained factories under one structure. In the 1980s, the Metro, Maestro and Montego still carried the Austin name, but the badge was gradually dropped in favour of Rover and MG.</p>\n<h2>Reading the cars in their own period</h2>\n<p>An Austin Seven, a Cambridge, a Mini and a Metro do not describe the same Austin. Each belongs to a specific moment, with its own technical, commercial and industrial constraints. This timeline prevents the marque from being reduced either to the Mini or to the British Leyland crisis.</p>\n<p>For the wider story, the <a href=\"/en/auto-retro/austin/histoire-de-austin.php\">Austin</a> page gives the main thread. The 1959 turning point is covered more closely in <a href=\"/en/auto-retro/austin/aventure-mini-austin.php\">the Austin and Morris Mini story</a>.</p>",
     "tags": [
         "austin",
-        "longbridge",
-        "british-leyland"
+        "voiture-ancienne",
+        "histoire"
     ],
     "featured_image": null,
     "page_slug": "auto-retro-austin-histoire-de-austin",
@@ -20,7 +20,7 @@
     "parent_slug": "",
     "parent_lang": "",
     "child_sort_order": null,
-    "updated_at": "2026-04-28T11:02:47+00:00",
+    "updated_at": "2026-04-28T11:30:36+00:00",
     "created_at": "2026-04-23T10:07:21+00:00",
-    "subcategory": "origines-chronologie"
+    "subcategory": "histoire-automobile"
 }

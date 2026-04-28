@@ -78,8 +78,8 @@ final class BlogApiControllerTest extends TestCase
                     'slug' => 'article-test',
                     'lang' => 'fr',
                     'status' => 'published',
-                    'category' => 'histoire-industrie',
-                    'tags' => ['austin', 'longbridge', 'bmc'],
+                    'category' => 'auto-retro',
+                    'tags' => ['austin', 'histoire', 'voiture-ancienne'],
                     'content' => '<p>Contenu.</p>',
                 ]
             )
@@ -130,8 +130,8 @@ final class BlogApiControllerTest extends TestCase
                     'lang' => 'fr',
                     'status' => 'scheduled',
                     'date' => '2099-01-01 10:00:00',
-                    'category' => 'histoire-industrie',
-                    'tags' => ['austin', 'longbridge', 'bmc'],
+                    'category' => 'auto-retro',
+                    'tags' => ['austin', 'histoire', 'voiture-ancienne'],
                     'content' => '<p>Contenu.</p>',
                 ]
             )
