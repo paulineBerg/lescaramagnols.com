@@ -4566,165 +4566,198 @@
             "slug": "boulyetcailloux-des-bijoux-artisanaux",
             "type": "structured_page",
             "status": "published",
-            "title": "Boulyetcailloux Des Bijoux Artisanaux",
+            "title": "Bouly&Cailloux : bijoux artisanaux en pierres naturelles à Cogolin",
             "layout": "standard_page",
             "route": "/boulyetcailloux-des-bijoux-artisanaux.php",
             "blocks": [],
             "regions": [],
             "translations": {
                 "de": {
-                    "title": "Bouly&Cailloux Handgemachte Kreationen",
+                    "title": "Bouly&Cailloux : handgefertigter Schmuck mit Natursteinen aus Cogolin",
                     "blocks": [],
                     "regions": {
-                        "after_body": {
-                            "component": "rich_text",
-                            "html": "<p>Über den Shop lassen sich verfügbare Arbeiten und Neuigkeiten aus dem Atelier am einfachsten verfolgen.</p>"
-                        },
                         "aside": {
-                            "component": "rich_text",
-                            "html": "<div class=\"content-region-bordered-callout border\"><p>Bouly&Cailloux versammelt handgemachte Kreationen. Der Shop kann Leserinnen und Leser interessieren, die kleine Serien, schlichte Objekte und handwerkliche Arbeit mögen.</p></div>"
+                            "component": "facts",
+                            "title": "Orientierung",
+                            "items": [
+                                {
+                                    "label": "Atelier",
+                                    "value": "Cogolin, Golf von Saint-Tropez"
+                                },
+                                {
+                                    "label": "Offizieller Shop",
+                                    "value": "<a href=\"https://boulyetcailloux.com/\" target=\"_blank\" rel=\"noopener noreferrer\">boulyetcailloux.com</a>"
+                                },
+                                {
+                                    "label": "Materialien",
+                                    "value": "Natursteine, Edelstahl, Silber, Vermeil"
+                                },
+                                {
+                                    "label": "Sortiment",
+                                    "value": "Ohrringe, Armbänder, Ringe, Halsketten"
+                                },
+                                {
+                                    "label": "Service",
+                                    "value": "Personalisierte Bestellungen möglich"
+                                }
+                            ]
                         },
                         "body": {
                             "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux ist ein handwerkliches Projekt rund um Schmuck und kleine handgefertigte Stücke. Auf Les Caramagnols dient diese Seite vor allem als kurze Vorstellung und als Zugang zum Shop.</p>\n<p>Wichtig ist hier nicht ein Werbeton, sondern die Kontinuität der Arbeit, die Sorgfalt bei den Materialien und die Stimmigkeit eines unabhängigen Projekts im kleinen Maßstab.</p>"
-                        },
-                        "bottom": {
-                            "component": "rich_text",
-                            "html": "<p>Die Stücke setzen nicht auf Effekt. Interessant sind hier vor allem die saubere Herstellung und eine erkennbare Handschrift.</p>"
-                        },
-                        "footer": {
-                            "component": "rich_text",
-                            "html": "<p>Auf Les Caramagnols finden sich außerdem weitere Inhalte zu klassischen Autos, Spaziergängen und den anderen Projekten des Hauses.</p>"
+                            "html": "<h2>Ein sehr konkreter Ursprung</h2>\n<p>Bouly&amp;Cailloux praesentiert sich nicht als grosse Schmuckmarke mit aufwendiger Inszenierung. Auf der offiziellen Website erklaert Pauline vielmehr, dass das Projekt aus einem erzwungenen langsameren Lebensrhythmus entstanden ist, als eine einschraenkende Krankheit ihre berufliche Taetigkeit veraenderte, der Wunsch mit den Haenden zu arbeiten aber bestehen blieb. Aus diesem Zusammenhang wurde das Herstellen von Schmuck zuerst ein Bedarf, dann eine Gewohnheit und schliesslich eine echte Boutique.</p>\n<p>Dieser Anfang ist nicht nebensaechlich. Er erklaert die Groesse des Projekts, seinen Ton und seine Art, die Dinge zu zeigen. Man findet hier keine industrielle Logik und kein austauschbares Sortiment, sondern eine Arbeit, die auf Regelmaessigkeit, Wiederholung des Handgriffs und einem klar lesbaren persoenlichen Rahmen beruht. Gerade das gibt Bouly&amp;Cailloux seine Glaubwuerdigkeit.</p>\n<h2>Ein Atelier zu Hause in Cogolin</h2>\n<p>Die Marke ist in Cogolin im Golf von Saint-Tropez verankert. Die Website beschreibt ein Atelier zu Hause, in einem Familienhaus mit drei Generationen, eingerichtet in einem alten Eichensekretaer nahe einem Fenster mit Blick auf Pinien, Licht und Tagesverlauf. Das ist ein einfaches, aber praezises Bild. Es verortet den Schmuck in einem wirklichen Lebensraum und nicht in einer abstrahierten Markenwelt.</p>\n<p>Fuer Les Caramagnols ist dieser lokale Bezug besonders stimmig. Bouly&amp;Cailloux gehoert zu demselben geografischen Umfeld wie die Seiten ueber Cogolin, den Golf und die alltaegliche Umgebung des Hauses. Deshalb wirkt diese Seite nicht wie ein Fremdkoerper, sondern wie die ruhige Vorstellung eines weiteren Projekts, das aus demselben Ort hervorgeht.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/bouger/communes/cogolin/cogolin.webp\" alt=\"Blick auf Cogolin im Golf von Saint-Tropez\" title=\"Cogolin als lokaler Anker des Ateliers Bouly&amp;Cailloux\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>Cogolin bleibt der sehr konkrete Ankerpunkt des Ateliers Bouly&amp;Cailloux.</figcaption>\n</figure>\n</div>\n<h2>Materialien, die wirklich getragen werden sollen</h2>\n<p>Bouly&amp;Cailloux arbeitet vor allem mit vergoldetem oder silberfarbenem Edelstahl, mit Silber, Vermeil und Natursteinen. Auf der Seite \"Wer sind wir?\" wird diese Wahl als praktisch und verantwortungsvoll beschrieben: Allergien moeglichst vermeiden, haltbare Schmuckstuecke anbieten und Modelle schaffen, die man wirklich traegt. Das ist eine nuetzliche Information, denn sie zeigt, dass die Materialien nicht nur fuer den Effekt gewaehlt werden.</p>\n<p>Die Natursteine nehmen dabei einen zentralen Platz ein. Die Marke betont gerade nicht makellose, vollkommen glatte Steine, sondern Steine mit Nuancen, Einschluessen und Charakter. Im Katalog tauchen je nach Modell regelmaessig Labradorit, Haematit, Achat, Aventurin, Onyx, Tigerauge oder Tuerkis auf. Diese mineralische Vielfalt bleibt jedoch in einer ruhigen Linie eingebunden: leicht zu kombinierende Schmuckstuecke, tragbar im Alltag und ohne Uebertreibung.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bijoux-artisanaux.webp\" alt=\"Auswahl an Ringen, Creolen und Armbändern von Bouly&amp;Cailloux\" title=\"Einblick in Formen und Steine von Bouly&amp;Cailloux\" width=\"700\" height=\"260\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>Ringe, Creolen und Armbänder zeigen eine schlichte, leichte und alltagstaugliche Linie.</figcaption>\n</figure>\n</div>\n<h2>Was man in der Boutique findet</h2>\n<p>Der Shop ist heute klar in vier grosse Familien gegliedert, die man direkt auf der Website durchlaufen kann. Diese Struktur hilft, das Projekt nicht nur ueber ein paar Einzelstuecke, sondern ueber sein ganzes Angebot zu lesen.</p>\n<ul>\n<li><a href=\"https://boulyetcailloux.com/13-boucles-d-oreilles-de-tout-style-argent-acier-inoxydable-plaque-or\" target=\"_blank\" rel=\"noopener noreferrer\">Ohrringe</a>: Creolen, Haken, Ohrstecker, haengende Modelle und Clips fuer nicht durchstochene Ohren.</li>\n<li><a href=\"https://boulyetcailloux.com/12-les-bracelets-en-acier-inoxydable-argent-ou-fil\" target=\"_blank\" rel=\"noopener noreferrer\">Armbänder</a>: Kordeln, elastische Modelle, Fantasiearmbaender, Armreifen und Fusskettchen.</li>\n<li><a href=\"https://boulyetcailloux.com/11-bagues-en-acier-inoxydable-argent-ou-plaque-or\" target=\"_blank\" rel=\"noopener noreferrer\">Ringe</a>: Modelle aus Edelstahl, Silber oder goldfarbener Ausfuehrung, oft mit Natursteinen verbunden.</li>\n<li><a href=\"https://boulyetcailloux.com/14-les-colliers-en-acier-inoxydable-argent-et-pierres-naturelles\" target=\"_blank\" rel=\"noopener noreferrer\">Halsketten</a>: Duos, Trios, Knotenketten, Fantasiemodelle und Anhaenger.</li>\n</ul>\n<p>Diese Familien zeigen, dass Bouly&amp;Cailloux nicht auf einen einzigen Stil reduziert ist. Die Formen wechseln, aber die Linie bleibt lesbar: Schmuck, der einen Platz im Alltag finden soll, mit einem verstaendlichen Sortiment und Modellen, die sich nach Material, Form und Trageweise unterscheiden.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bracelet-douceur.webp\" alt=\"Armbänder mit Perlen, vergoldetem Edelstahl und Natursteinen\" title=\"Armbänder mit vergoldetem Edelstahl, Perlen und Natursteinen\" width=\"400\" height=\"400\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>Auch die Armbänder verbinden vergoldeten Edelstahl, Perlen und Natursteine in einem Format fuer den Alltag.</figcaption>\n</figure>\n</div>\n<h2>Personalisierung und ergänzende Auswahl</h2>\n<p>Der offizielle Shop beschraenkt sich nicht auf fertig bereitliegende Modelle. Eine eigene Seite erklaert auch das Prinzip der personalisierten Bestellung: Man kann von einem Grundmodell ausgehen, Materialien auswaehlen und Natursteine nach Wunsch festlegen. Dazu kommt eine \"Selection Boutique\", die das handgemachte Sortiment ergaenzt, ohne es zu verdraengen. Sie vereint Taschen, Schluesselanhaenger, Manschettenknoepfe und andere Accessoires, teils handgefertigt in kleinen Serien, teils sorgfaeltig nach Stil, Nutzen und Stimmigkeit ausgewaehlt.</p>\n<p>Praktische Hinweise sind ebenfalls klar sichtbar: SSL- und sichere Zahlungen, kostenlose Lieferung als Briefsendung in Frankreich und Rueckgabe unter Bedingungen innerhalb von vierzehn Tagen. Fuer die verfuegbaren Stuecke, personalisierte Bestellungen und Neuigkeiten aus dem Atelier bleibt der direkteste Weg die offizielle Boutique <a href=\"https://boulyetcailloux.com/\" target=\"_blank\" rel=\"noopener noreferrer\">boulyetcailloux.com</a>. Diese Seite auf Les Caramagnols dient vor allem dazu, das Projekt ruhig einzuordnen: ein Atelier in Cogolin, handgefertigter Schmuck in kleinen Serien und eine erkennbare Vorliebe fuer Natursteine und alltagstaugliche Materialien.</p>"
                         },
                         "hero": {
-                            "component": "rich_text",
-                            "html": "Bouly&Cailloux: ein Handarbeitsprojekt auf Les Caramagnols"
+                            "component": "heading",
+                            "title": "Bouly&Cailloux, handgefertigter Schmuck mit Natursteinen",
+                            "lead": "Bouly&Cailloux ist eine Boutique aus Cogolin, die sich auf handgefertigten Schmuck, Natursteine und Materialien konzentriert, die sich im Alltag leicht tragen lassen. Das Atelier arbeitet bewusst im kleinen Massstab, um aufrichtige, haltbare und bequeme Stuecke zu schaffen und sie ohne kuenstliche Inszenierung online anzubieten."
                         },
                         "left": {
                             "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux bietet handgemachte Stücke in kleinen Serien, mit klarer Aufmerksamkeit für Materialien und Ausführung.</p>"
-                        },
-                        "postscript": {
-                            "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux kann Leser ansprechen, die handgemachte Objekte und unabhängige Projekte mögen.</p>"
+                            "html": "<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-boucles-semena.webp\" alt=\"Ohrringe von Bouly&Cailloux mit vergoldetem Edelstahl und Natursteinen\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Ohrringe von Bouly&Cailloux\" width=\"400\" height=\"400\">"
                         },
                         "right": {
                             "component": "rich_text",
-                            "html": "<p>Im Shop lassen sich verfügbare Modelle, Neuheiten und der allgemeine Ton des Projekts ansehen.</p>"
+                            "html": "<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bracelet-douceur.webp\" alt=\"Armbänder von Bouly&Cailloux mit Perlen, vergoldetem Edelstahl und Natursteinen\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Armbänder von Bouly&Cailloux\" width=\"400\" height=\"400\">"
+                        },
+                        "bottom": {
+                            "component": "rich_text",
+                            "html": "<div style=\"max-width: 26rem; margin: 0 auto;\"><img src=\"/assets/images/boulyetcailloux/boulyetcailloux-collier-cabochon.webp\" alt=\"Feine Halsketten von Bouly&Cailloux mit Anhaengern aus Naturstein\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Halsketten von Bouly&Cailloux\" width=\"700\" height=\"700\"></div>"
                         }
                     },
                     "meta": {
-                        "description": "Bouly&Cailloux versammelt handgemachte Kreationen. Der Shop kann Leserinnen und Leser interessieren, die kleine Serien, schlichte Objekte und handwerkliche Arbeit mögen.",
+                        "description": "Bouly&Cailloux ist eine Boutique aus Cogolin mit handgefertigtem Schmuck, Natursteinen, Edelstahl, Silber und personalisierbaren Modellen fuer den Alltag.",
                         "image": {
-                            "src": "/assets/images/structure/banniere.jpg",
-                            "alt": "Banner von Les Caramagnols",
-                            "title": "Les Caramagnols",
+                            "src": "/assets/images/boulyetcailloux/boulyetcailloux-bijoux-artisanaux.webp",
+                            "alt": "Auswahl an Bouly&Cailloux Schmuck mit Natursteinen",
+                            "title": "Bouly&Cailloux in Cogolin",
                             "width": 700,
-                            "height": 61
+                            "height": 260
                         }
                     }
                 },
                 "en": {
-                    "title": "Bouly&Cailloux Handmade Creations",
+                    "title": "Bouly&Cailloux handmade jewelry with natural stones in Cogolin",
                     "blocks": [],
                     "regions": {
-                        "after_body": {
-                            "component": "rich_text",
-                            "html": "<p>The shop is the easiest way to follow available creations and workshop updates.</p>"
-                        },
                         "aside": {
-                            "component": "rich_text",
-                            "html": "<div class=\"content-region-bordered-callout border\"><p>Bouly&Cailloux brings together handmade creations. The shop may interest readers who like small series, simple objects and manual craft.</p></div>"
+                            "component": "facts",
+                            "title": "Key facts",
+                            "items": [
+                                {
+                                    "label": "Workshop",
+                                    "value": "Cogolin, Gulf of Saint-Tropez"
+                                },
+                                {
+                                    "label": "Official shop",
+                                    "value": "<a href=\"https://boulyetcailloux.com/\" target=\"_blank\" rel=\"noopener noreferrer\">boulyetcailloux.com</a>"
+                                },
+                                {
+                                    "label": "Materials",
+                                    "value": "Natural stones, stainless steel, silver, vermeil"
+                                },
+                                {
+                                    "label": "Main families",
+                                    "value": "Earrings, bracelets, rings, necklaces"
+                                },
+                                {
+                                    "label": "Service",
+                                    "value": "Custom orders available"
+                                }
+                            ]
                         },
                         "body": {
                             "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux is an artisanal project built around handmade jewelry and small crafted pieces. On Les Caramagnols, this page mainly serves as a short introduction and a gateway to the shop.</p>\n<p>The point here is not a sales pitch, but the consistency of the work, the care given to materials and the coherence of a small-scale independent project.</p>"
-                        },
-                        "bottom": {
-                            "component": "rich_text",
-                            "html": "<p>Each piece avoids overstatement. What matters here is careful making and a recognizable identity.</p>"
-                        },
-                        "footer": {
-                            "component": "rich_text",
-                            "html": "<p>You can also browse the other Les Caramagnols content on classic cars, walks and the site’s related projects.</p>"
+                            "html": "<h2>A very concrete beginning</h2>\n<p>Bouly&amp;Cailloux does not present itself as a large jewelry house built on heavy branding. On the official website, Pauline explains that the project grew out of an enforced slowdown, when a disabling illness changed the rhythm of her professional life while her hands still needed to keep making things. From that point, making jewelry became first a need, then a habit, and finally a fully fledged online shop.</p>\n<p>That origin matters because it explains the scale of the brand, its tone and the way it speaks about its work. The logic here is not industrial and the catalog is not anonymous. What gives Bouly&amp;Cailloux its coherence is regular manual work, a clearly personal framework and a workshop rhythm that remains human in size.</p>\n<h2>A home workshop in Cogolin</h2>\n<p>The brand is rooted in Cogolin, in the Gulf of Saint-Tropez. The official site describes a home workshop inside a family house shared by three generations, set in an old oak writing desk near a window looking onto umbrella pines, light and the passing day. It is a simple detail, but a precise one. It places the jewelry in a real living environment rather than in an abstract marketing decor.</p>\n<p>That local setting also makes sense on Les Caramagnols. Bouly&amp;Cailloux belongs to the same geography as the pages devoted to Cogolin, the gulf and the daily environment around the house. This page therefore works less as an advertisement than as a calm presentation of another project growing from the same place.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/bouger/communes/cogolin/cogolin.webp\" alt=\"View of Cogolin in the Gulf of Saint-Tropez\" title=\"Cogolin, the local anchor of the Bouly&amp;Cailloux workshop\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>Cogolin remains the very concrete anchor point of the Bouly&amp;Cailloux workshop.</figcaption>\n</figure>\n</div>\n<h2>Materials chosen to be worn</h2>\n<p>Bouly&amp;Cailloux mainly works with gold- or silver-toned stainless steel, silver, vermeil and natural stones. On the official presentation page, this choice is described as practical and responsible: avoid allergies where possible, offer jewelry that lasts and make pieces that can truly be worn. That is a useful point, because it shows that materials are not chosen for appearance alone.</p>\n<p>Natural stones occupy a central place in that approach. The brand does not celebrate perfectly clear, standardized stones. It prefers stones with nuances, inclusions and character. Across the catalog, one regularly finds labradorite, hematite, agate, aventurine, onyx, tiger eye or turquoise, depending on the model. Even with that variety, the line remains measured: jewelry designed to be combined easily, worn often and kept free of unnecessary excess.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bijoux-artisanaux.webp\" alt=\"Selection of Bouly&amp;Cailloux rings, hoops and bracelets\" title=\"A glimpse of the shapes and stones used by Bouly&amp;Cailloux\" width=\"700\" height=\"260\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>Rings, hoops and bracelets reflect a line that stays simple, light and easy to wear.</figcaption>\n</figure>\n</div>\n<h2>What the shop contains</h2>\n<p>The current shop is clearly organised around four main families that can be explored directly online. That structure makes it easier to understand Bouly&amp;Cailloux as a whole rather than through a few isolated pieces.</p>\n<ul>\n<li><a href=\"https://boulyetcailloux.com/13-boucles-d-oreilles-de-tout-style-argent-acier-inoxydable-plaque-or\" target=\"_blank\" rel=\"noopener noreferrer\">Earrings</a>: hoops, hooks, studs, dangling pairs and clip-ons for people without pierced ears.</li>\n<li><a href=\"https://boulyetcailloux.com/12-les-bracelets-en-acier-inoxydable-argent-ou-fil\" target=\"_blank\" rel=\"noopener noreferrer\">Bracelets</a>: cord styles, stretch bracelets, fashion bracelets, bangles and anklets.</li>\n<li><a href=\"https://boulyetcailloux.com/11-bagues-en-acier-inoxydable-argent-ou-plaque-or\" target=\"_blank\" rel=\"noopener noreferrer\">Rings</a>: models in stainless steel, silver or gold-toned finish, often combined with natural stones.</li>\n<li><a href=\"https://boulyetcailloux.com/14-les-colliers-en-acier-inoxydable-argent-et-pierres-naturelles\" target=\"_blank\" rel=\"noopener noreferrer\">Necklaces</a>: duos, trios, knotted necklaces, statement styles and pendants.</li>\n</ul>\n<p>These families show that Bouly&amp;Cailloux is not limited to a single silhouette. Shapes vary, but the line remains readable: jewelry meant to settle into everyday life, with a catalog organised by material, form and way of wearing.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bracelet-douceur.webp\" alt=\"Bracelets with pearls, gold-toned steel and natural stones\" title=\"Bracelets combining gold-toned steel, pearls and natural stones\" width=\"400\" height=\"400\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>The shop also includes bracelets where gold-toned steel, pearls and natural stones stay within an everyday scale.</figcaption>\n</figure>\n</div>\n<h2>Custom orders and a complementary selection</h2>\n<p>The official site does not stop at ready-made pieces. A dedicated page also explains the custom-order process: start from a base model, choose materials and select the natural stones that suit the request. Alongside the handmade line, a \"Selection Boutique\" expands the universe without replacing it. It brings together bags, keyrings, cufflinks and other accessories, some handmade in small series and others selected for their usefulness, style and consistency with the brand.</p>\n<p>Practical information is also easy to identify: SSL and secure payments, free tracked-letter delivery in mainland France and returns accepted under conditions within fourteen days. For available pieces, custom orders and workshop updates, the most direct route remains the official shop at <a href=\"https://boulyetcailloux.com/\" target=\"_blank\" rel=\"noopener noreferrer\">boulyetcailloux.com</a>. This page on Les Caramagnols simply sets the project in place: a workshop in Cogolin, handmade jewelry produced in small series, and a clear preference for natural stones and materials meant to be worn rather than displayed.</p>"
                         },
                         "hero": {
-                            "component": "rich_text",
-                            "html": "Bouly&Cailloux: a handmade shop featured on Les Caramagnols"
+                            "component": "heading",
+                            "title": "Bouly&Cailloux, handmade jewelry with natural stones",
+                            "lead": "Bouly&Cailloux is a Cogolin boutique centred on handmade jewelry, natural stones and materials chosen to be easy to wear every day. The workshop works on a deliberately small scale to create sincere, durable and comfortable pieces, then offer them online without artificial marketing language."
                         },
                         "left": {
                             "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux offers handmade pieces in small series, with clear attention to materials and finishing details.</p>"
-                        },
-                        "postscript": {
-                            "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux may appeal to readers who like handmade objects and independent projects.</p>"
+                            "html": "<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-boucles-semena.webp\" alt=\"Bouly&Cailloux earrings in gold-toned steel and natural stones\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Bouly&Cailloux earrings\" width=\"400\" height=\"400\">"
                         },
                         "right": {
                             "component": "rich_text",
-                            "html": "<p>The shop lets you see current pieces, new releases and the overall tone of the project.</p>"
+                            "html": "<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bracelet-douceur.webp\" alt=\"Bouly&Cailloux bracelets with pearls, gold-toned steel and natural stones\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Bouly&Cailloux bracelets\" width=\"400\" height=\"400\">"
+                        },
+                        "bottom": {
+                            "component": "rich_text",
+                            "html": "<div style=\"max-width: 26rem; margin: 0 auto;\"><img src=\"/assets/images/boulyetcailloux/boulyetcailloux-collier-cabochon.webp\" alt=\"Fine Bouly&Cailloux necklaces with natural stone pendants\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Bouly&Cailloux necklaces\" width=\"700\" height=\"700\"></div>"
                         }
                     },
                     "meta": {
-                        "description": "Bouly&Cailloux brings together handmade creations. The shop may interest readers who like small series, simple objects and manual craft.",
+                        "description": "Bouly&Cailloux is a Cogolin boutique for handmade jewelry with natural stones, stainless steel, silver and customisable models designed for everyday wear.",
                         "image": {
-                            "src": "/assets/images/structure/banniere.jpg",
-                            "alt": "Les Caramagnols banner",
-                            "title": "Les Caramagnols",
+                            "src": "/assets/images/boulyetcailloux/boulyetcailloux-bijoux-artisanaux.webp",
+                            "alt": "Selection of Bouly&Cailloux jewelry with natural stones",
+                            "title": "Bouly&Cailloux in Cogolin",
                             "width": 700,
-                            "height": 61
+                            "height": 260
                         }
                     }
                 },
                 "fr": {
-                    "title": "Boulyetcailloux Des Bijoux Artisanaux",
+                    "title": "Bouly&Cailloux : bijoux artisanaux en pierres naturelles à Cogolin",
                     "blocks": [],
                     "regions": {
-                        "after_body": {
-                            "component": "rich_text",
-                            "html": "<p>La boutique permet de suivre les créations disponibles et l’actualité de l’atelier.</p>"
-                        },
                         "aside": {
-                            "component": "rich_text",
-                            "html": "<div class=\"content-region-bordered-callout border\"><p>Bouly&Cailloux réunit des créations faites main. La boutique peut intéresser les lecteurs qui aiment les petites séries, les objets simples et le travail manuel.</p></div>"
+                            "component": "facts",
+                            "title": "Repères",
+                            "items": [
+                                {
+                                    "label": "Atelier",
+                                    "value": "Cogolin, dans le golfe de Saint-Tropez"
+                                },
+                                {
+                                    "label": "Boutique officielle",
+                                    "value": "<a href=\"https://boulyetcailloux.com/\" target=\"_blank\" rel=\"noopener noreferrer\">boulyetcailloux.com</a>"
+                                },
+                                {
+                                    "label": "Matières",
+                                    "value": "Pierres naturelles, acier inoxydable, argent, vermeil"
+                                },
+                                {
+                                    "label": "Univers",
+                                    "value": "Boucles d’oreilles, bracelets, bagues, colliers"
+                                },
+                                {
+                                    "label": "Service",
+                                    "value": "Commandes personnalisées possibles"
+                                }
+                            ]
                         },
                         "body": {
                             "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux est un projet artisanal centré sur des bijoux et petites créations réalisés à la main. Sur Les Caramagnols, cette page sert surtout de passerelle vers la boutique et de présentation rapide de son univers.</p>\n<p>Ce qui compte ici n’est pas le discours publicitaire, mais la régularité du travail, le soin porté aux matières et la cohérence d’un projet mené à petite échelle.</p>"
-                        },
-                        "bottom": {
-                            "component": "rich_text",
-                            "html": "<p>Chaque pièce ne cherche pas l’effet. L’intérêt du projet tient plutôt à une fabrication soignée et à une identité lisible.</p>"
-                        },
-                        "footer": {
-                            "component": "rich_text",
-                            "html": "<p>Retrouvez aussi sur Les Caramagnols les autres contenus consacrés à l’automobile ancienne, aux promenades et aux projets de la maison.</p>"
+                            "html": "<h2>Une origine très concrète</h2>\n<p>Bouly&amp;Cailloux ne se présente pas comme une marque de bijoux au grand appareil. Sur son site officiel, Pauline explique au contraire que le projet est né d’un ralentissement imposé, lorsque la maladie a modifié le rythme de son activité professionnelle mais que les mains, elles, avaient toujours besoin de créer. À partir de là, la fabrication de bijoux est devenue d’abord un besoin, puis une habitude, avant de prendre la forme d’une vraie boutique en ligne.</p>\n<p>Ce point de départ compte, parce qu’il donne immédiatement la bonne échelle. Il n’est pas question ici d’une logique industrielle ni d’un catalogue anonyme. Ce qui tient l’ensemble, c’est la continuité du geste, la répétition du travail manuel, et une manière très lisible d’assumer un atelier de petite taille. C’est cela qui donne à Bouly&amp;Cailloux sa cohérence et son ton.</p>\n<h2>Un atelier à la maison, à Cogolin</h2>\n<p>La marque est installée à Cogolin, dans le golfe de Saint-Tropez. Le site officiel décrit un atelier à domicile, dans une maison familiale qui abrite trois générations, avec un ancien secrétaire en chêne transformé en poste de travail près d’une fenêtre ouverte sur les pins parasol, la lumière et le temps qui passe. Le détail est simple, mais précis. Il situe le bijou dans un lieu réel, et non dans un décor abstrait de communication.</p>\n<p>Sur Les Caramagnols, cet ancrage local a du sens. Bouly&amp;Cailloux appartient au même paysage que les pages consacrées à Cogolin, au golfe et aux projets menés autour de la maison. Cette page ne sert donc pas à faire une réclame de plus. Elle sert plutôt à présenter calmement une activité artisanale qui prend place dans le même territoire et dans la même vie quotidienne.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/bouger/communes/cogolin/cogolin.webp\" alt=\"Vue de Cogolin dans le golfe de Saint-Tropez\" title=\"Cogolin, ancrage local de l’atelier Bouly&amp;Cailloux\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>Cogolin reste le point d’ancrage très concret de l’atelier Bouly&amp;Cailloux.</figcaption>\n</figure>\n</div>\n<h2>Des matières choisies pour être portées</h2>\n<p>Bouly&amp;Cailloux travaille principalement l’acier inoxydable argenté ou doré, l’argent, le vermeil et les pierres naturelles. Sur la page de présentation de la marque, ce choix est expliqué de manière très claire: éviter autant que possible les allergies, proposer des bijoux durables dans le temps, et fabriquer des pièces qui puissent vraiment être portées. C’est une information utile, parce qu’elle montre que la matière n’est pas choisie pour le seul effet visuel.</p>\n<p>Les pierres naturelles occupent ici une place centrale. La marque ne cherche pas la perfection lisse de pierres sans aspérité. Elle revendique au contraire des cailloux avec leurs nuances, leurs inclusions et leur caractère. Dans la boutique, on retrouve régulièrement, selon les modèles, la labradorite, l’hématite, l’agate, l’aventurine, l’onyx, l’œil-de-tigre ou la turquoise. Malgré cette variété, la ligne reste tenue: des bijoux faciles à associer, pensés pour le quotidien et sans surcharge inutile.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bijoux-artisanaux.webp\" alt=\"Sélection de bagues, créoles et bracelets Bouly&amp;Cailloux\" title=\"Un aperçu des formes et des pierres travaillées par Bouly&amp;Cailloux\" width=\"700\" height=\"260\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>Bagues, créoles et bracelets montrent une ligne simple, légère et facile à porter.</figcaption>\n</figure>\n</div>\n<h2>Ce que l’on trouve dans la boutique</h2>\n<p>La boutique actuelle s’organise clairement autour de quatre grandes familles que l’on peut parcourir directement en ligne. Cette structure permet de comprendre Bouly&amp;Cailloux dans son ensemble, et pas seulement à travers quelques pièces isolées.</p>\n<ul>\n<li><a href=\"https://boulyetcailloux.com/13-boucles-d-oreilles-de-tout-style-argent-acier-inoxydable-plaque-or\" target=\"_blank\" rel=\"noopener noreferrer\">Boucles d’oreilles</a> : anneaux, crochets, clous, pendantes et clips pour les oreilles non percées.</li>\n<li><a href=\"https://boulyetcailloux.com/12-les-bracelets-en-acier-inoxydable-argent-ou-fil\" target=\"_blank\" rel=\"noopener noreferrer\">Bracelets</a> : cordons, extensibles, fantaisie, joncs et bracelets de cheville.</li>\n<li><a href=\"https://boulyetcailloux.com/11-bagues-en-acier-inoxydable-argent-ou-plaque-or\" target=\"_blank\" rel=\"noopener noreferrer\">Bagues</a> : modèles en acier inoxydable, argent ou finition dorée, souvent associés à des pierres naturelles.</li>\n<li><a href=\"https://boulyetcailloux.com/14-les-colliers-en-acier-inoxydable-argent-et-pierres-naturelles\" target=\"_blank\" rel=\"noopener noreferrer\">Colliers</a> : duos, trios, colliers à nœuds, fantaisie et pendentifs.</li>\n</ul>\n<p>Ces familles montrent que Bouly&amp;Cailloux ne repose pas sur une seule silhouette. Les formes changent, mais la ligne reste lisible: des bijoux pensés pour trouver leur place dans une journée ordinaire, avec un catalogue structuré par matières, usages et façons de porter.</p>\n<div id=\"bloccenter\">\n<figure>\n<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bracelet-douceur.webp\" alt=\"Bracelets en perles, acier doré et pierres naturelles\" title=\"Bracelets mêlant acier doré, perles et pierres naturelles\" width=\"400\" height=\"400\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\">\n<figcaption>La boutique réunit aussi des bracelets où l’acier doré, les perles et les pierres naturelles restent dans une échelle quotidienne.</figcaption>\n</figure>\n</div>\n<h2>Commandes personnalisées et sélection complémentaire</h2>\n<p>Le site officiel ne se limite pas aux modèles déjà prêts. Une page dédiée explique aussi le principe de la commande personnalisée: partir d’un modèle de base, choisir des matières, puis retenir les pierres naturelles les plus adaptées à l’envie du moment. À côté de cette fabrication artisanale, une \"Sélection Boutique\" élargit l’univers sans le remplacer. On y trouve des sacs, porte-clefs, boutons de manchette et autres accessoires, parfois faits main en petites séries, parfois sélectionnés pour leur usage quotidien, leur qualité et leur cohérence avec la marque.</p>\n<p>Les informations pratiques sont également très lisibles: paiements sécurisés par SSL, livraison offerte en lettre suivie en France métropolitaine, et retour accepté sous condition dans un délai de quatorze jours. Pour voir les pièces disponibles, les commandes personnalisées et les nouvelles de l’atelier, le plus direct reste la boutique officielle <a href=\"https://boulyetcailloux.com/\" target=\"_blank\" rel=\"noopener noreferrer\">boulyetcailloux.com</a>. Cette page des Caramagnols sert surtout à situer le projet avec netteté: un atelier à Cogolin, des bijoux faits main en petites séries, et une préférence assumée pour les pierres naturelles et les matières portées sans ostentation.</p>"
                         },
                         "hero": {
-                            "component": "rich_text",
-                            "html": "Bouly&Cailloux : une boutique artisanale présentée sur Les Caramagnols"
+                            "component": "heading",
+                            "title": "Bouly&Cailloux, bijoux artisanaux en pierres naturelles",
+                            "lead": "Bouly&Cailloux est une boutique de Cogolin consacrée aux bijoux faits main, aux pierres naturelles et aux matières pensées pour être portées facilement au quotidien. L’atelier travaille à petite échelle, dans une logique simple: créer des pièces sincères, durables et confortables, puis les proposer en ligne sans discours de façade."
                         },
                         "left": {
                             "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux propose des pièces faites main en petites séries, avec une attention simple portée aux matières et aux finitions.</p>"
-                        },
-                        "postscript": {
-                            "component": "rich_text",
-                            "html": "<p>Bouly&Cailloux peut intéresser les lecteurs qui aiment les objets faits main et les projets indépendants.</p>"
+                            "html": "<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-boucles-semena.webp\" alt=\"Boucles d’oreilles Bouly&Cailloux en acier doré et pierres naturelles\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Boucles d’oreilles Bouly&Cailloux\" width=\"400\" height=\"400\">"
                         },
                         "right": {
                             "component": "rich_text",
-                            "html": "<p>La boutique permet de voir les modèles disponibles, les nouveautés et le ton général du projet.</p>"
+                            "html": "<img src=\"/assets/images/boulyetcailloux/boulyetcailloux-bracelet-douceur.webp\" alt=\"Bracelets Bouly&Cailloux en perles, acier doré et pierres naturelles\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Bracelets Bouly&Cailloux\" width=\"400\" height=\"400\">"
+                        },
+                        "bottom": {
+                            "component": "rich_text",
+                            "html": "<div style=\"max-width: 26rem; margin: 0 auto;\"><img src=\"/assets/images/boulyetcailloux/boulyetcailloux-collier-cabochon.webp\" alt=\"Colliers fins Bouly&Cailloux avec pendentifs en pierre naturelle\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" title=\"Colliers Bouly&Cailloux\" width=\"700\" height=\"700\"></div>"
                         }
                     },
                     "meta": {
-                        "description": "Bouly&Cailloux réunit des créations faites main. La boutique peut intéresser les lecteurs qui aiment les petites séries, les objets simples et le travail manuel.",
+                        "description": "Bouly&Cailloux est une boutique de Cogolin dédiée aux bijoux artisanaux en pierres naturelles, acier inoxydable, argent et modèles personnalisables.",
                         "image": {
-                            "src": "/assets/images/structure/banniere.jpg",
-                            "alt": "Bannière Les Caramagnols",
-                            "title": "Les Caramagnols",
+                            "src": "/assets/images/boulyetcailloux/boulyetcailloux-bijoux-artisanaux.webp",
+                            "alt": "Sélection de bijoux Bouly&Cailloux en pierres naturelles",
+                            "title": "Bouly&Cailloux à Cogolin",
                             "width": 700,
-                            "height": 61
+                            "height": 260
                         }
                     }
                 }

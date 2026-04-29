@@ -694,20 +694,14 @@
     ],
     "boulyetcailloux-des-bijoux-artisanaux": [
         {
-            "titre": "Boulyetcailloux Des Bijoux Artisanaux",
-            "contenu": "Bouly&Cailloux : une boutique artisanale présentée sur Les Caramagnols Bouly&Cailloux réunit des créations faites main. La boutique peut intéresser les lecteurs qui aiment les petites séries, les objets simples et le travail manuel. Bouly&Cailloux est un projet artisanal centré sur des bijoux et pet…",
+            "titre": "Bouly&Cailloux : bijoux artisanaux en pierres naturelles à Cogolin",
+            "contenu": "Bouly&Cailloux, bijoux artisanaux en pierres naturellesBouly&Cailloux est une boutique de Cogolin consacrée aux bijoux faits main, aux pierres naturelles et aux matières pensées pour être portées facilement au quotidien. L’atelier travaille à petite échelle, dans une logique simple: créer des pièces…",
             "url": "/boulyetcailloux-des-bijoux-artisanaux.php",
-            "image": null,
+            "image": "/assets/images/bouger/communes/cogolin/cogolin.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
-                "EditRegion3",
-                "EditRegion4",
-                "EditRegion5",
-                "EditRegion6",
-                "EditRegion7",
-                "EditRegion9",
-                "EditRegion11"
+                "EditRegion3"
             ]
         }
     ],
@@ -718,7 +712,8 @@
             "url": "/blog",
             "image": null,
             "blocs_utilises": [
-                "EditRegion1"
+                "EditRegion1",
+                "EditRegion8"
             ]
         }
     ]

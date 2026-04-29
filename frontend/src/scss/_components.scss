@@ -1,6 +1,7 @@
 // Site LesCaramagnols
 // /src/scss/_components.scss
 
+@use 'sass:color';
 @use 'sass:map';
 @use 'variables' as vars;
 @use 'mixins';
@@ -273,12 +274,31 @@ $legacy-title-suffix: (
   @include utils.border-accent;
 
   padding: 0.75rem 1rem;
-  background: rgb(255 255 255 / 80%);
+  background: linear-gradient(180deg, rgb(246 250 255 / 96%), rgb(232 241 251 / 93%));
+  color: rgb(26 41 64);
+  text-align: left;
+  line-height: 1.45;
+  box-shadow:
+    0 0.35rem 1rem rgb(0 0 0 / 12%),
+    inset 0 0 0 1px rgb(255 255 255 / 45%);
+
+  a {
+    color: vars.$color-bleu-fonce;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.12em;
+
+    &:hover,
+    &:focus-visible {
+      color: color.adjust(vars.$color-bleu-fonce, $lightness: -12%);
+    }
+  }
 }
 
 .content-callout-title {
   margin-top: 0;
   margin-bottom: 0.75rem;
+  color: rgb(27 58 109);
+  text-align: center;
 }
 
 .content-facts {
@@ -290,6 +310,7 @@ $legacy-title-suffix: (
   grid-template-columns: minmax(7rem, auto) 1fr;
   gap: 0.35rem 0.75rem;
   margin-bottom: 0.5rem;
+  align-items: start;
 
   &:last-child {
     margin-bottom: 0;
@@ -299,10 +320,16 @@ $legacy-title-suffix: (
 .content-facts dt,
 .content-facts dd {
   margin: 0;
+  text-align: left;
 }
 
 .content-facts dt {
   font-weight: bold;
+  color: rgb(30 58 104);
+}
+
+.content-facts dd {
+  color: rgb(36 49 72);
 }
 
 .blog-list {
