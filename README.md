@@ -9,7 +9,7 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - Regle de maintenance : garder le depot Git dans `/home/...` pour proteger les performances de Git, Composer, Node/Vite et des watchers locaux.
 
 ## Note 2026-03-18
-- Le service éditorial de pages est désormais unique : registre [`backend/data/pages.json`](./backend/data/pages.json) + rendu [`backend/templates/pages/dynamic.php`](./backend/templates/pages/dynamic.php).
+- Le service éditorial de pages repose désormais sur un rendu unique [`backend/templates/pages/dynamic.php`](./backend/templates/pages/dynamic.php), avec SQL comme stockage maître actif et [`backend/data/pages.json`](./backend/data/pages.json) comme miroir/versionnement ou payload d'import selon le workflow.
 - Le registre ne contient plus de `legacy_template` ni de champ `template`.
 - Les formulaires admin lourds (`pages`, `menus`) sérialisent maintenant leur état dans un champ JSON caché avant soumission pour éviter les troncatures PHP liées à `max_input_vars`.
 - Les routes publiques préfixées `/*` ont été supprimées ; les routes canoniques sont désormais sans ce préfixe.
@@ -33,7 +33,7 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - Plan d’action (historique archive) : `docs/archive/README_AUDIT_PLAN_ACTION_V1.md`
 - Stratégie de modernisation : `README_MODERNISATION_V1.md`
 - Admin éditorial et navigation : `README_ADMIN_EDITORIAL_NAV_V1.md`
-- Blog JSON MVP : `README_BLOG.md`
+- Blog SQL maître / JSON compatible : `README_BLOG.md`
 - Bootstrap backend / i18n : `backend/README_BOOTSTRAP_I18N.md`
 - Conventions pages dynamiques / contenu : `docs/pages-dynamiques.md`
 - Isolation de la refonte heritee (Lot C) : `docs/README_REFONTE_LOT_C.md`
@@ -52,11 +52,29 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 - Installer frontend : `cd frontend && npm install`
 - Installer les hooks Git locaux : `make install-git-hooks`
 
+### Articles fait :
+Prompt :
+en file d'attente,
+suivant agents.md et readme dédié BLOG,
+je veux que tu crées 5 max articles de blog en brouillon autour de 5 max thèmes distincts concernant la page parent "https://www.lescaramagnols.com/auto-retro/citroen/histoire-de-citroen.php"
+Fait les meilleurs choix SEO
+But :
+20 à 25 max articles ultra ciblés
+une domination SEO sur “Citroen”
+un site structuré et cohérent
 
-- deployer :
+- Mini : histoire de austin, histoire de mini,
+- citroen : histoire de citroen,
+- mercedes benz : histoire de Mercedes-Benz,
+- panhard :
+- renault :
+- simca :
+
+- Planification effectuée jusqu'au : 22/06/26
+
+### deployer Tout :
 
 cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net" REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend" SITEMAP_BASE_URL="https://www.lescaramagnols.com" && cd frontend && npm run build && cd /home/surfacepro8/www/caramagnols && bash backend/tools/deploy-release.sh && bash backend/tools/push-local-sql-to-ovh.sh --live && ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_final\n\";'"
-
 
 
 - copier le SQL editorial local vers OVH : cd /home/surfacepro8/www/caramagnols
@@ -65,8 +83,10 @@ bash backend/tools/push-local-sql-to-ovh.sh --live
 - copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
 bash .ops-sync/bin/pull-caramagnols-db.sh --live
 
-- Lancer en dev :
-  - Recommandé : `./dev.sh`
+- Lancer tout en dev :
+  - Recommandé : `
+cd /home/surfacepro8/www/caramagnols
+./dev.sh   `
   - Terminal 1 : `  cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php  `
   - Terminal 2 : `  cd frontend && npm run dev  `
 - Non/Ouvrir : `https://127.0.0.1:18443?lang=fr` (mode `./dev.sh`, certificat local auto-signé)  
@@ -116,12 +136,12 @@ git stash pop "stash@{0}"
 - **Assets runtime** : en production, `npm run build` publie le build dans `backend/public/assets` et `backend/public/.vite`, avec purge automatique des anciens bundles hashés à la racine de `backend/public/assets`. La politique V1 impose de ne pas versionner `frontend/dist/**`, `backend/public/.vite/**`, `backend/public/tarteaucitron/**` et les bundles generes a la racine `backend/public/assets`. En dev, Vite sert les assets, le proxy `/core/*` cible `http://127.0.0.1:8000`.
 - **Uploads éditoriaux runtime** : les images uploadées depuis l’admin (pages/articles) sont stockées dans `backend/public/uploads/editorial/**` (chemins publics stables `/uploads/editorial/...`) et doivent être conservées en déploiement (pas de `--delete` sur ce dossier). Les medias partages pages sont mutualises dans `backend/public/uploads/editorial/media/YYYY/MM` avec resize auto + conversion WebP.
 - **Sécurité** : en-têtes CSP/anti-clickjacking (`core/security.php`), session renommée (`caramagnols_session`) en `SameSite=Strict`, cookie `lang` en `HttpOnly`/`SameSite=Lax`, tokens CSRF (`csrf_token()` / `csrf_validate()`), rate limiting session (`core/rate_limiter.php`), timeout d'inactivite admin (120 min) avec warning de prolongation (fenetre 120s) et keepalive CSRF (`POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping`), sanitisation centralisée (`core/validation.php`) et filtrage strict des `iframe` editoriaux (YouTube uniquement, normalise `youtube-nocookie`).
-- **Admin Blog (MVP JSON/SQL)** : espace protégé sous `/<base_path>/<ADMIN_LOGIN_PATH>` (exemple par défaut : `/admin` quand `base_path=/`) avec login email/mot de passe (`core/auth/admin.php`). Le rendu passe par `backend/src/Admin/AdminController.php`, l’écriture blog par `backend/src/Blog/BlogApiController.php`, et la persistance par `backend/src/Blog/JsonBlogRepository.php` / `SqlBlogRepository`. Workflow statuts disponible : `draft`, `scheduled` (auto-publication a date atteinte), `published`. Aucun identifiant admin par défaut n’est fourni par le dépôt.
+- **Admin Blog (SQL maître, JSON compatible)** : espace protégé sous `/<base_path>/<ADMIN_LOGIN_PATH>` (exemple par défaut : `/admin` quand `base_path=/`) avec login email/mot de passe (`core/auth/admin.php`). Le rendu passe par `backend/src/Admin/AdminController.php`, l’écriture blog par `backend/src/Blog/BlogApiController.php`, et la persistance par `backend/src/Blog/JsonBlogRepository.php` / `SqlBlogRepository`. Workflow statuts disponible : `draft`, `scheduled` (auto-publication a date atteinte), `published`. Aucun identifiant admin par défaut n’est fourni par le dépôt.
 - **Dashboard admin** : la page `/<base_path>/<ADMIN_LOGIN_PATH>/dashboard` synthétise les éléments clés de pilotage et met en priorité la modération des discussions (`pending`).
 - **Entrées publiques harmonisées** : RSS, sitemap (`/sitemap.xml`), robots (`/robots.txt`), admin et API blog passent par `backend/public/index.php`. Le sitemap est servi dynamiquement (avec possibilité de générer aussi `backend/public/sitemap.xml` en déploiement). Les anciens fichiers publics `rss.php` et les anciens wrappers admin ne sont plus que des shims de compatibilité.
-- **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir des templates). Dossier `backend/data/` pour les fichiers dérivés (index, articles blog JSON, logs applicatifs) et pour les pages dynamiques JSON.
+- **Données & recherche** : scripts CLI dans `backend/core/tools/` (génération d’index de recherche JSON à partir du stockage éditorial actif). Dossier `backend/data/` pour les fichiers dérivés (index, logs applicatifs) et pour les miroirs JSON versionnés quand ils sont volontairement maintenus.
 - **Exploitation/perf** : scripts CLI `composer benchmark-routes` (temps de rendu routes critiques, option `--storage=json|sql|dual-write`), `composer cron-center` (coordination des jobs planifies SQL pour le cron OVH), `composer check-log-alerts` (seuils login failure/rate-limit/403/429 + notification webhook/email), `composer backup-production` (archive backend + dump SQL), `composer check-instagram-feed` (probe bloc Instagram accueil). Un pack systemd est fourni pour l'ordonnancement en preprod/prod (`backend/tools/systemd/*` + `backend/tools/check-log-alerts-runner.sh`). Le mode `notify_on` des alertes logs est pilotable depuis `Admin > Parametres > Observabilite ops` (sans exposer les secrets webhook/email), et `Admin > Parametres > Cron Center` expose le point d'entree OVH, les jobs, le test manuel par job et l'historique.
-- **Base de données (optionnelle pour l’instant)** : schema MySQL legacy (`backend/sql/install.sql`) + schema editorial (`backend/sql/editorial/*.sql`), initialisables via `composer init-db-admin --working-dir=backend -- ...`. Le fichier `config/database.override.php` permet de surcharger les parametres issus de `.env`.
+- **Base de données (maître pour l’éditorial public)** : schema MySQL legacy (`backend/sql/install.sql`) + schema editorial (`backend/sql/editorial/*.sql`), initialisables via `composer init-db-admin --working-dir=backend -- ...`. Le fichier `config/database.override.php` permet de surcharger les parametres issus de `.env`.
 
 ---
 
@@ -199,7 +219,7 @@ public/index.php
   - `backend/templates/partials/contenu.php` n’embarque plus la structure en dur et passe par une factorisation dédiée
   - `backend/data/pages.json` supporte désormais le schéma `regions` pour les nouveaux contenus
 - Phase 4 blog/outillage (17 mars 2026) :
-  - le blog est clarifié comme MVP JSON `experimental` avec persistance unique dans `backend/data/blog`
+  - historiquement, le blog a d'abord ete clarifie comme MVP JSON `experimental`, avant bascule de travail vers SQL maitre
   - l’écriture blog canonique passe par `POST /<base_path>/<ADMIN_LOGIN_PATH>/articles/save` avec alias legacy `/core/blog/save_article.php`
   - des routes publiques minimales existent maintenant pour `/blog` et `/blog/article/{slug}`
   - le logging est uniformisé sur auth admin, sauvegarde menus et écriture blog
@@ -210,7 +230,7 @@ public/index.php
    - couche PDO MariaDB/MySQL commune via `backend/src/Database/*`
    - repositories editoriaux pages/navigation maintenant storage-aware (`json`, `dual-write`, `sql`)
    - commande `composer editorial-import-sql` pour importer `pages.json` et la navigation vers SQL
-   - lecture SQL smoke-testee localement, tout en gardant `json` comme mode par defaut
+   - lecture SQL smoke-testee localement; le depot travaille maintenant en SQL maitre pour l'edito public
 - Simplification pages (18 mars 2026) :
   - suppression du contrat legacy de pages `legacy_template` / `template`
   - toutes les pages du registre éditorial public sont maintenant des `structured_page`
@@ -298,14 +318,14 @@ public/index.php
 ## Backend (PHP)
 - **Bootstrap** : `core/bootstrap.php` charge `.env`, config (`config/config.php`), sécurité, i18n, router. Vérification des variables critiques en prod (DB & SMTP). Référence détaillée : `backend/README_BOOTSTRAP_I18N.md`.
 - **Routage** : `core/router.php` mappe l’URI vers un fichier de page sous `templates/pages/`, avec prise en compte du préfixe langue (`/fr`, `/en`, `/de`).
-- **Contenu dynamique** : `backend/data/pages.json` est le registre unique des pages éditoriales publiques.
+- **Contenu dynamique** : SQL est la source active des pages éditoriales publiques; `backend/data/pages.json` sert de miroir versionné, de snapshot de travail ou de payload d’import selon le workflow.
   - état courant : uniquement des `structured_page`
   - écriture admin courante : `regions` sémantiques selon `docs/pages-dynamiques.md`
   - compatibilité de lecture : le moteur tolère encore `blocks` s’ils existent dans une donnée legacy importée, sans en faire un second service
 - **Persistance editoriale** :
-  - mode par defaut : `EDITORIAL_STORAGE=json`
-  - transition disponible : `EDITORIAL_STORAGE=dual-write`
-  - bascule SQL : `EDITORIAL_STORAGE=sql`
+  - mode maître de travail pour ce dépôt : `EDITORIAL_STORAGE=sql`
+  - compatibilité de transition : `EDITORIAL_STORAGE=dual-write`
+  - compatibilité historique / import ciblé : `EDITORIAL_STORAGE=json`
   - import initial : `composer editorial-import-sql`
   - import blog JSON -> SQL : `composer blog-import-sql`
   - backup/restore operationnel : `php backend/core/tools/editorial_backup_restore.php backup|restore` (+ `--storage=json|sql|dual-write` pour forcer un mode de verification)
@@ -320,16 +340,17 @@ public/index.php
   - Contrôleur : `backend/src/Admin/AdminController.php`, résolution d’URL via `backend/src/Admin/AdminRouteResolver.php`, rendu via `backend/templates/admin/*.php`.
   - Les anciens scripts admin publics legacy sont des shims de compatibilité.
   - Sans configuration explicite (`ADMIN_EMAIL` + `ADMIN_PASSWORD_HASH`), la connexion admin reste désactivée par conception.
-- **Blog (JSON/SQL pilotable)** :
+- **Blog (SQL maître, JSON compatible)** :
   - lecture publique : `/blog`, `/blog/article/{slug}`
   - soumission discussion publique : `POST /core/blog/submit_discussion.php` (statut initial `pending`)
   - moderation admin : `/<base_path>/<ADMIN_LOGIN_PATH>/discussions`
   - écriture admin canonique : `/<base_path>/<ADMIN_LOGIN_PATH>/articles/save`
   - alias legacy : `POST /core/blog/save_article.php`
-  - mode de stockage : `BLOG_STORAGE=json|dual-write|sql` (fallback `EDITORIAL_STORAGE`)
+  - mode de stockage supporté : `BLOG_STORAGE=json|dual-write|sql` (fallback `EDITORIAL_STORAGE`)
+  - mode maître de travail pour ce dépôt : `BLOG_STORAGE=sql` ou fallback `EDITORIAL_STORAGE=sql`
   - workflow statut : `draft` / `scheduled` / `published`
   - publication planifiee : un article `scheduled` devient visible automatiquement (front, RSS, sitemap) des que sa date est atteinte, sans cron
-  - stockage JSON : `backend/data/blog/{slug}.{lang}.json` et `backend/data/blog-discussions/{slug}.{lang}.json`
+  - stockage JSON historique / miroir si explicitement maintenu : `backend/data/blog/{slug}.{lang}.json` et `backend/data/blog-discussions/{slug}.{lang}.json`
   - stockage SQL : tables `blog_articles` / `blog_discussions` (migration `backend/sql/editorial/005_blog.sql`)
   - statut produit : `BLOG_MODE=experimental`
 - **Installation** : procédure shell documentée dans `backend/README_INSTALLATION_HORS_WEBROOT.md`.

@@ -1,15 +1,15 @@
 {
     "accueil": [
         {
-            "titre": "Les Caramagnols : voitures anciennes, routes du Sud et souvenirs dans le Golfe de Saint-Tropez",
-            "contenu": "Les Caramagnols : voitures anciennes, routes du Sud et souvenirs dans le Golfe de Saint-Tropez Voitures anciennes et balades dans le Golfe de Saint-Tropez Entre mer, villages et routes lumineuses, le Golfe de Saint-Tropez offre un décor idéal pour faire vivre nos voitures anciennes. Ici, chaque bala…",
+            "titre": "BIENVENUE SUR LES CARAMAGNOLS",
+            "contenu": "BIENVENUE SUR LES CARAMAGNOLS NOS VOITURES RETRO AU CŒUR DU GOLFE DE ST-TROPEZ Avec ses 250/300 jours d’ensoleillement par an, le golfe de St-Tropez est l’endroit rêvé pour promener avec nos voitures anciennes. Voitures Passion Profitez de notre passion pour les voitures anciennes, collection, auto-…",
             "url": "/",
             "image": "/assets/images/bouger/golfe/montage.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
-                "EditRegion4"
+                "EditRegion7"
             ]
         },
         {
@@ -26,7 +26,7 @@
         },
         {
             "titre": "SOMMAIRE",
-            "contenu": "SOMMAIRE Une petite aide pour vous y retrouver... Vous trouverez donc ci-dessous le plan d’accès du site. Sommaire Accueil 3 pages Les Caramagnols : voitures anciennes, routes du Sud et souvenirs dans le Golfe de Saint-Tropez SOMMAIRE LES MENTIONS LÉGALES DES CARAMAGNOLS Auto-rétro 28 pages Histoire…",
+            "contenu": "SOMMAIRE Une petite aide pour vous y retrouver... Vous trouverez donc ci-dessous le plan d’accès du site. Sommaire Accueil 3 pages BIENVENUE SUR LES CARAMAGNOLS SOMMAIRE LES MENTIONS LÉGALES DES CARAMAGNOLS Auto-rétro 28 pages Austin et Morris Mini : histoire, technique et héritage AUSTIN Austin Min…",
             "url": "/accueil/le-plan-du-site-des-caramagnols.php",
             "image": null,
             "blocs_utilises": [
@@ -51,10 +51,23 @@
             ]
         },
         {
+            "titre": "Austin et Morris Mini : histoire, technique et héritage",
+            "contenu": "Austin et Morris Mini : histoire, technique et héritage Présentée le 26 août 1959 par la British Motor Corporation, la Mini apparaît d’abord sous deux noms : Austin Seven et Morris Mini-Minor. Alec Issigonis la dessine pour loger quatre personnes dans une carrosserie de 3,05 m, avec une architecture…",
+            "url": "/auto-retro/austin/aventure-mini-austin.php",
+            "image": "/assets/images/autoretro/austin/1963_MkI_Mini.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
+                "EditRegion4",
+                "EditRegion11"
+            ]
+        },
+        {
             "titre": "Austin Mini Mayfair : une Mini plus soignée pour la fin des années 1980",
             "contenu": "Austin Mini Mayfair : une Mini plus soignée pour la fin des années 1980 Lancée en septembre 1982, la Mini Mayfair remplace la Mini 1000 HLE et marque un tournant discret mais important dans la longue carrière de la Mini classique. La base reste celle d’une petite traction de 998 cm3, mais la présent…",
             "url": "/auto-retro/austin/la-mini-mayfair.php",
-            "image": "/assets/images/autoretro/austin/austin.jpg",
+            "image": "/assets/images/autoretro/austin/austin.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -66,7 +79,7 @@
             "titre": "Citroën 2CV AZ (1954-1956)",
             "contenu": "Citroën 2CV AZ (1954-1956) : le moment où la 2CV devient vraiment polyvalente Lorsque la 2CV AZ apparaît en octobre 1954, elle ne renie pas la 2CV d’origine. Elle en garde la légèreté, la simplicité mécanique et ce sens très Citroën du service rendu plutôt que de l’effet. Mais avec son bicylindre 42…",
             "url": "/auto-retro/citroen/la-2cv-az-1954-1956.php",
-            "image": "/assets/images/autoretro/citroen/citroen_2cv_az_1957_engine.jpg",
+            "image": "/assets/images/autoretro/citroen/citroen_2cv_az_1957_engine.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -79,7 +92,7 @@
             "titre": "Citroën 2CV AZA : évolution, moteur 18 ch et place dans la gamme 2CV",
             "contenu": "Citroën 2CV AZA : la 2CV de 18 ch qui installe la maturité du modèle En février 1963, Citroën rebaptise l’AZ en AZA et porte la puissance du bicylindre à 18 ch. La vitesse maximale annoncée atteint 95 km/h, la consommation reste donnée à 6 l/100 km et, surtout, la 2CV gagne l’aisance qui lui manquai…",
             "url": "/auto-retro/citroen/la-2cv-aza.php",
-            "image": "/assets/images/autoretro/citroen/citroen_2cv_aza_azam_sixties_rundvald.jpg",
+            "image": "/assets/images/autoretro/citroen/citroen_2cv_aza_azam_sixties_rundvald.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -92,7 +105,7 @@
             "titre": "Histoire de Citroën",
             "contenu": "Histoire de Citroën : industrie, confort et grandes ruptures techniques Citroën n’a jamais été une marque française tout à fait ordinaire. Dès 1919, elle lie production de série, méthode industrielle, publicité spectaculaire et solutions techniques immédiatement perceptibles dans l’usage. De la Type…",
             "url": "/auto-retro/citroen/histoire-de-citroen.php",
-            "image": "/assets/images/autoretro/citroen/citroen_traction_avant_7a_1934.jpg",
+            "image": "/assets/images/autoretro/citroen/citroen_traction_avant_7a_1934.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -105,20 +118,7 @@
             "titre": "Histoire de la 2CV",
             "contenu": "Histoire de la 2CV : du projet TPV à une mécanique populaire très aboutie La 2CV a souvent été racontée comme une voiture modeste devenue symbole national. C’est juste, mais c’est insuffisant. Sa vraie singularité tient à la rigueur de son programme technique : poids contenu, traction avant, bicylin…",
             "url": "/auto-retro/citroen/la-2cv-une-passion-francaise.php",
-            "image": "/assets/images/autoretro/citroen/citroen_2cv_a_az_1954_malartre.jpg",
-            "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion2",
-                "EditRegion3",
-                "EditRegion4",
-                "EditRegion11"
-            ]
-        },
-        {
-            "titre": "Histoire de la Mini Austin",
-            "contenu": "Histoire de la Mini Austin Présentée le 26 août 1959 par la British Motor Corporation, la Mini apparaît d’abord sous deux noms : Austin Seven et Morris Mini-Minor. Alec Issigonis la dessine pour loger quatre personnes dans une carrosserie de 3,05 m, avec une architecture qui deviendra une référence …",
-            "url": "/auto-retro/austin/aventure-mini-austin.php",
-            "image": "/assets/images/autoretro/austin/1963_MkI_Mini.jpg",
+            "image": "/assets/images/autoretro/citroen/citroen_2cv_a_az_1954_malartre.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -157,7 +157,7 @@
             "titre": "LA DYNA MODELE Z12",
             "contenu": "Panhard Dyna Z12 : histoire, caractéristiques techniques et intérêt en collection La Panhard Dyna Z12 est l’une des versions les plus intéressantes de la famille Dyna Z. Produite entre août 1956 et octobre 1958, elle correspond à une phase importante de l’évolution du modèle, lorsque Panhard cherche…",
             "url": "/auto-retro/panhard/la-dyna-modele-z12.php",
-            "image": "/assets/images/autoretro/panhard/dynaz12/panhard_dyna_z_1957_france_domestic.jpg",
+            "image": "/assets/images/autoretro/panhard/dynaz12/panhard_dyna_z_1957_france_domestic.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -312,7 +312,7 @@
             "titre": "Notre Renault Twingo Hélios de 1999 dans le golfe de Saint-Tropez",
             "contenu": "Notre Renault Twingo Hélios de 1999 Achetée en mai 2023 pour remplacer la petite Ford Ka qui nous servait d’appoint, notre Twingo Hélios de mars 1999 est vite devenue plus qu’une solution pratique. Ramenée de la région parisienne puis revue pendant l’hiver 2023-2024, elle sert aujourd'hui pour les t…",
             "url": "/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php",
-            "image": "/assets/images/autoretro/twingo.jpg",
+            "image": "/assets/images/autoretro/twingo.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -377,7 +377,7 @@
             "titre": "Renault Twingo série 1 phase 2 : la petite Renault qui devient adulte",
             "contenu": "Renault Twingo série 1 phase 2 : la petite Renault qui devient adulte Entre 1998 et 2000, la première Renault Twingo entre dans une phase importante de sa carrière. Elle garde sa silhouette monocorps, sa banquette coulissante et son visage immédiatement reconnaissable, mais reçoit des boucliers revu…",
             "url": "/auto-retro/renault/twingo-serie1-phase2.php",
-            "image": "/assets/images/autoretro/renault/renault_twingo_serie1_phase2_liegeflaeche.jpg",
+            "image": "/assets/images/autoretro/renault/renault_twingo_serie1_phase2_rear.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -405,7 +405,7 @@
             "titre": "Animations récurrentes dans le golfe de Saint-Tropez",
             "contenu": "Animations récurrentes dans le golfe de Saint-Tropez Dans le golfe de Saint-Tropez, l’année n’avance pas au même pas selon les saisons. Les marchés tiennent le fil du quotidien, les fêtes de mai réveillent les traditions, la voile marque le printemps et l’automne, puis l’été concentre festivals, con…",
             "url": "/bouger/les-animations-dans-le-golfe-de-sttropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/marche_lices_saint_tropez_commons.jpg",
+            "image": "/assets/images/bouger/animations/recurrentes/marche_lices_saint_tropez_commons.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -417,7 +417,7 @@
             "titre": "Bravades et fêtes traditionnelles dans le golfe de Saint-Tropez",
             "contenu": "Bravades et fêtes traditionnelles dans le golfe de Saint-Tropez Les fêtes traditionnelles du golfe ne se lisent pas comme de simples animations. Elles tiennent à des dates, à des gestes transmis, à des associations, à des processions et parfois à des bruits que l’on n’entend pas dans les autres mome…",
             "url": "/bouger/animations/bravades-et-fetes-traditionnelles-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/bravades_saint_tropez_commons.jpg",
+            "image": "/assets/images/bouger/animations/recurrentes/bravades_saint_tropez_commons.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -429,7 +429,7 @@
             "titre": "Festivals et soirées d’été dans le golfe de Saint-Tropez",
             "contenu": "Festivals et soirées d’été dans le golfe de Saint-Tropez L’été du golfe ne se limite pas aux plages. Les villages déplacent une partie de leur vie vers les places, les théâtres de plein air, les châteaux, les ports et les rues anciennes. La programmation change chaque année, mais quelques rendez-vou…",
             "url": "/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/chateau_grimaud_commons.jpg",
+            "image": "/assets/images/bouger/animations/recurrentes/chateau_grimaud_commons.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -448,7 +448,7 @@
             "titre": "Les Voiles latines à Saint-Tropez",
             "contenu": "Les Voiles latines à Saint-Tropez À Saint-Tropez, les Voiles latines ramènent sur le vieux port une navigation ancienne, faite de coques basses, d’antennes obliques et de voiles triangulaires. Le rassemblement existe depuis 2001 et met en avant des bateaux traditionnels venus du monde méditerranéen.…",
             "url": "/bouger/animations/les-voiles-latines-a-sttropez.php",
-            "image": "/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-002.jpg",
+            "image": "/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015-002.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -460,7 +460,7 @@
             "titre": "Marchés provençaux et nocturnes dans le golfe de Saint-Tropez",
             "contenu": "Marchés provençaux et nocturnes dans le golfe de Saint-Tropez Les marchés sont les rendez-vous les plus réguliers du golfe. Ils ne demandent pas de grand programme, mais ils disent beaucoup d’une commune : l’heure du matin, la place choisie, les produits de saison, les habitants qui se croisent avan…",
             "url": "/bouger/animations/marches-provencaux-et-nocturnes-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/marche_lices_saint_tropez_commons.jpg",
+            "image": "/assets/images/bouger/animations/recurrentes/marche_lices_saint_tropez_commons.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -472,7 +472,7 @@
             "titre": "Noël et animations d’hiver dans le golfe de Saint-Tropez",
             "contenu": "Noël et animations d’hiver dans le golfe de Saint-Tropez L’hiver change la mesure du golfe. Les ports restent là, les villages se referment un peu, et les animations se concentrent autour des marchés, des illuminations, des rendez-vous familiaux et des programmes publiés commune par commune. La sais…",
             "url": "/bouger/animations/noel-et-hiver-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/saint_tropez_nuit_commons.jpg",
+            "image": "/assets/images/bouger/animations/recurrentes/saint_tropez_nuit_commons.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -484,7 +484,7 @@
             "titre": "Régates et grands rendez-vous de voile dans le golfe de Saint-Tropez",
             "contenu": "Régates et grands rendez-vous de voile dans le golfe de Saint-Tropez Dans le golfe, la voile n’est pas seulement un décor de port. Elle organise une partie du calendrier, depuis les régates de club jusqu’aux grands rassemblements visibles sur tout le plan d’eau. Le vent, les parcours et les horaires…",
             "url": "/bouger/animations/regates-et-voiles-golfe-saint-tropez.php",
-            "image": "/assets/images/bouger/animations/recurrentes/voiles_saint_tropez_commons.jpg",
+            "image": "/assets/images/bouger/animations/recurrentes/voiles_saint_tropez_commons.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion3",
@@ -494,7 +494,7 @@
         },
         {
             "titre": "Se promener au Plan-de-la-Tour",
-            "contenu": "Se promener au Plan-de-la-Tour Le Plan-de-la-Tour garde une mesure rurale très lisible, entre places, fontaines, clocher, vignes et départs vers les collines. Le Plan-de-la-Tour ne cherche pas l’effet. C’est précisément ce qui rend la promenade intéressante. Le village s’organise autour de quelques …",
+            "contenu": "Se promener au Plan-de-la-Tour Le Plan-de-la-Tour garde un rythme rural tres lisible: un ancien habitat fortifie, vingt-cinq hameaux, des places ombragees, des vignes, des forets de pins et des roches granitiques bleutees. Le Plan-de-la-Tour ne cherche pas l'effet spectaculaire. C'est un village qui…",
             "url": "/bouger/se-promener-au-plan-de-la-tour.php",
             "image": "/assets/images/bouger/communes/le-plan-de-la-tour/le_plan_de_la_tour_commons.jpg",
             "blocs_utilises": [
@@ -507,7 +507,7 @@
         },
         {
             "titre": "Se promener au Rayol-Canadel-sur-Mer",
-            "contenu": "Se promener au Rayol-Canadel-sur-Mer Le Rayol-Canadel-sur-Mer est une commune tardive du littoral, construite entre trois quartiers distincts, des plages, un ancien tracé ferroviaire et un spectaculaire escalier monumental. Le Rayol-Canadel-sur-Mer ne ressemble ni à un vieux village perché ni à une …",
+            "contenu": "Se promener au Rayol-Canadel-sur-Mer Le Rayol-Canadel-sur-Mer relie naissance balneaire recente, plages, escalier monumental, memoire du Debarquement, botanique du Domaine du Rayol et pentes cristallines plongeant vers la mer. Le Rayol-Canadel-sur-Mer n'est pas un vieux village perché reconverti ver…",
             "url": "/bouger/se-promener-au-rayol-canadel-sur-mer.php",
             "image": "/assets/images/bouger/communes/le-rayol-canadel/plage_canadel_commons.jpg",
             "blocs_utilises": [
@@ -548,7 +548,7 @@
         },
         {
             "titre": "Se promener à Cavalaire-sur-Mer",
-            "contenu": "Se promener à Cavalaire-sur-Mer Cavalaire-sur-Mer se lit d’abord par sa baie très ouverte, son port, ses longues plages et les collines qui referment la ville dès que l’on s’éloigne du rivage. Cavalaire-sur-Mer occupe une grande baie au sud-ouest du golfe. Cette géographie très lisible commande la p…",
+            "contenu": "Se promener à Cavalaire-sur-Mer Cavalaire-sur-Mer se lit par sa grande baie, son port, la plaine de Pardigon, la memoire du Debarquement et un littoral encadre par les contreforts des Maures. Cavalaire-sur-Mer s'impose d'abord par la baie. La courbe du front de mer, les longues plages, le port et le…",
             "url": "/bouger/se-promener-a-cavalaire-sur-mer.php",
             "image": "/assets/images/bouger/communes/cavalaire/cavalaire_baie_commons.jpg",
             "blocs_utilises": [
@@ -561,9 +561,9 @@
         },
         {
             "titre": "Se promener à Cogolin",
-            "contenu": "Se promener à Cogolin Cogolin relie le vieux bourg, la plaine, l’artisanat et les accès vers Port Cogolin et la vallée de la Môle. Le nom de Cogolin apparaît dès l’an 1055. Le bourg originel, juché sur une butte, s’appelait \"COGOUYOUN\" en provençal. L’archéologie y a révélé des traces d’occupations …",
+            "contenu": "Se promener à Cogolin Cogolin se lit comme un bourg ancien devenu commune de transition entre massif des Maures, plaine, vallee de la Mole, artisanat et debouche maritime. Cogolin occupe une place charnière dans le golfe. Le vieux bourg reste tourné vers la butte d'origine et les rues anciennes, mai…",
             "url": "/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php",
-            "image": "/assets/images/bouger/communes/cogolin/mairie_de_cogolin.jpg",
+            "image": "/assets/images/bouger/communes/cogolin/vue_de_cogolin.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -575,7 +575,7 @@
         },
         {
             "titre": "Se promener à Gassin",
-            "contenu": "Se promener à Gassin Gassin tient à la fois du belvédère, du village serré et du poste d’observation sur la baie, les vignes et la presqu’île. Perché à environ 200 mètres d’altitude, Gassin se comprend d’abord comme un site défensif et un belvédère. Le village a gardé une structure dense, adaptée au…",
+            "contenu": "Se promener à Gassin Perche au-dessus de la baie, Gassin tient ensemble belvedere, remparts, vigne, olivier, jardin remarquable et memoire agricole dans un espace tres serre. Gassin se comprend d'abord par sa situation. À environ deux cents mètres d'altitude, le village tient sur un éperon d'où le r…",
             "url": "/bouger/se-promener-a-gassin.php",
             "image": "/assets/images/bouger/communes/gassin/gassin_eglise_commons.jpg",
             "blocs_utilises": [
@@ -588,9 +588,9 @@
         },
         {
             "titre": "Se promener à Grimaud",
-            "contenu": "Se promener à Grimaud Grimaud réunit dans une même commune un vieux village médiéval, des vignes, des secteurs de plaine et une ouverture directe sur le rivage jusqu’à Port Grimaud. Grimaud n’est pas seulement un village perché. La commune descend du rebord du massif des Maures jusqu’au golfe et cha…",
+            "contenu": "Se promener à Grimaud Grimaud reunit sur une meme commune un vieux village de hauteur, un chateau, une plaine viticole, des canaux et une ouverture tres directe vers la mer. Grimaud ne se laisse pas enfermer dans une seule image. Le vieux village perché en donne la silhouette la plus connue, mais la…",
             "url": "/bouger/se-promener-a-grimaud.php",
-            "image": "/assets/images/bouger/golfe/grimaud_village_commons.jpg",
+            "image": "/assets/images/bouger/golfe/Port_grimaud.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -601,7 +601,7 @@
         },
         {
             "titre": "Se promener à La Croix-Valmer",
-            "contenu": "Se promener à La Croix-Valmer La Croix-Valmer tient ensemble un village discret, des vignes, de longs accès vers la mer et des secteurs naturels majeurs comme Gigaro, le cap Lardier ou le cap Taillat. La Croix-Valmer se découvre moins comme un centre ancien compact que comme une commune étendue entr…",
+            "contenu": "Se promener à La Croix-Valmer La Croix-Valmer associe un bourg discret, des vignes, de grands espaces naturels littoraux, la memoire du Debarquement et une botanique mediterraneenne tres protegee. La Croix-Valmer ne ressemble ni à un vieux village compact ni à une station entièrement bâtie autour du…",
             "url": "/bouger/se-promener-a-la-croix-valmer.php",
             "image": "/assets/images/bouger/communes/la-croix-valmer/cap_taillat_commons.jpg",
             "blocs_utilises": [
@@ -614,9 +614,9 @@
         },
         {
             "titre": "Se promener à La Garde-Freinet",
-            "contenu": "Se promener à La Garde-Freinet La Garde-Freinet prend sens entre village forestier, routes de crête et mémoire du Fort Freinet dans le massif des Maures. La Garde-Freinet se situe à l’intérieur du golfe, au contact direct du massif des Maures. Le village se distingue donc des communes littorales par…",
+            "contenu": "Se promener à La Garde-Freinet La Garde-Freinet donne une lecture interieure du golfe: fort medieval, legendes sarrasines, quartz, chataigniers, chenes-lieges, fontaines et routes de crete au coeur des Maures. La Garde-Freinet change complètement la perception du golfe. Ici, il n'y a ni front de mer…",
             "url": "/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php",
-            "image": "/assets/images/bouger/communes/lagardefreinet/gardefreinet.jpg",
+            "image": "/assets/images/bouger/communes/lagardefreinet/la_garde_freinet_la_croix.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -628,7 +628,7 @@
         },
         {
             "titre": "Se promener à La Môle",
-            "contenu": "Se promener à La Môle La Môle montre la face la plus intérieure du golfe : une commune de vallée, peu dense, adossée aux Maures, avec de grands boisements, le cours de la Môle et des accès vers le col du Canadel ou le barrage de la Verne. On parle souvent de La Môle comme du cœur naturel du golfe, e…",
+            "contenu": "Se promener à La Môle La Mole montre le versant le plus rural du golfe: une vallee d'eau et de pres, des bois, le barrage de la Verne, des pentes des Maures et un village de passage reste a l'annee. La Môle appartient au golfe par ses routes, mais elle s'en distingue par sa géographie de vallée. Ici…",
             "url": "/bouger/se-promener-a-la-mole.php",
             "image": "/assets/images/bouger/communes/la-mole/barrage_verne_commons.jpg",
             "blocs_utilises": [
@@ -641,9 +641,9 @@
         },
         {
             "titre": "Se promener à Ramatuelle",
-            "contenu": "Se promener à Ramatuelle Ramatuelle s’observe comme un village de hauteur qui garde en vue la plaine agricole et la baie de Pampelonne. Ramatuelle occupe un site de hauteur à l’écart immédiat du rivage. Cette position permet de contrôler la plaine littorale tout en gardant une certaine distance avec…",
+            "contenu": "Se promener à Ramatuelle Ramatuelle tient ensemble un village en colimacon, une plaine viticole, un littoral de caps et de plages, et une vie culturelle qui reste tres active a l'echelle de la presqu'ile. Ramatuelle se distingue immédiatement par sa position en hauteur. Le village ne touche pas la m…",
             "url": "/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php",
-            "image": "/assets/images/bouger/communes/ramatuelle/ramatuelle.jpg",
+            "image": "/assets/images/bouger/communes/ramatuelle/le_moulin_de_ramatuelle.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -654,9 +654,9 @@
         },
         {
             "titre": "Se promener à Saint-Tropez",
-            "contenu": "Se promener à Saint-Tropez Saint-Tropez reste d’abord un port ancien, une citadelle et un centre serré dont la lecture change beaucoup selon la saison. Saint-Tropez occupe un site portuaire ancien au fond du golfe. La ville s’est développée autour de la mer bien avant de devenir une destination tour…",
+            "contenu": "Se promener à Saint-Tropez Saint-Tropez se comprend mieux en tenant ensemble le vieux port, la citadelle, la mémoire maritime, la culture et le relief rocheux qui ferme le golfe. Saint-Tropez attire d'abord par son nom, mais la ville se lit surtout comme un ancien port resserré entre mer, pente et r…",
             "url": "/bouger/se-promener-a-sttropez.php",
-            "image": "/assets/images/bouger/communes/sttropez/sttropez.jpg",
+            "image": "/assets/images/bouger/golfe/st_tropez_harbour_commons.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -667,7 +667,7 @@
         },
         {
             "titre": "Se promener à Sainte-Maxime",
-            "contenu": "Se promener à Sainte-Maxime Face à Saint-Tropez, Sainte-Maxime se comprend comme une ville de rive : un ancien noyau autour de la Tour Carrée, un front de mer très lisible et des quartiers qui s’étirent vers les plages. Sainte-Maxime regarde le golfe depuis sa rive nord. Cette position explique beau…",
+            "contenu": "Se promener à Sainte-Maxime Sainte-Maxime tient ensemble une vieille rive du golfe, une ville de promenade et un paysage de collines où la botanique mediterraneenne, jusqu'au mimosa, reste tres presente. Sainte-Maxime fait face à Saint-Tropez depuis la rive nord du golfe. Cette position explique pre…",
             "url": "/bouger/se-promener-a-sainte-maxime.php",
             "image": "/assets/images/bouger/communes/ste-maxime/sainte_maxime_commons.jpg",
             "blocs_utilises": [
@@ -681,10 +681,10 @@
     ],
     "sava": [
         {
-            "titre": "SAVA à Rioz - garage, sellerie et restauration de voitures anciennes",
-            "contenu": "SAVA à Rioz - garage, sellerie et restauration de voitures anciennes Installé à Rioz, en Haute-Saône, SAVA accompagne les automobilistes et les passionnés de véhicules anciens avec une approche concrète : entretien, mécanique, sellerie et restauration progressive. 2023 - Les débuts avec un atelier m…",
+            "titre": "SAVA – Votre partenaire automobile à Rioz (70190)",
+            "contenu": "SAVA – Votre partenaire automobile à Rioz (70190) Une entreprise qui évolue avec passion et précision 2023 – Un atelier mobile au service du quotidien Créé par Julien Perrot, technicien qualifié et passionné d’automobile, SAVA démarre son activité avec un concept innovant : un garage mobile. Son fou…",
             "url": "/sava/sava-auto-retro-rioz.php",
-            "image": "/assets/images/autoretro/sava.jpg",
+            "image": "/assets/images/autoretro/sava_logo.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
@@ -694,16 +694,20 @@
     ],
     "boulyetcailloux-des-bijoux-artisanaux": [
         {
-            "titre": "Bouly&Cailloux - bijoux artisanaux en pierres naturelles faits main",
-            "contenu": "Bouly&Cailloux - bijoux artisanaux en pierres naturelles faits main Bouly&Cailloux est né d’un travail manuel simple : assembler des pierres naturelles, choisir les bonnes associations et créer des bijoux portés au quotidien. Chaque pièce est réalisée à la main, sans production industrielle, avec un…",
+            "titre": "Boulyetcailloux Des Bijoux Artisanaux",
+            "contenu": "Bouly&Cailloux : une boutique artisanale présentée sur Les Caramagnols Bouly&Cailloux réunit des créations faites main. La boutique peut intéresser les lecteurs qui aiment les petites séries, les objets simples et le travail manuel. Bouly&Cailloux est un projet artisanal centré sur des bijoux et pet…",
             "url": "/boulyetcailloux-des-bijoux-artisanaux.php",
-            "image": "/assets/images/boulyetcailloux/boulyetcailloux-bijoux-artisanaux.jpg",
+            "image": null,
             "blocs_utilises": [
                 "EditRegion1",
+                "EditRegion2",
                 "EditRegion3",
                 "EditRegion4",
+                "EditRegion5",
+                "EditRegion6",
                 "EditRegion7",
-                "EditRegion9"
+                "EditRegion9",
+                "EditRegion11"
             ]
         }
     ],

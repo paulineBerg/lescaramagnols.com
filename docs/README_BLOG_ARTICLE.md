@@ -1,6 +1,6 @@
 # Guide de rédaction des articles de blog
 
-Ce document complète `AGENTS.md` et `README_BLOG.md` pour la rédaction des articles de blog. Il fixe la forme attendue avant sauvegarde dans `backend/data/blog/*.json` ou import SQL.
+Ce document complète `AGENTS.md` et `README_BLOG.md` pour la rédaction des articles de blog. Il fixe la forme attendue avant sauvegarde en SQL, qui est le stockage maître de ce dépôt pour le blog. Un miroir `backend/data/blog/*.json` peut exister, mais il ne remplace pas l’écriture SQL active.
 
 ## Principe
 
@@ -105,7 +105,12 @@ La taxonomie ne doit jamais être étendue depuis un article isolé. Si un besoi
 
 ## Langues
 
-Pour chaque slug publié ou préparé à la publication, trois fichiers doivent exister :
+Pour chaque slug publié ou préparé à la publication, trois variantes linguistiques doivent exister en SQL :
+- `fr`
+- `en`
+- `de`
+
+Si un miroir JSON est maintenu pour versionnement ou export, il doit rester aligné :
 - `backend/data/blog/<slug>.fr.json`
 - `backend/data/blog/<slug>.en.json`
 - `backend/data/blog/<slug>.de.json`

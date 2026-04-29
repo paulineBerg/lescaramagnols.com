@@ -1,6 +1,6 @@
-# Blog V1 (JSON, SQL, Dual-Write)
+# Blog V1 (SQL maitre, JSON compatible, Dual-Write)
 
-Date de mise à jour : 2026-03-21
+Date de mise à jour : 2026-04-29
 
 Ce document fixe la gouvernance technique du module blog V1, avec persistance pilotable par mode.
 
@@ -10,9 +10,9 @@ Reference complementaire :
 ## Statut
 
 Le blog reste en mode produit `experimental`, mais la persistance est désormais alignée sur la stratégie éditoriale globale :
-- `json` : lecture/écriture fichiers (source historique)
-- `dual-write` : lecture JSON, écriture SQL puis JSON
-- `sql` : lecture/écriture SQL
+- `sql` : mode maitre attendu pour ce depot, en lecture/ecriture
+- `json` : source historique, miroir volontaire ou preparation hors SQL
+- `dual-write` : mode transitoire outille pour synchroniser JSON et SQL
 
 Mise a jour 2026-04-16 :
 - dans le cadre du Lot D, le blog/discussions/persistance SQL forme un domaine de consolidation autonome (`backend/src/Blog/*`, `backend/sql/editorial/005_blog.sql`, tests `backend/tests/Blog*` et endpoints associes)
@@ -21,6 +21,7 @@ Mise a jour 2026-04-16 :
 Configuration :
 - `BLOG_STORAGE=json|dual-write|sql`
 - fallback automatique sur `EDITORIAL_STORAGE` si `BLOG_STORAGE` absent
+- pour ce depot, la cible de travail et de verification est `BLOG_STORAGE=sql` ou, a defaut, `EDITORIAL_STORAGE=sql`
 
 ## Périmètre fonctionnel
 
@@ -118,7 +119,12 @@ Règles obligatoires :
 - refuser le remplissage, les certitudes de façade et les conclusions abstraites
 - conserver un maillage interne sobre et utile, intégré dans une phrase normale
 
-Chaque slug de blog public doit disposer de trois fichiers éditoriaux alignés :
+En stockage SQL maitre, chaque slug de blog public doit disposer de trois entrees alignees :
+- `fr`
+- `en`
+- `de`
+
+Si un miroir JSON est volontairement maintenu pour versionnement ou export, il doit rester aligne :
 - `slug.fr.json`
 - `slug.en.json`
 - `slug.de.json`
@@ -289,7 +295,7 @@ Backup/restore éditorial (pages/navigation/blog/discussions) :
 - `php backend/core/tools/editorial_backup_restore.php backup [--storage=json|sql|dual-write]`
 - `php backend/core/tools/editorial_backup_restore.php restore <backup.json> --force [--storage=json|sql|dual-write]`
 
-### Rollout preprod recommande
+### Migration legacy JSON -> SQL recommandee
 
 1. `composer blog-import-sql`  
 2. `.env` preprod -> `BLOG_STORAGE=dual-write`  

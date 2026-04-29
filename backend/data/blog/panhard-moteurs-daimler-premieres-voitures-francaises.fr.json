@@ -1,0 +1,34 @@
+{
+    "title": "Panhard, Daimler et les premières voitures françaises",
+    "slug": "panhard-moteurs-daimler-premieres-voitures-francaises",
+    "lang": "fr",
+    "status": "draft",
+    "author": "Caramagnols",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2026-04-29 09:10:00",
+    "excerpt": "Chez Panhard, l’automobile n’arrive pas d’un seul coup : elle naît du passage très concret entre moteurs sous licence, essais de châssis et premières ventes régulières.",
+    "content": "<p>Chez Panhard, l’automobile n’arrive pas d’un seul coup. Elle naît d’un passage très concret entre moteurs sous licence, essais de châssis et premières ventes régulières. Cette étape mérite d’être relue calmement, car elle montre comment une technique encore flottante devient une pratique industrielle.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/voiture1891_panhard-levassor.jpg\" alt=\"Panhard et Levassor 1891\" width=\"400\" height=\"348\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Les premières voitures Panhard prennent forme à partir d’un travail méthodique autour du moteur et du châssis.</figcaption>\n</figure>\n<h2>Des moteurs avant des voitures</h2>\n<p>Le point de départ n’est pas la carrosserie, ni même la route. Panhard fabrique d’abord des moteurs sous licence Daimler pour la France. Ce travail impose des contraintes très concrètes : comprendre la mécanique, la produire proprement et la faire fonctionner de façon régulière.</p>\n<p>C’est seulement à partir de là que la voiture devient possible. Le moteur n’est plus un objet isolé. Il doit trouver sa place dans un ensemble capable d’avancer, de tourner, de freiner et de durer.</p>\n<h2>Un apprentissage par essais</h2>\n<p>Les premiers véhicules ne naissent pas d’une formule instantanée. Il faut des montages, des corrections, des parcours d’essai et des arbitrages techniques. Cette phase d’apprentissage explique pourquoi les premiers constructeurs sérieux comptent moins par leurs promesses que par leur capacité à stabiliser une solution.</p>\n<p>Chez Panhard, cette stabilisation passe par une lecture très pratique des problèmes. Comment transmettre la puissance, comment répartir les organes, comment rendre la machine accessible. Le sujet n’est pas seulement l’invention. C’est l’assemblage maîtrisé.</p>\n<h2>Pourquoi 1891 reste un repère</h2>\n<p>Les historiens retiennent volontiers 1891 comme un moment important pour Panhard &amp; Levassor. Sans transformer cette date en concours d’antériorité, on peut y voir le passage à une vente plus régulière de voitures complètes. Cela change tout : on sort du prototype isolé pour entrer dans une logique de fabrication suivie.</p>\n<p>Ce glissement vers la régularité compte davantage que l’anecdote. Il ouvre la voie à une industrie, à des clients, à des usages et bientôt à des épreuves publiques qui vont servir de démonstration grandeur nature.</p>\n<h2>Ce détour compte encore</h2>\n<p>Comprendre le rôle de Daimler chez Panhard évite de raconter la naissance de l’automobile comme une légende simple. On voit au contraire un enchaînement de licences, de compétences importées, d’adaptations françaises et de choix industriels propres. La marque ne copie pas seulement. Elle transforme.</p>\n<p>Ce repère s’inscrit dans la page <a href=\"/auto-retro/panhard/histoire-de-panhard.php\">Panhard : des pionniers du système automobile aux dernières voitures civiles</a>. Dans le même thème, vous pouvez aussi lire <a href=\"/auto-retro/panhard/histoire-de-panhard.php?open_article=rene-panhard-emile-levassor-origine-marque#attached-article-rene-panhard-emile-levassor-origine-marque\">René Panhard et Émile Levassor</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1890-a-1939/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1890 à 1940</a></li>\n<li><a href=\"https://doyennes-panhard-levassor.fr/fr/historique/\" target=\"_blank\" rel=\"noopener noreferrer\">Les Doyennes de Panhard &amp; Levassor, Historique de la marque</a></li>\n<li><a href=\"https://dcpl.fr/les-panhard/\" target=\"_blank\" rel=\"noopener noreferrer\">Dynamic Club Panhard et Levassor, Les Panhard</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "histoire",
+        "voiture-ancienne",
+        "mecanique"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/emile_levassor.jpg",
+        "alt": "Portrait de Émile Levassor",
+        "title": "Émile Levassor",
+        "caption": "Le passage du moteur à l’automobile prend ici un visage précis.",
+        "width": 150,
+        "height": 199
+    },
+    "page_slug": "auto-retro-panhard-histoire-de-panhard",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:28:25+00:00",
+    "updated_at": "2026-04-29T13:28:25+00:00"
+}

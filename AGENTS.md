@@ -1,6 +1,6 @@
 # Caramagnols Workspace AGENTS
 
-Version de reference: 2026-04-22
+Version de reference: 2026-04-29
 
 Ce fichier est la source de verite pour le depot `/home/surfacepro8/www/caramagnols`.
 Son but est de fixer des regles communes de developpement, d'architecture, de langage, de verification et de documentation, a partir des conventions reelles du projet.
@@ -10,9 +10,10 @@ Son but est de fixer des regles communes de developpement, d'architecture, de la
 Ordre de travail recommande:
 - lire ce fichier avant toute intervention, puis lire les documents de reference utiles au domaine touche
 - identifier la nature du changement: code, contenu editorial, media, stockage, build, deploiement ou exploitation
-- reperer la source canonique avant d'ecrire: `backend/src/` pour la logique moderne, `frontend/src/` pour les assets et interactions, `backend/data/pages.json` comme registre de travail/versionnement editorial, SQL comme source active quand `EDITORIAL_STORAGE=sql`
+- reperer la source canonique avant d'ecrire: `backend/src/` pour la logique moderne, `frontend/src/` pour les assets et interactions, et SQL comme stockage maitre pour l'edito public de ce depot
 - ne modifier que le perimetre necessaire; ne pas melanger code produit, contenu editorial, artefacts generes et operations de production dans un meme passage sans raison explicite
-- pour une modification editoriale en mode SQL actif, faire un backup adapte, importer la correction en SQL via les repositories/outils prevus, regenerer l'index de recherche et verifier le rendu public cible
+- pour une modification editoriale, considerer SQL comme source de verite effective; `backend/data/pages.json` et `backend/data/menus.json` doivent etre traites comme miroirs de travail, snapshots de versionnement ou payloads d'import/export, jamais comme etat final suffisant a eux seuls
+- pour une modification editoriale en stockage SQL maitre, faire un backup adapte, pousser la correction dans SQL via les repositories/outils prevus, regenerer l'index de recherche et verifier le rendu public cible
 - pour un media public durable, versionner la source dans `frontend/src/assets/images/**`, produire `jpg` et `webp`, publier vers `backend/public/assets` via le pipeline, puis verifier dimensions, droits, sources et rendu
 - terminer par les validations adaptees au risque: JSON, PHP, frontend, index, build, smoke HTTP ou verification manuelle ciblee
 - signaler explicitement toute divergence restante entre JSON, SQL, prod, index ou assets publies
@@ -87,6 +88,7 @@ Regles associees:
 - ne pas editer un artefact genere si la source canonique existe ailleurs
 - ne pas toucher aux secrets ou aux overrides locaux sauf demande explicite
 - ne pas supprimer `backend/public/uploads/editorial/**` ni le traiter comme un cache
+- si un contenu editorial est d'abord prepare dans `backend/data/pages.json`, l'importer ensuite vers SQL dans le meme passage de travail et signaler explicitement si un miroir JSON / SQL reste divergent
 
 Discipline de `worktree`:
 - sauf demande explicite contraire, finir un passage de travail avec un `git status` propre
@@ -217,6 +219,7 @@ Le site doit garder une voix editoriale stable sur l'ensemble de ses pages publi
 - partir d'un fait concret avant tout effet de style: date, lieu, situation, etat, usage, observation ou repere technique
 - garder une voix claire, calme, vivante et incarnee
 - faire sentir la matiere, le paysage, la mecanique ou l'ambiance par des details justes et non par des formules convenues
+- Intégrer les contextes éditoriaux : patrimoine, culture, historique, géographique, géologique, botanique, touristique, architectural, économique, artisanal, gastronomique, environnemental, climatique, sociologique, événementiel, technique (auto-rétro, mécanique, restauration), réglementaire (si pertinent).
 - conserver les informations utiles: chronologie, contexte, saisonnalite, contraintes, repere technique, etat, travaux, usage, acces, singularite
 - conclure court, sans morale generale ni formule vide
 - sur les sujets personnels, assumer `nous`, `notre`, `nos` quand cela correspond a une experience reelle
@@ -636,11 +639,13 @@ Le projet supporte plusieurs modes de persistence editoriale:
 - `EDITORIAL_STORAGE=json|dual-write|sql`
 - `BLOG_STORAGE=json|dual-write|sql`
 
-### 11.2 Source active JSON et SQL
+### 11.2 Source active SQL et miroirs JSON
 
-- le JSON reste utile comme format de travail, versionnement Git, export, backup cible et payload de migration
+- pour ce depot, le mode de travail maitre attendu est SQL pour l'edito public: pages, navigation, blog et discussions
+- le JSON reste utile comme format de travail, versionnement Git, export, backup cible et payload de migration, mais il ne vaut pas preuve de publication dans l'environnement actif
 - quand `EDITORIAL_STORAGE=sql`, la base SQL est la source active du rendu local/prod; une page presente seulement dans `backend/data/pages.json` ne doit pas etre consideree comme publiee dans l'environnement actif
-- apres toute creation ou modification editoriale faite dans le registre JSON alors que le stockage actif est `sql`, importer la correction en SQL via un workflow adapte avant de conclure que la page est disponible
+- quand `BLOG_STORAGE=sql` ou que le blog herite d'un `EDITORIAL_STORAGE=sql`, la base SQL est aussi la source active pour les articles et discussions; un article present seulement dans le miroir JSON ne doit pas etre considere comme publie
+- apres toute creation ou modification editoriale faite dans le registre JSON alors que le stockage actif est `sql`, importer ou sauvegarder la correction en SQL via un workflow adapte avant de conclure que le contenu est disponible
 - privilegier un import SQL cible quand seules quelques pages ou entrees de navigation sont concernees; reserver l'import complet `pages.json`/navigation vers SQL aux synchronisations assumees
 - apres import SQL, regenerer l'index de recherche depuis le stockage actif et verifier le rendu public cible
 - si JSON et SQL restent volontairement divergents en fin de tache, le signaler explicitement avec les slugs/routes concernes
