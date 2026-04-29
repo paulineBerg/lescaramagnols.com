@@ -718,8 +718,7 @@
             "url": "/blog",
             "image": null,
             "blocs_utilises": [
-                "EditRegion1",
-                "EditRegion8"
+                "EditRegion1"
             ]
         }
     ]
