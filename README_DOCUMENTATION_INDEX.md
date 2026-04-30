@@ -30,6 +30,7 @@ Objectif : eviter les contradictions, savoir quel document est canonique, et red
 | `README_ADMIN_EDITORIAL_NAV_V1.md` | Admin editorial + navigation + chantier menu | actif | Roadmap detaillee de la couche admin/navigation |
 | `docs/README_REFONTE_LOT_C.md` | Isolement de la refonte heritee (Lot C) | actif | Cartographier les suppressions structurelles a committer a part du nettoyage |
 | `docs/README_CONSOLIDATION_LOT_D.md` | Consolidation du nouveau code (Lot D) | actif | Decouper le code neuf par domaines et rattacher tests/README associes |
+| `docs/sources/editorial/README.md` | Gouvernance des transcriptions et sources brutes editoriales | actif | Ranger et exploiter correctement les materiaux de travail editorial |
 | `README_RENDER_ARTEFACTS_V1.md` | Politique de versionning des artefacts build/assets | actif | Utiliser pour gouverner nettoyage/build et l'etat Git |
 | `docs/archive/README_ARCHIVES_INDEX.md` | Index central des documents archives | archive | Point d'entree pour consulter les archives README |
 | `docs/archive/README_BLOG_PLAN_V1.md` | Ancien plan blog->CMS | archive | Ne pas utiliser pour pilotage courant |
@@ -56,6 +57,7 @@ Objectif : eviter les contradictions, savoir quel document est canonique, et red
 5. Les audits dates restent en `archive` (ou `historique` selon besoin) : ne pas ecraser leur contexte, ajouter plutot une note de date.
 6. Toute mise a jour documentaire doit passer `cd frontend && npm run hygiene:docs`.
 7. Toute evolution du portail prive famille doit mettre a jour `README_PRIVATE_FAMILLE_V1.md`.
+8. Les sources brutes reutilisables de redaction ne vont pas a la racine `docs/` ; elles doivent etre rangees sous `docs/sources/editorial/` selon les regles du README dedie.
 
 ## Checklist "documentation saine"
 

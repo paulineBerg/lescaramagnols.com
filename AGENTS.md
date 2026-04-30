@@ -90,6 +90,11 @@ Regles associees:
 - ne pas toucher aux secrets ou aux overrides locaux sauf demande explicite
 - ne pas supprimer `backend/public/uploads/editorial/**` ni le traiter comme un cache
 - si un contenu editorial est d'abord prepare dans `backend/data/pages.json`, l'importer ensuite vers SQL dans le meme passage de travail et signaler explicitement si un miroir JSON / SQL reste divergent
+- la racine `docs/` est reservee aux documents projet maintenus: `README`, rapports, runbooks, audits, notes d'architecture et modes operatoires
+- les materiaux bruts de travail editorial reutilisables (transcriptions, notes sources, relevés internes) doivent vivre sous `docs/sources/editorial/`, pas a la racine `docs/`
+- dans `docs/sources/editorial/`, preferer `1` fichier par sujet editorial reel; si un meme enregistrement couvre plusieurs sujets (ex. SLK, 2CV4, restauration 2CV4), le decouper en plusieurs fichiers dedies
+- nommer ces fichiers de source en ASCII simple, `kebab-case`, avec un suffixe descriptif stable comme `-transcription.txt`; eviter espaces, ponctuation typographique et noms fourre-tout
+- si une source brute est temporaire, sensible ou sans reutilite editoriale durable, la conserver hors du depot plutot que dans `docs/`
 
 Discipline de `worktree`:
 - sauf demande explicite contraire, finir un passage de travail avec un `git status` propre
@@ -115,6 +120,7 @@ Avant une modification non triviale, prendre en compte les documents de referenc
 Principe:
 - si un README existant couvre deja le domaine touche, il doit etre considere comme source de verite documentaire
 - si un changement modifie comportement, exploitation, verification ou deploiement, mettre a jour la doc pertinente
+- si un travail editorial s'appuie sur des transcriptions ou notes brutes conservees dans le depot, lire aussi `docs/sources/editorial/README.md`
 
 ## 5. Architecture cible du depot
 
@@ -305,9 +311,10 @@ Ordre recommande:
 ### 9.9 Regles de structuration HTML et editoriale
 - un seul `h1` visible par article
 - respecter la hierarchie `h1` > `h2` > `h3` sans niveau saute
-- `EditRegion8 - Intro` ne peut contenir qu'une petite image d'appel ou un texte court
-- pour `INTRO`, privilegier d'abord une petite image; si aucune image n'est utile, limiter le texte a un bloc tres court
+- `EditRegion8 - Intro` ne peut contenir qu'une petite image d'appel ou une phrase tres courte
+- pour `INTRO`, privilegier d'abord une petite image; si aucune image n'est utile, limiter le texte a `1` phrase ou a un bloc tres court
 - ne pas utiliser `INTRO` pour loger un second corps d'article, un long developpement ou une grande image; si le contenu depasse ce role, le basculer dans `EditRegion3 - Corps` ou une autre region adaptee
+- en cas d'hesitation entre `EditRegion8 - Intro` et `EditRegion2 - Encart`, tout contenu qui depasse une petite photo ou une phrase tres courte doit aller dans `EditRegion2` ou `EditRegion3`, pas dans `EditRegion8`
 - rechercher, quand le sujet s'y prete, des images libre de droit pour agrementer les sections et ne pas se limiter aux visuels deja presents
 - pour un article de blog: image de couverture obligatoire, un texte d'intro compact et minimum une image utile dans le corps
 - pour un article de blog: au moins 1 image dans le contenu est obligatoire, une 2e image dans le contenu seulement si elle apporte une information précise (repere technique, comparaison, etat, usage)

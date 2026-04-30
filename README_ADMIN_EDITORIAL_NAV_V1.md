@@ -135,6 +135,11 @@ Mise a jour 2026-04-20 (admin pages, onglets de traduction) :
 - chaque onglet garde son propre bouton `Enregistrer la page`, mais la sauvegarde reste celle de la page complete pour conserver un seul contrat de persistance.
 - l onglet actif est restaure cote client apres navigation ou sauvegarde pour eviter de revenir systematiquement sur `fr`.
 
+Mise a jour 2026-04-30 (admin pages, region Intro) :
+- `EditRegion8 - Intro` doit rester plus petit que `EditRegion2 - Encart` dans le plan d edition.
+- `EditRegion8 - Intro` ne peut contenir qu une petite photo d appel ou une phrase tres courte.
+- des qu un contenu depasse ce role (texte developpe, second bloc editorial, grande image ou encart detaille), il doit etre deplace vers `EditRegion2 - Encart` ou `EditRegion3 - Corps`.
+
 Mise a jour 2026-04-22 (tuiles after_body) :
 - ajout d un module admin `Tuiles` distinct de `Menus du site`
 - stockage SQL dedie pour les groupes, les items, leurs traductions et les placements de page

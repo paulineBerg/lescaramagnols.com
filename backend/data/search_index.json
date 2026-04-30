@@ -103,21 +103,20 @@
         },
         {
             "titre": "Citroën 2CV4 : une base complète retrouvée dans le Doubs",
-            "contenu": "Citroën 2CV4 : une base complète retrouvée dans le DoubsCette 2CV4 n’est pas arrivée à l’atelier par hasard. Elle a été retrouvée dans le Doubs après un premier contact pris pour de simples pièces de 2CV, puis rachetée quelques mois plus tard comme base de restauration sérieuse.Acquise en août 2023 …",
+            "contenu": "Citroën 2CV4 : une base complète retrouvée dans le DoubsCette 2CV4 n’est pas arrivée à l’atelier par hasard. Elle a été retrouvée dans le Doubs après un premier contact pris pour de simples pièces de 2CV, puis rachetée quelques mois plus tard comme base de restauration sérieuse. Acquise en août 2023…",
             "url": "/auto-retro/citroen/la-2cv4.php",
-            "image": null,
+            "image": "/assets/images/autoretro/citroen/2cv4/citroen_2cv4_doubs_cote_gauche.jpg",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
                 "EditRegion3",
                 "EditRegion4",
-                "EditRegion8",
                 "EditRegion11"
             ]
         },
         {
-            "titre": "Citroën 2CV4 Restauration : châssis, moteur et remontage à l’atelier",
-            "contenu": "Citroën 2CV4 Restauration : châssis, moteur et remontage à l’atelierAprès son arrivée au plateau, cette 2CV4 est restée de longs mois à l’atelier avant que le chantier ne commence vraiment. Le temps de la restauration est ensuite passé par les étapes classiques d’une vieille Citroën, mais avec quelq…",
+            "titre": "Citroën 2CV4 Restauration par Garage SAVA - Rioz : châssis, moteur et remontage à l’atelier",
+            "contenu": "Citroën 2CV4 Restauration par Garage SAVA - Rioz : châssis, moteur et remontage à l’atelierAprès son arrivée au plateau, cette 2CV4 est restée de longs mois à l’atelier avant que le chantier ne commence vraiment. Le temps de la restauration est ensuite passé par les étapes classiques d’une vieille C…",
             "url": "/auto-retro/citroen/la-2cv4-restauration.php",
             "image": null,
             "blocs_utilises": [
@@ -125,7 +124,6 @@
                 "EditRegion2",
                 "EditRegion3",
                 "EditRegion4",
-                "EditRegion8",
                 "EditRegion11"
             ]
         },

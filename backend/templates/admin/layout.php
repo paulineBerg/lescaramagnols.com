@@ -2107,7 +2107,7 @@ $adminMenu = [
         grid-template-columns: repeat(3, minmax(0, 1fr));
         grid-template-areas:
           "hero hero hero"
-          "intro intro aside"
+          "intro aside aside"
           "body body body"
           "after after after"
           "left bottom right"
