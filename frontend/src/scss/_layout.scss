@@ -248,8 +248,22 @@ h3 {
   margin: 1% auto;
   padding: 0.5%;
 
+  figure {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.25rem auto;
+  }
+
   img {
     margin: 0 5px;
+  }
+
+  figcaption {
+    margin: 0;
+    max-width: 100%;
+    line-height: 1.35;
   }
 }
 

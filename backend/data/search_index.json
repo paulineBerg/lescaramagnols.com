@@ -387,6 +387,19 @@
             ]
         },
         {
+            "titre": "Restauration SLK 230 Kompressor : notre remise en état chez Garage SAVA",
+            "contenu": "Restauration de notre Mercedes SLK 230 Kompressor : diagnostic et remise à niveau Achetée en Bretagne en mai 2025, notre Mercedes SLK 230 Kompressor n’a pas pris aussitôt la route du golfe de Saint-Tropez. Sur place, au moment de l’achat, la batterie et les essuie-glaces ont été remplacés, puis la v…",
+            "url": "/auto-retro/mercedes/restauration-slk-230-kompressor.php",
+            "image": "/assets/images/autoretro/mercedes/mercedes_SLK_R170_200_1996.jpg",
+            "blocs_utilises": [
+                "EditRegion1",
+                "EditRegion2",
+                "EditRegion3",
+                "EditRegion4",
+                "EditRegion11"
+            ]
+        },
+        {
             "titre": "SIMCA",
             "contenu": "SIMCA Fondée à la fin de 1934 autour d’Henri Théodore Pigozzi, Simca naît pour construire en France des Fiat devenues trop coûteuses à importer. La marque passe ensuite de l’assemblage sous licence à des modèles majeurs comme l’Aronde, la Simca 1000 et la 1100, avant la séquence Chrysler puis Talbot…",
             "url": "/auto-retro/simca/histoire-de-simca.php",
@@ -697,7 +710,7 @@
             "titre": "Bouly&Cailloux : bijoux artisanaux en pierres naturelles à Cogolin",
             "contenu": "Bouly&Cailloux, bijoux artisanaux en pierres naturellesBouly&Cailloux est une boutique de Cogolin consacrée aux bijoux faits main, aux pierres naturelles et aux matières pensées pour être portées facilement au quotidien. L’atelier travaille à petite échelle, dans une logique simple: créer des pièces…",
             "url": "/boulyetcailloux-des-bijoux-artisanaux.php",
-            "image": "/assets/images/bouger/communes/cogolin/cogolin.webp",
+            "image": "/assets/images/boulyetcailloux/boulyetcailloux-bague-fuyu.webp",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",
