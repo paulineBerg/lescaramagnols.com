@@ -33,6 +33,7 @@
     "phpstan": "phpstan analyse",
     "phpcs": "phpcs",
     "editorial-import-sql": "php core/tools/import_editorial_to_sql.php",
+    "editorial-media-check": "php core/tools/check_editorial_media.php",
     "blog-import-sql": "php core/tools/import_blog_to_sql.php",
     "blog-taxonomy-diagnose": "php core/tools/diagnose_blog_taxonomy.php",
     "init-db-admin": "php core/tools/init_db_admin.php",

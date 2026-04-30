@@ -60,5 +60,9 @@ final class PublicUrlNormalizerTest extends TestCase
             'src="' . PublicUrlNormalizer::missingImagePlaceholderPath() . '"',
             $rewritten
         );
+        $this->assertStringContainsString(
+            'src="' . PublicUrlNormalizer::missingImagePlaceholderPath() . '" data-fallback-image="placeholder"',
+            $rewritten
+        );
     }
 }

@@ -40,6 +40,14 @@ img {
   height: auto;
 }
 
+img[data-fallback-image='placeholder'] {
+  display: block;
+  width: auto;
+  max-width: min(100%, 25rem);
+  height: auto;
+  margin-inline: auto;
+}
+
 // Liens
 
 a:link {
@@ -249,7 +257,50 @@ h3 {
   padding: 0.5%;
 
   img {
-    margin: 0 5px;
+    margin: 0 auto;
+  }
+
+  figure,
+  .content-inline-media {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0 auto 1rem;
+    justify-items: center;
+    max-width: min(100%, 28rem);
+  }
+
+  .content-inline-media--wide {
+    max-width: min(100%, 52rem);
+  }
+
+  .content-inline-media--compact {
+    max-width: min(100%, 24rem);
+  }
+
+  figure img,
+  .content-inline-media img {
+    width: 100%;
+    height: auto;
+    margin: 0 auto;
+  }
+
+  figcaption {
+    margin: 0;
+    max-width: min(100%, 42rem);
+    line-height: 1.4;
+    text-align: center;
+  }
+}
+
+.content-brand-intro {
+  margin: 0 auto 0.75rem;
+  text-align: center;
+
+  img {
+    display: block;
+    width: min(100%, 6.25rem);
+    height: auto;
+    margin: 0 auto;
   }
 }
 

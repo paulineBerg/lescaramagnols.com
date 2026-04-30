@@ -37,6 +37,7 @@ Mise a jour 2026-04-16 :
   - controle ensuite les budgets frontend via `tools/check-budgets.mjs`
   - déclenche ensuite automatiquement `postbuild`
   - publie donc le build dans `backend/public/`
+  - constitue aussi le prerequis attendu par `php ../backend/core/tools/check_editorial_media.php --check-published-assets`
 - `npm run postbuild`
   - republie un `dist/` déjà généré vers le backend
 - `npm run publish:backend`
@@ -83,6 +84,14 @@ Le script `frontend/tools/publish-build.mjs` :
 - supprime les anciens bundles hashés obsolètes à la racine de `backend/public/assets/`
 - vérifie ensuite que `backend/public/assets/images/**` reste un miroir exact de `frontend/src/assets/images/**`
 
+Avant deploy ou push editorial, le controle recommande est :
+- `php ../backend/core/tools/check_editorial_media.php --check-published-assets`
+
+Ce gate bloque si :
+- une reference `/assets/images/...` n'existe pas dans `frontend/src/assets/images/**`
+- ou si le miroir publie manque dans `backend/public/assets/images/**`
+- ou si un upload runtime `/uploads/editorial/...` reference n'existe pas sous `backend/public/uploads/editorial/**`
+
 Le nettoyage est volontairement limité :
 - il touche uniquement les fichiers hashés à la racine de `backend/public/assets/`
 - il resynchronise integralement `backend/public/assets/images/**` depuis la source frontend
@@ -124,6 +133,7 @@ Source de verite image :
 - publication derivee : `backend/public/assets/images/**`
 - consequence pratique : ne jamais corriger une image directement dans `backend/public/assets/images`
 - pour les images integrees dans le texte editorial : viser `400 px` par defaut et ne monter a `700 px` qu'en cas de besoin documentaire clair
+- si un contenu editorial reference un upload admin, la copie vers OVH passe par `../backend/tools/sync-editorial-uploads.sh` et non par le pipeline Vite
 
 ## Contrat Cote PHP
 

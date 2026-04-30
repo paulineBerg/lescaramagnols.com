@@ -56,12 +56,14 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 Prompt :
 en file d'attente,
 suivant agents.md et readme dédié BLOG,
-je veux que tu crées 5 max articles de blog en brouillon autour de 5 max thèmes distincts concernant la page parent "https://www.lescaramagnols.com/auto-retro/citroen/histoire-de-citroen.php"
-Fait les meilleurs choix SEO
-But :
-20 à 25 max articles ultra ciblés
-une domination SEO sur “Citroen”
+je veux que tu crées 5 max articles de blog en brouillon autour de 5 max thèmes distincts concernant la page parent "https://www.lescaramagnols.com/xxxxxx "
+relire la page déjà créé afin de bien adapter le sujet à son parent 
+Fait les meilleurs choix SEO,  pas de sujet redondant, pas de doublon d'images
+Objectifs :
+20 à 25 max articles ultra ciblés par langue
+une domination SEO sur : "xxxxx"
 un site structuré et cohérent
+style qui respecte au plus près les règles, calme, concret et explicatif
 
 - Mini : histoire de austin, histoire de mini,
 - citroen : histoire de citroen,
@@ -76,10 +78,18 @@ un site structuré et cohérent
 
 cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net" REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend" SITEMAP_BASE_URL="https://www.lescaramagnols.com" && cd frontend && npm run build && cd /home/surfacepro8/www/caramagnols && bash backend/tools/deploy-release.sh && bash backend/tools/push-local-sql-to-ovh.sh --live && ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_final\n\";'"
 
+- garde-fous maintenant automatiques :
+  - `backend/tools/deploy-release.sh` bloque si les references `/assets/images/...` ne correspondent pas a `frontend/src/assets/images/**` ou si le miroir publie manque dans `backend/public/assets/images/**`
+  - `backend/tools/push-local-sql-to-ovh.sh --live` bloque si pages, blog, navigation ou tuiles actives referencent un media manquant et synchronise aussi `backend/public/uploads/editorial/**` vers OVH par defaut
+
+- verification manuelle locale possible avant deploy :
+  - `php backend/core/tools/check_editorial_media.php --check-published-assets`
+
 
 - copier le SQL editorial local vers OVH : cd /home/surfacepro8/www/caramagnols
 bash backend/tools/push-local-sql-to-ovh.sh --live
   - ce push SQL editorial preserve les reglages runtime admin : `Parametres > Cron Center` (`cron_jobs`) et `Parametres > Sauvegardes` (`config/*.override.php`). Le script capture un snapshot avant/apres et echoue si ces reglages changent.
+  - ce push synchronise aussi les uploads runtime `backend/public/uploads/editorial/**`, sauf option `--no-uploads`
 - copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
 bash .ops-sync/bin/pull-caramagnols-db.sh --live
 
@@ -134,7 +144,7 @@ git stash pop "stash@{0}"
 - **Internationalisation (client)** : module `frontend/src/js/i18n.ts` (fetch `core/api/lang.php`, cache in-memory + localStorage, application sur `data-i18n`).
 - **Frontend build** : Vite 7 (ESM) + SCSS. Entrées `src/js/main.ts` et `src/scss/style.scss`; manifest publié dans `backend/public/.vite/manifest.json` puis injecté côté PHP via `backend/src/Assets/ViteAssetManager.php` et `vite_tags()`. Images copiées via `vite-plugin-static-copy`. Le build applique aussi un gate de budget via `frontend/tools/check-budgets.mjs`.
 - **Assets runtime** : en production, `npm run build` publie le build dans `backend/public/assets` et `backend/public/.vite`, avec purge automatique des anciens bundles hashés à la racine de `backend/public/assets`. La politique V1 impose de ne pas versionner `frontend/dist/**`, `backend/public/.vite/**`, `backend/public/tarteaucitron/**` et les bundles generes a la racine `backend/public/assets`. En dev, Vite sert les assets, le proxy `/core/*` cible `http://127.0.0.1:8000`.
-- **Uploads éditoriaux runtime** : les images uploadées depuis l’admin (pages/articles) sont stockées dans `backend/public/uploads/editorial/**` (chemins publics stables `/uploads/editorial/...`) et doivent être conservées en déploiement (pas de `--delete` sur ce dossier). Les medias partages pages sont mutualises dans `backend/public/uploads/editorial/media/YYYY/MM` avec resize auto + conversion WebP.
+- **Uploads éditoriaux runtime** : les images uploadées depuis l’admin (pages/articles) sont stockées dans `backend/public/uploads/editorial/**` (chemins publics stables `/uploads/editorial/...`) et doivent être conservées en déploiement (pas de `--delete` sur ce dossier). Les medias partages pages sont mutualises dans `backend/public/uploads/editorial/media/YYYY/MM` avec resize auto + conversion WebP. La synchronisation OVH se fait via `backend/tools/sync-editorial-uploads.sh`, appele automatiquement par `backend/tools/push-local-sql-to-ovh.sh --live` sauf `--no-uploads`.
 - **Sécurité** : en-têtes CSP/anti-clickjacking (`core/security.php`), session renommée (`caramagnols_session`) en `SameSite=Strict`, cookie `lang` en `HttpOnly`/`SameSite=Lax`, tokens CSRF (`csrf_token()` / `csrf_validate()`), rate limiting session (`core/rate_limiter.php`), timeout d'inactivite admin (120 min) avec warning de prolongation (fenetre 120s) et keepalive CSRF (`POST /<base_path>/<ADMIN_LOGIN_PATH>/session/ping`), sanitisation centralisée (`core/validation.php`) et filtrage strict des `iframe` editoriaux (YouTube uniquement, normalise `youtube-nocookie`).
 - **Admin Blog (SQL maître, JSON compatible)** : espace protégé sous `/<base_path>/<ADMIN_LOGIN_PATH>` (exemple par défaut : `/admin` quand `base_path=/`) avec login email/mot de passe (`core/auth/admin.php`). Le rendu passe par `backend/src/Admin/AdminController.php`, l’écriture blog par `backend/src/Blog/BlogApiController.php`, et la persistance par `backend/src/Blog/JsonBlogRepository.php` / `SqlBlogRepository`. Workflow statuts disponible : `draft`, `scheduled` (auto-publication a date atteinte), `published`. Aucun identifiant admin par défaut n’est fourni par le dépôt.
 - **Dashboard admin** : la page `/<base_path>/<ADMIN_LOGIN_PATH>/dashboard` synthétise les éléments clés de pilotage et met en priorité la modération des discussions (`pending`).
@@ -181,6 +191,7 @@ public/index.php
 ## Contrat PHP <-> Vite
 - **Dev** : le site s'ouvre sur `http://127.0.0.1:8000`. Si le serveur Vite tourne sur `VITE_DEV_SERVER_URL`, PHP injecte `@vite/client` et `src/js/main.ts` directement depuis Vite. Le proxy `/core/*` de Vite pointe vers `http://127.0.0.1:8000`.
 - **Prod** : `backend/public/assets/**` et `backend/public/.vite/manifest.json` doivent exister (publiés par `npm run build`).
+- **Controle media** : `php backend/core/tools/check_editorial_media.php --check-published-assets` verifie que les references editoriales locales pointent vers des fichiers reels dans `frontend/src/assets/images/**`, `backend/public/assets/images/**` et `backend/public/uploads/editorial/**`.
 - Symptômes + solutions :
   - `http://localhost:5173/` renvoie 404 : normal, Vite ne sert pas de page HTML autonome dans ce projet.
   - Page sur `8000` sans CSS/JS en dev : vérifier que `npm run dev` tourne bien sur `VITE_DEV_SERVER_URL`.

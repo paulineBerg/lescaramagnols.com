@@ -10,6 +10,9 @@ SITEMAP_BASE_URL="${SITEMAP_BASE_URL:-https://www.lescaramagnols.com}"
 BACKUP_ROOT="${BACKUP_ROOT:-/home/surfacepro8/backups/caramagnols}"
 PHP_BIN="${PHP_BIN:-php}"
 ADMIN_RUNTIME_SNAPSHOT_TOOL="core/tools/export_admin_runtime_settings.php"
+EDITORIAL_MEDIA_CHECKER="core/tools/check_editorial_media.php"
+EDITORIAL_MEDIA_VALIDATOR_CLASS="src/Editorial/EditorialMediaValidator.php"
+UPLOADS_SYNC_SCRIPT="${REPO_ROOT}/backend/tools/sync-editorial-uploads.sh"
 
 LIVE=0
 DRY_RUN=0
@@ -17,11 +20,12 @@ KEEP_REMOTE_BACKUPS=0
 ALLOW_DELETE=0
 INCLUDE_DISCUSSIONS=0
 SYNC_ASSETS=1
+SYNC_UPLOADS=1
 
 usage() {
   cat <<'USAGE'
 Usage:
-  bash backend/tools/push-local-sql-to-ovh.sh --live [--allow-delete] [--include-discussions] [--no-assets] [--keep-remote-backups]
+  bash backend/tools/push-local-sql-to-ovh.sh --live [--allow-delete] [--include-discussions] [--no-assets] [--no-uploads] [--keep-remote-backups]
 
 Description:
   Synchronise le contenu editorial SQL local vers la production OVH.
@@ -30,9 +34,13 @@ Description:
   Elle exclut les donnees runtime/sensibles: utilisateurs, logs, meta schema, commentaires legacy et discussions de blog.
   Elle verifie aussi que les reglages admin Cron Center et Sauvegardes restent inchanges.
   Elle synchronise aussi les assets publies par le build frontend: manifest Vite, bundles CSS/JS et images publiques.
+  Elle synchronise aussi les uploads editoriaux runtime sous backend/public/uploads/editorial/**, sauf --no-uploads.
+  Elle bloque l'envoi si une page, un article, une navigation ou un groupe de tuiles actif reference un media manquant.
 
 Etapes:
+  - verifie les references medias editoriales locales
   - synchronise les assets frontend publies, sauf --no-assets
+  - synchronise les uploads editoriaux runtime, sauf --no-uploads
   - met a jour l'outil de sync editorial sur OVH
   - capture les reglages admin runtime prod avant ecriture
   - cree un backup SQL local
@@ -51,6 +59,7 @@ Options:
   --allow-delete         Autorise les suppressions detectees par le diff editorial.
   --include-discussions  Inclut aussi les discussions de blog; a eviter sauf besoin explicite.
   --no-assets            Ne pousse pas les assets frontend publies.
+  --no-uploads           Ne pousse pas les uploads editoriaux runtime.
   --dry-run              Affiche la configuration puis sort sans ecriture.
   --keep-remote-backups  Conserve les backups temporaires aussi sur OVH.
   -h, --help             Affiche cette aide.
@@ -65,6 +74,7 @@ while (($#)); do
     --allow-delete) ALLOW_DELETE=1 ;;
     --include-discussions) INCLUDE_DISCUSSIONS=1 ;;
     --no-assets) SYNC_ASSETS=0 ;;
+    --no-uploads) SYNC_UPLOADS=0 ;;
     -h|--help)
       usage
       exit 0
@@ -99,6 +109,21 @@ if [[ ! -f "$LOCAL_BACKEND/$ADMIN_RUNTIME_SNAPSHOT_TOOL" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$LOCAL_BACKEND/$EDITORIAL_MEDIA_CHECKER" ]]; then
+  echo "Outil validation medias introuvable dans $LOCAL_BACKEND." >&2
+  exit 1
+fi
+
+if [[ ! -f "$LOCAL_BACKEND/$EDITORIAL_MEDIA_VALIDATOR_CLASS" ]]; then
+  echo "Classe validation medias introuvable dans $LOCAL_BACKEND." >&2
+  exit 1
+fi
+
+if [[ ! -f "$UPLOADS_SYNC_SCRIPT" ]]; then
+  echo "Script sync uploads introuvable: $UPLOADS_SYNC_SCRIPT" >&2
+  exit 1
+fi
+
 echo "Push SQL editorial local -> OVH"
 echo "Local backend: $LOCAL_BACKEND"
 echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
@@ -107,6 +132,7 @@ echo "Sitemap base URL: $SITEMAP_BASE_URL"
 echo "Allow delete: $ALLOW_DELETE"
 echo "Include discussions: $INCLUDE_DISCUSSIONS"
 echo "Sync assets: $SYNC_ASSETS"
+echo "Sync uploads: $SYNC_UPLOADS"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "[dry-run] Aucune sauvegarde ni ecriture distante ne sera lancee."
@@ -157,8 +183,11 @@ cleanup_local() {
 }
 trap cleanup_local EXIT
 
+echo "[1/15] Verification locale des references medias editoriales"
+"$PHP_BIN" "$LOCAL_BACKEND/$EDITORIAL_MEDIA_CHECKER" --check-published-assets --public-root="$LOCAL_BACKEND/public"
+
 if [[ "$SYNC_ASSETS" -eq 1 ]]; then
-  echo "[1/12] Synchronisation des assets frontend publies"
+  echo "[2/15] Synchronisation des assets frontend publies"
   "$PHP_BIN" "$LOCAL_BACKEND/core/tools/check_vite_assets.php" --public-root="$LOCAL_BACKEND/public"
   ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/public/.vite' '$REMOTE_BACKEND/public/assets'"
   rsync -az "$LOCAL_BACKEND/public/.vite/" "$REMOTE_HOST:$REMOTE_BACKEND/public/.vite/"
@@ -176,38 +205,49 @@ if [[ "$SYNC_ASSETS" -eq 1 ]]; then
     "$LOCAL_BACKEND/public/assets/" "$REMOTE_HOST:$REMOTE_BACKEND/public/assets/"
   ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/check_vite_assets.php --public-root=public"
 else
-  echo "[1/12] Synchronisation des assets frontend publies ignoree (--no-assets)"
+  echo "[2/15] Synchronisation des assets frontend publies ignoree (--no-assets)"
 fi
 
-echo "[2/12] Mise a jour des outils de sync editorial sur OVH"
+if [[ "$SYNC_UPLOADS" -eq 1 ]]; then
+  echo "[3/15] Synchronisation des uploads editoriaux runtime"
+  REMOTE_HOST="$REMOTE_HOST" REMOTE_BACKEND="$REMOTE_BACKEND" LOCAL_BACKEND="$LOCAL_BACKEND" \
+    bash "$UPLOADS_SYNC_SCRIPT"
+else
+  echo "[3/15] Synchronisation des uploads editoriaux runtime ignoree (--no-uploads)"
+fi
+
+echo "[4/15] Mise a jour des outils de sync editorial sur OVH"
 ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/core/tools'"
 rsync -az "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" "$REMOTE_HOST:$REMOTE_BACKEND/core/tools/editorial_backup_restore.php"
 rsync -az "$LOCAL_BACKEND/$ADMIN_RUNTIME_SNAPSHOT_TOOL" "$REMOTE_HOST:$REMOTE_BACKEND/$ADMIN_RUNTIME_SNAPSHOT_TOOL"
+rsync -az "$LOCAL_BACKEND/$EDITORIAL_MEDIA_CHECKER" "$REMOTE_HOST:$REMOTE_BACKEND/$EDITORIAL_MEDIA_CHECKER"
+ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/src/Editorial'"
+rsync -az "$LOCAL_BACKEND/$EDITORIAL_MEDIA_VALIDATOR_CLASS" "$REMOTE_HOST:$REMOTE_BACKEND/$EDITORIAL_MEDIA_VALIDATOR_CLASS"
 
-echo "[3/12] Snapshot reglages admin prod avant ecriture"
+echo "[5/15] Snapshot reglages admin prod avant ecriture"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && mkdir -p var/backups && php '$ADMIN_RUNTIME_SNAPSHOT_TOOL' --output='$REMOTE_ADMIN_BEFORE_JSON' && stat -c '%s %n' '$REMOTE_ADMIN_BEFORE_JSON'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_ADMIN_BEFORE_JSON" "$PROD_DIR/"
 PROD_ADMIN_BEFORE_LOCAL="$PROD_DIR/$(basename "$REMOTE_ADMIN_BEFORE_JSON")"
 chmod 600 "$PROD_ADMIN_BEFORE_LOCAL"
 stat -c '%a %s %n' "$PROD_ADMIN_BEFORE_LOCAL"
 
-echo "[4/12] Backup SQL local"
+echo "[6/15] Backup SQL local"
 "$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" backup "${SYNC_FLAGS[@]}" --output="$LOCAL_JSON"
 gzip -f "$LOCAL_JSON"
 chmod 600 "$LOCAL_GZ"
 stat -c '%a %s %n' "$LOCAL_GZ"
 
-echo "[5/12] Backup SQL prod OVH avant ecriture"
+echo "[7/15] Backup SQL prod OVH avant ecriture"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && mkdir -p var/backups && php core/tools/editorial_backup_restore.php backup $REMOTE_SYNC_FLAGS --output='$REMOTE_BACKUP_JSON' && gzip -f '$REMOTE_BACKUP_JSON' && stat -c '%s %n' '$REMOTE_BACKUP_GZ'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_BACKUP_GZ" "$PROD_DIR/"
 PROD_BEFORE_LOCAL="$PROD_DIR/$(basename "$REMOTE_BACKUP_GZ")"
 chmod 600 "$PROD_BEFORE_LOCAL"
 stat -c '%a %s %n' "$PROD_BEFORE_LOCAL"
 
-echo "[6/12] Diff editorial local -> prod"
+echo "[8/15] Diff editorial local -> prod"
 "$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" diff "$LOCAL_GZ" "$PROD_BEFORE_LOCAL" "${DIFF_FLAGS[@]}"
 
-echo "[7/12] Copie du payload local vers OVH"
+echo "[9/15] Copie du payload local vers OVH"
 gzip -dc "$LOCAL_GZ" > "$TMP_JSON"
 chmod 600 "$TMP_JSON"
 LOCAL_SIZE="$(stat -c '%s' "$TMP_JSON")"
@@ -219,10 +259,10 @@ if [[ "$LOCAL_SIZE" != "$REMOTE_SIZE" ]]; then
   exit 1
 fi
 
-echo "[8/12] Restore SQL prod et regeneration"
+echo "[10/15] Restore SQL prod et regeneration"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php restore '$REMOTE_PAYLOAD' $REMOTE_RESTORE_FLAGS && php core/tools/generate_search_index.php && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url='$SITEMAP_BASE_URL' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_after_sql_restore\n\";'"
 
-echo "[9/12] Verification reglages admin Cron/Sauvegardes"
+echo "[11/15] Verification reglages admin Cron/Sauvegardes"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$ADMIN_RUNTIME_SNAPSHOT_TOOL' --output='$REMOTE_ADMIN_AFTER_JSON' && stat -c '%s %n' '$REMOTE_ADMIN_AFTER_JSON'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_ADMIN_AFTER_JSON" "$PROD_DIR/"
 PROD_ADMIN_AFTER_LOCAL="$PROD_DIR/$(basename "$REMOTE_ADMIN_AFTER_JSON")"
@@ -235,17 +275,20 @@ if ! cmp -s "$PROD_ADMIN_BEFORE_LOCAL" "$PROD_ADMIN_AFTER_LOCAL"; then
 fi
 echo "Reglages admin Cron/Sauvegardes inchanges."
 
-echo "[10/12] Backup prod apres ecriture"
+echo "[12/15] Backup prod apres ecriture"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php backup $REMOTE_SYNC_FLAGS --output='$REMOTE_AFTER_JSON' && gzip -f '$REMOTE_AFTER_JSON' && stat -c '%s %n' '$REMOTE_AFTER_GZ'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_AFTER_GZ" "$PROD_DIR/"
 PROD_AFTER_LOCAL="$PROD_DIR/$(basename "$REMOTE_AFTER_GZ")"
 chmod 600 "$PROD_AFTER_LOCAL"
 stat -c '%a %s %n' "$PROD_AFTER_LOCAL"
 
-echo "[11/12] Comparaison local/prod apres restore"
+echo "[13/15] Comparaison local/prod apres restore"
 "$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" compare "$LOCAL_GZ" "$PROD_AFTER_LOCAL" "${SYNC_FLAGS[@]}"
 
-echo "[12/12] Controles prod"
+echo "[14/15] Validation medias cote production"
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$EDITORIAL_MEDIA_CHECKER' --skip-source-assets --check-published-assets --public-root=public"
+
+echo "[15/15] Controles prod"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/check_vite_assets.php --public-root=public && php core/tools/check_prod_tree.php --root=. && php core/tools/check_env.php --env=production --strict-prod-security"
 
 if command -v composer >/dev/null 2>&1; then

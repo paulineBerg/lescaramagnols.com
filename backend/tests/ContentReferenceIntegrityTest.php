@@ -34,13 +34,13 @@ final class ContentReferenceIntegrityTest extends TestCase
 
         foreach ($this->versionedEditorialFiles() as $file) {
             foreach ($this->extractStringsFromJsonFile($file) as $value) {
-                if (
-                    preg_match_all(
-                        '#(?:https?://(?:www\.)?lescaramagnols\.com)?(/assets/images/[^"\'\s<>()]+?\.(?:png|jpe?g|gif|webp|avif|svg))(?:\?[^"\'\s<>()]*)?#i',
-                        $value,
-                        $matches
-                    ) !== 1
-                ) {
+                $matchCount = preg_match_all(
+                    '#(?:https?://(?:www\.)?lescaramagnols\.com)?(/assets/images/[^"\'\s<>()]+?\.(?:png|jpe?g|gif|webp|avif|svg))(?:\?[^"\'\s<>()]*)?#i',
+                    $value,
+                    $matches
+                );
+
+                if (!is_int($matchCount) || $matchCount < 1) {
                     continue;
                 }
 

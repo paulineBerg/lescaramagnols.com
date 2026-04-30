@@ -453,6 +453,22 @@ $legacy-title-suffix: (
   height: auto;
 }
 
+.page-attached-article-body figure {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1.25rem auto;
+  justify-items: center;
+}
+
+.page-attached-article-body figcaption {
+  margin: 0;
+  max-width: min(100%, 42rem);
+  color: rgb(53 69 97);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
 .instagram-feed-home {
   display: grid;
   gap: 0.9rem;

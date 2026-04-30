@@ -138,13 +138,28 @@ final class PublicUrlNormalizer
                 $attribute = strtolower((string) $matches[1]);
                 $quote = (string) $matches[2];
                 $value = (string) $matches[3];
-                $normalized = self::normalizeHtmlAttributeUrl($value, $baseRoute, $attribute !== 'href');
+                $allowImageFallback = $attribute !== 'href';
+                $normalized = self::normalizeHtmlAttributeUrl($value, $baseRoute, $allowImageFallback);
+                $normalizedWithoutFallback = $allowImageFallback
+                    ? self::normalizeHtmlAttributeUrl($value, $baseRoute, false)
+                    : '';
+                $fallbackMarker = '';
+
+                if (
+                    $attribute === 'src'
+                    && $normalized === self::missingImagePlaceholderPath()
+                    && $normalizedWithoutFallback !== ''
+                    && $normalizedWithoutFallback !== self::missingImagePlaceholderPath()
+                ) {
+                    $fallbackMarker = ' data-fallback-image="placeholder"';
+                }
 
                 return (string) $matches[1]
                     . '='
                     . $quote
                     . htmlspecialchars($normalized, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
-                    . $quote;
+                    . $quote
+                    . $fallbackMarker;
             },
             $html
         );

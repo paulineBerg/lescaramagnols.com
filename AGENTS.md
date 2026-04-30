@@ -15,6 +15,7 @@ Ordre de travail recommande:
 - pour une modification editoriale, considerer SQL comme source de verite effective; `backend/data/pages.json` et `backend/data/menus.json` doivent etre traites comme miroirs de travail, snapshots de versionnement ou payloads d'import/export, jamais comme etat final suffisant a eux seuls
 - pour une modification editoriale en stockage SQL maitre, faire un backup adapte, pousser la correction dans SQL via les repositories/outils prevus, regenerer l'index de recherche et verifier le rendu public cible
 - pour un media public durable, versionner la source dans `frontend/src/assets/images/**`, produire `jpg` et `webp`, publier vers `backend/public/assets` via le pipeline, puis verifier dimensions, droits, sources et rendu
+- avant un deploy ou un push editorial, verifier les medias references via `php backend/core/tools/check_editorial_media.php --check-published-assets` ou laisser les scripts de deploiement bloquer automatiquement
 - terminer par les validations adaptees au risque: JSON, PHP, frontend, index, build, smoke HTTP ou verification manuelle ciblee
 - signaler explicitement toute divergence restante entre JSON, SQL, prod, index ou assets publies
 
@@ -476,9 +477,13 @@ Pour les images publiques du site, la source de verite est:
 Regles:
 - toute nouvelle image publique durable doit etre versionnee dans `frontend/src/assets/images/**`
 - `backend/public/assets/images/**` est une copie publiee, jamais une source editable
-- `backend/public/uploads/editorial/**` est un espace runtime legacy ou d'exception; ne pas l'utiliser pour un nouveau media public sans demande explicite
+- `backend/public/uploads/editorial/**` est le stockage runtime des uploads admin pages/articles; il doit etre synchronise separement vers OVH et ne doit pas etre traite comme un cache
 - ne pas editer directement `backend/public/assets/images/**`
 - si un media visible en production a ete modifie directement sur OVH, recopier d'abord l'etat distant en local avant tout nouveau push
+- toute reference editoriale vers `/assets/images/...` doit correspondre a un fichier reel dans `frontend/src/assets/images/**`
+- toute reference editoriale vers `/uploads/editorial/...` doit correspondre a un fichier reel dans `backend/public/uploads/editorial/**`
+- avant publication, le miroir publie `backend/public/assets/images/**` doit etre regenere par `cd frontend && npm run build`
+- le controle bloquant de reference media est `php backend/core/tools/check_editorial_media.php --check-published-assets`
 
 Commande WSL de resynchronisation locale apres divergence prod:
 - etat editorial SQL: `cd /home/surfacepro8/www/caramagnols && bash .ops-sync/bin/pull-caramagnols-db.sh --live`
@@ -518,6 +523,25 @@ Regles de poids et de rendu:
 - verifier apres insertion que le rendu reste stable sur mobile comme sur desktop
 - une illustration documentaire ne doit pas prendre toute la largeur par accident
 - lors d'un redimensionnement responsive d'image, conserver le ratio naturel: fixer au plus une largeur ou un `max-width`, et laisser `height: auto`
+
+### 10.3 Controle bloquant avant push
+
+Commande de reference:
+- `php backend/core/tools/check_editorial_media.php --check-published-assets`
+
+Ce controle doit echouer si:
+- une page, un article, une navigation ou un groupe de tuiles actif reference un fichier `/assets/images/...` absent de `frontend/src/assets/images/**`
+- le miroir publie correspondant manque dans `backend/public/assets/images/**`
+- un upload runtime `/uploads/editorial/...` reference n'existe pas localement
+
+Workflow de publication associe:
+- `cd frontend && npm run build`
+- `php backend/core/tools/check_editorial_media.php --check-published-assets`
+- `bash backend/tools/deploy-release.sh`
+- `bash backend/tools/push-local-sql-to-ovh.sh --live`
+
+En production OVH:
+- `backend/tools/push-local-sql-to-ovh.sh --live` synchronise aussi `backend/public/uploads/editorial/**` par defaut, sauf `--no-uploads`
 - ne pas combiner une largeur fluide avec une hauteur fixe sur une image editoriale; si un cadrage visuel est necessaire, utiliser un conteneur dimensionne avec `aspect-ratio` et `object-fit`, pas une image deformee
 
 ### 10.3 Droits, sources et provenance

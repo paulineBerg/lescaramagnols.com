@@ -8,6 +8,7 @@ REMOTE_HOST="${REMOTE_HOST:-}"
 REMOTE_BACKEND="${REMOTE_BACKEND:-}"
 SITEMAP_BASE_URL="${SITEMAP_BASE_URL:-}"
 VITE_ASSET_CHECKER="core/tools/check_vite_assets.php"
+EDITORIAL_MEDIA_CHECKER="core/tools/check_editorial_media.php"
 PROD_TREE_CHECKER="core/tools/check_prod_tree.php"
 
 DRY_RUN=0
@@ -92,6 +93,11 @@ if [[ ! -f "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$LOCAL_BACKEND/$EDITORIAL_MEDIA_CHECKER" ]]; then
+  echo "Editorial media checker not found: $LOCAL_BACKEND/$EDITORIAL_MEDIA_CHECKER" >&2
+  exit 1
+fi
+
 if [[ ! -f "$LOCAL_BACKEND/$PROD_TREE_CHECKER" ]]; then
   echo "Production tree checker not found: $LOCAL_BACKEND/$PROD_TREE_CHECKER" >&2
   exit 1
@@ -171,6 +177,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
 fi
 
 php "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" --public-root="$LOCAL_BACKEND/public"
+php "$LOCAL_BACKEND/$EDITORIAL_MEDIA_CHECKER" --check-published-assets --public-root="$LOCAL_BACKEND/public"
 
 ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND'"
 

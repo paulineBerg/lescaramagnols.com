@@ -708,9 +708,9 @@
     "boulyetcailloux-des-bijoux-artisanaux": [
         {
             "titre": "Bouly&Cailloux : bijoux artisanaux en pierres naturelles à Cogolin",
-            "contenu": "Bouly&Cailloux, bijoux artisanaux en pierres naturellesBouly&Cailloux est une boutique de Cogolin consacrée aux bijoux faits main, aux pierres naturelles et aux matières pensées pour être portées facilement au quotidien. L’atelier travaille à petite échelle, dans une logique simple: créer des pièces…",
+            "contenu": "Bouly&Cailloux, bijoux artisanaux en pierres naturelles à CogolinBouly&Cailloux est un petit atelier installé à Cogolin, dans le golfe de Saint-Tropez. On y trouve des bijoux faits main, des pierres naturelles et une boutique en ligne pensée simplement, avec des créations à découvrir aussi sur rende…",
             "url": "/boulyetcailloux-des-bijoux-artisanaux.php",
-            "image": "/assets/images/boulyetcailloux/boulyetcailloux-bague-fuyu.webp",
+            "image": "/assets/images/structure/logo.png",
             "blocs_utilises": [
                 "EditRegion1",
                 "EditRegion2",

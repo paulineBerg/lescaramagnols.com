@@ -152,12 +152,15 @@ Images editoriales runtime :
 - les uploads admin pages/articles sont stockes dans `backend/public/uploads/editorial/**`
 - ce dossier doit etre conserve en deploiement (scripts release/fast exclus des suppressions sur ce scope)
 - les medias partages pages utilisent le sous-dossier mutualise `backend/public/uploads/editorial/media/YYYY/MM` pour permettre la reutilisation inter-pages/inter-articles
+- la synchronisation OVH de ce scope se fait via `backend/tools/sync-editorial-uploads.sh`, appele automatiquement par `backend/tools/push-local-sql-to-ovh.sh --live` sauf `--no-uploads`
 
 Images publiques versionnees / derivees :
 - la source canonique des images publiques front-office vit dans `frontend/src/assets/images/**`
 - la publication HTTP correspondante est copiee dans `backend/public/assets/images/**` au build (`npm run build` / `npm run postbuild`)
 - `backend/public/assets/images/**` ne doit pas etre edite a la main ni versionne dans Git
 - si une image publique manque ou doit etre corrigee, faire la modification dans `frontend/src/assets/images/**` puis republier
+- le controle bloquant associe est `php backend/core/tools/check_editorial_media.php --check-published-assets`
+- ce controle inspecte pages, blog, navigation et groupes de tuiles actifs pour refuser toute reference vers un media absent
 
 ## Shims Legacy Conserves
 
