@@ -22,6 +22,7 @@ Configuration :
 - `BLOG_STORAGE=json|dual-write|sql`
 - fallback automatique sur `EDITORIAL_STORAGE` si `BLOG_STORAGE` absent
 - pour ce depot, la cible de travail et de verification est `BLOG_STORAGE=sql` ou, a defaut, `EDITORIAL_STORAGE=sql`
+- le miroir JSON, quand il est maintenu, doit etre regenere depuis SQL via `composer editorial-export-json --working-dir=backend`
 
 ## Périmètre fonctionnel
 
@@ -128,6 +129,7 @@ Si un miroir JSON est volontairement maintenu pour versionnement ou export, il d
 - `slug.fr.json`
 - `slug.en.json`
 - `slug.de.json`
+- pour l ensemble editorial, utiliser `php backend/core/tools/export_sql_editorial_to_json.php` plutot qu une edition manuelle des miroirs
 
 Le français est la version maître. Les versions anglaise et allemande doivent refléter le fond français sans omission, ajout non justifié ni changement de sens : mêmes faits, mêmes limites, mêmes liens utiles, même rattachement, même taxonomie et informations pratiques équivalentes. L’adaptation naturelle du ton et de la formulation est admise, mais elle ne doit pas modifier le contenu éditorial.
 

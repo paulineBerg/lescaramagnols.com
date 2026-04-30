@@ -117,7 +117,9 @@ Les points d'entree publics et admin lisent maintenant le registre editorial via
 La commande de migration initiale est :
 - `composer editorial-import-sql`
 
-Le choix par defaut reste `json` pour ne pas bloquer le front-office pendant la transition.
+Le choix par defaut du depot est maintenant `sql`.
+Les miroirs JSON ne sont plus la source de travail recommandee; ils servent d export, de snapshot ou de support de rollback cible via :
+- `composer editorial-export-json`
 
 Pour le blog, la meme logique est appliquee avec `BLOG_STORAGE=json|dual-write|sql` (fallback `EDITORIAL_STORAGE`).
 Migration blog JSON -> SQL :

@@ -227,6 +227,37 @@ final class JsonPageStore implements PageStoreInterface
         ]);
     }
 
+    /**
+     * @param array{meta?: array<string, mixed>, pages?: array<int, array<string, mixed>>}|array<int, array<string, mixed>> $registry
+     */
+    public function replaceRegistry(array $registry): bool
+    {
+        $pages = $registry['pages'] ?? $registry;
+        if (!is_array($pages)) {
+            return false;
+        }
+
+        $normalizedPages = [];
+
+        foreach ($pages as $page) {
+            if (!is_array($page)) {
+                continue;
+            }
+
+            $normalized = $this->normalizer->normalizePage($page);
+            if ($normalized === null) {
+                return false;
+            }
+
+            $normalizedPages[] = $normalized;
+        }
+
+        return $this->saveRegistry([
+            'meta' => ['version' => PageRepository::SCHEMA_VERSION],
+            'pages' => $normalizedPages,
+        ]);
+    }
+
     public function clearCache(): void
     {
         $this->registryCache = null;

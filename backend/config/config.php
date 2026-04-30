@@ -411,10 +411,10 @@ $appConfig = [
     'database_prefix' => $databasePrefixOverride ?? env('DB_TABLE_PREFIX', 'car_'),
     'editorial' => [
         'storage' => in_array(
-            (string) env('EDITORIAL_STORAGE', 'json'),
+            (string) env('EDITORIAL_STORAGE', 'sql'),
             ['json', 'sql', 'dual-write'],
             true
-        ) ? (string) env('EDITORIAL_STORAGE', 'json') : 'json',
+        ) ? (string) env('EDITORIAL_STORAGE', 'sql') : 'sql',
         'schema_dir' => ROOT_PATH . '/sql/editorial',
     ],
     'mail' => [
@@ -452,10 +452,10 @@ $appConfig = [
     'blog' => [
         'mode' => env('BLOG_MODE', 'experimental'),
         'storage' => in_array(
-            (string) env('BLOG_STORAGE', env('EDITORIAL_STORAGE', 'json')),
+            (string) env('BLOG_STORAGE', env('EDITORIAL_STORAGE', 'sql')),
             ['json', 'sql', 'dual-write'],
             true
-        ) ? (string) env('BLOG_STORAGE', env('EDITORIAL_STORAGE', 'json')) : 'json',
+        ) ? (string) env('BLOG_STORAGE', env('EDITORIAL_STORAGE', 'sql')) : 'sql',
         'data_dir' => env('BLOG_DATA_DIR', ROOT_PATH . '/data/blog'),
     ],
     'site' => [

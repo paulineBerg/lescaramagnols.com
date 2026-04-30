@@ -74,12 +74,14 @@ un site structuré et cohérent
 
 ### deployer Tout :
 
-cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net" REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend" SITEMAP_BASE_URL="https://www.lescaramagnols.com" && cd frontend && npm run build && cd /home/surfacepro8/www/caramagnols && bash backend/tools/deploy-release.sh && bash backend/tools/push-local-sql-to-ovh.sh --live && ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_final\n\";'"
+cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net" REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend" SITEMAP_BASE_URL="https://www.lescaramagnols.com" && bash backend/tools/publish-sql-release.sh --live
 
 
 - copier le SQL editorial local vers OVH : cd /home/surfacepro8/www/caramagnols
 bash backend/tools/push-local-sql-to-ovh.sh --live
   - ce push SQL editorial preserve les reglages runtime admin : `Parametres > Cron Center` (`cron_jobs`) et `Parametres > Sauvegardes` (`config/*.override.php`). Le script capture un snapshot avant/apres et echoue si ces reglages changent.
+- exporter le SQL editorial local vers les miroirs JSON : cd /home/surfacepro8/www/caramagnols
+composer editorial-export-json --working-dir=backend
 - copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
 bash .ops-sync/bin/pull-caramagnols-db.sh --live
 
@@ -327,6 +329,7 @@ public/index.php
   - compatibilité de transition : `EDITORIAL_STORAGE=dual-write`
   - compatibilité historique / import ciblé : `EDITORIAL_STORAGE=json`
   - import initial : `composer editorial-import-sql`
+  - export SQL -> miroirs JSON : `composer editorial-export-json`
   - import blog JSON -> SQL : `composer blog-import-sql`
   - backup/restore operationnel : `php backend/core/tools/editorial_backup_restore.php backup|restore` (+ `--storage=json|sql|dual-write` pour forcer un mode de verification)
 - **API** : `core/api/lang.php` sert les traductions JSON au frontend (`?lang=fr|en|de`), avec fallback `DEFAULT_LANG`, ETag et le même chargeur de traductions que le rendu PHP.
@@ -350,7 +353,7 @@ public/index.php
   - mode maître de travail pour ce dépôt : `BLOG_STORAGE=sql` ou fallback `EDITORIAL_STORAGE=sql`
   - workflow statut : `draft` / `scheduled` / `published`
   - publication planifiee : un article `scheduled` devient visible automatiquement (front, RSS, sitemap) des que sa date est atteinte, sans cron
-  - stockage JSON historique / miroir si explicitement maintenu : `backend/data/blog/{slug}.{lang}.json` et `backend/data/blog-discussions/{slug}.{lang}.json`
+  - stockage JSON historique / miroir si explicitement maintenu : `backend/data/blog/{slug}.{lang}.json` et le dossier configure via `blog_discussions_data_dir()`
   - stockage SQL : tables `blog_articles` / `blog_discussions` (migration `backend/sql/editorial/005_blog.sql`)
   - statut produit : `BLOG_MODE=experimental`
 - **Installation** : procédure shell documentée dans `backend/README_INSTALLATION_HORS_WEBROOT.md`.
@@ -466,6 +469,7 @@ Puis relancer la meme commande sans `--dry-run` pour appliquer.
 - `php backend/core/tools/generate_favicon.php` : régénère les favicons depuis `frontend/src/assets/images/structure/logo.*`.
 - `php backend/core/tools/editorial_backup_restore.php backup [--output=...] [--storage=json|sql|dual-write]` : exporte un backup complet pages/navigation/blog/discussions.
 - `php backend/core/tools/editorial_backup_restore.php restore <backup.json> --force [--storage=json|sql|dual-write]` : restaure ce backup (commande destructive).
+- `php backend/core/tools/export_sql_editorial_to_json.php [--include-discussions] [--dry-run]` : exporte le SQL editorial courant vers `pages.json`, `menus.json` et les miroirs blog JSON.
 - `php backend/core/tools/backup_production.php [--scope=all|files|sql] [--dry-run] [--json] [--quiet]` : crée un backup production hors webroot avec archive du dossier backend (`.tar.gz`) et dump SQL (`.sql.gz`), puis applique la rétention.
 
 ### Conversion images
@@ -498,6 +502,7 @@ Copier `backend/.env.example` vers `backend/.env`, puis ajuster :
 - Backups production : `PRODUCTION_BACKUP_ROOT`, `PRODUCTION_BACKUP_RETENTION_DAYS`, `PRODUCTION_BACKUP_TAR_BINARY`, `PRODUCTION_BACKUP_MYSQLDUMP_BINARY`, `PHP_CLI_BINARY`. Ces valeurs, ainsi que la connexion SQL utilisee par le dump, peuvent aussi etre ajustees depuis `Admin > Parametres > Sauvegardes`; le mot de passe SQL n'est jamais reaffiche et les chemins de sortie restent refuses s'ils pointent dans le backend ou le webroot.
 - Exemple par défaut : `ADMIN_LOGIN_PATH=admin`.
 - `ADMIN_PASSWORD_HASH` est volontairement vide dans `.env.example` tant qu’aucun compte admin n’est créé.
+- `EDITORIAL_STORAGE` et `BLOG_STORAGE` sont positionnés par défaut sur `sql` dans `backend/.env.example`.
 - Vérifier les permissions du `.env` (600 ou 640, hors `public/`).  
 Commande de contrôle : `composer check-env --working-dir=backend` (option `--env=production` pour forcer les clés prod, et `--strict-prod-security` pour rendre bloquants les points sécurité admin critiques).
 
@@ -559,11 +564,12 @@ Commande de contrôle : `composer check-env --working-dir=backend` (option `--en
 ---
 
 ## Déploiement (rappel)
-1) Builder le front : `npm run build` (publication dans `backend/public`).  
-cd ~/www/caramagnols/frontend
-npm run build
-
-2) Déployer `backend/public/` + `backend/data/` (index recherche) sur l’hébergement PHP.  
+1) Publier en une commande : `bash backend/tools/publish-sql-release.sh --live`
+2) Variante détaillée si besoin :
+   - `composer editorial-export-json --working-dir=backend`
+   - `cd ~/www/caramagnols/frontend && npm run build`
+   - `bash backend/tools/deploy-release.sh`
+   - `bash backend/tools/push-local-sql-to-ovh.sh --live`
 3) Mettre en place `.env` sécurisé hors `public/`, vérifier avec `composer check-env --env=production`.  
 4) Configurer le serveur web pour pointer sur `backend/public/` comme document root et autoriser le cache long sur `assets/` et `.vite/`.  
 5) Activer HTTPS pour bénéficier de HSTS et des cookies `Secure`.
@@ -574,6 +580,7 @@ Scripts :
 
 - `backend/tools/deploy-fast.sh` : sync uniquement les fichiers backend modifies.
 - `backend/tools/deploy-release.sh` : sync complet backend (release).
+- `backend/tools/publish-sql-release.sh` : workflow unique SQL maitre (export JSON miroir, build frontend, release backend, push SQL, clear cache final).
 - `backend/tools/check-log-alerts-runner.sh` : runner exploitation pour `check_log_alerts.php` (utilisable en scheduler).
 - `backend/tools/systemd/install-check-log-alerts-systemd.sh` : installation timer `systemd` preprod/prod.
 - `backend/core/tools/run_cron_center.php` : point d'entree unique pour le cron OVH ; il charge les jobs actifs stockes en SQL, applique leurs expressions cron et journalise les executions. Le Cron Center admin peut aussi lancer un job manuellement pour test, avec les memes verrous et journaux. Les scripts executables restent limites a la liste autorisee `core/tools/*.php` (extension possible via `CRON_CENTER_ALLOWED_SCRIPTS`).

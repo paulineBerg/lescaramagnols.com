@@ -416,9 +416,9 @@ function instagram_feed_service(): InstagramFeedService
 
 function editorial_storage_mode(): string
 {
-    $mode = strtolower(trim((string) app_config('editorial.storage', 'json')));
+    $mode = strtolower(trim((string) app_config('editorial.storage', 'sql')));
 
-    return in_array($mode, ['json', 'sql', 'dual-write'], true) ? $mode : 'json';
+    return in_array($mode, ['json', 'sql', 'dual-write'], true) ? $mode : 'sql';
 }
 
 function editorial_database(): EditorialDatabase
