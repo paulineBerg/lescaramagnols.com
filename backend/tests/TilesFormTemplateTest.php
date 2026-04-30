@@ -27,6 +27,7 @@ final class TilesFormTemplateTest extends TestCase
                     'target_page_slug' => 'austin',
                     'target_route' => '',
                     'target_url' => '',
+                    'is_visible' => '1',
                     'open_in_new_tab' => '',
                     'translations' => [
                         'fr' => ['label' => 'Austin', 'alt' => 'Austin Healey', 'title' => 'Austin Healey'],
@@ -46,6 +47,7 @@ final class TilesFormTemplateTest extends TestCase
                     'target_page_slug' => '',
                     'target_route' => '/auto-retro/citroen',
                     'target_url' => '',
+                    'is_visible' => '',
                     'open_in_new_tab' => '',
                     'translations' => [
                         'fr' => ['label' => 'Citroen', 'alt' => 'Citroen DS', 'title' => 'Citroen DS'],
@@ -88,5 +90,12 @@ final class TilesFormTemplateTest extends TestCase
         $this->assertStringContainsString('Monter / Descendre', $html);
         $this->assertMatchesRegularExpression('/name="items\\[0\\]\\[sort_order\\]".*readonly/s', $html);
         $this->assertMatchesRegularExpression('/name="items\\[1\\]\\[sort_order\\]".*readonly/s', $html);
+        $this->assertMatchesRegularExpression('/name="items\\[0\\]\\[is_visible\\]".*checked/s', $html);
+        $this->assertMatchesRegularExpression('/name="items\\[1\\]\\[is_visible\\]"/s', $html);
+        $this->assertStringContainsString('Masquée', $html);
+        $this->assertMatchesRegularExpression(
+            '~<option value="austin"[^>]*>\s*austin · Austin Healey · /auto-retro/austin · published\s*</option>~',
+            $html
+        );
     }
 }

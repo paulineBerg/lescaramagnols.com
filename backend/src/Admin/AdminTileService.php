@@ -145,9 +145,9 @@ final class AdminTileService
 
         usort(
             $options,
-            static fn (array $left, array $right): int => strcasecmp(
-                (string) $left['title'],
-                (string) $right['title']
+            static fn (array $left, array $right): int => strcmp(
+                (string) $left['slug'],
+                (string) $right['slug']
             )
         );
 
@@ -392,6 +392,7 @@ final class AdminTileService
                 'target_page_slug' => trim((string) ($target['pageSlug'] ?? '')),
                 'target_route' => trim((string) ($target['route'] ?? '')),
                 'target_url' => trim((string) ($target['url'] ?? '')),
+                'is_visible' => !array_key_exists('is_visible', $item) || !empty($item['is_visible']) ? '1' : '',
                 'open_in_new_tab' => !empty($item['open_in_new_tab']) ? '1' : '',
                 'translations' => $translations,
             ];
@@ -439,6 +440,7 @@ final class AdminTileService
             $itemForm['target_page_slug'] = trim((string) ($item['target_page_slug'] ?? ''));
             $itemForm['target_route'] = trim((string) ($item['target_route'] ?? ''));
             $itemForm['target_url'] = trim((string) ($item['target_url'] ?? ''));
+            $itemForm['is_visible'] = !empty($item['is_visible']) ? '1' : '';
             $itemForm['open_in_new_tab'] = !empty($item['open_in_new_tab']) ? '1' : '';
 
             $translationsInput = is_array($item['translations'] ?? null) ? $item['translations'] : [];
@@ -547,6 +549,7 @@ final class AdminTileService
             'target_page_slug' => '',
             'target_route' => '',
             'target_url' => '',
+            'is_visible' => '1',
             'open_in_new_tab' => '',
             'translations' => $translations,
         ];

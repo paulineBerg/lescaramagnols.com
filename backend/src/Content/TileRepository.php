@@ -375,9 +375,9 @@ final class TileRepository
             $insertItem = $pdo->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`group_id`, `item_uid`, `sort_order`, `tile_size`, `color_token`, `image_src`, `image_width`, `image_height`, `target_type`, `target_page_slug`, `target_route`, `target_url`, `open_in_new_tab`)
+                        (`group_id`, `item_uid`, `sort_order`, `tile_size`, `color_token`, `image_src`, `image_width`, `image_height`, `target_type`, `target_page_slug`, `target_route`, `target_url`, `is_visible`, `open_in_new_tab`)
                      VALUES
-                        (:group_id, :item_uid, :sort_order, :tile_size, :color_token, :image_src, :image_width, :image_height, :target_type, :target_page_slug, :target_route, :target_url, :open_in_new_tab)',
+                        (:group_id, :item_uid, :sort_order, :tile_size, :color_token, :image_src, :image_width, :image_height, :target_type, :target_page_slug, :target_route, :target_url, :is_visible, :open_in_new_tab)',
                     $this->database->table('tile_group_items')
                 )
             );
@@ -406,6 +406,7 @@ final class TileRepository
                     'target_page_slug' => $item['target_page_slug'] !== '' ? (string) $item['target_page_slug'] : null,
                     'target_route' => $item['target_route'] !== '' ? (string) $item['target_route'] : null,
                     'target_url' => $item['target_url'] !== '' ? (string) $item['target_url'] : null,
+                    'is_visible' => !empty($item['is_visible']) ? 1 : 0,
                     'open_in_new_tab' => !empty($item['open_in_new_tab']) ? 1 : 0,
                 ]);
 
@@ -513,6 +514,7 @@ final class TileRepository
                 $groupItemsForForm[] = [
                     'item_uid' => $itemUid,
                     'label' => $this->preferredLabel($groupItem, $availableLanguages),
+                    'is_visible' => !array_key_exists('is_visible', $groupItem) || !empty($groupItem['is_visible']),
                     'tile_size' => (string) ($groupItem['tile_size'] ?? self::DEFAULT_SIZE),
                     'color_token' => (string) ($groupItem['color_token'] ?? 'bleu'),
                     'image_src' => (string) ($groupItem['image_src'] ?? ''),
@@ -925,6 +927,7 @@ final class TileRepository
                     `target_page_slug`,
                     `target_route`,
                     `target_url`,
+                    `is_visible`,
                     `open_in_new_tab`
                  FROM `%s`
                  WHERE `group_id` IN (%s)
@@ -972,6 +975,7 @@ final class TileRepository
                     'route' => trim((string) ($row['target_route'] ?? '')),
                     'url' => trim((string) ($row['target_url'] ?? '')),
                 ],
+                'is_visible' => !array_key_exists('is_visible', $row) || !empty($row['is_visible']),
                 'open_in_new_tab' => !empty($row['open_in_new_tab']),
                 'translations' => $translationsByItem[$itemId] ?? [],
             ];
@@ -1510,6 +1514,7 @@ final class TileRepository
             'target_page_slug' => $targetPageSlug,
             'target_route' => $targetRoute,
             'target_url' => $targetUrl,
+            'is_visible' => array_key_exists('is_visible', $item) ? !empty($item['is_visible']) : true,
             'open_in_new_tab' => !empty($item['open_in_new_tab']),
             'translations' => $translations,
         ];

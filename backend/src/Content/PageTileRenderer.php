@@ -176,6 +176,10 @@ final class PageTileRenderer
         string $currentPageRoute,
         array &$renderedTargetKeys
     ): string {
+        if (array_key_exists('is_visible', $item) && empty($item['is_visible'])) {
+            return '';
+        }
+
         if (($override['is_visible'] ?? null) === false) {
             return '';
         }

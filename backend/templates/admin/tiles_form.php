@@ -11,6 +11,9 @@ $tileColors = is_array($tileColors ?? null) ? $tileColors : [];
 $tilePageOptions = is_array($tilePageOptions ?? null) ? array_values($tilePageOptions) : [];
 $contentMediaPicker = is_array($contentMediaPicker ?? null) ? $contentMediaPicker : [];
 $contentMediaLibrary = is_array($contentMediaPicker['items'] ?? null) ? array_values($contentMediaPicker['items']) : [];
+$tileItemIsVisible = static function (array $item): bool {
+    return !array_key_exists('is_visible', $item) || !empty($item['is_visible']);
+};
 $mediaSourceOptions = [];
 foreach ($tileItems as $tileItem) {
     if (!is_array($tileItem)) {
@@ -106,9 +109,10 @@ $renderAdminTilePreview = static function (array $item, string $context = 'edito
     <?php
 };
 
-$renderTileItemRow = static function (array $item, int $index) use ($availableLanguages, $languageLabels, $tileSizes, $tileColors, $tilePageOptions, $renderAdminTilePreview, $resolvePreviewText): void {
+$renderTileItemRow = static function (array $item, int $index) use ($availableLanguages, $languageLabels, $tileSizes, $tileColors, $tilePageOptions, $renderAdminTilePreview, $resolvePreviewText, $tileItemIsVisible): void {
     $targetType = trim((string) ($item['target_type'] ?? 'page'));
     $imageSrc = trim((string) ($item['image_src'] ?? ''));
+    $isVisible = $tileItemIsVisible($item);
     $tileSize = \Caramagnols\Content\TileRepository::normalizeTileSizeValue((string) ($item['tile_size'] ?? \Caramagnols\Content\TileRepository::DEFAULT_SIZE));
     $selectedColorToken = \Caramagnols\Content\TileRepository::buttonColorToken($tileSize, (string) ($item['color_token'] ?? 'bleu'));
     $previewLabel = $resolvePreviewText($item, 'label', $availableLanguages, 'Tuile');
@@ -139,6 +143,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
         <div class="tile-editor-item__preview-meta">
           <span class="tag" data-tile-preview-size-badge><?php echo htmlspecialchars((string) ($tileSizes[$tileSize] ?? ucfirst($tileSize)), ENT_QUOTES, 'UTF-8'); ?></span>
           <span class="tag" data-tile-preview-color-badge><?php echo htmlspecialchars((string) ($tileColors[$selectedColorToken] ?? ucfirst($selectedColorToken)), ENT_QUOTES, 'UTF-8'); ?></span>
+          <span class="tag"<?php echo $isVisible ? ' hidden' : ''; ?> data-tile-preview-visibility-badge>Masquée</span>
           <span class="notice-muted" data-tile-preview-target><?php echo htmlspecialchars($targetType === 'external' ? 'URL externe' : ($targetType === 'route' ? 'Route interne' : 'Page du site'), ENT_QUOTES, 'UTF-8'); ?></span>
         </div>
         <div data-tile-preview-card-wrapper>
@@ -244,7 +249,17 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
               $pageLabel = trim((string) ($pageOption['title'] ?? $pageSlug));
               $pageRoute = trim((string) ($pageOption['route'] ?? ''));
               $pageStatus = trim((string) ($pageOption['status'] ?? ''));
-              echo htmlspecialchars($pageLabel . ($pageRoute !== '' ? ' · ' . $pageRoute : '') . ($pageStatus !== '' ? ' · ' . $pageStatus : ''), ENT_QUOTES, 'UTF-8');
+              $pageParts = [$pageSlug];
+              if ($pageLabel !== '' && strcasecmp($pageLabel, $pageSlug) !== 0) {
+                  $pageParts[] = $pageLabel;
+              }
+              if ($pageRoute !== '') {
+                  $pageParts[] = $pageRoute;
+              }
+              if ($pageStatus !== '') {
+                  $pageParts[] = $pageStatus;
+              }
+              echo htmlspecialchars(implode(' · ', $pageParts), ENT_QUOTES, 'UTF-8');
               ?>
             </option>
             <?php endforeach; ?>
@@ -297,6 +312,20 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
             step="1"
             value="<?php echo htmlspecialchars((string) ($item['image_height'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
           />
+        </div>
+
+        <div class="field">
+          <label class="checkbox-inline" for="tile-visible-<?php echo (int) $index; ?>">
+            <input
+              id="tile-visible-<?php echo (int) $index; ?>"
+              name="items[<?php echo (int) $index; ?>][is_visible]"
+              type="checkbox"
+              value="1"
+              <?php echo $isVisible ? 'checked' : ''; ?>
+              data-tile-visible-toggle
+            />
+            Afficher cette tuile
+          </label>
         </div>
 
         <div class="field">
@@ -360,6 +389,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
     <?php
 };
 ?>
+<?php $visibleTileItems = array_values(array_filter($tileItems, static fn (mixed $tileItem): bool => is_array($tileItem) && $tileItemIsVisible($tileItem))); ?>
 
 <section class="card page-editor-intro">
   <div class="page-editor-intro__header">
@@ -437,7 +467,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
           <h2>Aperçu du groupe</h2>
           <p class="notice-muted">Prévisualisation admin du rendu W10 du bas de page.</p>
         </div>
-        <span class="tag" data-tile-group-count><?php echo count($tileItems); ?> tuile(s)</span>
+        <span class="tag" data-tile-group-count><?php echo count($visibleTileItems); ?> tuile(s)</span>
       </div>
 
       <h3 class="tile-group-preview-card__name" data-tile-group-name-preview>
@@ -445,7 +475,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
       </h3>
 
       <div class="admin-tile-mosaic admin-tile-mosaic--editor" data-tile-group-preview-list>
-        <?php foreach ($tileItems as $tileItem): ?>
+        <?php foreach ($visibleTileItems as $tileItem): ?>
         <?php if (!is_array($tileItem)) { continue; } ?>
         <?php $renderAdminTilePreview($tileItem, 'editor'); ?>
         <?php endforeach; ?>
@@ -490,6 +520,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
           'target_page_slug' => '',
           'target_route' => '',
           'target_url' => '',
+          'is_visible' => '1',
           'open_in_new_tab' => '',
           'translations' => array_fill_keys($availableLanguages, ['label' => '', 'alt' => '', 'title' => '']),
       ], 9999); ?>
@@ -765,6 +796,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
 
       previewCard.className = `admin-tile-preview admin-tile-preview--${state.size} admin-tile-preview--editor admin-tile-preview--color-${state.color}${state.imageSrc !== '' ? ' is-with-media' : ''}`;
       previewCard.style.setProperty('--admin-tile-bg', `url('${buttonAssetPath(state.size, state.color)}')`);
+      previewCard.style.opacity = state.isVisible ? '1' : '0.45';
       previewCard.setAttribute('aria-label', state.label);
 
       const label = previewCard.querySelector('[data-tile-preview-label]');
@@ -803,12 +835,14 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
       const colorField = row.querySelector('[name$="[color_token]"]');
       const targetField = row.querySelector('[data-tile-target-type]');
       const imageField = row.querySelector('[data-tile-image-src]');
+      const visibilityField = row.querySelector('[data-tile-visible-toggle]');
       const size = sizeField instanceof HTMLSelectElement ? normalizeSize(sizeField.value) : '<?php echo \Caramagnols\Content\TileRepository::DEFAULT_SIZE; ?>';
       const color = colorField instanceof HTMLSelectElement ? normalizeColor(size, colorField.value) : 'bleu';
       const targetLabel = targetField instanceof HTMLSelectElement && targetField.selectedOptions[0]
         ? targetField.selectedOptions[0].textContent.trim()
         : 'Page du site';
       const imageSrc = imageField instanceof HTMLInputElement ? imageField.value.trim() : '';
+      const isVisible = !(visibilityField instanceof HTMLInputElement) || visibilityField.checked;
       const label = pickPreviewText(row, 'label') || 'Tuile';
       const summaryRaw = pickPreviewText(row, 'title');
       const summary = summaryRaw !== '' && summaryRaw.toLowerCase() !== label.toLowerCase() ? summaryRaw : '';
@@ -826,6 +860,7 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
         size,
         color,
         imageSrc,
+        isVisible,
         label,
         summary,
         targetLabel,
@@ -855,6 +890,11 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
         target.textContent = state.targetLabel;
       }
 
+      const visibilityBadge = row.querySelector('[data-tile-preview-visibility-badge]');
+      if (visibilityBadge instanceof HTMLElement) {
+        visibilityBadge.hidden = state.isVisible;
+      }
+
       const previewCard = row.querySelector('[data-tile-preview-card-wrapper] .admin-tile-preview');
       syncPreviewCard(previewCard, state);
     };
@@ -866,8 +906,12 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
       }
 
       const rows = visibleRows();
+      const previewRows = rows.filter((row) => {
+        const state = collectRowPreviewState(row);
+        return state !== null && state.isVisible;
+      });
       if (groupCountPreview instanceof HTMLElement) {
-        groupCountPreview.textContent = `${rows.length} tuile(s)`;
+        groupCountPreview.textContent = `${previewRows.length} tuile(s)`;
       }
 
       if (!(groupPreviewList instanceof HTMLElement)) {
@@ -875,15 +919,15 @@ $renderTileItemRow = static function (array $item, int $index) use ($availableLa
       }
 
       groupPreviewList.innerHTML = '';
-      if (rows.length === 0) {
+      if (previewRows.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'notice-muted tile-group-preview-card__empty';
-        empty.textContent = 'Ajoutez une tuile pour construire la mosaïque.';
+        empty.textContent = 'Aucune tuile visible dans l’aperçu.';
         groupPreviewList.appendChild(empty);
         return;
       }
 
-      rows.forEach((row) => {
+      previewRows.forEach((row) => {
         if (!(row instanceof HTMLElement)) {
           return;
         }

@@ -9,6 +9,46 @@ require_once __DIR__ . '/../core/bootstrap.php';
 
 final class AdminTileServiceTest extends TestCase
 {
+    public function testPageReferenceOptionsAreSortedBySlug(): void
+    {
+        $pagesPath = tempnam(sys_get_temp_dir(), 'tile-pages-');
+        self::assertNotFalse($pagesPath);
+
+        file_put_contents($pagesPath, json_encode([
+            'meta' => ['schema_version' => 2],
+            'pages' => [
+                [
+                    'slug' => 'mercedes',
+                    'status' => 'published',
+                    'route' => '/auto-retro/mercedes',
+                    'translations' => [
+                        'fr' => ['title' => 'Mercedes-Benz'],
+                    ],
+                ],
+                [
+                    'slug' => 'austin',
+                    'status' => 'published',
+                    'route' => '/auto-retro/austin',
+                    'translations' => [
+                        'fr' => ['title' => 'Austin Healey'],
+                    ],
+                ],
+            ],
+        ], JSON_THROW_ON_ERROR));
+
+        try {
+            $service = $this->serviceForTesting();
+            $this->setPrivateProperty($service, 'pageRepository', new \Caramagnols\Content\PageRepository($pagesPath));
+
+            self::assertSame(
+                ['austin', 'mercedes'],
+                array_column($service->pageReferenceOptions(), 'slug')
+            );
+        } finally {
+            @unlink($pagesPath);
+        }
+    }
+
     public function testBuildDuplicatedFormDataKeepsAllTileDetailsAndAppendsCopySuffix(): void
     {
         $service = $this->serviceForTesting();
@@ -36,6 +76,7 @@ final class AdminTileServiceTest extends TestCase
                             'route' => '',
                             'url' => '',
                         ],
+                        'is_visible' => true,
                         'open_in_new_tab' => false,
                         'translations' => [
                             'fr' => [
@@ -65,6 +106,7 @@ final class AdminTileServiceTest extends TestCase
                             'route' => '',
                             'url' => 'https://example.com/club',
                         ],
+                        'is_visible' => false,
                         'open_in_new_tab' => true,
                         'translations' => [
                             'fr' => [
@@ -99,6 +141,7 @@ final class AdminTileServiceTest extends TestCase
         $this->assertSame('site-auto-retro-austin-une-mini-dans-le-golfe-de-sttropez', $duplicatedForm['items'][0]['target_page_slug']);
         $this->assertSame('', $duplicatedForm['items'][0]['target_route']);
         $this->assertSame('', $duplicatedForm['items'][0]['target_url']);
+        $this->assertSame('1', $duplicatedForm['items'][0]['is_visible']);
         $this->assertSame('', $duplicatedForm['items'][0]['open_in_new_tab']);
         $this->assertSame(
             [
@@ -132,6 +175,7 @@ final class AdminTileServiceTest extends TestCase
         $this->assertSame('', $duplicatedForm['items'][1]['target_page_slug']);
         $this->assertSame('', $duplicatedForm['items'][1]['target_route']);
         $this->assertSame('https://example.com/club', $duplicatedForm['items'][1]['target_url']);
+        $this->assertSame('', $duplicatedForm['items'][1]['is_visible']);
         $this->assertSame('1', $duplicatedForm['items'][1]['open_in_new_tab']);
         $this->assertSame(
             [

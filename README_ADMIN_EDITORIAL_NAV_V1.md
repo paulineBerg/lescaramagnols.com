@@ -143,6 +143,7 @@ Mise a jour 2026-04-22 (tuiles after_body) :
 - le format visuel par defaut est maintenant `rectangle`, avec image editoriale visible dans la tuile
 - l ecran `Tuiles` reste la source de verite pour l edition complete d un groupe
 - le catalogue `Tuiles` expose aussi une action `Dupliquer` pour cloner rapidement un groupe existant avant ajustements
+- dans l ecran `Tuiles`, chaque item de groupe peut maintenant etre masque a la source via une case a cocher ; une tuile masquee reste editable mais ne sort plus au rendu public tant qu elle reste decochee
 - l ecran `pages_edit` ne sert qu a rattacher un groupe a une page, definir son ordre, regler la visibilite locale d une tuile et, si besoin, remplacer sa cible par une page du site
 - les surcharges plus anciennes de type route, URL ou textes traduits restent conservees si elles existent deja, mais ne sont plus exposees dans l UI simplifiee de `pages_edit`
 - rendu front `windows10-classic` base sur les assets existants, avec grille dense type W10 cote serveur, hover leger seulement et pile verticale sur mobile

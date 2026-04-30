@@ -208,6 +208,31 @@ final class PageTileRendererTest extends TestCase
                                 ],
                             ],
                         ],
+                        [
+                            'id' => 6,
+                            'item_uid' => 'hidden-by-group',
+                            'sort_order' => 60,
+                            'tile_size' => 'medium',
+                            'color_token' => 'rose',
+                            'image_src' => '/assets/images/structure/menu/sava/uisava.jpg',
+                            'image_width' => 222,
+                            'image_height' => 90,
+                            'target' => [
+                                'type' => 'route',
+                                'pageSlug' => '',
+                                'route' => '/masquee',
+                                'url' => '',
+                            ],
+                            'is_visible' => false,
+                            'open_in_new_tab' => false,
+                            'translations' => [
+                                'fr' => [
+                                    'label' => 'Masquee',
+                                    'alt' => 'Masquee',
+                                    'title' => 'Masquee',
+                                ],
+                            ],
+                        ],
                     ],
                 ],
             ]
@@ -235,6 +260,7 @@ final class PageTileRendererTest extends TestCase
         $this->assertStringContainsString('/assets/images/structure/menu/boutonrectangle/btrect_bleufonce_clic.png', $html);
         $this->assertStringContainsString('/assets/images/structure/menu/boutonpetit/btptt_jaune.png', $html);
         $this->assertStringNotContainsString('Cache', $html);
+        $this->assertStringNotContainsString('Masquee', $html);
     }
 
     public function testRenderAfterBodyGroupsSmallTilesInTwoByTwoCluster(): void

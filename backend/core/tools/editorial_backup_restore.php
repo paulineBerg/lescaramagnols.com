@@ -509,6 +509,7 @@ function exportTileConfiguration(): array
             `target_page_slug`,
             `target_route`,
             `target_url`,
+            `is_visible`,
             `open_in_new_tab`
          FROM `%s`
          ORDER BY `group_id` ASC, `sort_order` ASC, `id` ASC',
@@ -661,9 +662,9 @@ function restoreTileConfiguration(array $tiles): array
         ));
         $insertItem = $pdo->prepare(sprintf(
             'INSERT INTO `%s`
-                (`id`, `group_id`, `item_uid`, `sort_order`, `tile_size`, `color_token`, `image_src`, `image_width`, `image_height`, `target_type`, `target_page_slug`, `target_route`, `target_url`, `open_in_new_tab`)
+                (`id`, `group_id`, `item_uid`, `sort_order`, `tile_size`, `color_token`, `image_src`, `image_width`, `image_height`, `target_type`, `target_page_slug`, `target_route`, `target_url`, `is_visible`, `open_in_new_tab`)
              VALUES
-                (:id, :group_id, :item_uid, :sort_order, :tile_size, :color_token, :image_src, :image_width, :image_height, :target_type, :target_page_slug, :target_route, :target_url, :open_in_new_tab)',
+                (:id, :group_id, :item_uid, :sort_order, :tile_size, :color_token, :image_src, :image_width, :image_height, :target_type, :target_page_slug, :target_route, :target_url, :is_visible, :open_in_new_tab)',
             $database->table('tile_group_items')
         ));
         $insertTranslation = $pdo->prepare(sprintf(
@@ -729,6 +730,7 @@ function restoreTileConfiguration(array $tiles): array
                     'target_page_slug' => nullableBackupString($item['target_page_slug'] ?? null),
                     'target_route' => nullableBackupString($item['target_route'] ?? null),
                     'target_url' => nullableBackupString($item['target_url'] ?? null),
+                    'is_visible' => nullableBackupBoolInt($item['is_visible'] ?? null) ?? 1,
                     'open_in_new_tab' => !empty($item['open_in_new_tab']) ? 1 : 0,
                 ]);
                 $itemIds[$itemId] = true;
@@ -847,6 +849,7 @@ function normalizeTileItemBackupRow(array $row): array
         'target_page_slug' => nullableBackupString($row['target_page_slug'] ?? null),
         'target_route' => nullableBackupString($row['target_route'] ?? null),
         'target_url' => nullableBackupString($row['target_url'] ?? null),
+        'is_visible' => !array_key_exists('is_visible', $row) || !empty($row['is_visible']),
         'open_in_new_tab' => !empty($row['open_in_new_tab']),
         'translations' => [],
     ];
