@@ -254,6 +254,10 @@ $adminMenu = [
         gap: 0.6rem;
       }
 
+      [hidden] {
+        display: none !important;
+      }
+
       .tag {
         display: inline-flex;
         align-items: center;
