@@ -82,9 +82,12 @@ $translate = static function (string $key, string $fallback): string {
 
     return $translated;
 };
+$translateFormat = static function (string $key, string $fallback, mixed ...$args) use ($translate): string {
+    return sprintf($translate($key, $fallback), ...$args);
+};
 $statusLabels = [
-    'draft' => 'Brouillon',
-    'published' => 'Publié',
+    'draft' => $translate('TXT_ADMIN_ARTICLE_STATUS_DRAFT', 'Brouillon'),
+    'published' => $translate('TXT_ADMIN_ARTICLE_STATUS_PUBLISHED', 'Publié'),
 ];
 $languageLabels = [
     'fr' => 'Français',
@@ -221,7 +224,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
 <section class="card page-editor-intro">
   <div class="page-editor-intro__header">
-    <h2><?php echo ($isNewPage ?? false) ? 'Créer une page' : 'Éditer une page'; ?></h2>
+    <h2><?php echo htmlspecialchars(($isNewPage ?? false) ? $translate('TXT_ADMIN_PAGE_FORM_NEW_TITLE', 'Créer une page') : $translate('TXT_ADMIN_PAGE_FORM_EDIT_TITLE', 'Éditer une page'), ENT_QUOTES, 'UTF-8'); ?></h2>
     <button
       type="submit"
       name="page_action"
@@ -229,13 +232,11 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
       form="<?php echo htmlspecialchars($pageEditorFormId, ENT_QUOTES, 'UTF-8'); ?>"
       class="page-editor-intro__save"
     >
-      Enregistrer la page
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_SAVE_BUTTON', 'Enregistrer la page'), ENT_QUOTES, 'UTF-8'); ?>
     </button>
   </div>
   <p class="page-editor-intro__description">
-    Le formulaire travaille sur le registre éditorial courant. Selon la configuration, il est stocké en
-    <code>JSON</code>, <code>SQL</code> ou <code>double écriture</code>. Les pages structurées peuvent être éditées
-    par langue et passées en <code>brouillon</code> ou <code>publié</code>.
+    <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_FORM_INTRO', 'Le formulaire travaille sur le registre éditorial courant. Selon la configuration, il est stocké en JSON, SQL ou double écriture. Les pages structurées peuvent être éditées par langue et passées en brouillon ou publié.'), ENT_QUOTES, 'UTF-8'); ?>
   </p>
 
   <?php if (($message ?? null) !== null): ?>
@@ -247,9 +248,9 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
   <?php endif; ?>
 
   <div class="actions-inline page-editor-intro__actions">
-    <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($pagesIndexUrl ?? $adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Retour à la liste</a>
+    <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($pagesIndexUrl ?? $adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_BACK_TO_LIST', 'Retour à la liste'), ENT_QUOTES, 'UTF-8'); ?></a>
     <?php if (trim((string) ($formData['route'] ?? '')) !== ''): ?>
-    <a class="button-link" href="<?php echo htmlspecialchars((string) ($formData['route'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Voir la route</a>
+    <a class="button-link" href="<?php echo htmlspecialchars((string) ($formData['route'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_VIEW_ROUTE', 'Voir la route'), ENT_QUOTES, 'UTF-8'); ?></a>
     <?php endif; ?>
   </div>
 </section>
@@ -270,21 +271,21 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
   />
 
   <section class="card">
-    <h2>Paramètres généraux</h2>
+    <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_GENERAL_SETTINGS', 'Paramètres généraux'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
     <div class="admin-form-grid admin-form-grid-2">
       <div class="field">
-        <label for="page-slug">Slug</label>
+        <label for="page-slug"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SLUG', 'Slug'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input id="page-slug" name="slug" type="text" value="<?php echo htmlspecialchars((string) ($formData['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
       </div>
 
       <div class="field">
-        <label for="page-route">Route publique</label>
+        <label for="page-route"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_PUBLIC_ROUTE', 'Route publique'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input id="page-route" name="route" type="text" value="<?php echo htmlspecialchars((string) ($formData['route'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="/ma-page" />
       </div>
 
       <div class="field">
-        <label for="page-status">Statut</label>
+        <label for="page-status"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></label>
         <select id="page-status" name="status">
           <?php foreach (($supportedStatuses ?? []) as $status): ?>
           <option value="<?php echo htmlspecialchars((string) $status, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($formData['status'] ?? '') === $status ? ' selected' : ''; ?>>
@@ -295,7 +296,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
       </div>
 
       <div class="field">
-        <label for="page-layout">Layout structuré</label>
+        <label for="page-layout"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_LAYOUT_LABEL', 'Layout structuré'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input id="page-layout" name="layout" type="text" value="<?php echo htmlspecialchars((string) ($formData['layout'] ?? 'standard_page'), ENT_QUOTES, 'UTF-8'); ?>" />
       </div>
     </div>
@@ -303,23 +304,21 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
   <?php if ($tileSupportEnabled): ?>
   <section class="card" data-page-tile-editor data-page-tile-bootstrap="<?php echo htmlspecialchars($tileEditorBootstrapJson, ENT_QUOTES, 'UTF-8'); ?>">
-    <div class="page-editor-intro__header">
-      <div>
-        <h2>Tuiles after_body</h2>
-        <p class="page-editor-intro__description">
-          Les groupes sélectionnés sont injectés à la fin de <code>EditRegion4 - Apres corps</code>, dans l ordre choisi.
-          Depuis cette page, vous gérez seulement l affectation des groupes et leur ordre d affichage.
-          Les détails du groupe se gèrent dans <code>Tuiles</code>.
-        </p>
+      <div class="page-editor-intro__header">
+        <div>
+          <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_TILES_AFTER_BODY_TITLE', 'Tuiles after_body'), ENT_QUOTES, 'UTF-8'); ?></h2>
+          <p class="page-editor-intro__description">
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_TILES_AFTER_BODY_HELP', 'Les groupes sélectionnés sont injectés à la fin de EditRegion4 - Apres corps, dans l ordre choisi. Depuis cette page, vous gérez seulement l affectation des groupes et leur ordre d affichage. Les détails du groupe se gèrent dans Tuiles.'), ENT_QUOTES, 'UTF-8'); ?>
+          </p>
+        </div>
+        <div class="actions-inline">
+          <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($adminTilesUrl ?? admin_url('tiles')), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_TILES_MANAGE_GROUPS', 'Gérer les groupes'), ENT_QUOTES, 'UTF-8'); ?></a>
+          <button type="button" class="button-link button-link-muted" data-page-tile-add-placement<?php echo $tileGroupOptions === [] ? ' disabled' : ''; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_TILES_ADD_GROUP', 'Ajouter un groupe'), ENT_QUOTES, 'UTF-8'); ?></button>
+        </div>
       </div>
-      <div class="actions-inline">
-        <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($adminTilesUrl ?? admin_url('tiles')), ENT_QUOTES, 'UTF-8'); ?>">Gérer les groupes</a>
-        <button type="button" class="button-link button-link-muted" data-page-tile-add-placement<?php echo $tileGroupOptions === [] ? ' disabled' : ''; ?>>Ajouter un groupe</button>
-      </div>
-    </div>
 
-    <?php if ($tileGroupOptions === []): ?>
-    <p class="notice-muted">Aucun groupe n est encore disponible. Crée d abord un groupe dans l administration Tuiles.</p>
+      <?php if ($tileGroupOptions === []): ?>
+    <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_TILES_NO_GROUPS', 'Aucun groupe n est encore disponible. Crée d abord un groupe dans l administration Tuiles.'), ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
     <div class="page-tile-placement-list" data-page-tile-placement-list></div>
@@ -620,14 +619,14 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
   <section class="card">
     <div class="page-editor-intro__header">
       <div>
-        <h2>Traductions</h2>
+        <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_TRANSLATIONS_TITLE', 'Traductions'), ENT_QUOTES, 'UTF-8'); ?></h2>
         <p class="page-editor-intro__description">
-          Chaque langue ouvre maintenant son propre panneau. L enregistrement reste definitif sur la page courante, avec un bouton de sauvegarde disponible dans chaque onglet.
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_TRANSLATIONS_HELP', 'Chaque langue ouvre maintenant son propre panneau. L enregistrement reste definitif sur la page courante, avec un bouton de sauvegarde disponible dans chaque onglet.'), ENT_QUOTES, 'UTF-8'); ?>
         </p>
       </div>
     </div>
 
-    <div class="menu-builder-tabs" role="tablist" aria-label="Traductions de la page" data-translation-tabs>
+    <div class="menu-builder-tabs" role="tablist" aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_TRANSLATIONS_TITLE', 'Traductions'), ENT_QUOTES, 'UTF-8'); ?>" data-translation-tabs>
       <?php foreach ($translationLanguages as $translationTabIndex => $language): ?>
       <?php
       $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
@@ -645,7 +644,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         data-translation-tab="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
       >
         <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
-        <small><?php echo htmlspecialchars($translationTitle !== '' ? 'Titre renseigne' : 'Titre a renseigner', ENT_QUOTES, 'UTF-8'); ?></small>
+        <small><?php echo htmlspecialchars($translationTitle !== '' ? $translate('TXT_ADMIN_PAGE_TRANSLATION_TITLE_FILLED', 'Titre renseigne') : $translate('TXT_ADMIN_PAGE_TRANSLATION_TITLE_MISSING', 'Titre a renseigner'), ENT_QUOTES, 'UTF-8'); ?></small>
       </button>
       <?php endforeach; ?>
     </div>
@@ -684,13 +683,13 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         form="<?php echo htmlspecialchars($pageEditorFormId, ENT_QUOTES, 'UTF-8'); ?>"
         data-translation-save="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
       >
-        Enregistrer la page
+        <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_SAVE_BUTTON', 'Enregistrer la page'), ENT_QUOTES, 'UTF-8'); ?>
       </button>
     </div>
 
     <div class="admin-form-grid admin-form-grid-2">
       <div class="field">
-        <label for="title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>">Titre</label>
+        <label for="title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_TITLE', 'Titre'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input
           id="title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
           name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][title]"
@@ -700,7 +699,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
       </div>
 
       <div class="field">
-        <label for="meta-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>">Meta description</label>
+        <label for="meta-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_META_DESCRIPTION_LABEL', 'Meta description'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input
           id="meta-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
           name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][meta_description]"
@@ -811,15 +810,15 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
     </div>
 
     <details class="nested-card" open>
-      <summary>Régions structurées</summary>
+      <summary><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_STRUCTURED_REGIONS', 'Régions structurées'), ENT_QUOTES, 'UTF-8'); ?></summary>
 
       <div class="page-layout-plan">
         <div class="page-layout-plan__header">
           <div>
-            <h3>Plan du template standard</h3>
-            <p>Clique sur une zone pour ouvrir sa popup d’édition. Disposition de référence: <strong>Intro à gauche</strong>, <strong>Hero au centre</strong>, <strong>Encart à droite</strong>. Chaque région structurée remplace l’ancien bloc <code>EditRegion*</code> correspondant.</p>
+            <h3><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_STANDARD_TEMPLATE_PLAN', 'Plan du template standard'), ENT_QUOTES, 'UTF-8'); ?></h3>
+            <p><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_STANDARD_TEMPLATE_HELP', 'Clique sur une zone pour ouvrir sa popup d édition. Disposition de référence : Intro à gauche, Hero au centre, Encart à droite. Chaque région structurée remplace l ancien bloc EditRegion* correspondant.'), ENT_QUOTES, 'UTF-8'); ?></p>
           </div>
-          <span class="tag">Mode structuré</span>
+          <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_STRUCTURED_MODE', 'Mode structuré'), ENT_QUOTES, 'UTF-8'); ?></span>
         </div>
 
         <div class="page-layout-plan__grid" aria-label="Plan visuel du template standard">
@@ -841,9 +840,9 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
             <span class="page-layout-plan__summary"><?php echo htmlspecialchars((string) $planItem['summary'], ENT_QUOTES, 'UTF-8'); ?></span>
             <span class="page-layout-plan__meta">
               <span class="page-layout-plan__status page-layout-plan__status--<?php echo $isFilled ? 'filled' : 'empty'; ?>">
-                <?php echo $isFilled ? 'Renseigné' : 'Vide'; ?>
+                <?php echo htmlspecialchars($isFilled ? $translate('TXT_ADMIN_PAGE_REGION_FILLED', 'Renseigné') : $translate('TXT_ADMIN_PAGE_REGION_EMPTY', 'Vide'), ENT_QUOTES, 'UTF-8'); ?>
               </span>
-              <span class="page-layout-plan__action">Ouvrir</span>
+              <span class="page-layout-plan__action"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_REGION_OPEN', 'Ouvrir'), ENT_QUOTES, 'UTF-8'); ?></span>
             </span>
           </button>
           <?php endforeach; ?>
@@ -873,14 +872,14 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
                 <h3 id="region-modal-title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>-<?php echo htmlspecialchars($planKey, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $planItem['label'], ENT_QUOTES, 'UTF-8'); ?></h3>
                 <p><?php echo htmlspecialchars((string) $planItem['summary'], ENT_QUOTES, 'UTF-8'); ?></p>
               </div>
-              <button type="button" class="button-link button-link-muted" data-region-modal-close>Fermer</button>
+              <button type="button" class="button-link button-link-muted" data-region-modal-close><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?></button>
             </div>
 
             <div class="region-modal__body">
               <div class="field">
-                <label for="<?php echo htmlspecialchars($textareaId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $planItem['label'], ENT_QUOTES, 'UTF-8'); ?> · contenu HTML</label>
+                <label for="<?php echo htmlspecialchars($textareaId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translateFormat('TXT_ADMIN_PAGE_REGION_CONTENT_LABEL', '%s · contenu HTML', (string) $planItem['label']), ENT_QUOTES, 'UTF-8'); ?></label>
                 <?php if ($planKey === 'intro'): ?>
-                <p class="notice-muted">Limite editoriale : petite image d appel ou texte court uniquement. Ne pas y mettre un second corps d article, un long developpement ou une grande image.</p>
+                <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_REGION_INTRO_LIMIT', 'Limite editoriale : petite image d appel ou texte court uniquement. Ne pas y mettre un second corps d article, un long developpement ou une grande image.'), ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
                 <textarea id="<?php echo htmlspecialchars($textareaId, ENT_QUOTES, 'UTF-8'); ?>" name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][regions][<?php echo htmlspecialchars($fieldKey, ENT_QUOTES, 'UTF-8'); ?>]" rows="<?php echo $rows; ?>"><?php echo htmlspecialchars((string) (($translation['regions'][$fieldKey] ?? '')), ENT_QUOTES, 'UTF-8'); ?></textarea>
                 <div class="actions-inline">
@@ -890,7 +889,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
                     data-content-media-open="page-media-insert-dialog"
                     data-content-media-target="<?php echo htmlspecialchars($textareaId, ENT_QUOTES, 'UTF-8'); ?>"
                   >
-                    Inserer un media (image / video)
+                    <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_INSERT_MEDIA', 'Inserer un media (image / video)'), ENT_QUOTES, 'UTF-8'); ?>
                   </button>
                 </div>
                 <?php if ($planKey === 'aside'): ?>
@@ -901,19 +900,19 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
                       type="checkbox"
                       data-region-callout-toggle
                     />
-                    Ajouter la bordure rose autour de l encart texte
+                    <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_CALLOUT_BORDER_LABEL', 'Ajouter la bordure rose autour de l encart texte'), ENT_QUOTES, 'UTF-8'); ?>
                   </label>
                   <p class="notice-muted region-callout-control__status" data-region-callout-status>
-                    Cette option suit uniquement la case a cocher, meme si l encart contient une image.
+                    <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_CALLOUT_BORDER_HELP', 'Cette option suit uniquement la case a cocher, meme si l encart contient une image.'), ENT_QUOTES, 'UTF-8'); ?>
                   </p>
                 </div>
                 <?php endif; ?>
                 <div class="region-image-check" data-image-check-root data-image-check-target="<?php echo htmlspecialchars($textareaId, ENT_QUOTES, 'UTF-8'); ?>">
                   <div class="actions-inline">
-                    <button type="button" class="button-link button-link-muted" data-image-check-run>Vérifier les images</button>
+                    <button type="button" class="button-link button-link-muted" data-image-check-run><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_IMAGE_CHECK_RUN', 'Vérifier les images'), ENT_QUOTES, 'UTF-8'); ?></button>
                   </div>
                   <p class="notice-muted region-image-check__status" data-image-check-status>
-                    Vérifie que chaque chemin <code>&lt;img src="..."&gt;</code> pointe vers une image accessible.
+                    <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_IMAGE_CHECK_HELP', 'Vérifie que chaque chemin <img src=\"...\"> pointe vers une image accessible.'), ENT_QUOTES, 'UTF-8'); ?>
                   </p>
                   <ul class="region-image-check__results" data-image-check-results hidden></ul>
                 </div>
@@ -921,8 +920,8 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
             </div>
 
             <div class="actions-inline actions-inline-end region-modal__actions">
-              <button type="button" class="button-link button-link-muted" data-region-modal-close>Continuer</button>
-              <button type="submit" form="<?php echo htmlspecialchars($pageEditorFormId, ENT_QUOTES, 'UTF-8'); ?>">Enregistrer la page</button>
+              <button type="button" class="button-link button-link-muted" data-region-modal-close><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_CONTINUE_BUTTON', 'Continuer'), ENT_QUOTES, 'UTF-8'); ?></button>
+              <button type="submit" form="<?php echo htmlspecialchars($pageEditorFormId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_SAVE_BUTTON', 'Enregistrer la page'), ENT_QUOTES, 'UTF-8'); ?></button>
             </div>
           </div>
         </dialog>
@@ -941,23 +940,23 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
     <div class="region-modal__surface">
       <div class="region-modal__header">
         <div>
-          <p class="region-modal__eyebrow">Bibliotheque medias</p>
-          <h3>Inserer un media dans la region</h3>
-          <p>Selectionne une image ou une video, puis insertion au curseur dans la zone HTML active.</p>
+          <p class="region-modal__eyebrow"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_LIBRARY_EYEBROW', 'Bibliotheque medias'), ENT_QUOTES, 'UTF-8'); ?></p>
+          <h3><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_REGION_TITLE', 'Inserer un media dans la region'), ENT_QUOTES, 'UTF-8'); ?></h3>
+          <p><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_REGION_HELP', 'Selectionne une image ou une video, puis insertion au curseur dans la zone HTML active.'), ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
-        <button type="button" class="button-link button-link-muted" data-content-media-close>Fermer</button>
+        <button type="button" class="button-link button-link-muted" data-content-media-close><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?></button>
       </div>
 
       <div class="region-modal__body">
         <div class="admin-form-grid admin-form-grid-2 content-media-toolbar">
           <div class="field content-media-dialog__search">
-            <label for="page-media-insert-search">Recherche</label>
-            <input id="page-media-insert-search" type="text" placeholder="nom, chemin, format..." data-content-media-search />
+            <label for="page-media-insert-search"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SEARCH', 'Recherche'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="page-media-insert-search" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_SEARCH_PLACEHOLDER', 'nom, chemin, format...'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-search />
           </div>
           <div class="field">
-            <label for="page-media-insert-folder">Dossier</label>
+            <label for="page-media-insert-folder"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_FOLDER_LABEL', 'Dossier'), ENT_QUOTES, 'UTF-8'); ?></label>
             <select id="page-media-insert-folder" data-content-media-folder>
-              <option value="">Tous les dossiers</option>
+              <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FOLDERS', 'Tous les dossiers'), ENT_QUOTES, 'UTF-8'); ?></option>
               <?php foreach ($contentMediaFolders as $folderOption): ?>
               <?php
               if (!is_string($folderOption)) {
@@ -978,7 +977,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
         <?php if ($contentMediaFavorites !== []): ?>
         <div class="actions-inline content-media-favorites" data-content-media-favorites>
-          <span class="tag">Favoris</span>
+          <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_FAVORITES', 'Favoris'), ENT_QUOTES, 'UTF-8'); ?></span>
           <?php foreach ($contentMediaFavorites as $favoriteFolder): ?>
           <?php
           if (!is_string($favoriteFolder)) {
@@ -991,32 +990,32 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
             class="button-small button-muted"
             data-content-media-favorite-folder="<?php echo htmlspecialchars($favoriteFolder, ENT_QUOTES, 'UTF-8'); ?>"
           >
-            <?php echo htmlspecialchars($favoriteFolder === '' ? 'Racine' : $favoriteFolder, ENT_QUOTES, 'UTF-8'); ?>
+            <?php echo htmlspecialchars($favoriteFolder === '' ? $translate('TXT_ADMIN_CONTENT_MEDIA_ROOT', 'Racine') : $favoriteFolder, ENT_QUOTES, 'UTF-8'); ?>
           </button>
           <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
         <section class="content-media-controls">
-          <h4>Preset insertion</h4>
+          <h4><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_TITLE', 'Preset insertion'), ENT_QUOTES, 'UTF-8'); ?></h4>
           <div class="admin-form-grid admin-form-grid-3">
             <div class="field">
-              <label for="page-media-insert-preset">Preset</label>
+              <label for="page-media-insert-preset"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_LABEL', 'Preset'), ENT_QUOTES, 'UTF-8'); ?></label>
               <select id="page-media-insert-preset" data-content-media-preset>
-                <option value="figure-default">Figure standard</option>
-                <option value="figure-wide">Figure pleine largeur</option>
-                <option value="figure-left">Figure flottante gauche</option>
-                <option value="figure-right">Figure flottante droite</option>
-                <option value="raw">Balise simple (sans figure)</option>
+                <option value="figure-default"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_DEFAULT', 'Figure standard'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-wide"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_WIDE', 'Figure pleine largeur'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-left"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_LEFT', 'Figure flottante gauche'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-right"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_RIGHT', 'Figure flottante droite'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="raw"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_RAW', 'Balise simple (sans figure)'), ENT_QUOTES, 'UTF-8'); ?></option>
               </select>
             </div>
             <div class="field">
-              <label for="page-media-insert-classes">Classes CSS supplementaires</label>
-              <input id="page-media-insert-classes" type="text" placeholder="ex: rounded shadow-lg" data-content-media-extra-classes />
+              <label for="page-media-insert-classes"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_EXTRA_CLASSES_LABEL', 'Classes CSS supplementaires'), ENT_QUOTES, 'UTF-8'); ?></label>
+              <input id="page-media-insert-classes" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_EXTRA_CLASSES_PLACEHOLDER', 'ex: rounded shadow-lg'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-extra-classes />
             </div>
             <div class="field">
-              <label for="page-media-insert-alt">Alt image par defaut</label>
-              <input id="page-media-insert-alt" type="text" placeholder="description courte" data-content-media-alt />
+              <label for="page-media-insert-alt"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_DEFAULT_ALT_LABEL', 'Alt image par defaut'), ENT_QUOTES, 'UTF-8'); ?></label>
+              <input id="page-media-insert-alt" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_DEFAULT_ALT_PLACEHOLDER', 'description courte'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-alt />
             </div>
           </div>
 
@@ -1024,19 +1023,19 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
             <div class="field">
               <label class="checkbox-field" for="page-media-insert-lazy">
                 <input id="page-media-insert-lazy" type="checkbox" data-content-media-lazy checked />
-                Charger en lazy (images)
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_LAZY_IMAGES', 'Charger en lazy (images)'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="page-media-insert-dimensions">
                 <input id="page-media-insert-dimensions" type="checkbox" data-content-media-include-dimensions checked />
-                Injecter width/height (si disponibles)
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INCLUDE_DIMENSIONS', 'Injecter width/height (si disponibles)'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="page-media-insert-governance-strict">
                 <input id="page-media-insert-governance-strict" type="checkbox" data-content-media-governance-strict checked />
-                Bloquer les assets hors charte
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_STRICT_GOVERNANCE', 'Bloquer les assets hors charte'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
           </div>
@@ -1045,51 +1044,54 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
             <div class="field">
               <label class="checkbox-field" for="page-media-insert-video-controls">
                 <input id="page-media-insert-video-controls" type="checkbox" data-content-media-video-controls checked />
-                Video: controls
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_CONTROLS', 'Video: controls'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="page-media-insert-video-muted">
                 <input id="page-media-insert-video-muted" type="checkbox" data-content-media-video-muted />
-                Video: muted
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_MUTED', 'Video: muted'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="page-media-insert-video-autoplay">
                 <input id="page-media-insert-video-autoplay" type="checkbox" data-content-media-video-autoplay />
-                Video: autoplay
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_AUTOPLAY', 'Video: autoplay'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="page-media-insert-video-loop">
                 <input id="page-media-insert-video-loop" type="checkbox" data-content-media-video-loop />
-                Video: loop
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_LOOP', 'Video: loop'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field admin-form-span-2">
-              <label for="page-media-insert-video-poster">Video poster (optionnel)</label>
+              <label for="page-media-insert-video-poster"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_POSTER_OPTIONAL', 'Video poster (optionnel)'), ENT_QUOTES, 'UTF-8'); ?></label>
               <input id="page-media-insert-video-poster" type="text" placeholder="/uploads/editorial/library/.../poster.webp" data-content-media-video-poster />
             </div>
             <div class="field">
               <label class="checkbox-field" for="page-media-insert-filter-governance">
                 <input id="page-media-insert-filter-governance" type="checkbox" data-content-media-filter-governance />
-                Afficher seulement les assets conformes
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_ONLY_COMPLIANT', 'Afficher seulement les assets conformes'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
           </div>
 
           <p class="notice-muted">
-            Gouvernance PAGE:
-            images <?php echo htmlspecialchars($contentMediaPolicyImageExtensions === [] ? 'tous formats' : strtoupper(implode(', ', $contentMediaPolicyImageExtensions)), ENT_QUOTES, 'UTF-8'); ?>
-            (max <?php echo htmlspecialchars((string) ($contentMediaPolicy['imageMaxLabel'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>),
-            videos <?php echo htmlspecialchars($contentMediaPolicyVideoExtensions === [] ? 'tous formats' : strtoupper(implode(', ', $contentMediaPolicyVideoExtensions)), ENT_QUOTES, 'UTF-8'); ?>
-            (max <?php echo htmlspecialchars((string) ($contentMediaPolicy['videoMaxLabel'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>).
+            <?php echo htmlspecialchars($translateFormat(
+                'TXT_ADMIN_CONTENT_MEDIA_GOVERNANCE_PAGE',
+                'Gouvernance PAGE: images %s (max %s), videos %s (max %s).',
+                $contentMediaPolicyImageExtensions === [] ? $translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FORMATS', 'tous formats') : strtoupper(implode(', ', $contentMediaPolicyImageExtensions)),
+                (string) ($contentMediaPolicy['imageMaxLabel'] ?? 'N/A'),
+                $contentMediaPolicyVideoExtensions === [] ? $translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FORMATS', 'tous formats') : strtoupper(implode(', ', $contentMediaPolicyVideoExtensions)),
+                (string) ($contentMediaPolicy['videoMaxLabel'] ?? 'N/A')
+            ), ENT_QUOTES, 'UTF-8'); ?>
           </p>
           <div class="actions-inline">
-            <button type="button" class="button-small button-link-muted" data-content-media-audit>Auditer le contenu cible</button>
+            <button type="button" class="button-small button-link-muted" data-content-media-audit><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_TARGET', 'Auditer le contenu cible'), ENT_QUOTES, 'UTF-8'); ?></button>
           </div>
           <p class="notice-muted content-media-audit__status" data-content-media-audit-status>
-            Lance un controle automatique (format, taille, source referencee) sur le champ cible.
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_HINT', 'Lance un controle automatique (format, taille, source referencee) sur le champ cible.'), ENT_QUOTES, 'UTF-8'); ?>
           </p>
           <ul class="content-media-audit__results" data-content-media-audit-results hidden></ul>
           <p class="notice-muted content-media-dialog__status" data-content-media-status hidden></p>
@@ -1175,7 +1177,9 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
                 <?php endif; ?>
               </small>
               <small data-content-media-policy-badge>
-                <?php echo $mediaPolicyCompliant ? 'Conforme gouvernance' : ('Hors charte: ' . htmlspecialchars($mediaPolicyHint, ENT_QUOTES, 'UTF-8')); ?>
+                <?php echo $mediaPolicyCompliant
+                    ? htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_COMPLIANT', 'Conforme gouvernance'), ENT_QUOTES, 'UTF-8')
+                    : htmlspecialchars($translateFormat('TXT_ADMIN_CONTENT_MEDIA_OUT_OF_POLICY', 'Hors charte: %s', $mediaPolicyHint), ENT_QUOTES, 'UTF-8'); ?>
               </small>
             </div>
             <div class="actions-inline actions-inline-end">
@@ -1193,25 +1197,25 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
                 data-content-media-policy-hint="<?php echo htmlspecialchars($mediaPolicyHint, ENT_QUOTES, 'UTF-8'); ?>"
                 data-content-media-folder="<?php echo htmlspecialchars($mediaFolder, ENT_QUOTES, 'UTF-8'); ?>"
               >
-                Inserer
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_BUTTON', 'Inserer'), ENT_QUOTES, 'UTF-8'); ?>
               </button>
             </div>
           </article>
           <?php endforeach; ?>
         </div>
 
-        <p class="notice-muted content-media-dialog__empty" data-content-media-empty hidden>Aucun media ne correspond a la recherche.</p>
+        <p class="notice-muted content-media-dialog__empty" data-content-media-empty hidden><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_NO_RESULTS', 'Aucun media ne correspond a la recherche.'), ENT_QUOTES, 'UTF-8'); ?></p>
       </div>
 
       <div class="actions-inline actions-inline-end region-modal__actions">
-        <button type="button" class="button-link button-link-muted" data-content-media-close>Fermer</button>
+        <button type="button" class="button-link button-link-muted" data-content-media-close><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?></button>
       </div>
     </div>
   </dialog>
 
-  <div class="actions-inline actions-inline-end">
-    <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($pagesIndexUrl ?? $adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Annuler</a>
-    <button type="submit" name="page_action" value="save" form="<?php echo htmlspecialchars($pageEditorFormId, ENT_QUOTES, 'UTF-8'); ?>">Enregistrer la page</button>
+    <div class="actions-inline actions-inline-end">
+    <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($pagesIndexUrl ?? $adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler'), ENT_QUOTES, 'UTF-8'); ?></a>
+    <button type="submit" name="page_action" value="save" form="<?php echo htmlspecialchars($pageEditorFormId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_SAVE_BUTTON', 'Enregistrer la page'), ENT_QUOTES, 'UTF-8'); ?></button>
   </div>
 </form>
 
@@ -1338,6 +1342,15 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 </script>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
+    const tileGroupSummaryTemplate = <?php echo json_encode($translate('TXT_ADMIN_PAGE_TILE_GROUP_SUMMARY', '%s · %d tuile(s). Les détails du groupe se gèrent dans Tuiles.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tileGroupEmptyTemplate = <?php echo json_encode($translate('TXT_ADMIN_PAGE_TILE_GROUP_EMPTY', '%s n a pas encore de tuile. Les détails du groupe se gèrent dans Tuiles.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tileGroupFallbackLabel = <?php echo json_encode($translate('TXT_ADMIN_PAGE_TILE_GROUP_FALLBACK', 'Groupe'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tileOverrideNote = <?php echo json_encode($translate('TXT_ADMIN_PAGE_TILE_OVERRIDE_NOTE', 'Des overrides locaux déjà enregistrés pour cette page sont conservés en arrière-plan, sans édition détaillée ici.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tileNoPlacementHtml = <?php echo json_encode('<p class="notice-muted">' . htmlspecialchars($translate('TXT_ADMIN_PAGE_TILES_EMPTY_ATTACHMENTS', 'Aucun groupe de tuiles n est encore attaché à cette page.'), ENT_QUOTES, 'UTF-8') . '</p>', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tileRemoveGroupLabel = <?php echo json_encode($translate('TXT_ADMIN_PAGE_TILE_REMOVE_GROUP', 'Retirer ce groupe'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tileDisplayOrderLabel = <?php echo json_encode($translate('TXT_ADMIN_PAGE_TILE_DISPLAY_ORDER', 'Ordre d affichage dans after_body.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tileGroupLabel = <?php echo json_encode($translate('TXT_ADMIN_PAGE_TILE_GROUP_LABEL', 'Groupe'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tileOrderLabel = <?php echo json_encode($translate('TXT_ADMIN_PAGE_TILE_ORDER_LABEL', 'Ordre'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const editor = document.querySelector('[data-page-tile-editor]');
     const addButton = document.querySelector('[data-page-tile-add-placement]');
     const list = document.querySelector('[data-page-tile-placement-list]');
@@ -1505,10 +1518,10 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
       }).join('');
       const tileCount = groupItems.length;
       const summary = tileCount > 0
-        ? `${String(group.name || 'Groupe')} · ${tileCount} tuile(s). Les détails du groupe se gèrent dans Tuiles.`
-        : `${String(group.name || 'Groupe')} n a pas encore de tuile. Les détails du groupe se gèrent dans Tuiles.`;
+        ? tileGroupSummaryTemplate.replace('%s', String(group.name || tileGroupFallbackLabel)).replace('%d', String(tileCount))
+        : tileGroupEmptyTemplate.replace('%s', String(group.name || tileGroupFallbackLabel));
       const overrideNote = overrideEntries.length > 0
-        ? 'Des overrides locaux déjà enregistrés pour cette page sont conservés en arrière-plan, sans édition détaillée ici.'
+        ? tileOverrideNote
         : '';
 
       return `
@@ -1520,7 +1533,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
     const renderPlacements = () => {
       if (placements.length === 0) {
-        list.innerHTML = '<p class="notice-muted">Aucun groupe de tuiles n est encore attaché à cette page.</p>';
+        list.innerHTML = tileNoPlacementHtml;
         return;
       }
 
@@ -1528,22 +1541,22 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         <article class="nested-card page-tile-placement" data-page-tile-placement data-placement-index="${index}">
           <div class="page-editor-intro__header">
             <div>
-              <strong>Groupe ${index + 1}</strong>
-              <p class="notice-muted">Ordre d affichage dans after_body.</p>
+              <strong>${tileGroupLabel} ${index + 1}</strong>
+              <p class="notice-muted">${tileDisplayOrderLabel}</p>
             </div>
-            <button type="button" class="button-link button-link-muted" data-page-tile-remove-placement>Retirer ce groupe</button>
+            <button type="button" class="button-link button-link-muted" data-page-tile-remove-placement>${tileRemoveGroupLabel}</button>
           </div>
 
           <div class="admin-form-grid admin-form-grid-2">
             <div class="field">
-              <label>Groupe</label>
+              <label>${tileGroupLabel}</label>
               <select name="tile_placements[${index}][group_id]" data-page-tile-group>
                 ${groupOptionsHtml(String(placement.group_id || ''))}
               </select>
             </div>
 
             <div class="field">
-              <label>Ordre</label>
+              <label>${tileOrderLabel}</label>
               <input type="number" min="0" step="10" name="tile_placements[${index}][sort_order]" value="${escapeHtml(placement.sort_order || '')}" data-page-tile-sort />
             </div>
           </div>
@@ -1867,6 +1880,18 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 </script>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
+    const governanceCompliantLabel = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_COMPLIANT', 'Conforme gouvernance'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const governanceOutOfPolicyTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_OUT_OF_POLICY', 'Hors charte: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const reasonFormatTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_REASON_FORMAT_NOT_ALLOWED', 'format %s non autorise'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const reasonSizeTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_REASON_SIZE_EXCEEDED', 'taille %s > %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditHintText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_HINT', 'Lance un controle automatique (format, taille, source referencee) sur le champ cible.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const noActiveTargetText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_NO_ACTIVE_TARGET', 'Aucun champ cible actif pour l audit.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditNoMediaText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_NO_MEDIA', 'Audit termine: aucun media detecte dans le contenu.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const missingSourceTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_MISSING_SOURCE', 'Source non referencee dans la bibliotheque: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditSuccessTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_SUCCESS', 'Audit termine: %d media conforme(s).'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditIssuesTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_ISSUES', 'Audit termine: %d anomalie(s) sur %d media.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const insertBlockedTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_BLOCKED', 'Insertion bloquee: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const insertedText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_INSERTED_PAGE', 'Media insere dans la region.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const escapeAttribute = (value) => String(value)
       .replaceAll('&', '&amp;')
       .replaceAll('"', '&quot;')
@@ -1989,17 +2014,25 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
       if (normalizedKind === 'image') {
         if (policy.imageExtensions.length > 0 && !policy.imageExtensions.includes(normalizedExtension)) {
-          reasons.push(`format ${normalizedExtension || 'inconnu'} non autorise`);
+          reasons.push(reasonFormatTemplate.replace('%s', normalizedExtension || 'inconnu'));
         }
         if (policy.imageMaxBytes > 0 && normalizedSize > policy.imageMaxBytes) {
-          reasons.push(`taille ${bytesToLabel(normalizedSize)} > ${policy.imageMaxLabel || bytesToLabel(policy.imageMaxBytes)}`);
+          reasons.push(
+            reasonSizeTemplate
+              .replace('%s', bytesToLabel(normalizedSize))
+              .replace('%s', policy.imageMaxLabel || bytesToLabel(policy.imageMaxBytes))
+          );
         }
       } else {
         if (policy.videoExtensions.length > 0 && !policy.videoExtensions.includes(normalizedExtension)) {
-          reasons.push(`format ${normalizedExtension || 'inconnu'} non autorise`);
+          reasons.push(reasonFormatTemplate.replace('%s', normalizedExtension || 'inconnu'));
         }
         if (policy.videoMaxBytes > 0 && normalizedSize > policy.videoMaxBytes) {
-          reasons.push(`taille ${bytesToLabel(normalizedSize)} > ${policy.videoMaxLabel || bytesToLabel(policy.videoMaxBytes)}`);
+          reasons.push(
+            reasonSizeTemplate
+              .replace('%s', bytesToLabel(normalizedSize))
+              .replace('%s', policy.videoMaxLabel || bytesToLabel(policy.videoMaxBytes))
+          );
         }
       }
 
@@ -2022,7 +2055,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
     const clearAuditState = () => {
       if (auditStatus instanceof HTMLElement) {
-        auditStatus.textContent = 'Lance un controle automatique (format, taille, source referencee) sur le champ cible.';
+        auditStatus.textContent = auditHintText;
       }
       if (auditResults instanceof HTMLElement) {
         auditResults.innerHTML = '';
@@ -2089,8 +2122,8 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         const badge = node.querySelector('[data-content-media-policy-badge]');
         if (badge instanceof HTMLElement) {
           badge.textContent = governance.compliant
-            ? 'Conforme gouvernance'
-            : `Hors charte: ${governance.reasons.join(' · ')}`;
+            ? governanceCompliantLabel
+            : governanceOutOfPolicyTemplate.replace('%s', governance.reasons.join(' · '));
         }
 
         if (match) {
@@ -2295,7 +2328,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         const textarea = resolveTargetTextarea();
         if (!(textarea instanceof HTMLTextAreaElement)) {
           if (auditStatus instanceof HTMLElement) {
-            auditStatus.textContent = 'Aucun champ cible actif pour l audit.';
+            auditStatus.textContent = noActiveTargetText;
           }
           return;
         }
@@ -2303,7 +2336,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         const references = extractMediaSources(textarea.value);
         if (references.length === 0) {
           if (auditStatus instanceof HTMLElement) {
-            auditStatus.textContent = 'Audit termine: aucun media detecte dans le contenu.';
+            auditStatus.textContent = auditNoMediaText;
           }
           if (auditResults instanceof HTMLElement) {
             auditResults.innerHTML = '';
@@ -2316,7 +2349,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         references.forEach((reference) => {
           const indexed = mediaIndex.get(reference.src);
           if (!indexed) {
-            issues.push(`Source non referencee dans la bibliotheque: ${reference.src}`);
+            issues.push(missingSourceTemplate.replace('%s', reference.src));
             return;
           }
 
@@ -2332,8 +2365,8 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
         if (auditStatus instanceof HTMLElement) {
           auditStatus.textContent = issues.length === 0
-            ? `Audit termine: ${references.length} media conforme(s).`
-            : `Audit termine: ${issues.length} anomalie(s) sur ${references.length} media.`;
+            ? auditSuccessTemplate.replace('%d', String(references.length))
+            : auditIssuesTemplate.replace('%d', String(issues.length)).replace('%d', String(references.length));
         }
 
         if (auditResults instanceof HTMLElement) {
@@ -2386,7 +2419,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         });
         const strictGovernance = !(governanceStrictCheckbox instanceof HTMLInputElement) || governanceStrictCheckbox.checked;
         if (strictGovernance && !governance.compliant) {
-          setInlineStatus(`Insertion bloquee: ${governance.reasons.join(' · ')}`, true);
+          setInlineStatus(insertBlockedTemplate.replace('%s', governance.reasons.join(' · ')), true);
           return;
         }
 
@@ -2398,7 +2431,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         });
 
         insertAtCursor(textarea, snippet);
-        setInlineStatus('Media insere dans la region.', false);
+        setInlineStatus(insertedText, false);
         dialog.close();
       });
     }
@@ -2416,6 +2449,13 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 </script>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
+    const imageCheckRunning = <?php echo json_encode($translate('TXT_ADMIN_PAGE_IMAGE_CHECK_RUNNING', 'Analyse des images en cours…'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const imageCheckNone = <?php echo json_encode($translate('TXT_ADMIN_PAGE_IMAGE_CHECK_NONE', 'Aucune balise image détectée dans ce bloc HTML.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const imageCheckErrorLabel = <?php echo json_encode($translate('TXT_ADMIN_PAGE_IMAGE_CHECK_ERROR_LABEL', 'Erreur'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const imageCheckOpen = <?php echo json_encode($translate('TXT_ADMIN_COMMON_OPEN', 'Ouvrir'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const imageCheckTimeout = <?php echo json_encode($translate('TXT_ADMIN_PAGE_IMAGE_CHECK_TIMEOUT', 'L’image ne répond pas (timeout).'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const imageCheckInvalid = <?php echo json_encode($translate('TXT_ADMIN_PAGE_IMAGE_CHECK_INVALID', 'Fichier introuvable ou format non image.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const imageCheckSummary = <?php echo json_encode($translate('TXT_ADMIN_PAGE_IMAGE_CHECK_SUMMARY', '%d image(s) détectée(s) · %d OK · %d en erreur'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const checkRoots = document.querySelectorAll('[data-image-check-root]');
     if (checkRoots.length === 0) {
       return;
@@ -2550,13 +2590,13 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
       runButton.addEventListener('click', async () => {
         runButton.disabled = true;
-        setStatusText(statusNode, 'Analyse des images en cours…');
+        setStatusText(statusNode, imageCheckRunning);
         clearResults(resultList);
         resultList.hidden = true;
 
         const sources = extractImageSources(textarea.value);
         if (sources.length === 0) {
-          setStatusText(statusNode, 'Aucune balise image détectée dans ce bloc HTML.');
+          setStatusText(statusNode, imageCheckNone);
           runButton.disabled = false;
           return;
         }
@@ -2585,7 +2625,7 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
           const badge = document.createElement('strong');
           badge.className = 'region-image-check__badge';
-          badge.textContent = entry.ok ? 'OK' : 'Erreur';
+          badge.textContent = entry.ok ? 'OK' : imageCheckErrorLabel;
           item.appendChild(badge);
 
           const sourceCode = document.createElement('code');
@@ -2597,15 +2637,15 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
             link.href = entry.absoluteUrl;
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
-            link.textContent = 'ouvrir';
+            link.textContent = imageCheckOpen;
             item.appendChild(link);
           }
 
           if (!entry.ok) {
             const reason = document.createElement('small');
             reason.textContent = entry.reason === 'timeout'
-              ? 'L’image ne répond pas (timeout).'
-              : 'Fichier introuvable ou format non image.';
+              ? imageCheckTimeout
+              : imageCheckInvalid;
             item.appendChild(reason);
           }
 
@@ -2614,7 +2654,10 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
         setStatusText(
           statusNode,
-          `${sources.length} image(s) détectée(s) · ${okCount} OK · ${sources.length - okCount} en erreur`
+          imageCheckSummary
+            .replace('%d', String(sources.length))
+            .replace('%d', String(okCount))
+            .replace('%d', String(sources.length - okCount))
         );
         resultList.hidden = false;
         runButton.disabled = false;
@@ -2624,6 +2667,9 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 </script>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
+    const calloutEmptyHint = <?php echo json_encode($translate('TXT_ADMIN_PAGE_CALLOUT_EMPTY_HINT', 'Ajoute du contenu dans l encart, puis coche cette option si tu veux afficher la bordure.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const calloutEnabledHint = <?php echo json_encode($translate('TXT_ADMIN_PAGE_CALLOUT_ENABLED_HINT', 'La bordure rose sera affichee autour de cet encart.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const calloutDisabledHint = <?php echo json_encode($translate('TXT_ADMIN_PAGE_CALLOUT_DISABLED_HINT', 'Coche cette option pour afficher la bordure rose autour de cet encart.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const calloutRoots = document.querySelectorAll('[data-region-callout-root]');
     if (calloutRoots.length === 0) {
       return;
@@ -2729,15 +2775,15 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
       checkbox.disabled = false;
 
       if (!hasContent) {
-        setStatus(status, 'Ajoute du contenu dans l encart, puis coche cette option si tu veux afficher la bordure.');
+        setStatus(status, calloutEmptyHint);
         return;
       }
 
       setStatus(
         status,
         isWrapped
-          ? 'La bordure rose sera affichee autour de cet encart.'
-          : 'Coche cette option pour afficher la bordure rose autour de cet encart.'
+          ? calloutEnabledHint
+          : calloutDisabledHint
       );
     };
 
@@ -2774,15 +2820,14 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
 
 <?php if (!($isNewPage ?? false)): ?>
 <section class="card">
-  <h2>Suppression</h2>
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_DELETE_SECTION_TITLE', 'Suppression'), ENT_QUOTES, 'UTF-8'); ?></h2>
   <p>
-    Cette action supprime définitivement la page <code><?php echo htmlspecialchars((string) ($currentSlug ?? ''), ENT_QUOTES, 'UTF-8'); ?></code>
-    et toutes ses traductions.
+    <?php echo htmlspecialchars($translateFormat('TXT_ADMIN_PAGE_DELETE_SECTION_DESCRIPTION', 'Cette action supprime définitivement la page %s et toutes ses traductions.', (string) ($currentSlug ?? '')), ENT_QUOTES, 'UTF-8'); ?>
   </p>
 
   <?php if ($deleteReferences !== []): ?>
   <div class="notice notice-error">
-    Suppression bloquée : la page est encore utilisée par la navigation ou par des tuiles.
+    <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_DELETE_BLOCKED', 'Suppression bloquée : la page est encore utilisée par la navigation ou par des tuiles.'), ENT_QUOTES, 'UTF-8'); ?>
   </div>
   <ul>
     <?php foreach ($deleteReferences as $reference): ?>
@@ -2793,15 +2838,15 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
     </li>
     <?php endforeach; ?>
   </ul>
-  <p class="notice-muted">Retire d abord ces références dans les menus ou les tuiles avant de supprimer la page.</p>
+  <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_DELETE_REMOVE_REFERENCES', 'Retire d abord ces références dans les menus ou les tuiles avant de supprimer la page.'), ENT_QUOTES, 'UTF-8'); ?></p>
   <?php else: ?>
   <details class="danger-confirmation">
-    <summary>Supprimer définitivement</summary>
+    <summary><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_DELETE_SUMMARY', 'Supprimer définitivement'), ENT_QUOTES, 'UTF-8'); ?></summary>
 
     <div class="danger-confirmation__body">
-      <p class="danger-confirmation__question">Êtes-vous sûr de vouloir supprimer cette page ?</p>
+      <p class="danger-confirmation__question"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_DELETE_QUESTION', 'Êtes-vous sûr de vouloir supprimer cette page ?'), ENT_QUOTES, 'UTF-8'); ?></p>
       <p class="notice notice-error">
-        Cette suppression est définitive et enlèvera aussi toutes les traductions liées.
+        <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_DELETE_WARNING', 'Cette suppression est définitive et enlèvera aussi toutes les traductions liées.'), ENT_QUOTES, 'UTF-8'); ?>
       </p>
 
       <form method="post" action="<?php echo htmlspecialchars((string) ($currentPageUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -2809,8 +2854,8 @@ if (!is_string($tileEditorBootstrapJson) || $tileEditorBootstrapJson === '') {
         <input type="hidden" name="confirm_delete" value="1" />
 
         <div class="actions-inline actions-inline-end">
-          <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($currentPageUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Non</a>
-          <button type="submit" name="page_action" value="delete" class="button-danger">Oui, supprimer définitivement</button>
+          <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($currentPageUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_NO', 'Non'), ENT_QUOTES, 'UTF-8'); ?></a>
+          <button type="submit" name="page_action" value="delete" class="button-danger"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGE_DELETE_CONFIRM_BUTTON', 'Oui, supprimer définitivement'), ENT_QUOTES, 'UTF-8'); ?></button>
         </div>
       </form>
     </div>

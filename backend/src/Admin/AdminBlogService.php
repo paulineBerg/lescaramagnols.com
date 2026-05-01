@@ -141,6 +141,133 @@ final class AdminBlogService
 
     /**
      * @param array<int, array<string, mixed>> $articles
+     * @return array<int, array<string, mixed>>
+     */
+    public function groupArticlesBySlug(array $articles): array
+    {
+        $articleRowsBySlug = [];
+
+        foreach ($articles as $article) {
+            if (!is_array($article)) {
+                continue;
+            }
+
+            $slug = trim((string) ($article['slug'] ?? ''));
+            if ($slug === '') {
+                continue;
+            }
+
+            $language = (string) ($article['lang'] ?? '');
+            $articleRowsBySlug[$slug][$language] = $article;
+        }
+
+        $groups = [];
+
+        foreach ($articleRowsBySlug as $slug => $visibleRowsByLanguage) {
+            $bundle = $this->loadArticleBundle($slug);
+            if ($bundle === []) {
+                continue;
+            }
+
+            $group = [
+                'slug' => $slug,
+                'title' => '',
+                'status' => 'draft',
+                'effectiveStatus' => 'draft',
+                'author' => '',
+                'date' => '',
+                'scheduledPublishAt' => null,
+                'pageSlug' => '',
+                'pageTitle' => '',
+                'pageRoute' => '',
+                'parentSlug' => '',
+                'childSortOrder' => null,
+                'excerpt' => '',
+                'category' => '',
+                'subcategory' => '',
+                'tags' => [],
+                'languages' => [],
+                'missingLanguages' => [],
+                'translations' => [],
+                'sortTimestamp' => 0,
+            ];
+
+            foreach ($this->availableLanguages as $language) {
+                if (!is_array($bundle[$language] ?? null)) {
+                    continue;
+                }
+
+                $translatedRow = $this->mapListItem($bundle[$language]);
+                $translatedRow['isVisibleInList'] = array_key_exists($language, $visibleRowsByLanguage);
+                $group['translations'][$language] = $translatedRow;
+                $group['languages'][] = $language;
+
+                if ($translatedRow['isVisibleInList']) {
+                    $group['visibleLanguageCount'] = (int) (($group['visibleLanguageCount'] ?? 0) + 1);
+                }
+            }
+
+            if ($group['languages'] === []) {
+                continue;
+            }
+
+            $group['missingLanguages'] = array_values(array_diff($this->availableLanguages, $group['languages']));
+
+            foreach ($this->availableLanguages as $language) {
+                if (!is_array($group['translations'][$language] ?? null)) {
+                    continue;
+                }
+
+                $group = array_replace(
+                    $group,
+                    array_intersect_key($group['translations'][$language], array_flip([
+                        'title',
+                        'status',
+                        'effectiveStatus',
+                        'author',
+                        'date',
+                        'scheduledPublishAt',
+                        'pageSlug',
+                        'pageTitle',
+                        'pageRoute',
+                        'parentSlug',
+                        'childSortOrder',
+                        'excerpt',
+                        'category',
+                        'subcategory',
+                        'tags',
+                    ]))
+                );
+
+                $timestamp = strtotime((string) ($group['date'] ?? ''));
+                if ($timestamp !== false) {
+                    $group['sortTimestamp'] = $timestamp;
+                }
+
+                break;
+            }
+
+            if ($group['title'] === '') {
+                $group['title'] = 'Article sans titre';
+            }
+
+            $groups[] = $group;
+        }
+
+        usort(
+            $groups,
+            static fn (array $left, array $right): int => ($right['sortTimestamp'] ?? 0) <=> ($left['sortTimestamp'] ?? 0)
+        );
+
+        foreach ($groups as $index => $group) {
+            unset($groups[$index]['sortTimestamp']);
+        }
+
+        return $groups;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $articles
      * @return array{
      *   total: int,
      *   published: int,
@@ -512,6 +639,22 @@ final class AdminBlogService
      */
     public function save(array $body, ?string $currentSlug = null, ?string $currentLanguage = null, ?string $actorIdentifier = null): array
     {
+        $translate = static function (string $key, string $fallback): string {
+            if (function_exists('admin_translate')) {
+                return admin_translate($key, $fallback);
+            }
+
+            if (!function_exists('t')) {
+                return $fallback;
+            }
+
+            $translated = t($key);
+            if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+                return $fallback;
+            }
+
+            return $translated;
+        };
         $articleData = is_array($body['article'] ?? null) ? $body['article'] : $body;
         $translationData = $this->normalizePostedTranslations($body['translations'] ?? []);
         $existingBundle = is_string($currentSlug) && $currentSlug !== ''
@@ -550,7 +693,7 @@ final class AdminBlogService
             return [
                 'success' => false,
                 'form' => $form,
-                'error' => 'La page parent est obligatoire pour rattacher l’article.',
+                'error' => $translate('TXT_ADMIN_ARTICLE_PARENT_PAGE_REQUIRED', 'La page parent est obligatoire pour rattacher l’article.'),
             ];
         }
 
@@ -558,7 +701,7 @@ final class AdminBlogService
             return [
                 'success' => false,
                 'form' => $form,
-                'error' => 'La page parent sélectionnée est introuvable.',
+                'error' => $translate('TXT_ADMIN_ARTICLE_PARENT_PAGE_NOT_FOUND', 'La page parent sélectionnée est introuvable.'),
             ];
         }
 
@@ -589,7 +732,7 @@ final class AdminBlogService
             $validation = $this->saveService->validatePayload($payload, $actorIdentifier);
 
             if (($validation['ok'] ?? false) !== true) {
-                foreach (is_array($validation['errors'] ?? null) ? $validation['errors'] : ['Impossible de sauvegarder l’article.'] as $error) {
+                foreach (is_array($validation['errors'] ?? null) ? $validation['errors'] : [$translate('TXT_ADMIN_ARTICLE_SAVE_FAILED', 'Impossible de sauvegarder l’article.')] as $error) {
                     $message = strtoupper($language) . ' : ' . (string) $error;
                     $errors[$message] = $message;
                 }
@@ -604,7 +747,7 @@ final class AdminBlogService
         }
 
         if ($validatedPayloads === []) {
-            $errors['bundle'] = 'Au moins une traduction complete doit être renseignée.';
+            $errors['bundle'] = $translate('TXT_ADMIN_ARTICLE_AT_LEAST_ONE_TRANSLATION', 'Au moins une traduction complete doit être renseignée.');
         }
 
         if ($errors !== []) {
@@ -631,7 +774,10 @@ final class AdminBlogService
                 return [
                     'success' => false,
                     'form' => $form,
-                    'error' => sprintf('Impossible d’enregistrer la traduction %s pour le moment.', strtoupper($language)),
+                    'error' => sprintf(
+                        $translate('TXT_ADMIN_ARTICLE_TRANSLATION_SAVE_FAILED', 'Impossible d’enregistrer la traduction %s pour le moment.'),
+                        strtoupper($language)
+                    ),
                 ];
             }
 

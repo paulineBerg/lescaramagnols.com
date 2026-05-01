@@ -3,16 +3,32 @@ $isLoginPage = ($contentTemplate ?? '') === 'login.php';
 $adminInterfaceLanguage = is_string($adminInterfaceLanguage ?? null) && trim((string) $adminInterfaceLanguage) !== ''
     ? strtolower(trim((string) $adminInterfaceLanguage))
     : (function_exists('admin_interface_language') ? admin_interface_language() : 'fr');
+$translate = static function (string $key, string $fallback = ''): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
+    if (!function_exists('t')) {
+        return $fallback;
+    }
+
+    $translated = t($key);
+    if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+        return $fallback;
+    }
+
+    return $translated;
+};
 $adminMenu = [
-    ['id' => 'dashboard', 'label' => 'Tableau de bord', 'href' => $adminDashboardUrl ?? admin_url('dashboard'), 'icon' => '📊'],
-    ['id' => 'pages', 'label' => 'Pages', 'href' => $adminPagesUrl ?? admin_url('pages'), 'icon' => '📝'],
-    ['id' => 'articles', 'label' => 'Articles', 'href' => $adminArticlesUrl ?? admin_url('articles'), 'icon' => '📰'],
-    ['id' => 'discussions', 'label' => 'Discussions', 'href' => $adminDiscussionsUrl ?? admin_url('discussions'), 'icon' => '💬'],
-    ['id' => 'media', 'label' => 'Médias', 'href' => $adminMediaUrl ?? admin_url('media'), 'icon' => '🎞️'],
-    ['id' => 'tiles', 'label' => 'Tuiles', 'href' => $adminTilesUrl ?? admin_url('tiles'), 'icon' => '🧩'],
-    ['id' => 'menus', 'label' => 'Menus du site', 'href' => $adminMenusUrl ?? admin_url('menus'), 'icon' => '🧭'],
-    ['id' => 'logs', 'label' => 'Logs', 'href' => $adminLogsUrl ?? admin_url('logs'), 'icon' => '🧾'],
-    ['id' => 'settings', 'label' => 'Paramètres', 'href' => $adminSettingsUrl ?? admin_url('settings'), 'icon' => '⚙️'],
+    ['id' => 'dashboard', 'label' => $translate('TXT_ADMIN_NAV_DASHBOARD', 'Tableau de bord'), 'href' => $adminDashboardUrl ?? admin_url('dashboard'), 'icon' => '📊'],
+    ['id' => 'pages', 'label' => $translate('TXT_ADMIN_NAV_PAGES', 'Pages'), 'href' => $adminPagesUrl ?? admin_url('pages'), 'icon' => '📝'],
+    ['id' => 'articles', 'label' => $translate('TXT_ADMIN_NAV_ARTICLES', 'Articles'), 'href' => $adminArticlesUrl ?? admin_url('articles'), 'icon' => '📰'],
+    ['id' => 'discussions', 'label' => $translate('TXT_ADMIN_NAV_DISCUSSIONS', 'Discussions'), 'href' => $adminDiscussionsUrl ?? admin_url('discussions'), 'icon' => '💬'],
+    ['id' => 'media', 'label' => $translate('TXT_ADMIN_NAV_MEDIA', 'Médias'), 'href' => $adminMediaUrl ?? admin_url('media'), 'icon' => '🎞️'],
+    ['id' => 'tiles', 'label' => $translate('TXT_ADMIN_NAV_TILES', 'Tuiles'), 'href' => $adminTilesUrl ?? admin_url('tiles'), 'icon' => '🧩'],
+    ['id' => 'menus', 'label' => $translate('TXT_ADMIN_NAV_MENUS', 'Menus du site'), 'href' => $adminMenusUrl ?? admin_url('menus'), 'icon' => '🧭'],
+    ['id' => 'logs', 'label' => $translate('TXT_ADMIN_NAV_LOGS', 'Logs'), 'href' => $adminLogsUrl ?? admin_url('logs'), 'icon' => '🧾'],
+    ['id' => 'settings', 'label' => $translate('TXT_ADMIN_NAV_SETTINGS', 'Paramètres'), 'href' => $adminSettingsUrl ?? admin_url('settings'), 'icon' => '⚙️'],
 ];
 ?>
 <!DOCTYPE html>
@@ -20,7 +36,7 @@ $adminMenu = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title><?php echo htmlspecialchars((string) ($pageTitle ?? 'Administration'), ENT_QUOTES, 'UTF-8'); ?></title>
+    <title><?php echo htmlspecialchars((string) ($pageTitle ?? $translate('TXT_ADMIN_LAYOUT_DEFAULT_TITLE', 'Administration')), ENT_QUOTES, 'UTF-8'); ?></title>
     <style>
       :root {
         color-scheme: light;
@@ -2753,10 +2769,10 @@ $adminMenu = [
     </main>
     <?php else: ?>
     <div class="admin-shell">
-      <nav class="admin-nav" aria-label="Navigation admin">
+      <nav class="admin-nav" aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_NAV_ARIA', 'Navigation admin'), ENT_QUOTES, 'UTF-8'); ?>">
         <div class="nav-brand">
           <strong>Les Caramagnols</strong>
-          <span>Administration technique</span>
+          <span><?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_BRAND_SUBTITLE', 'Administration technique'), ENT_QUOTES, 'UTF-8'); ?></span>
         </div>
         <ul class="nav-menu">
           <?php foreach ($adminMenu as $item): ?>
@@ -2776,16 +2792,16 @@ $adminMenu = [
       <div class="admin-content">
         <header class="admin-header">
           <div>
-            <h1><?php echo htmlspecialchars((string) ($pageTitle ?? 'Administration'), ENT_QUOTES, 'UTF-8'); ?></h1>
+            <h1><?php echo htmlspecialchars((string) ($pageTitle ?? $translate('TXT_ADMIN_LAYOUT_DEFAULT_TITLE', 'Administration')), ENT_QUOTES, 'UTF-8'); ?></h1>
             <div class="header-meta">
-              Connecté en tant que
+              <?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_SIGNED_IN_AS', 'Connecté en tant que'), ENT_QUOTES, 'UTF-8'); ?>
               <strong><?php echo htmlspecialchars((string) ($adminIdentifier ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
-              · session ouverte le
+              · <?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_SESSION_OPENED_AT', 'session ouverte le'), ENT_QUOTES, 'UTF-8'); ?>
               <?php echo htmlspecialchars((string) ($formattedLogin ?? ''), ENT_QUOTES, 'UTF-8'); ?>
             </div>
           </div>
           <a class="logout" href="<?php echo htmlspecialchars((string) ($adminLogoutUrl ?? admin_url('logout')), ENT_QUOTES, 'UTF-8'); ?>">
-            Déconnexion
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_LOGOUT', 'Déconnexion'), ENT_QUOTES, 'UTF-8'); ?>
           </a>
         </header>
 
@@ -2798,12 +2814,12 @@ $adminMenu = [
     <?php if (!$isLoginPage): ?>
     <div class="admin-session-warning" id="admin-session-warning" role="dialog" aria-modal="true" aria-labelledby="admin-session-warning-title" aria-describedby="admin-session-warning-message" hidden>
       <div class="admin-session-warning__surface">
-        <h2 class="admin-session-warning__title" id="admin-session-warning-title"><?php echo htmlspecialchars((string) ($adminSessionWarningTitle ?? 'Session admin'), ENT_QUOTES, 'UTF-8'); ?></h2>
-        <p class="admin-session-warning__message" id="admin-session-warning-message"><?php echo htmlspecialchars((string) ($adminSessionWarningMessage ?? 'Voulez-vous prolonger la session ?'), ENT_QUOTES, 'UTF-8'); ?></p>
+        <h2 class="admin-session-warning__title" id="admin-session-warning-title"><?php echo htmlspecialchars((string) ($adminSessionWarningTitle ?? $translate('TXT_ADMIN_LAYOUT_SESSION_TITLE', 'Session admin')), ENT_QUOTES, 'UTF-8'); ?></h2>
+        <p class="admin-session-warning__message" id="admin-session-warning-message"><?php echo htmlspecialchars((string) ($adminSessionWarningMessage ?? $translate('TXT_ADMIN_SESSION_WARNING_MESSAGE', 'Voulez-vous prolonger la session ?')), ENT_QUOTES, 'UTF-8'); ?></p>
         <p class="admin-session-warning__countdown" id="admin-session-warning-countdown"></p>
         <div class="admin-session-warning__actions">
-          <button class="button-muted button-small" type="button" id="admin-session-warning-logout"><?php echo htmlspecialchars((string) ($adminSessionWarningLogoutLabel ?? 'Non'), ENT_QUOTES, 'UTF-8'); ?></button>
-          <button class="button-small" type="button" id="admin-session-warning-confirm"><?php echo htmlspecialchars((string) ($adminSessionWarningConfirmLabel ?? 'Oui'), ENT_QUOTES, 'UTF-8'); ?></button>
+          <button class="button-muted button-small" type="button" id="admin-session-warning-logout"><?php echo htmlspecialchars((string) ($adminSessionWarningLogoutLabel ?? $translate('TXT_ADMIN_LAYOUT_NO', 'Non')), ENT_QUOTES, 'UTF-8'); ?></button>
+          <button class="button-small" type="button" id="admin-session-warning-confirm"><?php echo htmlspecialchars((string) ($adminSessionWarningConfirmLabel ?? $translate('TXT_ADMIN_LAYOUT_YES', 'Oui')), ENT_QUOTES, 'UTF-8'); ?></button>
         </div>
       </div>
     </div>

@@ -39,6 +39,25 @@ $filterSort = is_string($filters['sort'] ?? null) && (string) $filters['sort'] !
 $mediaUrl = is_string($adminMediaUrl ?? null) && (string) $adminMediaUrl !== ''
     ? (string) $adminMediaUrl
     : admin_url('media');
+$translate = static function (string $key, string $fallback): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
+    if (!function_exists('t')) {
+        return $fallback;
+    }
+
+    $translated = t($key);
+    if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+        return $fallback;
+    }
+
+    return $translated;
+};
+$translateFormat = static function (string $key, string $fallback, mixed ...$args) use ($translate): string {
+    return sprintf($translate($key, $fallback), ...$args);
+};
 $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 $filterFields = ['q', 'type', 'min_size_kb', 'max_size_kb', 'date_from', 'date_to', 'sort'];
 $renderFilterHiddenInputs = static function (array $activeFilters) use ($escape, $filterFields): void {
@@ -51,7 +70,9 @@ $renderFilterHiddenInputs = static function (array $activeFilters) use ($escape,
         echo '<input type="hidden" name="filters[' . $escape($name) . ']" value="' . $escape((string) $value) . '" />';
     }
 };
-$folderLabel = static fn (string $folder): string => $folder === '' ? 'Racine' : $folder;
+$folderLabel = static fn (string $folder): string => $folder === ''
+    ? $translate('TXT_ADMIN_MEDIA_ROOT', 'Racine')
+    : $folder;
 $mediaUrlWithFolder = static function (string $folder, bool $withFilters = true) use ($mediaUrl, $filters): string {
     $params = [];
     $normalizedFolder = trim($folder);
@@ -99,27 +120,26 @@ $mediaUrlWithFolder = static function (string $folder, bool $withFilters = true)
     return $mediaUrl . '?' . http_build_query($params);
 };
 $sortLabels = [
-    'name_asc' => 'Nom (A-Z)',
-    'name_desc' => 'Nom (Z-A)',
-    'date_desc' => 'Date (plus recent)',
-    'date_asc' => 'Date (plus ancien)',
-    'size_desc' => 'Taille (plus grande)',
-    'size_asc' => 'Taille (plus petite)',
-    'type_asc' => 'Type (image/video/autre)',
+    'name_asc' => $translate('TXT_ADMIN_MEDIA_SORT_NAME_ASC', 'Nom (A-Z)'),
+    'name_desc' => $translate('TXT_ADMIN_MEDIA_SORT_NAME_DESC', 'Nom (Z-A)'),
+    'date_desc' => $translate('TXT_ADMIN_MEDIA_SORT_DATE_DESC', 'Date (plus recent)'),
+    'date_asc' => $translate('TXT_ADMIN_MEDIA_SORT_DATE_ASC', 'Date (plus ancien)'),
+    'size_desc' => $translate('TXT_ADMIN_MEDIA_SORT_SIZE_DESC', 'Taille (plus grande)'),
+    'size_asc' => $translate('TXT_ADMIN_MEDIA_SORT_SIZE_ASC', 'Taille (plus petite)'),
+    'type_asc' => $translate('TXT_ADMIN_MEDIA_SORT_TYPE_ASC', 'Type (image/video/autre)'),
 ];
 ?>
 
 <section class="card">
-  <h2>Bibliotheque medias</h2>
+  <h2><?php echo $escape($translate('TXT_ADMIN_MEDIA_LIBRARY_TITLE', 'Bibliotheque medias')); ?></h2>
   <p>
-    Gestion centralisee des contenus images et videos: import manuel, import ZIP, export de dossier,
-    organisation en dossiers/sous-dossiers, controle des formats et conversion automatique en
+    <?php echo $escape($translate('TXT_ADMIN_MEDIA_LIBRARY_BODY', 'Gestion centralisee des contenus images et videos: import manuel, import ZIP, export de dossier, organisation en dossiers/sous-dossiers, controle des formats et conversion automatique en')); ?>
     <code>WebP</code>.
   </p>
   <div class="actions-inline">
-    <a class="button-link button-link-muted" href="<?php echo $escape($mediaUrlWithFolder('')); ?>">Racine</a>
+    <a class="button-link button-link-muted" href="<?php echo $escape($mediaUrlWithFolder('')); ?>"><?php echo $escape($translate('TXT_ADMIN_MEDIA_ROOT', 'Racine')); ?></a>
     <?php if ($parentFolder !== ''): ?>
-    <a class="button-link button-link-muted" href="<?php echo $escape($mediaUrlWithFolder($parentFolder)); ?>">Dossier parent</a>
+    <a class="button-link button-link-muted" href="<?php echo $escape($mediaUrlWithFolder($parentFolder)); ?>"><?php echo $escape($translate('TXT_ADMIN_MEDIA_PARENT_FOLDER', 'Dossier parent')); ?></a>
     <?php endif; ?>
   </div>
 </section>
@@ -133,12 +153,14 @@ $sortLabels = [
 <?php endif; ?>
 
 <section class="card media-manager-breadcrumbs-card">
-  <h2>Dossier courant</h2>
+  <h2><?php echo $escape($translate('TXT_ADMIN_MEDIA_CURRENT_FOLDER_TITLE', 'Dossier courant')); ?></h2>
   <p class="media-manager-breadcrumbs">
     <?php foreach ($breadcrumbs as $index => $crumb): ?>
     <?php
     $crumb = is_array($crumb) ? $crumb : [];
-    $crumbLabel = is_string($crumb['label'] ?? null) ? (string) $crumb['label'] : 'Dossier';
+    $crumbLabel = is_string($crumb['label'] ?? null)
+        ? (string) $crumb['label']
+        : $translate('TXT_ADMIN_MEDIA_FOLDER_LABEL', 'Dossier');
     $crumbFolder = is_string($crumb['folder'] ?? null) ? (string) $crumb['folder'] : '';
     $isLast = $index === (count($breadcrumbs) - 1);
     ?>
@@ -151,54 +173,60 @@ $sortLabels = [
     <?php endforeach; ?>
   </p>
   <p class="notice-muted">
-    <?php echo $directoryCount; ?> dossier(s) · <?php echo $fileCount; ?> fichier(s) · <?php echo $escape($folderSizeLabel); ?>
+    <?php echo $escape($translateFormat(
+        'TXT_ADMIN_MEDIA_FOLDER_SUMMARY',
+        '%d dossier(s) · %d fichier(s) · %s',
+        $directoryCount,
+        $fileCount,
+        $folderSizeLabel
+    )); ?>
   </p>
 </section>
 
 <section class="card media-manager-filters-card">
-  <h2>Recherche et filtres</h2>
+  <h2><?php echo $escape($translate('TXT_ADMIN_MEDIA_FILTERS_TITLE', 'Recherche et filtres')); ?></h2>
 
   <form class="admin-form-grid media-manager-filters-grid" method="get" action="<?php echo $escape($mediaUrl); ?>">
     <input type="hidden" name="folder" value="<?php echo $escape($currentFolder); ?>" />
 
     <div class="field media-manager-filters-search">
-      <label for="media-filter-q">Nom / chemin</label>
-      <input id="media-filter-q" name="q" type="text" value="<?php echo $escape($filterQuery); ?>" placeholder="photo, video, evenement-2026" />
+      <label for="media-filter-q"><?php echo $escape($translate('TXT_ADMIN_MEDIA_NAME_PATH_LABEL', 'Nom / chemin')); ?></label>
+      <input id="media-filter-q" name="q" type="text" value="<?php echo $escape($filterQuery); ?>" placeholder="<?php echo $escape($translate('TXT_ADMIN_MEDIA_SEARCH_PLACEHOLDER', 'photo, video, evenement-2026')); ?>" />
     </div>
 
     <div class="field">
-      <label for="media-filter-type">Type</label>
+      <label for="media-filter-type"><?php echo $escape($translate('TXT_ADMIN_MEDIA_TYPE_LABEL', 'Type')); ?></label>
       <select id="media-filter-type" name="type">
-        <option value="all"<?php echo $filterType === 'all' ? ' selected' : ''; ?>>Tous</option>
-        <option value="folder"<?php echo $filterType === 'folder' ? ' selected' : ''; ?>>Dossiers</option>
-        <option value="image"<?php echo $filterType === 'image' ? ' selected' : ''; ?>>Images</option>
-        <option value="video"<?php echo $filterType === 'video' ? ' selected' : ''; ?>>Videos</option>
-        <option value="other"<?php echo $filterType === 'other' ? ' selected' : ''; ?>>Autres</option>
+        <option value="all"<?php echo $filterType === 'all' ? ' selected' : ''; ?>><?php echo $escape($translate('TXT_ADMIN_COMMON_ALL', 'Tous')); ?></option>
+        <option value="folder"<?php echo $filterType === 'folder' ? ' selected' : ''; ?>><?php echo $escape($translate('TXT_ADMIN_MEDIA_TYPE_FOLDERS', 'Dossiers')); ?></option>
+        <option value="image"<?php echo $filterType === 'image' ? ' selected' : ''; ?>><?php echo $escape($translate('TXT_ADMIN_MEDIA_TYPE_IMAGES', 'Images')); ?></option>
+        <option value="video"<?php echo $filterType === 'video' ? ' selected' : ''; ?>><?php echo $escape($translate('TXT_ADMIN_MEDIA_TYPE_VIDEOS', 'Videos')); ?></option>
+        <option value="other"<?php echo $filterType === 'other' ? ' selected' : ''; ?>><?php echo $escape($translate('TXT_ADMIN_MEDIA_TYPE_OTHERS', 'Autres')); ?></option>
       </select>
     </div>
 
     <div class="field">
-      <label for="media-filter-min-size">Taille min (KB)</label>
+      <label for="media-filter-min-size"><?php echo $escape($translate('TXT_ADMIN_MEDIA_MIN_SIZE_LABEL', 'Taille min (KB)')); ?></label>
       <input id="media-filter-min-size" name="min_size_kb" type="number" min="0" step="1" value="<?php echo $escape($filterMinSizeKb); ?>" />
     </div>
 
     <div class="field">
-      <label for="media-filter-max-size">Taille max (KB)</label>
+      <label for="media-filter-max-size"><?php echo $escape($translate('TXT_ADMIN_MEDIA_MAX_SIZE_LABEL', 'Taille max (KB)')); ?></label>
       <input id="media-filter-max-size" name="max_size_kb" type="number" min="0" step="1" value="<?php echo $escape($filterMaxSizeKb); ?>" />
     </div>
 
     <div class="field">
-      <label for="media-filter-date-from">Date debut</label>
+      <label for="media-filter-date-from"><?php echo $escape($translate('TXT_ADMIN_MEDIA_DATE_FROM_LABEL', 'Date debut')); ?></label>
       <input id="media-filter-date-from" name="date_from" type="date" value="<?php echo $escape($filterDateFrom); ?>" />
     </div>
 
     <div class="field">
-      <label for="media-filter-date-to">Date fin</label>
+      <label for="media-filter-date-to"><?php echo $escape($translate('TXT_ADMIN_MEDIA_DATE_TO_LABEL', 'Date fin')); ?></label>
       <input id="media-filter-date-to" name="date_to" type="date" value="<?php echo $escape($filterDateTo); ?>" />
     </div>
 
     <div class="field">
-      <label for="media-filter-sort">Tri</label>
+      <label for="media-filter-sort"><?php echo $escape($translate('TXT_ADMIN_MEDIA_SORT_LABEL', 'Tri')); ?></label>
       <select id="media-filter-sort" name="sort">
         <?php foreach ($sortLabels as $sortValue => $sortLabel): ?>
         <option value="<?php echo $escape((string) $sortValue); ?>"<?php echo $filterSort === $sortValue ? ' selected' : ''; ?>>
@@ -209,23 +237,29 @@ $sortLabels = [
     </div>
 
     <div class="actions-inline media-manager-filters-actions">
-      <a class="button-link button-link-muted" href="<?php echo $escape((string) ($mediaResetUrl ?? $mediaUrlWithFolder($currentFolder, false))); ?>">Reinitialiser</a>
-      <button type="submit">Filtrer</button>
+      <a class="button-link button-link-muted" href="<?php echo $escape((string) ($mediaResetUrl ?? $mediaUrlWithFolder($currentFolder, false))); ?>"><?php echo $escape($translate('TXT_ADMIN_COMMON_RESET', 'Réinitialiser')); ?></a>
+      <button type="submit"><?php echo $escape($translate('TXT_ADMIN_COMMON_FILTER', 'Filtrer')); ?></button>
     </div>
   </form>
 
   <p class="notice-muted">
-    Affichage: <?php echo $directoryCount; ?>/<?php echo $directoryCountTotal; ?> dossier(s) ·
-    <?php echo $fileCount; ?>/<?php echo $fileCountTotal; ?> fichier(s)
+    <?php echo $escape($translateFormat(
+        'TXT_ADMIN_MEDIA_DISPLAY_SUMMARY',
+        'Affichage: %d/%d dossier(s) · %d/%d fichier(s)',
+        $directoryCount,
+        $directoryCountTotal,
+        $fileCount,
+        $fileCountTotal
+    )); ?>
     <?php if ($hasActiveFilters): ?>
-    (filtres actifs)
+    (<?php echo $escape($translate('TXT_ADMIN_MEDIA_ACTIVE_FILTERS', 'filtres actifs')); ?>)
     <?php endif; ?>
   </p>
 </section>
 
 <section class="cards-grid media-manager-top-grid">
   <article class="card">
-    <h2>Creer un dossier</h2>
+    <h2><?php echo $escape($translate('TXT_ADMIN_MEDIA_CREATE_FOLDER_TITLE', 'Creer un dossier')); ?></h2>
     <form method="post" action="<?php echo $escape($mediaUrlWithFolder($currentFolder)); ?>" autocomplete="off">
       <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
       <input type="hidden" name="media_action" value="create_folder" />
@@ -233,18 +267,18 @@ $sortLabels = [
       <?php $renderFilterHiddenInputs($filters); ?>
 
       <div class="field">
-        <label for="media-new-folder-name">Nom du dossier</label>
+        <label for="media-new-folder-name"><?php echo $escape($translate('TXT_ADMIN_MEDIA_FOLDER_NAME_LABEL', 'Nom du dossier')); ?></label>
         <input id="media-new-folder-name" name="new_folder_name" type="text" placeholder="evenements-2026" required />
       </div>
 
       <div class="actions-inline actions-inline-end">
-        <button type="submit">Creer le dossier</button>
+        <button type="submit"><?php echo $escape($translate('TXT_ADMIN_MEDIA_CREATE_FOLDER_BUTTON', 'Creer le dossier')); ?></button>
       </div>
     </form>
   </article>
 
   <article class="card">
-    <h2>Importer des fichiers</h2>
+    <h2><?php echo $escape($translate('TXT_ADMIN_MEDIA_UPLOAD_FILES_TITLE', 'Importer des fichiers')); ?></h2>
     <form method="post" action="<?php echo $escape($mediaUrlWithFolder($currentFolder)); ?>" enctype="multipart/form-data" autocomplete="off">
       <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
       <input type="hidden" name="media_action" value="upload" />
@@ -252,7 +286,7 @@ $sortLabels = [
       <?php $renderFilterHiddenInputs($filters); ?>
 
       <div class="field">
-        <label for="media-files-input">Images / videos</label>
+        <label for="media-files-input"><?php echo $escape($translate('TXT_ADMIN_MEDIA_IMAGES_VIDEOS_LABEL', 'Images / videos')); ?></label>
         <input
           id="media-files-input"
           name="media_files[]"
@@ -267,37 +301,41 @@ $sortLabels = [
           <label class="checkbox-field" for="media-upload-auto-webp">
             <input type="hidden" name="upload_auto_webp" value="0" />
             <input id="media-upload-auto-webp" name="upload_auto_webp" type="checkbox" value="1" checked />
-            Conversion auto en WebP (images)
+            <?php echo $escape($translate('TXT_ADMIN_MEDIA_AUTO_WEBP_IMAGES', 'Conversion auto en WebP (images)')); ?>
           </label>
         </div>
         <div class="field">
-          <label for="media-upload-max-width">Largeur max</label>
+          <label for="media-upload-max-width"><?php echo $escape($translate('TXT_ADMIN_MEDIA_MAX_WIDTH_LABEL', 'Largeur max')); ?></label>
           <input id="media-upload-max-width" name="upload_max_width" type="number" min="320" max="8192" value="2560" />
         </div>
         <div class="field">
-          <label for="media-upload-max-height">Hauteur max</label>
+          <label for="media-upload-max-height"><?php echo $escape($translate('TXT_ADMIN_MEDIA_MAX_HEIGHT_LABEL', 'Hauteur max')); ?></label>
           <input id="media-upload-max-height" name="upload_max_height" type="number" min="320" max="8192" value="2560" />
         </div>
         <div class="field field-compact">
-          <label for="media-upload-quality">Qualite WebP</label>
+          <label for="media-upload-quality"><?php echo $escape($translate('TXT_ADMIN_MEDIA_WEBP_QUALITY_LABEL', 'Qualite WebP')); ?></label>
           <input id="media-upload-quality" name="upload_quality" type="number" min="30" max="100" value="82" />
         </div>
       </div>
 
       <p class="notice-muted">
-        Formats image: <?php echo $escape($allowedImageFormats); ?> ·
-        formats video: <?php echo $escape($allowedVideoFormats); ?> ·
-        taille max fichier: <?php echo $maxUploadMb; ?> Mo.
+        <?php echo $escape($translateFormat(
+            'TXT_ADMIN_MEDIA_UPLOAD_HELP',
+            'Formats image: %s · formats video: %s · taille max fichier: %d Mo.',
+            $allowedImageFormats,
+            $allowedVideoFormats,
+            $maxUploadMb
+        )); ?>
       </p>
 
       <div class="actions-inline actions-inline-end">
-        <button type="submit">Importer les fichiers</button>
+        <button type="submit"><?php echo $escape($translate('TXT_ADMIN_MEDIA_IMPORT_FILES_BUTTON', 'Importer les fichiers')); ?></button>
       </div>
     </form>
   </article>
 
   <article class="card">
-    <h2>Import / Export ZIP</h2>
+    <h2><?php echo $escape($translate('TXT_ADMIN_MEDIA_ZIP_TITLE', 'Import / Export ZIP')); ?></h2>
     <form method="post" action="<?php echo $escape($mediaUrlWithFolder($currentFolder)); ?>" enctype="multipart/form-data" autocomplete="off">
       <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
       <input type="hidden" name="media_action" value="import_zip" />
@@ -305,7 +343,7 @@ $sortLabels = [
       <?php $renderFilterHiddenInputs($filters); ?>
 
       <div class="field">
-        <label for="media-zip-input">Archive ZIP</label>
+        <label for="media-zip-input"><?php echo $escape($translate('TXT_ADMIN_MEDIA_ZIP_ARCHIVE_LABEL', 'Archive ZIP')); ?></label>
         <input id="media-zip-input" name="media_zip_file" type="file" accept=".zip,application/zip" />
       </div>
 
@@ -314,21 +352,21 @@ $sortLabels = [
           <label class="checkbox-field" for="media-import-auto-webp">
             <input type="hidden" name="upload_auto_webp" value="0" />
             <input id="media-import-auto-webp" name="upload_auto_webp" type="checkbox" value="1" checked />
-            Conversion auto en WebP
+            <?php echo $escape($translate('TXT_ADMIN_MEDIA_AUTO_WEBP', 'Conversion auto en WebP')); ?>
           </label>
         </div>
         <div class="field field-compact">
-          <label for="media-import-quality">Qualite WebP</label>
+          <label for="media-import-quality"><?php echo $escape($translate('TXT_ADMIN_MEDIA_WEBP_QUALITY_LABEL', 'Qualite WebP')); ?></label>
           <input id="media-import-quality" name="upload_quality" type="number" min="30" max="100" value="82" />
         </div>
       </div>
       <input type="hidden" name="upload_max_width" value="2560" />
       <input type="hidden" name="upload_max_height" value="2560" />
 
-      <p class="notice-muted">Taille max archive: <?php echo $maxArchiveMb; ?> Mo.</p>
+      <p class="notice-muted"><?php echo $escape($translateFormat('TXT_ADMIN_MEDIA_MAX_ARCHIVE_SIZE', 'Taille max archive: %d Mo.', $maxArchiveMb)); ?></p>
 
       <div class="actions-inline actions-inline-end">
-        <button type="submit">Importer le ZIP</button>
+        <button type="submit"><?php echo $escape($translate('TXT_ADMIN_MEDIA_IMPORT_ZIP_BUTTON', 'Importer le ZIP')); ?></button>
       </div>
     </form>
 
@@ -339,7 +377,7 @@ $sortLabels = [
       <?php $renderFilterHiddenInputs($filters); ?>
 
       <div class="actions-inline actions-inline-end">
-        <button type="submit" class="button-muted">Exporter ce dossier (ZIP)</button>
+        <button type="submit" class="button-muted"><?php echo $escape($translate('TXT_ADMIN_MEDIA_EXPORT_FOLDER_BUTTON', 'Exporter ce dossier (ZIP)')); ?></button>
       </div>
     </form>
   </article>
@@ -347,10 +385,10 @@ $sortLabels = [
 
 <section class="cards-grid media-manager-content-grid">
   <article class="card">
-    <h2>Sous-dossiers</h2>
+    <h2><?php echo $escape($translate('TXT_ADMIN_MEDIA_SUBFOLDERS_TITLE', 'Sous-dossiers')); ?></h2>
 
     <?php if ($directories === []): ?>
-    <p class="notice-muted">Aucun sous-dossier dans cet emplacement.</p>
+    <p class="notice-muted"><?php echo $escape($translate('TXT_ADMIN_MEDIA_NO_SUBFOLDERS', 'Aucun sous-dossier dans cet emplacement.')); ?></p>
     <?php else: ?>
     <ul class="media-manager-folder-list">
       <?php foreach ($directories as $directory): ?>
@@ -375,12 +413,18 @@ $sortLabels = [
 
           $destinationFolders[] = $folderOption;
       }
+      $directoryItemsLabel = $translateFormat(
+          'TXT_ADMIN_MEDIA_DIRECTORY_ITEM_SUMMARY',
+          '%d element(s) · modifie le %s',
+          $directoryCountItems,
+          $directoryModifiedLabel
+      );
       ?>
       <li class="media-manager-folder-item">
         <div class="media-manager-folder-head">
           <a href="<?php echo $escape($mediaUrlWithFolder($directoryFolder)); ?>">
             <strong><?php echo $escape($directoryName); ?></strong>
-            <span><?php echo $directoryCountItems; ?> element(s) · modifie le <?php echo $escape($directoryModifiedLabel); ?></span>
+            <span><?php echo $escape($directoryItemsLabel); ?></span>
           </a>
         </div>
 
@@ -392,7 +436,7 @@ $sortLabels = [
             <input type="hidden" name="target_folder" value="<?php echo $escape($directoryFolder); ?>" />
             <?php $renderFilterHiddenInputs($filters); ?>
             <input name="new_folder_name" type="text" value="<?php echo $escape($directoryName); ?>" required />
-            <button type="submit" class="button-small">Renommer</button>
+            <button type="submit" class="button-small"><?php echo $escape($translate('TXT_ADMIN_MEDIA_RENAME_BUTTON', 'Renommer')); ?></button>
           </form>
 
           <?php if ($destinationFolders !== []): ?>
@@ -409,7 +453,7 @@ $sortLabels = [
               </option>
               <?php endforeach; ?>
             </select>
-            <button type="submit" class="button-small button-muted">Deplacer</button>
+            <button type="submit" class="button-small button-muted"><?php echo $escape($translate('TXT_ADMIN_MEDIA_MOVE_BUTTON', 'Deplacer')); ?></button>
           </form>
           <?php endif; ?>
 
@@ -419,7 +463,7 @@ $sortLabels = [
             <input type="hidden" name="folder" value="<?php echo $escape($currentFolder); ?>" />
             <input type="hidden" name="target_folder" value="<?php echo $escape($directoryFolder); ?>" />
             <?php $renderFilterHiddenInputs($filters); ?>
-            <button type="submit" class="button-danger button-small" onclick="return confirm('Supprimer ce dossier et tout son contenu ?');">Supprimer</button>
+            <button type="submit" class="button-danger button-small" onclick="return confirm('<?php echo $escape($translate('TXT_ADMIN_MEDIA_DELETE_FOLDER_CONFIRM', 'Supprimer ce dossier et tout son contenu ?')); ?>');"><?php echo $escape($translate('TXT_ADMIN_COMMON_DELETE', 'Supprimer')); ?></button>
           </form>
         </div>
       </li>
@@ -429,22 +473,22 @@ $sortLabels = [
   </article>
 
   <article class="card">
-    <h2>Fichiers</h2>
+    <h2><?php echo $escape($translate('TXT_ADMIN_MEDIA_FILES_TITLE', 'Fichiers')); ?></h2>
 
     <?php if ($files === []): ?>
-    <p class="notice-muted">Aucun fichier dans ce dossier.</p>
+    <p class="notice-muted"><?php echo $escape($translate('TXT_ADMIN_MEDIA_NO_FILES', 'Aucun fichier dans ce dossier.')); ?></p>
     <?php else: ?>
     <div class="table-shell">
       <table class="admin-table media-manager-table">
         <thead>
           <tr>
-            <th>Apercu</th>
-            <th>Fichier</th>
-            <th>Format</th>
-            <th>Taille</th>
-            <th>Dimensions</th>
-            <th>Modifie le</th>
-            <th>Actions</th>
+            <th><?php echo $escape($translate('TXT_ADMIN_MEDIA_PREVIEW_LABEL', 'Apercu')); ?></th>
+            <th><?php echo $escape($translate('TXT_ADMIN_MEDIA_FILE_LABEL', 'Fichier')); ?></th>
+            <th><?php echo $escape($translate('TXT_ADMIN_MEDIA_FORMAT_LABEL', 'Format')); ?></th>
+            <th><?php echo $escape($translate('TXT_ADMIN_MEDIA_SIZE_LABEL', 'Taille')); ?></th>
+            <th><?php echo $escape($translate('TXT_ADMIN_MEDIA_DIMENSIONS_LABEL', 'Dimensions')); ?></th>
+            <th><?php echo $escape($translate('TXT_ADMIN_MEDIA_MODIFIED_AT_LABEL', 'Modifie le')); ?></th>
+            <th><?php echo $escape($translate('TXT_ADMIN_COMMON_ACTIONS', 'Actions')); ?></th>
           </tr>
         </thead>
         <tbody>
@@ -470,7 +514,7 @@ $sortLabels = [
               <?php elseif ($kind === 'video'): ?>
               <video class="media-manager-thumb" src="<?php echo $escape($src); ?>" preload="metadata" muted></video>
               <?php else: ?>
-              <span class="tag">Fichier</span>
+              <span class="tag"><?php echo $escape($translate('TXT_ADMIN_MEDIA_FILE_LABEL', 'Fichier')); ?></span>
               <?php endif; ?>
             </td>
             <td>
@@ -486,7 +530,7 @@ $sortLabels = [
             <td><?php echo $escape($modifiedLabel); ?></td>
             <td>
               <div class="actions-inline media-manager-row-actions">
-                <a class="button-link button-link-muted button-small" href="<?php echo $escape($src); ?>" target="_blank" rel="noopener noreferrer">Ouvrir</a>
+                <a class="button-link button-link-muted button-small" href="<?php echo $escape($src); ?>" target="_blank" rel="noopener noreferrer"><?php echo $escape($translate('TXT_ADMIN_MEDIA_OPEN_BUTTON', 'Ouvrir')); ?></a>
 
                 <form method="post" action="<?php echo $escape($mediaUrlWithFolder($currentFolder)); ?>" class="media-manager-inline-form" autocomplete="off">
                   <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
@@ -495,7 +539,7 @@ $sortLabels = [
                   <input type="hidden" name="target_file" value="<?php echo $escape($path); ?>" />
                   <?php $renderFilterHiddenInputs($filters); ?>
                   <input name="new_file_name" type="text" value="<?php echo $escape($name); ?>" required />
-                  <button type="submit" class="button-small">Renommer</button>
+                  <button type="submit" class="button-small"><?php echo $escape($translate('TXT_ADMIN_MEDIA_RENAME_BUTTON', 'Renommer')); ?></button>
                 </form>
 
                 <form method="post" action="<?php echo $escape($mediaUrlWithFolder($currentFolder)); ?>" class="media-manager-inline-form" autocomplete="off">
@@ -515,7 +559,7 @@ $sortLabels = [
                     </option>
                     <?php endforeach; ?>
                   </select>
-                  <button type="submit" class="button-small button-muted">Deplacer</button>
+                  <button type="submit" class="button-small button-muted"><?php echo $escape($translate('TXT_ADMIN_MEDIA_MOVE_BUTTON', 'Deplacer')); ?></button>
                 </form>
 
                 <?php if ($canConvertToWebp && $hasGdWebp): ?>
@@ -528,7 +572,7 @@ $sortLabels = [
                   <input type="hidden" name="upload_max_height" value="2560" />
                   <input type="hidden" name="upload_quality" value="82" />
                   <?php $renderFilterHiddenInputs($filters); ?>
-                  <button type="submit" class="button-small">Convertir WebP</button>
+                  <button type="submit" class="button-small"><?php echo $escape($translate('TXT_ADMIN_MEDIA_CONVERT_WEBP_BUTTON', 'Convertir WebP')); ?></button>
                 </form>
                 <?php endif; ?>
 
@@ -538,7 +582,7 @@ $sortLabels = [
                   <input type="hidden" name="folder" value="<?php echo $escape($currentFolder); ?>" />
                   <input type="hidden" name="target_file" value="<?php echo $escape($path); ?>" />
                   <?php $renderFilterHiddenInputs($filters); ?>
-                  <button type="submit" class="button-danger button-small" onclick="return confirm('Supprimer ce fichier ?');">Supprimer</button>
+                  <button type="submit" class="button-danger button-small" onclick="return confirm('<?php echo $escape($translate('TXT_ADMIN_MEDIA_DELETE_FILE_CONFIRM', 'Supprimer ce fichier ?')); ?>');"><?php echo $escape($translate('TXT_ADMIN_COMMON_DELETE', 'Supprimer')); ?></button>
                 </form>
               </div>
             </td>

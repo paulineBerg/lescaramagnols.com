@@ -1,7 +1,23 @@
 <?php
+$translate = static function (string $key, string $fallback): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
+    if (!function_exists('t')) {
+        return $fallback;
+    }
+
+    $translated = t($key);
+    if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+        return $fallback;
+    }
+
+    return $translated;
+};
 $statusLabels = [
-    'draft' => 'Brouillon',
-    'published' => 'Publié',
+    'draft' => $translate('TXT_ADMIN_ARTICLE_STATUS_DRAFT', 'Brouillon'),
+    'published' => $translate('TXT_ADMIN_ARTICLE_STATUS_PUBLISHED', 'Publié'),
 ];
 $pages = is_array($pages ?? null) ? $pages : [];
 $draftCount = count(array_filter($pages, static fn (array $page): bool => ($page['status'] ?? '') === 'draft'));
@@ -13,23 +29,21 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
 
 <section class="cards-grid">
   <article class="card">
-    <h2>Registre éditorial</h2>
+    <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGES_REGISTRY_TITLE', 'Registre éditorial'), ENT_QUOTES, 'UTF-8'); ?></h2>
     <p>
-      Le registre éditorial pilote les pages structurées. Selon la configuration, il est servi depuis
-      <code>JSON</code>, <code>SQL</code> ou <code>double écriture</code>. Le workflow
-      <code>brouillon / publié</code> est porté ici.
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_PAGES_REGISTRY_BODY', 'Le registre éditorial pilote les pages structurées. Selon la configuration, il est servi depuis JSON, SQL ou double écriture. Le workflow brouillon / publié est porté ici.'), ENT_QUOTES, 'UTF-8'); ?>
     </p>
     <p class="actions">
-      <a class="button-link" href="<?php echo htmlspecialchars((string) ($createPageUrl ?? $adminPageCreateUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Créer une page</a>
+      <a class="button-link" href="<?php echo htmlspecialchars((string) ($createPageUrl ?? $adminPageCreateUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGES_CREATE', 'Créer une page'), ENT_QUOTES, 'UTF-8'); ?></a>
     </p>
   </article>
 
   <article class="card">
-    <h2>Vue rapide</h2>
+    <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_QUICK_VIEW', 'Vue rapide'), ENT_QUOTES, 'UTF-8'); ?></h2>
     <ul>
-      <li><span class="tag">Pages</span> <?php echo count($pages); ?> entrées visibles avec les filtres courants.</li>
-      <li><span class="tag">Publié</span> <?php echo $publishedCount; ?> page(s).</li>
-      <li><span class="tag">Brouillon</span> <?php echo $draftCount; ?> page(s).</li>
+      <li><span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_NAV_PAGES', 'Pages'), ENT_QUOTES, 'UTF-8'); ?></span> <?php echo htmlspecialchars(sprintf($translate('TXT_ADMIN_PAGES_VISIBLE_COUNT', '%d entrées visibles avec les filtres courants.'), count($pages)), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_STATUS_PUBLISHED', 'Publié'), ENT_QUOTES, 'UTF-8'); ?></span> <?php echo htmlspecialchars(sprintf($translate('TXT_ADMIN_PAGES_PUBLISHED_COUNT', '%d page(s).'), $publishedCount), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_STATUS_DRAFT', 'Brouillon'), ENT_QUOTES, 'UTF-8'); ?></span> <?php echo htmlspecialchars(sprintf($translate('TXT_ADMIN_PAGES_DRAFT_COUNT', '%d page(s).'), $draftCount), ENT_QUOTES, 'UTF-8'); ?></li>
     </ul>
   </article>
 </section>
@@ -39,18 +53,18 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
 <?php endif; ?>
 
 <section class="card admin-pages-filters-card">
-  <h2>Filtres</h2>
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_FILTERS', 'Filtres'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
   <form class="admin-form-grid admin-pages-filters-grid" method="get" action="<?php echo htmlspecialchars((string) ($adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
     <div class="field admin-pages-filters-search">
-      <label for="pages-q">Recherche</label>
-      <input id="pages-q" name="q" type="text" value="<?php echo htmlspecialchars((string) ($searchQuery ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="slug, titre, route" />
+      <label for="pages-q"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SEARCH', 'Recherche'), ENT_QUOTES, 'UTF-8'); ?></label>
+      <input id="pages-q" name="q" type="text" value="<?php echo htmlspecialchars((string) ($searchQuery ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_PAGES_SEARCH_PLACEHOLDER', 'slug, titre, route'), ENT_QUOTES, 'UTF-8'); ?>" />
     </div>
 
     <div class="field">
-      <label for="pages-status">Statut</label>
+      <label for="pages-status"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></label>
       <select id="pages-status" name="status">
-        <option value="">Tous</option>
+        <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ALL', 'Tous'), ENT_QUOTES, 'UTF-8'); ?></option>
         <?php foreach (($supportedStatuses ?? []) as $status): ?>
         <option value="<?php echo htmlspecialchars((string) $status, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($statusFilter ?? '') === $status ? ' selected' : ''; ?>>
           <?php echo htmlspecialchars($statusLabels[$status] ?? (string) $status, ENT_QUOTES, 'UTF-8'); ?>
@@ -60,9 +74,9 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
     </div>
 
     <div class="field">
-      <label for="pages-lang">Langue</label>
+      <label for="pages-lang"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_LANGUAGE', 'Langue'), ENT_QUOTES, 'UTF-8'); ?></label>
       <select id="pages-lang" name="lang">
-        <option value="">Toutes</option>
+        <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ALL_FEMININE', 'Toutes'), ENT_QUOTES, 'UTF-8'); ?></option>
         <?php foreach (($availableLanguages ?? []) as $language): ?>
         <option value="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($languageFilter ?? '') === $language ? ' selected' : ''; ?>>
           <?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?>
@@ -72,28 +86,28 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
     </div>
 
     <div class="actions-inline admin-pages-filters-actions">
-      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($pagesResetUrl ?? $adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Réinitialiser</a>
-      <button type="submit">Filtrer</button>
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($pagesResetUrl ?? $adminPagesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_RESET', 'Réinitialiser'), ENT_QUOTES, 'UTF-8'); ?></a>
+      <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_FILTER', 'Filtrer'), ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
   </form>
 </section>
 
 <section class="card">
-  <h2>Pages</h2>
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_NAV_PAGES', 'Pages'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
   <?php if ($pages === []): ?>
-  <p class="notice-muted">Aucune page ne correspond aux filtres courants.</p>
+  <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_PAGES_NO_RESULTS', 'Aucune page ne correspond aux filtres courants.'), ENT_QUOTES, 'UTF-8'); ?></p>
   <?php else: ?>
   <div class="table-shell">
     <table class="admin-table">
       <thead>
         <tr>
-          <th>Slug</th>
-          <th>Titre</th>
-          <th>Statut</th>
-          <th>Langues</th>
-          <th>Route</th>
-          <th>Action</th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SLUG', 'Slug'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_TITLE', 'Titre'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_LANGUAGES', 'Langues'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ROUTE', 'Route'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ACTION', 'Action'), ENT_QUOTES, 'UTF-8'); ?></th>
         </tr>
       </thead>
       <tbody>
@@ -125,7 +139,7 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
           <td>
             <?php $pageEditPath = admin_url('pages') . '/' . rawurlencode($pageSlug); ?>
             <div class="actions-inline admin-pages-row-actions">
-              <a class="button-link admin-pages-row-action" href="<?php echo htmlspecialchars($pageEditPath, ENT_QUOTES, 'UTF-8'); ?>">Éditer</a>
+              <a class="button-link admin-pages-row-action" href="<?php echo htmlspecialchars($pageEditPath, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_EDIT', 'Éditer'), ENT_QUOTES, 'UTF-8'); ?></a>
               <?php
               $deleteWarningTemplate = function_exists('admin_translate')
                   ? admin_translate('TXT_ADMIN_PAGES_DELETE_WARNING_TEMPLATE')
@@ -149,7 +163,7 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
                 <?php if ($currentSearchQuery !== ''): ?>
                 <input type="hidden" name="return_q" value="<?php echo htmlspecialchars($currentSearchQuery, ENT_QUOTES, 'UTF-8'); ?>" />
                 <?php endif; ?>
-                <button class="button-danger admin-pages-row-action" type="submit">Supprimer</button>
+                <button class="button-danger admin-pages-row-action" type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_DELETE', 'Supprimer'), ENT_QUOTES, 'UTF-8'); ?></button>
               </form>
             </div>
           </td>
@@ -169,7 +183,7 @@ $currentSearchQuery = is_string($searchQuery ?? null) ? trim((string) $searchQue
       return false;
     }
 
-    const warning = form.getAttribute('data-delete-warning') || 'ATTENTION : suppression definitive.';
+    const warning = form.getAttribute('data-delete-warning') || <?php echo json_encode($translate('TXT_ADMIN_PAGES_DELETE_WARNING_FALLBACK', 'ATTENTION : suppression definitive.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     return window.confirm(warning);
   }
 

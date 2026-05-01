@@ -103,6 +103,42 @@ final class AdminController
         );
     }
 
+    private function adminInterfaceLanguage(): string
+    {
+        $configuredLanguage = function_exists('admin_interface_language')
+            ? admin_interface_language()
+            : (string) app_config('default_lang', 'fr');
+        $normalizedLanguage = strtolower(trim((string) $configuredLanguage));
+        $availableLanguages = $this->blogService->availableLanguages();
+
+        return in_array($normalizedLanguage, $availableLanguages, true)
+            ? $normalizedLanguage
+            : (string) ($availableLanguages[0] ?? 'fr');
+    }
+
+    private function adminText(string $key, string $fallback = ''): string
+    {
+        if (function_exists('admin_translate')) {
+            return admin_translate($key, $fallback);
+        }
+
+        if (!function_exists('t')) {
+            return $fallback;
+        }
+
+        $translated = t($key);
+        if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+            return $fallback;
+        }
+
+        return $translated;
+    }
+
+    private function adminTextf(string $key, string $fallback, mixed ...$args): string
+    {
+        return sprintf($this->adminText($key, $fallback), ...$args);
+    }
+
     /**
      * @param array<int, string> $filterKeys
      * @param callable(array<string, mixed>): array<string, mixed> $normalizer
@@ -142,6 +178,20 @@ final class AdminController
         }
 
         $filters = $normalizer($effectiveInput);
+
+        if (!$hasExplicitFilters) {
+            foreach ($filterKeys as $filterKey) {
+                if (!array_key_exists($filterKey, $filters) || $filters[$filterKey] !== null) {
+                    continue;
+                }
+
+                if (!array_key_exists($filterKey, $defaults) || $defaults[$filterKey] === null) {
+                    continue;
+                }
+
+                $filters[$filterKey] = $defaults[$filterKey];
+            }
+        }
 
         if ($hasExplicitFilters) {
             $remembered = [];
@@ -326,7 +376,7 @@ final class AdminController
                     $requestContext,
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 $limiter = new \FileRateLimiter(
                     'admin-login:' . $clientIp,
@@ -341,11 +391,15 @@ final class AdminController
                         array_merge($requestContext, ['retry_after' => $retryAfter]),
                         'warning'
                     );
-                    $error = 'Trop de tentatives de connexion. Merci de réessayer dans ' . $retryAfter . ' secondes.';
+                    $error = $this->adminTextf(
+                        'TXT_ADMIN_LOGIN_RATE_LIMITED',
+                        'Trop de tentatives de connexion. Merci de réessayer dans %d secondes.',
+                        $retryAfter
+                    );
                     $body = $this->renderTemplate(
                         'layout.php',
                         [
-                            'pageTitle' => 'Connexion Admin · Les Caramagnols',
+                            'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_LOGIN', 'Connexion Admin · Les Caramagnols'),
                             'error' => $error,
                             'csrfToken' => admin_csrf_token(),
                             'submittedIdentifier' => $submittedIdentifier,
@@ -380,9 +434,9 @@ final class AdminController
                 );
                 $failureReason = admin_pop_login_failure_reason();
                 $error = match ($failureReason) {
-                    'totp_required' => 'Code 2FA requis.',
-                    'totp_invalid' => 'Code 2FA invalide.',
-                    default => 'Identifiants invalides.',
+                    'totp_required' => $this->adminText('TXT_ADMIN_LOGIN_TOTP_REQUIRED', 'Code 2FA requis.'),
+                    'totp_invalid' => $this->adminText('TXT_ADMIN_LOGIN_TOTP_INVALID', 'Code 2FA invalide.'),
+                    default => $this->adminText('TXT_ADMIN_LOGIN_INVALID_CREDENTIALS', 'Identifiants invalides.'),
                 };
             }
         }
@@ -390,7 +444,7 @@ final class AdminController
         return $this->renderPage(
             'login.php',
             [
-                'pageTitle' => 'Connexion Admin · Les Caramagnols',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_LOGIN', 'Connexion Admin · Les Caramagnols'),
                 'notice' => $notice,
                 'error' => $error,
                 'csrfToken' => admin_csrf_token(),
@@ -417,7 +471,7 @@ final class AdminController
         return $this->renderPage(
             'dashboard.php',
             [
-                'pageTitle' => 'Tableau de bord',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_DASHBOARD', 'Tableau de bord'),
                 'activeMenu' => 'dashboard',
                 'adminPath' => $this->routeResolver->loginPath(),
                 'blogMode' => (string) app_config('blog.mode', 'experimental'),
@@ -447,7 +501,7 @@ final class AdminController
             'pages',
             ['status', 'lang', 'q'],
             fn (array $input): array => $this->pageService->normalizeListFilters($input),
-            $defaultFilters
+            array_merge($defaultFilters, ['lang' => $this->adminInterfaceLanguage()])
         );
 
         if ($filterState['resetRequested']) {
@@ -462,7 +516,7 @@ final class AdminController
         return $this->renderPage(
             'pages_list.php',
             [
-                'pageTitle' => 'Pages du site',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_PAGES', 'Pages du site'),
                 'activeMenu' => 'pages',
                 'csrfToken' => admin_csrf_token(),
                 'availableLanguages' => $this->pageService->availableLanguages(),
@@ -474,7 +528,7 @@ final class AdminController
                 'createPageUrl' => $this->routeResolver->pageCreatePath(),
                 'pagesResetUrl' => $this->buildFilterResetUrl($this->routeResolver->canonicalPath('pages')),
                 'message' => $deletedSlug !== null && $deletedSlug !== ''
-                    ? sprintf('Page "%s" supprimée avec toutes ses traductions.', $deletedSlug)
+                    ? $this->adminTextf('TXT_ADMIN_PAGES_DELETED_MESSAGE', 'Page "%s" supprimée avec toutes ses traductions.', $deletedSlug)
                     : null,
             ]
         );
@@ -489,11 +543,11 @@ final class AdminController
 
         $existingForm = $slug !== null ? $this->pageService->formDataForSlug($slug) : null;
         if ($slug !== null && $existingForm === null) {
-            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Page admin introuvable.');
+            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], $this->adminText('TXT_ADMIN_PAGE_NOT_FOUND', 'Page admin introuvable.'));
         }
 
         $message = $request->query()['saved'] ?? null;
-        $message = $message === '1' ? 'Page sauvegardée.' : null;
+        $message = $message === '1' ? $this->adminText('TXT_ADMIN_PAGE_SAVED', 'Page sauvegardée.') : null;
         $error = null;
         $formData = $existingForm ?? $this->pageService->emptyFormData();
         $deleteInfo = $slug !== null ? $this->pageService->deletionInfoForSlug($slug) : ['canDelete' => false, 'references' => []];
@@ -511,14 +565,14 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 $action = is_string($body['page_action'] ?? null) ? $body['page_action'] : 'save';
 
                 if ($action === 'delete' && $slug !== null) {
                     $confirmDelete = !empty($body['confirm_delete']);
                     if (!$confirmDelete) {
-                        $error = 'Merci de confirmer la suppression avant de continuer.';
+                        $error = $this->adminText('TXT_ADMIN_DELETE_CONFIRM_REQUIRED', 'Merci de confirmer la suppression avant de continuer.');
                     } elseif (($sensitiveGuard = $this->guardSensitiveAction($request, 'pages.delete')) !== null) {
                         return $sensitiveGuard;
                     } else {
@@ -569,7 +623,7 @@ final class AdminController
                             ],
                             'warning'
                         );
-                        $error = (string) ($result['error'] ?? 'Impossible de supprimer la page.');
+                        $error = (string) ($result['error'] ?? $this->adminText('TXT_ADMIN_PAGES_DELETE_FAILED', 'Impossible de supprimer la page.'));
                     }
                 } else {
                     $uploadError = $this->applyUploadedPageSharedMedia($body, $request);
@@ -603,7 +657,7 @@ final class AdminController
                             ],
                             'warning'
                         );
-                        $error = (string) ($result['error'] ?? 'Impossible de sauvegarder la page.');
+                        $error = (string) ($result['error'] ?? $this->adminText('TXT_ADMIN_PAGE_SAVE_FAILED', 'Impossible de sauvegarder la page.'));
                     }
                 }
             }
@@ -614,7 +668,9 @@ final class AdminController
         return $this->renderPage(
             'pages_form.php',
             [
-                'pageTitle' => $slug === null ? 'Nouvelle page' : 'Éditer une page',
+                'pageTitle' => $slug === null
+                    ? $this->adminText('TXT_ADMIN_PAGE_TITLE_PAGE_NEW', 'Nouvelle page')
+                    : $this->adminText('TXT_ADMIN_PAGE_TITLE_PAGE_EDIT', 'Éditer une page'),
                 'activeMenu' => 'pages',
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
@@ -670,7 +726,7 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 $action = is_string($body['tile_list_action'] ?? null)
                     ? trim((string) $body['tile_list_action'])
@@ -731,13 +787,13 @@ final class AdminController
         return $this->renderPage(
             'tiles_list.php',
             [
-                'pageTitle' => 'Groupes de tuiles',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_TILES', 'Groupes de tuiles'),
                 'activeMenu' => 'tiles',
                 'tilesEnabled' => $this->tileService->isEnabled(),
                 'groups' => $this->tileService->listGroups(),
                 'createTileUrl' => $this->routeResolver->tileCreatePath(),
                 'message' => $message ?? ($deletedId !== null && $deletedId > 0
-                    ? sprintf('Groupe de tuiles #%d supprimé.', $deletedId)
+                    ? $this->adminTextf('TXT_ADMIN_TILES_DELETED_MESSAGE', 'Groupe de tuiles #%d supprimé.', $deletedId)
                     : null),
                 'error' => $error,
             ]
@@ -755,26 +811,26 @@ final class AdminController
             return $this->renderPage(
                 'tiles_list.php',
                 [
-                    'pageTitle' => 'Groupes de tuiles',
+                    'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_TILES', 'Groupes de tuiles'),
                     'activeMenu' => 'tiles',
                     'tilesEnabled' => false,
                     'groups' => [],
                     'createTileUrl' => $this->routeResolver->tileCreatePath(),
-                    'error' => 'Le module Tuiles est disponible uniquement quand l éditorial SQL est actif.',
+                    'error' => $this->adminText('TXT_ADMIN_TILES_SQL_ONLY', 'Le module Tuiles est disponible uniquement quand l éditorial SQL est actif.'),
                 ]
             );
         }
 
         $existingForm = ($groupId ?? 0) > 0 ? $this->tileService->formDataForGroup((int) $groupId) : null;
         if (($groupId ?? 0) > 0 && $existingForm === null) {
-            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Groupe de tuiles introuvable.');
+            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], $this->adminText('TXT_ADMIN_TILES_GROUP_NOT_FOUND', 'Groupe de tuiles introuvable.'));
         }
 
         $message = null;
         if (($request->query()['duplicated'] ?? null) === '1') {
-            $message = 'Groupe de tuiles duplique.';
+            $message = $this->adminText('TXT_ADMIN_TILES_DUPLICATED', 'Groupe de tuiles duplique.');
         } elseif (($request->query()['saved'] ?? null) === '1') {
-            $message = 'Groupe de tuiles sauvegarde.';
+            $message = $this->adminText('TXT_ADMIN_TILES_SAVED', 'Groupe de tuiles sauvegarde.');
         }
         $error = null;
         $formData = $existingForm ?? $this->tileService->emptyFormData();
@@ -792,14 +848,14 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 $action = is_string($body['tile_action'] ?? null) ? trim((string) $body['tile_action']) : 'save';
 
                 if ($action === 'delete' && ($groupId ?? 0) > 0) {
                     $confirmDelete = !empty($body['confirm_delete']);
                     if (!$confirmDelete) {
-                        $error = 'Merci de confirmer la suppression avant de continuer.';
+                        $error = $this->adminText('TXT_ADMIN_DELETE_CONFIRM_REQUIRED', 'Merci de confirmer la suppression avant de continuer.');
                     } elseif (($sensitiveGuard = $this->guardSensitiveAction($request, 'tiles.delete')) !== null) {
                         return $sensitiveGuard;
                     } else {
@@ -829,7 +885,7 @@ final class AdminController
                             ],
                             'warning'
                         );
-                        $error = (string) ($result['error'] ?? 'Impossible de supprimer le groupe de tuiles.');
+                        $error = (string) ($result['error'] ?? $this->adminText('TXT_ADMIN_TILES_DELETE_FAILED', 'Impossible de supprimer le groupe de tuiles.'));
                     }
                 } else {
                     $result = $this->tileService->save($body, $groupId);
@@ -858,7 +914,7 @@ final class AdminController
                         ],
                         'warning'
                     );
-                    $error = (string) ($result['error'] ?? 'Impossible de sauvegarder le groupe de tuiles.');
+                    $error = (string) ($result['error'] ?? $this->adminText('TXT_ADMIN_TILES_SAVE_FAILED', 'Impossible de sauvegarder le groupe de tuiles.'));
                 }
             }
         }
@@ -868,7 +924,9 @@ final class AdminController
         return $this->renderPage(
             'tiles_form.php',
             [
-                'pageTitle' => $currentGroupId > 0 ? 'Éditer un groupe de tuiles' : 'Nouveau groupe de tuiles',
+                'pageTitle' => $currentGroupId > 0
+                    ? $this->adminText('TXT_ADMIN_PAGE_TITLE_TILE_EDIT', 'Éditer un groupe de tuiles')
+                    : $this->adminText('TXT_ADMIN_PAGE_TITLE_TILE_NEW', 'Nouveau groupe de tuiles'),
                 'activeMenu' => 'tiles',
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
@@ -903,6 +961,7 @@ final class AdminController
         $deletedDiscussions = (int) ($query['deleted_discussions'] ?? 0);
         $detachedChildren = (int) ($query['detached_children'] ?? 0);
         $defaultFilters = $this->blogService->normalizeFilters([]);
+        $defaultFilters['lang'] = $this->adminInterfaceLanguage();
         $filterState = $this->resolveRememberedListFilters(
             $request,
             'articles',
@@ -918,15 +977,17 @@ final class AdminController
         $filters = $filterState['filters'];
         $articles = $this->blogService->listArticles($filters);
         $articleListSummary = $this->blogService->summarizeArticles($articles);
+        $articles = $this->blogService->groupArticlesBySlug($articles);
         $message = null;
 
         if ($saved) {
-            $message = 'Article sauvegardé.';
+            $message = $this->adminText('TXT_ADMIN_ARTICLE_SAVED', 'Article sauvegardé.');
         } elseif (is_string($deletedSlug) && $deletedSlug !== '') {
             $languageLabel = is_string($deletedLanguage) && $deletedLanguage !== ''
                 ? strtoupper($deletedLanguage)
-                : strtoupper((string) app_config('default_lang', 'fr'));
-            $message = sprintf(
+                : strtoupper((string) $this->adminInterfaceLanguage());
+            $message = $this->adminTextf(
+                'TXT_ADMIN_ARTICLE_DELETED_MESSAGE',
                 'Article "%s" (%s) supprimé. %d discussion(s) associée(s) supprimée(s).',
                 $deletedSlug,
                 $languageLabel,
@@ -934,14 +995,18 @@ final class AdminController
             );
 
             if ($detachedChildren > 0) {
-                $message .= ' ' . $detachedChildren . ' article(s) enfant détaché(s) du parent supprimé.';
+                $message .= ' ' . $this->adminTextf(
+                    'TXT_ADMIN_ARTICLE_CHILDREN_DETACHED',
+                    '%d article(s) enfant détaché(s) du parent supprimé.',
+                    $detachedChildren
+                );
             }
         }
 
         return $this->renderPage(
             'articles_list.php',
             [
-                'pageTitle' => 'Articles du blog',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_ARTICLES', 'Articles du blog'),
                 'activeMenu' => 'articles',
                 'filters' => $filters,
                 'availableLanguages' => $this->blogService->availableLanguages(),
@@ -969,10 +1034,12 @@ final class AdminController
             ? $this->blogService->formDataForArticle($slug, $language)
             : null;
         if ($slug !== null && $language !== null && $existingForm === null) {
-            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Article admin introuvable.');
+            return new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], $this->adminText('TXT_ADMIN_ARTICLE_NOT_FOUND', 'Article admin introuvable.'));
         }
 
-        $message = ($request->query()['saved'] ?? null) === '1' ? 'Article sauvegardé.' : null;
+        $message = ($request->query()['saved'] ?? null) === '1'
+            ? $this->adminText('TXT_ADMIN_ARTICLE_SAVED', 'Article sauvegardé.')
+            : null;
         $error = null;
         $formData = $existingForm ?? $this->blogService->emptyFormData();
 
@@ -990,7 +1057,7 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 if ($action === 'delete') {
                     $activeLanguage = '';
@@ -1003,11 +1070,11 @@ final class AdminController
                     }
 
                     if ($slug === null || $language === null) {
-                        $error = 'Suppression impossible : article introuvable.';
+                        $error = $this->adminText('TXT_ADMIN_ARTICLE_DELETE_NOT_FOUND', 'Suppression impossible : article introuvable.');
                     } else {
                         $confirmDelete = !empty($body['confirm_delete']);
                         if (!$confirmDelete) {
-                            $error = 'Merci de confirmer la suppression avant de continuer.';
+                            $error = $this->adminText('TXT_ADMIN_DELETE_CONFIRM_REQUIRED', 'Merci de confirmer la suppression avant de continuer.');
                         } elseif (($sensitiveGuard = $this->guardSensitiveAction($request, 'articles.delete')) !== null) {
                             return $sensitiveGuard;
                         } else {
@@ -1048,7 +1115,7 @@ final class AdminController
                                 ],
                                 'warning'
                             );
-                            $error = (string) ($result['error'] ?? 'Impossible de supprimer l’article.');
+                            $error = (string) ($result['error'] ?? $this->adminText('TXT_ADMIN_ARTICLE_DELETE_FAILED', 'Impossible de supprimer l’article.'));
                         }
                     }
                 } else {
@@ -1093,7 +1160,7 @@ final class AdminController
                             'warning'
                         );
 
-                        $error = (string) ($result['error'] ?? 'Impossible de sauvegarder l’article.');
+                        $error = (string) ($result['error'] ?? $this->adminText('TXT_ADMIN_ARTICLE_SAVE_FAILED', 'Impossible de sauvegarder l’article.'));
                     }
                 }
             }
@@ -1111,7 +1178,9 @@ final class AdminController
         return $this->renderPage(
             'articles_form.php',
             [
-                'pageTitle' => $slug === null ? 'Nouvel article' : 'Éditer un article',
+                'pageTitle' => $slug === null
+                    ? $this->adminText('TXT_ADMIN_PAGE_TITLE_ARTICLE_NEW', 'Nouvel article')
+                    : $this->adminText('TXT_ADMIN_PAGE_TITLE_ARTICLE_EDIT', 'Éditer un article'),
                 'activeMenu' => 'articles',
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
@@ -1175,7 +1244,7 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 $discussionAction = is_string($body['discussion_action'] ?? null)
                     ? strtolower(trim((string) $body['discussion_action']))
@@ -1197,7 +1266,7 @@ final class AdminController
                             'action' => (string) ($body['discussion_action'] ?? ''),
                         ]
                     );
-                } elseif ($error !== null && $error !== 'Session expirée, merci de réessayer.') {
+                } elseif ($error !== null && $error !== $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.')) {
                     $this->eventLogger->content(
                         'admin.discussions.moderation_failed',
                         [
@@ -1217,7 +1286,7 @@ final class AdminController
         return $this->renderPage(
             'discussions.php',
             [
-                'pageTitle' => 'Discussions du blog',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_DISCUSSIONS', 'Discussions du blog'),
                 'activeMenu' => 'discussions',
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
@@ -1287,7 +1356,7 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 $action = is_string($body['media_action'] ?? null)
                     ? strtolower(trim((string) $body['media_action']))
@@ -1322,7 +1391,7 @@ final class AdminController
                     );
                     if (($result['success'] ?? false) === true) {
                         $folder = is_string($result['folder'] ?? null) ? (string) $result['folder'] : $folder;
-                        $message = 'Dossier créé.';
+                        $message = $this->adminText('TXT_ADMIN_MEDIA_FOLDER_CREATED', 'Dossier créé.');
                         $this->eventLogger->content(
                             'admin.media.folder_created',
                             [
@@ -1344,7 +1413,8 @@ final class AdminController
                         $quality
                     );
                     if (($result['success'] ?? false) === true) {
-                        $message = sprintf(
+                        $message = $this->adminTextf(
+                            'TXT_ADMIN_MEDIA_FILES_IMPORTED',
                             '%d fichier(s) importé(s), %d converti(s) en WebP, %d ignore(s).',
                             max(0, (int) ($result['uploadedCount'] ?? 0)),
                             max(0, (int) ($result['convertedCount'] ?? 0)),
@@ -1383,7 +1453,8 @@ final class AdminController
                             'skippedCount' => 0,
                         ];
                     if (($result['success'] ?? false) === true) {
-                        $message = sprintf(
+                        $message = $this->adminTextf(
+                            'TXT_ADMIN_MEDIA_ZIP_IMPORTED',
                             'Import ZIP terminé : %d fichier(s) importé(s), %d converti(s) en WebP, %d ignore(s).',
                             max(0, (int) ($result['importedCount'] ?? 0)),
                             max(0, (int) ($result['convertedCount'] ?? 0)),
@@ -1435,7 +1506,7 @@ final class AdminController
                     $newFilename = is_string($body['new_file_name'] ?? null) ? (string) $body['new_file_name'] : '';
                     $result = $this->mediaLibraryService->renameFile($targetFile, $newFilename);
                     if (($result['success'] ?? false) === true) {
-                        $message = 'Fichier renomme.';
+                        $message = $this->adminText('TXT_ADMIN_MEDIA_FILE_RENAMED', 'Fichier renomme.');
                         $this->eventLogger->content(
                             'admin.media.file_renamed',
                             [
@@ -1453,7 +1524,7 @@ final class AdminController
                     $destinationFolder = is_string($body['destination_folder'] ?? null) ? (string) $body['destination_folder'] : '';
                     $result = $this->mediaLibraryService->moveFile($targetFile, $destinationFolder);
                     if (($result['success'] ?? false) === true) {
-                        $message = 'Fichier deplace.';
+                        $message = $this->adminText('TXT_ADMIN_MEDIA_FILE_MOVED', 'Fichier deplace.');
                         $this->eventLogger->content(
                             'admin.media.file_moved',
                             [
@@ -1472,7 +1543,7 @@ final class AdminController
                     );
                     $folder = is_string($result['folder'] ?? null) ? (string) $result['folder'] : $folder;
                     if (($result['success'] ?? false) === true) {
-                        $message = 'Fichier supprimé.';
+                        $message = $this->adminText('TXT_ADMIN_MEDIA_FILE_DELETED', 'Fichier supprimé.');
                         $this->eventLogger->content(
                             'admin.media.file_deleted',
                             [
@@ -1489,7 +1560,7 @@ final class AdminController
                     $result = $this->mediaLibraryService->deleteFolder($targetFolder);
                     $folder = is_string($result['parentFolder'] ?? null) ? (string) $result['parentFolder'] : $folder;
                     if (($result['success'] ?? false) === true) {
-                        $message = 'Dossier supprimé.';
+                        $message = $this->adminText('TXT_ADMIN_MEDIA_FOLDER_DELETED', 'Dossier supprimé.');
                         $this->eventLogger->content(
                             'admin.media.folder_deleted',
                             [
@@ -1505,7 +1576,7 @@ final class AdminController
                     $newFolderName = is_string($body['new_folder_name'] ?? null) ? (string) $body['new_folder_name'] : '';
                     $result = $this->mediaLibraryService->renameFolder($targetFolder, $newFolderName);
                     if (($result['success'] ?? false) === true) {
-                        $message = 'Dossier renomme.';
+                        $message = $this->adminText('TXT_ADMIN_MEDIA_FOLDER_RENAMED', 'Dossier renomme.');
                         $this->eventLogger->content(
                             'admin.media.folder_renamed',
                             [
@@ -1522,7 +1593,7 @@ final class AdminController
                     $destinationFolder = is_string($body['destination_folder'] ?? null) ? (string) $body['destination_folder'] : '';
                     $result = $this->mediaLibraryService->moveFolder($targetFolder, $destinationFolder);
                     if (($result['success'] ?? false) === true) {
-                        $message = 'Dossier deplace.';
+                        $message = $this->adminText('TXT_ADMIN_MEDIA_FOLDER_MOVED', 'Dossier deplace.');
                         $this->eventLogger->content(
                             'admin.media.folder_moved',
                             [
@@ -1543,7 +1614,7 @@ final class AdminController
                     );
                     $folder = is_string($result['folder'] ?? null) ? (string) $result['folder'] : $folder;
                     if (($result['success'] ?? false) === true) {
-                        $message = 'Conversion WebP réalisée.';
+                        $message = $this->adminText('TXT_ADMIN_MEDIA_WEBP_CONVERTED', 'Conversion WebP réalisée.');
                         $this->eventLogger->content(
                             'admin.media.file_converted_webp',
                             [
@@ -1557,7 +1628,7 @@ final class AdminController
                         $error = is_string($result['error'] ?? null) ? (string) $result['error'] : 'Conversion WebP impossible.';
                     }
                 } else {
-                    $error = 'Action media inconnue.';
+                    $error = $this->adminText('TXT_ADMIN_MEDIA_UNKNOWN_ACTION', 'Action media inconnue.');
                 }
             }
         }
@@ -1565,7 +1636,7 @@ final class AdminController
         return $this->renderPage(
             'media.php',
             [
-                'pageTitle' => 'Bibliotheque medias',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_MEDIA', 'Bibliotheque medias'),
                 'activeMenu' => 'media',
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
@@ -1608,7 +1679,7 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 $result = $this->navigationService->handle(is_array($body) ? $body : []);
                 $message = $result['message'];
@@ -1624,7 +1695,7 @@ final class AdminController
                             'sections' => array_keys((array) ($view['locations'] ?? [])),
                         ]
                     );
-                } elseif ($error !== null && $error !== 'Session expirée, merci de réessayer.') {
+                } elseif ($error !== null && $error !== $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.')) {
                     $this->eventLogger->content(
                         'admin.menus.save_failed',
                         [
@@ -1640,7 +1711,7 @@ final class AdminController
         return $this->renderPage(
             'menus.php',
             [
-                'pageTitle' => 'Menus du site',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_MENUS', 'Menus du site'),
                 'activeMenu' => 'menus',
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
@@ -1683,7 +1754,7 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
             } else {
                 $settingsAction = is_string($body['settings_action'] ?? null)
                     ? trim((string) $body['settings_action'])
@@ -1744,7 +1815,7 @@ final class AdminController
         return $this->renderPage(
             'settings.php',
             [
-                'pageTitle' => 'Paramètres d’exploitation',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_SETTINGS', 'Paramètres d’exploitation'),
                 'activeMenu' => 'settings',
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
@@ -1809,7 +1880,7 @@ final class AdminController
                     ],
                     'warning'
                 );
-                $error = 'Session expirée, merci de réessayer.';
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
                 $filters = $this->logService->normalizeFilters(is_array($body) ? $body : []);
             } else {
                 $sensitiveGuard = $this->guardSensitiveAction($request, 'logs.write');
@@ -1824,7 +1895,7 @@ final class AdminController
                     default => [
                         'success' => false,
                         'message' => null,
-                        'error' => 'Action de logs inconnue.',
+                        'error' => $this->adminText('TXT_ADMIN_LOGS_UNKNOWN_ACTION', 'Action de logs inconnue.'),
                         'deletedCount' => 0,
                         'filters' => $this->logService->normalizeFilters(is_array($body) ? $body : []),
                     ],
@@ -1847,7 +1918,7 @@ final class AdminController
                             'filters' => $filters,
                         ]
                     );
-                } elseif ($error !== null && $error !== 'Session expirée, merci de réessayer.') {
+                } elseif ($error !== null && $error !== $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.')) {
                     $this->eventLogger->security(
                         'admin.logs.action_failed',
                         [
@@ -1865,7 +1936,7 @@ final class AdminController
         return $this->renderPage(
             'logs.php',
             [
-                'pageTitle' => 'Journaux système',
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_LOGS', 'Journaux système'),
                 'activeMenu' => 'logs',
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
@@ -1993,7 +2064,7 @@ final class AdminController
             'warning'
         );
 
-        return new Response(403, ['Content-Type' => 'text/html; charset=utf-8'], 'Accès admin interdit.');
+        return new Response(403, ['Content-Type' => 'text/html; charset=utf-8'], $this->adminText('TXT_ADMIN_ACCESS_DENIED', 'Accès admin interdit.'));
     }
 
     private function guardSensitiveAction(Request $request, string $action): ?Response
@@ -2025,18 +2096,20 @@ final class AdminController
     private function noticeMessageFromCode(?string $noticeCode): ?string
     {
         return match ($noticeCode) {
-            'inactive_timeout' => sprintf(
+            'inactive_timeout' => $this->adminTextf(
+                'TXT_ADMIN_NOTICE_INACTIVE_TIMEOUT',
                 'Session expirée après inactivité (%d minutes). Merci de vous reconnecter.',
                 (int) floor(admin_inactivity_timeout_seconds() / 60)
             ),
-            'reauth_required' => 'Veuillez vous reconnecter pour valider une action sensible.',
+            'reauth_required' => $this->adminText('TXT_ADMIN_NOTICE_REAUTH_REQUIRED', 'Veuillez vous reconnecter pour valider une action sensible.'),
             default => null,
         };
     }
 
     private function tileDuplicateSuccessMessage(int $sourceGroupId, int $duplicatedGroupId, string $name, int $tileCount): string
     {
-        $message = sprintf(
+        $message = $this->adminTextf(
+            'TXT_ADMIN_TILES_DUPLICATE_SUCCESS_BASE',
             'Duplication réussie : le groupe #%d a été recopié dans le groupe #%d',
             $sourceGroupId,
             $duplicatedGroupId
@@ -2044,11 +2117,19 @@ final class AdminController
 
         $normalizedName = trim($name);
         if ($normalizedName !== '') {
-            $message .= sprintf(' sous le titre "%s"', $normalizedName);
+            $message .= ' ' . $this->adminTextf(
+                'TXT_ADMIN_TILES_DUPLICATE_SUCCESS_NAME',
+                'sous le titre "%s"',
+                $normalizedName
+            );
         }
 
         if ($tileCount > 0) {
-            $message .= sprintf(' avec %d tuile(s) copiée(s)', $tileCount);
+            $message .= ' ' . $this->adminTextf(
+                'TXT_ADMIN_TILES_DUPLICATE_SUCCESS_COUNT',
+                'avec %d tuile(s) copiée(s)',
+                $tileCount
+            );
         }
 
         return $message . '.';
@@ -2058,10 +2139,11 @@ final class AdminController
     {
         $normalizedError = trim($error);
         if ($normalizedError === '') {
-            $normalizedError = 'Impossible de dupliquer le groupe de tuiles.';
+            $normalizedError = $this->adminText('TXT_ADMIN_TILES_DUPLICATE_FAILED', 'Impossible de dupliquer le groupe de tuiles.');
         }
 
-        return sprintf(
+        return $this->adminTextf(
+            'TXT_ADMIN_TILES_DUPLICATE_ERROR_MESSAGE',
             'Duplication impossible pour le groupe #%d : %s',
             $sourceGroupId,
             $normalizedError
@@ -2106,12 +2188,12 @@ final class AdminController
             'adminSessionTimeoutSeconds' => admin_inactivity_timeout_seconds(),
             'adminSessionWarningLeadSeconds' => min(120, admin_inactivity_timeout_seconds()),
             'adminSessionDecisionSeconds' => 120,
-            'adminSessionWarningTitle' => admin_translate('TXT_ADMIN_SESSION_WARNING_TITLE', 'Session en fin de validité'),
-            'adminSessionWarningMessage' => admin_translate('TXT_ADMIN_SESSION_WARNING_MESSAGE', 'Voulez-vous prolonger la session ?'),
-            'adminSessionWarningCountdownTemplate' => admin_translate('TXT_ADMIN_SESSION_WARNING_COUNTDOWN_TEMPLATE', 'Déconnexion automatique dans %d secondes.'),
-            'adminSessionWarningConfirmLabel' => admin_translate('TXT_ADMIN_SESSION_WARNING_CONFIRM', 'Oui, prolonger'),
-            'adminSessionWarningLogoutLabel' => admin_translate('TXT_ADMIN_SESSION_WARNING_LOGOUT', 'Non, se déconnecter'),
-            'adminSessionWarningNetworkError' => admin_translate('TXT_ADMIN_SESSION_WARNING_NETWORK_ERROR', 'Session expirée ou inaccessible. Merci de vous reconnecter.'),
+            'adminSessionWarningTitle' => $this->adminText('TXT_ADMIN_SESSION_WARNING_TITLE', 'Session en fin de validité'),
+            'adminSessionWarningMessage' => $this->adminText('TXT_ADMIN_SESSION_WARNING_MESSAGE', 'Voulez-vous prolonger la session ?'),
+            'adminSessionWarningCountdownTemplate' => $this->adminText('TXT_ADMIN_SESSION_WARNING_COUNTDOWN_TEMPLATE', 'Déconnexion automatique dans %d secondes.'),
+            'adminSessionWarningConfirmLabel' => $this->adminText('TXT_ADMIN_SESSION_WARNING_CONFIRM', 'Oui, prolonger'),
+            'adminSessionWarningLogoutLabel' => $this->adminText('TXT_ADMIN_SESSION_WARNING_LOGOUT', 'Non, se déconnecter'),
+            'adminSessionWarningNetworkError' => $this->adminText('TXT_ADMIN_SESSION_WARNING_NETWORK_ERROR', 'Session expirée ou inaccessible. Merci de vous reconnecter.'),
         ];
 
         $body = $this->renderTemplate(
@@ -2137,7 +2219,7 @@ final class AdminController
             return false;
         }
 
-        if ($error !== null && $error !== 'Session expirée, merci de réessayer.') {
+        if ($error !== null && $error !== $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.')) {
             return true;
         }
 

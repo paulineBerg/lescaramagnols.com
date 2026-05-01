@@ -16,6 +16,9 @@ $translate = static function (string $key, string $fallback): string {
 
     return $translated;
 };
+$translateFormat = static function (string $key, string $fallback, mixed ...$args) use ($translate): string {
+    return sprintf($translate($key, $fallback), ...$args);
+};
 $statusLabels = [
     'draft' => $translate('TXT_ADMIN_ARTICLE_STATUS_DRAFT', 'Brouillon'),
     'scheduled' => $translate('TXT_ADMIN_ARTICLE_STATUS_SCHEDULED', 'Planifié'),
@@ -96,23 +99,23 @@ $articleEditorFormId = 'article-editor-form';
 
 <section class="cards-grid">
   <article class="card">
-    <h2><?php echo ($isNewArticle ?? false) ? 'Nouvel article' : 'Article du blog'; ?></h2>
+    <h2><?php echo htmlspecialchars(($isNewArticle ?? false) ? $translate('TXT_ADMIN_ARTICLES_FORM_NEW_TITLE', 'Nouvel article') : $translate('TXT_ADMIN_ARTICLES_FORM_EXISTING_TITLE', 'Article du blog'), ENT_QUOTES, 'UTF-8'); ?></h2>
     <p>
-      Les champs structurels de l article sont partagés une seule fois. Les textes traduits s éditent ensuite dans des onglets séparés pour le français, l anglais et l allemand.
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_FORM_SHARED_FIELDS_HINT', 'Les champs structurels de l article sont partagés une seule fois. Les textes traduits s éditent ensuite dans des onglets séparés pour le français, l anglais et l allemand.'), ENT_QUOTES, 'UTF-8'); ?>
     </p>
     <p class="actions-inline">
-      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesIndexUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Retour à la liste</a>
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesIndexUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_BACK_TO_LIST', 'Retour à la liste'), ENT_QUOTES, 'UTF-8'); ?></a>
       <?php if (($isNewArticle ?? false) === false): ?>
-      <span class="tag"><?php echo count($existingLanguages); ?> variante<?php echo count($existingLanguages) > 1 ? 's' : ''; ?> existante<?php echo count($existingLanguages) > 1 ? 's' : ''; ?></span>
+      <span class="tag"><?php echo htmlspecialchars(sprintf($translate('TXT_ADMIN_ARTICLES_FORM_EXISTING_VARIANTS', '%d variante(s) existante(s)'), count($existingLanguages)), ENT_QUOTES, 'UTF-8'); ?></span>
       <?php endif; ?>
     </p>
   </article>
 
   <article class="card">
-    <h2>Taxonomie blog</h2>
-    <p class="notice-muted">Source canonique limitée : pas de catégorie ni de tag libre.</p>
+    <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TAXONOMY_TITLE', 'Taxonomie blog'), ENT_QUOTES, 'UTF-8'); ?></h2>
+    <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TAXONOMY_NOTICE', 'Source canonique limitée : pas de catégorie ni de tag libre.'), ENT_QUOTES, 'UTF-8'); ?></p>
     <div class="field">
-      <label>Catégories autorisées</label>
+      <label><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_ALLOWED_CATEGORIES', 'Catégories autorisées'), ENT_QUOTES, 'UTF-8'); ?></label>
       <div class="taxonomy-chip-list">
         <?php foreach ($categoryOptions as $category): ?>
         <span class="taxonomy-chip"><?php echo htmlspecialchars((string) ($category['label'] ?? $category['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -120,7 +123,7 @@ $articleEditorFormId = 'article-editor-form';
       </div>
     </div>
     <div class="field">
-      <label>Tags autorisés</label>
+      <label><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_ALLOWED_TAGS', 'Tags autorisés'), ENT_QUOTES, 'UTF-8'); ?></label>
       <div class="taxonomy-chip-list">
         <?php foreach ($tagOptions as $tag): ?>
         <span class="taxonomy-chip"><?php echo htmlspecialchars((string) ($tag['label'] ?? $tag['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -139,7 +142,7 @@ $articleEditorFormId = 'article-editor-form';
 <?php endif; ?>
 
 <section class="card">
-  <h2>Édition</h2>
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_EDITING', 'Édition'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
   <form
     id="<?php echo htmlspecialchars($articleEditorFormId, ENT_QUOTES, 'UTF-8'); ?>"
@@ -157,7 +160,7 @@ $articleEditorFormId = 'article-editor-form';
 
     <div class="admin-form-grid admin-form-grid-3">
       <div class="field">
-        <label for="article-status">Statut</label>
+        <label for="article-status"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></label>
         <select id="article-status" name="article[status]">
           <?php foreach (($supportedStatuses ?? []) as $status): ?>
           <option value="<?php echo htmlspecialchars((string) $status, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($formData['status'] ?? 'draft') === $status ? ' selected' : ''; ?>>
@@ -168,17 +171,17 @@ $articleEditorFormId = 'article-editor-form';
       </div>
 
       <div class="field">
-        <label for="article-slug">Slug</label>
+        <label for="article-slug"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SLUG', 'Slug'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input id="article-slug" name="article[slug]" type="text" value="<?php echo htmlspecialchars((string) ($formData['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
       </div>
 
       <div class="field">
-        <label for="article-author">Auteur</label>
+        <label for="article-author"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_AUTHOR', 'Auteur'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input id="article-author" name="article[author]" type="text" value="<?php echo htmlspecialchars((string) ($formData['author'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
       </div>
 
       <div class="field">
-        <label for="article-date">Date</label>
+        <label for="article-date"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_DATE', 'Date'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input id="article-date" name="article[date]" type="datetime-local" value="<?php echo htmlspecialchars((string) ($formData['date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
         <p class="admin-form-help">
           <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DATE_HELP', 'Date éditoriale de référence (tri, affichage et chronologie).'), ENT_QUOTES, 'UTF-8'); ?>
@@ -199,9 +202,9 @@ $articleEditorFormId = 'article-editor-form';
       </div>
 
       <div class="field admin-form-span-2">
-        <label for="article-page-slug">Page parent de publication</label>
+        <label for="article-page-slug"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_PAGE_LABEL', 'Page parent de publication'), ENT_QUOTES, 'UTF-8'); ?></label>
         <select id="article-page-slug" name="article[page_slug]" required>
-          <option value="" disabled<?php echo trim((string) ($formData['page_slug'] ?? '')) === '' ? ' selected' : ''; ?>>Choisir une page parent (obligatoire)</option>
+          <option value="" disabled<?php echo trim((string) ($formData['page_slug'] ?? '')) === '' ? ' selected' : ''; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_PAGE_PLACEHOLDER', 'Choisir une page parent (obligatoire)'), ENT_QUOTES, 'UTF-8'); ?></option>
           <?php foreach (($availablePageOptions ?? []) as $pageOption): ?>
           <?php
           $pageSlug = (string) ($pageOption['slug'] ?? '');
@@ -218,14 +221,14 @@ $articleEditorFormId = 'article-editor-form';
           <?php endforeach; ?>
         </select>
         <p class="admin-form-help">
-          Obligatoire. Ce rattachement est partagé par toutes les langues et sert de point d ouverture public pour chaque variante.
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_PAGE_HELP', 'Obligatoire. Ce rattachement est partagé par toutes les langues et sert de point d ouverture public pour chaque variante.'), ENT_QUOTES, 'UTF-8'); ?>
         </p>
       </div>
 
       <div class="field admin-form-span-2">
-        <label for="article-parent-slug">Article parent</label>
+        <label for="article-parent-slug"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_LABEL', 'Article parent'), ENT_QUOTES, 'UTF-8'); ?></label>
         <select id="article-parent-slug" name="article[parent_slug]">
-          <option value="">Aucun parent (article racine)</option>
+          <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_NONE', 'Aucun parent (article racine)'), ENT_QUOTES, 'UTF-8'); ?></option>
           <?php foreach (($availableParentArticles ?? []) as $parentArticle): ?>
           <?php
           $parentSlug = (string) ($parentArticle['slug'] ?? '');
@@ -252,12 +255,12 @@ $articleEditorFormId = 'article-editor-form';
           <?php endforeach; ?>
         </select>
         <p class="admin-form-help">
-          Le parent logique est choisi une seule fois. Chaque traduction utilise automatiquement la variante correspondante quand elle existe.
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_HELP', 'Le parent logique est choisi une seule fois. Chaque traduction utilise automatiquement la variante correspondante quand elle existe.'), ENT_QUOTES, 'UTF-8'); ?>
         </p>
       </div>
 
       <div class="field">
-        <label for="article-child-sort-order">Ordre manuel sous le parent</label>
+        <label for="article-child-sort-order"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CHILD_SORT_ORDER_LABEL', 'Ordre manuel sous le parent'), ENT_QUOTES, 'UTF-8'); ?></label>
         <input
           id="article-child-sort-order"
           name="article[child_sort_order]"
@@ -266,13 +269,13 @@ $articleEditorFormId = 'article-editor-form';
           step="1"
           value="<?php echo htmlspecialchars((string) ($formData['child_sort_order'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
         />
-        <p class="admin-form-help">Optionnel. Laisser vide pour utiliser l’ordre de creation.</p>
+        <p class="admin-form-help"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CHILD_SORT_ORDER_HELP', 'Optionnel. Laisser vide pour utiliser l’ordre de creation.'), ENT_QUOTES, 'UTF-8'); ?></p>
       </div>
 
       <div class="field">
-        <label for="article-category">Catégorie</label>
+        <label for="article-category"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CATEGORY', 'Catégorie'), ENT_QUOTES, 'UTF-8'); ?></label>
         <select id="article-category" name="article[category]" required data-blog-category-select>
-          <option value="" disabled<?php echo trim((string) ($formData['category'] ?? '')) === '' ? ' selected' : ''; ?>>Choisir une catégorie</option>
+          <option value="" disabled<?php echo trim((string) ($formData['category'] ?? '')) === '' ? ' selected' : ''; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CATEGORY_PLACEHOLDER', 'Choisir une catégorie'), ENT_QUOTES, 'UTF-8'); ?></option>
           <?php foreach ($categoryOptions as $category): ?>
           <?php $categorySlug = (string) ($category['slug'] ?? ''); ?>
           <option value="<?php echo htmlspecialchars($categorySlug, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ((string) ($formData['category'] ?? '') === $categorySlug) ? ' selected' : ''; ?>>
@@ -283,9 +286,9 @@ $articleEditorFormId = 'article-editor-form';
       </div>
 
       <div class="field">
-        <label for="article-subcategory">Sous-catégorie</label>
+        <label for="article-subcategory"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SUBCATEGORY', 'Sous-catégorie'), ENT_QUOTES, 'UTF-8'); ?></label>
         <select id="article-subcategory" name="article[subcategory]" data-blog-subcategory-select>
-          <option value="">Aucune sous-catégorie</option>
+          <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_SUBCATEGORY_NONE', 'Aucune sous-catégorie'), ENT_QUOTES, 'UTF-8'); ?></option>
           <?php foreach ($subcategoryOptions as $subcategory): ?>
           <?php
           $subcategorySlug = (string) ($subcategory['slug'] ?? '');
@@ -303,7 +306,7 @@ $articleEditorFormId = 'article-editor-form';
       </div>
 
       <div class="field admin-form-span-2">
-        <label for="article-tags">Tags</label>
+        <label for="article-tags"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_TAGS', 'Tags'), ENT_QUOTES, 'UTF-8'); ?></label>
         <div id="article-tags" class="taxonomy-chip-list taxonomy-checkbox-list">
           <?php foreach ($tagOptions as $tag): ?>
           <?php $tagSlug = (string) ($tag['slug'] ?? ''); ?>
@@ -318,7 +321,7 @@ $articleEditorFormId = 'article-editor-form';
           </label>
           <?php endforeach; ?>
         </div>
-        <p class="admin-form-help">Choisir 3 à 5 tags. Les tags libres et les tags créés automatiquement sont refusés.</p>
+        <p class="admin-form-help"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_TAGS_HELP', 'Choisir 3 à 5 tags. Les tags libres et les tags créés automatiquement sont refusés.'), ENT_QUOTES, 'UTF-8'); ?></p>
       </div>
 
       <div class="field admin-form-span-2">
@@ -425,14 +428,14 @@ $articleEditorFormId = 'article-editor-form';
     <section class="card" style="margin-top: 2rem;">
       <div class="page-editor-intro__header">
         <div>
-          <h3>Traductions</h3>
+          <h3><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATIONS_TITLE', 'Traductions'), ENT_QUOTES, 'UTF-8'); ?></h3>
           <p class="page-editor-intro__description">
-            Chaque onglet ne contient que les textes propres à sa langue. Les choix de page parent, taxonomie, image de couverture et hiérarchie restent communs.
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATIONS_HELP', 'Chaque onglet ne contient que les textes propres à sa langue. Les choix de page parent, taxonomie, image de couverture et hiérarchie restent communs.'), ENT_QUOTES, 'UTF-8'); ?>
           </p>
         </div>
       </div>
 
-      <div class="menu-builder-tabs" role="tablist" aria-label="Traductions de l article" data-article-translation-tabs>
+      <div class="menu-builder-tabs" role="tablist" aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATIONS_TITLE', 'Traductions'), ENT_QUOTES, 'UTF-8'); ?>" data-article-translation-tabs>
         <?php foreach ($availableLanguages as $translationTabIndex => $language): ?>
         <?php
         $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
@@ -443,8 +446,8 @@ $articleEditorFormId = 'article-editor-form';
         $translationHasDraft = $translationTitle !== '' || $translationExcerpt !== '' || $translationContent !== '';
         $isActiveTranslationTab = $language === $activeLanguage;
         $translationStatusLabel = $translationExists
-            ? 'Version existante'
-            : ($translationHasDraft ? 'A completer' : 'A renseigner');
+            ? $translate('TXT_ADMIN_ARTICLES_TRANSLATION_EXISTS', 'Version existante')
+            : ($translationHasDraft ? $translate('TXT_ADMIN_ARTICLES_TRANSLATION_TO_COMPLETE', 'A completer') : $translate('TXT_ADMIN_ARTICLES_TRANSLATION_TO_FILL', 'A renseigner'));
         ?>
         <button
           type="button"
@@ -483,17 +486,17 @@ $articleEditorFormId = 'article-editor-form';
             <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
             <span class="lang-badge"><?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?></span>
             <?php if ($translationExists): ?>
-            <span class="tag">Variante existante</span>
+            <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATION_EXISTING_VARIANT', 'Variante existante'), ENT_QUOTES, 'UTF-8'); ?></span>
             <?php else: ?>
-            <span class="tag">Nouvelle variante</span>
+            <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATION_NEW_VARIANT', 'Nouvelle variante'), ENT_QUOTES, 'UTF-8'); ?></span>
             <?php endif; ?>
           </div>
-          <button type="submit">Sauvegarder l article</button>
+          <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_SAVE_BUTTON', 'Sauvegarder l article'), ENT_QUOTES, 'UTF-8'); ?></button>
         </div>
 
         <div class="admin-form-grid admin-form-grid-2">
           <div class="field admin-form-span-2">
-            <label for="article-title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>">Titre</label>
+            <label for="article-title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_TITLE', 'Titre'), ENT_QUOTES, 'UTF-8'); ?></label>
             <input
               id="article-title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
               name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][title]"
@@ -503,7 +506,7 @@ $articleEditorFormId = 'article-editor-form';
           </div>
 
           <div class="field admin-form-span-2">
-            <label for="article-excerpt-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>">Extrait</label>
+            <label for="article-excerpt-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_EXCERPT_LABEL', 'Extrait'), ENT_QUOTES, 'UTF-8'); ?></label>
             <textarea
               id="article-excerpt-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
               name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][excerpt]"
@@ -512,7 +515,7 @@ $articleEditorFormId = 'article-editor-form';
           </div>
 
           <div class="field admin-form-span-2">
-            <label for="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>">Contenu HTML</label>
+            <label for="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CONTENT_HTML', 'Contenu HTML'), ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="actions-inline">
               <button
                 type="button"
@@ -520,7 +523,7 @@ $articleEditorFormId = 'article-editor-form';
                 data-content-media-open="article-media-insert-dialog"
                 data-content-media-target="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
               >
-                Inserer un media (image / video)
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_INSERT_MEDIA', 'Inserer un media (image / video)'), ENT_QUOTES, 'UTF-8'); ?>
               </button>
             </div>
             <textarea
@@ -536,8 +539,8 @@ $articleEditorFormId = 'article-editor-form';
     </section>
 
     <div class="actions-inline actions-inline-end">
-      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesIndexUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Annuler</a>
-      <button type="submit">Sauvegarder</button>
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesIndexUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler'), ENT_QUOTES, 'UTF-8'); ?></a>
+      <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SAVE', 'Sauvegarder'), ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
   </form>
 
@@ -550,23 +553,23 @@ $articleEditorFormId = 'article-editor-form';
     <div class="region-modal__surface">
       <div class="region-modal__header">
         <div>
-          <p class="region-modal__eyebrow">Bibliotheque medias</p>
-          <h3>Inserer un media dans le contenu</h3>
-          <p>Selectionne une image ou une video, puis insertion au curseur dans le champ actif.</p>
+          <p class="region-modal__eyebrow"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_LIBRARY_EYEBROW', 'Bibliotheque medias'), ENT_QUOTES, 'UTF-8'); ?></p>
+          <h3><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_TITLE', 'Inserer un media dans le contenu'), ENT_QUOTES, 'UTF-8'); ?></h3>
+          <p><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_HELP', 'Selectionne une image ou une video, puis insertion au curseur dans le champ actif.'), ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
-        <button type="button" class="button-link button-link-muted" data-content-media-close>Fermer</button>
+        <button type="button" class="button-link button-link-muted" data-content-media-close><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?></button>
       </div>
 
       <div class="region-modal__body">
         <div class="admin-form-grid admin-form-grid-2 content-media-toolbar">
           <div class="field content-media-dialog__search">
-            <label for="article-media-insert-search">Recherche</label>
-            <input id="article-media-insert-search" type="text" placeholder="nom, chemin, format..." data-content-media-search />
+            <label for="article-media-insert-search"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SEARCH', 'Recherche'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="article-media-insert-search" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_SEARCH_PLACEHOLDER', 'nom, chemin, format...'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-search />
           </div>
           <div class="field">
-            <label for="article-media-insert-folder">Dossier</label>
+            <label for="article-media-insert-folder"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_FOLDER_LABEL', 'Dossier'), ENT_QUOTES, 'UTF-8'); ?></label>
             <select id="article-media-insert-folder" data-content-media-folder>
-              <option value="">Tous les dossiers</option>
+              <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FOLDERS', 'Tous les dossiers'), ENT_QUOTES, 'UTF-8'); ?></option>
               <?php foreach ($contentMediaFolders as $folderOption): ?>
               <?php
               if (!is_string($folderOption)) {
@@ -587,7 +590,7 @@ $articleEditorFormId = 'article-editor-form';
 
         <?php if ($contentMediaFavorites !== []): ?>
         <div class="actions-inline content-media-favorites" data-content-media-favorites>
-          <span class="tag">Favoris</span>
+          <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_FAVORITES', 'Favoris'), ENT_QUOTES, 'UTF-8'); ?></span>
           <?php foreach ($contentMediaFavorites as $favoriteFolder): ?>
           <?php
           if (!is_string($favoriteFolder)) {
@@ -600,32 +603,32 @@ $articleEditorFormId = 'article-editor-form';
             class="button-small button-muted"
             data-content-media-favorite-folder="<?php echo htmlspecialchars($favoriteFolder, ENT_QUOTES, 'UTF-8'); ?>"
           >
-            <?php echo htmlspecialchars($favoriteFolder === '' ? 'Racine' : $favoriteFolder, ENT_QUOTES, 'UTF-8'); ?>
+            <?php echo htmlspecialchars($favoriteFolder === '' ? $translate('TXT_ADMIN_CONTENT_MEDIA_ROOT', 'Racine') : $favoriteFolder, ENT_QUOTES, 'UTF-8'); ?>
           </button>
           <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
         <section class="content-media-controls">
-          <h4>Preset insertion</h4>
+          <h4><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_TITLE', 'Preset insertion'), ENT_QUOTES, 'UTF-8'); ?></h4>
           <div class="admin-form-grid admin-form-grid-3">
             <div class="field">
-              <label for="article-media-insert-preset">Preset</label>
+              <label for="article-media-insert-preset"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_LABEL', 'Preset'), ENT_QUOTES, 'UTF-8'); ?></label>
               <select id="article-media-insert-preset" data-content-media-preset>
-                <option value="figure-default">Figure standard</option>
-                <option value="figure-wide">Figure pleine largeur</option>
-                <option value="figure-left">Figure flottante gauche</option>
-                <option value="figure-right">Figure flottante droite</option>
-                <option value="raw">Balise simple (sans figure)</option>
+                <option value="figure-default"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_DEFAULT', 'Figure standard'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-wide"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_WIDE', 'Figure pleine largeur'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-left"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_LEFT', 'Figure flottante gauche'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-right"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_RIGHT', 'Figure flottante droite'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="raw"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_RAW', 'Balise simple (sans figure)'), ENT_QUOTES, 'UTF-8'); ?></option>
               </select>
             </div>
             <div class="field">
-              <label for="article-media-insert-classes">Classes CSS supplementaires</label>
-              <input id="article-media-insert-classes" type="text" placeholder="ex: rounded shadow-lg" data-content-media-extra-classes />
+              <label for="article-media-insert-classes"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_EXTRA_CLASSES_LABEL', 'Classes CSS supplementaires'), ENT_QUOTES, 'UTF-8'); ?></label>
+              <input id="article-media-insert-classes" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_EXTRA_CLASSES_PLACEHOLDER', 'ex: rounded shadow-lg'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-extra-classes />
             </div>
             <div class="field">
-              <label for="article-media-insert-alt">Alt image par defaut</label>
-              <input id="article-media-insert-alt" type="text" placeholder="description courte" data-content-media-alt />
+              <label for="article-media-insert-alt"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_DEFAULT_ALT_LABEL', 'Alt image par defaut'), ENT_QUOTES, 'UTF-8'); ?></label>
+              <input id="article-media-insert-alt" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_DEFAULT_ALT_PLACEHOLDER', 'description courte'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-alt />
             </div>
           </div>
 
@@ -633,19 +636,19 @@ $articleEditorFormId = 'article-editor-form';
             <div class="field">
               <label class="checkbox-field" for="article-media-insert-lazy">
                 <input id="article-media-insert-lazy" type="checkbox" data-content-media-lazy checked />
-                Charger en lazy (images)
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_LAZY_IMAGES', 'Charger en lazy (images)'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="article-media-insert-dimensions">
                 <input id="article-media-insert-dimensions" type="checkbox" data-content-media-include-dimensions checked />
-                Injecter width/height (si disponibles)
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INCLUDE_DIMENSIONS', 'Injecter width/height (si disponibles)'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="article-media-insert-governance-strict">
                 <input id="article-media-insert-governance-strict" type="checkbox" data-content-media-governance-strict checked />
-                Bloquer les assets hors charte
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_STRICT_GOVERNANCE', 'Bloquer les assets hors charte'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
           </div>
@@ -654,51 +657,54 @@ $articleEditorFormId = 'article-editor-form';
             <div class="field">
               <label class="checkbox-field" for="article-media-insert-video-controls">
                 <input id="article-media-insert-video-controls" type="checkbox" data-content-media-video-controls checked />
-                Video: controls
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_CONTROLS', 'Video: controls'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="article-media-insert-video-muted">
                 <input id="article-media-insert-video-muted" type="checkbox" data-content-media-video-muted />
-                Video: muted
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_MUTED', 'Video: muted'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="article-media-insert-video-autoplay">
                 <input id="article-media-insert-video-autoplay" type="checkbox" data-content-media-video-autoplay />
-                Video: autoplay
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_AUTOPLAY', 'Video: autoplay'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field">
               <label class="checkbox-field" for="article-media-insert-video-loop">
                 <input id="article-media-insert-video-loop" type="checkbox" data-content-media-video-loop />
-                Video: loop
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_LOOP', 'Video: loop'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
             <div class="field admin-form-span-2">
-              <label for="article-media-insert-video-poster">Video poster (optionnel)</label>
+              <label for="article-media-insert-video-poster"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_POSTER_OPTIONAL', 'Video poster (optionnel)'), ENT_QUOTES, 'UTF-8'); ?></label>
               <input id="article-media-insert-video-poster" type="text" placeholder="/uploads/editorial/library/.../poster.webp" data-content-media-video-poster />
             </div>
             <div class="field">
               <label class="checkbox-field" for="article-media-insert-filter-governance">
                 <input id="article-media-insert-filter-governance" type="checkbox" data-content-media-filter-governance />
-                Afficher seulement les assets conformes
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_ONLY_COMPLIANT', 'Afficher seulement les assets conformes'), ENT_QUOTES, 'UTF-8'); ?>
               </label>
             </div>
           </div>
 
           <p class="notice-muted">
-            Gouvernance ARTICLE:
-            images <?php echo htmlspecialchars($contentMediaPolicyImageExtensions === [] ? 'tous formats' : strtoupper(implode(', ', $contentMediaPolicyImageExtensions)), ENT_QUOTES, 'UTF-8'); ?>
-            (max <?php echo htmlspecialchars((string) ($contentMediaPolicy['imageMaxLabel'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>),
-            videos <?php echo htmlspecialchars($contentMediaPolicyVideoExtensions === [] ? 'tous formats' : strtoupper(implode(', ', $contentMediaPolicyVideoExtensions)), ENT_QUOTES, 'UTF-8'); ?>
-            (max <?php echo htmlspecialchars((string) ($contentMediaPolicy['videoMaxLabel'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?>).
+            <?php echo htmlspecialchars($translateFormat(
+                'TXT_ADMIN_CONTENT_MEDIA_GOVERNANCE_ARTICLE',
+                'Gouvernance ARTICLE: images %s (max %s), videos %s (max %s).',
+                $contentMediaPolicyImageExtensions === [] ? $translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FORMATS', 'tous formats') : strtoupper(implode(', ', $contentMediaPolicyImageExtensions)),
+                (string) ($contentMediaPolicy['imageMaxLabel'] ?? 'N/A'),
+                $contentMediaPolicyVideoExtensions === [] ? $translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FORMATS', 'tous formats') : strtoupper(implode(', ', $contentMediaPolicyVideoExtensions)),
+                (string) ($contentMediaPolicy['videoMaxLabel'] ?? 'N/A')
+            ), ENT_QUOTES, 'UTF-8'); ?>
           </p>
           <div class="actions-inline">
-            <button type="button" class="button-small button-link-muted" data-content-media-audit>Auditer le contenu cible</button>
+            <button type="button" class="button-small button-link-muted" data-content-media-audit><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_TARGET', 'Auditer le contenu cible'), ENT_QUOTES, 'UTF-8'); ?></button>
           </div>
           <p class="notice-muted content-media-audit__status" data-content-media-audit-status>
-            Lance un controle automatique (format, taille, source referencee) sur le champ cible.
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_HINT', 'Lance un controle automatique (format, taille, source referencee) sur le champ cible.'), ENT_QUOTES, 'UTF-8'); ?>
           </p>
           <ul class="content-media-audit__results" data-content-media-audit-results hidden></ul>
           <p class="notice-muted content-media-dialog__status" data-content-media-status hidden></p>
@@ -784,7 +790,9 @@ $articleEditorFormId = 'article-editor-form';
                 <?php endif; ?>
               </small>
               <small data-content-media-policy-badge>
-                <?php echo $mediaPolicyCompliant ? 'Conforme gouvernance' : ('Hors charte: ' . htmlspecialchars($mediaPolicyHint, ENT_QUOTES, 'UTF-8')); ?>
+                <?php echo $mediaPolicyCompliant
+                    ? htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_COMPLIANT', 'Conforme gouvernance'), ENT_QUOTES, 'UTF-8')
+                    : htmlspecialchars($translateFormat('TXT_ADMIN_CONTENT_MEDIA_OUT_OF_POLICY', 'Hors charte: %s', $mediaPolicyHint), ENT_QUOTES, 'UTF-8'); ?>
               </small>
             </div>
             <div class="actions-inline actions-inline-end">
@@ -802,18 +810,18 @@ $articleEditorFormId = 'article-editor-form';
                 data-content-media-policy-hint="<?php echo htmlspecialchars($mediaPolicyHint, ENT_QUOTES, 'UTF-8'); ?>"
                 data-content-media-folder="<?php echo htmlspecialchars($mediaFolder, ENT_QUOTES, 'UTF-8'); ?>"
               >
-                Inserer
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_BUTTON', 'Inserer'), ENT_QUOTES, 'UTF-8'); ?>
               </button>
             </div>
           </article>
           <?php endforeach; ?>
         </div>
 
-        <p class="notice-muted content-media-dialog__empty" data-content-media-empty hidden>Aucun media ne correspond a la recherche.</p>
+        <p class="notice-muted content-media-dialog__empty" data-content-media-empty hidden><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_NO_RESULTS', 'Aucun media ne correspond a la recherche.'), ENT_QUOTES, 'UTF-8'); ?></p>
       </div>
 
       <div class="actions-inline actions-inline-end region-modal__actions">
-        <button type="button" class="button-link button-link-muted" data-content-media-close>Fermer</button>
+        <button type="button" class="button-link button-link-muted" data-content-media-close><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?></button>
       </div>
     </div>
   </dialog>
@@ -821,15 +829,14 @@ $articleEditorFormId = 'article-editor-form';
   <?php if (($isNewArticle ?? false) === false): ?>
   <?php $canDeleteActiveVariant = in_array($activeLanguage, $existingLanguages, true); ?>
   <hr />
-  <h3>Suppression</h3>
+  <h3><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_SECTION_TITLE', 'Suppression'), ENT_QUOTES, 'UTF-8'); ?></h3>
   <p class="notice-muted">
-    Supprime uniquement la variante linguistique active et efface aussi les discussions rattachées à ce couple slug/langue.
-    Les éventuels articles enfants sont conservés, mais détachés de ce parent.
+    <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_SECTION_HELP', 'Supprime uniquement la variante linguistique active et efface aussi les discussions rattachées à ce couple slug/langue. Les éventuels articles enfants sont conservés, mais détachés de ce parent.'), ENT_QUOTES, 'UTF-8'); ?>
   </p>
   <form
     method="post"
     action="<?php echo htmlspecialchars((string) ($currentArticleUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-    onsubmit="return confirm('Supprimer définitivement cette variante linguistique et ses discussions rattachées ?');"
+    onsubmit="return confirm('<?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_CONFIRM', 'Supprimer définitivement cette variante linguistique et ses discussions rattachées ?'), ENT_QUOTES, 'UTF-8'); ?>');"
     data-article-delete-form
   >
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
@@ -842,9 +849,9 @@ $articleEditorFormId = 'article-editor-form';
     />
     <p class="notice-muted" data-article-delete-status>
       <?php if ($canDeleteActiveVariant): ?>
-      Supprime la variante <?php echo htmlspecialchars($languageLabels[$activeLanguage] ?? strtoupper($activeLanguage), ENT_QUOTES, 'UTF-8'); ?> actuellement ouverte.
+      <?php echo htmlspecialchars($translateFormat('TXT_ADMIN_ARTICLE_DELETE_ACTIVE_STATUS', 'Supprime la variante %s actuellement ouverte.', $languageLabels[$activeLanguage] ?? strtoupper($activeLanguage)), ENT_QUOTES, 'UTF-8'); ?>
       <?php else: ?>
-      Aucune variante <?php echo htmlspecialchars($languageLabels[$activeLanguage] ?? strtoupper($activeLanguage), ENT_QUOTES, 'UTF-8'); ?> n existe encore. La suppression est indisponible.
+      <?php echo htmlspecialchars($translateFormat('TXT_ADMIN_ARTICLE_DELETE_UNAVAILABLE', 'Aucune variante %s n existe encore. La suppression est indisponible.', $languageLabels[$activeLanguage] ?? strtoupper($activeLanguage)), ENT_QUOTES, 'UTF-8'); ?>
       <?php endif; ?>
     </p>
     <p class="checkbox-field">
@@ -858,11 +865,11 @@ $articleEditorFormId = 'article-editor-form';
           data-article-delete-confirm
           <?php echo $canDeleteActiveVariant ? '' : 'disabled'; ?>
         />
-        Je confirme la suppression définitive.
+        <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_CHECKBOX', 'Je confirme la suppression définitive.'), ENT_QUOTES, 'UTF-8'); ?>
       </label>
     </p>
     <div class="actions-inline actions-inline-end">
-      <button class="button-danger" type="submit" data-article-delete-button <?php echo $canDeleteActiveVariant ? '' : 'disabled'; ?>>Supprimer la variante active</button>
+      <button class="button-danger" type="submit" data-article-delete-button <?php echo $canDeleteActiveVariant ? '' : 'disabled'; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_ACTIVE_BUTTON', 'Supprimer la variante active'), ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
   </form>
   <?php endif; ?>
@@ -870,18 +877,18 @@ $articleEditorFormId = 'article-editor-form';
 
 <?php if (($childArticles ?? []) !== []): ?>
 <section class="card">
-  <h2>Articles enfants deja rattaches</h2>
-  <p class="notice-muted">Leur affichage front suit d’abord l’ordre manuel s’il est renseigne, sinon la date de creation.</p>
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CHILDREN_TITLE', 'Articles enfants deja rattaches'), ENT_QUOTES, 'UTF-8'); ?></h2>
+  <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CHILDREN_HELP', 'Leur affichage front suit d abord l ordre manuel s il est renseigne, sinon la date de creation.'), ENT_QUOTES, 'UTF-8'); ?></p>
   <div class="table-shell">
     <table class="admin-table">
       <thead>
         <tr>
           <th>Titre</th>
-          <th>Statut</th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></th>
           <th>Date</th>
-          <th>Creation</th>
-          <th>Ordre manuel</th>
-          <th>Action</th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CREATED_AT_LABEL', 'Creation'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_MANUAL_ORDER_LABEL', 'Ordre manuel'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ACTION', 'Action'), ENT_QUOTES, 'UTF-8'); ?></th>
         </tr>
       </thead>
       <tbody>
@@ -896,7 +903,7 @@ $articleEditorFormId = 'article-editor-form';
           <td><?php echo htmlspecialchars((string) ($childArticle['createdAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
           <td><?php echo htmlspecialchars((string) (($childArticle['childSortOrder'] ?? null) ?? '—'), ENT_QUOTES, 'UTF-8'); ?></td>
           <td>
-            <a class="button-link" href="<?php echo htmlspecialchars((string) ($childArticle['editPath'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Ouvrir</a>
+            <a class="button-link" href="<?php echo htmlspecialchars((string) ($childArticle['editPath'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_OPEN', 'Ouvrir'), ENT_QUOTES, 'UTF-8'); ?></a>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -909,6 +916,8 @@ $articleEditorFormId = 'article-editor-form';
 <?php $cspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
+    const deleteActiveTemplate = <?php echo json_encode($translate('TXT_ADMIN_ARTICLE_DELETE_ACTIVE_STATUS', 'Supprime la variante %s actuellement ouverte.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const deleteUnavailableTemplate = <?php echo json_encode($translate('TXT_ADMIN_ARTICLE_DELETE_UNAVAILABLE', 'Aucune variante %s n existe encore. La suppression est indisponible.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const tabList = document.querySelector('[data-article-translation-tabs]');
     const tabs = Array.from(document.querySelectorAll('[data-article-translation-tab]'));
     const panels = Array.from(document.querySelectorAll('[data-article-translation-panel]'));
@@ -953,8 +962,8 @@ $articleEditorFormId = 'article-editor-form';
 
       if (deleteStatus instanceof HTMLElement) {
         deleteStatus.textContent = translationExists
-          ? `Supprime la variante ${translationLabel} actuellement ouverte.`
-          : `Aucune variante ${translationLabel} n existe encore. La suppression est indisponible.`;
+          ? deleteActiveTemplate.replace('%s', translationLabel)
+          : deleteUnavailableTemplate.replace('%s', translationLabel);
       }
 
       if (deleteButton instanceof HTMLButtonElement) {
@@ -1073,6 +1082,18 @@ $articleEditorFormId = 'article-editor-form';
 </script>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
+    const governanceCompliantLabel = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_COMPLIANT', 'Conforme gouvernance'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const governanceOutOfPolicyTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_OUT_OF_POLICY', 'Hors charte: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const reasonFormatTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_REASON_FORMAT_NOT_ALLOWED', 'format %s non autorise'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const reasonSizeTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_REASON_SIZE_EXCEEDED', 'taille %s > %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditHintText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_HINT', 'Lance un controle automatique (format, taille, source referencee) sur le champ cible.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const noActiveTargetText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_NO_ACTIVE_TARGET', 'Aucun champ cible actif pour l audit.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditNoMediaText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_NO_MEDIA', 'Audit termine: aucun media detecte dans le contenu.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const missingSourceTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_MISSING_SOURCE', 'Source non referencee dans la bibliotheque: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditSuccessTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_SUCCESS', 'Audit termine: %d media conforme(s).'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditIssuesTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_ISSUES', 'Audit termine: %d anomalie(s) sur %d media.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const insertBlockedTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_BLOCKED', 'Insertion bloquee: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const insertedText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_INSERTED_ARTICLE', 'Media insere dans le contenu.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     const escapeAttribute = (value) => String(value)
       .replaceAll('&', '&amp;')
       .replaceAll('"', '&quot;')
@@ -1196,17 +1217,25 @@ $articleEditorFormId = 'article-editor-form';
 
       if (normalizedKind === 'image') {
         if (policy.imageExtensions.length > 0 && !policy.imageExtensions.includes(normalizedExtension)) {
-          reasons.push(`format ${normalizedExtension || 'inconnu'} non autorise`);
+          reasons.push(reasonFormatTemplate.replace('%s', normalizedExtension || 'inconnu'));
         }
         if (policy.imageMaxBytes > 0 && normalizedSize > policy.imageMaxBytes) {
-          reasons.push(`taille ${bytesToLabel(normalizedSize)} > ${policy.imageMaxLabel || bytesToLabel(policy.imageMaxBytes)}`);
+          reasons.push(
+            reasonSizeTemplate
+              .replace('%s', bytesToLabel(normalizedSize))
+              .replace('%s', policy.imageMaxLabel || bytesToLabel(policy.imageMaxBytes))
+          );
         }
       } else {
         if (policy.videoExtensions.length > 0 && !policy.videoExtensions.includes(normalizedExtension)) {
-          reasons.push(`format ${normalizedExtension || 'inconnu'} non autorise`);
+          reasons.push(reasonFormatTemplate.replace('%s', normalizedExtension || 'inconnu'));
         }
         if (policy.videoMaxBytes > 0 && normalizedSize > policy.videoMaxBytes) {
-          reasons.push(`taille ${bytesToLabel(normalizedSize)} > ${policy.videoMaxLabel || bytesToLabel(policy.videoMaxBytes)}`);
+          reasons.push(
+            reasonSizeTemplate
+              .replace('%s', bytesToLabel(normalizedSize))
+              .replace('%s', policy.videoMaxLabel || bytesToLabel(policy.videoMaxBytes))
+          );
         }
       }
 
@@ -1229,7 +1258,7 @@ $articleEditorFormId = 'article-editor-form';
 
     const clearAuditState = () => {
       if (auditStatus instanceof HTMLElement) {
-        auditStatus.textContent = 'Lance un controle automatique (format, taille, source referencee) sur le champ cible.';
+        auditStatus.textContent = auditHintText;
       }
       if (auditResults instanceof HTMLElement) {
         auditResults.innerHTML = '';
@@ -1296,8 +1325,8 @@ $articleEditorFormId = 'article-editor-form';
         const badge = node.querySelector('[data-content-media-policy-badge]');
         if (badge instanceof HTMLElement) {
           badge.textContent = governance.compliant
-            ? 'Conforme gouvernance'
-            : `Hors charte: ${governance.reasons.join(' · ')}`;
+            ? governanceCompliantLabel
+            : governanceOutOfPolicyTemplate.replace('%s', governance.reasons.join(' · '));
         }
 
         if (match) {
@@ -1502,7 +1531,7 @@ $articleEditorFormId = 'article-editor-form';
         const textarea = resolveTargetTextarea();
         if (!(textarea instanceof HTMLTextAreaElement)) {
           if (auditStatus instanceof HTMLElement) {
-            auditStatus.textContent = 'Aucun champ cible actif pour l audit.';
+            auditStatus.textContent = noActiveTargetText;
           }
           return;
         }
@@ -1510,7 +1539,7 @@ $articleEditorFormId = 'article-editor-form';
         const references = extractMediaSources(textarea.value);
         if (references.length === 0) {
           if (auditStatus instanceof HTMLElement) {
-            auditStatus.textContent = 'Audit termine: aucun media detecte dans le contenu.';
+            auditStatus.textContent = auditNoMediaText;
           }
           if (auditResults instanceof HTMLElement) {
             auditResults.innerHTML = '';
@@ -1523,7 +1552,7 @@ $articleEditorFormId = 'article-editor-form';
         references.forEach((reference) => {
           const indexed = mediaIndex.get(reference.src);
           if (!indexed) {
-            issues.push(`Source non referencee dans la bibliotheque: ${reference.src}`);
+            issues.push(missingSourceTemplate.replace('%s', reference.src));
             return;
           }
 
@@ -1539,8 +1568,8 @@ $articleEditorFormId = 'article-editor-form';
 
         if (auditStatus instanceof HTMLElement) {
           auditStatus.textContent = issues.length === 0
-            ? `Audit termine: ${references.length} media conforme(s).`
-            : `Audit termine: ${issues.length} anomalie(s) sur ${references.length} media.`;
+            ? auditSuccessTemplate.replace('%d', String(references.length))
+            : auditIssuesTemplate.replace('%d', String(issues.length)).replace('%d', String(references.length));
         }
 
         if (auditResults instanceof HTMLElement) {
@@ -1593,7 +1622,7 @@ $articleEditorFormId = 'article-editor-form';
         });
         const strictGovernance = !(governanceStrictCheckbox instanceof HTMLInputElement) || governanceStrictCheckbox.checked;
         if (strictGovernance && !governance.compliant) {
-          setInlineStatus(`Insertion bloquee: ${governance.reasons.join(' · ')}`, true);
+          setInlineStatus(insertBlockedTemplate.replace('%s', governance.reasons.join(' · ')), true);
           return;
         }
 
@@ -1605,7 +1634,7 @@ $articleEditorFormId = 'article-editor-form';
         });
 
         insertAtCursor(textarea, snippet);
-        setInlineStatus('Media insere dans le contenu.', false);
+        setInlineStatus(insertedText, false);
         dialog.close();
       });
     }

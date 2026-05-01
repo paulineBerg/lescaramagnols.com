@@ -4,10 +4,26 @@ $rows = is_array($discussionRows ?? null) ? $discussionRows : [];
 $counts = is_array($discussionCounts ?? null)
     ? $discussionCounts
     : ['total' => 0, 'pending' => 0, 'approved' => 0, 'rejected' => 0];
+$translate = static function (string $key, string $fallback): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
+    if (!function_exists('t')) {
+        return $fallback;
+    }
+
+    $translated = t($key);
+    if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+        return $fallback;
+    }
+
+    return $translated;
+};
 $statusLabels = [
-    'pending' => 'En attente',
-    'approved' => 'Approuvée',
-    'rejected' => 'Rejetée',
+    'pending' => $translate('TXT_ADMIN_DISCUSSION_STATUS_PENDING', 'En attente'),
+    'approved' => $translate('TXT_ADMIN_DISCUSSION_STATUS_APPROVED', 'Approuvée'),
+    'rejected' => $translate('TXT_ADMIN_DISCUSSION_STATUS_REJECTED', 'Rejetée'),
 ];
 $formatDate = static function (string $value): string {
     $timestamp = strtotime($value);
@@ -18,17 +34,17 @@ $formatDate = static function (string $value): string {
 
 <section class="cards-grid dashboard-kpis">
   <article class="card dashboard-kpi-card">
-    <span class="tag">Modération</span>
+    <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_MODERATION_TAG', 'Modération'), ENT_QUOTES, 'UTF-8'); ?></span>
     <strong class="dashboard-kpi-value"><?php echo (int) ($counts['pending'] ?? 0); ?></strong>
-    <p class="dashboard-kpi-label">Messages en attente</p>
-    <p class="dashboard-kpi-detail">Chaque nouveau message est stocké en attente de validation.</p>
+    <p class="dashboard-kpi-label"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_PENDING_LABEL', 'Messages en attente'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <p class="dashboard-kpi-detail"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_PENDING_DETAIL', 'Chaque nouveau message est stocké en attente de validation.'), ENT_QUOTES, 'UTF-8'); ?></p>
   </article>
 
   <article class="card dashboard-kpi-card">
-    <span class="tag">Volume</span>
+    <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_VOLUME_TAG', 'Volume'), ENT_QUOTES, 'UTF-8'); ?></span>
     <strong class="dashboard-kpi-value"><?php echo (int) ($counts['total'] ?? 0); ?></strong>
-    <p class="dashboard-kpi-label">Messages enregistrés</p>
-    <p class="dashboard-kpi-detail"><?php echo (int) ($counts['approved'] ?? 0); ?> approuvé(s) · <?php echo (int) ($counts['rejected'] ?? 0); ?> rejeté(s).</p>
+    <p class="dashboard-kpi-label"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_RECORDED_LABEL', 'Messages enregistrés'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <p class="dashboard-kpi-detail"><?php echo htmlspecialchars(sprintf($translate('TXT_ADMIN_DISCUSSIONS_APPROVED_REJECTED_DETAIL', '%d approuvé(s) · %d rejeté(s).'), (int) ($counts['approved'] ?? 0), (int) ($counts['rejected'] ?? 0)), ENT_QUOTES, 'UTF-8'); ?></p>
   </article>
 </section>
 
@@ -40,17 +56,17 @@ $formatDate = static function (string $value): string {
 <?php endif; ?>
 
 <section class="card admin-articles-filters-card">
-  <h2>Filtres</h2>
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_FILTERS', 'Filtres'), ENT_QUOTES, 'UTF-8'); ?></h2>
   <form class="admin-form-grid admin-articles-filters-grid" method="get" action="<?php echo htmlspecialchars((string) ($adminDiscussionsUrl ?? admin_url('discussions')), ENT_QUOTES, 'UTF-8'); ?>">
     <div class="field admin-articles-filters-search">
-      <label for="discussion-q">Recherche</label>
-      <input id="discussion-q" name="q" type="text" value="<?php echo htmlspecialchars((string) ($filters['q'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="auteur, email, article, contenu" />
+      <label for="discussion-q"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SEARCH', 'Recherche'), ENT_QUOTES, 'UTF-8'); ?></label>
+      <input id="discussion-q" name="q" type="text" value="<?php echo htmlspecialchars((string) ($filters['q'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_SEARCH_PLACEHOLDER', 'auteur, email, article, contenu'), ENT_QUOTES, 'UTF-8'); ?>" />
     </div>
 
     <div class="field">
-      <label for="discussion-status">Statut</label>
+      <label for="discussion-status"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></label>
       <select id="discussion-status" name="status">
-        <option value="">Tous</option>
+        <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ALL', 'Tous'), ENT_QUOTES, 'UTF-8'); ?></option>
         <?php foreach (($supportedStatuses ?? []) as $status): ?>
         <option value="<?php echo htmlspecialchars((string) $status, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($filters['status'] ?? null) === $status ? ' selected' : ''; ?>>
           <?php echo htmlspecialchars((string) ($statusLabels[$status] ?? $status), ENT_QUOTES, 'UTF-8'); ?>
@@ -60,9 +76,9 @@ $formatDate = static function (string $value): string {
     </div>
 
     <div class="field">
-      <label for="discussion-lang">Langue</label>
+      <label for="discussion-lang"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_LANGUAGE', 'Langue'), ENT_QUOTES, 'UTF-8'); ?></label>
       <select id="discussion-lang" name="lang">
-        <option value="">Toutes</option>
+        <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ALL_FEMININE', 'Toutes'), ENT_QUOTES, 'UTF-8'); ?></option>
         <?php foreach (($availableLanguages ?? []) as $language): ?>
         <option value="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($filters['lang'] ?? null) === $language ? ' selected' : ''; ?>>
           <?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?>
@@ -72,28 +88,28 @@ $formatDate = static function (string $value): string {
     </div>
 
     <div class="actions-inline admin-articles-filters-actions">
-      <button type="submit">Filtrer</button>
-      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($discussionsResetUrl ?? $adminDiscussionsUrl ?? admin_url('discussions')), ENT_QUOTES, 'UTF-8'); ?>">Réinitialiser</a>
+      <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_FILTER', 'Filtrer'), ENT_QUOTES, 'UTF-8'); ?></button>
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($discussionsResetUrl ?? $adminDiscussionsUrl ?? admin_url('discussions')), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_RESET', 'Réinitialiser'), ENT_QUOTES, 'UTF-8'); ?></a>
     </div>
   </form>
 </section>
 
 <section class="card">
-  <h2>Messages</h2>
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_MESSAGES_TITLE', 'Messages'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
   <?php if ($rows === []): ?>
-  <p class="notice-muted">Aucune discussion ne correspond aux filtres courants.</p>
+  <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_NO_RESULTS', 'Aucune discussion ne correspond aux filtres courants.'), ENT_QUOTES, 'UTF-8'); ?></p>
   <?php else: ?>
   <div class="table-shell">
     <table class="admin-table">
       <thead>
         <tr>
-          <th>Article</th>
-          <th>Auteur</th>
-          <th>Message</th>
-          <th>Statut</th>
-          <th>Dates</th>
-          <th>Actions</th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ARTICLE', 'Article'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_AUTHOR', 'Auteur'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_MESSAGE', 'Message'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_DATES', 'Dates'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ACTIONS', 'Actions'), ENT_QUOTES, 'UTF-8'); ?></th>
         </tr>
       </thead>
       <tbody>
@@ -116,9 +132,9 @@ $formatDate = static function (string $value): string {
             </span>
           </td>
           <td>
-            Créée: <?php echo htmlspecialchars($formatDate((string) ($row['createdAt'] ?? '')), ENT_QUOTES, 'UTF-8'); ?><br />
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_CREATED_AT', 'Créée:'), ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($formatDate((string) ($row['createdAt'] ?? '')), ENT_QUOTES, 'UTF-8'); ?><br />
             <?php if (trim((string) ($row['moderatedAt'] ?? '')) !== ''): ?>
-            Modérée: <?php echo htmlspecialchars($formatDate((string) ($row['moderatedAt'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_MODERATED_AT', 'Modérée:'), ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($formatDate((string) ($row['moderatedAt'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
             <?php if (trim((string) ($row['moderatedBy'] ?? '')) !== ''): ?>
             <br /><span class="notice-muted"><?php echo htmlspecialchars((string) ($row['moderatedBy'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
             <?php endif; ?>
@@ -134,7 +150,7 @@ $formatDate = static function (string $value): string {
                 <input type="hidden" name="status" value="<?php echo htmlspecialchars((string) ($filters['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="lang" value="<?php echo htmlspecialchars((string) ($filters['lang'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="q" value="<?php echo htmlspecialchars((string) ($filters['q'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
-                <button type="submit">Approuver</button>
+                <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_APPROVE', 'Approuver'), ENT_QUOTES, 'UTF-8'); ?></button>
               </form>
               <?php endif; ?>
 
@@ -146,7 +162,7 @@ $formatDate = static function (string $value): string {
                 <input type="hidden" name="status" value="<?php echo htmlspecialchars((string) ($filters['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="lang" value="<?php echo htmlspecialchars((string) ($filters['lang'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="q" value="<?php echo htmlspecialchars((string) ($filters['q'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
-                <button type="submit" class="button-link button-link-muted">Rejeter</button>
+                <button type="submit" class="button-link button-link-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_REJECT', 'Rejeter'), ENT_QUOTES, 'UTF-8'); ?></button>
               </form>
               <?php endif; ?>
 
@@ -158,18 +174,18 @@ $formatDate = static function (string $value): string {
                 <input type="hidden" name="status" value="<?php echo htmlspecialchars((string) ($filters['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="lang" value="<?php echo htmlspecialchars((string) ($filters['lang'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="q" value="<?php echo htmlspecialchars((string) ($filters['q'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
-                <button type="submit" class="button-link button-link-muted">Remettre en attente</button>
+                <button type="submit" class="button-link button-link-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_BACK_TO_PENDING', 'Remettre en attente'), ENT_QUOTES, 'UTF-8'); ?></button>
               </form>
               <?php endif; ?>
 
-              <form method="post" action="<?php echo htmlspecialchars((string) ($adminDiscussionsUrl ?? admin_url('discussions')), ENT_QUOTES, 'UTF-8'); ?>" onsubmit="return confirm('Supprimer cette discussion ?');">
+              <form method="post" action="<?php echo htmlspecialchars((string) ($adminDiscussionsUrl ?? admin_url('discussions')), ENT_QUOTES, 'UTF-8'); ?>" onsubmit="return confirm('<?php echo htmlspecialchars($translate('TXT_ADMIN_DISCUSSIONS_DELETE_CONFIRM', 'Supprimer cette discussion ?'), ENT_QUOTES, 'UTF-8'); ?>');">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="discussion_id" value="<?php echo htmlspecialchars((string) ($row['id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="discussion_action" value="delete" />
                 <input type="hidden" name="status" value="<?php echo htmlspecialchars((string) ($filters['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="lang" value="<?php echo htmlspecialchars((string) ($filters['lang'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
                 <input type="hidden" name="q" value="<?php echo htmlspecialchars((string) ($filters['q'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
-                <button type="submit" class="button-link button-link-muted">Supprimer</button>
+                <button type="submit" class="button-link button-link-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_DELETE', 'Supprimer'), ENT_QUOTES, 'UTF-8'); ?></button>
               </form>
             </div>
           </td>

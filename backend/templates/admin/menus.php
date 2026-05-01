@@ -543,9 +543,9 @@ $renderStructure = static function (array $items, string $location, array $indic
               Desktop : <?php echo $displayMode === 'mega' ? 'Mega' : 'Dropdown'; ?><?php echo $displayMode === 'mega' ? ' · ' . $columnCount . ' col.' : ''; ?>
             </span>
             <?php if ($displayMode !== 'mega'): ?>
-              <span class="menu-item-card__flag menu-item-card__flag-info">Passe en Mega pour appliquer le template</span>
+              <span class="menu-item-card__flag menu-item-card__flag-info"><?php echo $escape($translate('TXT_ADMIN_MENUS_SWITCH_TO_MEGA', 'Passe en Mega pour appliquer le template')); ?></span>
             <?php elseif ($children === []): ?>
-              <span class="menu-item-card__flag menu-item-card__flag-info">Ajoute un sous-menu pour afficher le panneau</span>
+              <span class="menu-item-card__flag menu-item-card__flag-info"><?php echo $escape($translate('TXT_ADMIN_MENUS_ADD_SUBMENU', 'Ajoute un sous-menu pour afficher le panneau')); ?></span>
             <?php endif; ?>
           </div>
           <?php endif; ?>
@@ -557,7 +557,7 @@ $renderStructure = static function (array $items, string $location, array $indic
               data-region-modal-open="menu-editor-dialog"
               <?php echo $openContextualEditor ? 'data-region-modal-autostart="true"' : ''; ?>
             >
-              Ouvrir l’éditeur
+              <?php echo $escape($translate('TXT_ADMIN_MENUS_OPEN_EDITOR', 'Ouvrir l’éditeur')); ?>
             </button>
             <?php else: ?>
             <button type="submit" name="builder_action" value="<?php echo $escape('select@' . $path); ?>">
@@ -909,7 +909,7 @@ $renderEditorFields = static function (
             value="1"
             <?php echo !empty($target['openInNewTab']) ? 'checked' : ''; ?>
           />
-          Ouvrir dans un nouvel onglet
+          <?php echo $escape($translate('TXT_ADMIN_MENUS_OPEN_IN_NEW_TAB', 'Ouvrir dans un nouvel onglet')); ?>
         </label>
       </div>
     </div>
@@ -925,9 +925,9 @@ $renderEditorFields = static function (
           Desktop : <?php echo $displayMode === 'mega' ? 'Mega' : 'Dropdown'; ?><?php echo $displayMode === 'mega' ? ' · ' . $columnCount . ' col.' : ''; ?>
         </span>
         <?php if ($displayMode !== 'mega'): ?>
-          <span class="menu-item-card__flag menu-item-card__flag-info">Passe en Mega pour appliquer le template</span>
+          <span class="menu-item-card__flag menu-item-card__flag-info"><?php echo $escape($translate('TXT_ADMIN_MENUS_SWITCH_TO_MEGA', 'Passe en Mega pour appliquer le template')); ?></span>
         <?php elseif ($children === []): ?>
-          <span class="menu-item-card__flag menu-item-card__flag-info">Ajoute un sous-menu pour afficher le panneau</span>
+          <span class="menu-item-card__flag menu-item-card__flag-info"><?php echo $escape($translate('TXT_ADMIN_MENUS_ADD_SUBMENU', 'Ajoute un sous-menu pour afficher le panneau')); ?></span>
         <?php endif; ?>
       </div>
       <div class="admin-form-grid admin-form-grid-3">
@@ -1101,7 +1101,7 @@ $renderEditorFields = static function (
               value="1"
               <?php echo !empty($featuredTarget['openInNewTab']) ? 'checked' : ''; ?>
             />
-            Ouvrir dans un nouvel onglet
+            <?php echo $escape($translate('TXT_ADMIN_MENUS_OPEN_IN_NEW_TAB', 'Ouvrir dans un nouvel onglet')); ?>
           </label>
         </div>
       </div>
@@ -1110,14 +1110,14 @@ $renderEditorFields = static function (
 
     <?php if ($kind === 'group'): ?>
     <div class="notice notice-success">
-      Cet item agit comme conteneur de sous-menu. Ajoute ou réorganise ses enfants depuis la colonne structure.
+      <?php echo $escape($translate('TXT_ADMIN_MENUS_GROUP_ITEM_NOTICE', 'Cet item agit comme conteneur de sous-menu. Ajoute ou réorganise ses enfants depuis la colonne structure.')); ?>
     </div>
     <?php endif; ?>
 
     <div class="notice-muted">
       Contexte : <strong><?php echo $escape($kindLabels[$kind] ?? $kind); ?></strong>
       <?php if (in_array($location, ['sideLeft', 'sideRight'], true)): ?>
-      · Carte éditoriale latérale avec image, texte et lien optionnel.
+      · <?php echo $escape($translate('TXT_ADMIN_MENUS_SIDE_CARD_CONTEXT', 'Carte éditoriale latérale avec image, texte et lien optionnel.')); ?>
       <?php endif; ?>
     </div>
     <?php
@@ -1127,7 +1127,7 @@ $renderPreviewItems = null;
 $renderPreviewItems = static function (array $items, string $listClass = 'menu-preview-list') use (&$renderPreviewItems, $escape): void {
     if ($items === []) {
         ?>
-        <div class="menu-preview-empty">Aucun item</div>
+        <div class="menu-preview-empty"><?php echo $escape($translate('TXT_ADMIN_MENUS_NO_ITEM', 'Aucun item')); ?></div>
         <?php
         return;
     }
@@ -1137,7 +1137,7 @@ $renderPreviewItems = static function (array $items, string $listClass = 'menu-p
       <?php if (!is_array($item)) { continue; } ?>
       <li>
         <span>
-          <?php echo $escape((string) (($item['label'] ?? null) ?? 'Sans titre')); ?>
+          <?php echo $escape((string) (($item['label'] ?? null) ?? $translate('TXT_ADMIN_MENUS_UNTITLED', 'Sans titre'))); ?>
           <?php $presentation = is_array($item['presentation'] ?? null) ? $item['presentation'] : []; ?>
           <?php if (($item['panelKind'] ?? null) === 'mega'): ?>
           <small>(mega)</small>
@@ -1164,19 +1164,19 @@ $bannerHeadlineLabel = is_array($banner['headline'] ?? null) ? $banner['headline
 $bannerHeadlineTranslations = $labelTranslationsForInput($bannerHeadlineLabel);
 $bannerHeadlineDefaultLanguage = $labelDefaultLanguageForInput($bannerHeadlineLabel);
 $bannerHeadlineTranslationKey = $stringOrNull($bannerHeadlineLabel['translationKey'] ?? null);
-$bannerHeadline = $localizedValueToString($bannerHeadlineLabel) ?? 'Texte défilant vide';
+$bannerHeadline = $localizedValueToString($bannerHeadlineLabel) ?? $translate('TXT_ADMIN_MENUS_EMPTY_SCROLLING_TEXT', 'Texte défilant vide');
 $bannerHeadlinePreview = $stringOrNull($bannerHeadlineTranslations[$bannerHeadlineDefaultLanguage] ?? null) ?? $bannerHeadline;
-$bannerImage = $stringOrNull($banner['image'] ?? null) ?? 'Image non définie';
-$bannerAlt = $stringOrNull($banner['accessibility']['alt'] ?? null) ?? 'Alt vide';
-$bannerTitle = $stringOrNull($banner['accessibility']['title'] ?? null) ?? 'Title vide';
+$bannerImage = $stringOrNull($banner['image'] ?? null) ?? $translate('TXT_ADMIN_MENUS_IMAGE_UNDEFINED', 'Image non définie');
+$bannerAlt = $stringOrNull($banner['accessibility']['alt'] ?? null) ?? $translate('TXT_ADMIN_MENUS_ALT_EMPTY', 'Alt vide');
+$bannerTitle = $stringOrNull($banner['accessibility']['title'] ?? null) ?? $translate('TXT_ADMIN_MENUS_TITLE_EMPTY', 'Title vide');
 $backToTopLabelValue = is_array($backToTop['label'] ?? null) ? $backToTop['label'] : [];
 $backToTopLabelTranslations = $labelTranslationsForInput($backToTopLabelValue);
 $backToTopLabelDefaultLanguage = $labelDefaultLanguageForInput($backToTopLabelValue);
 $backToTopLabelTranslationKey = $stringOrNull($backToTopLabelValue['translationKey'] ?? null);
-$backToTopLabel = $localizedValueToString($backToTopLabelValue) ?? 'Libellé vide';
+$backToTopLabel = $localizedValueToString($backToTopLabelValue) ?? $translate('TXT_ADMIN_MENUS_EMPTY_LABEL', 'Libellé vide');
 $backToTopLabelPreview = $stringOrNull($backToTopLabelTranslations[$backToTopLabelDefaultLanguage] ?? null) ?? $backToTopLabel;
-$backToTopAlt = $stringOrNull($backToTop['accessibility']['alt'] ?? null) ?? 'Alt vide';
-$backToTopTitle = $stringOrNull($backToTop['accessibility']['title'] ?? null) ?? 'Title vide';
+$backToTopAlt = $stringOrNull($backToTop['accessibility']['alt'] ?? null) ?? $translate('TXT_ADMIN_MENUS_ALT_EMPTY', 'Alt vide');
+$backToTopTitle = $stringOrNull($backToTop['accessibility']['title'] ?? null) ?? $translate('TXT_ADMIN_MENUS_TITLE_EMPTY', 'Title vide');
 $footerNoticeTranslations = is_array($footerNotice['translations'] ?? null) ? $footerNotice['translations'] : [];
 $footerNoticeLanguages = $menuItemLabelLanguages;
 $footerNoticeDefaultLanguage = $normalizeLanguageCode($footerNotice['defaultLanguage'] ?? null) ?? $menuItemLabelDefaultLanguage;
@@ -1184,7 +1184,7 @@ if (!in_array($footerNoticeDefaultLanguage, $footerNoticeLanguages, true)) {
     $footerNoticeDefaultLanguage = $menuItemLabelDefaultLanguage;
 }
 $footerNoticeTranslationKey = $stringOrNull($footerNotice['translationKey'] ?? null) ?? 'TXT_PiedPageModele';
-$footerNoticePreview = $stringOrNull($footerNoticeTranslations[$footerNoticeDefaultLanguage] ?? null) ?? 'Texte vide';
+$footerNoticePreview = $stringOrNull($footerNoticeTranslations[$footerNoticeDefaultLanguage] ?? null) ?? $translate('TXT_ADMIN_MENUS_EMPTY_TEXT', 'Texte vide');
 if (function_exists('mb_strimwidth')) {
     $footerNoticePreview = mb_strimwidth($footerNoticePreview, 0, 180, '…', 'UTF-8');
 } elseif (strlen($footerNoticePreview) > 180) {
@@ -1193,11 +1193,9 @@ if (function_exists('mb_strimwidth')) {
 ?>
 
 <section class="card">
-  <h2>Builder des menus</h2>
+  <h2><?php echo $escape($translate('TXT_ADMIN_MENUS_BUILDER_TITLE', 'Builder des menus')); ?></h2>
   <p>
-    Edition visuelle par emplacement. Le stockage éditorial est piloté par configuration
-    (<code>json</code>, <code>sql</code>, <code>dual-write</code>). Le mode expert expose le JSON canonique normalisé
-    sans en faire le workflow principal.
+    <?php echo $escape($translate('TXT_ADMIN_MENUS_BUILDER_HELP', 'Édition visuelle par emplacement. Le stockage éditorial est piloté par configuration (json, sql, dual-write). Le mode expert expose le JSON canonique normalisé sans en faire le workflow principal.')); ?>
   </p>
 
   <?php if (($message ?? null) !== null): ?>
@@ -1244,26 +1242,26 @@ if (function_exists('mb_strimwidth')) {
       <article class="card menu-builder-card">
         <div class="menu-builder-card__header">
           <div>
-            <h3>Zone système · bannière</h3>
-            <p>Image et texte défilant du header public.</p>
+            <h3><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_BANNER_CARD_TITLE', 'Zone système · bannière')); ?></h3>
+            <p><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_BANNER_CARD_HELP', 'Image et texte défilant du header public.')); ?></p>
           </div>
-          <button type="button" data-region-modal-open="menu-system-banner-dialog">Configurer</button>
+          <button type="button" data-region-modal-open="menu-system-banner-dialog"><?php echo $escape($translate('TXT_ADMIN_MENUS_CONFIGURE', 'Configurer')); ?></button>
         </div>
         <div class="menu-system-card__summary">
           <div class="menu-system-card__row">
-            <strong>Langue par défaut</strong>
+            <strong><?php echo $escape($translate('TXT_ADMIN_MENUS_LABEL_DEFAULT_LANGUAGE', 'Langue par défaut')); ?></strong>
             <span class="menu-system-card__value"><?php echo $escape(strtoupper($bannerHeadlineDefaultLanguage)); ?></span>
           </div>
           <div class="menu-system-card__row">
-            <strong>Image</strong>
+            <strong><?php echo $escape($translate('TXT_ADMIN_MENUS_IMAGE_LABEL', 'Image')); ?></strong>
             <span class="menu-system-card__value"><?php echo $escape($bannerImage); ?></span>
           </div>
           <div class="menu-system-card__row">
-            <strong>Texte</strong>
+            <strong><?php echo $escape($translate('TXT_ADMIN_MENUS_TEXT_LABEL', 'Texte')); ?></strong>
             <span class="menu-system-card__value"><?php echo $escape($bannerHeadlinePreview); ?></span>
           </div>
           <div class="menu-system-card__row">
-            <strong>Accessibilité</strong>
+            <strong><?php echo $escape($translate('TXT_ADMIN_MENUS_ACCESSIBILITY_LABEL', 'Accessibilité')); ?></strong>
             <span class="menu-system-card__value">Alt: <?php echo $escape($bannerAlt); ?></span>
             <span class="menu-system-card__value">Title: <?php echo $escape($bannerTitle); ?></span>
           </div>
@@ -1273,22 +1271,22 @@ if (function_exists('mb_strimwidth')) {
       <article class="card menu-builder-card">
         <div class="menu-builder-card__header">
           <div>
-            <h3>Zone système · remonter</h3>
-            <p>Libellé et attributs d’accessibilité du bouton de retour en haut.</p>
+            <h3><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_BACK_TO_TOP_CARD_TITLE', 'Zone système · remonter')); ?></h3>
+            <p><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_BACK_TO_TOP_CARD_HELP', 'Libellé et attributs d’accessibilité du bouton de retour en haut.')); ?></p>
           </div>
-          <button type="button" data-region-modal-open="menu-system-backtotop-dialog">Configurer</button>
+          <button type="button" data-region-modal-open="menu-system-backtotop-dialog"><?php echo $escape($translate('TXT_ADMIN_MENUS_CONFIGURE', 'Configurer')); ?></button>
         </div>
         <div class="menu-system-card__summary">
           <div class="menu-system-card__row">
-            <strong>Langue par défaut</strong>
+            <strong><?php echo $escape($translate('TXT_ADMIN_MENUS_LABEL_DEFAULT_LANGUAGE', 'Langue par défaut')); ?></strong>
             <span class="menu-system-card__value"><?php echo $escape(strtoupper($backToTopLabelDefaultLanguage)); ?></span>
           </div>
           <div class="menu-system-card__row">
-            <strong>Libellé</strong>
+            <strong><?php echo $escape($translate('TXT_ADMIN_MENUS_LABEL_TEXT', 'Libellé')); ?></strong>
             <span class="menu-system-card__value"><?php echo $escape($backToTopLabelPreview); ?></span>
           </div>
           <div class="menu-system-card__row">
-            <strong>Accessibilité</strong>
+            <strong><?php echo $escape($translate('TXT_ADMIN_MENUS_ACCESSIBILITY_LABEL', 'Accessibilité')); ?></strong>
             <span class="menu-system-card__value">Alt: <?php echo $escape($backToTopAlt); ?></span>
             <span class="menu-system-card__value">Title: <?php echo $escape($backToTopTitle); ?></span>
           </div>
@@ -1298,14 +1296,14 @@ if (function_exists('mb_strimwidth')) {
       <article class="card menu-builder-card">
         <div class="menu-builder-card__header">
           <div>
-            <h3>Zone système · pied de page</h3>
-            <p>Texte descriptif affiché sous le menu footer, avec traductions et fallback FR.</p>
+            <h3><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_FOOTER_CARD_TITLE', 'Zone système · pied de page')); ?></h3>
+            <p><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_FOOTER_CARD_HELP', 'Texte descriptif affiché sous le menu footer, avec traductions et fallback FR.')); ?></p>
           </div>
-          <button type="button" data-region-modal-open="menu-system-footer-notice-dialog">Configurer</button>
+          <button type="button" data-region-modal-open="menu-system-footer-notice-dialog"><?php echo $escape($translate('TXT_ADMIN_MENUS_CONFIGURE', 'Configurer')); ?></button>
         </div>
         <div class="menu-system-card__summary">
           <div class="menu-system-card__row">
-            <strong>Langue par défaut</strong>
+            <strong><?php echo $escape($translate('TXT_ADMIN_MENUS_LABEL_DEFAULT_LANGUAGE', 'Langue par défaut')); ?></strong>
             <span class="menu-system-card__value"><?php echo $escape(strtoupper($footerNoticeDefaultLanguage)); ?></span>
           </div>
           <div class="menu-system-card__row">
@@ -1373,7 +1371,7 @@ if (function_exists('mb_strimwidth')) {
 
         <?php if ($activeLocationItems === []): ?>
         <div class="menu-structure-empty">
-          Aucun item pour cet emplacement. Utilise les actions ci-dessus pour commencer.
+          <?php echo $escape($translate('TXT_ADMIN_MENUS_EMPTY_LOCATION', 'Aucun item pour cet emplacement. Utilise les actions ci-dessus pour commencer.')); ?>
         </div>
         <?php else: ?>
         <div class="menu-structure-list">
@@ -1388,30 +1386,29 @@ if (function_exists('mb_strimwidth')) {
       <div class="region-modal__surface">
         <div class="region-modal__header">
           <div>
-            <p class="region-modal__eyebrow">Édition contextuelle</p>
-            <h3 id="menu-editor-title">Modifier l’item sélectionné</h3>
+            <p class="region-modal__eyebrow"><?php echo $escape($translate('TXT_ADMIN_MENUS_CONTEXTUAL_EDITING', 'Édition contextuelle')); ?></p>
+            <h3 id="menu-editor-title"><?php echo $escape($translate('TXT_ADMIN_MENUS_EDIT_SELECTED_TITLE', 'Modifier l’item sélectionné')); ?></h3>
             <p>
-              Le formulaire s’adapte à l’item sélectionné.
-              Les cartes latérales restent distinctes des items de navigation.
+              <?php echo $escape($translate('TXT_ADMIN_MENUS_EDIT_SELECTED_HELP', 'Le formulaire s’adapte à l’item sélectionné. Les cartes latérales restent distinctes des items de navigation.')); ?>
             </p>
           </div>
 
-          <button type="button" class="button-muted" data-region-modal-close>Fermer</button>
+          <button type="button" class="button-muted" data-region-modal-close><?php echo $escape($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer')); ?></button>
         </div>
 
         <div class="region-modal__body menu-editor-dialog__body">
           <?php if (($error ?? null) !== null): ?>
           <div class="notice notice-error" role="alert"><?php echo $escape((string) $error); ?></div>
           <p class="notice-muted">
-            La sauvegarde vérifie tout le menu courant. Un autre item invalide peut donc bloquer l’enregistrement, même si la popup ouverte semble correcte.
+            <?php echo $escape($translate('TXT_ADMIN_MENUS_FORM_VALIDATION_HELP', 'La sauvegarde vérifie tout le menu courant. Un autre item invalide peut donc bloquer l’enregistrement, même si la popup ouverte semble correcte.')); ?>
           </p>
           <?php endif; ?>
           <?php $renderEditorFields($selectedDescriptor, $activeLocation, $selectedInputName); ?>
         </div>
 
         <div class="region-modal__actions actions-inline actions-inline-end">
-          <button type="button" class="button-muted" data-region-modal-close>Annuler</button>
-          <button type="submit" name="builder_action" value="save" form="<?php echo $escape($menuBuilderFormId); ?>">Sauvegarder et fermer</button>
+          <button type="button" class="button-muted" data-region-modal-close><?php echo $escape($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler')); ?></button>
+          <button type="submit" name="builder_action" value="save" form="<?php echo $escape($menuBuilderFormId); ?>"><?php echo $escape($translate('TXT_ADMIN_MENUS_SAVE_AND_CLOSE', 'Sauvegarder et fermer')); ?></button>
         </div>
       </div>
     </dialog>
@@ -1421,11 +1418,11 @@ if (function_exists('mb_strimwidth')) {
       <div class="region-modal__surface">
         <div class="region-modal__header">
           <div>
-            <p class="region-modal__eyebrow">Zone système</p>
-            <h3 id="menu-system-banner-title">Modifier la bannière</h3>
-            <p>Règle l’image du header, le texte défilant et les attributs d’accessibilité associés.</p>
+            <p class="region-modal__eyebrow"><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_ZONE', 'Zone système')); ?></p>
+            <h3 id="menu-system-banner-title"><?php echo $escape($translate('TXT_ADMIN_MENUS_BANNER_DIALOG_TITLE', 'Modifier la bannière')); ?></h3>
+            <p><?php echo $escape($translate('TXT_ADMIN_MENUS_BANNER_DIALOG_HELP', 'Règle l’image du header, le texte défilant et les attributs d’accessibilité associés.')); ?></p>
           </div>
-          <button type="button" class="button-muted" data-region-modal-close>Fermer</button>
+          <button type="button" class="button-muted" data-region-modal-close><?php echo $escape($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer')); ?></button>
         </div>
 
         <div class="region-modal__body">
@@ -1442,7 +1439,7 @@ if (function_exists('mb_strimwidth')) {
               />
             </div>
             <div class="field">
-              <label for="banner_headline_default_language">Langue par défaut du texte défilant</label>
+              <label for="banner_headline_default_language"><?php echo $escape($translate('TXT_ADMIN_MENUS_BANNER_DEFAULT_LANGUAGE_LABEL', 'Langue par défaut du texte défilant')); ?></label>
               <input
                 type="hidden"
                 name="banner[headline_translation_key]"
@@ -1460,13 +1457,13 @@ if (function_exists('mb_strimwidth')) {
                 </option>
                 <?php endforeach; ?>
               </select>
-              <small>Si une traduction manque, cette langue est utilisée en repli.</small>
+              <small><?php echo $escape($translate('TXT_ADMIN_MENUS_DEFAULT_LANGUAGE_HELP', 'Si une traduction manque, cette langue est utilisée en repli.')); ?></small>
             </div>
 
             <?php foreach ($menuItemLabelLanguages as $language): ?>
             <div class="field">
               <label for="banner_headline_translation_<?php echo $escape($language); ?>">
-                Texte <?php echo $escape(strtoupper($language)); ?>
+                <?php echo $escape($translate('TXT_ADMIN_MENUS_TEXT_LABEL', 'Texte')); ?> <?php echo $escape(strtoupper($language)); ?>
               </label>
               <input
                 id="banner_headline_translation_<?php echo $escape($language); ?>"
@@ -1479,7 +1476,7 @@ if (function_exists('mb_strimwidth')) {
             <?php endforeach; ?>
 
             <div class="field">
-              <label for="banner_headline">Texte de secours (optionnel)</label>
+              <label for="banner_headline"><?php echo $escape($translate('TXT_ADMIN_MENUS_BANNER_FALLBACK_TEXT_LABEL', 'Texte de secours (optionnel)')); ?></label>
               <input
                 id="banner_headline"
                 type="text"
@@ -1514,8 +1511,8 @@ if (function_exists('mb_strimwidth')) {
         </div>
 
         <div class="region-modal__actions actions-inline actions-inline-end">
-          <button type="button" class="button-muted" data-region-modal-close>Annuler</button>
-          <button type="submit" name="builder_action" value="save" form="<?php echo $escape($menuBuilderFormId); ?>">Appliquer et sauvegarder</button>
+          <button type="button" class="button-muted" data-region-modal-close><?php echo $escape($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler')); ?></button>
+          <button type="submit" name="builder_action" value="save" form="<?php echo $escape($menuBuilderFormId); ?>"><?php echo $escape($translate('TXT_ADMIN_MENUS_APPLY_AND_SAVE', 'Appliquer et sauvegarder')); ?></button>
         </div>
       </div>
     </dialog>
@@ -1524,17 +1521,17 @@ if (function_exists('mb_strimwidth')) {
       <div class="region-modal__surface">
         <div class="region-modal__header">
           <div>
-            <p class="region-modal__eyebrow">Zone système</p>
-            <h3 id="menu-system-backtotop-title">Modifier “Remonter”</h3>
-            <p>Règle le libellé et les attributs d’accessibilité du bouton de retour en haut.</p>
+            <p class="region-modal__eyebrow"><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_ZONE', 'Zone système')); ?></p>
+            <h3 id="menu-system-backtotop-title"><?php echo $escape($translate('TXT_ADMIN_MENUS_BACK_TO_TOP_DIALOG_TITLE', 'Modifier “Remonter”')); ?></h3>
+            <p><?php echo $escape($translate('TXT_ADMIN_MENUS_BACK_TO_TOP_DIALOG_HELP', 'Règle le libellé et les attributs d’accessibilité du bouton de retour en haut.')); ?></p>
           </div>
-          <button type="button" class="button-muted" data-region-modal-close>Fermer</button>
+          <button type="button" class="button-muted" data-region-modal-close><?php echo $escape($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer')); ?></button>
         </div>
 
         <div class="region-modal__body">
           <div class="admin-form-grid">
             <div class="field">
-              <label for="back_to_top_label_default_language">Langue par défaut du libellé</label>
+              <label for="back_to_top_label_default_language"><?php echo $escape($translate('TXT_ADMIN_MENUS_BACK_TO_TOP_DEFAULT_LANGUAGE_LABEL', 'Langue par défaut du libellé')); ?></label>
               <input
                 type="hidden"
                 name="remonter[label_translation_key]"
@@ -1552,13 +1549,13 @@ if (function_exists('mb_strimwidth')) {
                 </option>
                 <?php endforeach; ?>
               </select>
-              <small>Si une traduction manque, cette langue est utilisée en repli.</small>
+              <small><?php echo $escape($translate('TXT_ADMIN_MENUS_DEFAULT_LANGUAGE_HELP', 'Si une traduction manque, cette langue est utilisée en repli.')); ?></small>
             </div>
 
             <?php foreach ($menuItemLabelLanguages as $language): ?>
             <div class="field">
               <label for="back_to_top_label_translation_<?php echo $escape($language); ?>">
-                Libellé <?php echo $escape(strtoupper($language)); ?>
+                <?php echo $escape($translate('TXT_ADMIN_MENUS_LABEL_TEXT', 'Libellé')); ?> <?php echo $escape(strtoupper($language)); ?>
               </label>
               <input
                 id="back_to_top_label_translation_<?php echo $escape($language); ?>"
@@ -1571,7 +1568,7 @@ if (function_exists('mb_strimwidth')) {
             <?php endforeach; ?>
 
             <div class="field">
-              <label for="back_to_top_label">Libellé de secours (optionnel)</label>
+              <label for="back_to_top_label"><?php echo $escape($translate('TXT_ADMIN_MENUS_BACK_TO_TOP_FALLBACK_LABEL', 'Libellé de secours (optionnel)')); ?></label>
               <input
                 id="back_to_top_label"
                 type="text"
@@ -1606,8 +1603,8 @@ if (function_exists('mb_strimwidth')) {
         </div>
 
         <div class="region-modal__actions actions-inline actions-inline-end">
-          <button type="button" class="button-muted" data-region-modal-close>Annuler</button>
-          <button type="submit" name="builder_action" value="save" form="<?php echo $escape($menuBuilderFormId); ?>">Appliquer et sauvegarder</button>
+          <button type="button" class="button-muted" data-region-modal-close><?php echo $escape($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler')); ?></button>
+          <button type="submit" name="builder_action" value="save" form="<?php echo $escape($menuBuilderFormId); ?>"><?php echo $escape($translate('TXT_ADMIN_MENUS_APPLY_AND_SAVE', 'Appliquer et sauvegarder')); ?></button>
         </div>
       </div>
     </dialog>
@@ -1616,11 +1613,11 @@ if (function_exists('mb_strimwidth')) {
       <div class="region-modal__surface">
         <div class="region-modal__header">
           <div>
-            <p class="region-modal__eyebrow">Zone système</p>
-            <h3 id="menu-system-footer-notice-title">Modifier le texte de pied de page</h3>
-            <p>Tu peux saisir les traductions et garder le français comme fallback par défaut.</p>
+            <p class="region-modal__eyebrow"><?php echo $escape($translate('TXT_ADMIN_MENUS_SYSTEM_ZONE', 'Zone système')); ?></p>
+            <h3 id="menu-system-footer-notice-title"><?php echo $escape($translate('TXT_ADMIN_MENUS_FOOTER_DIALOG_TITLE', 'Modifier le texte de pied de page')); ?></h3>
+            <p><?php echo $escape($translate('TXT_ADMIN_MENUS_FOOTER_DIALOG_HELP', 'Tu peux saisir les traductions et garder le français comme fallback par défaut.')); ?></p>
           </div>
-          <button type="button" class="button-muted" data-region-modal-close>Fermer</button>
+          <button type="button" class="button-muted" data-region-modal-close><?php echo $escape($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer')); ?></button>
         </div>
 
         <div class="region-modal__body">
@@ -1633,7 +1630,7 @@ if (function_exists('mb_strimwidth')) {
             />
 
             <div class="field">
-              <label for="footer_notice_default_language">Langue par défaut</label>
+              <label for="footer_notice_default_language"><?php echo $escape($translate('TXT_ADMIN_MENUS_LABEL_DEFAULT_LANGUAGE', 'Langue par défaut')); ?></label>
               <select
                 id="footer_notice_default_language"
                 name="footer_notice[default_language]"
@@ -1645,13 +1642,13 @@ if (function_exists('mb_strimwidth')) {
                 </option>
                 <?php endforeach; ?>
               </select>
-              <small>Si une traduction manque, le front utilise cette langue en repli (FR recommandé).</small>
+              <small><?php echo $escape($translate('TXT_ADMIN_MENUS_FOOTER_DEFAULT_LANGUAGE_HELP', 'Si une traduction manque, le front utilise cette langue en repli (FR recommandé).')); ?></small>
             </div>
 
             <?php foreach ($footerNoticeLanguages as $language): ?>
             <div class="field">
               <label for="footer_notice_translation_<?php echo $escape($language); ?>">
-                Texte <?php echo $escape(strtoupper($language)); ?>
+                <?php echo $escape($translate('TXT_ADMIN_MENUS_TEXT_LABEL', 'Texte')); ?> <?php echo $escape(strtoupper($language)); ?>
               </label>
               <textarea
                 id="footer_notice_translation_<?php echo $escape($language); ?>"
@@ -1665,25 +1662,25 @@ if (function_exists('mb_strimwidth')) {
         </div>
 
         <div class="region-modal__actions actions-inline actions-inline-end">
-          <button type="button" class="button-muted" data-region-modal-close>Annuler</button>
-          <button type="submit" name="builder_action" value="save" form="<?php echo $escape($menuBuilderFormId); ?>">Appliquer et sauvegarder</button>
+          <button type="button" class="button-muted" data-region-modal-close><?php echo $escape($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler')); ?></button>
+          <button type="submit" name="builder_action" value="save" form="<?php echo $escape($menuBuilderFormId); ?>"><?php echo $escape($translate('TXT_ADMIN_MENUS_APPLY_AND_SAVE', 'Appliquer et sauvegarder')); ?></button>
         </div>
       </div>
     </dialog>
 
     <section class="menu-preview-grid">
       <article class="card menu-builder-card">
-        <h3>Aperçu simplifié · header desktop</h3>
+        <h3><?php echo $escape($translate('TXT_ADMIN_MENUS_PREVIEW_DESKTOP', 'Aperçu simplifié · header desktop')); ?></h3>
         <div class="menu-preview-header">
           <div class="menu-preview-banner">
             <strong><?php echo $escape((string) (($preview['brand']['label'] ?? null) ?? 'Les Caramagnols')); ?></strong>
-            <span><?php echo $escape((string) (($preview['banner']['headline'] ?? null) ?? 'Bannière vide')); ?></span>
+            <span><?php echo $escape((string) (($preview['banner']['headline'] ?? null) ?? $translate('TXT_ADMIN_MENUS_EMPTY_BANNER', 'Bannière vide'))); ?></span>
           </div>
           <div class="menu-preview-utility">
             <?php foreach ((array) ($preview['utility'] ?? []) as $utilityItem): ?>
             <?php if (!is_array($utilityItem)) { continue; } ?>
             <span class="menu-preview-chip">
-              <?php echo $escape((string) (($utilityItem['label'] ?? null) ?? ($utilityItem['title'] ?? 'Lien'))); ?>
+              <?php echo $escape((string) (($utilityItem['label'] ?? null) ?? ($utilityItem['title'] ?? $translate('TXT_ADMIN_MENUS_LINK_FALLBACK', 'Lien')))); ?>
             </span>
             <?php endforeach; ?>
           </div>
@@ -1694,29 +1691,29 @@ if (function_exists('mb_strimwidth')) {
       </article>
 
       <article class="card menu-builder-card">
-        <h3>Aperçu simplifié · header mobile</h3>
+        <h3><?php echo $escape($translate('TXT_ADMIN_MENUS_PREVIEW_MOBILE', 'Aperçu simplifié · header mobile')); ?></h3>
         <div class="menu-preview-mobile">
           <div class="menu-preview-mobile__top">
             <span class="menu-preview-hamburger" aria-hidden="true">☰</span>
             <span><?php echo $escape((string) (($preview['brand']['label'] ?? null) ?? 'Les Caramagnols')); ?></span>
           </div>
-          <p><?php echo $escape((string) (($preview['banner']['headline'] ?? null) ?? 'Bannière vide')); ?></p>
+          <p><?php echo $escape((string) (($preview['banner']['headline'] ?? null) ?? $translate('TXT_ADMIN_MENUS_EMPTY_BANNER', 'Bannière vide'))); ?></p>
           <?php $renderPreviewItems((array) ($preview['primary'] ?? [])); ?>
         </div>
       </article>
 
       <article class="card menu-builder-card">
-        <h3>Aperçu des blocs latéraux</h3>
+        <h3><?php echo $escape($translate('TXT_ADMIN_MENUS_PREVIEW_SIDE_BLOCKS', 'Aperçu des blocs latéraux')); ?></h3>
         <div class="menu-preview-sides">
           <section>
-            <h4>Gauche</h4>
+            <h4><?php echo $escape($translate('TXT_ADMIN_MENUS_PREVIEW_LEFT', 'Gauche')); ?></h4>
             <?php foreach ((array) ($preview['sideLeft'] ?? []) as $leftItem): ?>
             <?php if (!is_array($leftItem)) { continue; } ?>
             <article class="menu-preview-side-card">
               <?php if (!empty($leftItem['image'])): ?>
               <div class="menu-preview-side-card__image"><?php echo $escape((string) $leftItem['image']); ?></div>
               <?php endif; ?>
-              <strong><?php echo $escape((string) (($leftItem['label'] ?? null) ?? 'Sans titre')); ?></strong>
+              <strong><?php echo $escape((string) (($leftItem['label'] ?? null) ?? $translate('TXT_ADMIN_MENUS_UNTITLED', 'Sans titre'))); ?></strong>
               <?php if (!empty($leftItem['text'])): ?>
               <p><?php echo $escape((string) $leftItem['text']); ?></p>
               <?php endif; ?>
@@ -1728,14 +1725,14 @@ if (function_exists('mb_strimwidth')) {
           </section>
 
           <section>
-            <h4>Droite</h4>
+            <h4><?php echo $escape($translate('TXT_ADMIN_MENUS_PREVIEW_RIGHT', 'Droite')); ?></h4>
             <?php foreach ((array) ($preview['sideRight'] ?? []) as $rightItem): ?>
             <?php if (!is_array($rightItem)) { continue; } ?>
             <article class="menu-preview-side-card">
               <?php if (!empty($rightItem['image'])): ?>
               <div class="menu-preview-side-card__image"><?php echo $escape((string) $rightItem['image']); ?></div>
               <?php endif; ?>
-              <strong><?php echo $escape((string) (($rightItem['label'] ?? null) ?? 'Sans titre')); ?></strong>
+              <strong><?php echo $escape((string) (($rightItem['label'] ?? null) ?? $translate('TXT_ADMIN_MENUS_UNTITLED', 'Sans titre'))); ?></strong>
               <?php if (!empty($rightItem['text'])): ?>
               <p><?php echo $escape((string) $rightItem['text']); ?></p>
               <?php endif; ?>
@@ -1750,18 +1747,18 @@ if (function_exists('mb_strimwidth')) {
     </section>
 
     <details class="card expert-mode">
-      <summary>Mode expert · JSON canonique</summary>
+      <summary><?php echo $escape($translate('TXT_ADMIN_MENUS_EXPERT_MODE_TITLE', 'Mode expert · JSON canonique')); ?></summary>
       <p class="notice-muted">
-        Lecture seule. Le JSON reste visible pour audit ou dépannage, mais n’est plus le workflow principal.
+        <?php echo $escape($translate('TXT_ADMIN_MENUS_EXPERT_MODE_HELP', 'Lecture seule. Le JSON reste visible pour audit ou dépannage, mais n’est plus le workflow principal.')); ?>
       </p>
       <div class="field">
-        <label for="expert_json">JSON canonique</label>
+        <label for="expert_json"><?php echo $escape($translate('TXT_ADMIN_MENUS_CANONICAL_JSON_LABEL', 'JSON canonique')); ?></label>
         <textarea id="expert_json" rows="22" readonly><?php echo $escape($expertJson); ?></textarea>
       </div>
     </details>
 
     <div class="actions-inline actions-inline-end">
-      <button type="submit" name="builder_action" value="save">Sauvegarder les menus</button>
+      <button type="submit" name="builder_action" value="save"><?php echo $escape($translate('TXT_ADMIN_MENUS_SAVE_ALL', 'Sauvegarder les menus')); ?></button>
     </div>
   </form>
 </section>
@@ -1992,13 +1989,13 @@ if (function_exists('mb_strimwidth')) {
 </script>
 
 <section class="card">
-  <h2>Références pages publiées</h2>
+  <h2><?php echo $escape($translate('TXT_ADMIN_MENUS_PUBLISHED_PAGES_TITLE', 'Références pages publiées')); ?></h2>
   <p class="notice-muted">
-    Les items de type <code>page</code> et les cartes latérales liées à une page ne peuvent cibler qu’une page publiée.
+    <?php echo $escape($translate('TXT_ADMIN_MENUS_PUBLISHED_PAGES_HELP', 'Les items de type page et les cartes latérales liées à une page ne peuvent cibler qu’une page publiée.')); ?>
   </p>
 
   <?php if ($pageReferences === []): ?>
-  <p class="notice-muted">Aucune page enregistrée dans le registre éditorial.</p>
+  <p class="notice-muted"><?php echo $escape($translate('TXT_ADMIN_MENUS_NO_PAGES', 'Aucune page enregistrée dans le registre éditorial.')); ?></p>
   <?php else: ?>
   <div class="table-shell">
     <table class="admin-table">
