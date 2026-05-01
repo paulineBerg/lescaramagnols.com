@@ -63,7 +63,26 @@ $contentMediaPolicyJson = json_encode(
 if (!is_string($contentMediaPolicyJson) || $contentMediaPolicyJson === '') {
     $contentMediaPolicyJson = '{}';
 }
-$currentLanguage = (string) ($formData['lang'] ?? 'fr');
+$availableLanguages = is_array($availableLanguages ?? null)
+    ? array_values(array_filter(array_map('strval', $availableLanguages)))
+    : ['fr'];
+if ($availableLanguages === []) {
+    $availableLanguages = ['fr'];
+}
+$languageLabels = [
+    'fr' => 'Français',
+    'en' => 'English',
+    'de' => 'Deutsch',
+];
+$translations = is_array($formData['translations'] ?? null) ? $formData['translations'] : [];
+$existingLanguages = is_array($formData['existing_languages'] ?? null)
+    ? array_values(array_map('strval', $formData['existing_languages']))
+    : [];
+$activeLanguage = (string) ($formData['active_language'] ?? $formData['lang'] ?? ($availableLanguages[0] ?? 'fr'));
+if (!in_array($activeLanguage, $availableLanguages, true)) {
+    $activeLanguage = $availableLanguages[0] ?? 'fr';
+}
+$currentLanguage = $activeLanguage;
 $categoryOptions = is_array($availableCategoryOptions ?? null) ? array_values($availableCategoryOptions) : [];
 $subcategoryOptions = is_array($availableSubcategoryOptions ?? null) ? array_values($availableSubcategoryOptions) : [];
 $tagOptions = is_array($availableTagOptions ?? null) ? array_values($availableTagOptions) : [];
@@ -72,19 +91,19 @@ $selectedTags = is_array($formData['tags'] ?? null)
     : array_values(array_filter(array_map('trim', explode(',', (string) ($formData['tags_input'] ?? '')))));
 $featuredImageSrc = trim((string) ($formData['featured_image_src'] ?? ''));
 $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
+$articleEditorFormId = 'article-editor-form';
 ?>
 
 <section class="cards-grid">
   <article class="card">
     <h2><?php echo ($isNewArticle ?? false) ? 'Nouvel article' : 'Article du blog'; ?></h2>
     <p>
-      Une catégorie principale, une sous-catégorie optionnelle et trois à cinq tags issus du référentiel blog.
-      Les commentaires et traductions techniques déjà présents sont conservés à la sauvegarde.
+      Les champs structurels de l article sont partagés une seule fois. Les textes traduits s éditent ensuite dans des onglets séparés pour le français, l anglais et l allemand.
     </p>
     <p class="actions-inline">
       <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesIndexUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Retour à la liste</a>
       <?php if (($isNewArticle ?? false) === false): ?>
-      <span class="tag"><?php echo strtoupper(htmlspecialchars($currentLanguage, ENT_QUOTES, 'UTF-8')); ?></span>
+      <span class="tag"><?php echo count($existingLanguages); ?> variante<?php echo count($existingLanguages) > 1 ? 's' : ''; ?> existante<?php echo count($existingLanguages) > 1 ? 's' : ''; ?></span>
       <?php endif; ?>
     </p>
   </article>
@@ -122,15 +141,21 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
 <section class="card">
   <h2>Édition</h2>
 
-  <form method="post" enctype="multipart/form-data" action="<?php echo htmlspecialchars((string) ($currentArticleUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+  <form
+    id="<?php echo htmlspecialchars($articleEditorFormId, ENT_QUOTES, 'UTF-8'); ?>"
+    method="post"
+    enctype="multipart/form-data"
+    action="<?php echo htmlspecialchars((string) ($currentArticleUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+  >
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+    <input
+      type="hidden"
+      name="article[active_language]"
+      value="<?php echo htmlspecialchars($activeLanguage, ENT_QUOTES, 'UTF-8'); ?>"
+      data-article-active-language
+    />
 
     <div class="admin-form-grid admin-form-grid-3">
-      <div class="field admin-form-span-2">
-        <label for="article-title">Titre</label>
-        <input id="article-title" name="article[title]" type="text" value="<?php echo htmlspecialchars((string) ($formData['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
-      </div>
-
       <div class="field">
         <label for="article-status">Statut</label>
         <select id="article-status" name="article[status]">
@@ -145,17 +170,6 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
       <div class="field">
         <label for="article-slug">Slug</label>
         <input id="article-slug" name="article[slug]" type="text" value="<?php echo htmlspecialchars((string) ($formData['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
-      </div>
-
-      <div class="field">
-        <label for="article-lang">Langue</label>
-        <select id="article-lang" name="article[lang]">
-          <?php foreach (($availableLanguages ?? []) as $language): ?>
-          <option value="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($formData['lang'] ?? 'fr') === $language ? ' selected' : ''; ?>>
-            <?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?>
-          </option>
-          <?php endforeach; ?>
-        </select>
       </div>
 
       <div class="field">
@@ -204,7 +218,7 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
           <?php endforeach; ?>
         </select>
         <p class="admin-form-help">
-          Obligatoire. L’article est ouvert depuis la page blog sur cette page parent, puis déroule automatiquement l’article demandé.
+          Obligatoire. Ce rattachement est partagé par toutes les langues et sert de point d ouverture public pour chaque variante.
         </p>
       </div>
 
@@ -218,10 +232,19 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
           $parentTitle = (string) ($parentArticle['title'] ?? 'Article sans titre');
           $parentStatus = (string) ($parentArticle['status'] ?? 'draft');
           $parentDate = trim((string) ($parentArticle['date'] ?? ''));
+          $parentLanguages = array_values(
+              array_filter(
+                  array_map(
+                      static fn (mixed $language): string => is_string($language) ? strtoupper(trim($language)) : '',
+                      is_array($parentArticle['languages'] ?? null) ? $parentArticle['languages'] : []
+                  ),
+                  static fn (string $language): bool => $language !== ''
+              )
+          );
           ?>
           <option value="<?php echo htmlspecialchars($parentSlug, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (($formData['parent_slug'] ?? '') === $parentSlug) ? ' selected' : ''; ?>>
             <?php echo htmlspecialchars($parentTitle, ENT_QUOTES, 'UTF-8'); ?>
-            [<?php echo strtoupper(htmlspecialchars((string) ($parentArticle['lang'] ?? $currentLanguage), ENT_QUOTES, 'UTF-8')); ?>]
+            <?php echo $parentLanguages !== [] ? ' · ' . htmlspecialchars(implode('/', $parentLanguages), ENT_QUOTES, 'UTF-8') : ''; ?>
             <?php echo $parentDate !== '' ? ' · ' . htmlspecialchars($parentDate, ENT_QUOTES, 'UTF-8') : ''; ?>
             · <?php echo htmlspecialchars($statusLabels[$parentStatus] ?? $parentStatus, ENT_QUOTES, 'UTF-8'); ?>
             · <?php echo htmlspecialchars($parentSlug, ENT_QUOTES, 'UTF-8'); ?>
@@ -229,7 +252,7 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
           <?php endforeach; ?>
         </select>
         <p class="admin-form-help">
-          L’article sera affiche sous ce parent sur le front. Les suggestions suivent la langue actuellement ouverte dans l’edition.
+          Le parent logique est choisi une seule fois. Chaque traduction utilise automatiquement la variante correspondante quand elle existe.
         </p>
       </div>
 
@@ -397,27 +420,120 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
         </p>
       </div>
       <?php endif; ?>
-
-      <div class="field admin-form-span-2">
-        <label for="article-excerpt">Extrait</label>
-        <textarea id="article-excerpt" name="article[excerpt]" rows="4"><?php echo htmlspecialchars((string) ($formData['excerpt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-      </div>
-
-      <div class="field admin-form-span-2">
-        <label for="article-content">Contenu HTML</label>
-        <div class="actions-inline">
-          <button
-            type="button"
-            class="button-link button-link-muted"
-            data-content-media-open="article-media-insert-dialog"
-            data-content-media-target="article-content"
-          >
-            Inserer un media (image / video)
-          </button>
-        </div>
-        <textarea id="article-content" class="textarea-large" name="article[content]" rows="16" required><?php echo htmlspecialchars((string) ($formData['content'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-      </div>
     </div>
+
+    <section class="card" style="margin-top: 2rem;">
+      <div class="page-editor-intro__header">
+        <div>
+          <h3>Traductions</h3>
+          <p class="page-editor-intro__description">
+            Chaque onglet ne contient que les textes propres à sa langue. Les choix de page parent, taxonomie, image de couverture et hiérarchie restent communs.
+          </p>
+        </div>
+      </div>
+
+      <div class="menu-builder-tabs" role="tablist" aria-label="Traductions de l article" data-article-translation-tabs>
+        <?php foreach ($availableLanguages as $translationTabIndex => $language): ?>
+        <?php
+        $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
+        $translationTitle = trim((string) ($translation['title'] ?? ''));
+        $translationExcerpt = trim((string) ($translation['excerpt'] ?? ''));
+        $translationContent = trim((string) ($translation['content'] ?? ''));
+        $translationExists = !empty($translation['exists']);
+        $translationHasDraft = $translationTitle !== '' || $translationExcerpt !== '' || $translationContent !== '';
+        $isActiveTranslationTab = $language === $activeLanguage;
+        $translationStatusLabel = $translationExists
+            ? 'Version existante'
+            : ($translationHasDraft ? 'A completer' : 'A renseigner');
+        ?>
+        <button
+          type="button"
+          id="article-translation-tab-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+          class="menu-builder-tab<?php echo $isActiveTranslationTab ? ' menu-builder-tab-active' : ''; ?>"
+          role="tab"
+          aria-selected="<?php echo $isActiveTranslationTab ? 'true' : 'false'; ?>"
+          aria-controls="article-translation-panel-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+          tabindex="<?php echo $isActiveTranslationTab ? '0' : '-1'; ?>"
+          data-article-translation-tab="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+          data-translation-label="<?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?>"
+          data-translation-exists="<?php echo $translationExists ? '1' : '0'; ?>"
+        >
+          <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
+          <small><?php echo htmlspecialchars($translationStatusLabel, ENT_QUOTES, 'UTF-8'); ?></small>
+        </button>
+        <?php endforeach; ?>
+      </div>
+
+      <?php foreach ($availableLanguages as $language): ?>
+      <?php
+      $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
+      $translationExists = !empty($translation['exists']);
+      $isActiveTranslationTab = $language === $activeLanguage;
+      ?>
+      <section
+        class="card translation-card"
+        id="article-translation-panel-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+        role="tabpanel"
+        aria-labelledby="article-translation-tab-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+        data-article-translation-panel="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+        <?php echo $isActiveTranslationTab ? '' : 'hidden'; ?>
+      >
+        <div class="page-editor-intro__header">
+          <div class="actions-inline">
+            <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
+            <span class="lang-badge"><?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?></span>
+            <?php if ($translationExists): ?>
+            <span class="tag">Variante existante</span>
+            <?php else: ?>
+            <span class="tag">Nouvelle variante</span>
+            <?php endif; ?>
+          </div>
+          <button type="submit">Sauvegarder l article</button>
+        </div>
+
+        <div class="admin-form-grid admin-form-grid-2">
+          <div class="field admin-form-span-2">
+            <label for="article-title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>">Titre</label>
+            <input
+              id="article-title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+              name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][title]"
+              type="text"
+              value="<?php echo htmlspecialchars((string) ($translation['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+            />
+          </div>
+
+          <div class="field admin-form-span-2">
+            <label for="article-excerpt-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>">Extrait</label>
+            <textarea
+              id="article-excerpt-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+              name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][excerpt]"
+              rows="4"
+            ><?php echo htmlspecialchars((string) ($translation['excerpt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+          </div>
+
+          <div class="field admin-form-span-2">
+            <label for="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>">Contenu HTML</label>
+            <div class="actions-inline">
+              <button
+                type="button"
+                class="button-link button-link-muted"
+                data-content-media-open="article-media-insert-dialog"
+                data-content-media-target="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+              >
+                Inserer un media (image / video)
+              </button>
+            </div>
+            <textarea
+              id="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+              class="textarea-large"
+              name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][content]"
+              rows="16"
+            ><?php echo htmlspecialchars((string) ($translation['content'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+          </div>
+        </div>
+      </section>
+      <?php endforeach; ?>
+    </section>
 
     <div class="actions-inline actions-inline-end">
       <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesIndexUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Annuler</a>
@@ -703,23 +819,50 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
   </dialog>
 
   <?php if (($isNewArticle ?? false) === false): ?>
+  <?php $canDeleteActiveVariant = in_array($activeLanguage, $existingLanguages, true); ?>
   <hr />
   <h3>Suppression</h3>
   <p class="notice-muted">
-    Supprime l’article courant et efface aussi toutes les discussions rattachées à ce slug/langue.
+    Supprime uniquement la variante linguistique active et efface aussi les discussions rattachées à ce couple slug/langue.
     Les éventuels articles enfants sont conservés, mais détachés de ce parent.
   </p>
-  <form method="post" action="<?php echo htmlspecialchars((string) ($currentArticleUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>" onsubmit="return confirm('Supprimer définitivement cet article et ses discussions rattachées ?');">
+  <form
+    method="post"
+    action="<?php echo htmlspecialchars((string) ($currentArticleUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+    onsubmit="return confirm('Supprimer définitivement cette variante linguistique et ses discussions rattachées ?');"
+    data-article-delete-form
+  >
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
     <input type="hidden" name="article_action" value="delete" />
+    <input
+      type="hidden"
+      name="article[active_language]"
+      value="<?php echo htmlspecialchars($activeLanguage, ENT_QUOTES, 'UTF-8'); ?>"
+      data-article-active-language
+    />
+    <p class="notice-muted" data-article-delete-status>
+      <?php if ($canDeleteActiveVariant): ?>
+      Supprime la variante <?php echo htmlspecialchars($languageLabels[$activeLanguage] ?? strtoupper($activeLanguage), ENT_QUOTES, 'UTF-8'); ?> actuellement ouverte.
+      <?php else: ?>
+      Aucune variante <?php echo htmlspecialchars($languageLabels[$activeLanguage] ?? strtoupper($activeLanguage), ENT_QUOTES, 'UTF-8'); ?> n existe encore. La suppression est indisponible.
+      <?php endif; ?>
+    </p>
     <p class="checkbox-field">
       <label for="confirm-article-delete">
-        <input id="confirm-article-delete" type="checkbox" name="confirm_delete" value="1" required />
+        <input
+          id="confirm-article-delete"
+          type="checkbox"
+          name="confirm_delete"
+          value="1"
+          required
+          data-article-delete-confirm
+          <?php echo $canDeleteActiveVariant ? '' : 'disabled'; ?>
+        />
         Je confirme la suppression définitive.
       </label>
     </p>
     <div class="actions-inline actions-inline-end">
-      <button class="button-danger" type="submit">Supprimer l’article</button>
+      <button class="button-danger" type="submit" data-article-delete-button <?php echo $canDeleteActiveVariant ? '' : 'disabled'; ?>>Supprimer la variante active</button>
     </div>
   </form>
   <?php endif; ?>
@@ -764,6 +907,170 @@ $featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
 <?php endif; ?>
 
 <?php $cspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
+<script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+  (() => {
+    const tabList = document.querySelector('[data-article-translation-tabs]');
+    const tabs = Array.from(document.querySelectorAll('[data-article-translation-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-article-translation-panel]'));
+    const activeInputs = Array.from(document.querySelectorAll('[data-article-active-language]'));
+    if (!(tabList instanceof HTMLElement) || tabs.length === 0 || panels.length === 0) {
+      return;
+    }
+
+    const storageKey = 'admin-article-editor-active-translation';
+    const availableLanguages = tabs
+      .map((tab) => tab.getAttribute('data-article-translation-tab') || '')
+      .filter((language) => language !== '');
+    if (availableLanguages.length === 0) {
+      return;
+    }
+
+    const deleteForm = document.querySelector('[data-article-delete-form]');
+    const deleteStatus = deleteForm instanceof HTMLFormElement
+      ? deleteForm.querySelector('[data-article-delete-status]')
+      : null;
+    const deleteButton = deleteForm instanceof HTMLFormElement
+      ? deleteForm.querySelector('[data-article-delete-button]')
+      : null;
+    const deleteConfirm = deleteForm instanceof HTMLFormElement
+      ? deleteForm.querySelector('[data-article-delete-confirm]')
+      : null;
+    const firstLanguage = availableLanguages[0];
+
+    const updateDeleteState = (language) => {
+      const activeTab = tabs.find((tab) => (tab.getAttribute('data-article-translation-tab') || '') === language);
+      const translationLabel = activeTab instanceof HTMLElement
+        ? (activeTab.getAttribute('data-translation-label') || language.toUpperCase())
+        : language.toUpperCase();
+      const translationExists = activeTab instanceof HTMLElement
+        && activeTab.getAttribute('data-translation-exists') === '1';
+
+      activeInputs.forEach((input) => {
+        if (input instanceof HTMLInputElement) {
+          input.value = language;
+        }
+      });
+
+      if (deleteStatus instanceof HTMLElement) {
+        deleteStatus.textContent = translationExists
+          ? `Supprime la variante ${translationLabel} actuellement ouverte.`
+          : `Aucune variante ${translationLabel} n existe encore. La suppression est indisponible.`;
+      }
+
+      if (deleteButton instanceof HTMLButtonElement) {
+        deleteButton.disabled = !translationExists;
+      }
+
+      if (deleteConfirm instanceof HTMLInputElement) {
+        deleteConfirm.disabled = !translationExists;
+        if (!translationExists) {
+          deleteConfirm.checked = false;
+        }
+      }
+    };
+
+    const setActiveLanguage = (requestedLanguage, options = {}) => {
+      const language = availableLanguages.includes(requestedLanguage) ? requestedLanguage : firstLanguage;
+      const shouldStore = options.store !== false;
+
+      tabs.forEach((tab) => {
+        const tabLanguage = tab.getAttribute('data-article-translation-tab') || '';
+        const isActive = tabLanguage === language;
+        tab.classList.toggle('menu-builder-tab-active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        tab.tabIndex = isActive ? 0 : -1;
+      });
+
+      panels.forEach((panel) => {
+        const panelLanguage = panel.getAttribute('data-article-translation-panel') || '';
+        panel.hidden = panelLanguage !== language;
+      });
+
+      updateDeleteState(language);
+
+      if (shouldStore && typeof window.sessionStorage !== 'undefined') {
+        window.sessionStorage.setItem(storageKey, language);
+      }
+
+      if (window.location.hash !== `#translation-${language}`) {
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#translation-${language}`);
+      }
+
+      return language;
+    };
+
+    const moveFocus = (currentIndex, delta) => {
+      const nextIndex = (currentIndex + delta + tabs.length) % tabs.length;
+      const nextTab = tabs[nextIndex];
+      if (!(nextTab instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const nextLanguage = nextTab.getAttribute('data-article-translation-tab') || firstLanguage;
+      setActiveLanguage(nextLanguage);
+      nextTab.focus();
+    };
+
+    tabs.forEach((tab, index) => {
+      if (!(tab instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      tab.addEventListener('click', () => {
+        setActiveLanguage(tab.getAttribute('data-article-translation-tab') || firstLanguage);
+      });
+
+      tab.addEventListener('keydown', (event) => {
+        if (!(event instanceof KeyboardEvent)) {
+          return;
+        }
+
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          moveFocus(index, 1);
+          return;
+        }
+
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          moveFocus(index, -1);
+          return;
+        }
+
+        if (event.key === 'Home') {
+          event.preventDefault();
+          const firstTab = tabs[0];
+          if (firstTab instanceof HTMLButtonElement) {
+            setActiveLanguage(firstTab.getAttribute('data-article-translation-tab') || firstLanguage);
+            firstTab.focus();
+          }
+          return;
+        }
+
+        if (event.key === 'End') {
+          event.preventDefault();
+          const lastTab = tabs[tabs.length - 1];
+          if (lastTab instanceof HTMLButtonElement) {
+            setActiveLanguage(lastTab.getAttribute('data-article-translation-tab') || firstLanguage);
+            lastTab.focus();
+          }
+        }
+      });
+    });
+
+    let preferredLanguage = '';
+    const hashMatch = window.location.hash.match(/^#translation-([a-z]{2})$/i);
+    if (Array.isArray(hashMatch) && typeof hashMatch[1] === 'string') {
+      preferredLanguage = hashMatch[1].toLowerCase();
+    }
+
+    if (preferredLanguage === '' && typeof window.sessionStorage !== 'undefined') {
+      preferredLanguage = window.sessionStorage.getItem(storageKey) || '';
+    }
+
+    setActiveLanguage(preferredLanguage, { store: preferredLanguage !== '' });
+  })();
+</script>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
     const escapeAttribute = (value) => String(value)

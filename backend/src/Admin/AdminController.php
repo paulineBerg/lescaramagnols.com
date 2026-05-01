@@ -993,6 +993,15 @@ final class AdminController
                 $error = 'Session expirée, merci de réessayer.';
             } else {
                 if ($action === 'delete') {
+                    $activeLanguage = '';
+                    $articleBody = is_array($body['article'] ?? null) ? $body['article'] : [];
+                    if (is_string($articleBody['active_language'] ?? null)) {
+                        $candidateLanguage = strtolower(trim((string) $articleBody['active_language']));
+                        if (in_array($candidateLanguage, $this->blogService->availableLanguages(), true)) {
+                            $activeLanguage = $candidateLanguage;
+                        }
+                    }
+
                     if ($slug === null || $language === null) {
                         $error = 'Suppression impossible : article introuvable.';
                     } else {
@@ -1002,7 +1011,8 @@ final class AdminController
                         } elseif (($sensitiveGuard = $this->guardSensitiveAction($request, 'articles.delete')) !== null) {
                             return $sensitiveGuard;
                         } else {
-                            $result = $this->blogService->delete($slug, $language);
+                            $deleteLanguage = $activeLanguage !== '' ? $activeLanguage : $language;
+                            $result = $this->blogService->delete($slug, $deleteLanguage);
 
                             if (($result['success'] ?? false) === true) {
                                 $deletedDiscussions = max(0, (int) ($result['deletedDiscussions'] ?? 0));
@@ -1013,7 +1023,7 @@ final class AdminController
                                     [
                                         'actor' => admin_current_masked_identifier(),
                                         'slug' => $slug,
-                                        'lang' => $language,
+                                        'lang' => $deleteLanguage,
                                         'deleted_discussions' => $deletedDiscussions,
                                         'detached_children' => $detachedChildren,
                                     ]
@@ -1021,7 +1031,7 @@ final class AdminController
 
                                 $location = $this->routeResolver->canonicalPath('articles')
                                     . '?deleted=' . rawurlencode($slug)
-                                    . '&deleted_lang=' . rawurlencode($language)
+                                    . '&deleted_lang=' . rawurlencode($deleteLanguage)
                                     . '&deleted_discussions=' . $deletedDiscussions
                                     . '&detached_children=' . $detachedChildren;
 
@@ -1033,7 +1043,7 @@ final class AdminController
                                 [
                                     'actor' => admin_current_masked_identifier(),
                                     'slug' => $slug,
-                                    'lang' => $language,
+                                    'lang' => $deleteLanguage,
                                     'error' => (string) ($result['error'] ?? 'unknown'),
                                 ],
                                 'warning'
@@ -1077,7 +1087,7 @@ final class AdminController
                             [
                                 'actor' => admin_current_masked_identifier(),
                                 'slug' => (string) ($formData['slug'] ?? $slug ?? ''),
-                                'lang' => (string) ($formData['lang'] ?? $language ?? ''),
+                                'lang' => (string) ($formData['active_language'] ?? $formData['lang'] ?? $language ?? ''),
                                 'error' => (string) ($result['error'] ?? 'unknown'),
                             ],
                             'warning'
@@ -1090,7 +1100,13 @@ final class AdminController
         }
 
         $currentSlug = trim((string) ($formData['slug'] ?? $slug ?? ''));
-        $currentLanguage = trim((string) ($formData['lang'] ?? $language ?? app_config('default_lang', 'fr')));
+        $currentLanguage = trim((string) ($formData['active_language'] ?? $formData['lang'] ?? $language ?? app_config('default_lang', 'fr')));
+        $existingLanguages = is_array($formData['existing_languages'] ?? null)
+            ? array_values(array_map('strval', $formData['existing_languages']))
+            : [];
+        $currentHierarchyLanguage = in_array($currentLanguage, $existingLanguages, true)
+            ? $currentLanguage
+            : trim((string) ($language ?? $currentLanguage));
 
         return $this->renderPage(
             'articles_form.php',
@@ -1102,8 +1118,8 @@ final class AdminController
                 'error' => $error,
                 'formData' => $formData,
                 'isNewArticle' => $slug === null || $language === null,
-                'currentArticleUrl' => $currentSlug !== '' && $currentLanguage !== ''
-                    ? $this->routeResolver->articleEditPath($currentSlug, $currentLanguage)
+                'currentArticleUrl' => $slug !== null && $language !== null
+                    ? $this->routeResolver->articleEditPath($slug, $language)
                     : $this->routeResolver->articleCreatePath(),
                 'articlesIndexUrl' => $this->routeResolver->canonicalPath('articles'),
                 'availableLanguages' => $this->blogService->availableLanguages(),
@@ -1113,8 +1129,8 @@ final class AdminController
                 'availableTagOptions' => $this->blogService->availableTagOptions($currentLanguage),
                 'availablePageOptions' => $this->blogService->availablePageOptions($currentLanguage),
                 'availableParentArticles' => $this->blogService->availableParentArticles($currentLanguage, $currentSlug, $currentLanguage),
-                'childArticles' => $currentSlug !== '' && $currentLanguage !== ''
-                    ? $this->blogService->childArticlesForArticle($currentSlug, $currentLanguage)
+                'childArticles' => $currentSlug !== '' && $currentHierarchyLanguage !== ''
+                    ? $this->blogService->childArticlesForArticle($currentSlug, $currentHierarchyLanguage)
                     : [],
                 'contentMediaPicker' => $this->mediaLibraryService->mediaPickerViewModel('article', 260),
             ]

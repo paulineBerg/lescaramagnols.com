@@ -34,7 +34,7 @@ Description:
   - Excludes and cleans non-production dev/test/docs/temp files
   - Syncs backend/vendor/ by default (OVH without composer)
   - Checks Vite manifest assets locally before deploy and remotely after sync
-  - Generates static sitemap at backend/public/sitemap.xml
+  - Generates static sitemap at backend/public/sitemap.xml and refreshes the public site summary page
   - Clears runtime cache after deploy (unless --no-cache-clear)
 
 Options:
@@ -161,9 +161,9 @@ cleanup_remote_non_prod_files
 
 if [[ -n "$SITEMAP_BASE_URL" ]]; then
   escaped_sitemap_base_url="$(printf '%q' "$SITEMAP_BASE_URL")"
-  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url=${escaped_sitemap_base_url}"
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url=${escaped_sitemap_base_url} && php core/tools/generate_site_summary.php --base-url=${escaped_sitemap_base_url}"
 else
-  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/generate_sitemap.php --output=public/sitemap.xml"
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/generate_sitemap.php --output=public/sitemap.xml && php core/tools/generate_site_summary.php"
 fi
 
 ssh "$REMOTE_HOST" "find '$REMOTE_BACKEND' -type d -exec chmod 755 {} \; && \

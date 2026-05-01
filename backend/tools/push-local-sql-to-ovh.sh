@@ -49,7 +49,7 @@ Etapes:
   - copie le payload local vers OVH avec controle de taille
   - restaure le payload en prod avec --storage=sql
   - compare les reglages admin Cron/Sauvegardes avant/apres restauration
-  - regenere index de recherche, sitemap et caches
+  - regenere index de recherche, sitemap, sommaire et caches
   - cree un backup prod apres ecriture et compare son contenu au local
   - lance les controles prod
   - supprime les temporaires OVH, sauf --keep-remote-backups
@@ -260,7 +260,7 @@ if [[ "$LOCAL_SIZE" != "$REMOTE_SIZE" ]]; then
 fi
 
 echo "[10/15] Restore SQL prod et regeneration"
-ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php restore '$REMOTE_PAYLOAD' $REMOTE_RESTORE_FLAGS && php core/tools/generate_search_index.php && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url='$SITEMAP_BASE_URL' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_after_sql_restore\n\";'"
+ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/editorial_backup_restore.php restore '$REMOTE_PAYLOAD' $REMOTE_RESTORE_FLAGS && php core/tools/generate_search_index.php && php core/tools/generate_sitemap.php --output=public/sitemap.xml --base-url='$SITEMAP_BASE_URL' && php core/tools/generate_site_summary.php --base-url='$SITEMAP_BASE_URL' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_after_sql_restore\n\";'"
 
 echo "[11/15] Verification reglages admin Cron/Sauvegardes"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$ADMIN_RUNTIME_SNAPSHOT_TOOL' --output='$REMOTE_ADMIN_AFTER_JSON' && stat -c '%s %n' '$REMOTE_ADMIN_AFTER_JSON'"

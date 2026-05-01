@@ -38,11 +38,13 @@ final class BlogSaveService
      *   ok: bool,
      *   status: int,
      *   data?: array<string, mixed>,
+     *   previous_slug?: string,
+     *   previous_language?: string,
      *   errors?: array<int, string>,
      *   path?: string
      * }
      */
-    public function save(array $payload, ?string $actorIdentifier = null): array
+    public function validatePayload(array $payload, ?string $actorIdentifier = null): array
     {
         $errors = [];
 
@@ -230,6 +232,40 @@ final class BlogSaveService
             'updated_at' => date('c'),
         ];
 
+        return [
+            'ok' => true,
+            'status' => 200,
+            'data' => $article,
+            'previous_slug' => $previousSlug,
+            'previous_language' => $previousLanguage,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{
+     *   ok: bool,
+     *   status: int,
+     *   data?: array<string, mixed>,
+     *   previous_slug?: string,
+     *   previous_language?: string,
+     *   errors?: array<int, string>,
+     *   path?: string
+     * }
+     */
+    public function save(array $payload, ?string $actorIdentifier = null): array
+    {
+        $validation = $this->validatePayload($payload, $actorIdentifier);
+        if (($validation['ok'] ?? false) !== true) {
+            return $validation;
+        }
+
+        $article = is_array($validation['data'] ?? null) ? $validation['data'] : [];
+        $previousSlug = is_string($validation['previous_slug'] ?? null) ? (string) $validation['previous_slug'] : '';
+        $previousLanguage = is_string($validation['previous_language'] ?? null) ? (string) $validation['previous_language'] : '';
+        $slug = (string) ($article['slug'] ?? '');
+        $language = (string) ($article['lang'] ?? (string) app_config('default_lang', 'fr'));
+
         try {
             $saved = $this->repository->save(
                 $article,
@@ -269,7 +305,7 @@ final class BlogSaveService
                 'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
                 'slug' => $slug,
                 'lang' => $language,
-                'status' => $status,
+                'status' => (string) ($article['status'] ?? 'draft'),
                 'created' => $saved['created'],
                 'path' => basename($saved['path']),
             ]

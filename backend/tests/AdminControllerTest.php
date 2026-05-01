@@ -1485,6 +1485,12 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('/association', $response->body);
         $this->assertStringContainsString('name="article[scheduled_publish_at]"', $response->body);
         $this->assertStringContainsString('Planifié', $response->body);
+        $this->assertStringContainsString('name="article[active_language]"', $response->body);
+        $this->assertStringContainsString('data-article-translation-tabs', $response->body);
+        $this->assertStringContainsString('name="translations[fr][title]"', $response->body);
+        $this->assertStringContainsString('name="translations[en][title]"', $response->body);
+        $this->assertStringContainsString('name="translations[de][content]"', $response->body);
+        $this->assertStringNotContainsString('name="article[lang]"', $response->body);
         $this->assertStringContainsString('data-content-media-open="article-media-insert-dialog"', $response->body);
         $this->assertStringContainsString('id="article-media-insert-dialog"', $response->body);
         $this->assertStringContainsString('Inserer un media (image / video)', $response->body);

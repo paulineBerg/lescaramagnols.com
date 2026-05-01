@@ -374,10 +374,10 @@ final class AdminBlogService
      */
     public function emptyFormData(): array
     {
-        return [
-            'title' => '',
+        $data = [
             'slug' => '',
             'lang' => $this->defaultLanguage,
+            'active_language' => $this->defaultLanguage,
             'status' => 'draft',
             'author' => '',
             'date' => date('Y-m-d\TH:i'),
@@ -385,7 +385,6 @@ final class AdminBlogService
             'page_slug' => '',
             'parent_slug' => '',
             'child_sort_order' => '',
-            'excerpt' => '',
             'category' => '',
             'subcategory' => '',
             'tags' => [],
@@ -396,8 +395,15 @@ final class AdminBlogService
             'featured_image_caption' => '',
             'featured_image_width' => '',
             'featured_image_height' => '',
-            'content' => '',
+            'translations' => [],
+            'existing_languages' => [],
         ];
+
+        foreach ($this->availableLanguages as $language) {
+            $data['translations'][$language] = $this->emptyTranslationFormData();
+        }
+
+        return $data;
     }
 
     /**
@@ -405,9 +411,12 @@ final class AdminBlogService
      */
     public function formDataForArticle(string $slug, string $language): ?array
     {
-        $article = $this->repository->find($slug, $language);
+        $bundle = $this->loadArticleBundle($slug);
+        if ($bundle === []) {
+            return null;
+        }
 
-        return is_array($article) ? $this->mapFormData($article) : null;
+        return $this->mapBundleFormData($bundle, $language);
     }
 
     /**
@@ -417,25 +426,53 @@ final class AdminBlogService
     {
         $targetLanguage = is_string($language) && $language !== '' ? $language : $this->defaultLanguage;
         $normalizedCurrentSlug = is_string($currentSlug) ? trim($currentSlug) : '';
-        $normalizedCurrentLanguage = is_string($currentLanguage) && $currentLanguage !== '' ? $currentLanguage : $targetLanguage;
+        $groups = [];
+
+        foreach ($this->repository->allArticles() as $article) {
+            $slug = (string) ($article['slug'] ?? '');
+            $lang = (string) ($article['lang'] ?? $this->defaultLanguage);
+
+            if ($slug === '' || $slug === $normalizedCurrentSlug) {
+                continue;
+            }
+
+            if (!isset($groups[$slug])) {
+                $groups[$slug] = [];
+            }
+
+            $groups[$slug][$lang] = $article;
+        }
+
         $options = [];
 
-        foreach ($this->repository->allArticles($targetLanguage) as $article) {
-            $slug = (string) ($article['slug'] ?? '');
-            $lang = (string) ($article['lang'] ?? $targetLanguage);
-
-            if ($slug === '' || ($slug === $normalizedCurrentSlug && $lang === $normalizedCurrentLanguage)) {
+        foreach ($groups as $slug => $articlesByLanguage) {
+            $representative = $this->resolveBundleRepresentativeArticle($articlesByLanguage, $targetLanguage);
+            if ($representative === null) {
                 continue;
+            }
+
+            $status = 'draft';
+            foreach ($articlesByLanguage as $article) {
+                $status = $this->prioritizedSummaryStatus($status, $this->resolveEffectiveStatus($article));
             }
 
             $options[] = [
                 'slug' => $slug,
-                'lang' => $lang,
-                'title' => (string) ($article['title'] ?? 'Article sans titre'),
-                'status' => (string) ($article['status'] ?? 'draft'),
-                'date' => (string) ($article['date'] ?? ''),
+                'title' => (string) ($representative['title'] ?? 'Article sans titre'),
+                'status' => $status,
+                'date' => (string) ($representative['date'] ?? ''),
+                'languages' => array_keys($articlesByLanguage),
+                'language_count' => count($articlesByLanguage),
             ];
         }
+
+        usort(
+            $options,
+            static fn (array $left, array $right): int => strcasecmp(
+                (string) ($left['title'] ?? $left['slug'] ?? ''),
+                (string) ($right['title'] ?? $right['slug'] ?? '')
+            )
+        );
 
         return $options;
     }
@@ -476,14 +513,17 @@ final class AdminBlogService
     public function save(array $body, ?string $currentSlug = null, ?string $currentLanguage = null, ?string $actorIdentifier = null): array
     {
         $articleData = is_array($body['article'] ?? null) ? $body['article'] : $body;
-        $existing = is_string($currentSlug) && $currentSlug !== '' && is_string($currentLanguage) && $currentLanguage !== ''
-            ? $this->repository->find($currentSlug, $currentLanguage)
-            : null;
+        $translationData = $this->normalizePostedTranslations($body['translations'] ?? []);
+        $existingBundle = is_string($currentSlug) && $currentSlug !== ''
+            ? $this->loadArticleBundle($currentSlug)
+            : [];
+        $activeLanguage = $this->normalizeLanguage((string) ($articleData['active_language'] ?? $currentLanguage ?? $this->defaultLanguage));
+        if ($activeLanguage === '') {
+            $activeLanguage = $this->defaultLanguage;
+        }
 
-        $payload = [
-            'title' => is_string($articleData['title'] ?? null) ? trim((string) $articleData['title']) : '',
+        $sharedPayload = [
             'slug' => is_string($articleData['slug'] ?? null) ? trim((string) $articleData['slug']) : '',
-            'lang' => is_string($articleData['lang'] ?? null) ? trim((string) $articleData['lang']) : $this->defaultLanguage,
             'status' => is_string($articleData['status'] ?? null) ? trim((string) $articleData['status']) : 'draft',
             'author' => is_string($articleData['author'] ?? null) ? trim((string) $articleData['author']) : '',
             'date' => $this->normalizeDateInput(
@@ -493,29 +533,19 @@ final class AdminBlogService
                     is_string($articleData['scheduled_publish_at'] ?? null) ? (string) $articleData['scheduled_publish_at'] : ''
                 )
             ),
-            'page_slug' => is_string($articleData['page_slug'] ?? null)
-                ? trim((string) $articleData['page_slug'])
-                : (string) ($existing['page_slug'] ?? ''),
-            'parent_slug' => is_string($articleData['parent_slug'] ?? null)
-                ? trim((string) $articleData['parent_slug'])
-                : (string) ($existing['parent_slug'] ?? ''),
+            'page_slug' => is_string($articleData['page_slug'] ?? null) ? trim((string) $articleData['page_slug']) : '',
+            'parent_slug' => is_string($articleData['parent_slug'] ?? null) ? trim((string) $articleData['parent_slug']) : '',
             'child_sort_order' => is_scalar($articleData['child_sort_order'] ?? null)
                 ? trim((string) $articleData['child_sort_order'])
-                : (string) ($existing['child_sort_order'] ?? ''),
-            'excerpt' => is_string($articleData['excerpt'] ?? null) ? trim((string) $articleData['excerpt']) : '',
+                : '',
             'category' => is_string($articleData['category'] ?? null) ? trim((string) $articleData['category']) : '',
             'subcategory' => is_string($articleData['subcategory'] ?? null) ? trim((string) $articleData['subcategory']) : '',
             'tags' => $this->articleDataTags($articleData),
             'featured_image' => $this->buildFeaturedImagePayload($articleData),
-            'content' => is_string($articleData['content'] ?? null) ? trim((string) $articleData['content']) : '',
-            'previous_slug' => $currentSlug ?? '',
-            'previous_lang' => $currentLanguage ?? '',
-            'translations' => is_array($existing['translations'] ?? null) ? $existing['translations'] : [],
-            'comments' => is_array($existing['comments'] ?? null) ? $existing['comments'] : [],
         ];
-        $form = $this->mapFormData($payload);
+        $form = $this->mapPostedBundleFormData($sharedPayload, $translationData, $existingBundle, $activeLanguage);
 
-        $selectedPageSlug = trim((string) $payload['page_slug']);
+        $selectedPageSlug = trim((string) $sharedPayload['page_slug']);
         if ($selectedPageSlug === '') {
             return [
                 'success' => false,
@@ -532,26 +562,103 @@ final class AdminBlogService
             ];
         }
 
-        $result = $this->saveService->save($payload, $actorIdentifier);
+        $validatedPayloads = [];
+        $errors = [];
 
-        if (($result['ok'] ?? false) !== true) {
-            $errors = is_array($result['errors'] ?? null) ? $result['errors'] : ['Impossible de sauvegarder l’article.'];
+        foreach ($this->availableLanguages as $language) {
+            $existing = is_array($existingBundle[$language] ?? null) ? $existingBundle[$language] : null;
+            $translation = is_array($translationData[$language] ?? null) ? $translationData[$language] : [];
 
-            return [
-                'success' => false,
-                'form' => $form,
-                'error' => implode(' ', array_map('strval', $errors)),
+            if (!$this->shouldPersistLanguageVariant($translation, $existing)) {
+                continue;
+            }
+
+            $payload = array_merge(
+                $sharedPayload,
+                [
+                    'title' => trim((string) ($translation['title'] ?? '')),
+                    'excerpt' => trim((string) ($translation['excerpt'] ?? '')),
+                    'content' => trim((string) ($translation['content'] ?? '')),
+                    'lang' => $language,
+                    'previous_slug' => is_array($existing) ? (string) ($existing['slug'] ?? '') : '',
+                    'previous_lang' => is_array($existing) ? (string) ($existing['lang'] ?? $language) : '',
+                    'translations' => is_array($existing['translations'] ?? null) ? $existing['translations'] : [],
+                    'comments' => is_array($existing['comments'] ?? null) ? $existing['comments'] : [],
+                ]
+            );
+            $validation = $this->saveService->validatePayload($payload, $actorIdentifier);
+
+            if (($validation['ok'] ?? false) !== true) {
+                foreach (is_array($validation['errors'] ?? null) ? $validation['errors'] : ['Impossible de sauvegarder l’article.'] as $error) {
+                    $message = strtoupper($language) . ' : ' . (string) $error;
+                    $errors[$message] = $message;
+                }
+                continue;
+            }
+
+            $validatedPayloads[$language] = [
+                'article' => is_array($validation['data'] ?? null) ? $validation['data'] : $payload,
+                'previous_slug' => is_string($validation['previous_slug'] ?? null) ? (string) $validation['previous_slug'] : '',
+                'previous_language' => is_string($validation['previous_language'] ?? null) ? (string) $validation['previous_language'] : '',
             ];
         }
 
-        $savedArticle = is_array($result['data'] ?? null) ? $result['data'] : $payload;
+        if ($validatedPayloads === []) {
+            $errors['bundle'] = 'Au moins une traduction complete doit être renseignée.';
+        }
+
+        if ($errors !== []) {
+            return [
+                'success' => false,
+                'form' => $form,
+                'error' => implode(' ', array_map('strval', array_values($errors))),
+            ];
+        }
+
+        $savedBundle = $existingBundle;
+        foreach ($validatedPayloads as $language => $validatedPayload) {
+            $article = is_array($validatedPayload['article'] ?? null) ? $validatedPayload['article'] : [];
+            $previousSlug = is_string($validatedPayload['previous_slug'] ?? null) ? (string) $validatedPayload['previous_slug'] : '';
+            $previousLanguage = is_string($validatedPayload['previous_language'] ?? null) ? (string) $validatedPayload['previous_language'] : '';
+
+            try {
+                $saved = $this->repository->save(
+                    $article,
+                    $previousSlug !== '' ? $previousSlug : null,
+                    $previousSlug !== '' ? $previousLanguage : null
+                );
+            } catch (\Throwable) {
+                return [
+                    'success' => false,
+                    'form' => $form,
+                    'error' => sprintf('Impossible d’enregistrer la traduction %s pour le moment.', strtoupper($language)),
+                ];
+            }
+
+            if (
+                $previousSlug !== ''
+                && $previousLanguage === $language
+                && $previousSlug !== (string) ($article['slug'] ?? '')
+            ) {
+                $this->repository->reassignChildrenToParentSlug($previousSlug, $language, (string) ($article['slug'] ?? ''));
+            }
+
+            $savedBundle[$language] = is_array($saved['article'] ?? null) ? $saved['article'] : $article;
+        }
+
+        $savedSlug = $sharedPayload['slug'] !== ''
+            ? $this->normalizeSlug((string) $sharedPayload['slug'])
+            : $this->normalizeSlug((string) ($currentSlug ?? ''));
+        $redirectLanguage = isset($savedBundle[$activeLanguage])
+            ? $activeLanguage
+            : (array_key_first($savedBundle) ?: $this->defaultLanguage);
 
         return [
             'success' => true,
-            'form' => $this->mapFormData($savedArticle),
+            'form' => $this->mapBundleFormData($savedBundle, $redirectLanguage),
             'error' => null,
-            'slug' => (string) ($savedArticle['slug'] ?? ''),
-            'lang' => (string) ($savedArticle['lang'] ?? $this->defaultLanguage),
+            'slug' => $savedSlug,
+            'lang' => $redirectLanguage,
         ];
     }
 
@@ -665,38 +772,74 @@ final class AdminBlogService
      */
     private function mapFormData(array $article): array
     {
-        $data = $this->emptyFormData();
+        $data = $this->emptyTranslationFormData();
         $data['title'] = (string) ($article['title'] ?? '');
-        $data['slug'] = (string) ($article['slug'] ?? '');
-        $data['lang'] = (string) ($article['lang'] ?? $this->defaultLanguage);
+        $data['excerpt'] = (string) ($article['excerpt'] ?? '');
+        $data['content'] = (string) ($article['content'] ?? '');
+        $data['exists'] = true;
         $data['status'] = $this->normalizeStatus((string) ($article['status'] ?? 'draft'));
-        $data['author'] = (string) ($article['author'] ?? '');
-        $data['date'] = $this->formatDateInput((string) ($article['date'] ?? ''));
+
+        return $data;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyTranslationFormData(): array
+    {
+        return [
+            'title' => '',
+            'excerpt' => '',
+            'content' => '',
+            'exists' => false,
+            'status' => 'draft',
+        ];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $articlesByLanguage
+     * @return array<string, mixed>
+     */
+    private function mapBundleFormData(array $articlesByLanguage, string $preferredLanguage): array
+    {
+        $data = $this->emptyFormData();
+        $representative = $this->resolveBundleRepresentativeArticle($articlesByLanguage, $preferredLanguage);
+        if ($representative === null) {
+            return $data;
+        }
+
+        $data['slug'] = (string) ($representative['slug'] ?? '');
+        $data['lang'] = $this->normalizeLanguage($preferredLanguage) !== '' ? $preferredLanguage : $this->defaultLanguage;
+        $data['active_language'] = $data['lang'];
+        $data['status'] = $this->normalizeStatus((string) ($representative['status'] ?? 'draft'));
+        $data['author'] = (string) ($representative['author'] ?? '');
+        $data['date'] = $this->formatDateInput((string) ($representative['date'] ?? ''));
         $data['scheduled_publish_at'] = $data['status'] === 'scheduled'
-            ? $this->formatDateInputWithoutFallback((string) ($article['date'] ?? ''))
+            ? $this->formatDateInputWithoutFallback((string) ($representative['date'] ?? ''))
             : '';
-        $data['page_slug'] = (string) ($article['page_slug'] ?? '');
-        $data['parent_slug'] = (string) ($article['parent_slug'] ?? '');
-        $childSortOrder = $article['child_sort_order'] ?? null;
+        $data['page_slug'] = (string) ($representative['page_slug'] ?? '');
+        $data['parent_slug'] = (string) ($representative['parent_slug'] ?? '');
+        $childSortOrder = $representative['child_sort_order'] ?? null;
         $data['child_sort_order'] = $childSortOrder !== null && $childSortOrder !== ''
             ? (string) $childSortOrder
             : '';
-        $data['excerpt'] = (string) ($article['excerpt'] ?? '');
-        $category = $this->taxonomy->resolveCategorySlug($article['category'] ?? null);
-        $subcategory = $this->taxonomy->resolveSubcategorySlug($article['subcategory'] ?? null, $category);
+
+        $category = $this->taxonomy->resolveCategorySlug($representative['category'] ?? null);
+        $subcategory = $this->taxonomy->resolveSubcategorySlug($representative['subcategory'] ?? null, $category);
         $tags = [];
-        foreach (is_array($article['tags'] ?? null) ? $article['tags'] : [] as $tag) {
+        foreach (is_array($representative['tags'] ?? null) ? $representative['tags'] : [] as $tag) {
             $tagSlug = $this->taxonomy->resolveTagSlug($tag);
             if ($tagSlug !== null) {
                 $tags[$tagSlug] = $tagSlug;
             }
         }
-        $data['category'] = $category ?? trim((string) ($article['category'] ?? ''));
-        $data['subcategory'] = $subcategory ?? trim((string) ($article['subcategory'] ?? ''));
+        $data['category'] = $category ?? trim((string) ($representative['category'] ?? ''));
+        $data['subcategory'] = $subcategory ?? trim((string) ($representative['subcategory'] ?? ''));
         $data['tags'] = array_values($tags);
         $data['tags_input'] = implode(', ', array_values($tags));
+
         $featuredImage = AdminEditorialImageService::sanitizeImageMetadata(
-            is_array($article['featured_image'] ?? null) ? $article['featured_image'] : []
+            is_array($representative['featured_image'] ?? null) ? $representative['featured_image'] : []
         );
         $data['featured_image_src'] = (string) ($featuredImage['src'] ?? '');
         $data['featured_image_alt'] = (string) ($featuredImage['alt'] ?? '');
@@ -704,7 +847,80 @@ final class AdminBlogService
         $data['featured_image_caption'] = (string) ($featuredImage['caption'] ?? '');
         $data['featured_image_width'] = isset($featuredImage['width']) ? (string) $featuredImage['width'] : '';
         $data['featured_image_height'] = isset($featuredImage['height']) ? (string) $featuredImage['height'] : '';
-        $data['content'] = (string) ($article['content'] ?? '');
+
+        $existingLanguages = [];
+        foreach ($this->availableLanguages as $language) {
+            $article = is_array($articlesByLanguage[$language] ?? null) ? $articlesByLanguage[$language] : null;
+            $data['translations'][$language] = is_array($article) ? $this->mapFormData($article) : $this->emptyTranslationFormData();
+            if (is_array($article)) {
+                $existingLanguages[] = $language;
+            }
+        }
+        $data['existing_languages'] = $existingLanguages;
+
+        return $data;
+    }
+
+    /**
+     * @param array<string, mixed> $sharedPayload
+     * @param array<string, array<string, mixed>> $translationData
+     * @param array<string, array<string, mixed>> $existingBundle
+     * @return array<string, mixed>
+     */
+    private function mapPostedBundleFormData(
+        array $sharedPayload,
+        array $translationData,
+        array $existingBundle,
+        string $activeLanguage
+    ): array {
+        $data = $this->emptyFormData();
+        $data['slug'] = (string) ($sharedPayload['slug'] ?? '');
+        $data['lang'] = $activeLanguage;
+        $data['active_language'] = $activeLanguage;
+        $data['status'] = $this->normalizeStatus((string) ($sharedPayload['status'] ?? 'draft'));
+        $data['author'] = (string) ($sharedPayload['author'] ?? '');
+        $data['date'] = $this->formatDateInput((string) ($sharedPayload['date'] ?? ''));
+        $data['scheduled_publish_at'] = $data['status'] === 'scheduled'
+            ? $this->formatDateInputWithoutFallback((string) ($sharedPayload['date'] ?? ''))
+            : '';
+        $data['page_slug'] = (string) ($sharedPayload['page_slug'] ?? '');
+        $data['parent_slug'] = (string) ($sharedPayload['parent_slug'] ?? '');
+        $data['child_sort_order'] = (string) ($sharedPayload['child_sort_order'] ?? '');
+        $data['category'] = (string) ($sharedPayload['category'] ?? '');
+        $data['subcategory'] = (string) ($sharedPayload['subcategory'] ?? '');
+        $data['tags'] = array_values(array_map('strval', is_array($sharedPayload['tags'] ?? null) ? $sharedPayload['tags'] : []));
+        $data['tags_input'] = implode(', ', $data['tags']);
+
+        $featuredImage = AdminEditorialImageService::sanitizeImageMetadata(
+            is_array($sharedPayload['featured_image'] ?? null) ? $sharedPayload['featured_image'] : []
+        );
+        $data['featured_image_src'] = (string) ($featuredImage['src'] ?? '');
+        $data['featured_image_alt'] = (string) ($featuredImage['alt'] ?? '');
+        $data['featured_image_title'] = (string) ($featuredImage['title'] ?? '');
+        $data['featured_image_caption'] = (string) ($featuredImage['caption'] ?? '');
+        $data['featured_image_width'] = isset($featuredImage['width']) ? (string) $featuredImage['width'] : '';
+        $data['featured_image_height'] = isset($featuredImage['height']) ? (string) $featuredImage['height'] : '';
+
+        $existingLanguages = [];
+        foreach ($this->availableLanguages as $language) {
+            $translation = is_array($translationData[$language] ?? null) ? $translationData[$language] : [];
+            $data['translations'][$language] = array_merge(
+                $this->emptyTranslationFormData(),
+                [
+                    'title' => trim((string) ($translation['title'] ?? '')),
+                    'excerpt' => trim((string) ($translation['excerpt'] ?? '')),
+                    'content' => trim((string) ($translation['content'] ?? '')),
+                    'exists' => is_array($existingBundle[$language] ?? null),
+                    'status' => is_array($existingBundle[$language] ?? null)
+                        ? $this->normalizeStatus((string) ($existingBundle[$language]['status'] ?? 'draft'))
+                        : $data['status'],
+                ]
+            );
+            if (is_array($existingBundle[$language] ?? null)) {
+                $existingLanguages[] = $language;
+            }
+        }
+        $data['existing_languages'] = $existingLanguages;
 
         return $data;
     }
@@ -723,6 +939,102 @@ final class AdminBlogService
             'width' => $articleData['featured_image_width'] ?? null,
             'height' => $articleData['featured_image_height'] ?? null,
         ]);
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function loadArticleBundle(string $slug): array
+    {
+        $normalizedSlug = $this->normalizeSlug($slug);
+        if ($normalizedSlug === '') {
+            return [];
+        }
+
+        $bundle = [];
+        foreach ($this->repository->allArticles() as $article) {
+            if ($this->normalizeSlug((string) ($article['slug'] ?? '')) !== $normalizedSlug) {
+                continue;
+            }
+
+            $language = $this->normalizeLanguage((string) ($article['lang'] ?? $this->defaultLanguage));
+            if ($language === '') {
+                continue;
+            }
+
+            $bundle[$language] = $article;
+        }
+
+        return $bundle;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $articlesByLanguage
+     * @return array<string, mixed>|null
+     */
+    private function resolveBundleRepresentativeArticle(array $articlesByLanguage, string $preferredLanguage): ?array
+    {
+        $normalizedPreferredLanguage = $this->normalizeLanguage($preferredLanguage);
+        if ($normalizedPreferredLanguage !== '' && is_array($articlesByLanguage[$normalizedPreferredLanguage] ?? null)) {
+            return $articlesByLanguage[$normalizedPreferredLanguage];
+        }
+
+        if (is_array($articlesByLanguage[$this->defaultLanguage] ?? null)) {
+            return $articlesByLanguage[$this->defaultLanguage];
+        }
+
+        foreach ($this->availableLanguages as $language) {
+            if (is_array($articlesByLanguage[$language] ?? null)) {
+                return $articlesByLanguage[$language];
+            }
+        }
+
+        foreach ($articlesByLanguage as $article) {
+            if (is_array($article)) {
+                return $article;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    private function normalizePostedTranslations(mixed $value): array
+    {
+        $translations = [];
+        $rawTranslations = is_array($value) ? $value : [];
+
+        foreach ($this->availableLanguages as $language) {
+            $translation = is_array($rawTranslations[$language] ?? null) ? $rawTranslations[$language] : [];
+            $translations[$language] = [
+                'title' => is_string($translation['title'] ?? null) ? trim((string) $translation['title']) : '',
+                'excerpt' => is_string($translation['excerpt'] ?? null) ? trim((string) $translation['excerpt']) : '',
+                'content' => is_string($translation['content'] ?? null) ? trim((string) $translation['content']) : '',
+            ];
+        }
+
+        return $translations;
+    }
+
+    /**
+     * @param array<string, mixed> $translation
+     * @param array<string, mixed>|null $existing
+     */
+    private function shouldPersistLanguageVariant(array $translation, ?array $existing): bool
+    {
+        if (is_array($existing)) {
+            return true;
+        }
+
+        foreach (['title', 'excerpt', 'content'] as $field) {
+            if (trim((string) ($translation[$field] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
