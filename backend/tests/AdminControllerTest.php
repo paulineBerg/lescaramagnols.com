@@ -2538,6 +2538,55 @@ final class AdminControllerTest extends TestCase
         $this->assertSame('sql-backup-secret', $databaseOverride['password'] ?? null);
     }
 
+    public function testSettingsBackupSectionRejectsUnwritableRoot(): void
+    {
+        $restrictedParent = sys_get_temp_dir() . '/caramagnols-admin-backup-restricted-' . bin2hex(random_bytes(4));
+        $backupRoot = $restrictedParent . '/backups';
+        mkdir($restrictedParent, 0777, true);
+        chmod($restrictedParent, 0555);
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        try {
+            $response = $controller->handle(
+                'settings',
+                $this->request(
+                    'POST',
+                    '/admin/settings',
+                    [],
+                    [
+                        'csrf_token' => admin_csrf_token(),
+                        'settings_section' => 'backup',
+                        'settings_action' => 'backup_save',
+                        'backup' => [
+                            'root_dir' => $backupRoot,
+                            'retention_days' => '21',
+                            'files_dir' => $backupRoot . '/archives',
+                            'sql_dir' => $backupRoot . '/dumps',
+                            'manifest_dir' => $backupRoot . '/manifestes',
+                            'php_binary' => 'php',
+                            'tar_binary' => 'tar',
+                            'mysqldump_binary' => 'mysqldump',
+                            'database_host' => 'bp269148-001.eu.clouddb.ovh.net',
+                            'database_port' => '35987',
+                            'database_name' => 'CarBDbase',
+                            'database_user' => 'bp269148-ovh',
+                            'database_password' => 'sql-backup-secret',
+                        ],
+                    ]
+                )
+            );
+
+            $this->assertSame(200, $response->status);
+            $this->assertStringContainsString('Le dossier de backup doit être accessible en écriture par PHP', $response->body);
+            $this->assertFileDoesNotExist($this->siteOverrideFile);
+            $this->assertFileDoesNotExist($this->databaseOverrideFile);
+        } finally {
+            chmod($restrictedParent, 0755);
+        }
+    }
+
     public function testSettingsCacheClearActionDeletesInstagramCacheFile(): void
     {
         global $appConfig;

@@ -23,6 +23,26 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
   <meta name="robots" content="<?= htmlspecialchars($pageRobotsValue, ENT_QUOTES, 'UTF-8') ?>" />
   <?php endif; ?>
   <?php
+  $pageMetaImageWidthValue = is_numeric($pageMetaImageWidth ?? null) ? (int) $pageMetaImageWidth : null;
+  $pageMetaImageHeightValue = is_numeric($pageMetaImageHeight ?? null) ? (int) $pageMetaImageHeight : null;
+  $hasPageSocialImage = !empty($pageMetaImage);
+  $pageMetaImageType = '';
+  if ($hasPageSocialImage) {
+      $imagePath = parse_url((string) $pageMetaImage, PHP_URL_PATH);
+      if (is_string($imagePath)) {
+          $imageExtension = strtolower((string) pathinfo($imagePath, PATHINFO_EXTENSION));
+          $pageMetaImageType = match ($imageExtension) {
+              'jpg', 'jpeg' => 'image/jpeg',
+              'png' => 'image/png',
+              'webp' => 'image/webp',
+              'gif' => 'image/gif',
+              'avif' => 'image/avif',
+              default => '',
+          };
+      }
+  }
+  ?>
+  <?php
   $pageCanonicalValue = trim((string) ($pageCanonicalUrl ?? ''));
   if ($pageCanonicalValue === '') {
       $pageCanonicalValue = trim((string) ($GLOBALS['pageCanonicalUrl'] ?? ''));
@@ -33,6 +53,16 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
   <?php endif; ?>
   <?php if (!empty($pageMetaImage)): ?>
   <meta property="og:image" content="<?= htmlspecialchars((string) $pageMetaImage, ENT_QUOTES, 'UTF-8') ?>" />
+  <meta property="og:image:secure_url" content="<?= htmlspecialchars((string) $pageMetaImage, ENT_QUOTES, 'UTF-8') ?>" />
+  <?php if ($pageMetaImageType !== ''): ?>
+  <meta property="og:image:type" content="<?= htmlspecialchars($pageMetaImageType, ENT_QUOTES, 'UTF-8') ?>" />
+  <?php endif; ?>
+  <?php if (is_int($pageMetaImageWidthValue) && $pageMetaImageWidthValue > 0): ?>
+  <meta property="og:image:width" content="<?= htmlspecialchars((string) $pageMetaImageWidthValue, ENT_QUOTES, 'UTF-8') ?>" />
+  <?php endif; ?>
+  <?php if (is_int($pageMetaImageHeightValue) && $pageMetaImageHeightValue > 0): ?>
+  <meta property="og:image:height" content="<?= htmlspecialchars((string) $pageMetaImageHeightValue, ENT_QUOTES, 'UTF-8') ?>" />
+  <?php endif; ?>
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:image" content="<?= htmlspecialchars((string) $pageMetaImage, ENT_QUOTES, 'UTF-8') ?>" />
   <?php if (!empty($pageMetaImageAlt)): ?>
@@ -47,6 +77,16 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
       $withoutGlobalRobots = preg_replace('/<meta\s+[^>]*name=["\']robots["\'][^>]*>\s*/i', '', $globalHeadMetadataOutput);
       if (is_string($withoutGlobalRobots)) {
           $globalHeadMetadataOutput = trim($withoutGlobalRobots);
+      }
+  }
+  if ($hasPageSocialImage && $globalHeadMetadataOutput !== '') {
+      $withoutGlobalSocialImage = preg_replace(
+          '/\s*<meta[^>]+\s(?:name|property)\s*=\s*["\'](?:og:image(?::[^"\']*)?|twitter:image(?::[^"\']*)?)["\'][^>]*>/i',
+          '',
+          $globalHeadMetadataOutput
+      );
+      if (is_string($withoutGlobalSocialImage)) {
+          $globalHeadMetadataOutput = trim($withoutGlobalSocialImage);
       }
   }
   ?>

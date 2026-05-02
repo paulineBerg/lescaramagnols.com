@@ -125,6 +125,38 @@ final class ProductionBackupServiceTest extends TestCase
         $this->assertStringContainsString("--no-tablespaces\n", (string) file_get_contents($argsPath));
     }
 
+    public function testBackupFailsCleanlyWhenTargetParentIsNotWritable(): void
+    {
+        $backendRoot = $this->tmpRoot . '/backend';
+        $restrictedParent = $this->tmpRoot . '/restricted';
+        $backupRoot = $restrictedParent . '/backups';
+        mkdir($backendRoot, 0777, true);
+        mkdir($restrictedParent, 0777, true);
+        chmod($restrictedParent, 0555);
+
+        $service = new ProductionBackupService(
+            $backendRoot,
+            $backupRoot,
+            [
+                'name' => 'caramagnols',
+                'user' => 'caramagnols',
+                'password' => 'secret',
+            ],
+            'car_'
+        );
+
+        try {
+            $this->expectException(RuntimeException::class);
+            $this->expectExceptionMessage('n’est pas accessible en écriture');
+
+            $service->run([
+                'scope' => 'files',
+            ]);
+        } finally {
+            chmod($restrictedParent, 0755);
+        }
+    }
+
     private function removeDirectoryRecursively(string $directory): void
     {
         if (!is_dir($directory)) {

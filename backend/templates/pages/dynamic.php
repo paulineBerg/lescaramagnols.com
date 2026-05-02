@@ -648,12 +648,87 @@ if ($pageTilesHtml !== '') {
 
 $pageMetaDescription = !empty($page['meta']['description']) ? (string) $page['meta']['description'] : null;
 $pageMetaImage = null;
+$pageMetaImageWidth = null;
+$pageMetaImageHeight = null;
+$pageMetaImageAlt = '';
+
+$resolveMetaImageFromPayload = static function (array $payload, string $fallbackAlt) use ($toAbsoluteImageUrl): ?array {
+    $normalized = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata($payload);
+    if (!is_array($normalized)) {
+        return null;
+    }
+
+    $src = trim((string) ($normalized['src'] ?? ''));
+    if ($src === '') {
+        return null;
+    }
+
+    $alt = trim((string) ($normalized['alt'] ?? ''));
+    if ($alt === '') {
+        $alt = $fallbackAlt;
+    }
+
+    return [
+        'src' => $toAbsoluteImageUrl($src),
+        'alt' => $alt,
+        'width' => $normalized['width'] ?? null,
+        'height' => $normalized['height'] ?? null,
+    ];
+};
+
 $pageMetaImagePayload = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata(
     is_array($page['meta']['image'] ?? null) ? $page['meta']['image'] : []
 );
-$pageMetaImageAlt = '';
-if (is_array($pageMetaImagePayload) && trim((string) ($pageMetaImagePayload['src'] ?? '')) !== '') {
-    $pageMetaImage = $toAbsoluteImageUrl((string) $pageMetaImagePayload['src']);
-    $pageMetaImageAlt = trim((string) ($pageMetaImagePayload['alt'] ?? ''));
+$pageMetaImageCandidate = is_array($pageMetaImagePayload)
+    ? $resolveMetaImageFromPayload($pageMetaImagePayload, (string) $pageTitle)
+    : null;
+
+if ($pageMetaImageCandidate === null) {
+    if (!empty($sharedMediaItems)) {
+        $firstSharedMedia = $sharedMediaItems[0];
+        $firstSharedMediaUrl = trim((string) ($firstSharedMedia['src'] ?? ''));
+        if ($firstSharedMediaUrl !== '') {
+            $pageMetaImageCandidate = [
+                'src' => $toAbsoluteImageUrl($firstSharedMediaUrl),
+                'alt' => trim((string) ($firstSharedMedia['alt'] ?? (string) $pageTitle)),
+                'width' => $firstSharedMedia['width'] ?? null,
+                'height' => $firstSharedMedia['height'] ?? null,
+            ];
+        }
+    }
 }
+
+if ($pageMetaImageCandidate === null && $attachedChronicleArticles !== []) {
+    foreach ($attachedChronicleArticles as $attachedChronicleArticle) {
+        if (!is_array($attachedChronicleArticle)) {
+            continue;
+        }
+
+        $articleMetaImagePayload = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata(
+            is_array($attachedChronicleArticle['featured_image'] ?? null)
+                ? $attachedChronicleArticle['featured_image']
+                : []
+        );
+        if (!is_array($articleMetaImagePayload)) {
+            continue;
+        }
+
+        $articleMetaImageCandidate = $resolveMetaImageFromPayload(
+            $articleMetaImagePayload,
+            trim((string) ($attachedChronicleArticle['title'] ?? (string) $pageTitle))
+        );
+        if (is_array($articleMetaImageCandidate)) {
+            $pageMetaImageCandidate = $articleMetaImageCandidate;
+            break;
+        }
+    }
+}
+
+if (is_array($pageMetaImageCandidate)) {
+    $pageMetaImage = $pageMetaImageCandidate['src'];
+    $pageMetaImageAlt = trim((string) ($pageMetaImageCandidate['alt'] ?? ''));
+    $pageMetaImageWidth = $pageMetaImageCandidate['width'] ?? null;
+    $pageMetaImageHeight = $pageMetaImageCandidate['height'] ?? null;
+}
+
 // Le layout est rendu par FrontController::pageResponse().

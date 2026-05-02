@@ -84,6 +84,30 @@ $pageMetaImage = is_array($hubMetaImage) && trim((string) ($hubMetaImage['src'] 
     ? $toAbsoluteImageUrl((string) $hubMetaImage['src'])
     : null;
 $pageMetaImageAlt = is_array($hubMetaImage) ? trim((string) ($hubMetaImage['alt'] ?? '')) : '';
+$pageMetaImageWidth = $hubMetaImage['width'] ?? null;
+$pageMetaImageHeight = $hubMetaImage['height'] ?? null;
+if ($pageMetaImage === null && $articles !== []) {
+    foreach ($articles as $articleItem) {
+        if (!is_array($articleItem)) {
+            continue;
+        }
+
+        $articleImage = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata(
+            is_array($articleItem['image'] ?? null) ? $articleItem['image'] : []
+        );
+        if (!is_array($articleImage) || trim((string) ($articleImage['src'] ?? '')) === '') {
+            continue;
+        }
+
+        $pageMetaImage = $toAbsoluteImageUrl((string) $articleImage['src']);
+        $pageMetaImageAlt = trim((string) ($articleImage['alt'] ?? (string) ($articleItem['title'] ?? $hubTitle)));
+        $pageMetaImageWidth = $articleImage['width'] ?? null;
+        $pageMetaImageHeight = $articleImage['height'] ?? null;
+        if ($pageMetaImage !== null) {
+            break;
+        }
+    }
+}
 if ($pageMetaImageAlt === '') {
     $pageMetaImageAlt = $hubTitle;
 }

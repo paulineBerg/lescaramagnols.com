@@ -662,6 +662,8 @@ Regles:
 - renseigner `width` et `height` avec les dimensions reelles du fichier utilise
 - la `meta.description` ne recopie ni le `h1` ni le chapo mot pour mot; elle resume l'angle de lecture de facon concrete
 - lors d'une modification editoriale importante, verifier apres publication la presence de `og:image`, `twitter:image` et `twitter:image:alt` dans le HTML rendu
+- l'image sociale ne doit pas rester figée à la valeur globale du site dans le `head`; quand une image de page existe, l'image de partage doit suivre la priorité page (au minimum `meta.image`, puis un fallback local documenté)
+- quand `pageMetaImage` est rempli, supprimer dans `site.head_metadata_html` les tags sociaux concurrents (`og:image*`, `twitter:image*`) pour éviter l'override par l'image globale
 
 Ce qu'il faut eviter:
 - reprendre une image sans rapport direct avec le contenu reel de la page

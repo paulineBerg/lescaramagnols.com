@@ -714,6 +714,12 @@ final class AdminSettingsService
             }
         }
 
+        foreach ([$rootDir, $filesDir, $sqlDir, $manifestDir] as $directory) {
+            if (!$this->isBackupOutputPathWritable($directory)) {
+                return ['data' => [], 'error' => sprintf('Le dossier de backup doit être accessible en écriture par PHP: %s', $directory)];
+            }
+        }
+
         $phpBinary = PhpCliBinary::normalize((string) ($backup['phpBinary'] ?? 'php'));
         if ($phpBinary === null) {
             return ['data' => [], 'error' => 'Le binaire PHP CLI est invalide.'];
@@ -2641,6 +2647,30 @@ final class AdminSettingsService
             && $normalizedPath !== $publicRoot
             && !str_starts_with($normalizedPath . '/', $backendRoot . '/')
             && !str_starts_with($normalizedPath . '/', $publicRoot . '/');
+    }
+
+    private function isBackupOutputPathWritable(string $path): bool
+    {
+        $normalizedPath = rtrim((string) preg_replace('#/+#', '/', $path), '/');
+        if ($normalizedPath === '') {
+            $normalizedPath = '/';
+        }
+
+        if (file_exists($normalizedPath) && !is_dir($normalizedPath)) {
+            return false;
+        }
+
+        $probe = $normalizedPath;
+        while (!file_exists($probe)) {
+            $parent = dirname($probe);
+            if ($parent === $probe) {
+                break;
+            }
+
+            $probe = $parent;
+        }
+
+        return is_dir($probe) && is_writable($probe);
     }
 
     private function isOutsideWebroot(string $path): bool

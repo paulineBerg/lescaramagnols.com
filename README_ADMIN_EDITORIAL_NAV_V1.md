@@ -75,6 +75,7 @@ Mise a jour 2026-04-28 (backups production) :
 - ajout d'une section `Parametres > Sauvegardes` affichant le dossier cible, la retention, le script CLI et la commande cron recommandee.
 - ajout de `backend/core/tools/backup_production.php` pour produire une archive du dossier backend prod et un dump SQL compresses, avec verrouillage, manifestes et refus d'ecrire dans le backend ou le webroot.
 - la section admin permet de modifier le dossier racine, les dossiers fichiers/SQL/manifestes, la retention, les binaires CLI et la connexion SQL utilisee par le dump; le mot de passe SQL n'est jamais reaffiche et peut seulement etre remplace.
+- les dossiers de backup doivent aussi etre accessibles en ecriture par l utilisateur PHP/cron; un chemin absolu systeme non writable est refuse a l enregistrement et le cron remonte maintenant ce motif explicitement.
 - la configuration peut aussi rester systeme/env (`PRODUCTION_BACKUP_ROOT`, `PRODUCTION_BACKUP_RETENTION_DAYS`, `PRODUCTION_BACKUP_TAR_BINARY`, `PRODUCTION_BACKUP_MYSQLDUMP_BINARY`) et n'expose pas de secret SQL dans l'admin.
 
 Mise a jour 2026-04-28 (Cron Center) :

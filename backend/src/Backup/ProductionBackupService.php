@@ -119,6 +119,7 @@ final class ProductionBackupService
         $description = $this->describe();
         if ($dryRun) {
             $this->assertBackupRootIsSafe();
+            $this->assertOutputDirectoriesWritable($scope);
             if ($scope === 'all' || $scope === 'sql') {
                 $this->assertDatabaseConfigured();
             }
@@ -133,6 +134,7 @@ final class ProductionBackupService
         }
 
         $this->assertBackupRootIsSafe();
+        $this->assertOutputDirectoriesWritable($scope);
         $directories = $this->ensureDirectories();
         $lockHandle = $this->acquireLock($directories['locks'] . '/production-backup.lock');
 
@@ -248,7 +250,7 @@ final class ProductionBackupService
         ];
 
         foreach ($directories as $directory) {
-            if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+            if (!is_dir($directory) && !@mkdir($directory, 0700, true) && !is_dir($directory)) {
                 throw new RuntimeException(sprintf('Impossible de créer le dossier de backup: %s', $directory));
             }
 
@@ -256,6 +258,64 @@ final class ProductionBackupService
         }
 
         return $directories;
+    }
+
+    private function assertOutputDirectoriesWritable(string $scope): void
+    {
+        $backupRoot = $this->absolutePath($this->backupRoot);
+        $directories = [
+            $backupRoot,
+            $backupRoot . '/locks',
+            $backupRoot . '/tmp',
+            $this->outputDirectory('manifests', $backupRoot),
+        ];
+
+        if ($scope === 'all' || $scope === 'files') {
+            $directories[] = $this->outputDirectory('files', $backupRoot);
+        }
+
+        if ($scope === 'all' || $scope === 'sql') {
+            $directories[] = $this->outputDirectory('sql', $backupRoot);
+        }
+
+        foreach (array_values(array_unique($directories)) as $directory) {
+            $this->assertDirectoryWritableOrCreatable($directory);
+        }
+    }
+
+    private function assertDirectoryWritableOrCreatable(string $directory): void
+    {
+        if (file_exists($directory) && !is_dir($directory)) {
+            throw new RuntimeException(sprintf('Le chemin de backup existe déjà comme fichier: %s', $directory));
+        }
+
+        $existingDirectory = $this->nearestExistingDirectory($directory);
+        if ($existingDirectory === null || !is_dir($existingDirectory)) {
+            throw new RuntimeException(sprintf('Le chemin parent du backup est invalide: %s', $directory));
+        }
+
+        if (!is_writable($existingDirectory)) {
+            throw new RuntimeException(sprintf('Le dossier de backup n’est pas accessible en écriture: %s', $directory));
+        }
+    }
+
+    private function nearestExistingDirectory(string $path): ?string
+    {
+        $current = rtrim($this->normalizeSlashes($path), '/');
+        if ($current === '') {
+            $current = '/';
+        }
+
+        while (!file_exists($current)) {
+            $parent = dirname($current);
+            if ($parent === $current) {
+                break;
+            }
+
+            $current = $parent;
+        }
+
+        return file_exists($current) ? $current : null;
     }
 
     /**

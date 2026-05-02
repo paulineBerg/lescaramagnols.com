@@ -117,4 +117,32 @@ final class ScriptsHeadPartialTest extends TestCase
         $this->assertStringContainsString('summary_large_image', $html);
         $this->assertStringContainsString('Couverture article', $html);
     }
+
+    public function testPublicHeadOmitsGlobalSocialImageWhenPageImageIsSet(): void
+    {
+        global $appConfig;
+
+        $pageTitle = 'Test image SEO';
+        $pageMetaImage = 'https://example.test/uploads/editorial/article/2026/03/cover.jpg';
+        $pageMetaImageAlt = 'Couverture article';
+        $appConfig['site']['head_metadata_html'] = <<<HTML
+<meta property="og:image" content="https://www.lescaramagnols.com/assets/images/bouger/golfe/montage.jpg" />
+<meta property="og:image:secure_url" content="https://www.lescaramagnols.com/assets/images/bouger/golfe/montage.jpg" />
+<meta property="og:image:width" content="1000" />
+<meta property="og:image:height" content="562" />
+<meta name="twitter:image" content="https://www.lescaramagnols.com/assets/images/bouger/golfe/montage.jpg" />
+<meta name="twitter:image:alt" content="Image par défaut du site" />
+<meta name="twitter:card" content="summary_large_image" />
+HTML;
+
+        ob_start();
+        include ROOT_PATH . '/templates/partials/scripts_head.php';
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString('content="https://example.test/uploads/editorial/article/2026/03/cover.jpg"', $html);
+        $this->assertStringNotContainsString('content="https://www.lescaramagnols.com/assets/images/bouger/golfe/montage.jpg"', $html);
+        $this->assertStringNotContainsString('Image par défaut du site', $html);
+        $this->assertStringNotContainsString('<meta property="og:image:width" content="1000"', $html);
+        $this->assertStringNotContainsString('<meta property="og:image:height" content="562"', $html);
+    }
 }

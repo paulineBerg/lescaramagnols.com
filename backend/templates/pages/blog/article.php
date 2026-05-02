@@ -26,6 +26,41 @@ $toAbsoluteImageUrl = static function (string $src): string {
 
     return app_url(ltrim($src, '/'));
 };
+$extractFirstImageFromContent = static function (string $content): ?array {
+    if (stripos($content, '<img') === false) {
+        return null;
+    }
+
+    if (
+        preg_match('/<img\\b[^>]*\\bsrc\\s*=\\s*([\"\\'])(.*?)\\1[^>]*>/i', $content, $imageTagMatches) !== 1
+    ) {
+        return null;
+    }
+
+    $imageTag = $imageTagMatches[0];
+    $imagePayload = [
+        'src' => trim((string) ($imageTagMatches[2] ?? '')),
+    ];
+
+    if (preg_match('/\\balt\\s*=\\s*[\"\\']([^\"\\']*)[\"\\']/i', $imageTag, $imageAttributeMatches) === 1) {
+        $imagePayload['alt'] = trim((string) $imageAttributeMatches[1]);
+    }
+
+    if (preg_match('/\\bwidth\\s*=\\s*[\"\\']?(\\d+)\\1?/i', $imageTag, $widthMatches) === 1) {
+        $imagePayload['width'] = (int) $widthMatches[1];
+    }
+
+    if (preg_match('/\\bheight\\s*=\\s*[\"\\']?(\\d+)\\1?/i', $imageTag, $heightMatches) === 1) {
+        $imagePayload['height'] = (int) $heightMatches[1];
+    }
+
+    $imagePayload = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata($imagePayload);
+    if (!is_array($imagePayload) || trim((string) ($imagePayload['src'] ?? '')) === '') {
+        return null;
+    }
+
+    return $imagePayload;
+};
 $pageMetaDescription = trim((string) ($article['excerpt'] ?? ''));
 if ($pageMetaDescription === '') {
     $pageMetaDescription = trim(strip_tags((string) ($article['content'] ?? '')));
@@ -33,12 +68,26 @@ if ($pageMetaDescription === '') {
         ? (string) mb_substr($pageMetaDescription, 0, 240)
         : substr($pageMetaDescription, 0, 240);
 }
-$pageMetaImage = is_array($featuredImage) && trim((string) ($featuredImage['src'] ?? '')) !== ''
-    ? $toAbsoluteImageUrl((string) $featuredImage['src'])
-    : null;
-$pageMetaImageAlt = is_array($featuredImage)
-    ? trim((string) ($featuredImage['alt'] ?? ''))
-    : '';
+$pageMetaImage = null;
+$pageMetaImageWidth = null;
+$pageMetaImageHeight = null;
+$pageMetaImageAlt = '';
+if (is_array($featuredImage) && trim((string) ($featuredImage['src'] ?? '')) !== '') {
+    $pageMetaImage = $toAbsoluteImageUrl((string) $featuredImage['src']);
+    $pageMetaImageAlt = trim((string) ($featuredImage['alt'] ?? ''));
+    $pageMetaImageWidth = $featuredImage['width'] ?? null;
+    $pageMetaImageHeight = $featuredImage['height'] ?? null;
+}
+
+if ($pageMetaImage === null) {
+    $contentImage = $extractFirstImageFromContent((string) ($article['content'] ?? ''));
+    if (is_array($contentImage) && trim((string) ($contentImage['src'] ?? '')) !== '') {
+        $pageMetaImage = $toAbsoluteImageUrl((string) $contentImage['src']);
+        $pageMetaImageAlt = trim((string) ($contentImage['alt'] ?? ''));
+        $pageMetaImageWidth = $contentImage['width'] ?? null;
+        $pageMetaImageHeight = $contentImage['height'] ?? null;
+    }
+}
 if ($pageMetaImageAlt === '') {
     $pageMetaImageAlt = trim((string) ($article['title'] ?? t('TXT_BLOG_ARTICLE_DEFAULT_TITLE')));
 }

@@ -478,6 +478,7 @@ Puis relancer la meme commande sans `--dry-run` pour appliquer.
 - `php backend/core/tools/editorial_backup_restore.php backup [--output=...] [--storage=json|sql|dual-write]` : exporte un backup complet pages/navigation/blog/discussions.
 - `php backend/core/tools/editorial_backup_restore.php restore <backup.json> --force [--storage=json|sql|dual-write]` : restaure ce backup (commande destructive).
 - `php backend/core/tools/backup_production.php [--scope=all|files|sql] [--dry-run] [--json] [--quiet]` : crée un backup production hors webroot avec archive du dossier backend (`.tar.gz`) et dump SQL (`.sql.gz`), puis applique la rétention.
+  - le dossier cible doit être accessible en écriture par l’utilisateur PHP/cron ; un chemin absolu comme `/backups` échouera si l’hébergement n’autorise pas l’écriture à la racine système.
 
 ### Conversion images
 ```bash
@@ -506,7 +507,7 @@ Copier `backend/.env.example` vers `backend/.env`, puis ajuster :
 - SMTP : `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT`, `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD`, `MAIL_SMTP_ENCRYPTION`, `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`.
 - Admin : `ADMIN_LOGIN_PATH`, `ADMIN_EMAIL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_KEY`, `ADMIN_LANGUAGE` (`fr`, `en` ou `de`; défaut `DEFAULT_LANG`).
 - HTTPS/proxy : `FORCE_HTTPS`, `FORCE_HTTPS_ON_LOCALHOST`, `TRUST_PROXY_HEADERS`.
-- Backups production : `PRODUCTION_BACKUP_ROOT`, `PRODUCTION_BACKUP_RETENTION_DAYS`, `PRODUCTION_BACKUP_TAR_BINARY`, `PRODUCTION_BACKUP_MYSQLDUMP_BINARY`, `PHP_CLI_BINARY`. Ces valeurs, ainsi que la connexion SQL utilisee par le dump, peuvent aussi etre ajustees depuis `Admin > Parametres > Sauvegardes`; le mot de passe SQL n'est jamais reaffiche et les chemins de sortie restent refuses s'ils pointent dans le backend ou le webroot.
+- Backups production : `PRODUCTION_BACKUP_ROOT`, `PRODUCTION_BACKUP_RETENTION_DAYS`, `PRODUCTION_BACKUP_TAR_BINARY`, `PRODUCTION_BACKUP_MYSQLDUMP_BINARY`, `PHP_CLI_BINARY`. Ces valeurs, ainsi que la connexion SQL utilisee par le dump, peuvent aussi etre ajustees depuis `Admin > Parametres > Sauvegardes`; le mot de passe SQL n'est jamais reaffiche, les chemins de sortie restent refuses s'ils pointent dans le backend ou le webroot, et l'admin refuse maintenant un dossier non accessible en écriture par PHP.
 - Exemple par défaut : `ADMIN_LOGIN_PATH=admin`.
 - `ADMIN_PASSWORD_HASH` est volontairement vide dans `.env.example` tant qu’aucun compte admin n’est créé.
 - Vérifier les permissions du `.env` (600 ou 640, hors `public/`).  
