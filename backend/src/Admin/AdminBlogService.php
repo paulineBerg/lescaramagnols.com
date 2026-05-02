@@ -51,7 +51,7 @@ final class AdminBlogService
 
     /**
      * @param array<string, mixed> $query
-     * @return array{status: ?string, lang: ?string, category: ?string, tag: ?string, q: string}
+     * @return array{status: ?string, scheduled_date: ?string, category: ?string, tag: ?string, q: string}
      */
     public function normalizeFilters(array $query): array
     {
@@ -60,14 +60,9 @@ final class AdminBlogService
             $status = '';
         }
 
-        $language = is_string($query['lang'] ?? null) ? strtolower(trim((string) $query['lang'])) : '';
-        if (!in_array($language, $this->availableLanguages, true)) {
-            $language = '';
-        }
-
         return [
             'status' => $status !== '' ? $status : null,
-            'lang' => $language !== '' ? $language : null,
+            'scheduled_date' => $this->normalizeScheduledDateFilter($query['scheduled_date'] ?? null),
             'category' => $this->taxonomy->resolveCategorySlug($query['category'] ?? null),
             'tag' => $this->taxonomy->resolveTagSlug($query['tag'] ?? null),
             'q' => is_string($query['q'] ?? null) ? trim((string) $query['q']) : '',
@@ -75,12 +70,12 @@ final class AdminBlogService
     }
 
     /**
-     * @param array{status: ?string, lang: ?string, category: ?string, tag: ?string, q: string} $filters
+     * @param array{status: ?string, scheduled_date: ?string, category: ?string, tag: ?string, q: string} $filters
      * @return array<int, array<string, mixed>>
      */
     public function listArticles(array $filters): array
     {
-        $articles = $this->repository->allArticles($filters['lang']);
+        $articles = $this->repository->allArticles();
         $search = $this->normalizeTextFilter($filters['q']);
 
         $articles = array_filter($articles, function (array $article) use ($filters, $search): bool {
@@ -101,6 +96,16 @@ final class AdminBlogService
                         return false;
                     }
                 } elseif ($rawStatus !== $requestedStatus) {
+                    return false;
+                }
+            }
+
+            if ($filters['scheduled_date'] !== null) {
+                if ($this->normalizeStatus((string) ($article['status'] ?? 'draft')) !== 'scheduled') {
+                    return false;
+                }
+
+                if ($this->scheduledPublishDate($article) !== $filters['scheduled_date']) {
                     return false;
                 }
             }
@@ -1322,6 +1327,25 @@ final class AdminBlogService
         return in_array($normalized, $this->supportedStatuses(), true) ? $normalized : 'draft';
     }
 
+    private function normalizeScheduledDateFilter(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $normalized = trim($value);
+        if ($normalized === '') {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $normalized);
+        if (!$date instanceof \DateTimeImmutable || $date->format('Y-m-d') !== $normalized) {
+            return null;
+        }
+
+        return $normalized;
+    }
+
     private function resolveDateInputForStatus(string $status, string $dateInput, string $scheduledPublishAtInput): string
     {
         if ($this->normalizeStatus($status) === 'scheduled') {
@@ -1383,6 +1407,19 @@ final class AdminBlogService
         }
 
         return trim((string) ($article['date'] ?? ''));
+    }
+
+    /**
+     * @param array<string, mixed> $article
+     */
+    private function scheduledPublishDate(array $article): ?string
+    {
+        $timestamp = $this->scheduledPublishTimestamp($article);
+        if (!is_int($timestamp)) {
+            return null;
+        }
+
+        return date('Y-m-d', $timestamp);
     }
 
     /**

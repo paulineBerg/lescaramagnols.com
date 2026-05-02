@@ -14,8 +14,12 @@ Règles de fond :
 - commencer par un fait concret : date, modèle, usage, lieu, panne, pièce, décision d'achat, état d'une voiture ou repère historique
 - écrire court à moyen, sans emphase et sans phrases de remplissage
 - donner des informations vérifiables plutôt que des intentions générales
+- relire chaque phrase pour retirer les mots abstraits qui commentent le sujet sans le montrer
+- exiger dans chaque paragraphe au moins un élément concret : lieu, moment, action, pièce, symptôme, opération, contrôle, usage ou conséquence visible
+- remplacer les formulations de type concept, idée, logique, approche, cadre, aura ou esprit par une observation, un fait daté, une action menée ou un résultat visible
 - dire quand une réponse dépend du modèle exact, de l'état de la voiture, du pays, de la disponibilité des pièces ou de la qualité d'une restauration
 - conserver une voix claire, directe et sobre
+- garder cette sobriété sans glisser vers la description touristique, la formule d'ambiance ou l'effet de brochure
 - intégrer les liens internes dans des phrases utiles, sans bloc standardisé
 
 ## Tournures interdites

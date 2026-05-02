@@ -56,14 +56,14 @@ Ce document décrit l’architecture, les langages, les dépendances, les comman
 Prompt :
 en file d'attente,
 suivant agents.md et readme dédié BLOG,
-je veux que tu crées 5 max articles de blog en brouillon autour de 5 max thèmes distincts concernant la page parent "https://www.lescaramagnols.com/xxxxxx "
-relire la page déjà créé afin de bien adapter le sujet à son parent 
+je veux que tu crées 5 max articles de blog en brouillon autour de 5 max thèmes distincts, pour chaque langue (lang= fr de en), concernant la page parent "https://www.lescaramagnols.com/xxxxxx "
+relire les pages déjà créées afin de bien adapter le sujet à son parent 
 Fait les meilleurs choix SEO,  pas de sujet redondant, pas de doublon d'images
 Objectifs :
 20 à 25 max articles ultra ciblés par langue
 une domination SEO sur : "xxxxx"
 un site structuré et cohérent
-style qui respecte au plus près les règles, calme, concret et explicatif
+style qui respecte au plus près les règles, calme, cas concret et explicatif
 
 - Mini : histoire de austin, histoire de mini,
 - citroen : histoire de citroen,

@@ -299,6 +299,10 @@ Ordre recommande:
 - article de blog : dans `80 %` des cas, viser `1000` a `1500` mots
 - article de blog : dans `20 %` des cas, viser `800` a `1000` mots quand le sujet est plus simple, plus ponctuel ou tres visuel
 - article de blog : depasser `1800` mots doit rester exceptionnel et etre reserve a un sujet qui le justifie clairement
+- article de blog : relire chaque phrase pour retirer les formulations abstraites, les mots qui commentent le sujet au lieu de le montrer et les generalites qui restent au niveau du concept
+- article de blog : chaque paragraphe doit contenir au moins `1` element concret lisible des la premiere lecture, par exemple un lieu, un moment, une action, une piece, un symptome, un geste d atelier, un modele, un usage ou un fait observable
+- article de blog : remplacer les formulations de type idee, concept, logique, dynamique, aura, approche, cadre ou esprit par un fait situe, une consequence visible, un controle pratique ou une observation materielle
+- article de blog : garder un ton calme et utile; ne pas corriger une abstraction en basculant vers un descriptif touristique, une image facile ou une emphase de promenade
 - article de blog : le maillage interne est obligatoire, avec des liens vers des pages complementaires et des sujets lies, mais jamais vers la page actuelle elle-meme
 - article de blog : ne jamais commenter la fonction SEO, l'utilite editoriale, le statut de brouillon ou la structure de l'article lui-meme; le texte doit parler du sujet, pas de sa propre redaction
 - article de blog : proscrire les formulations meta du type `ce brouillon`, `cet article`, `page de reference`, `utile pour`, `pour le lecteur`, `le sujet gagne en clarte` ou `donne au sujet une fonction`; remplacer ces phrases par des faits, des dates, des usages, des contraintes ou des observations concretes

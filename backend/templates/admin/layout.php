@@ -1049,6 +1049,7 @@ $adminMenu = [
       }
 
       .admin-articles-filters-grid input[type="text"],
+      .admin-articles-filters-grid input[type="date"],
       .admin-articles-filters-grid select {
         min-height: 2.65rem;
         padding: 0.62rem 0.8rem;

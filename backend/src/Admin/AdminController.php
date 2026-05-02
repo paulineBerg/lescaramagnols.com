@@ -961,11 +961,10 @@ final class AdminController
         $deletedDiscussions = (int) ($query['deleted_discussions'] ?? 0);
         $detachedChildren = (int) ($query['detached_children'] ?? 0);
         $defaultFilters = $this->blogService->normalizeFilters([]);
-        $defaultFilters['lang'] = $this->adminInterfaceLanguage();
         $filterState = $this->resolveRememberedListFilters(
             $request,
             'articles',
-            ['status', 'lang', 'category', 'tag', 'q'],
+            ['status', 'scheduled_date', 'category', 'tag', 'q'],
             fn (array $input): array => $this->blogService->normalizeFilters($input),
             $defaultFilters
         );
@@ -1009,10 +1008,9 @@ final class AdminController
                 'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_ARTICLES', 'Articles du blog'),
                 'activeMenu' => 'articles',
                 'filters' => $filters,
-                'availableLanguages' => $this->blogService->availableLanguages(),
                 'supportedStatuses' => $this->blogService->supportedStatuses(),
-                'availableCategoryOptions' => $this->blogService->availableCategoryOptions($filters['lang']),
-                'availableTagOptions' => $this->blogService->availableTagOptions($filters['lang']),
+                'availableCategoryOptions' => $this->blogService->availableCategoryOptions($this->adminInterfaceLanguage()),
+                'availableTagOptions' => $this->blogService->availableTagOptions($this->adminInterfaceLanguage()),
                 'articles' => $articles,
                 'articleListSummary' => $articleListSummary,
                 'createArticleUrl' => $this->routeResolver->articleCreatePath(),

@@ -1445,8 +1445,62 @@ final class AdminControllerTest extends TestCase
             $response->body
         );
         $this->assertStringContainsString('class="card dashboard-kpi-card"', $response->body);
+        $this->assertStringContainsString('name="scheduled_date" type="date"', $response->body);
+        $this->assertStringNotContainsString('id="articles-lang"', $response->body);
         $this->assertStringContainsString('article_action', $response->body);
         $this->assertStringContainsString('Supprimer', $response->body);
+    }
+
+    public function testArticlesPageCanFilterScheduledArticlesByPlannedDate(): void
+    {
+        $this->writeBlogArticle([
+            'title' => 'Publication du 30 avril',
+            'slug' => 'publication-30-avril',
+            'lang' => 'fr',
+            'status' => 'scheduled',
+            'date' => '2026-04-30 13:34:02',
+            'content' => '<p>Publication planifiée.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'Publication du 1er mai',
+            'slug' => 'publication-1er-mai',
+            'lang' => 'fr',
+            'status' => 'scheduled',
+            'date' => '2026-05-01 09:15:00',
+            'content' => '<p>Publication planifiée.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
+        $this->writeBlogArticle([
+            'title' => 'Publication déjà en ligne',
+            'slug' => 'publication-deja-en-ligne',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-04-30 08:00:00',
+            'content' => '<p>Publication en ligne.</p>',
+            'category' => 'Sorties',
+            'tags' => ['Club'],
+        ]);
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'articles',
+            $this->request('GET', '/admin/articles', ['scheduled_date' => '2026-04-30'])
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('name="scheduled_date" type="date" value="2026-04-30"', $response->body);
+        $this->assertStringContainsString('publication-30-avril', $response->body);
+        $this->assertStringNotContainsString('publication-1er-mai', $response->body);
+        $this->assertStringNotContainsString('publication-deja-en-ligne', $response->body);
+        $this->assertMatchesRegularExpression(
+            '/<strong class="dashboard-kpi-value">1<\/strong>\s*<p class="dashboard-kpi-label">Articles visibles<\/p>/',
+            $response->body
+        );
     }
 
     public function testArticleEditorRendersPageAttachmentSelectorWithAvailablePages(): void

@@ -1,5 +1,5 @@
 <?php
-$filters = is_array($filters ?? null) ? $filters : ['status' => null, 'lang' => null, 'category' => null, 'tag' => null, 'q' => ''];
+$filters = is_array($filters ?? null) ? $filters : ['status' => null, 'scheduled_date' => null, 'category' => null, 'tag' => null, 'q' => ''];
 $articles = is_array($articles ?? null) ? $articles : [];
 $articleListSummary = is_array($articleListSummary ?? null) ? $articleListSummary : [];
 $categoryOptions = is_array($availableCategoryOptions ?? null) ? array_values($availableCategoryOptions) : [];
@@ -94,15 +94,8 @@ $scheduledCount = (int) ($articleListSummary['scheduled'] ?? $legacyScheduledCou
     </div>
 
     <div class="field">
-      <label for="articles-lang"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_LANGUAGE', 'Langue'), ENT_QUOTES, 'UTF-8'); ?></label>
-      <select id="articles-lang" name="lang">
-        <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ALL_FEMININE', 'Toutes'), ENT_QUOTES, 'UTF-8'); ?></option>
-        <?php foreach (($availableLanguages ?? []) as $language): ?>
-        <option value="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($filters['lang'] ?? null) === $language ? ' selected' : ''; ?>>
-          <?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?>
-        </option>
-        <?php endforeach; ?>
-      </select>
+      <label for="articles-scheduled-date"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_SCHEDULED_AT_LABEL', 'Publication programmée'), ENT_QUOTES, 'UTF-8'); ?></label>
+      <input id="articles-scheduled-date" name="scheduled_date" type="date" value="<?php echo htmlspecialchars((string) ($filters['scheduled_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
     </div>
 
     <div class="field">

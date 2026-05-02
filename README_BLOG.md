@@ -115,8 +115,12 @@ Règles obligatoires :
 - parler du sujet au lecteur, jamais de l’article lui-même
 - supprimer les tournures méta : `ce brouillon`, `cet article`, `l'article doit`, `le but est`, `version publiée`, `utile pour`, `pour le lecteur`, `le premier réflexe utile consiste à`, `segmenter le sujet`
 - remplacer les généralités par des faits observables : dates, modèles, pièces, gestes d’entretien, symptômes, contraintes de restauration, état de marché, contexte industriel, limites connues
+- relire chaque phrase pour supprimer les formulations abstraites ou flottantes qui restent au niveau du concept (`logique`, `dynamique`, `aura`, `approche`, `cadre`, `esprit`) quand elles ne sont pas immédiatement reliées à un fait
+- exiger dans chaque paragraphe au moins un ancrage concret : lieu, moment, action, pièce, usage, symptôme, étape d’atelier, version, document, prix, distance, état ou conséquence visible
+- préférer systématiquement l’observation, le contrôle, la chronologie ou le geste réel à l’idée générale; si un passage ne peut pas être montré, daté, situé ou vérifié, il doit être réécrit ou supprimé
 - dire clairement quand une réponse dépend du modèle exact, de l’état de la voiture, du pays, de la disponibilité des pièces ou du niveau de restauration
 - refuser le remplissage, les certitudes de façade et les conclusions abstraites
+- garder un ton sobre et explicatif; ne pas remplacer une abstraction par une prose touristique, promotionnelle ou décorative
 - conserver un maillage interne sobre et utile, intégré dans une phrase normale
 
 En stockage SQL maitre, chaque slug de blog public doit disposer de trois entrees alignees :

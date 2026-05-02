@@ -140,6 +140,10 @@ Mise a jour 2026-04-30 (admin pages, region Intro) :
 - `EditRegion8 - Intro` ne peut contenir qu une petite photo d appel ou une phrase tres courte.
 - des qu un contenu depasse ce role (texte developpe, second bloc editorial, grande image ou encart detaille), il doit etre deplace vers `EditRegion2 - Encart` ou `EditRegion3 - Corps`.
 
+Mise a jour 2026-05-02 (admin articles, filtres) :
+- la liste `Articles` n expose plus de filtre `Langue` : les traductions restent visibles via les badges `fr / en / de` sur chaque ligne.
+- le filtre remplace par `Publication programmee` cible maintenant les articles `scheduled` a une date donnee, au format `YYYY-MM-DD`.
+
 Mise a jour 2026-04-22 (tuiles after_body) :
 - ajout d un module admin `Tuiles` distinct de `Menus du site`
 - stockage SQL dedie pour les groupes, les items, leurs traductions et les placements de page
