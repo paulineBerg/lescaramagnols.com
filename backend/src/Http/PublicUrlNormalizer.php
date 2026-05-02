@@ -80,7 +80,7 @@ final class PublicUrlNormalizer
             preg_match('#^/assets/images/#', $normalized) === 1
             || preg_match('#^/uploads/editorial/#', $normalized) === 1
         ) {
-            if ($fallbackToPlaceholder && self::looksLikeImagePath($normalized) && !self::publicPathExists($normalized)) {
+            if ($fallbackToPlaceholder && self::shouldFallbackToPlaceholder($normalized)) {
                 return self::missingImagePlaceholderPath();
             }
 
@@ -117,8 +117,7 @@ final class PublicUrlNormalizer
         if (
             $allowImageFallback
             && !preg_match('#^https?://#i', $normalized)
-            && self::looksLikeImagePath($normalized)
-            && !self::publicPathExists($normalized)
+            && self::shouldFallbackToPlaceholder($normalized)
         ) {
             return self::missingImagePlaceholderPath();
         }
@@ -370,5 +369,39 @@ final class PublicUrlNormalizer
         $extension = strtolower((string) pathinfo(parse_url($path, PHP_URL_PATH) ?? $path, PATHINFO_EXTENSION));
 
         return in_array($extension, self::IMAGE_EXTENSIONS, true);
+    }
+
+    private static function shouldFallbackToPlaceholder(string $path): bool
+    {
+        if (!self::looksLikeImagePath($path)) {
+            return false;
+        }
+
+        if (preg_match('#^/assets/images/#', $path) === 1) {
+            return !self::managedVersionedImageExists($path);
+        }
+
+        return !self::publicPathExists($path);
+    }
+
+    private static function managedVersionedImageExists(string $path): bool
+    {
+        return self::publicPathExists($path) || self::sourceImagePathExists($path);
+    }
+
+    private static function sourceImagePathExists(string $path): bool
+    {
+        if (preg_match('#^/assets/images/#', $path) !== 1) {
+            return false;
+        }
+
+        $relativePath = substr($path, strlen('/assets/images/'));
+        if (!is_string($relativePath) || $relativePath === '') {
+            return false;
+        }
+
+        $frontendRoot = dirname(ROOT_PATH) . '/frontend/src/assets/images/';
+
+        return is_file($frontendRoot . ltrim($relativePath, '/'));
     }
 }

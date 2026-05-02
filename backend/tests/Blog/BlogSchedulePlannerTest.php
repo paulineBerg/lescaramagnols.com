@@ -20,14 +20,7 @@ final class BlogSchedulePlannerTest extends TestCase
 
     protected function tearDown(): void
     {
-        $files = glob($this->blogDir . '/*');
-        if (is_array($files)) {
-            foreach ($files as $file) {
-                @unlink($file);
-            }
-        }
-
-        @rmdir($this->blogDir);
+        $this->removeDirectory($this->blogDir);
     }
 
     public function testPlanNextDraftPicksActiveClusterWithLeastPublishedOrScheduledAndOldestDraft(): void
@@ -241,6 +234,55 @@ final class BlogSchedulePlannerTest extends TestCase
         $this->assertSame(1, $result['selected']['cluster_published_scheduled_count'] ?? null);
     }
 
+    public function testPlanNextDraftRotatesTiedClustersEveryFiveLogicalSlugs(): void
+    {
+        $windowZeroDir = $this->blogDir . '/window-0';
+        $windowOneDir = $this->blogDir . '/window-1';
+        mkdir($windowZeroDir, 0777, true);
+        mkdir($windowOneDir, 0777, true);
+        $repositoryWindowZero = new JsonBlogRepository($windowZeroDir);
+        $repositoryWindowOne = new JsonBlogRepository($windowOneDir);
+
+        $activeClusters = ['cluster-alpha', 'cluster-beta', 'cluster-gamma', 'cluster-delta'];
+        foreach ($activeClusters as $pageSlug) {
+            $this->seedArticlesInRepository($repositoryWindowZero, $pageSlug, [
+                'slug' => $pageSlug . '-draft',
+                'status' => 'draft',
+                'date' => '2026-01-01 09:00:00',
+            ]);
+            $this->seedArticlesInRepository($repositoryWindowOne, $pageSlug, [
+                'slug' => $pageSlug . '-draft',
+                'status' => 'draft',
+                'date' => '2026-01-01 09:00:00',
+            ]);
+        }
+
+        for ($index = 1; $index <= 5; $index++) {
+            $this->seedArticlesInRepository($repositoryWindowOne, 'cluster-seeded', [
+                'slug' => 'seeded-' . $index,
+                'status' => 'published',
+                'date' => sprintf('2026-01-%02d 09:00:00', $index),
+            ]);
+        }
+
+        $plannerWindowZero = new BlogSchedulePlanner($repositoryWindowZero);
+        $plannerWindowOne = new BlogSchedulePlanner($repositoryWindowOne);
+
+        $resultWindowZero = $plannerWindowZero->planNextDraft(strtotime('2026-01-07 10:00:00'), true);
+        $resultWindowOne = $plannerWindowOne->planNextDraft(strtotime('2026-01-07 10:00:00'), true);
+
+        $expectedWindowZero = $this->expectedRotatingCluster($activeClusters, 0);
+        $expectedWindowOne = $this->expectedRotatingCluster($activeClusters, 1);
+
+        $this->assertSame($expectedWindowZero, $resultWindowZero['selected']['cluster_page_slug'] ?? '');
+        $this->assertSame($expectedWindowOne, $resultWindowOne['selected']['cluster_page_slug'] ?? '');
+        $this->assertSame(0, $resultWindowZero['selected']['rotation_window_index'] ?? null);
+        $this->assertSame(1, $resultWindowOne['selected']['rotation_window_index'] ?? null);
+        $this->assertSame(5, $resultWindowZero['selected']['rotation_window_size'] ?? null);
+        $this->assertSame(5, $resultWindowOne['selected']['rotation_window_size'] ?? null);
+        $this->assertNotSame($expectedWindowZero, $expectedWindowOne);
+    }
+
     public function testPlanNextDraftCompletesPartiallyScheduledTripletWithSameDate(): void
     {
         $repository = new JsonBlogRepository($this->blogDir);
@@ -291,5 +333,71 @@ final class BlogSchedulePlannerTest extends TestCase
         foreach (['fr', 'en', 'de'] as $language) {
             $this->seedArticles($pageSlug, array_merge($data, ['lang' => $language]));
         }
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function seedArticlesInRepository(JsonBlogRepository $repository, string $pageSlug, array $data): void
+    {
+        $repository->save(array_merge(
+            [
+                'title' => (string) $data['slug'],
+                'slug' => (string) $data['slug'],
+                'lang' => 'fr',
+                'status' => 'draft',
+                'category' => 'auto-retro',
+                'tags' => ['classic'],
+                'content' => '<p>Article.</p>',
+                'featured_image' => [],
+                'page_slug' => $pageSlug,
+                'date' => '2026-01-01 09:00:00',
+            ],
+            $data
+        ));
+    }
+
+    /**
+     * @param array<int, string> $pageSlugs
+     */
+    private function expectedRotatingCluster(array $pageSlugs, int $rotationWindowIndex): string
+    {
+        $scores = [];
+        foreach ($pageSlugs as $pageSlug) {
+            $scores[$pageSlug] = hash('sha256', $rotationWindowIndex . "\n" . $pageSlug);
+        }
+
+        asort($scores, SORT_STRING);
+
+        return (string) array_key_first($scores);
+    }
+
+    private function removeDirectory(string $directory): void
+    {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $entries = scandir($directory);
+        if (!is_array($entries)) {
+            @rmdir($directory);
+            return;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $path = $directory . '/' . $entry;
+            if (is_dir($path)) {
+                $this->removeDirectory($path);
+                continue;
+            }
+
+            @unlink($path);
+        }
+
+        @rmdir($directory);
     }
 }

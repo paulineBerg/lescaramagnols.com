@@ -157,6 +157,7 @@ Images editoriales runtime :
 Images publiques versionnees / derivees :
 - la source canonique des images publiques front-office vit dans `frontend/src/assets/images/**`
 - la publication HTTP correspondante est copiee dans `backend/public/assets/images/**` au build (`npm run build` / `npm run postbuild`)
+- quand une page ou un article doit reference un nouveau fichier `/assets/images/**`, publier d'abord ce miroir HTTP puis seulement ensuite sauvegarder le contenu editorial pour eviter de figer un placeholder inutile dans le HTML stocke
 - `backend/public/assets/images/**` ne doit pas etre edite a la main ni versionne dans Git
 - si une image publique manque ou doit etre corrigee, faire la modification dans `frontend/src/assets/images/**` puis republier
 - le controle bloquant associe est `php backend/core/tools/check_editorial_media.php --check-published-assets`

@@ -80,7 +80,7 @@ cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.c
 
 - garde-fous maintenant automatiques :
   - `backend/tools/deploy-release.sh` bloque si les references `/assets/images/...` ne correspondent pas a `frontend/src/assets/images/**` ou si le miroir publie manque dans `backend/public/assets/images/**`
-  - `backend/tools/push-local-sql-to-ovh.sh --live` bloque si pages, blog, navigation ou tuiles actives referencent un media manquant et synchronise aussi `backend/public/uploads/editorial/**` vers OVH par defaut
+  - `backend/tools/push-local-sql-to-ovh.sh --live` bloque si pages, blog, navigation ou tuiles actives referencent un media manquant, synchronise aussi `backend/public/uploads/editorial/**` vers OVH par defaut et pousse maintenant tout le front publie (`backend/public/.vite/**`, `backend/public/assets/**`, `backend/public/tarteaucitron/**`) sans filtrage par extension
 
 - verification manuelle locale possible avant deploy :
   - `php backend/core/tools/check_editorial_media.php --check-published-assets`

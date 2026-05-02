@@ -15,6 +15,7 @@ Ordre de travail recommande:
 - pour une modification editoriale, considerer SQL comme source de verite effective; `backend/data/pages.json` et `backend/data/menus.json` doivent etre traites comme miroirs de travail, snapshots de versionnement ou payloads d'import/export, jamais comme etat final suffisant a eux seuls
 - pour une modification editoriale en stockage SQL maitre, faire un backup adapte, pousser la correction dans SQL via les repositories/outils prevus, regenerer l'index de recherche et verifier le rendu public cible
 - pour un media public durable, versionner la source dans `frontend/src/assets/images/**`, produire `jpg` et `webp`, publier vers `backend/public/assets` via le pipeline, puis verifier dimensions, droits, sources et rendu
+- avant de sauvegarder une page ou un article qui reference un nouveau fichier sous `/assets/images/**`, publier d'abord le miroir HTTP vers `backend/public/assets/images/**` avec `npm run build` ou `npm run postbuild`; la source frontend reste canonique, mais le rendu public depend des fichiers publies
 - avant un deploy ou un push editorial, verifier les medias references via `php backend/core/tools/check_editorial_media.php --check-published-assets` ou laisser les scripts de deploiement bloquer automatiquement
 - terminer par les validations adaptees au risque: JSON, PHP, frontend, index, build, smoke HTTP ou verification manuelle ciblee
 - signaler explicitement toute divergence restante entre JSON, SQL, prod, index ou assets publies
@@ -454,6 +455,7 @@ Principe:
 - choisir le prochain brouillon le plus ancien de ce cluster, puis planifier ensemble toutes ses variantes brouillon disponibles à la même date
 - si un `slug` a déjà une variante `scheduled` ou `published`, aligner les brouillons restants sur cette date existante au lieu de créer une seconde date
 - si un ou plusieurs clusters actifs existent, privilégier celui avec le plus petit total `published + scheduled`
+- si plusieurs clusters actifs ont le même minimum, départager ce groupe ex aequo par une rotation pseudo-aléatoire déterministe qui change toutes les `5` planifications logiques globales; à fenêtre égale, le même état doit redonner le même cluster
 - si tous les clusters ont `>=5` articles publiés/planifiés, choisir le brouillon le plus ancien toutes langues confondues
 - calculer la date planifiée:
   - si aucune date `scheduled` n’existe: aujourd’hui + `11` jours
@@ -474,6 +476,8 @@ Après chaque sélection qui modifie une date de planification, relancer le mail
 Commande d’exécution :
 - `php backend/core/tools/plan_next_blog_article.php [--dry-run] [--json] [--now=YYYY-MM-DD HH:MM:SS]`
 - exécute la règle de sélection, met à jour l’article choisi, puis reconstruit le maillage interne si une planification a été créée.
+- `php backend/core/tools/plan_all_blog_drafts.php [--json] [--limit=N] [--now=YYYY-MM-DD HH:MM:SS]`
+- applique la même règle en boucle sur tous les brouillons restants, puis reconstruit le maillage une seule fois en fin de lot.
 
 ## 10. Politique media du site
 

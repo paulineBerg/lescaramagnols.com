@@ -236,11 +236,13 @@ La planification ne dépend pas d’un cron :
 
 Commande d’exécution automatique (CLI) :
 - `php backend/core/tools/plan_next_blog_article.php`
+- `php backend/core/tools/plan_all_blog_drafts.php`
 - options :
   - `--dry-run` : simule la sélection et affiche le résultat sans persister
   - `--json` : sortie JSON pour intégration CI/exploitation
   - `--now=YYYY-MM-DD HH:MM:SS` : référence temporelle pour calcul de date (facultatif)
 - en cas de succès, la commande met à jour l’article en statut `scheduled` et relance le maillage interne sur les articles `published`/`scheduled`.
+- `plan_all_blog_drafts.php` applique la même règle en boucle sur tous les brouillons restants, puis reconstruit le maillage une seule fois en fin de lot; `--limit=N` permet de s’arrêter après `N` slugs logiques.
 
 Règle de sélection 11 jours / rotation de séries :
 - regrouper les brouillons par `page_slug` (cluster)
@@ -248,6 +250,7 @@ Règle de sélection 11 jours / rotation de séries :
 - compter le quota `published + scheduled` par `slug` distinct, pas par entrée `fr` / `en` / `de`
 - ne pas dépasser `5` `published + scheduled` par cluster
 - prioriser le cluster actif ayant le moins d’articles publiés/planifiés
+- si plusieurs clusters actifs ont le même minimum, départager ce groupe ex aequo par une rotation pseudo-aléatoire déterministe qui change toutes les `5` planifications logiques globales; à fenêtre égale, le même état doit redonner le même cluster
 - choisir dans ce cluster le brouillon le plus ancien, puis planifier ensemble toutes ses variantes brouillon disponibles à la même date
 - si un `slug` a déjà une variante `scheduled` ou `published`, aligner les brouillons restants sur cette date existante au lieu de créer une seconde date
 - si tous les clusters sont pleins, utiliser le brouillon le plus ancien global
@@ -276,6 +279,7 @@ La création d'un article de blog doit respecter les règles médias suivantes (
 - si le sujet le justifie, privilégier une courte galerie finale plutôt qu'une accumulation de visuels en plein texte
 - image de couverture doit porter `alt`, `title`, `caption`, `width` et `height` quand l'information existe
 - saisie manuelle via chemin public (`/assets/images/...`) ou URL `https://...`
+- si un nouvel asset versionne sous `/assets/images/...` vient d'etre ajoute dans `frontend/src/assets/images/**`, lancer d'abord `npm run build` ou `npm run postbuild` pour le publier dans `backend/public/assets/images/**` avant de sauvegarder l'article
 - upload admin sécurisé (JPG/PNG/WebP/GIF/AVIF) vers `backend/public/uploads/editorial/article/YYYY/MM`
 - dimensions explicitables pour limiter les CLS
 - rendu front sur :

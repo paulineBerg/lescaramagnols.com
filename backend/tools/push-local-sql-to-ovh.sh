@@ -13,6 +13,8 @@ ADMIN_RUNTIME_SNAPSHOT_TOOL="core/tools/export_admin_runtime_settings.php"
 EDITORIAL_MEDIA_CHECKER="core/tools/check_editorial_media.php"
 EDITORIAL_MEDIA_VALIDATOR_CLASS="src/Editorial/EditorialMediaValidator.php"
 UPLOADS_SYNC_SCRIPT="${REPO_ROOT}/backend/tools/sync-editorial-uploads.sh"
+PUBLISHED_FRONTEND_SYNC_SCRIPT="${REPO_ROOT}/backend/tools/sync-published-frontend-tree.sh"
+SITE_SUMMARY_TOOL="core/tools/generate_site_summary.php"
 
 LIVE=0
 DRY_RUN=0
@@ -33,7 +35,7 @@ Description:
   Par defaut elle couvre pages, navigation, articles de blog et tuiles.
   Elle exclut les donnees runtime/sensibles: utilisateurs, logs, meta schema, commentaires legacy et discussions de blog.
   Elle verifie aussi que les reglages admin Cron Center et Sauvegardes restent inchanges.
-  Elle synchronise aussi les assets publies par le build frontend: manifest Vite, bundles CSS/JS et images publiques.
+  Elle synchronise aussi le front publie complet issu du build frontend: manifest Vite, assets publics et tarteaucitron.
   Elle synchronise aussi les uploads editoriaux runtime sous backend/public/uploads/editorial/**, sauf --no-uploads.
   Elle bloque l'envoi si une page, un article, une navigation ou un groupe de tuiles actif reference un media manquant.
 
@@ -58,7 +60,7 @@ Options:
   --live                 Obligatoire pour autoriser l'ecriture prod.
   --allow-delete         Autorise les suppressions detectees par le diff editorial.
   --include-discussions  Inclut aussi les discussions de blog; a eviter sauf besoin explicite.
-  --no-assets            Ne pousse pas les assets frontend publies.
+  --no-assets            Ne pousse pas le front publie (.vite, assets, tarteaucitron).
   --no-uploads           Ne pousse pas les uploads editoriaux runtime.
   --dry-run              Affiche la configuration puis sort sans ecriture.
   --keep-remote-backups  Conserve les backups temporaires aussi sur OVH.
@@ -119,8 +121,18 @@ if [[ ! -f "$LOCAL_BACKEND/$EDITORIAL_MEDIA_VALIDATOR_CLASS" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$LOCAL_BACKEND/$SITE_SUMMARY_TOOL" ]]; then
+  echo "Outil sommaire de site introuvable dans $LOCAL_BACKEND/$SITE_SUMMARY_TOOL." >&2
+  exit 1
+fi
+
 if [[ ! -f "$UPLOADS_SYNC_SCRIPT" ]]; then
   echo "Script sync uploads introuvable: $UPLOADS_SYNC_SCRIPT" >&2
+  exit 1
+fi
+
+if [[ ! -f "$PUBLISHED_FRONTEND_SYNC_SCRIPT" ]]; then
+  echo "Script sync front publie introuvable: $PUBLISHED_FRONTEND_SYNC_SCRIPT" >&2
   exit 1
 fi
 
@@ -187,25 +199,13 @@ echo "[1/15] Verification locale des references medias editoriales"
 "$PHP_BIN" "$LOCAL_BACKEND/$EDITORIAL_MEDIA_CHECKER" --check-published-assets --public-root="$LOCAL_BACKEND/public"
 
 if [[ "$SYNC_ASSETS" -eq 1 ]]; then
-  echo "[2/15] Synchronisation des assets frontend publies"
+  echo "[2/15] Synchronisation du front publie"
   "$PHP_BIN" "$LOCAL_BACKEND/core/tools/check_vite_assets.php" --public-root="$LOCAL_BACKEND/public"
-  ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/public/.vite' '$REMOTE_BACKEND/public/assets'"
-  rsync -az "$LOCAL_BACKEND/public/.vite/" "$REMOTE_HOST:$REMOTE_BACKEND/public/.vite/"
-  rsync -az --prune-empty-dirs \
-    --include='*/' \
-    --include='*.css' \
-    --include='*.js' \
-    --include='*.jpg' \
-    --include='*.jpeg' \
-    --include='*.png' \
-    --include='*.webp' \
-    --include='*.gif' \
-    --include='*.svg' \
-    --exclude='*' \
-    "$LOCAL_BACKEND/public/assets/" "$REMOTE_HOST:$REMOTE_BACKEND/public/assets/"
+  REMOTE_HOST="$REMOTE_HOST" REMOTE_BACKEND="$REMOTE_BACKEND" LOCAL_BACKEND="$LOCAL_BACKEND" \
+    bash "$PUBLISHED_FRONTEND_SYNC_SCRIPT"
   ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php core/tools/check_vite_assets.php --public-root=public"
 else
-  echo "[2/15] Synchronisation des assets frontend publies ignoree (--no-assets)"
+  echo "[2/15] Synchronisation du front publie ignoree (--no-assets)"
 fi
 
 if [[ "$SYNC_UPLOADS" -eq 1 ]]; then
@@ -231,7 +231,8 @@ PROD_ADMIN_BEFORE_LOCAL="$PROD_DIR/$(basename "$REMOTE_ADMIN_BEFORE_JSON")"
 chmod 600 "$PROD_ADMIN_BEFORE_LOCAL"
 stat -c '%a %s %n' "$PROD_ADMIN_BEFORE_LOCAL"
 
-echo "[6/15] Backup SQL local"
+echo "[6/15] Regeneration locale du sommaire puis backup SQL local"
+"$PHP_BIN" "$LOCAL_BACKEND/$SITE_SUMMARY_TOOL" --base-url="$SITEMAP_BASE_URL"
 "$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" backup "${SYNC_FLAGS[@]}" --output="$LOCAL_JSON"
 gzip -f "$LOCAL_JSON"
 chmod 600 "$LOCAL_GZ"

@@ -125,7 +125,7 @@ if (!defined('CARAMAGNOLS_TITLE_TAG_RENDERED')) {
     .site-brand:hover span,.site-brand:focus-visible span,.site-brand:focus-within span{opacity:1;visibility:visible;transform:translate(0,-50%)}
     .site-banner-icon{display:inline-flex;align-items:center;justify-content:center;width:2rem;height:2rem;padding:.12rem;border-radius:999px;background:rgba(255,255,255,.94);box-shadow:0 .3rem .65rem rgba(0,0,0,.18);z-index:2;transform:translateY(var(--site-header-logo-offset-y))}
     .site-banner-icon img{display:block;width:100%;height:100%;object-fit:contain}
-    .site-header-headline{display:flex;width:max-content;gap:2rem;margin:0;color:#fff;line-height:1;font-size:clamp(.82rem,1.4vw,1.45rem);white-space:nowrap;animation:site-banner-marquee 24s linear infinite}
+    .site-header-headline{display:flex;width:max-content;gap:2rem;margin:0;color:#fff;line-height:1;font-size:clamp(.82rem,1.4vw,1.45rem);font-weight:800;white-space:nowrap;animation:site-banner-marquee 24s linear infinite}
     .site-header-headline span{display:block;padding-right:1.25rem}
     .site-header-banner:hover .site-header-headline,.site-header-banner:focus-within .site-header-headline{animation-play-state:paused}
     @keyframes site-banner-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}

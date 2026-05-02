@@ -112,6 +112,10 @@ Les scripts `backend/tools/deploy-fast.sh` et `backend/tools/deploy-release.sh` 
 - localement avant toute ecriture distante
 - sur la cible OVH apres rsync et mise a jour des permissions
 
+Synchronisation OVH du front publie :
+- `backend/tools/deploy-fast.sh` synchronise maintenant le miroir publie complet `backend/public/.vite/**`, `backend/public/assets/**` et `backend/public/tarteaucitron/**`
+- `backend/tools/push-local-sql-to-ovh.sh --live` pousse lui aussi ce miroir complet sans filtrage par extension, pour ne pas perdre une image, une police, un bundle ou une autre nouveaute publiee
+
 Si un fichier hashe reference par le manifest manque, le deploiement s'arrete avec la liste des fichiers absents.
 
 ## Audit Images Historiques
@@ -131,6 +135,7 @@ Ce script n'est pas bloquant pour le front-office. Il sert de base pour le chant
 Source de verite image :
 - source versionnee : `frontend/src/assets/images/**`
 - publication derivee : `backend/public/assets/images/**`
+- ordre editorial obligatoire : quand un nouveau `/assets/images/**` est reference dans une page ou un article, publier d'abord le miroir vers `backend/public/assets/images/**`, puis seulement sauvegarder le contenu
 - consequence pratique : ne jamais corriger une image directement dans `backend/public/assets/images`
 - pour les images integrees dans le texte editorial : viser `400 px` par defaut et ne monter a `700 px` qu'en cas de besoin documentaire clair
 - si un contenu editorial reference un upload admin, la copie vers OVH passe par `../backend/tools/sync-editorial-uploads.sh` et non par le pipeline Vite

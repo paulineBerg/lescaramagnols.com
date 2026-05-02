@@ -10,6 +10,7 @@ SITEMAP_BASE_URL="${SITEMAP_BASE_URL:-}"
 VITE_ASSET_CHECKER="core/tools/check_vite_assets.php"
 EDITORIAL_MEDIA_CHECKER="core/tools/check_editorial_media.php"
 PROD_TREE_CHECKER="core/tools/check_prod_tree.php"
+PUBLISHED_FRONTEND_SYNC_SCRIPT="${REPO_ROOT}/backend/tools/sync-published-frontend-tree.sh"
 
 DRY_RUN=0
 WITH_VENDOR=0
@@ -18,7 +19,7 @@ ALL_CHANGES=0
 
 is_deploy_excluded_path() {
   case "$1" in
-    .env|.env.*|config/*.override.php|vendor|vendor/*|node_modules|node_modules/*|tests|tests/*|docs|docs/*|README*|var|var/*|phpunit.xml|phpstan.neon*|phpstan.bootstrap.php|phpcs.xml|package.json|package-lock.json|npm-shrinkwrap.json|replace_image_paths.php|data/snapshots|data/snapshots/*|data/logs|data/logs/*|*.bak|*.old|*.orig|*.tmp|*~|.DS_Store|Thumbs.db|public/assets/images|public/assets/images/*|public/uploads|public/uploads/*|public/dev-router.php)
+    .env|.env.*|config/*.override.php|vendor|vendor/*|node_modules|node_modules/*|tests|tests/*|docs|docs/*|README*|var|var/*|phpunit.xml|phpstan.neon*|phpstan.bootstrap.php|phpcs.xml|package.json|package-lock.json|npm-shrinkwrap.json|replace_image_paths.php|data/snapshots|data/snapshots/*|data/logs|data/logs/*|*.bak|*.old|*.orig|*.tmp|*~|.DS_Store|Thumbs.db|public/uploads|public/uploads/*|public/dev-router.php)
       return 0
       ;;
   esac
@@ -44,6 +45,7 @@ Description:
   - Preserves runtime editorial uploads under backend/public/uploads/editorial/
   - Excludes and cleans non-production dev/test/docs/temp files
   - Checks Vite manifest assets locally before deploy and remotely after sync
+  - Synchronises the full published frontend tree (.vite, assets, tarteaucitron)
   - Generates static sitemap at backend/public/sitemap.xml and refreshes the public site summary page
   - Clears runtime cache after deploy (unless --no-cache-clear)
 
@@ -100,6 +102,11 @@ fi
 
 if [[ ! -f "$LOCAL_BACKEND/$PROD_TREE_CHECKER" ]]; then
   echo "Production tree checker not found: $LOCAL_BACKEND/$PROD_TREE_CHECKER" >&2
+  exit 1
+fi
+
+if [[ ! -f "$PUBLISHED_FRONTEND_SYNC_SCRIPT" ]]; then
+  echo "Published frontend sync script not found: $PUBLISHED_FRONTEND_SYNC_SCRIPT" >&2
   exit 1
 fi
 
@@ -189,6 +196,9 @@ fi
 if [[ -s "$CHANGED_FILES" ]]; then
   rsync "${RSYNC_FLAGS[@]}" --files-from="$CHANGED_FILES" "$LOCAL_BACKEND/" "$REMOTE_HOST:$REMOTE_BACKEND/"
 fi
+
+REMOTE_HOST="$REMOTE_HOST" REMOTE_BACKEND="$REMOTE_BACKEND" LOCAL_BACKEND="$LOCAL_BACKEND" \
+  bash "$PUBLISHED_FRONTEND_SYNC_SCRIPT"
 
 ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/core/tools'"
 rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" "$REMOTE_HOST:$REMOTE_BACKEND/$VITE_ASSET_CHECKER"

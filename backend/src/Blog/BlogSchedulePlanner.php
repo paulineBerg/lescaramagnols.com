@@ -10,6 +10,7 @@ final class BlogSchedulePlanner
 {
     private const MAX_CLUSTER_PUBLISHED_OR_SCHEDULED = 5;
     private const SCHEDULE_INTERVAL_DAYS = 11;
+    private const CLUSTER_ROTATION_WINDOW_SLUGS = self::MAX_CLUSTER_PUBLISHED_OR_SCHEDULED;
 
     private AppEventLogger $eventLogger;
     private string $defaultLanguage;
@@ -94,6 +95,8 @@ final class BlogSchedulePlanner
                 'reason' => (string) $candidate['reason'],
                 'cluster_page_slug' => (string) $candidate['clusterPageSlug'],
                 'cluster_published_scheduled_count' => $candidate['clusterCount'],
+                'rotation_window_index' => $candidate['rotationWindowIndex'],
+                'rotation_window_size' => $candidate['rotationWindowSize'],
                 'variant_count' => count($draftArticles),
             ],
             'reason' => (string) $candidate['reason'],
@@ -107,6 +110,7 @@ final class BlogSchedulePlanner
     private function selectNextDraftCandidate(int $now): ?array
     {
         $clusterPublishedOrScheduledSlugs = [];
+        $globalPublishedOrScheduledSlugs = [];
         $groups = [];
         $latestScheduled = null;
 
@@ -140,6 +144,7 @@ final class BlogSchedulePlanner
 
             if ($status === 'published' || $status === 'scheduled') {
                 $clusterPublishedOrScheduledSlugs[$pageSlug][$slug] = true;
+                $globalPublishedOrScheduledSlugs[$groupKey] = true;
                 $articleDate = $this->parseDateTimestamp((string) ($article['date'] ?? ''));
 
                 if ($status === 'published') {
@@ -217,26 +222,29 @@ final class BlogSchedulePlanner
             }
         }
 
+        $rotationWindowIndex = intdiv(
+            count($globalPublishedOrScheduledSlugs),
+            self::CLUSTER_ROTATION_WINDOW_SLUGS
+        );
+
         if ($activeClusters !== []) {
-            usort(
-                $activeClusters,
-                static function (array $left, array $right): int {
-                    $countDiff = $left['publishedOrScheduled'] <=> $right['publishedOrScheduled'];
-                    if ($countDiff !== 0) {
-                        return $countDiff;
-                    }
-
-                    $leftDraftGroup = self::selectHighestPriorityDraftGroup($left['draftGroups']);
-                    $rightDraftGroup = self::selectHighestPriorityDraftGroup($right['draftGroups']);
-                    if (!is_array($leftDraftGroup) || !is_array($rightDraftGroup)) {
-                        return 0;
-                    }
-
-                    return self::compareDraftGroups($leftDraftGroup, $rightDraftGroup);
-                }
+            $minimumClusterCount = min(
+                array_map(
+                    static fn (array $cluster): int => (int) ($cluster['publishedOrScheduled'] ?? PHP_INT_MAX),
+                    $activeClusters
+                )
             );
+            $tiedClusters = array_values(
+                array_filter(
+                    $activeClusters,
+                    static fn (array $cluster): bool => (int) ($cluster['publishedOrScheduled'] ?? PHP_INT_MAX) === $minimumClusterCount
+                )
+            );
+            $selected = $this->selectRotatingCluster($tiedClusters, $rotationWindowIndex);
+            if (!is_array($selected)) {
+                return null;
+            }
 
-            $selected = $activeClusters[0];
             $draftGroup = self::selectHighestPriorityDraftGroup($selected['draftGroups']);
             if (!is_array($draftGroup)) {
                 return null;
@@ -250,6 +258,8 @@ final class BlogSchedulePlanner
                 'reason' => 'cluster_with_available_slots',
                 'clusterPageSlug' => (string) $selected['pageSlug'],
                 'clusterCount' => (int) $selected['publishedOrScheduled'],
+                'rotationWindowIndex' => $rotationWindowIndex,
+                'rotationWindowSize' => self::CLUSTER_ROTATION_WINDOW_SLUGS,
                 'scheduledDate' => $scheduledDate,
             ];
         }
@@ -274,6 +284,8 @@ final class BlogSchedulePlanner
             'reason' => 'fallback_oldest_draft',
             'clusterPageSlug' => $fallbackClusterSlug,
             'clusterCount' => (int) $fallbackClusterCount,
+            'rotationWindowIndex' => $rotationWindowIndex,
+            'rotationWindowSize' => self::CLUSTER_ROTATION_WINDOW_SLUGS,
             'scheduledDate' => $scheduledDate,
         ];
     }
@@ -294,6 +306,55 @@ final class BlogSchedulePlanner
         );
 
         return $draftGroups[0];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $clusters
+     * @return array<string, mixed>|null
+     */
+    private function selectRotatingCluster(array $clusters, int $rotationWindowIndex): ?array
+    {
+        if ($clusters === []) {
+            return null;
+        }
+
+        usort(
+            $clusters,
+            static function (array $left, array $right) use ($rotationWindowIndex): int {
+                $leftScore = self::clusterRotationScore($left, $rotationWindowIndex);
+                $rightScore = self::clusterRotationScore($right, $rotationWindowIndex);
+                if ($leftScore !== $rightScore) {
+                    return $leftScore <=> $rightScore;
+                }
+
+                $leftDraftGroup = self::selectHighestPriorityDraftGroup($left['draftGroups'] ?? []);
+                $rightDraftGroup = self::selectHighestPriorityDraftGroup($right['draftGroups'] ?? []);
+                if (is_array($leftDraftGroup) && is_array($rightDraftGroup)) {
+                    $draftGroupCompare = self::compareDraftGroups($leftDraftGroup, $rightDraftGroup);
+                    if ($draftGroupCompare !== 0) {
+                        return $draftGroupCompare;
+                    }
+                }
+
+                return strcasecmp(
+                    (string) ($left['pageSlug'] ?? ''),
+                    (string) ($right['pageSlug'] ?? '')
+                );
+            }
+        );
+
+        return $clusters[0] ?? null;
+    }
+
+    /**
+     * @param array<string, mixed> $cluster
+     */
+    private static function clusterRotationScore(array $cluster, int $rotationWindowIndex): string
+    {
+        return hash(
+            'sha256',
+            $rotationWindowIndex . "\n" . trim((string) ($cluster['pageSlug'] ?? ''))
+        );
     }
 
     private function scheduledDateForNow(int $now, ?int $latestScheduled): int

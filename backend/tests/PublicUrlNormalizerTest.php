@@ -9,6 +9,22 @@ require_once __DIR__ . '/../core/bootstrap.php';
 
 final class PublicUrlNormalizerTest extends TestCase
 {
+    private array $temporaryPaths = [];
+
+    protected function tearDown(): void
+    {
+        foreach (array_reverse($this->temporaryPaths) as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+                continue;
+            }
+
+            if (is_dir($path)) {
+                @rmdir($path);
+            }
+        }
+    }
+
     public function testNormalizeRouteCanonicalizesLegacyLocalPaths(): void
     {
         $this->assertSame(
@@ -62,6 +78,43 @@ final class PublicUrlNormalizerTest extends TestCase
         );
         $this->assertStringContainsString(
             'src="' . PublicUrlNormalizer::missingImagePlaceholderPath() . '" data-fallback-image="placeholder"',
+            $rewritten
+        );
+    }
+
+    public function testRewriteHtmlFragmentKeepsCanonicalSourceImageWhenPublicMirrorIsNotPublishedYet(): void
+    {
+        $token = bin2hex(random_bytes(6));
+        $relativePath = 'tests/public-url-normalizer-' . $token . '.jpg';
+        $frontendDirectory = dirname(ROOT_PATH) . '/frontend/src/assets/images/tests';
+        $frontendPath = $frontendDirectory . '/public-url-normalizer-' . $token . '.jpg';
+        $publicPath = ROOT_PATH . '/public/assets/images/tests/public-url-normalizer-' . $token . '.jpg';
+
+        if (!is_dir($frontendDirectory)) {
+            mkdir($frontendDirectory, 0777, true);
+            $this->temporaryPaths[] = $frontendDirectory;
+        }
+
+        file_put_contents($frontendPath, 'jpg');
+        $this->temporaryPaths[] = $frontendPath;
+
+        if (is_file($publicPath)) {
+            @unlink($publicPath);
+        }
+
+        $html = '<img src="/assets/images/' . $relativePath . '" alt="Source canonique">';
+        $rewritten = PublicUrlNormalizer::rewriteHtmlFragment($html, '/auto-retro/citroen/la-2cv4-restauration.php');
+
+        $this->assertStringContainsString(
+            'src="/assets/images/' . $relativePath . '"',
+            $rewritten
+        );
+        $this->assertStringNotContainsString(
+            PublicUrlNormalizer::missingImagePlaceholderPath(),
+            $rewritten
+        );
+        $this->assertStringNotContainsString(
+            'data-fallback-image="placeholder"',
             $rewritten
         );
     }
