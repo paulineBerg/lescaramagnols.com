@@ -11,7 +11,7 @@ const ALLOWED_BACKEND_ASSET_ROOT = new Set([
   'backend/public/assets/index.php',
   'backend/public/assets/rss.php',
 ]);
-const TEMP_LH_PSI_ENTRY_PATTERN = /(?:^|[/\\])(?:lighthouse|page[-_]?speed|pagespeed|psi)(?:[-_][^/\\]+)?$/i;
+const TEMP_TOP_LEVEL_DIR_PATTERN = /(?:^|[-_.])(?:tmp|temp|temporary|temporaire|lighthouse|page[-_]?speed|pagespeed|psi)(?:$|[-_.])/i;
 
 async function main() {
   const issues = [];
@@ -76,11 +76,11 @@ async function main() {
     });
   }
 
-  const temporaryLighthousePageSpeedEntries = listTopLevelTemporaryLighthousePageSpeedEntries();
-  if (temporaryLighthousePageSpeedEntries.length > 0) {
+  const temporaryDirectories = listTopLevelTemporaryDirectories();
+  if (temporaryDirectories.length > 0) {
     issues.push({
-      label: 'Temporary Lighthouse/PageSpeed entries must be removed after use',
-      items: temporaryLighthousePageSpeedEntries,
+      label: 'Temporary top-level directories must be removed after use',
+      items: temporaryDirectories,
     });
   }
 
@@ -119,17 +119,17 @@ function listTrackedFiles(pathSpec = null) {
     .filter(Boolean);
 }
 
-function listTopLevelTemporaryLighthousePageSpeedEntries() {
+function listTopLevelTemporaryDirectories() {
   const entries = fs.readdirSync(projectRoot, { withFileTypes: true });
   const blocked = [];
 
   for (const entry of entries) {
-    if (!entry.isDirectory() && !entry.isFile()) {
+    if (!entry.isDirectory()) {
       continue;
     }
 
-    if (TEMP_LH_PSI_ENTRY_PATTERN.test(entry.name)) {
-      blocked.push(entry.name + (entry.isDirectory() ? '/' : ''));
+    if (TEMP_TOP_LEVEL_DIR_PATTERN.test(entry.name)) {
+      blocked.push(`${entry.name}/`);
     }
   }
 

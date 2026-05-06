@@ -23,7 +23,7 @@ Ordre de travail recommande:
 - les extensions JSON-LD de type FAQ ou avis ne doivent etre emises que depuis un contenu visible, valide et teste; en cas de doute, ne pas baliser plutot que publier une donnee structuree approximative
 - avant un deploy ou un push editorial, verifier les medias references via `php backend/core/tools/check_editorial_media.php --check-published-assets` ou laisser les scripts de deploiement bloquer automatiquement
 - terminer par les validations adaptees au risque: JSON, PHP, frontend, index, build, smoke HTTP ou verification manuelle ciblee
-- pour toute modification de rendu public, viser `100` sur PageSpeed Insights (Performance/Accessibilite/Bonnes pratiques/SEO), avec une tolerance minimale `Performance >= 95` sur toutes les pages servies; supprimer obligatoirement tout dossier temporaire Lighthouse/PageSpeed apres usage
+- pour toute modification de rendu public, viser `100` sur PageSpeed Insights (Performance/Accessibilite/Bonnes pratiques/SEO), avec une tolerance minimale `Performance >= 95` sur toutes les pages servies; supprimer obligatoirement tout dossier temporaire apres usage
 - signaler explicitement toute divergence restante entre JSON, SQL, prod, index ou assets publies
 
 ## 1. Portee et autorite
