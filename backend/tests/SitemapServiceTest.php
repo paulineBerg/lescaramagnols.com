@@ -129,9 +129,10 @@ final class SitemapServiceTest extends TestCase
         $this->assertStringContainsString('<loc>https://example.test/</loc>', $xml);
         $this->assertStringContainsString('<loc>https://example.test/association</loc>', $xml);
         $this->assertStringContainsString(
-            '<loc>https://example.test/fr/association?open_article=bonjour#attached-article-bonjour</loc>',
+            '<loc>https://example.test/fr/association?open_article=bonjour</loc>',
             $xml
         );
+        $this->assertStringNotContainsString('#attached-article-', $xml);
         $this->assertStringContainsString('<loc>https://example.test/en/blog/article/hallo</loc>', $xml);
         $this->assertStringNotContainsString('/brouillon</loc>', $xml);
     }

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import fs from 'node:fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,6 +11,7 @@ const ALLOWED_BACKEND_ASSET_ROOT = new Set([
   'backend/public/assets/index.php',
   'backend/public/assets/rss.php',
 ]);
+const TEMP_LH_PSI_ENTRY_PATTERN = /(?:^|[/\\])(?:lighthouse|page[-_]?speed|pagespeed|psi)(?:[-_][^/\\]+)?$/i;
 
 async function main() {
   const issues = [];
@@ -74,6 +76,14 @@ async function main() {
     });
   }
 
+  const temporaryLighthousePageSpeedEntries = listTopLevelTemporaryLighthousePageSpeedEntries();
+  if (temporaryLighthousePageSpeedEntries.length > 0) {
+    issues.push({
+      label: 'Temporary Lighthouse/PageSpeed entries must be removed after use',
+      items: temporaryLighthousePageSpeedEntries,
+    });
+  }
+
   if (issues.length > 0) {
     console.error('[repo-artifacts] Repository artifact policy violations detected.');
     for (const issue of issues) {
@@ -107,6 +117,23 @@ function listTrackedFiles(pathSpec = null) {
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function listTopLevelTemporaryLighthousePageSpeedEntries() {
+  const entries = fs.readdirSync(projectRoot, { withFileTypes: true });
+  const blocked = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() && !entry.isFile()) {
+      continue;
+    }
+
+    if (TEMP_LH_PSI_ENTRY_PATTERN.test(entry.name)) {
+      blocked.push(entry.name + (entry.isDirectory() ? '/' : ''));
+    }
+  }
+
+  return blocked;
 }
 
 main().catch((error) => {

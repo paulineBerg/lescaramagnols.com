@@ -121,9 +121,10 @@ final class RssFeedServiceTest extends TestCase
         $this->assertStringNotContainsString('Brouillon', $xml);
         $this->assertStringContainsString('https://example.test/blog/article/nouveau', $xml);
         $this->assertStringContainsString(
-            'https://example.test/fr/association?open_article=bonjour#attached-article-bonjour',
+            'https://example.test/fr/association?open_article=bonjour',
             $xml
         );
+        $this->assertStringNotContainsString('#attached-article-', $xml);
         $this->assertStringContainsString('Contenu bonjour pour le flux.', $xml);
         $this->assertLessThan(
             strpos($xml, '<title>Bonjour</title>'),

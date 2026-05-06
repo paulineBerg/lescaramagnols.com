@@ -142,7 +142,7 @@ final class StructuredPageRenderer
         $html = '<div class="content-heading">';
 
         if ($image !== null) {
-            $imageHtml = $this->renderImage($image);
+            $imageHtml = $this->renderImage($image, true);
             if ($imageHtml !== '') {
                 $html .= '<div class="content-heading-media">' . $imageHtml . '</div>';
             }
@@ -301,7 +301,7 @@ final class StructuredPageRenderer
     /**
      * @param array<string, mixed> $image
      */
-    private function renderImage(array $image): string
+    private function renderImage(array $image, bool $isCritical = false): string
     {
         $src = $this->sanitizeImageSrc((string) ($image['src'] ?? ''));
         if ($src === '') {
@@ -316,9 +316,9 @@ final class StructuredPageRenderer
         $attributes = [
             'src="' . $this->escapeAttribute($src) . '"',
             'alt="' . $this->escapeAttribute($alt) . '"',
-            'loading="lazy"',
+            'loading="' . ($isCritical ? 'eager' : 'lazy') . '"',
             'decoding="async"',
-            'fetchpriority="low"',
+            'fetchpriority="' . ($isCritical ? 'high' : 'low') . '"',
         ];
 
         if ($title !== '') {

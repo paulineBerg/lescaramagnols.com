@@ -16,6 +16,7 @@ $discussionFieldPrefix = trim($discussionFieldPrefix, '-_');
 if ($discussionFieldPrefix === '') {
     $discussionFieldPrefix = 'discussion';
 }
+$discussionFeedbackId = $discussionFieldPrefix . '-feedback';
 
 $discussionSubmitPath = trim((string) ($discussionSubmitPath ?? ''));
 $articleSlug = trim((string) ($articleSlug ?? ''));
@@ -88,6 +89,7 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
       data-recaptcha-action="<?php echo htmlspecialchars(\Caramagnols\Blog\DiscussionRecaptchaMode::V3_ACTION, ENT_QUOTES, 'UTF-8'); ?>"
       data-recaptcha-error-not-ready="<?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_ERROR_RECAPTCHA_NOT_READY'), ENT_QUOTES, 'UTF-8'); ?>"
       data-discussion-log-endpoint="/core/blog/log_discussion_client.php"
+      aria-describedby="<?php echo htmlspecialchars($discussionFeedbackId, ENT_QUOTES, 'UTF-8'); ?>"
     >
       <input type="hidden" name="article_slug" value="<?php echo htmlspecialchars($articleSlug, ENT_QUOTES, 'UTF-8'); ?>" />
       <input type="hidden" name="article_lang" value="<?php echo htmlspecialchars($articleLanguage, ENT_QUOTES, 'UTF-8'); ?>" />
@@ -107,17 +109,17 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
       <div class="blog-discussion-grid">
         <div class="field">
           <label for="<?php echo htmlspecialchars($discussionFieldPrefix . '-author', ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_NAME'), ENT_QUOTES, 'UTF-8'); ?></label>
-          <input id="<?php echo htmlspecialchars($discussionFieldPrefix . '-author', ENT_QUOTES, 'UTF-8'); ?>" type="text" name="author" maxlength="120" required value="<?php echo htmlspecialchars((string) ($discussionOldInput['author'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+          <input id="<?php echo htmlspecialchars($discussionFieldPrefix . '-author', ENT_QUOTES, 'UTF-8'); ?>" type="text" name="author" maxlength="120" required aria-describedby="<?php echo htmlspecialchars($discussionFeedbackId, ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars((string) ($discussionOldInput['author'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
         </div>
         <div class="field">
           <label for="<?php echo htmlspecialchars($discussionFieldPrefix . '-email', ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_EMAIL'), ENT_QUOTES, 'UTF-8'); ?></label>
-          <input id="<?php echo htmlspecialchars($discussionFieldPrefix . '-email', ENT_QUOTES, 'UTF-8'); ?>" type="email" name="email" maxlength="180" required value="<?php echo htmlspecialchars((string) ($discussionOldInput['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+          <input id="<?php echo htmlspecialchars($discussionFieldPrefix . '-email', ENT_QUOTES, 'UTF-8'); ?>" type="email" name="email" maxlength="180" required aria-describedby="<?php echo htmlspecialchars($discussionFeedbackId, ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars((string) ($discussionOldInput['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
         </div>
       </div>
 
       <div class="field">
         <label for="<?php echo htmlspecialchars($discussionFieldPrefix . '-content', ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_MESSAGE'), ENT_QUOTES, 'UTF-8'); ?></label>
-        <textarea id="<?php echo htmlspecialchars($discussionFieldPrefix . '-content', ENT_QUOTES, 'UTF-8'); ?>" name="content" rows="6" maxlength="2000" required><?php echo htmlspecialchars((string) ($discussionOldInput['content'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+        <textarea id="<?php echo htmlspecialchars($discussionFieldPrefix . '-content', ENT_QUOTES, 'UTF-8'); ?>" name="content" rows="6" maxlength="2000" required aria-describedby="<?php echo htmlspecialchars($discussionFeedbackId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) ($discussionOldInput['content'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
       </div>
 
       <?php if ($recaptchaEnabled): ?>
@@ -130,6 +132,7 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
       <?php endif; ?>
 
       <p
+        id="<?php echo htmlspecialchars($discussionFeedbackId, ENT_QUOTES, 'UTF-8'); ?>"
         class="blog-discussion-notice blog-discussion-notice-info"
         data-discussion-submit-feedback
         data-feedback-pending-message="<?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSION_SUBMIT_PENDING_MESSAGE'), ENT_QUOTES, 'UTF-8'); ?>"

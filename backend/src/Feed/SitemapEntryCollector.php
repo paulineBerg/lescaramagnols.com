@@ -7,6 +7,7 @@ namespace Caramagnols\Feed;
 use Caramagnols\Blog\BlogRepositoryInterface;
 use Caramagnols\Blog\BlogPublicUrlResolver;
 use Caramagnols\Content\PageRepository;
+use Caramagnols\Seo\SeoUrlNormalizer;
 
 final class SitemapEntryCollector
 {
@@ -188,7 +189,7 @@ final class SitemapEntryCollector
         string $title = '',
         ?int $lastmod = null
     ): void {
-        $normalizedPath = \normalize_public_route($path) ?? '/';
+        $normalizedPath = \normalize_public_route(SeoUrlNormalizer::withoutFragment($path)) ?? '/';
         $loc = $this->buildAbsoluteUrl($normalizedPath);
 
         if (!isset($entries[$loc])) {
@@ -217,10 +218,10 @@ final class SitemapEntryCollector
     private function buildAbsoluteUrl(string $path): string
     {
         if (\preg_match('#^https?://#i', $path) === 1) {
-            return $path;
+            return SeoUrlNormalizer::withoutFragment($path);
         }
 
-        $normalizedPath = \normalize_public_route($path) ?? '/';
+        $normalizedPath = \normalize_public_route(SeoUrlNormalizer::withoutFragment($path)) ?? '/';
         $baseUrl = rtrim($this->baseUrl, '/');
 
         if ($baseUrl === '' || $baseUrl === '/') {

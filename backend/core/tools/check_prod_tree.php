@@ -14,7 +14,7 @@ if (isset($options['help']) || isset($options['h'])) {
     exit(0);
 }
 
-$backendRoot = resolve_path((string) ($options['root'] ?? dirname(__DIR__, 2)));
+$backendRoot = resolve_cli_path((string) ($options['root'] ?? dirname(__DIR__, 2)));
 $clean = isset($options['clean']);
 $dryRun = isset($options['dry-run']);
 
@@ -96,7 +96,7 @@ function parse_cli_options(array $arguments): array
     return $options;
 }
 
-function resolve_path(string $path): string
+function resolve_cli_path(string $path): string
 {
     $path = trim($path);
     if ($path === '') {

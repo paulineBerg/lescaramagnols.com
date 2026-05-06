@@ -230,14 +230,14 @@ final class BlogSchedulePlanner
         if ($activeClusters !== []) {
             $minimumClusterCount = min(
                 array_map(
-                    static fn (array $cluster): int => (int) ($cluster['publishedOrScheduled'] ?? PHP_INT_MAX),
+                    static fn (array $cluster): int => (int) $cluster['publishedOrScheduled'],
                     $activeClusters
                 )
             );
             $tiedClusters = array_values(
                 array_filter(
                     $activeClusters,
-                    static fn (array $cluster): bool => (int) ($cluster['publishedOrScheduled'] ?? PHP_INT_MAX) === $minimumClusterCount
+                    static fn (array $cluster): bool => (int) $cluster['publishedOrScheduled'] === $minimumClusterCount
                 )
             );
             $selected = $this->selectRotatingCluster($tiedClusters, $rotationWindowIndex);

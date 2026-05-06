@@ -144,7 +144,7 @@ final class SiteSummaryServiceTest extends TestCase
         $this->assertStringContainsString('<a href="/accueil/association.php">Association</a>', $html);
         $this->assertStringContainsString('<a href="/blog">Blog</a>', $html);
         $this->assertStringContainsString(
-            '<a href="/fr/accueil/association.php?open_article=bonjour#attached-article-bonjour">Bonjour</a>',
+            '<a href="/fr/accueil/association.php?open_article=bonjour">Bonjour</a>',
             $html
         );
         $this->assertStringNotContainsString('Brouillon', $html);

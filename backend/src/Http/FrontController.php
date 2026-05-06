@@ -12,6 +12,7 @@ use Caramagnols\Blog\BlogSaveService;
 use Caramagnols\Feed\RssFeedService;
 use Caramagnols\Feed\SitemapService;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\Seo\SeoUrlNormalizer;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
 
@@ -407,7 +408,7 @@ final class FrontController
         }
 
         $pageMetaDescription = null;
-        unset($GLOBALS['pageCanonicalUrl']);
+        unset($GLOBALS['pageCanonicalUrl'], $GLOBALS['currentDynamicOpenArticle']);
 
         $pageBufferLevel = ob_get_level();
         ob_start();
@@ -423,6 +424,7 @@ final class FrontController
             $pageCanonicalUrl = $this->resolveDynamicAttachedArticleCanonicalUrl($request);
         }
         if (is_string($pageCanonicalUrl ?? null) && trim($pageCanonicalUrl) !== '') {
+            $pageCanonicalUrl = SeoUrlNormalizer::withoutFragment((string) $pageCanonicalUrl);
             $GLOBALS['pageCanonicalUrl'] = $pageCanonicalUrl;
         }
 
@@ -437,7 +439,7 @@ final class FrontController
         }
 
         $response = new Response($statusCode, [], (string) $body);
-        unset($GLOBALS['pageCanonicalUrl']);
+        unset($GLOBALS['pageCanonicalUrl'], $GLOBALS['currentDynamicOpenArticle']);
         $this->logPageVisit($request, $response, $pageFile, $isNotFound, (microtime(true) - $startedAt) * 1000);
 
         return $response;
@@ -666,7 +668,7 @@ final class FrontController
             return null;
         }
 
-        return app_url(ltrim($path, '/'), $request);
+        return SeoUrlNormalizer::withoutFragment(app_url(ltrim($path, '/'), $request));
     }
 
     private function resolveRequestId(Request $request): string

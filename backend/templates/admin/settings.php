@@ -1221,7 +1221,7 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
           <div class="field">
             <label for="backup-database-host"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_HOST_LABEL', 'Hôte SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
             <input id="backup-database-host" name="backup[database_host]" type="text" value="<?php echo htmlspecialchars((string) ($backupDatabase['host'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
-            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_HOST_HELP', 'Chez OVH, c’est souvent un nom du type bp269148-001.eu.clouddb.ovh.net, sans l’utilisateur et sans le port.'), ENT_QUOTES, 'UTF-8'); ?></small>
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_HOST_HELP', 'Chez OVH, c’est souvent un nom du type db123.example-host.tld, sans l’utilisateur et sans le port.'), ENT_QUOTES, 'UTF-8'); ?></small>
           </div>
           <div class="field">
             <label for="backup-database-port"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PORT_LABEL', 'Port SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
@@ -1236,7 +1236,7 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
           <div class="field">
             <label for="backup-database-user"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_USER_LABEL', 'Utilisateur SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
             <input id="backup-database-user" name="backup[database_user]" type="text" value="<?php echo htmlspecialchars((string) ($backupDatabase['user'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
-            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_USER_HELP', 'Identifiant SQL fourni par OVH, par exemple bp269148-ovh.'), ENT_QUOTES, 'UTF-8'); ?></small>
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_USER_HELP', 'Identifiant SQL fourni par OVH, par exemple db_user_example.'), ENT_QUOTES, 'UTF-8'); ?></small>
           </div>
           <div class="field">
             <label for="backup-database-password"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PASSWORD_LABEL', 'Mot de passe SQL'), ENT_QUOTES, 'UTF-8'); ?></label>

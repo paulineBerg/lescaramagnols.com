@@ -21,7 +21,8 @@ Objectif : eviter les contradictions, savoir quel document est canonique, et red
 | `README_V1_PREPARATION_DEPLOIEMENT.md` | Plan de finalisation V1 | canonique | Pilotage release readiness |
 | `README_SECURITE_ADMIN_V1.md` | Hardening admin (2FA, IP allowlist, re-auth, HTTPS) | canonique | Reference securite operationnelle |
 | `README_BLOG.md` | Module blog/discussions JSON + moderation | canonique | Reference fonctionnelle blog |
-| `docs/README_SOCIAL_SHARING_IMAGES.md` | Gestion SEO partagée Open Graph / Twitter | actif | Règle d'image par page et méthode de vérification |
+| `docs/README_SOCIAL_SHARING_IMAGES.md` | Gestion SEO partagée Open Graph / Twitter | actif | Règle d'image par page, bouton de partage et méthode de vérification |
+| `docs/README_JSON_LD.md` | Donnees structurees JSON-LD et URL SEO publiques | actif | Generation centralisee, canonical sans fragment, sitemap/RSS sans `#` |
 | `docs/archive/README_AUDIT_COMPLET_V1.md` | Audit technique global date | archive | Conserver pour contexte, ne pas l'utiliser seul pour l'etat actuel |
 | `docs/archive/README_AUDIT_PLAN_ACTION_V1.md` | Plan d'action issu de l'audit | archive | Conserver comme trace de pilotage |
 | `README_MODERNISATION_V1.md` | Strategie de modernisation progressive | actif | Cadre de decisions techniques |

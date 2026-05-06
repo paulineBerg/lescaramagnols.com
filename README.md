@@ -4,7 +4,7 @@ Site associatif mêlant un backend PHP procédural (routage, templates, i18n ser
 Ce document décrit l’architecture, les langages, les dépendances, les commandes utiles et les points clés de mise en production.
 
 ## Emplacement WSL du depot
-- Controle local du `2026-04-11` : depot verifie sous `/home/surfacepro8/www/caramagnols` sur le systeme de fichiers Linux WSL (`ext4`).
+- Controle local du `2026-04-11` : depot verifie sous un chemin Linux WSL (`/home/...`) sur le systeme de fichiers `ext4`.
 - Aucun deplacement n'a ete necessaire : le depot n'est pas stocke sous `/mnt/c`, `/mnt/d` ni un autre montage Windows.
 - Regle de maintenance : garder le depot Git dans `/home/...` pour proteger les performances de Git, Composer, Node/Vite et des watchers locaux.
 
@@ -76,7 +76,7 @@ style qui respecte au plus près les règles, calme, cas concret et explicatif
 
 ### deployer Tout :
 
-cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net" REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend" SITEMAP_BASE_URL="https://www.lescaramagnols.com" && cd frontend && npm run build && cd /home/surfacepro8/www/caramagnols && bash backend/tools/deploy-release.sh && bash backend/tools/push-local-sql-to-ovh.sh --live && ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_final\n\";'"
+REPO_ROOT="${REPO_ROOT:-$(pwd)}" && cd "$REPO_ROOT" && source "$HOME/.caramagnols/ops/caramagnols-ops.env" && cd frontend && npm run build && cd "$REPO_ROOT" && bash backend/tools/deploy-release.sh && bash backend/tools/push-local-sql-to-ovh.sh --live && ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php -r 'require \"core/bootstrap.php\"; if (function_exists(\"app_runtime_cache_clear\")) { app_runtime_cache_clear([\"pages\",\"navigation\",\"translations\",\"tiles\"]); } echo \"cache_cleared_final\n\";'"
 
 - garde-fous maintenant automatiques :
   - `backend/tools/deploy-release.sh` bloque si les references `/assets/images/...` ne correspondent pas a `frontend/src/assets/images/**` ou si le miroir publie manque dans `backend/public/assets/images/**`
@@ -86,16 +86,17 @@ cd /home/surfacepro8/www/caramagnols && export REMOTE_HOST="lescaramgl-ssh@ssh.c
   - `php backend/core/tools/check_editorial_media.php --check-published-assets`
 
 
-- copier le SQL editorial local vers OVH : cd /home/surfacepro8/www/caramagnols
+- copier le SQL editorial local vers OVH : `REPO_ROOT="${REPO_ROOT:-$(pwd)}" && cd "$REPO_ROOT"`
 bash backend/tools/push-local-sql-to-ovh.sh --live
   - ce push SQL editorial preserve les reglages runtime admin : `Parametres > Cron Center` (`cron_jobs`) et `Parametres > Sauvegardes` (`config/*.override.php`). Le script capture un snapshot avant/apres et echoue si ces reglages changent.
   - ce push synchronise aussi les uploads runtime `backend/public/uploads/editorial/**`, sauf option `--no-uploads`
-- copier bdd ovh sur bdd locale : cd /home/surfacepro8/www/caramagnols
+- copier bdd ovh sur bdd locale : `REPO_ROOT="${REPO_ROOT:-$(pwd)}" && cd "$REPO_ROOT"`
 bash .ops-sync/bin/pull-caramagnols-db.sh --live
 
 - Lancer tout en dev :
   - Recommandé : `
-cd /home/surfacepro8/www/caramagnols
+REPO_ROOT="${REPO_ROOT:-$(pwd)}"
+cd "$REPO_ROOT"
 ./dev.sh   `
   - Terminal 1 : `  cd backend && php -S 127.0.0.1:8000 -t public public/dev-router.php  `
   - Terminal 2 : `  cd frontend && npm run dev  `
@@ -599,11 +600,11 @@ Scripts :
 - Les deux scripts executent `backend/core/tools/check_vite_assets.php` avant et apres synchronisation : si `backend/public/.vite/manifest.json` reference un fichier absent de `backend/public/assets/`, le deploiement echoue au lieu de laisser un front sans JavaScript ou CSS.
 - Les deux scripts executent `backend/core/tools/check_prod_tree.php --clean` sur la cible : la release echoue si le backend prod conserve un residu de developpement, test, documentation, backup ou temporaire apres nettoyage.
 
-Variables requises :
+Variables requises (hors depot, recommande dans `~/.caramagnols/ops/caramagnols-ops.env`) :
 
 ```bash
-export REMOTE_HOST="lescaramgl-ssh@ssh.cluster103.hosting.ovh.net"
-export REMOTE_BACKEND="/home/lescaramgl-ssh/caramagnols/backend"
+export REMOTE_HOST="user@host"
+export REMOTE_BACKEND="/srv/caramagnols/backend"
 # optionnel: force l'URL canonique du sitemap
 export SITEMAP_BASE_URL="https://www.lescaramagnols.com"
 ```
@@ -646,7 +647,7 @@ Rollback minimal :
 3. Purger le cache runtime :
 
 ```bash
-cd /home/lescaramgl-ssh/caramagnols/backend
+cd /srv/caramagnols/backend
 php -r "require 'core/bootstrap.php'; app_runtime_cache_clear(['pages','navigation','translations']); echo 'cache_cleared'.PHP_EOL;"
 ```
 

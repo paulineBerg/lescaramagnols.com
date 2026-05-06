@@ -14,6 +14,7 @@ final class ScriptsHeadPartialTest extends TestCase
         $appConfig['site']['head_metadata_html'] = '';
         $appConfig['site']['tarteaucitron'] = [];
         $appConfig['site']['discussions'] = [];
+        unset($GLOBALS['csp_nonce'], $GLOBALS['currentBlogArticle'], $GLOBALS['currentDynamicOpenArticle'], $GLOBALS['currentBlogArticles'], $GLOBALS['currentPageHasDiscussionForm']);
     }
 
     public function testPublicHeadIncludesTarteaucitronScript(): void
@@ -46,6 +47,7 @@ final class ScriptsHeadPartialTest extends TestCase
         $html = (string) ob_get_clean();
 
         $this->assertStringContainsString('/tarteaucitron/tarteaucitron.min.js', $html);
+        $this->assertStringContainsString('tarteaucitron.min.js" defer', $html);
         $this->assertStringContainsString('nonce="testnonce"', $html);
         $this->assertStringContainsString('type="module"', $html);
         $this->assertStringContainsString('<meta name="robots" content="index,follow" />', $html);
@@ -91,6 +93,7 @@ final class ScriptsHeadPartialTest extends TestCase
                 'secret_key' => 'secret-key-123',
             ],
         ];
+        $GLOBALS['currentPageHasDiscussionForm'] = true;
 
         ob_start();
         include ROOT_PATH . '/templates/partials/scripts_head.php';
@@ -98,8 +101,38 @@ final class ScriptsHeadPartialTest extends TestCase
 
         $this->assertStringContainsString('"services":["youtube","recaptcha"]', $html);
         $this->assertStringContainsString('"discussions":{"enabled":true', $html);
+        $this->assertStringContainsString('"has_form":true', $html);
         $this->assertStringContainsString('"mode":"v3_score"', $html);
         $this->assertStringContainsString('"site_key":"site-key-123"', $html);
+    }
+
+    public function testPublicHeadKeepsRecaptchaServiceDisabledWhenNoDiscussionFormIsRendered(): void
+    {
+        global $appConfig;
+
+        $pageTitle = 'Test sans formulaire';
+        $appConfig['site']['tarteaucitron'] = [
+            'enabled' => true,
+            'services' => ['youtube'],
+        ];
+        $appConfig['site']['discussions'] = [
+            'enabled' => true,
+            'recaptcha' => [
+                'enabled' => true,
+                'mode' => 'v3_score',
+                'site_key' => 'site-key-123',
+                'secret_key' => 'secret-key-123',
+            ],
+        ];
+        $GLOBALS['currentPageHasDiscussionForm'] = false;
+
+        ob_start();
+        include ROOT_PATH . '/templates/partials/scripts_head.php';
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString('"services":["youtube"]', $html);
+        $this->assertStringContainsString('"has_form":false', $html);
+        $this->assertStringContainsString('"recaptcha":{"enabled":false', $html);
     }
 
     public function testPublicHeadIncludesSeoImageMetaTagsWhenProvided(): void
@@ -113,6 +146,7 @@ final class ScriptsHeadPartialTest extends TestCase
         $html = (string) ob_get_clean();
 
         $this->assertStringContainsString('property="og:image"', $html);
+        $this->assertStringContainsString('property="og:image:alt"', $html);
         $this->assertStringContainsString('name="twitter:image"', $html);
         $this->assertStringContainsString('summary_large_image', $html);
         $this->assertStringContainsString('Couverture article', $html);
@@ -144,5 +178,59 @@ HTML;
         $this->assertStringNotContainsString('Image par défaut du site', $html);
         $this->assertStringNotContainsString('<meta property="og:image:width" content="1000"', $html);
         $this->assertStringNotContainsString('<meta property="og:image:height" content="562"', $html);
+        $this->assertSame(1, substr_count($html, 'name="twitter:card"'));
+    }
+
+    public function testPublicHeadKeepsGlobalSocialImageWhenNoPageImageIsSet(): void
+    {
+        global $appConfig;
+
+        $pageTitle = 'Test image SEO';
+        $appConfig['site']['head_metadata_html'] = <<<HTML
+<meta property="og:image" content="https://www.lescaramagnols.com/assets/images/bouger/golfe/montage.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content="https://www.lescaramagnols.com/assets/images/bouger/golfe/montage.jpg" />
+HTML;
+
+        ob_start();
+        include ROOT_PATH . '/templates/partials/scripts_head.php';
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString('content="https://www.lescaramagnols.com/assets/images/bouger/golfe/montage.jpg"', $html);
+        $this->assertStringContainsString('name="twitter:card"', $html);
+    }
+
+    public function testPublicHeadRendersCentralJsonLdAndDropsFragmentedGlobalJsonLd(): void
+    {
+        global $appConfig;
+
+        $pageTitle = 'Page SEO';
+        $pageMetaDescription = 'Description SEO.';
+        $pageCanonicalUrl = 'https://www.example.com/page#fragment';
+        $GLOBALS['csp_nonce'] = 'jsonldnonce';
+        $appConfig['site']['head_metadata_html'] = <<<HTML
+<meta property="custom:keep" content="kept" />
+<script type="application/ld+json">{"@context":"https://schema.org","@id":"https://www.example.com/#legacy","name":"Legacy Schema"}</script>
+HTML;
+
+        ob_start();
+        include ROOT_PATH . '/templates/partials/scripts_head.php';
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString('<link rel="canonical" href="https://www.example.com/page" />', $html);
+        $this->assertStringContainsString('property="custom:keep"', $html);
+        $this->assertStringNotContainsString('Legacy Schema', $html);
+
+        preg_match_all(
+            '/<script\b[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/s',
+            $html,
+            $matches
+        );
+        $this->assertCount(1, $matches[1] ?? []);
+        $jsonLd = trim(html_entity_decode((string) ($matches[1][0] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $this->assertStringContainsString('"@graph"', $jsonLd);
+        $this->assertStringContainsString('"url": "https://www.example.com/page"', $jsonLd);
+        $this->assertStringNotContainsString('#', $jsonLd);
+        $this->assertStringContainsString('nonce="jsonldnonce"', $html);
     }
 }

@@ -3,11 +3,19 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+OPS_ENV_FILE_DEFAULT="${HOME}/.caramagnols/ops/caramagnols-ops.env"
+CARAMAGNOLS_OPS_ENV_FILE="${CARAMAGNOLS_OPS_ENV_FILE:-$OPS_ENV_FILE_DEFAULT}"
+
+if [[ -f "$CARAMAGNOLS_OPS_ENV_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$CARAMAGNOLS_OPS_ENV_FILE"
+fi
+
 LOCAL_BACKEND="${LOCAL_BACKEND:-${REPO_ROOT}/backend}"
-REMOTE_HOST="${REMOTE_HOST:-lescaramgl-ssh@ssh.cluster103.hosting.ovh.net}"
-REMOTE_BACKEND="${REMOTE_BACKEND:-/home/lescaramgl-ssh/caramagnols/backend}"
+REMOTE_HOST="${REMOTE_HOST:-}"
+REMOTE_BACKEND="${REMOTE_BACKEND:-}"
 SITEMAP_BASE_URL="${SITEMAP_BASE_URL:-https://www.lescaramagnols.com}"
-BACKUP_ROOT="${BACKUP_ROOT:-/home/surfacepro8/backups/caramagnols}"
+BACKUP_ROOT="${BACKUP_ROOT:-${HOME}/backups/caramagnols}"
 PHP_BIN="${PHP_BIN:-php}"
 ADMIN_RUNTIME_SNAPSHOT_TOOL="core/tools/export_admin_runtime_settings.php"
 EDITORIAL_MEDIA_CHECKER="core/tools/check_editorial_media.php"
@@ -27,10 +35,11 @@ SYNC_UPLOADS=1
 usage() {
   cat <<'USAGE'
 Usage:
+  CARAMAGNOLS_OPS_ENV_FILE="$HOME/.caramagnols/ops/caramagnols-ops.env" \
   bash backend/tools/push-local-sql-to-ovh.sh --live [--allow-delete] [--include-discussions] [--no-assets] [--no-uploads] [--keep-remote-backups]
 
 Description:
-  Synchronise le contenu editorial SQL local vers la production OVH.
+  Synchronise le contenu editorial SQL local vers la production distante.
   La commande passe par core/tools/editorial_backup_restore.php, pas par un dump MySQL brut.
   Par defaut elle couvre pages, navigation, articles de blog et tuiles.
   Elle exclut les donnees runtime/sensibles: utilisateurs, logs, meta schema, commentaires legacy et discussions de blog.
@@ -38,23 +47,24 @@ Description:
   Elle synchronise aussi le front publie complet issu du build frontend: manifest Vite, assets publics et tarteaucitron.
   Elle synchronise aussi les uploads editoriaux runtime sous backend/public/uploads/editorial/**, sauf --no-uploads.
   Elle bloque l'envoi si une page, un article, une navigation ou un groupe de tuiles actif reference un media manquant.
+  Les variables REMOTE_HOST et REMOTE_BACKEND sont obligatoires (directement en env ou via CARAMAGNOLS_OPS_ENV_FILE).
 
 Etapes:
   - verifie les references medias editoriales locales
   - synchronise les assets frontend publies, sauf --no-assets
   - synchronise les uploads editoriaux runtime, sauf --no-uploads
-  - met a jour l'outil de sync editorial sur OVH
+  - met a jour l'outil de sync editorial sur l'hote distant
   - capture les reglages admin runtime prod avant ecriture
   - cree un backup SQL local
-  - cree un backup SQL prod OVH avant ecriture et le rapatrie hors depot
+  - cree un backup SQL prod avant ecriture et le rapatrie hors depot
   - affiche un diff local/prod et bloque les suppressions sauf --allow-delete
-  - copie le payload local vers OVH avec controle de taille
+  - copie le payload local vers l'hote distant avec controle de taille
   - restaure le payload en prod avec --storage=sql
   - compare les reglages admin Cron/Sauvegardes avant/apres restauration
   - regenere index de recherche, sitemap, sommaire et caches
   - cree un backup prod apres ecriture et compare son contenu au local
   - lance les controles prod
-  - supprime les temporaires OVH, sauf --keep-remote-backups
+  - supprime les temporaires distants, sauf --keep-remote-backups
 
 Options:
   --live                 Obligatoire pour autoriser l'ecriture prod.
@@ -91,7 +101,7 @@ while (($#)); do
 done
 
 if [[ "$LIVE" -ne 1 ]]; then
-  echo "Refus: ajoute --live pour autoriser l'ecriture sur la production OVH." >&2
+  echo "Refus: ajoute --live pour autoriser l'ecriture sur la production distante." >&2
   usage
   exit 1
 fi
@@ -136,7 +146,14 @@ if [[ ! -f "$PUBLISHED_FRONTEND_SYNC_SCRIPT" ]]; then
   exit 1
 fi
 
-echo "Push SQL editorial local -> OVH"
+if [[ -z "$REMOTE_HOST" || -z "$REMOTE_BACKEND" ]]; then
+  echo "REMOTE_HOST et REMOTE_BACKEND sont obligatoires." >&2
+  echo "Definis-les en variables d'environnement ou via CARAMAGNOLS_OPS_ENV_FILE." >&2
+  usage
+  exit 1
+fi
+
+echo "Push SQL editorial local -> production distante"
 echo "Local backend: $LOCAL_BACKEND"
 echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
 echo "Backups: $BACKUP_ROOT"
@@ -216,7 +233,7 @@ else
   echo "[3/15] Synchronisation des uploads editoriaux runtime ignoree (--no-uploads)"
 fi
 
-echo "[4/15] Mise a jour des outils de sync editorial sur OVH"
+echo "[4/15] Mise a jour des outils de sync editorial sur l'hote distant"
 ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/core/tools'"
 rsync -az "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" "$REMOTE_HOST:$REMOTE_BACKEND/core/tools/editorial_backup_restore.php"
 rsync -az "$LOCAL_BACKEND/$ADMIN_RUNTIME_SNAPSHOT_TOOL" "$REMOTE_HOST:$REMOTE_BACKEND/$ADMIN_RUNTIME_SNAPSHOT_TOOL"
@@ -238,7 +255,7 @@ gzip -f "$LOCAL_JSON"
 chmod 600 "$LOCAL_GZ"
 stat -c '%a %s %n' "$LOCAL_GZ"
 
-echo "[7/15] Backup SQL prod OVH avant ecriture"
+echo "[7/15] Backup SQL prod distant avant ecriture"
 ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && mkdir -p var/backups && php core/tools/editorial_backup_restore.php backup $REMOTE_SYNC_FLAGS --output='$REMOTE_BACKUP_JSON' && gzip -f '$REMOTE_BACKUP_JSON' && stat -c '%s %n' '$REMOTE_BACKUP_GZ'"
 scp -q "$REMOTE_HOST:$REMOTE_BACKEND/$REMOTE_BACKUP_GZ" "$PROD_DIR/"
 PROD_BEFORE_LOCAL="$PROD_DIR/$(basename "$REMOTE_BACKUP_GZ")"
@@ -248,7 +265,7 @@ stat -c '%a %s %n' "$PROD_BEFORE_LOCAL"
 echo "[8/15] Diff editorial local -> prod"
 "$PHP_BIN" "$LOCAL_BACKEND/core/tools/editorial_backup_restore.php" diff "$LOCAL_GZ" "$PROD_BEFORE_LOCAL" "${DIFF_FLAGS[@]}"
 
-echo "[9/15] Copie du payload local vers OVH"
+echo "[9/15] Copie du payload local vers l'hote distant"
 gzip -dc "$LOCAL_GZ" > "$TMP_JSON"
 chmod 600 "$TMP_JSON"
 LOCAL_SIZE="$(stat -c '%s' "$TMP_JSON")"
@@ -299,12 +316,12 @@ fi
 echo "[cleanup] Nettoyage des temporaires"
 if [[ "$KEEP_REMOTE_BACKUPS" -eq 1 ]]; then
   ssh "$REMOTE_HOST" "rm -f '$REMOTE_BACKEND/$REMOTE_PAYLOAD'"
-  echo "Backups conserves sur OVH a la demande."
+  echo "Backups conserves sur l'hote distant a la demande."
 else
   ssh "$REMOTE_HOST" "rm -f '$REMOTE_BACKEND/$REMOTE_PAYLOAD' '$REMOTE_BACKEND/$REMOTE_BACKUP_GZ' '$REMOTE_BACKEND/$REMOTE_AFTER_GZ' '$REMOTE_BACKEND/$REMOTE_ADMIN_BEFORE_JSON' '$REMOTE_BACKEND/$REMOTE_ADMIN_AFTER_JSON'"
 fi
 
-echo "Push SQL editorial local -> OVH termine."
+echo "Push SQL editorial local -> production distante termine."
 echo "Backup local source: $LOCAL_GZ"
 echo "Backup prod avant: $PROD_BEFORE_LOCAL"
 echo "Backup prod apres: $PROD_AFTER_LOCAL"

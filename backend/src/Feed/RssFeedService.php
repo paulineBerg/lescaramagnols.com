@@ -8,6 +8,7 @@ use Caramagnols\Blog\BlogRepositoryInterface;
 use Caramagnols\Blog\BlogPublicUrlResolver;
 use Caramagnols\Content\PageRepository;
 use Caramagnols\Http\Response;
+use Caramagnols\Seo\SeoUrlNormalizer;
 
 final class RssFeedService
 {
@@ -127,10 +128,10 @@ final class RssFeedService
         $relativePath = ltrim($path, '/');
 
         if ($baseUrl === '') {
-            return '/' . $relativePath;
+            return SeoUrlNormalizer::withoutFragment('/' . $relativePath);
         }
 
-        return $baseUrl . '/' . $relativePath;
+        return SeoUrlNormalizer::withoutFragment($baseUrl . '/' . $relativePath);
     }
 
     private function excerpt(mixed $content): string

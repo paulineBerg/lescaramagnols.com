@@ -45,10 +45,6 @@ const emitClientLog = (
     details
   };
 
-  if (level === 'error' || level === 'warning') {
-    console.error('[discussion-form]', stage, payload);
-  }
-
   if (endpoint === '') {
     return;
   }
@@ -128,6 +124,18 @@ const setErrorState = (submitButton: HTMLButtonElement | null, feedback: HTMLEle
 const setSuccessState = (submitButton: HTMLButtonElement | null, feedback: HTMLElement | null, message: string) => {
   setSubmitButtonState(submitButton, 'idle');
   setFeedbackState(feedback, 'success', message);
+};
+
+const setFieldAriaInvalid = (form: HTMLFormElement, isInvalid: boolean) => {
+  form
+    .querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input[name="author"], input[name="email"], textarea[name="content"]')
+    .forEach((field) => {
+      if (isInvalid) {
+        field.setAttribute('aria-invalid', 'true');
+      } else {
+        field.removeAttribute('aria-invalid');
+      }
+    });
 };
 
 const updateHiddenInput = (form: HTMLFormElement, name: string, value: string) => {
@@ -288,6 +296,7 @@ export const initDiscussionForms = (): void => {
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       setPendingState(submitButton, feedback);
+      setFieldAriaInvalid(form, false);
 
       const recaptchaEnabled = form.dataset.recaptchaEnabled === '1';
       const recaptchaMode = (form.dataset.recaptchaMode || '').trim().toLowerCase();
@@ -336,6 +345,7 @@ export const initDiscussionForms = (): void => {
           clearDiscussionFields(form);
           setEmptyStateVisibility(form, false);
           setSuccessState(submitButton, feedback, payload.message || requestErrorMessage);
+          setFieldAriaInvalid(form, false);
           emitClientLog(form, 'submit_success', 'info', {
             discussion_status: 'pending'
           });
@@ -353,6 +363,7 @@ export const initDiscussionForms = (): void => {
 
           setEmptyStateVisibility(form, true);
           setErrorState(submitButton, feedback, normalizedError.message || requestErrorMessage);
+          setFieldAriaInvalid(form, true);
         }
       })();
     });

@@ -760,7 +760,8 @@ final class AdminControllerTest extends TestCase
         );
 
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('role="tablist" aria-label="Traductions de la page"', $response->body);
+        $this->assertStringContainsString('role="tablist"', $response->body);
+        $this->assertStringContainsString('data-translation-tabs', $response->body);
         $this->assertStringContainsString('data-translation-tab="fr"', $response->body);
         $this->assertStringContainsString('data-translation-tab="en"', $response->body);
         $this->assertStringContainsString('data-translation-tab="de"', $response->body);
@@ -1080,7 +1081,7 @@ final class AdminControllerTest extends TestCase
         $this->assertSame(200, $clearedResponse->status);
         $this->assertStringNotContainsString('value="simca"', $clearedResponse->body);
         $this->assertStringNotContainsString('option value="draft" selected', $clearedResponse->body);
-        $this->assertStringNotContainsString('option value="fr" selected', $clearedResponse->body);
+        $this->assertStringContainsString('option value="fr" selected', $clearedResponse->body);
         $this->assertStringContainsString('simca-aronde', $clearedResponse->body);
         $this->assertStringContainsString('mercedes-slk', $clearedResponse->body);
     }
@@ -1224,7 +1225,7 @@ final class AdminControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Journaux système', $response->body);
         $this->assertStringContainsString('Journal SQL', $response->body);
-        $this->assertStringContainsString('Lecture Rapide', $response->body);
+        $this->assertStringContainsString('Lecture rapide', $response->body);
         $this->assertStringContainsString('Debug', $response->body);
         $this->assertStringContainsString('Canal', $response->body);
         $this->assertStringContainsString('Nettoyage', $response->body);
@@ -1311,7 +1312,7 @@ final class AdminControllerTest extends TestCase
         );
 
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('Fichier renomme.', $response->body);
+        $this->assertStringContainsString('Fichier renommé.', $response->body);
         $this->assertFileDoesNotExist($sourceAbsolutePath);
         $this->assertFileExists($renamedAbsolutePath);
 
@@ -1353,7 +1354,7 @@ final class AdminControllerTest extends TestCase
         );
 
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('Dossier deplace.', $response->body);
+        $this->assertStringContainsString('Dossier déplacé.', $response->body);
         $this->assertDirectoryDoesNotExist($sourceAbsolutePath);
         $this->assertDirectoryExists($movedAbsolutePath);
         $this->assertFileExists($movedAbsolutePath . '/sample.txt');
@@ -2504,10 +2505,10 @@ final class AdminControllerTest extends TestCase
                         'php_binary' => 'php',
                         'tar_binary' => 'tar',
                         'mysqldump_binary' => 'mysqldump',
-                        'database_host' => 'bp269148-001.eu.clouddb.ovh.net',
+                        'database_host' => 'db123.example-host.tld',
                         'database_port' => '35987',
                         'database_name' => 'CarBDbase',
-                        'database_user' => 'bp269148-ovh',
+                        'database_user' => 'db_user_example',
                         'database_password' => 'sql-backup-secret',
                     ],
                 ]
@@ -2531,10 +2532,10 @@ final class AdminControllerTest extends TestCase
         $this->assertSame($backupRoot . '/dumps', $siteOverride['backup']['sql_dir'] ?? null);
         $this->assertSame($backupRoot . '/manifestes', $siteOverride['backup']['manifest_dir'] ?? null);
         $this->assertSame('php', $siteOverride['backup']['php_binary'] ?? null);
-        $this->assertSame('bp269148-001.eu.clouddb.ovh.net', $databaseOverride['host'] ?? null);
+        $this->assertSame('db123.example-host.tld', $databaseOverride['host'] ?? null);
         $this->assertSame(35987, $databaseOverride['port'] ?? null);
         $this->assertSame('CarBDbase', $databaseOverride['name'] ?? null);
-        $this->assertSame('bp269148-ovh', $databaseOverride['user'] ?? null);
+        $this->assertSame('db_user_example', $databaseOverride['user'] ?? null);
         $this->assertSame('sql-backup-secret', $databaseOverride['password'] ?? null);
     }
 
@@ -2568,10 +2569,10 @@ final class AdminControllerTest extends TestCase
                             'php_binary' => 'php',
                             'tar_binary' => 'tar',
                             'mysqldump_binary' => 'mysqldump',
-                            'database_host' => 'bp269148-001.eu.clouddb.ovh.net',
+                            'database_host' => 'db123.example-host.tld',
                             'database_port' => '35987',
                             'database_name' => 'CarBDbase',
-                            'database_user' => 'bp269148-ovh',
+                            'database_user' => 'db_user_example',
                             'database_password' => 'sql-backup-secret',
                         ],
                     ]

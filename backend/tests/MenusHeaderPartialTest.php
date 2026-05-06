@@ -75,6 +75,37 @@ final class MenusHeaderPartialTest extends TestCase
         $this->assertStringNotContainsString('class="site-nav-toggle"', $html);
     }
 
+    public function testRenderSiteHeaderAddsShareControls(): void
+    {
+        if (!function_exists('renderSiteHeader')) {
+            require ROOT_PATH . '/templates/partials/menus_header.php';
+        }
+
+        ob_start();
+        renderSiteHeader([
+            'brand' => [
+                'label' => 'Les Caramagnols',
+                'href' => '/',
+                'logo' => '/assets/images/structure/favicon-48x48.png',
+            ],
+            'utility' => [],
+            'banner' => [],
+            'primary' => [],
+            'languages' => [],
+            'search' => [
+                'action' => '/search',
+                'currentLanguage' => 'fr',
+                'label' => 'Recherche',
+                'placeholder' => 'Rechercher...',
+            ],
+        ]);
+        $html = (string) ob_get_clean();
+
+        $this->assertSame(2, substr_count($html, 'data-site-share-button'));
+        $this->assertStringContainsString('title="Partager"', $html);
+        $this->assertStringContainsString('data-share-template="https://www.facebook.com/sharer/sharer.php?u={url}"', $html);
+    }
+
     public function testMegaSectionPromotesHrefAndAvoidsDuplicateFirstLinkWhenLabelMatchesGroup(): void
     {
         if (!function_exists('normalizeMegaSectionsForRender')) {

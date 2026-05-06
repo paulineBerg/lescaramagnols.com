@@ -443,8 +443,26 @@ $legacy-title-suffix: (
   color: rgb(31 58 109);
 }
 
+.page-attached-article-body,
+.page-attached-article-body p,
+.page-attached-article-body ul,
+.page-attached-article-body ol,
+.page-attached-article-body li,
+.page-attached-article-body blockquote,
+.page-attached-article-body strong,
+.page-attached-article-body em,
+.page-attached-article-body span {
+  color: rgb(30 44 69) !important;
+}
+
+.page-attached-article-body h2,
+.page-attached-article-body h3,
+.page-attached-article-body h4 {
+  color: rgb(31 58 109) !important;
+}
+
 .page-attached-article-body a {
-  color: rgb(25 70 140);
+  color: rgb(25 70 140) !important;
 }
 
 .page-attached-article-body img {
@@ -953,6 +971,7 @@ $legacy-title-suffix: (
 .blog-discussion-recaptcha {
   display: grid;
   gap: 0.4rem;
+  min-height: 5.25rem;
 }
 
 .blog-discussion-notice {
@@ -980,6 +999,11 @@ $legacy-title-suffix: (
 .blog-discussion-form button:disabled {
   opacity: 0.8;
   cursor: wait;
+}
+
+.blog-discussion-form :is(input, textarea, button):focus-visible {
+  outline: 2px solid rgb(20 84 170 / 62%);
+  outline-offset: 2px;
 }
 
 .blog-discussion-honeypot {
@@ -1183,6 +1207,29 @@ $legacy-title-suffix: (
 .page-attached-article-panel .blog-discussion-form button:hover,
 .page-attached-article-panel .blog-discussion-form button:focus-visible {
   background: rgb(12 62 126);
+}
+
+.page-attached-article-discussion-link {
+  margin-top: 0.5rem;
+}
+
+.page-attached-article-open-link {
+  margin-top: 0.5rem;
+}
+
+@supports (content-visibility: auto) {
+  .page-attached-articles,
+  .page-shared-media,
+  .page-tile-groups,
+  #piedpage {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 900px;
+  }
+
+  .page-attached-article-panel .blog-discussions {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 560px;
+  }
 }
 
 

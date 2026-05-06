@@ -115,7 +115,7 @@ final class LegacyRouteResolver
 
     private function resetRouteContext(): void
     {
-        unset($GLOBALS['currentDynamicPage']);
+        unset($GLOBALS['currentDynamicPage'], $GLOBALS['currentDynamicOpenArticle']);
         unset($GLOBALS['currentBlogArticles'], $GLOBALS['currentBlogArticle'], $GLOBALS['currentBlogFilters'], $GLOBALS['currentBlogHubPage']);
     }
 

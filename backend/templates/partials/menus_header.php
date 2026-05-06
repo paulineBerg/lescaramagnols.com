@@ -24,6 +24,93 @@ function renderNavigationAnchorOrLabel(array $item, string $linkClass, string $l
     <?php
 }
 
+function renderSiteShareControl(string $context): void
+{
+    $safeContext = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower($context)) ?? 'site';
+    $safeContext = trim($safeContext, '-') !== '' ? trim($safeContext, '-') : 'site';
+    $buttonId = 'site-share-button-' . $safeContext;
+    $menuId = 'site-share-menu-' . $safeContext;
+    $shareLabel = htmlspecialchars(t('TXT_NAV_SHARE_TITLE'), ENT_QUOTES, 'UTF-8');
+    $copyLabel = htmlspecialchars(t('TXT_NAV_SHARE_COPY'), ENT_QUOTES, 'UTF-8');
+    $copiedLabel = htmlspecialchars(t('TXT_NAV_SHARE_COPIED'), ENT_QUOTES, 'UTF-8');
+    $copyFailedLabel = htmlspecialchars(t('TXT_NAV_SHARE_COPY_FAILED'), ENT_QUOTES, 'UTF-8');
+    $destinations = [
+        [
+            'label' => t('TXT_NAV_SHARE_FACEBOOK'),
+            'template' => 'https://www.facebook.com/sharer/sharer.php?u={url}',
+        ],
+        [
+            'label' => t('TXT_NAV_SHARE_WHATSAPP'),
+            'template' => 'https://api.whatsapp.com/send?text={title}%20{url}',
+        ],
+        [
+            'label' => t('TXT_NAV_SHARE_LINKEDIN'),
+            'template' => 'https://www.linkedin.com/sharing/share-offsite/?url={url}',
+        ],
+        [
+            'label' => t('TXT_NAV_SHARE_X'),
+            'template' => 'https://twitter.com/intent/tweet?url={url}&text={title}',
+        ],
+        [
+            'label' => t('TXT_NAV_SHARE_EMAIL'),
+            'template' => 'mailto:?subject={title}&body={url}',
+        ],
+    ];
+    ?>
+    <div class="site-share-control" data-site-share>
+      <button
+        id="<?php echo htmlspecialchars($buttonId, ENT_QUOTES, 'UTF-8'); ?>"
+        class="site-share-button"
+        type="button"
+        title="<?php echo $shareLabel; ?>"
+        aria-label="<?php echo $shareLabel; ?>"
+        aria-haspopup="menu"
+        aria-expanded="false"
+        aria-controls="<?php echo htmlspecialchars($menuId, ENT_QUOTES, 'UTF-8'); ?>"
+        data-site-share-button
+        data-share-title="<?php echo $shareLabel; ?>"
+      >
+        <svg class="site-share-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <circle cx="18" cy="5" r="3"></circle>
+          <circle cx="6" cy="12" r="3"></circle>
+          <circle cx="18" cy="19" r="3"></circle>
+          <path d="M8.6 10.8 15.4 6.2"></path>
+          <path d="M8.6 13.2 15.4 17.8"></path>
+        </svg>
+        <span class="sr-only"><?php echo $shareLabel; ?></span>
+      </button>
+
+      <div
+        id="<?php echo htmlspecialchars($menuId, ENT_QUOTES, 'UTF-8'); ?>"
+        class="site-share-menu"
+        role="menu"
+        aria-labelledby="<?php echo htmlspecialchars($buttonId, ENT_QUOTES, 'UTF-8'); ?>"
+        hidden
+        data-site-share-menu
+        data-share-copied-label="<?php echo $copiedLabel; ?>"
+        data-share-copy-failed-label="<?php echo $copyFailedLabel; ?>"
+      >
+        <p class="site-share-menu-title"><?php echo $shareLabel; ?></p>
+        <?php foreach ($destinations as $destination): ?>
+        <a
+          href="#"
+          role="menuitem"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-site-share-link
+          data-share-template="<?php echo htmlspecialchars($destination['template'], ENT_QUOTES, 'UTF-8'); ?>"
+        >
+          <?php echo htmlspecialchars((string) $destination['label'], ENT_QUOTES, 'UTF-8'); ?>
+        </a>
+        <?php endforeach; ?>
+        <button class="site-share-copy" type="button" role="menuitem" data-site-share-copy>
+          <?php echo $copyLabel; ?>
+        </button>
+      </div>
+    </div>
+    <?php
+}
+
 /**
  * @param array<string, mixed> $featured
  */
@@ -512,6 +599,9 @@ function renderSiteHeader(array $navigation): void
               </a>
             </li>
             <?php endforeach; ?>
+            <li class="site-share-item">
+              <?php renderSiteShareControl('desktop'); ?>
+            </li>
           </ul>
 
           <form class="site-search" action="<?php echo $searchAction; ?>" method="get" role="search">
@@ -578,17 +668,21 @@ function renderSiteHeader(array $navigation): void
 
     <div id="breadcrumb-mobile" class="site-mobile-header" data-nav-scope-root="mobile">
       <div class="site-mobile-header-bar">
-        <button
-          id="hamburger-icon"
-          class="site-mobile-toggle"
-          type="button"
-          aria-expanded="false"
-          aria-controls="site-mobile-panel"
-          data-mobile-nav-toggle
-        >
-          <span></span><span></span><span></span>
-          <span class="sr-only"><?php echo htmlspecialchars(t('TXT_NAV_OPEN_MENU'), ENT_QUOTES, 'UTF-8'); ?></span>
-        </button>
+        <div class="site-mobile-header-actions">
+          <button
+            id="hamburger-icon"
+            class="site-mobile-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="site-mobile-panel"
+            data-mobile-nav-toggle
+          >
+            <span></span><span></span><span></span>
+            <span class="sr-only"><?php echo htmlspecialchars(t('TXT_NAV_OPEN_MENU'), ENT_QUOTES, 'UTF-8'); ?></span>
+          </button>
+
+          <?php renderSiteShareControl('mobile'); ?>
+        </div>
 
         <a class="site-mobile-brand" href="<?php echo $brandHref; ?>">
           <img src="<?php echo $brandLogo; ?>" alt="<?php echo $brandLabel; ?>" width="52" height="52" />

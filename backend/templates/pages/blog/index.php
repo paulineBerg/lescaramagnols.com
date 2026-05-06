@@ -56,6 +56,7 @@ $pageBodyClass = 'page-blog-index';
 $pageRobots = trim((string) ($viewModel['robots'] ?? 'index,follow'));
 $pageCanonicalUrl = app_url(ltrim((string) ($viewModel['canonicalPath'] ?? '/blog'), '/'));
 $GLOBALS['pageCanonicalUrl'] = $pageCanonicalUrl;
+$articles = is_array($viewModel['articles'] ?? null) ? $viewModel['articles'] : [];
 
 $hubMeta = is_array($hubPage['meta'] ?? null) ? $hubPage['meta'] : [];
 $pageMetaDescription = trim((string) ($hubMeta['description'] ?? ''));
@@ -115,7 +116,6 @@ if ($pageMetaImageAlt === '') {
 $activeCategoryLabel = trim((string) ($viewModel['filters']['categoryLabel'] ?? ''));
 $activeTagLabel = trim((string) ($viewModel['filters']['tagLabel'] ?? ''));
 $categoryFilters = is_array($viewModel['categoryFilters'] ?? null) ? $viewModel['categoryFilters'] : [];
-$articles = is_array($viewModel['articles'] ?? null) ? $viewModel['articles'] : [];
 $pagination = is_array($viewModel['pagination'] ?? null) ? $viewModel['pagination'] : [];
 $paginationFrom = (int) ($pagination['from'] ?? 0);
 $paginationTo = (int) ($pagination['to'] ?? 0);

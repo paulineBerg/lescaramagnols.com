@@ -72,6 +72,7 @@ describe('cookie consent', () => {
         services: ['youtube']
       },
       discussions: {
+        has_form: true,
         recaptcha: {
           enabled: true,
           mode: 'v3_score',
@@ -85,6 +86,28 @@ describe('cookie consent', () => {
     expect(window.tarteaucitron?.job).toContain('recaptcha');
     expect((window.tarteaucitron as any)?.user?.recaptcha_hl).toBe('en');
     expect((window.tarteaucitron as any)?.user?.recaptchaapi).toBe('site-key-123');
+  });
+
+  it('n active pas recaptcha sans formulaire discussion sur la page', () => {
+    window.caramagnolsRuntime = {
+      tarteaucitron: {
+        services: ['youtube']
+      },
+      discussions: {
+        has_form: false,
+        recaptcha: {
+          enabled: true,
+          mode: 'v3_score',
+          site_key: 'site-key-123'
+        }
+      }
+    };
+
+    initCookieConsent('fr');
+
+    expect(window.tarteaucitron?.job).not.toContain('recaptcha');
+    expect((window.tarteaucitron as any)?.user?.recaptcha_hl).toBeUndefined();
+    expect((window.tarteaucitron as any)?.user?.recaptchaapi).toBeUndefined();
   });
 
   it('n initialise pas tarteaucitron quand il est desactive en runtime', () => {

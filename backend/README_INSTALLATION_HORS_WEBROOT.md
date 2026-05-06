@@ -45,7 +45,8 @@ Installer ou réinstaller le projet sans exposer d'outil d'installation dans `ba
 Depuis WSL :
 
 ```bash
-cd /home/surfacepro8/www/caramagnols
+REPO_ROOT="${REPO_ROOT:-$(pwd)}"
+cd "$REPO_ROOT"
 
 composer install --working-dir=backend
 cd frontend && npm install && cd ..

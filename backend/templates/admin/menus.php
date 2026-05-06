@@ -452,6 +452,7 @@ $renderStructure = static function (array $items, string $location, array $indic
     $kindLabels,
     $renderTargetSummary,
     $escape,
+    $translate,
     $activeLocationDefinition,
     $presentationForItem,
     $openContextualEditor,
@@ -1124,7 +1125,7 @@ $renderEditorFields = static function (
 };
 
 $renderPreviewItems = null;
-$renderPreviewItems = static function (array $items, string $listClass = 'menu-preview-list') use (&$renderPreviewItems, $escape): void {
+$renderPreviewItems = static function (array $items, string $listClass = 'menu-preview-list') use (&$renderPreviewItems, $escape, $translate): void {
     if ($items === []) {
         ?>
         <div class="menu-preview-empty"><?php echo $escape($translate('TXT_ADMIN_MENUS_NO_ITEM', 'Aucun item')); ?></div>

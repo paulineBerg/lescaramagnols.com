@@ -1,7 +1,7 @@
 # Audit De Nettoyage Priorise Du Depot Local
 
 Date : `2026-04-16`  
-Depot : `/home/surfacepro8/www/caramagnols`
+Depot : chemin local du clone Git (WSL, sous `/home/...`)
 
 ## Etat Git Au Moment De L Audit
 

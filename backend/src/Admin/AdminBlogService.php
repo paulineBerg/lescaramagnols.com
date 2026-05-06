@@ -601,8 +601,8 @@ final class AdminBlogService
         usort(
             $options,
             static fn (array $left, array $right): int => strcasecmp(
-                (string) ($left['title'] ?? $left['slug'] ?? ''),
-                (string) ($right['title'] ?? $right['slug'] ?? '')
+                (string) $left['title'],
+                (string) $right['title']
             )
         );
 
@@ -765,9 +765,9 @@ final class AdminBlogService
 
         $savedBundle = $existingBundle;
         foreach ($validatedPayloads as $language => $validatedPayload) {
-            $article = is_array($validatedPayload['article'] ?? null) ? $validatedPayload['article'] : [];
-            $previousSlug = is_string($validatedPayload['previous_slug'] ?? null) ? (string) $validatedPayload['previous_slug'] : '';
-            $previousLanguage = is_string($validatedPayload['previous_language'] ?? null) ? (string) $validatedPayload['previous_language'] : '';
+            $article = $validatedPayload['article'];
+            $previousSlug = (string) $validatedPayload['previous_slug'];
+            $previousLanguage = (string) $validatedPayload['previous_language'];
 
             try {
                 $saved = $this->repository->save(

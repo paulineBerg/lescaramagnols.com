@@ -2,7 +2,7 @@
 
 Version de reference: 2026-04-29
 
-Ce fichier est la source de verite pour le depot `/home/surfacepro8/www/caramagnols`.
+Ce fichier est la source de verite pour ce depot Git.
 Son but est de fixer des regles communes de developpement, d'architecture, de langage, de verification et de documentation, a partir des conventions reelles du projet.
 
 ## 0. Mode d'emploi rapide
@@ -16,8 +16,14 @@ Ordre de travail recommande:
 - pour une modification editoriale en stockage SQL maitre, faire un backup adapte, pousser la correction dans SQL via les repositories/outils prevus, regenerer l'index de recherche et verifier le rendu public cible
 - pour un media public durable, versionner la source dans `frontend/src/assets/images/**`, produire `jpg` et `webp`, publier vers `backend/public/assets` via le pipeline, puis verifier dimensions, droits, sources et rendu
 - avant de sauvegarder une page ou un article qui reference un nouveau fichier sous `/assets/images/**`, publier d'abord le miroir HTTP vers `backend/public/assets/images/**` avec `npm run build` ou `npm run postbuild`; la source frontend reste canonique, mais le rendu public depend des fichiers publies
+- pour les images de partage social, une image dediee de page ou d'article (`meta.image`, `featured_image` ou `shared_media[0]`) doit toujours primer; l'image globale du site ne sert que de fallback lorsqu'aucune image editoriale exploitable n'est resolue
+- le bouton public de partage doit transmettre l'URL active de la page sans script tiers impose; les plateformes externes doivent lire les balises Open Graph / Twitter generees cote serveur
+- les JSON-LD publics doivent etre generes depuis la couche centrale `backend/src/Seo/`; ne pas reintroduire de schema global statique pour `Organization`, `WebSite`, `Person`, `WebPage` ou `BlogPosting` dans les templates
+- aucune URL SEO machine (`canonical`, JSON-LD, sitemap, RSS) ne doit contenir de fragment `#`; les ancres restent reservees aux liens visibles quand elles servent l'interface
+- les extensions JSON-LD de type FAQ ou avis ne doivent etre emises que depuis un contenu visible, valide et teste; en cas de doute, ne pas baliser plutot que publier une donnee structuree approximative
 - avant un deploy ou un push editorial, verifier les medias references via `php backend/core/tools/check_editorial_media.php --check-published-assets` ou laisser les scripts de deploiement bloquer automatiquement
 - terminer par les validations adaptees au risque: JSON, PHP, frontend, index, build, smoke HTTP ou verification manuelle ciblee
+- pour toute modification de rendu public, viser `100` sur PageSpeed Insights (Performance/Accessibilite/Bonnes pratiques/SEO), avec une tolerance minimale `Performance >= 95` sur toutes les pages servies; supprimer obligatoirement tout dossier temporaire Lighthouse/PageSpeed apres usage
 - signaler explicitement toute divergence restante entre JSON, SQL, prod, index ou assets publies
 
 ## 1. Portee et autorite
@@ -396,7 +402,7 @@ Migration et controle:
 
 Principe:
 - chaque article de blog doit etre rattache a une page parent via `page_slug`; cette page parent est la page pilier ou la page de contexte editorial de l'article
-- quand une page parent publiee existe, le lien interne prioritaire vers l'article doit pointer vers la page parent avec ouverture de l'article attache: `/<lang>/<route-parent>?open_article=<slug>#attached-article-<slug>`
+- quand une page parent publiee existe, le lien interne prioritaire vers l'article doit pointer vers la page parent avec ouverture de l'article attache: `/<lang>/<route-parent>?open_article=<slug>`; l'ancre `#attached-article-<slug>` est reservee aux liens visibles de confort quand le scroll direct est necessaire, jamais aux URL SEO machine
 - la route directe `/blog/article/<slug>` reste un fallback technique et ne doit pas devenir la cible principale du maillage interne si l'article est diffuse sous une page parent
 
 Priorite des liens:
@@ -465,7 +471,7 @@ Principe:
 
 Après chaque sélection qui modifie une date de planification, relancer le maillage interne des articles publiés ou planifiés :
 - reconstruire les liens internes pour chaque article avec statut `published` ou `scheduled`
-- utiliser la route du parent (`/fr|en|de/<route-parent>?open_article=<slug>#attached-article-<slug>`) quand :
+- utiliser la route du parent (`/fr|en|de/<route-parent>?open_article=<slug>`) quand :
   - la cible est publiée
   - ou la cible est `scheduled` avec date atteinte
   - ou une page parent publiée est disponible pour encadrer la navigation
@@ -501,8 +507,8 @@ Regles:
 - le controle bloquant de reference media est `php backend/core/tools/check_editorial_media.php --check-published-assets`
 
 Commande WSL de resynchronisation locale apres divergence prod:
-- etat editorial SQL: `cd /home/surfacepro8/www/caramagnols && bash .ops-sync/bin/pull-caramagnols-db.sh --live`
-- media public cible: `cd /home/surfacepro8/www/caramagnols && rsync -av -e "ssh -p 22" lescaramgl-ssh@ssh.cluster103.hosting.ovh.net:/home/lescaramgl-ssh/caramagnols/backend/public/assets/images/<sous-dossier>/ frontend/src/assets/images/<sous-dossier>/`
+- etat editorial SQL: `cd <racine-depot> && bash .ops-sync/bin/pull-caramagnols-db.sh --live`
+- media public cible: `cd <racine-depot> && rsync -av -e "ssh -p 22" user@host:/srv/caramagnols/backend/public/assets/images/<sous-dossier>/ frontend/src/assets/images/<sous-dossier>/`
 
 ### 10.2 Formats et diffusion
 
@@ -514,6 +520,7 @@ Regles de format pour les images:
 - si le bloc ou le rendu ne dispose pas de ce mecanisme de fallback, garder le `jpg` en dur
 - ne pas upscaler un original plus petit pour atteindre une cible arbitraire
 - conserver le ratio reel du fichier; ne jamais etirer une image
+- pour une miniature ou image inseree avec une largeur HTML/CSS fixe, utiliser une source naturelle au moins `1.5x` plus large que la taille affichee attendue, et preferer `2x` quand le poids reste raisonnable
 
 Regles de dimension cible:
 - image d'intro: largeur cible `1280 px`
@@ -737,7 +744,7 @@ Procedure recommandee:
 
 - lorsqu'un backup prod SQL ou autre doit etre conserve localement, le creer d'abord sur OVH dans un emplacement temporaire maitrise
 - compresser le backup avant transfert, par exemple en `.sql.gz`, `.json.gz` ou archive equivalente selon le contenu
-- rapatrier ensuite le backup compresse sur le PC, de preference hors depot Git dans `/home/surfacepro8/backups/caramagnols/prod/`
+- rapatrier ensuite le backup compresse sur le PC, de preference hors depot Git dans `$HOME/backups/caramagnols/prod/`
 - verifier explicitement la taille du fichier distant et du fichier local apres transfert; ne jamais considerer un backup vide ou tronque comme valide
 - appliquer des permissions restrictives au fichier local quand il contient des donnees sensibles, par exemple `chmod 600`
 - supprimer la copie temporaire OVH des qu'elle n'est plus necessaire au rollback immediat
