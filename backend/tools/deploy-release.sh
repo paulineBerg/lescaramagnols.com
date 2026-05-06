@@ -19,6 +19,28 @@ cleanup_remote_non_prod_files() {
   ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$PROD_TREE_CHECKER' --root=. --clean"
 }
 
+guard_untracked_source_files() {
+  if ! git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    return
+  fi
+
+  local untracked
+  untracked="$(git -C "$REPO_ROOT" ls-files --others --exclude-standard -- \
+    backend/src \
+    backend/templates \
+    frontend/src \
+    | sed '/\/$/d')"
+
+  if [[ -z "$untracked" ]]; then
+    return
+  fi
+
+  echo "Refus de deploy: fichiers source non suivis detectes (risque d'oubli en production):" >&2
+  printf '%s\n' "$untracked" | sed 's/^/  - /' >&2
+  echo "Ajoute, commit ou supprime ces fichiers avant de relancer le deploy." >&2
+  exit 1
+}
+
 usage() {
   cat <<'USAGE'
 Usage:
@@ -90,6 +112,8 @@ if [[ ! -f "$LOCAL_BACKEND/$PROD_TREE_CHECKER" ]]; then
   echo "Production tree checker not found: $LOCAL_BACKEND/$PROD_TREE_CHECKER" >&2
   exit 1
 fi
+
+guard_untracked_source_files
 
 echo "Deploy mode: release"
 echo "Dry run: $DRY_RUN"
