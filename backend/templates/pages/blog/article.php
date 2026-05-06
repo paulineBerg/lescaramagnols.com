@@ -32,7 +32,7 @@ $extractFirstImageFromContent = static function (string $content): ?array {
     }
 
     if (
-        preg_match('/<img\\b[^>]*\\bsrc\\s*=\\s*([\"\\'])(.*?)\\1[^>]*>/i', $content, $imageTagMatches) !== 1
+        preg_match('/<img\b[^>]*\bsrc\s*=\s*(["\'])(.*?)\1[^>]*>/i', $content, $imageTagMatches) !== 1
     ) {
         return null;
     }
@@ -42,16 +42,16 @@ $extractFirstImageFromContent = static function (string $content): ?array {
         'src' => trim((string) ($imageTagMatches[2] ?? '')),
     ];
 
-    if (preg_match('/\\balt\\s*=\\s*[\"\\']([^\"\\']*)[\"\\']/i', $imageTag, $imageAttributeMatches) === 1) {
+    if (preg_match('/\balt\s*=\s*["\']([^"\']*)["\']/i', $imageTag, $imageAttributeMatches) === 1) {
         $imagePayload['alt'] = trim((string) $imageAttributeMatches[1]);
     }
 
-    if (preg_match('/\\bwidth\\s*=\\s*[\"\\']?(\\d+)\\1?/i', $imageTag, $widthMatches) === 1) {
-        $imagePayload['width'] = (int) $widthMatches[1];
+    if (preg_match('/\bwidth\s*=\s*(["\']?)(\d+)\1/i', $imageTag, $widthMatches) === 1) {
+        $imagePayload['width'] = (int) $widthMatches[2];
     }
 
-    if (preg_match('/\\bheight\\s*=\\s*[\"\\']?(\\d+)\\1?/i', $imageTag, $heightMatches) === 1) {
-        $imagePayload['height'] = (int) $heightMatches[1];
+    if (preg_match('/\bheight\s*=\s*(["\']?)(\d+)\1/i', $imageTag, $heightMatches) === 1) {
+        $imagePayload['height'] = (int) $heightMatches[2];
     }
 
     $imagePayload = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata($imagePayload);
@@ -103,7 +103,7 @@ $articleAttachedPath = $publicUrlResolver->attachedPathForArticle($article);
 $articleLegacyLanguagePrefixedPath = $publicUrlResolver->isDefaultLanguage($articleLanguage)
     ? '/' . rawurlencode($articleLanguage) . $articleFallbackPath
     : $articleFallbackPath;
-$pageCanonicalUrl = app_url(ltrim($articlePublicPath, '/'));
+$pageCanonicalUrl = \Caramagnols\Seo\SeoUrlNormalizer::withoutFragment(app_url(ltrim($articlePublicPath, '/')));
 $GLOBALS['pageCanonicalUrl'] = $pageCanonicalUrl;
 $requestUri = is_string($_SERVER['REQUEST_URI'] ?? null) ? (string) $_SERVER['REQUEST_URI'] : '';
 $requestPath = normalize_public_route((string) (parse_url($requestUri, PHP_URL_PATH) ?? $articleFallbackPath)) ?? $articleFallbackPath;
@@ -134,6 +134,7 @@ $renderedArticleContent = \Caramagnols\Http\PublicUrlNormalizer::rewriteHtmlFrag
     (string) ($article['content'] ?? ''),
     $articlePublicPath
 );
+$renderedArticleContent = \Caramagnols\Http\PublicUrlNormalizer::prioritizeFirstImageInHtml($renderedArticleContent);
 $resolveArticleUrl = static function (array $candidate) use ($publicUrlResolver, $articleLanguage): string {
     $slug = trim((string) ($candidate['slug'] ?? ''));
     if ($slug === '') {
@@ -224,6 +225,7 @@ $recaptchaSiteKey = trim((string) ($recaptchaConfig['site_key'] ?? ''));
 $recaptchaEnabled = $discussionsEnabled
     && (bool) ($recaptchaConfig['enabled'] ?? false)
     && $recaptchaSiteKey !== '';
+$GLOBALS['currentPageHasDiscussionForm'] = $discussionsEnabled && !$discussionRequireAccount && $articleSlug !== '';
 
 if ($articleSlug !== '') {
     ensure_session_started();
@@ -292,9 +294,9 @@ ob_start();
       <?php endif; ?>
       width="<?php echo max(1, min(8192, (int) ($featuredImage['width'] ?? 1200))); ?>"
       height="<?php echo max(1, min(8192, (int) ($featuredImage['height'] ?? 630))); ?>"
-      loading="lazy"
+      loading="eager"
       decoding="async"
-      fetchpriority="low"
+      fetchpriority="high"
     />
     <?php if (trim((string) ($featuredImage['caption'] ?? '')) !== ''): ?>
     <figcaption><?php echo htmlspecialchars((string) $featuredImage['caption'], ENT_QUOTES, 'UTF-8'); ?></figcaption>

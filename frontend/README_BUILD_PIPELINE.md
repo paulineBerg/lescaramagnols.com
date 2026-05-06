@@ -161,6 +161,7 @@ La CI exécute maintenant :
 - gate budget inclus dans `npm run build`
 - vérification de la présence de `backend/public/.vite/manifest.json`
 - gate d'hygiene repo/documentation/assets via `npm run hygiene:repo`
+- refus de tout dossier/fichier temporaire Lighthouse/PageSpeed (`lighthouse*`, `pagespeed*`, `psi*`) tant qu'il n'est pas supprimé
 - tests et lint backend/frontend
 
 ## Politique Artefacts

@@ -4,8 +4,14 @@ const SUPPORTED_LANGS = ['fr', 'en', 'de'] as const;
 export type SupportedLang = (typeof SUPPORTED_LANGS)[number];
 const DEFAULT_LANG: SupportedLang = 'fr';
 const STORAGE_KEY = 'lescaramagnols.lang';
+const MAX_TRANSLATION_KEYS_PER_REQUEST = 250;
 
 const translationCache = new Map<SupportedLang, Record<string, string>>();
+const translationCoverage = new Map<SupportedLang, Set<string> | null>();
+
+type LoadTranslationsOptions = {
+  keys?: string[];
+};
 
 function resolveLangApiEndpoint(): string {
   const candidate = window.caramagnolsRuntime?.api?.lang;
@@ -62,8 +68,8 @@ export function resolveLanguage({
 
 export async function loadTranslations(lang: SupportedLang = DEFAULT_LANG): Promise<Record<string, string>> {
   const finalLang = normaliseLang(lang);
-
-  if (translationCache.has(finalLang)) {
+  const coverage = translationCoverage.get(finalLang);
+  if (translationCache.has(finalLang) && coverage === null) {
     return translationCache.get(finalLang) ?? {};
   }
 
@@ -84,6 +90,7 @@ export async function loadTranslations(lang: SupportedLang = DEFAULT_LANG): Prom
     const data = await response.json();
 
     translationCache.set(finalLang, data);
+    translationCoverage.set(finalLang, null);
     persistLanguage(finalLang);
 
     return data;
@@ -99,13 +106,78 @@ export async function loadTranslations(lang: SupportedLang = DEFAULT_LANG): Prom
   }
 }
 
+export async function loadTranslationsByKeys(
+  lang: SupportedLang = DEFAULT_LANG,
+  options: LoadTranslationsOptions = {}
+): Promise<Record<string, string>> {
+  const finalLang = normaliseLang(lang);
+  const requestedKeys = normaliseTranslationKeys(options.keys ?? []);
+  if (requestedKeys.length === 0) {
+    return loadTranslations(finalLang);
+  }
+
+  const cachedTranslations = translationCache.get(finalLang) ?? {};
+  const currentCoverage = translationCoverage.get(finalLang);
+
+  if (currentCoverage === null && translationCache.has(finalLang)) {
+    return pickTranslations(cachedTranslations, requestedKeys);
+  }
+
+  const knownKeys = currentCoverage ?? new Set<string>();
+  const missingKeys = requestedKeys.filter((key) => !knownKeys.has(key));
+
+  if (missingKeys.length === 0) {
+    return pickTranslations(cachedTranslations, requestedKeys);
+  }
+
+  try {
+    const endpoint = resolveLangApiEndpoint();
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const keysQuery = encodeURIComponent(missingKeys.join(','));
+    const response = await fetch(`${endpoint}${separator}lang=${encodeURIComponent(finalLang)}&keys=${keysQuery}`, {
+      headers: {
+        Accept: 'application/json'
+      },
+      cache: 'no-store'
+    });
+
+    if (!response.ok) {
+      throw new Error(`Échec du chargement (${response.status})`);
+    }
+
+    const data = await response.json();
+    const mergedTranslations = {
+      ...cachedTranslations,
+      ...data
+    };
+
+    translationCache.set(finalLang, mergedTranslations);
+    translationCoverage.set(finalLang, new Set<string>([...knownKeys, ...missingKeys]));
+    persistLanguage(finalLang);
+
+    return pickTranslations(mergedTranslations, requestedKeys);
+  } catch (error) {
+    logError('Erreur i18n :', error);
+
+    if (finalLang !== DEFAULT_LANG) {
+      logWarn(`Fallback sur la langue par défaut (${DEFAULT_LANG})`);
+      return loadTranslationsByKeys(DEFAULT_LANG, { keys: requestedKeys });
+    }
+
+    return {};
+  }
+}
+
 export function clearTranslationCache(lang?: SupportedLang | null): void {
   if (!lang) {
     translationCache.clear();
+    translationCoverage.clear();
     return;
   }
 
-  translationCache.delete(normaliseLang(lang));
+  const normalizedLang = normaliseLang(lang);
+  translationCache.delete(normalizedLang);
+  translationCoverage.delete(normalizedLang);
 }
 
 function applyText(el: Element, value: string): void {
@@ -144,4 +216,25 @@ export async function changeLanguage(lang: string): Promise<SupportedLang> {
   applyTranslations(translations);
   document.documentElement.lang = finalLang;
   return finalLang;
+}
+
+function normaliseTranslationKeys(keys: string[]): string[] {
+  const normalized = Array.from(new Set(
+    keys
+      .map((key) => key.trim())
+      .filter((key) => key !== '')
+  ));
+
+  return normalized.slice(0, MAX_TRANSLATION_KEYS_PER_REQUEST);
+}
+
+function pickTranslations(source: Record<string, string>, keys: string[]): Record<string, string> {
+  const selected: Record<string, string> = {};
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(source, key) && typeof source[key] === 'string') {
+      selected[key] = source[key];
+    }
+  }
+
+  return selected;
 }

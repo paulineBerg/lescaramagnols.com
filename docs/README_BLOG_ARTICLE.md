@@ -57,7 +57,7 @@ Pour chaque article de blog :
 - seconde image de corps autorisée uniquement si elle apporte une information précise (comparatif, pièce, mécanique, usage, repère terrain)
 - pas d'images décoratives, pas de doublons visuels entre couverture et corps
 - images limitées et utiles, structurées autour du récit éditorial
-- champs `alt`, `title`, `caption`, `width`, `height` renseignés quand possible
+- champs `alt`, `title`, `caption`, `width`, `height` obligatoires; ne pas publier une image sans dimensions explicites dans le HTML final
 
 ## Articles pratiques
 

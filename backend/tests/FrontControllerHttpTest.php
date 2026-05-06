@@ -828,7 +828,8 @@ final class FrontControllerHttpTest extends TestCase
             'lang' => 'fr',
             'status' => 'published',
             'date' => '2026-03-20 10:00:00',
-            'content' => '<p>Article visible ancien.</p>',
+            'content' => '<p>Article visible ancien.</p><p>FULL_OLD_PAYLOAD_SHOULD_NOT_BE_IN_INITIAL_DOM</p>',
+            'excerpt' => 'Résumé ancien.',
             'page_slug' => 'association',
             'created_at' => '2026-03-25T10:00:00+00:00',
         ]);
@@ -876,8 +877,10 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('Chronique au fil du temps', $response->body);
         $this->assertStringContainsString('Article ancien', $response->body);
         $this->assertStringContainsString('Article récent', $response->body);
+        $this->assertStringContainsString('Résumé ancien.', $response->body);
         $this->assertStringContainsString('article-accroche', $response->body);
         $this->assertStringContainsString('article-recent', $response->body);
+        $this->assertStringNotContainsString('FULL_OLD_PAYLOAD_SHOULD_NOT_BE_IN_INITIAL_DOM', $response->body);
         $this->assertStringNotContainsString('Article hors page', $response->body);
         $this->assertStringNotContainsString('Article brouillon', $response->body);
         $this->assertStringContainsString('Sources', $response->body);
@@ -886,25 +889,48 @@ final class FrontControllerHttpTest extends TestCase
             strpos($response->body, 'Chronique au fil du temps')
         );
         $this->assertMatchesRegularExpression(
-            '/<details id="attached-article-article-recent" class="page-attached-article" open>/',
+            '/<details id="attached-article-article-recent" class="page-attached-article" >/',
             $response->body
         );
         $this->assertMatchesRegularExpression(
             '/<details id="attached-article-article-accroche" class="page-attached-article" >/',
             $response->body
         );
-        $this->assertStringContainsString('Message validé.', $response->body);
-        $this->assertStringContainsString('discussion-form-article-recent', $response->body);
-        $this->assertStringContainsString('name="return_to"', $response->body);
-        $this->assertStringContainsString('name="article_slug" value="article-recent"', $response->body);
-        $this->assertStringContainsString('name="article_lang" value="fr"', $response->body);
+        $this->assertStringNotContainsString('Message validé.', $response->body);
+        $this->assertStringNotContainsString('id="discussion-form-article-recent"', $response->body);
+        $this->assertSame(0, substr_count($response->body, 'data-discussion-form'));
+        $this->assertStringContainsString('open_discussion=1', $response->body);
         $this->assertStringContainsString('open_article=article-recent', $response->body);
-        $this->assertStringContainsString('/core/blog/submit_discussion.php', $response->body);
-        $this->assertStringContainsString('data-discussion-log-endpoint="/core/blog/log_discussion_client.php"', $response->body);
+        $this->assertStringContainsString('open_article=article-accroche', $response->body);
         $this->assertLessThan(
             strpos($response->body, 'article-accroche'),
             strpos($response->body, 'article-recent')
         );
+        $elementCount = preg_match_all('/<[a-z][a-z0-9:-]*(?:\s|>)/i', $response->body, $matches);
+        $this->assertIsInt($elementCount);
+        $this->assertLessThanOrEqual(1300, $elementCount);
+        $attachedSectionLength = $this->sectionLength(
+            $response->body,
+            '<section class="blog-list page-attached-articles"',
+            '</section>'
+        );
+        $this->assertGreaterThan(0, $attachedSectionLength);
+        $this->assertLessThanOrEqual(14000, $attachedSectionLength);
+
+        $responseWithDiscussion = $this->frontController()->handle(
+            $this->request('GET', '/association?open_article=article-recent&open_discussion=1')
+        );
+
+        $this->assertSame(200, $responseWithDiscussion->status);
+        $this->assertStringContainsString('Message validé.', $responseWithDiscussion->body);
+        $this->assertStringContainsString('discussion-form-article-recent', $responseWithDiscussion->body);
+        $this->assertStringNotContainsString('discussion-form-article-accroche" aria-labelledby=', $responseWithDiscussion->body);
+        $this->assertSame(1, substr_count($responseWithDiscussion->body, 'data-discussion-form'));
+        $this->assertStringContainsString('name="return_to"', $responseWithDiscussion->body);
+        $this->assertStringContainsString('name="article_slug" value="article-recent"', $responseWithDiscussion->body);
+        $this->assertStringContainsString('name="article_lang" value="fr"', $responseWithDiscussion->body);
+        $this->assertStringContainsString('/core/blog/submit_discussion.php', $responseWithDiscussion->body);
+        $this->assertStringContainsString('data-discussion-log-endpoint="/core/blog/log_discussion_client.php"', $responseWithDiscussion->body);
     }
 
     public function testDiscussionClientLogEndpointAcceptsJsonPayload(): void
@@ -1245,9 +1271,12 @@ final class FrontControllerHttpTest extends TestCase
         );
 
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('rel="canonical"', $response->body);
         $this->assertStringContainsString(
-            '/fr/association?open_article=article-attache#attached-article-article-attache',
+            '<link rel="canonical" href="http://127.0.0.1:8000/fr/association?open_article=article-attache" />',
+            $response->body
+        );
+        $this->assertStringContainsString(
+            'id="attached-article-article-attache"',
             $response->body
         );
     }
@@ -1753,6 +1782,23 @@ final class FrontControllerHttpTest extends TestCase
         } finally {
             file_put_contents($layoutPath, $originalLayout);
         }
+    }
+
+    private function sectionLength(string $html, string $startMarker, string $endMarker): int
+    {
+        $start = strpos($html, $startMarker);
+        if (!is_int($start)) {
+            return 0;
+        }
+
+        $end = strpos($html, $endMarker, $start);
+        if (!is_int($end)) {
+            return 0;
+        }
+
+        $end += strlen($endMarker);
+
+        return max(0, $end - $start);
     }
 
     private function frontController(): FrontController

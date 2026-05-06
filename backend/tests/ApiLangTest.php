@@ -35,4 +35,23 @@ final class ApiLangTest extends TestCase
         $this->assertSame(304, $response->status);
         $this->assertSame('', $response->body);
     }
+
+    public function testCanFilterTranslationsByRequestedKeys(): void
+    {
+        $response = lang_api_response('fr', null, ['TXT_SITE_BRAND', 'TXT_NAV_OPEN_MENU']);
+
+        $this->assertSame(200, $response->status);
+        $payload = json_decode($response->body, true);
+        $this->assertIsArray($payload);
+        $this->assertArrayHasKey('TXT_SITE_BRAND', $payload);
+        $this->assertArrayHasKey('TXT_NAV_OPEN_MENU', $payload);
+        $this->assertCount(2, $payload);
+    }
+
+    public function testParsesRequestedTranslationKeysSafely(): void
+    {
+        $keys = parse_requested_translation_keys(' TXT_SITE_BRAND , ,,foo bar,TXT_NAV_OPEN_MENU,TXT_SITE_BRAND ');
+
+        $this->assertSame(['TXT_SITE_BRAND', 'TXT_NAV_OPEN_MENU'], $keys);
+    }
 }

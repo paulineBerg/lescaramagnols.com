@@ -4,7 +4,8 @@ import {
   persistLanguage,
   getPersistedLanguage,
   clearTranslationCache,
-  changeLanguage
+  changeLanguage,
+  loadTranslationsByKeys
 } from '../i18n.ts';
 
 global.fetch = vi.fn(async () => ({
@@ -69,6 +70,42 @@ describe('i18n helpers', () => {
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('/catalogue/core/api/lang.php?lang=de'),
+      expect.any(Object)
+    );
+  });
+
+  it('loads only requested keys when key filter is provided', async () => {
+    fetch.mockClear();
+
+    await loadTranslationsByKeys('fr', {
+      keys: ['TXT_SITE_BRAND', 'TXT_NAV_OPEN_MENU']
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('keys=TXT_SITE_BRAND%2CTXT_NAV_OPEN_MENU'),
+      expect.any(Object)
+    );
+  });
+
+  it('reloads full catalog after a keys-only fetch', async () => {
+    fetch.mockReset();
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ TXT_SITE_BRAND: 'Les Caramagnols' })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ title: 'Bonjour', TXT_NAV_OPEN_MENU: 'Ouvrir le menu' })
+      });
+
+    await loadTranslationsByKeys('fr', { keys: ['TXT_SITE_BRAND'] });
+    await changeLanguage('fr');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('core/api/lang.php?lang=fr'),
       expect.any(Object)
     );
   });

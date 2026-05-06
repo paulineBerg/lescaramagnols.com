@@ -24,6 +24,14 @@ if ($page === null) {
 $pageTitle = $page['title'] ?? t('TXT_SITE_BRAND');
 $blocks = is_array($page['blocks'] ?? null) ? $page['blocks'] : [];
 $pageSlug = trim((string) ($page['slug'] ?? ''));
+$GLOBALS['currentPageHasDiscussionForm'] = false;
+
+foreach (['EditRegion1', 'EditRegion3'] as $contentSlot) {
+    if (is_string($blocks[$contentSlot] ?? null) && trim((string) $blocks[$contentSlot]) !== '') {
+        $blocks[$contentSlot] = \Caramagnols\Http\PublicUrlNormalizer::prioritizeFirstImageInHtml((string) $blocks[$contentSlot]);
+    }
+}
+
 $language = defined('CURRENT_LANG') ? CURRENT_LANG : (defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr');
 $defaultLanguage = defined('DEFAULT_LANG') ? DEFAULT_LANG : (string) app_config('default_lang', 'fr');
 $publicUrlResolver = new \Caramagnols\Blog\BlogPublicUrlResolver(
@@ -53,6 +61,9 @@ if ($pageSlug !== '') {
         $attachedArticles = blog_repository()->publishedArticleTreeForPage($pageSlug, $defaultLanguage);
     }
 }
+$attachedChronicleArticles = [];
+$openArticle = null;
+unset($GLOBALS['currentDynamicOpenArticle']);
 $toAbsoluteImageUrl = static function (string $src): string {
     if (preg_match('#^https?://#i', $src) === 1) {
         return $src;
@@ -136,10 +147,15 @@ if ($sharedMediaItems !== []) {
 
 if ($attachedArticles !== []) {
     $openArticleSlug = '';
+    $openDiscussionRequested = false;
     if (isset($_GET['open_article']) && is_string($_GET['open_article'])) {
         $candidate = strtolower(trim((string) $_GET['open_article']));
         $candidate = preg_replace('/[^a-z0-9-]+/i', '-', $candidate) ?? '';
         $openArticleSlug = trim($candidate, '-');
+    }
+    if (isset($_GET['open_discussion'])) {
+        $openDiscussionValue = strtolower(trim((string) $_GET['open_discussion']));
+        $openDiscussionRequested = in_array($openDiscussionValue, ['1', 'true', 'yes', 'on'], true);
     }
     $blogReturnUrl = null;
     if (isset($_GET['blog_return']) && is_string($_GET['blog_return'])) {
@@ -202,6 +218,7 @@ if ($attachedArticles !== []) {
         }
     }
     unset($currentRequestQuery['open_article']);
+    unset($currentRequestQuery['open_discussion']);
 
     $slugifyBlogFilterValue = static function (string $value): string {
         $normalized = trim($value);
@@ -313,7 +330,6 @@ if ($attachedArticles !== []) {
         $attachedChronicleArticles = $attachedArticles;
     }
 
-    $openArticle = null;
     $hasOpenArticleMatch = false;
     if ($openArticleSlug !== '') {
         foreach ($attachedChronicleArticles as $articleCandidate) {
@@ -330,10 +346,11 @@ if ($attachedArticles !== []) {
     }
 
     if (is_array($openArticle)) {
+        $GLOBALS['currentDynamicOpenArticle'] = $openArticle;
         $openArticlePublicPath = $attachedArticlePathForCurrentPage($openArticle)
             ?? $publicUrlResolver->publicPathForArticle($openArticle);
         if (is_string($openArticlePublicPath) && $openArticlePublicPath !== '') {
-            $pageCanonicalUrl = app_url(ltrim($openArticlePublicPath, '/'));
+            $pageCanonicalUrl = \Caramagnols\Seo\SeoUrlNormalizer::withoutFragment(app_url(ltrim($openArticlePublicPath, '/')));
             $GLOBALS['pageCanonicalUrl'] = $pageCanonicalUrl;
         }
     }
@@ -349,29 +366,6 @@ if ($attachedArticles !== []) {
         </a>
       </p>
       <?php endif; ?>
-      <style>
-        .page-attached-article-body,
-        .page-attached-article-body p,
-        .page-attached-article-body ul,
-        .page-attached-article-body ol,
-        .page-attached-article-body li,
-        .page-attached-article-body blockquote,
-        .page-attached-article-body strong,
-        .page-attached-article-body em,
-        .page-attached-article-body span {
-          color: rgb(30 44 69) !important;
-        }
-
-        .page-attached-article-body h2,
-        .page-attached-article-body h3,
-        .page-attached-article-body h4 {
-          color: rgb(31 58 109) !important;
-        }
-
-        .page-attached-article-body a {
-          color: rgb(25 70 140) !important;
-        }
-      </style>
       <div class="page-attached-articles-accordion">
         <?php foreach ($attachedChronicleArticles as $articleIndex => $article): ?>
         <?php
@@ -400,6 +394,10 @@ if ($attachedArticles !== []) {
         $discussionTitleId = 'blog-discussions-title-' . ($slug !== '' ? $slug : (string) $articleIndex);
         $discussionFieldPrefix = 'discussion-' . ($slug !== '' ? $slug : (string) $articleIndex);
         $returnToDiscussionUrl = '';
+        $articleOpenUrl = '';
+        $discussionUrl = '';
+        $discussionScope = '';
+        $hasDiscussionFlash = false;
         $tags = array_values(array_filter(
             array_map('strval', is_array($article['tags'] ?? null) ? $article['tags'] : []),
             static fn (string $tag): bool => trim($tag) !== ''
@@ -408,16 +406,51 @@ if ($attachedArticles !== []) {
             $excerpt = trim(strip_tags((string) ($article['content'] ?? '')));
             $excerpt = function_exists('mb_substr') ? mb_substr($excerpt, 0, 420) : substr($excerpt, 0, 420);
         }
-        $shouldOpen = $openArticleSlug !== ''
-            ? ($slug !== '' && $slug === $openArticleSlug)
-            : $articleIndex === 0;
-
-        if (!$hasOpenArticleMatch && $openArticleSlug !== '') {
-            $shouldOpen = $articleIndex === 0;
+        $shouldOpen = false;
+        if ($openArticleSlug !== '') {
+            $shouldOpen = $slug !== '' && $slug === $openArticleSlug;
+        } elseif ($openDiscussionRequested && $articleIndex === 0) {
+            // Compatibilite legacy: open_discussion sans slug ouvre le premier article.
+            $shouldOpen = true;
         }
 
-        if ($discussionsEnabled && $slug !== '' && $discussionRepository !== null) {
+        if ($slug !== '') {
+            $articleQuery = $currentRequestQuery;
+            $articleQuery['open_article'] = $slug;
+            $articleOpenUrl = $currentRequestPath;
+            if ($articleQuery !== []) {
+                $articleOpenUrl .= '?' . http_build_query($articleQuery);
+            }
+            $articleOpenUrl .= '#attached-article-' . rawurlencode($slug);
+
+            $discussionQuery = $articleQuery;
+            $discussionQuery['open_discussion'] = '1';
+            $discussionUrl = $currentRequestPath;
+            if ($discussionQuery !== []) {
+                $discussionUrl .= '?' . http_build_query($discussionQuery);
+            }
+            $discussionUrl .= '#discussion-form-' . rawurlencode($slug);
+
             $discussionScope = 'blog_discussion_' . hash('sha256', $articleLanguage . ':' . $slug);
+            $hasDiscussionFlash = is_array($discussionFlashBucket[$discussionScope] ?? null);
+        }
+
+        $shouldHydrateDiscussion = $discussionsEnabled
+            && $slug !== ''
+            && $shouldOpen
+            && $discussionRepository !== null
+            && ($openDiscussionRequested || $hasDiscussionFlash);
+
+        $renderFullArticleBody = $content !== '' && $shouldOpen;
+        if ($renderFullArticleBody) {
+            $content = \Caramagnols\Http\PublicUrlNormalizer::prioritizeFirstImageInHtml($content);
+        }
+        if (!$renderFullArticleBody && $excerpt === '' && $content !== '') {
+            $excerpt = trim(strip_tags($content));
+            $excerpt = function_exists('mb_substr') ? mb_substr($excerpt, 0, 420) : substr($excerpt, 0, 420);
+        }
+
+        if ($shouldHydrateDiscussion) {
             $approvedDiscussions = $discussionRepository->approvedForArticle($slug, $articleLanguage);
             $discussionFlash = is_array($discussionFlashBucket[$discussionScope] ?? null)
                 ? $discussionFlashBucket[$discussionScope]
@@ -437,23 +470,10 @@ if ($attachedArticles !== []) {
                 'issued_at' => time(),
             ];
 
-            $canonicalDiscussionPath = $attachedArticlePathForCurrentPage($article);
-            if (is_string($canonicalDiscussionPath) && trim($canonicalDiscussionPath) !== '') {
-                $canonicalDiscussionParts = parse_url($canonicalDiscussionPath);
-                $canonicalDiscussionPathOnly = normalize_public_route((string) ($canonicalDiscussionParts['path'] ?? '')) ?? '';
-                $canonicalDiscussionQuery = isset($canonicalDiscussionParts['query']) && is_string($canonicalDiscussionParts['query']) && $canonicalDiscussionParts['query'] !== ''
-                    ? '?' . $canonicalDiscussionParts['query']
-                    : '';
-                $returnToDiscussionUrl = $canonicalDiscussionPathOnly . $canonicalDiscussionQuery;
-            } else {
-                $returnQuery = $currentRequestQuery;
-                $returnQuery['open_article'] = $slug;
-                $returnToDiscussionUrl = $currentRequestPath;
-                if ($returnQuery !== []) {
-                    $returnToDiscussionUrl .= '?' . http_build_query($returnQuery);
-                }
+            $returnToDiscussionUrl = $discussionUrl;
+            if (!$discussionRequireAccount) {
+                $GLOBALS['currentPageHasDiscussionForm'] = true;
             }
-            $returnToDiscussionUrl .= '#discussion-form-' . rawurlencode($slug);
         }
         ?>
         <details id="attached-article-<?php echo htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'); ?>" class="page-attached-article" <?php echo $shouldOpen ? 'open' : ''; ?>>
@@ -482,9 +502,9 @@ if ($attachedArticles !== []) {
                 <?php endif; ?>
                 width="<?php echo (int) $featuredImage['width']; ?>"
                 height="<?php echo (int) $featuredImage['height']; ?>"
-                loading="lazy"
+                loading="<?php echo $shouldOpen ? 'eager' : 'lazy'; ?>"
                 decoding="async"
-                fetchpriority="low"
+                fetchpriority="<?php echo $shouldOpen ? 'high' : 'low'; ?>"
               />
               <?php if ($featuredImage['caption'] !== ''): ?>
               <figcaption><?php echo htmlspecialchars((string) $featuredImage['caption'], ENT_QUOTES, 'UTF-8'); ?></figcaption>
@@ -505,15 +525,28 @@ if ($attachedArticles !== []) {
               <?php endforeach; ?>
             </p>
             <?php endif; ?>
-            <?php if ($content !== ''): ?>
+            <?php if ($renderFullArticleBody): ?>
             <article class="blog-article-body page-attached-article-body">
               <?php echo $content; ?>
             </article>
             <?php elseif ($excerpt !== ''): ?>
             <p class="blog-card-excerpt"><?php echo htmlspecialchars($excerpt, ENT_QUOTES, 'UTF-8'); ?></p>
             <?php endif; ?>
-            <?php if ($discussionsEnabled && $slug !== ''): ?>
+            <?php if (!$shouldOpen && $articleOpenUrl !== ''): ?>
+            <p class="blog-card-filter-meta page-attached-article-open-link">
+              <a class="blog-filter-chip" href="<?php echo htmlspecialchars($articleOpenUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars(t('TXT_BLOG_READ_ARTICLE'), ENT_QUOTES, 'UTF-8'); ?>
+              </a>
+            </p>
+            <?php endif; ?>
+            <?php if ($shouldHydrateDiscussion): ?>
             <?php require TEMPLATES_PATH . '/partials/blog/discussion_panel.php'; ?>
+            <?php elseif ($discussionsEnabled && $discussionUrl !== ''): ?>
+            <p class="blog-card-filter-meta page-attached-article-discussion-link">
+              <a class="blog-filter-chip" href="<?php echo htmlspecialchars($discussionUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars(t('TXT_BLOG_DISCUSSIONS'), ENT_QUOTES, 'UTF-8'); ?>
+              </a>
+            </p>
             <?php endif; ?>
           </div>
         </details>
@@ -676,12 +709,27 @@ $resolveMetaImageFromPayload = static function (array $payload, string $fallback
     ];
 };
 
-$pageMetaImagePayload = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata(
-    is_array($page['meta']['image'] ?? null) ? $page['meta']['image'] : []
-);
-$pageMetaImageCandidate = is_array($pageMetaImagePayload)
-    ? $resolveMetaImageFromPayload($pageMetaImagePayload, (string) $pageTitle)
-    : null;
+$pageMetaImageCandidate = null;
+if (is_array($openArticle)) {
+    $openArticleMetaImagePayload = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata(
+        is_array($openArticle['featured_image'] ?? null) ? $openArticle['featured_image'] : []
+    );
+    if (is_array($openArticleMetaImagePayload)) {
+        $pageMetaImageCandidate = $resolveMetaImageFromPayload(
+            $openArticleMetaImagePayload,
+            trim((string) ($openArticle['title'] ?? (string) $pageTitle))
+        );
+    }
+}
+
+if ($pageMetaImageCandidate === null) {
+    $pageMetaImagePayload = \Caramagnols\Admin\AdminEditorialImageService::sanitizeImageMetadata(
+        is_array($page['meta']['image'] ?? null) ? $page['meta']['image'] : []
+    );
+    $pageMetaImageCandidate = is_array($pageMetaImagePayload)
+        ? $resolveMetaImageFromPayload($pageMetaImagePayload, (string) $pageTitle)
+        : null;
+}
 
 if ($pageMetaImageCandidate === null) {
     if (!empty($sharedMediaItems)) {

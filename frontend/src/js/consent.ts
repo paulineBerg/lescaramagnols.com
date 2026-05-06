@@ -17,6 +17,7 @@ type RuntimeTarteaucitronConfig = {
 };
 
 type RuntimeDiscussionsConfig = {
+  has_form?: boolean;
   recaptcha?: {
     enabled?: boolean;
     mode?: string;
@@ -180,8 +181,9 @@ const resolveRuntimeConfig = () => {
   const discussions = window.caramagnolsRuntime?.discussions;
   const i18n = window.caramagnolsRuntime?.i18n;
   const recaptcha = discussions?.recaptcha;
+  const hasDiscussionForm = resolveBoolean(discussions?.has_form, false);
   const recaptchaSiteKey = resolveString(recaptcha?.site_key, '');
-  const recaptchaEnabled = resolveBoolean(recaptcha?.enabled, false) && recaptchaSiteKey !== '';
+  const recaptchaEnabled = hasDiscussionForm && resolveBoolean(recaptcha?.enabled, false) && recaptchaSiteKey !== '';
   const recaptchaMode = resolveChoice(recaptcha?.mode, RECAPTCHA_MODES, 'v2_checkbox');
 
   return {
