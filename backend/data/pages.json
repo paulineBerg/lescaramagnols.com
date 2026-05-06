@@ -517,7 +517,7 @@
                         },
                         "intro": {
                             "component": "rich_text",
-                            "html": "<div id=\"bloccenter\">\n <img src=\"/assets/images/autoretro/austin/austin_logo.jpg\"\n title=\"Austin-Logo\"\n alt=\"Austin-Logo\">\n </div>"
+                            "html": "<div id=\"bloccenter\">\n <img src=\"/assets/images/autoretro/austin/austin_logo.jpg\"\n title=\"Austin-Logo\"\n alt=\"Austin-Logo\" width=\"100\" height=\"129\" style=\"width:100px;height:auto;max-width:100%;\" decoding=\"async\">\n </div>"
                         },
                         "postscript": {
                             "component": "rich_text",
@@ -557,7 +557,7 @@
                         },
                         "intro": {
                             "component": "rich_text",
-                            "html": "<div id=\"bloccenter\">\n <img src=\"/assets/images/autoretro/austin/austin_logo.jpg\"\n title=\"Austin logo\"\n alt=\"Austin logo\">\n </div>"
+                            "html": "<div id=\"bloccenter\">\n <img src=\"/assets/images/autoretro/austin/austin_logo.jpg\"\n title=\"Austin logo\"\n alt=\"Austin logo\" width=\"100\" height=\"129\" style=\"width:100px;height:auto;max-width:100%;\" decoding=\"async\">\n </div>"
                         },
                         "postscript": {
                             "component": "rich_text",
@@ -597,7 +597,7 @@
                         },
                         "intro": {
                             "component": "rich_text",
-                            "html": "<div id=\"bloccenter\">\n <img src=\"/assets/images/autoretro/austin/austin_logo.jpg\"\n title=\"Logo Austin\"\n alt=\"Logo Austin\">\n </div>"
+                            "html": "<div id=\"bloccenter\">\n <img src=\"/assets/images/autoretro/austin/austin_logo.jpg\"\n title=\"Logo Austin\"\n alt=\"Logo Austin\" width=\"100\" height=\"129\" style=\"width:100px;height:auto;max-width:100%;\" decoding=\"async\">\n </div>"
                         },
                         "postscript": {
                             "component": "rich_text",
