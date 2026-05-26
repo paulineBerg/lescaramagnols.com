@@ -222,7 +222,22 @@ final class PublicUrlNormalizer
 
     public static function missingImagePlaceholderPath(): string
     {
-        return self::IMAGE_PLACEHOLDER_PATH;
+        static $resolvedPlaceholder = null;
+
+        if ($resolvedPlaceholder !== null) {
+            return $resolvedPlaceholder;
+        }
+
+        if (self::publicPathExists(self::IMAGE_PLACEHOLDER_PATH)) {
+            return $resolvedPlaceholder = self::IMAGE_PLACEHOLDER_PATH;
+        }
+
+        if (self::publicPathExists('/assets/images/structure/logo.webp')) {
+            return $resolvedPlaceholder = '/assets/images/structure/logo.webp';
+        }
+
+        return $resolvedPlaceholder = self::IMAGE_PLACEHOLDER_PATH;
+
     }
 
     private static function normalizeLocalRoute(string $route, ?string $baseRoute = null): ?string

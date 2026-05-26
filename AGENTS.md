@@ -868,6 +868,10 @@ Backend:
 - `composer phpcs --working-dir=backend`
 - `composer test --working-dir=backend`
 
+Note environnement locale :
+- `vendor` n'étant pas toujours présent à la racine du dépôt, `./vendor/bin/phpunit` peut être absent.
+- En pratique, si le binaire local n'existe pas, lancer les suites ciblées depuis `backend/` avec `cd backend && phpunit --configuration phpunit.xml ...`.
+
 Frontend:
 - `cd frontend && npm ci`
 - `cd frontend && npm run lint`

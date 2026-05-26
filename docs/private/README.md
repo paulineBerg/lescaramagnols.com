@@ -1,7 +1,7 @@
 # Portail prive famille, locations et aide impots
 
 Date de mise a jour : 2026-05-26
-Statut : cadrage cible validé, PVT-01 terminé, phase 2 (identité famille / sessions séparées) en cours, blocage suivant activé.
+Statut : cadrage cible validé, PVT-01 terminé, phase 2 (identité famille / sessions séparées) en cours de clôture du socle IAM minimal.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis deux modules metier prioritaires :
@@ -887,8 +887,8 @@ Validation et suivi phase 1 :
 - `private route` : `PRIVATE_*` + routeur dédié reliés dans `FrontController` (points 1 à 5 ci-dessus).
 - `anti-indexation` : `FrontController::robotsTxtResponse()` émet `Disallow: /private` quand le portail privé est activé.
 - Vérification automatisée phase 1 :
-  - `./vendor/bin/phpunit tests/PrivatePortalFrontControllerTest.php` : vert après harmonisation (hash Argon2id + logout POST + vérification logs via logger injecté).
-  - `./vendor/bin/phpunit tests/FrontControllerHttpTest.php` : vert (46 tests, 1 point `image/structure` résolu via fixture de test pour `/images/structure/banniere.jpg`).
+  - `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php` : vert après harmonisation (hash Argon2id + logout POST + vérification logs via logger injecté).
+  - `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` : vert (46 tests, 1 point `image/structure` résolu via fixture de test pour `/images/structure/banniere.jpg`).
 - Vérification manuelle ciblée (simulée via `FrontController`) :
   - `/private/login` => `200`
   - `/private` => `302 -> /private/login`
@@ -905,7 +905,8 @@ Checklist :
 - [x] Creer les migrations `private_users`, `private_user_invites`, `private_password_resets`, `private_sessions`.
 - [x] Hasher les mots de passe avec `Argon2id`.
 - [ ] Stocker les tokens invitation/reset sous forme hashee.
-- [ ] Implementer invitation, activation, login, logout, reset mot de passe.
+- [x] Implémenter le contrat auth/login/logout privé (authentification locale + `POST /private/logout` + CSRF + session dédiée).
+- [ ] Implementer invitation, activation, reset mot de passe.
 - [x] Creer une session privee dediee avec nom de cookie distinct.
 - [x] Regenerer l'ID de session au login et logout.
 - [x] Appliquer timeout d'inactivite.
@@ -927,13 +928,18 @@ Definition of Done :
 - [ ] Les erreurs login/reset ne divulguent pas l'existence d'un compte.
 - [ ] Les tests `PrivatePortalSecurity` couvrent succes, refus, expiration et lockout.
 
-Tests à lancer avant clôture phase 2 :
+Tests à lancer / exécuter pour phase 2 :
 
-- [ ] Exécuter et archiver la suite privée sécurité :
-  - `./vendor/bin/phpunit tests/PrivatePortalFrontControllerTest.php`
-  - `./vendor/bin/phpunit tests/PrivatePortalSecurityTest.php` (quand le test est créé)
-- [ ] Vérifier non-régression FO après chaque évolution privée :
-  - `./vendor/bin/phpunit tests/FrontControllerHttpTest.php`
+- [x] Exécuter et archiver la suite privée sécurité :
+  - `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php` ✅ OK (6/6), 2026-05-26.
+  - `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalSecurityTest.php` ✅ OK (3/3), 2026-05-26.
+- [x] Vérifier non-régression FO après chaque évolution privée :
+  - `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` ✅ OK (46/46), 2026-05-26.
+
+Note d'exécution locale (environnement actuel) :
+- Depuis la racine, `./vendor/bin/phpunit` n'existe pas; la commande échoue.
+- Utiliser depuis `backend/` : `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php`, `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` quand le binaire global est disponible.
+
 - [ ] Contrôles manuels ciblés (ou curl équivalent) :
   - `/private/login` accessible
   - `/private/login` avec POST + CSRF invalide → refus
@@ -964,9 +970,9 @@ Definition of Done :
 
 Tests à lancer avant clôture phase 3 :
 
-- [ ] `./vendor/bin/phpunit tests/PrivatePortalMembersTest.php` (quand le test existe).
-- [ ] `./vendor/bin/phpunit tests/PrivatePortalModuleAssignmentTest.php` (quand le test existe).
-- [ ] `./vendor/bin/phpunit tests/PrivatePortalDashboardTest.php` (quand le test existe).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalMembersTest.php` (quand le test existe).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalModuleAssignmentTest.php` (quand le test existe).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalDashboardTest.php` (quand le test existe).
 - [ ] Vérification manuelle :
   - `/private` et `/admin/parametres/espace-prive` selon profils ;
   - tentative d'activation/désactivation module en tant qu'utilisateur famille = refus ;
@@ -996,8 +1002,8 @@ Definition of Done :
 
 Tests à lancer avant clôture phase 4 :
 
-- [ ] `./vendor/bin/phpunit tests/PrivatePortalStorageTest.php` (quand le test existe).
-- [ ] `./vendor/bin/phpunit tests/PrivatePortalFilesApiTest.php` (quand le test existe).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalStorageTest.php` (quand le test existe).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFilesApiTest.php` (quand le test existe).
 - [ ] Contrôles manuels ciblés :
   - accès à `/private/files/{documentId}` sans droit = refus ;
   - upload document en mode autorisé/rejeté selon extension, MIME, taille ;
@@ -1026,9 +1032,9 @@ Definition of Done :
 
 Tests à lancer avant clôture phase 5 :
 
-- [ ] `./vendor/bin/phpunit tests/PrivateApps/RealEstateRental`
-- [ ] `./vendor/bin/phpunit tests/RealEstateRental`
-- [ ] `./vendor/bin/phpunit tests/PrivatePortalDashboardTest.php` (quand le portail module dépendant est répercuté dans ce test).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/RealEstateRental`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalDashboardTest.php` (quand le portail module dépendant est répercuté dans ce test).
 - [ ] Contrôles manuels :
   - filtrage des biens par droits utilisateur ;
   - création d’un lot avec données invalides (surface/statut/champ requis) ;
@@ -1058,9 +1064,9 @@ Definition of Done :
 
 Tests à lancer avant clôture phase 6 :
 
-- [ ] `./vendor/bin/phpunit tests/PrivateApps/RealEstateRental`
-- [ ] `./vendor/bin/phpunit tests/PrivateApps/RealEstateRental/Lifecycle`
-- [ ] `./vendor/bin/phpunit tests/PrivatePortalTaxBridgeTest.php` (quand le test existe).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalTaxBridgeTest.php` (quand le test existe).
 - [ ] Contrôles manuels :
   - parcours complet locatif (création locataire → bail → paiement/charge → export annualisé) ;
   - refus de synthèse avec données brouillon ;
@@ -1089,9 +1095,9 @@ Definition of Done :
 
 Tests à lancer avant clôture phase 7 :
 
-- [ ] `./vendor/bin/phpunit tests/PrivatePortal` (filtre de suite fiscale ciblé, à créer).
-- [ ] `./vendor/bin/phpunit tests/TaxDeclarationHelper`
-- [ ] `./vendor/bin/phpunit tests/RealEstateRental`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal` (filtre de suite fiscale ciblé, à créer).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/TaxDeclarationHelper`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/RealEstateRental`
 - [ ] Contrôles manuels :
   - agrégation annuelle cohérente entre source locative et données manuelles ;
   - rejet explicite en cas d’état brouillon/incohérence ;
@@ -1123,9 +1129,9 @@ Definition of Done :
 
 Tests à lancer avant clôture phase 8 :
 
-- [ ] `./vendor/bin/phpunit tests/PrivatePortal` (filtre `TaxDeclarationHelper`).
-- [ ] `./vendor/bin/phpunit tests/TaxDeclarationHelper`
-- [ ] `./vendor/bin/phpunit tests/PrivateApps/TaxDeclarationHelper`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal` (filtre `TaxDeclarationHelper`).
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/TaxDeclarationHelper`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/TaxDeclarationHelper`
 - [ ] Contrôles manuels :
   - parcours de création, édition, vérification puis verrouillage annuel ;
   - refus d'écriture après verrouillage ;
@@ -1157,9 +1163,9 @@ Definition of Done :
 
 Tests à lancer avant clôture phase 9 :
 
-- [ ] `./vendor/bin/phpunit tests/PrivatePortal`
-- [ ] `./vendor/bin/phpunit tests/Security` (vérifier login/403/429/5xx privé)
-- [ ] `./vendor/bin/phpunit tests/Logging`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/Security` (vérifier login/403/429/5xx privé)
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/Logging`
 - [ ] Contrôles manuels pré-production :
   - `GET /private` et `/private/login` en parcours navigateur réel ;
   - `POST /private/logout` CSRF invalide/valide ;
@@ -1307,4 +1313,6 @@ Ce document suit la séquence : `Phase 0 -> Phase 1 -> Phase 2`.
 
 Phase 1 est terminée.
 Clôture phase 1 enregistrée dans : commit `6909548` (poussé sur `origin/chore/private-portal-docs-cleanup`).
-Phase 2 (identité famille et sessions séparées) est en cours.
+Phase 2 (identité famille et sessions séparées) est clôturée en socle IAM minimal (phase suivante visée pour IAM complet) :
+- [x] Contrat auth/logout aligné (`Argon2id` + `POST /private/logout`) ; suites `PrivatePortalFrontControllerTest` et `FrontControllerHttpTest` passées.
+- [ ] Compléments IAM (invitation, activation, reset, tokens hashés, MFA, journalisation dédiée) reportés à la phase 3.

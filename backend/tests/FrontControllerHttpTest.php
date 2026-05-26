@@ -8,6 +8,7 @@ use Caramagnols\Admin\AdminSettingsService;
 use Caramagnols\Blog\BlogApiController;
 use Caramagnols\Blog\BlogSaveService;
 use Caramagnols\Http\FrontController;
+use Caramagnols\Http\PublicUrlNormalizer;
 use Caramagnols\Http\Request;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Logging\LoggerFactory;
@@ -657,9 +658,10 @@ final class FrontControllerHttpTest extends TestCase
     public function testMissingLegacyImagePathFallsBackToPlaceholderAsset(): void
     {
         $response = $this->frontController()->handle($this->request('GET', '/images/does-not-exist.jpg'));
+        $placeholder = PublicUrlNormalizer::missingImagePlaceholderPath();
 
         $this->assertSame(302, $response->status);
-        $this->assertSame('/assets/images/structure/logo.png', $response->headers['Location'] ?? null);
+        $this->assertSame($placeholder, $response->headers['Location'] ?? null);
     }
 
     public function testLegacySitePathRedirectsToCanonicalStructuredPageRoute(): void
@@ -813,7 +815,7 @@ final class FrontControllerHttpTest extends TestCase
             $response->body
         );
         $this->assertStringContainsString(
-            'src="/assets/images/structure/logo.png"',
+            'src="' . PublicUrlNormalizer::missingImagePlaceholderPath() . '"',
             $response->body
         );
     }
@@ -1180,7 +1182,7 @@ final class FrontControllerHttpTest extends TestCase
             $response->body
         );
         $this->assertStringContainsString(
-            'src="/assets/images/structure/logo.png"',
+            'src="' . PublicUrlNormalizer::missingImagePlaceholderPath() . '"',
             $response->body
         );
     }
