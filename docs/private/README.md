@@ -927,6 +927,20 @@ Definition of Done :
 - [ ] Les erreurs login/reset ne divulguent pas l'existence d'un compte.
 - [ ] Les tests `PrivatePortalSecurity` couvrent succes, refus, expiration et lockout.
 
+Tests à lancer avant clôture phase 2 :
+
+- [ ] Exécuter et archiver la suite privée sécurité :
+  - `./vendor/bin/phpunit tests/PrivatePortalFrontControllerTest.php`
+  - `./vendor/bin/phpunit tests/PrivatePortalSecurityTest.php` (quand le test est créé)
+- [ ] Vérifier non-régression FO après chaque évolution privée :
+  - `./vendor/bin/phpunit tests/FrontControllerHttpTest.php`
+- [ ] Contrôles manuels ciblés (ou curl équivalent) :
+  - `/private/login` accessible
+  - `/private/login` avec POST + CSRF invalide → refus
+  - `/private/login` avec POST + CSRF valide → dashboard
+  - `/private/dashboard` sans session valide → 302 vers login
+  - `/private/logout` en POST + CSRF → retour login
+
 ### Phase 3 - BO admin membres et permissions
 
 Objectif : piloter les acces famille depuis le BO.
@@ -947,6 +961,16 @@ Definition of Done :
 - [ ] Seul un admin autorise peut affecter les modules.
 - [ ] Le dashboard prive affiche uniquement les modules autorises.
 - [ ] L'acces direct a une route non autorisee retourne `403` et genere un audit.
+
+Tests à lancer avant clôture phase 3 :
+
+- [ ] `./vendor/bin/phpunit tests/PrivatePortalMembersTest.php` (quand le test existe).
+- [ ] `./vendor/bin/phpunit tests/PrivatePortalModuleAssignmentTest.php` (quand le test existe).
+- [ ] `./vendor/bin/phpunit tests/PrivatePortalDashboardTest.php` (quand le test existe).
+- [ ] Vérification manuelle :
+  - `/private` et `/admin/parametres/espace-prive` selon profils ;
+  - tentative d'activation/désactivation module en tant qu'utilisateur famille = refus ;
+  - tentative d'accès direct à une route module non autorisée = `403`.
 
 ### Phase 4 - Stockage prive et documents
 
@@ -970,6 +994,15 @@ Definition of Done :
 - [ ] Une URL directe vers disque est impossible.
 - [ ] Un membre sans droit ne peut ni lister ni telecharger un document.
 
+Tests à lancer avant clôture phase 4 :
+
+- [ ] `./vendor/bin/phpunit tests/PrivatePortalStorageTest.php` (quand le test existe).
+- [ ] `./vendor/bin/phpunit tests/PrivatePortalFilesApiTest.php` (quand le test existe).
+- [ ] Contrôles manuels ciblés :
+  - accès à `/private/files/{documentId}` sans droit = refus ;
+  - upload document en mode autorisé/rejeté selon extension, MIME, taille ;
+  - vérification qu’aucun fichier privé n’est public via URL directe.
+
 ### Phase 5 - Module RealEstateRental, noyau metier
 
 Objectif : creer la source fiable des donnees locatives.
@@ -990,6 +1023,16 @@ Definition of Done :
 - [ ] Un utilisateur voit uniquement les biens autorises.
 - [ ] Les ecritures invalides sont refusees cote serveur.
 - [ ] L'archivage ne casse pas les historiques.
+
+Tests à lancer avant clôture phase 5 :
+
+- [ ] `./vendor/bin/phpunit tests/PrivateApps/RealEstateRental`
+- [ ] `./vendor/bin/phpunit tests/RealEstateRental`
+- [ ] `./vendor/bin/phpunit tests/PrivatePortalDashboardTest.php` (quand le portail module dépendant est répercuté dans ce test).
+- [ ] Contrôles manuels :
+  - filtrage des biens par droits utilisateur ;
+  - création d’un lot avec données invalides (surface/statut/champ requis) ;
+  - archivage d’un bien et visibilité cohérente dans la synthèse.
 
 ### Phase 6 - Locations, loyers, charges et documents
 
@@ -1013,6 +1056,16 @@ Definition of Done :
 - [ ] Les documents restent hors webroot.
 - [ ] Les exports sont traces dans l'audit.
 
+Tests à lancer avant clôture phase 6 :
+
+- [ ] `./vendor/bin/phpunit tests/PrivateApps/RealEstateRental`
+- [ ] `./vendor/bin/phpunit tests/PrivateApps/RealEstateRental/Lifecycle`
+- [ ] `./vendor/bin/phpunit tests/PrivatePortalTaxBridgeTest.php` (quand le test existe).
+- [ ] Contrôles manuels :
+  - parcours complet locatif (création locataire → bail → paiement/charge → export annualisé) ;
+  - refus de synthèse avec données brouillon ;
+  - protection des documents par permission.
+
 ### Phase 7 - Bridge fiscal et sources declaratives
 
 Objectif : relier locations et impots sans dependance fragile.
@@ -1033,6 +1086,16 @@ Definition of Done :
 - [ ] Le module impots ne lit pas directement toutes les tables locatives.
 - [ ] Chaque montant expose au fiscal indique sa source.
 - [ ] Les incoherences remontent sous forme de controle, pas d'erreur silencieuse.
+
+Tests à lancer avant clôture phase 7 :
+
+- [ ] `./vendor/bin/phpunit tests/PrivatePortal` (filtre de suite fiscale ciblé, à créer).
+- [ ] `./vendor/bin/phpunit tests/TaxDeclarationHelper`
+- [ ] `./vendor/bin/phpunit tests/RealEstateRental`
+- [ ] Contrôles manuels :
+  - agrégation annuelle cohérente entre source locative et données manuelles ;
+  - rejet explicite en cas d’état brouillon/incohérence ;
+  - traçabilité de la source sur au moins une ligne de synthèse.
 
 ### Phase 8 - Module TaxDeclarationHelper
 
@@ -1058,6 +1121,16 @@ Definition of Done :
 - [ ] Une annee verrouillee ne peut pas etre modifiee par un membre.
 - [ ] Les exports n'exposent que les donnees autorisees.
 
+Tests à lancer avant clôture phase 8 :
+
+- [ ] `./vendor/bin/phpunit tests/PrivatePortal` (filtre `TaxDeclarationHelper`).
+- [ ] `./vendor/bin/phpunit tests/TaxDeclarationHelper`
+- [ ] `./vendor/bin/phpunit tests/PrivateApps/TaxDeclarationHelper`
+- [ ] Contrôles manuels :
+  - parcours de création, édition, vérification puis verrouillage annuel ;
+  - refus d'écriture après verrouillage ;
+  - export CSV/PDF non inclusif de données hors périmètre.
+
 ### Phase 9 - RGPD, exploitation et go-live prive
 
 Objectif : rendre le portail exploitable en production.
@@ -1081,6 +1154,17 @@ Definition of Done :
 - [ ] Les logs sont exploitables sans contenir de secrets.
 - [ ] Une restauration testee existe avant mise en production.
 - [ ] Le front-office public ne presente pas de regression.
+
+Tests à lancer avant clôture phase 9 :
+
+- [ ] `./vendor/bin/phpunit tests/PrivatePortal`
+- [ ] `./vendor/bin/phpunit tests/Security` (vérifier login/403/429/5xx privé)
+- [ ] `./vendor/bin/phpunit tests/Logging`
+- [ ] Contrôles manuels pré-production :
+  - `GET /private` et `/private/login` en parcours navigateur réel ;
+  - `POST /private/logout` CSRF invalide/valide ;
+  - `robots.txt` et absence de régression FO (admin/blog/rss/sitemap/assets) ;
+  - restauration privée documentée (données + fichiers) sur environnement test.
 
 ## 10. Commandes de validation ciblees
 
