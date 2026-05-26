@@ -1222,4 +1222,5 @@ Référence d’arrêt : arrêt « naturel » au passage officiel d’une phase 
 Ce document suit la séquence : `Phase 0 -> Phase 1 -> Phase 2`.
 
 Phase 1 est terminée.
+Clôture phase 1 enregistrée dans : commit `6909548` (poussé sur `origin/chore/private-portal-docs-cleanup`).
 Phase 2 (identité famille et sessions séparées) est en cours.
