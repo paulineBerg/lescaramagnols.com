@@ -66,7 +66,7 @@ if (!isset($formatDiscussionDate) || !is_callable($formatDiscussionDate)) {
         </time>
       </p>
       <div class="blog-discussion-content">
-        <?php echo (string) ($discussion['content'] ?? ''); ?>
+        <?php echo nl2br(htmlspecialchars((string) ($discussion['content'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'), false); ?>
       </div>
     </li>
     <?php endforeach; ?>

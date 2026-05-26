@@ -455,6 +455,152 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('/admin', $logContents);
     }
 
+    public function testLoginPostUnknownIdentifierReturnsGenericErrorAndLogsSpecificFailureReason(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['totp_enabled'] = false;
+        $appConfig['admin']['totp_secret'] = '';
+        $appConfig['admin']['totp_skip_localhost'] = true;
+
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'identifier' => 'unknown@example.com',
+                    'password' => 'topsecret',
+                ],
+                '203.0.113.50'
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Identifiants invalides.', $response->body);
+        $this->assertStringNotContainsString('inconnu', $response->body);
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileExists($securityLogPath);
+        $logContents = (string) file_get_contents($securityLogPath);
+
+        $this->assertStringContainsString('admin.login.failed', $logContents);
+        $this->assertStringContainsString('identifier_mismatch', $logContents);
+    }
+
+    public function testLoginPostWrongPasswordReturnsGenericErrorAndLogsSpecificFailureReason(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['totp_enabled'] = false;
+        $appConfig['admin']['totp_secret'] = '';
+        $appConfig['admin']['totp_skip_localhost'] = true;
+
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'identifier' => 'admin@example.com',
+                    'password' => 'wrong-password',
+                ],
+                '203.0.113.50'
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Identifiants invalides.', $response->body);
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileExists($securityLogPath);
+        $logContents = (string) file_get_contents($securityLogPath);
+
+        $this->assertStringContainsString('admin.login.failed', $logContents);
+        $this->assertStringContainsString('password_mismatch', $logContents);
+    }
+
+    public function testLoginPostMissingTotpCodeReturnsGenericErrorAndLogsSpecificFailureReason(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['totp_enabled'] = true;
+        $appConfig['admin']['totp_secret'] = 'JBSWY3DPEHPK3PXP';
+        $appConfig['admin']['totp_skip_localhost'] = false;
+
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'identifier' => 'admin@example.com',
+                    'password' => 'topsecret',
+                ],
+                '198.51.100.23'
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Identifiants invalides.', $response->body);
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileExists($securityLogPath);
+        $logContents = (string) file_get_contents($securityLogPath);
+
+        $this->assertStringContainsString('admin.login.failed', $logContents);
+        $this->assertStringContainsString('totp_required', $logContents);
+    }
+
+    public function testLoginPostInvalidTotpCodeReturnsGenericErrorAndLogsSpecificFailureReason(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['totp_enabled'] = true;
+        $appConfig['admin']['totp_secret'] = 'JBSWY3DPEHPK3PXP';
+        $appConfig['admin']['totp_skip_localhost'] = false;
+
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'identifier' => 'admin@example.com',
+                    'password' => 'topsecret',
+                    'totp_code' => '000000',
+                ],
+                '198.51.100.23'
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Identifiants invalides.', $response->body);
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileExists($securityLogPath);
+        $logContents = (string) file_get_contents($securityLogPath);
+
+        $this->assertStringContainsString('admin.login.failed', $logContents);
+        $this->assertStringContainsString('totp_invalid', $logContents);
+    }
+
     public function testLoginPostIsRateLimitedAfterConfiguredAttempts(): void
     {
         global $appConfig;

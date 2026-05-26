@@ -98,6 +98,9 @@ Regles associees:
 - ne pas supprimer `backend/public/uploads/editorial/**` ni le traiter comme un cache
 - si un contenu editorial est d'abord prepare dans `backend/data/pages.json`, l'importer ensuite vers SQL dans le meme passage de travail et signaler explicitement si un miroir JSON / SQL reste divergent
 - la racine `docs/` est reservee aux documents projet maintenus: `README`, rapports, runbooks, audits, notes d'architecture et modes operatoires
+- ne pas multiplier les fichiers `.md` sans valeur distincte: regrouper par fonction utile (backend, blog, admin, deploiement, securite, roadmap) et preferer un `README.md` par dossier comme point d'entree
+- les notes datees, historiques, ponctuelles ou de preuve doivent etre archivees sous `docs/archive/` plutot que laissees en vrac a la racine `docs/`
+- avant de creer un nouveau `.md`, verifier d'abord si le contenu peut etre fusionne dans un document existant du meme domaine
 - les materiaux bruts de travail editorial reutilisables (transcriptions, notes sources, relevés internes) doivent vivre sous `docs/sources/editorial/`, pas a la racine `docs/`
 - dans `docs/sources/editorial/`, preferer `1` fichier par sujet editorial reel; si un meme enregistrement couvre plusieurs sujets (ex. SLK, 2CV4, restauration 2CV4), le decouper en plusieurs fichiers dedies
 - nommer ces fichiers de source en ASCII simple, `kebab-case`, avec un suffixe descriptif stable comme `-transcription.txt`; eviter espaces, ponctuation typographique et noms fourre-tout
@@ -113,16 +116,16 @@ Discipline de `worktree`:
 
 Avant une modification non triviale, prendre en compte les documents de reference lies au sujet:
 - `README.md`
-- `README_DOCUMENTATION_INDEX.md`
-- `backend/README_BOOTSTRAP_I18N.md`
-- `backend/README_PUBLIC_ENTRYPOINTS.md`
-- `backend/README_LOGGING.md`
-- `frontend/README_BUILD_PIPELINE.md`
-- `README_ADMIN_EDITORIAL_NAV_V1.md`
-- `README_BLOG.md`
+- `docs/README.md`
+- `docs/backend/bootstrap-i18n.md`
+- `docs/backend/public-entrypoints.md`
+- `docs/backend/logging.md`
+- `frontend/README.md`
+- `docs/admin/README.md`
+- `docs/blog/README.md`
 - `docs/rapport-style-editorial-2026-04-16.md`
-- `docs/README_REFONTE_LOT_C.md`
-- `docs/README_CONSOLIDATION_LOT_D.md`
+- `docs/refonte-lot-c.md`
+- `docs/consolidation-lot-d.md`
 
 Principe:
 - si un README existant couvre deja le domaine touche, il doit etre considere comme source de verite documentaire

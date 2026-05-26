@@ -311,8 +311,11 @@ final class BlogDiscussionApiController
         }
 
         $payload = $request->json();
-        if ($payload === []) {
+        if (!is_array($payload) || $payload === []) {
             $payload = $request->body();
+        }
+        if (!is_array($payload)) {
+            $payload = [];
         }
 
         $slug = $this->normalizeSlug((string) ($payload['article_slug'] ?? ''));
@@ -320,6 +323,58 @@ final class BlogDiscussionApiController
         $stage = $this->normalizeClientEventStage((string) ($payload['stage'] ?? 'unknown'));
         $level = $this->normalizeClientEventLevel((string) ($payload['level'] ?? 'info'));
         $mode = DiscussionRecaptchaMode::normalize($payload['mode'] ?? null);
+        $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)) ?? 'unknown';
+        $userAgent = (string) ($request->header('User-Agent') ?? '');
+        $environment = strtolower((string) env('APP_ENV', 'production'));
+        $isProduction = in_array($environment, ['production', 'prod', 'live'], true);
+        $endpoint = $this->normalizeClientTelemetryEndpoint($request->uri());
+        $samplingDivisor = max(
+            1,
+            (int) app_config('site.discussions.telemetry_sample_divisor', 4)
+        );
+
+        $limiter = new \FileRateLimiter(
+            'blog-discussion-telemetry:' . $endpoint . ':' . $clientIp,
+            max(1, (int) app_config('site.discussions.telemetry_rate_limit_per_ip', 45)),
+            max(1, (int) app_config('site.discussions.telemetry_rate_limit_window', 120))
+        );
+
+        if (!$limiter->allow()) {
+            $this->eventLogger->security(
+                'blog.discussion.client_telemetry_rate_limited',
+                [
+                    'slug' => $slug,
+                    'lang' => $language,
+                    'ip' => $clientIp,
+                    'retry_after' => $limiter->retryAfter(),
+                    'stage' => $stage,
+                    'level' => $level,
+                ],
+                'warning'
+            );
+
+            return new Response(204, ['Cache-Control' => 'no-store'], '');
+        }
+
+        $limiter->hit();
+
+        if (
+            $isProduction
+            && $level === 'info'
+            && !$this->shouldSampleTelemetryEvent($clientIp, $slug, $stage, $language, $samplingDivisor)
+        ) {
+            return new Response(204, ['Cache-Control' => 'no-store'], '');
+        }
+
+        $referer = (string) ($request->header('Referer') ?? '');
+        $normalizedUserAgent = function_exists('mb_substr') ? mb_substr($userAgent, 0, 200) : substr($userAgent, 0, 200);
+        $normalizedReferer = $this->normalizeClientPage($referer);
+        if ($normalizedReferer === '') {
+            $normalizedReferer = 'unknown';
+        }
+        if ($normalizedUserAgent === '') {
+            $normalizedUserAgent = 'unknown';
+        }
 
         $this->eventLogger->content(
             'blog.discussion.client_telemetry',
@@ -330,8 +385,9 @@ final class BlogDiscussionApiController
                 'level' => $level,
                 'mode' => $mode,
                 'page' => $this->normalizeClientPage((string) ($payload['page'] ?? '')),
-                'referer' => (string) ($request->header('Referer') ?? ''),
-                'user_agent' => (string) ($request->header('User-Agent') ?? ''),
+                'client_ip' => $clientIp,
+                'referer' => $normalizedReferer,
+                'user_agent' => $normalizedUserAgent,
                 'details' => $this->sanitizeClientEventDetails($payload['details'] ?? []),
             ],
             $level
@@ -551,6 +607,23 @@ final class BlogDiscussionApiController
         return in_array($value, ['debug', 'info', 'warning', 'error'], true) ? $value : 'info';
     }
 
+    private function normalizeClientTelemetryEndpoint(string $uri): string
+    {
+        $path = is_string(parse_url($uri, PHP_URL_PATH)) ? (string) parse_url($uri, PHP_URL_PATH) : '';
+        if ($path === '') {
+            return 'unknown';
+        }
+
+        $normalized = normalize_public_route($path);
+        $normalized = is_string($normalized) ? $normalized : '/';
+
+        if (!preg_match('#^/[a-z0-9/_.-]*$#i', $normalized)) {
+            return 'unknown';
+        }
+
+        return $normalized;
+    }
+
     private function normalizeClientPage(string $value): string
     {
         $value = trim($value);
@@ -568,6 +641,23 @@ final class BlogDiscussionApiController
         $fragment = isset($parts['fragment']) && is_string($parts['fragment']) && $parts['fragment'] !== '' ? '#' . $parts['fragment'] : '';
 
         return substr($path . $query . $fragment, 0, 200);
+    }
+
+    private function shouldSampleTelemetryEvent(
+        string $clientIp,
+        string $slug,
+        string $stage,
+        string $language,
+        int $samplingDivisor
+    ): bool {
+        if ($samplingDivisor <= 1) {
+            return true;
+        }
+
+        $hash = crc32($clientIp . '|' . $slug . '|' . $stage . '|' . $language);
+        $bucket = abs((int) $hash) % $samplingDivisor;
+
+        return $bucket === 0;
     }
 
     /**

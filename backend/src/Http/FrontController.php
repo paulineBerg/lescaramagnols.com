@@ -156,7 +156,7 @@ final class FrontController
                         blog_repository(),
                         blog_discussion_repository(),
                         null,
-                        app_event_logger()
+                        $this->eventLogger
                     ))->submit($request);
                 }
 
@@ -165,7 +165,7 @@ final class FrontController
                         blog_repository(),
                         blog_discussion_repository(),
                         null,
-                        app_event_logger()
+                        $this->eventLogger
                     ))->logClientEvent($request);
                 }
 

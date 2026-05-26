@@ -142,6 +142,13 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('Connexion Admin', $response->body);
     }
 
+    public function testAssetsIndexPhpIsNotExposedThroughFrontController(): void
+    {
+        $response = $this->frontController()->handle($this->request('GET', '/assets/index.php'));
+
+        $this->assertSame(404, $response->status);
+    }
+
     public function testLegacyAdminLoginAliasIsNoLongerExposed(): void
     {
         $response = $this->frontController()->handle($this->request('GET', '/legacy-admin'));
@@ -470,6 +477,36 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertSame(201, $response->status);
         $this->assertSame('application/json; charset=utf-8', $response->headers['Content-Type'] ?? null);
         $this->assertFileExists($this->blogDir . '/article-front-controller.fr.json');
+    }
+
+    public function testLegacySaveArticleAliasRejectsUnauthorizedIpEvenWithSession(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['allowed_ips'] = ['192.0.2.10'];
+
+        admin_login('admin@example.com', 'topsecret');
+
+        $response = $this->frontController()->handle(
+            $this->jsonRequest(
+                'POST',
+                '/core/blog/save_article.php',
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'title' => 'Article alias forbidden',
+                    'slug' => 'article-alias-forbidden',
+                    'lang' => 'fr',
+                    'status' => 'draft',
+                    'category' => 'auto-retro',
+                    'tags' => ['austin', 'histoire', 'voiture-ancienne'],
+                    'content' => '<p>Contenu alias.</p>',
+                ],
+                '203.0.113.15'
+            )
+        );
+
+        $this->assertSame(403, $response->status);
+        $this->assertStringContainsString('Accès interdit', $response->body);
+        $this->assertFileDoesNotExist($this->blogDir . '/article-alias-forbidden.fr.json');
     }
 
     public function testLegacySaveArticleAliasPersistsArticleThroughFrontController(): void
@@ -952,6 +989,151 @@ final class FrontControllerHttpTest extends TestCase
 
         $this->assertSame(204, $response->status);
         $this->assertSame('no-store', $response->headers['Cache-Control'] ?? null);
+    }
+
+    public function testDiscussionClientLogEndpointIsRateLimitedPerIpThroughFrontController(): void
+    {
+        global $appConfig;
+        $appConfig['site']['discussions']['telemetry_rate_limit_per_ip'] = 1;
+        $appConfig['site']['discussions']['telemetry_rate_limit_window'] = 120;
+        $appConfig['site']['discussions']['telemetry_sample_divisor'] = 1;
+
+        $clientIp = '198.51.100.77';
+        $payload = [
+            'article_slug' => 'article-recent',
+            'article_lang' => 'fr',
+            'stage' => 'recaptcha_client_failure',
+            'level' => 'error',
+            'mode' => 'v3_score',
+            'page' => '/fr/auto-retro/austin/histoire-de-austin.php',
+            'details' => ['error_message' => 'recaptcha_error'],
+        ];
+
+        $request = new Request(
+            [
+                'REQUEST_METHOD' => 'POST',
+                'REQUEST_URI' => '/core/blog/log_discussion_client.php',
+                'REMOTE_ADDR' => $clientIp,
+            ],
+            [],
+            [],
+            [],
+            ['Host' => '127.0.0.1:8000', 'Content-Type' => 'application/json'],
+            json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: ''
+        );
+
+        $first = $this->frontController()->handle($request);
+        $second = $this->frontController()->handle($request);
+
+        $this->assertSame(204, $first->status);
+        $this->assertSame('no-store', $first->headers['Cache-Control'] ?? null);
+        $this->assertSame(204, $second->status);
+        $this->assertSame('no-store', $second->headers['Cache-Control'] ?? null);
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileExists($securityLogPath);
+
+        $securityLogContents = (string) file_get_contents($securityLogPath);
+        $this->assertStringContainsString('blog.discussion.client_telemetry_rate_limited', $securityLogContents);
+    }
+
+    public function testDiscussionPublicRenderingEscapesHtmlInStoredContent(): void
+    {
+        global $appConfig;
+        $appConfig['site']['discussions'] = [
+            'enabled' => true,
+            'require_account' => false,
+            'rate_limit_per_ip' => 6,
+            'rate_limit_window' => 600,
+            'global_rate_limit_per_ip' => 20,
+            'global_rate_limit_window' => 3600,
+            'telemetry_rate_limit_per_ip' => 45,
+            'telemetry_rate_limit_window' => 120,
+            'telemetry_sample_divisor' => 4,
+            'min_form_fill_seconds' => 1,
+            'max_form_age_seconds' => 7200,
+            'honeypot_field' => 'website',
+            'recaptcha' => [
+                'enabled' => false,
+                'site_key' => '',
+                'secret_key' => '',
+                'minimum_score' => 0.5,
+                'timeout_seconds' => 8,
+            ],
+        ];
+
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Association',
+                                    'regions' => [
+                                        'body' => [
+                                            'component' => 'rich_text',
+                                            'html' => '<p>Contenu de page.</p>',
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $this->writeBlogArticle([
+            'title' => 'Article sécurisé',
+            'slug' => 'article-secure',
+            'lang' => 'fr',
+            'status' => 'published',
+            'date' => '2026-03-20 10:00:00',
+            'content' => '<p>Article visible.</p>',
+            'page_slug' => 'association',
+            'created_at' => '2026-03-20T10:00:00+00:00',
+        ]);
+
+        $message = "<script>alert('x')</script>"
+            . "<a href='https://example.com' onclick='steal()'>Lien</a>"
+            . "<span class='x'>Texte</span><img src='x' onerror='alert(1)'>"
+            . "<div style='color:red'>Bloc</div><style>body{}</style>Final";
+
+        blog_discussion_repository()->submitPending(
+            'article-secure',
+            'fr',
+            [
+                'author' => 'Louise',
+                'email' => 'louise@example.com',
+                'content' => $message,
+                'status' => 'approved',
+                'created_at' => '2026-03-20T10:30:00+00:00',
+                'updated_at' => '2026-03-20T10:30:00+00:00',
+            ]
+        );
+
+        $response = $this->frontController()->handle(
+            $this->request('GET', '/association?open_article=article-secure&open_discussion=1')
+        );
+
+        $this->assertSame(200, $response->status);
+
+        $escapedMessage = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $this->assertStringContainsString($escapedMessage, $response->body);
+
+        $this->assertStringNotContainsString("<script>alert('x')</script>", $response->body);
+        $this->assertStringNotContainsString("onclick='steal()'", $response->body);
+        $this->assertStringNotContainsString("onerror='alert(1)'", $response->body);
+        $this->assertStringNotContainsString('style=\'color:red\'', $response->body);
     }
 
     public function testBlogArticleRenderRewritesLegacyLocalUrls(): void

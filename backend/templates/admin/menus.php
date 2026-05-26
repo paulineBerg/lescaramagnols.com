@@ -981,7 +981,7 @@ $renderEditorFields = static function (
         et seulement si ce groupe possède des enfants. Sans enfant, le front affiche un lien simple (pas de panneau).
       </p>
       <p class="notice-muted">
-        Aide rapide: <code>docs/ADMIN_MENU_PRESENTATION_HELP.md</code>
+        Aide rapide: <code>docs/admin/menu-presentation-help.md</code>
       </p>
 
       <div class="admin-form-grid admin-form-grid-2">

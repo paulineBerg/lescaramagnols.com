@@ -1104,7 +1104,7 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
         </div>
 
         <p class="settings-dialog__summary">
-          <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_INSTAGRAM_HELP_DOC_LABEL', 'Aide de configuration :'), ENT_QUOTES, 'UTF-8'); ?> <code>docs/instagram-feed-setup.md</code>
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_INSTAGRAM_HELP_DOC_LABEL', 'Aide de configuration :'), ENT_QUOTES, 'UTF-8'); ?> <code>docs/deployment/instagram-feed-setup.md</code>
         </p>
       </div>
       <div class="region-modal__actions actions-inline actions-inline-end">

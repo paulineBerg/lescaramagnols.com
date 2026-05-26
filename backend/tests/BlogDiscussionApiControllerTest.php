@@ -8,6 +8,8 @@ use Caramagnols\Blog\JsonBlogDiscussionRepository;
 use Caramagnols\Blog\JsonBlogRepository;
 use Caramagnols\Content\PageRepository;
 use Caramagnols\Http\Request;
+use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\Logging\LoggerFactory;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -16,6 +18,8 @@ final class BlogDiscussionApiControllerTest extends TestCase
 {
     private string $blogDir;
     private string $discussionDir;
+    private string $logDir;
+    private string $rateLimitDir;
     private string $pagesFile;
 
     protected function setUp(): void
@@ -25,9 +29,13 @@ final class BlogDiscussionApiControllerTest extends TestCase
 
         $this->blogDir = sys_get_temp_dir() . '/caramagnols-blog-discussion-api-blog-' . bin2hex(random_bytes(6));
         $this->discussionDir = sys_get_temp_dir() . '/caramagnols-blog-discussion-api-discussions-' . bin2hex(random_bytes(6));
+        $this->logDir = sys_get_temp_dir() . '/caramagnols-blog-discussion-api-logs-' . bin2hex(random_bytes(6));
+        $this->rateLimitDir = sys_get_temp_dir() . '/caramagnols-blog-discussion-api-ratelimits-' . bin2hex(random_bytes(6));
         $this->pagesFile = ROOT_PATH . '/var/blog-discussion-pages-' . bin2hex(random_bytes(6)) . '.json';
         mkdir($this->blogDir, 0777, true);
         mkdir($this->discussionDir, 0777, true);
+        mkdir($this->logDir, 0777, true);
+        mkdir($this->rateLimitDir, 0777, true);
 
         file_put_contents(
             $this->pagesFile,
@@ -75,6 +83,9 @@ final class BlogDiscussionApiControllerTest extends TestCase
             'rate_limit_window' => 600,
             'global_rate_limit_per_ip' => 20,
             'global_rate_limit_window' => 3600,
+            'telemetry_rate_limit_per_ip' => 45,
+            'telemetry_rate_limit_window' => 120,
+            'telemetry_sample_divisor' => 4,
             'min_form_fill_seconds' => 1,
             'max_form_age_seconds' => 7200,
             'honeypot_field' => 'website',
@@ -87,6 +98,7 @@ final class BlogDiscussionApiControllerTest extends TestCase
             ],
         ];
         $appConfig['admin']['trust_proxy_headers'] = false;
+        $appConfig['security']['rate_limit_dir'] = $this->rateLimitDir;
     }
 
     protected function tearDown(): void
@@ -104,9 +116,254 @@ final class BlogDiscussionApiControllerTest extends TestCase
             @rmdir($dir);
         }
 
+        foreach ([$this->logDir, $this->rateLimitDir] as $dir) {
+            $files = glob($dir . '/*');
+            if (is_array($files)) {
+                foreach ($files as $file) {
+                    @unlink($file);
+                }
+            }
+
+            @rmdir($dir);
+        }
+
         if (file_exists($this->pagesFile)) {
             @unlink($this->pagesFile);
         }
+    }
+
+    private function logger(): AppEventLogger
+    {
+        return new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
+    }
+
+    public function testLogClientEventWritesTelemetryAndReturnsNoContent(): void
+    {
+        $controller = new BlogDiscussionApiController(
+            new JsonBlogRepository($this->blogDir),
+            new JsonBlogDiscussionRepository($this->discussionDir),
+            null,
+            $this->logger(),
+            new BlogPublicUrlResolver(
+                new JsonBlogRepository($this->blogDir),
+                new PageRepository((string) ($this->pagesFile ?: '')),
+                'fr'
+            )
+        );
+
+        $response = $controller->logClientEvent(
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/core/blog/log_discussion_client.php',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                ],
+                [],
+                [],
+                [],
+                ['Host' => 'example.test', 'Content-Type' => 'application/json'],
+                json_encode(
+                    [
+                        'article_slug' => 'bonjour',
+                        'article_lang' => 'fr',
+                        'stage' => 'recaptcha_client_failure',
+                        'level' => 'error',
+                        'mode' => 'v3_score',
+                        'page' => '/fr/auto-retro/austin/histoire-de-austin.php',
+                        'details' => [
+                            'error_message' => 'recaptcha_error',
+                            'execute_timeout_ms' => 12000,
+                        ],
+                    ],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                ) ?: ''
+            )
+        );
+
+        $this->assertSame(204, $response->status);
+        $this->assertSame('no-store', $response->headers['Cache-Control'] ?? null);
+
+        $contentLogPath = $this->logDir . '/content.log';
+        $this->assertFileExists($contentLogPath);
+
+        $logContents = (string) file_get_contents($contentLogPath);
+        $this->assertStringContainsString('blog.discussion.client_telemetry', $logContents);
+        $this->assertStringContainsString('recaptcha_client_failure', $logContents);
+    }
+
+    public function testLogClientEventSanitizesAndLimitsTelemetryDetailsPayload(): void
+    {
+        $controller = new BlogDiscussionApiController(
+            new JsonBlogRepository($this->blogDir),
+            new JsonBlogDiscussionRepository($this->discussionDir),
+            null,
+            $this->logger(),
+            null
+        );
+
+        $longText = str_repeat('A', 1200);
+        $payload = json_encode(
+            [
+                'article_slug' => 'bonjour',
+                'article_lang' => 'fr',
+                'stage' => 'recaptcha_client_failure',
+                'level' => 'error',
+                'mode' => 'v3_score',
+                'page' => '/fr/auto-retro/austin/histoire-de-austin.php',
+                'details' => [
+                    'long_text' => $longText,
+                    'error_message' => '<script>alert(1)</script>',
+                    'long_array' => array_fill(0, 40, 'valeur-avec-texte-tres-long'),
+                ],
+            ],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ) ?: '';
+
+        $response = $controller->logClientEvent(
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/core/blog/log_discussion_client.php',
+                    'REMOTE_ADDR' => '127.0.0.1',
+                ],
+                [],
+                [],
+                [],
+                ['Host' => 'example.test', 'Content-Type' => 'application/json'],
+                $payload
+            )
+        );
+
+        $this->assertSame(204, $response->status);
+        $this->assertSame('no-store', $response->headers['Cache-Control'] ?? null);
+
+        $contentLogPath = $this->logDir . '/content.log';
+        $this->assertFileExists($contentLogPath);
+
+        $logContents = (string) file_get_contents($contentLogPath);
+        $this->assertStringContainsString('blog.discussion.client_telemetry', $logContents);
+        $this->assertStringNotContainsString(substr($longText, 320), $logContents);
+        $this->assertStringContainsString(substr($longText, 0, 16), $logContents);
+    }
+
+    public function testLogClientEventIsRateLimitedPerIp(): void
+    {
+        global $appConfig;
+        $appConfig['site']['discussions']['telemetry_rate_limit_per_ip'] = 1;
+        $appConfig['site']['discussions']['telemetry_rate_limit_window'] = 120;
+        $appConfig['site']['discussions']['telemetry_sample_divisor'] = 1;
+
+        $controller = new BlogDiscussionApiController(
+            new JsonBlogRepository($this->blogDir),
+            new JsonBlogDiscussionRepository($this->discussionDir),
+            null,
+            $this->logger(),
+            null
+        );
+        $payload = json_encode(
+            [
+                'article_slug' => 'bonjour',
+                'article_lang' => 'fr',
+                'stage' => 'recaptcha_client_failure',
+                'level' => 'error',
+                'mode' => 'v3_score',
+                'page' => '/fr/auto-retro/austin/histoire-de-austin.php',
+                'details' => ['error_message' => 'timeout'],
+            ],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ) ?: '';
+
+        $request = new Request(
+            [
+                'REQUEST_METHOD' => 'POST',
+                'REQUEST_URI' => '/core/blog/log_discussion_client.php',
+                'REMOTE_ADDR' => '127.0.0.1',
+            ],
+            [],
+            [],
+            [],
+            ['Host' => 'example.test', 'Content-Type' => 'application/json'],
+            $payload
+        );
+
+        $first = $controller->logClientEvent($request);
+        $second = $controller->logClientEvent($request);
+
+        $this->assertSame(204, $first->status);
+        $this->assertSame('no-store', $first->headers['Cache-Control'] ?? null);
+        $this->assertSame(204, $second->status);
+        $this->assertSame('no-store', $second->headers['Cache-Control'] ?? null);
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileExists($securityLogPath);
+
+        $securityLogContents = (string) file_get_contents($securityLogPath);
+        $this->assertStringContainsString('blog.discussion.client_telemetry_rate_limited', $securityLogContents);
+    }
+
+    public function testLogClientEventRateLimitIsScopedByEndpoint(): void
+    {
+        global $appConfig;
+        $appConfig['site']['discussions']['telemetry_rate_limit_per_ip'] = 1;
+        $appConfig['site']['discussions']['telemetry_rate_limit_window'] = 120;
+        $appConfig['site']['discussions']['telemetry_sample_divisor'] = 1;
+
+        $controller = new BlogDiscussionApiController(
+            new JsonBlogRepository($this->blogDir),
+            new JsonBlogDiscussionRepository($this->discussionDir),
+            null,
+            $this->logger(),
+            null
+        );
+
+        $payload = json_encode(
+            [
+                'article_slug' => 'bonjour',
+                'article_lang' => 'fr',
+                'stage' => 'recaptcha_client_failure',
+                'level' => 'error',
+                'mode' => 'v3_score',
+                'page' => '/fr/auto-retro/austin/histoire-de-austin.php',
+                'details' => ['error_message' => 'timeout'],
+            ],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ) ?: '';
+
+        $first = $controller->logClientEvent(
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/core/blog/log_discussion_client.php',
+                    'REMOTE_ADDR' => '198.51.100.99',
+                ],
+                [],
+                [],
+                [],
+                ['Host' => 'example.test', 'Content-Type' => 'application/json'],
+                $payload
+            )
+        );
+
+        $second = $controller->logClientEvent(
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/core/blog/submit_discussion.php',
+                    'REMOTE_ADDR' => '198.51.100.99',
+                ],
+                [],
+                [],
+                [],
+                ['Host' => 'example.test', 'Content-Type' => 'application/json'],
+                $payload
+            )
+        );
+
+        $this->assertSame(204, $first->status);
+        $this->assertSame(204, $second->status);
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileDoesNotExist($securityLogPath);
     }
 
     public function testSubmitCreatesPendingDiscussionAndRedirectsToArticle(): void

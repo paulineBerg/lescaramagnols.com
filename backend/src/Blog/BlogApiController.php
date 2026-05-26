@@ -28,6 +28,24 @@ final class BlogApiController
             return Response::json(['error' => 'Méthode non autorisée. Utilisez POST.'], 405);
         }
 
+        $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false));
+        $allowedIps = app_config('admin.allowed_ips', []);
+        $allowedIps = is_array($allowedIps) ? array_values(array_filter(array_map('strval', $allowedIps))) : [];
+        if (!ip_matches_allowlist($clientIp, $allowedIps)) {
+            $this->eventLogger->security(
+                'blog.article.ip_not_allowed',
+                [
+                    'uri' => $request->uri(),
+                    'method' => $request->method(),
+                    'ip' => $clientIp,
+                    'actor' => admin_current_masked_identifier(),
+                ],
+                'warning'
+            );
+
+            return Response::json(['error' => 'Accès interdit.'], 403);
+        }
+
         if (!admin_is_authenticated()) {
             $this->eventLogger->security(
                 'blog.article.unauthenticated',

@@ -47,8 +47,6 @@ Thumbs.db
 vendor/
 /composer.lock
 backend/var/
-docs/private/
-
 # Python venv (au cas ou)
 .venv/
 

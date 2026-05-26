@@ -27,6 +27,7 @@ final class BlogApiControllerTest extends TestCase
         $appConfig['admin']['email'] = 'admin@example.com';
         $appConfig['admin']['password_hash'] = password_hash('topsecret', PASSWORD_DEFAULT);
         $appConfig['admin']['session_key'] = '_blog_api_test';
+        $appConfig['admin']['allowed_ips'] = [];
 
         $this->blogDir = sys_get_temp_dir() . '/caramagnols-blog-api-' . bin2hex(random_bytes(6));
         $this->logDir = sys_get_temp_dir() . '/caramagnols-blog-api-logs-' . bin2hex(random_bytes(6));
@@ -60,6 +61,44 @@ final class BlogApiControllerTest extends TestCase
         );
 
         $this->assertSame(401, $response->status);
+    }
+
+    public function testSaveArticleRejectsRequestFromUnauthorizedIpEvenWithValidSession(): void
+    {
+        global $appConfig;
+        $appConfig['admin']['allowed_ips'] = ['192.0.2.10'];
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->saveArticle(
+            $this->jsonRequest(
+                'POST',
+                '/admin/articles/save',
+                [
+                    'csrf_token' => $token,
+                    'title' => 'Article forbidden ip',
+                    'slug' => 'article-forbidden-ip',
+                    'lang' => 'fr',
+                    'status' => 'draft',
+                    'category' => 'auto-retro',
+                    'tags' => ['austin', 'histoire', 'voiture-ancienne'],
+                    'content' => '<p>Contenu.</p>',
+                ],
+                '203.0.113.15'
+            )
+        );
+
+        $this->assertSame(403, $response->status);
+        $this->assertStringContainsString('Accès interdit', $response->body);
+        $this->assertFileDoesNotExist($this->blogDir . '/article-forbidden-ip.fr.json');
+
+        $securityLogPath = $this->logDir . '/security.log';
+        $this->assertFileExists($securityLogPath);
+        $logContents = (string) file_get_contents($securityLogPath);
+        $this->assertStringContainsString('blog.article.ip_not_allowed', $logContents);
+        $this->assertStringContainsString('203.0.113.15', $logContents);
     }
 
     public function testSaveArticlePersistsJsonWhenAuthenticatedAndCsrfIsValid(): void
@@ -159,12 +198,13 @@ final class BlogApiControllerTest extends TestCase
     /**
      * @param array<string, mixed> $payload
      */
-    private function jsonRequest(string $method, string $uri, array $payload): Request
+    private function jsonRequest(string $method, string $uri, array $payload, string $remoteAddr = '127.0.0.1'): Request
     {
         return new Request(
             [
                 'REQUEST_METHOD' => $method,
                 'REQUEST_URI' => $uri,
+                'REMOTE_ADDR' => $remoteAddr,
             ],
             [],
             [],

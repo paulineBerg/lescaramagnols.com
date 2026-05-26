@@ -87,7 +87,7 @@ function sanitize_comment_payload(array $payload): array
 
     $name = sanitize_text_field((string) ($payload['author'] ?? ''), 120);
     $email = sanitize_email((string) ($payload['email'] ?? ''));
-    $content = sanitize_text_field((string) ($payload['content'] ?? ''), 2000, ['strong', 'em', 'br']);
+    $content = sanitize_text_field((string) ($payload['content'] ?? ''), 2000);
 
     if ($name === '') {
         $errors[] = (string) t('TXT_BLOG_DISCUSSION_ERROR_NAME_REQUIRED');

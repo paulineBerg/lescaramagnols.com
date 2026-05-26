@@ -427,17 +427,13 @@ final class AdminController
                 }
 
                 $limiter->hit();
+                $failureReason = admin_pop_login_failure_reason();
                 $this->eventLogger->security(
                     'admin.login.failed',
-                    array_merge($requestContext, ['reason' => 'invalid_credentials']),
+                    array_merge($requestContext, ['reason' => is_string($failureReason) ? $failureReason : 'unknown']),
                     'warning'
                 );
-                $failureReason = admin_pop_login_failure_reason();
-                $error = match ($failureReason) {
-                    'totp_required' => $this->adminText('TXT_ADMIN_LOGIN_TOTP_REQUIRED', 'Code 2FA requis.'),
-                    'totp_invalid' => $this->adminText('TXT_ADMIN_LOGIN_TOTP_INVALID', 'Code 2FA invalide.'),
-                    default => $this->adminText('TXT_ADMIN_LOGIN_INVALID_CREDENTIALS', 'Identifiants invalides.'),
-                };
+                $error = $this->adminText('TXT_ADMIN_LOGIN_INVALID_CREDENTIALS', 'Identifiants invalides.');
             }
         }
 
