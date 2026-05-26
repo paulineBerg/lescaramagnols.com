@@ -51,6 +51,20 @@ Les entrées publiques de référence sont désormais :
   - detail public d'un article publie (inclut les articles `scheduled` dont la date planifiee est atteinte ; fallback `DEFAULT_LANG` si slug absent dans la langue demandee)
 - `/blog/proposer`
   - page explicite de non-ouverture de la contribution publique
+- `/private`
+  - point d'entrée privé (MVP), actif uniquement quand `private.enabled=true`
+- `/private/login`
+  - authentification privée (GET/POST, CSRF, session dédiée)
+- `/private/dashboard`
+  - tableau de bord après authentification privée
+- `/private/logout`
+  - déconnexion privée
+- `/private/password/forgot`
+  - reset privé (MVP)
+- `/private/password/reset/{token}`
+  - reset sécurisé avec token privé
+- `/private/files/{documentId}`
+  - endpoint prévu pour téléchargement privé (placeholder MVP)
 - `/<base_path>/<ADMIN_LOGIN_PATH>`
   - login admin
 - `/<base_path>/<ADMIN_LOGIN_PATH>/dashboard`
@@ -97,7 +111,11 @@ Par défaut, l'exemple `.env` utilise `ADMIN_LOGIN_PATH=admin` et `base_path=/`,
 - stockage editorial pages/navigation : facades `PageRepository` et `NavigationRepository` avec implementations `json`, `sql` et `dual-write`
 
 Le webroot ne doit plus contenir la logique métier de l'admin, du RSS ni de l'ecriture blog.
-`backend/public/index.php` ne doit plus porter la logique de routage lui-meme ; il doit deleguer a `backend/src/Http/FrontController.php`.
+- `backend/public/index.php` ne doit plus porter la logique de routage lui-meme ; il doit deleguer a `backend/src/Http/FrontController.php`.
+- les routes privées doivent rester désactivées tant que `private.enabled` est faux
+
+`/robots.txt` annonce désormais aussi :
+- `Disallow: /private`
 
 Verification securite associee :
 - `backend/public/.htaccess` force HTTPS et bloque l'acces direct a des fichiers techniques/sensibles.

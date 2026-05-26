@@ -404,6 +404,42 @@ if (!in_array($adminLanguage, ['fr', 'en', 'de'], true)) {
     $adminLanguage = 'fr';
 }
 
+$privatePortalEnabled = filter_var(env('PRIVATE_PORTAL_ENABLED', false), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
+$privatePortalBasePath = trim((string) env('PRIVATE_PORTAL_BASE_PATH', 'private'));
+$privatePortalSessionName = trim((string) env('PRIVATE_SESSION_NAME', 'caramagnols_private'));
+if ($privatePortalSessionName === '') {
+    $privatePortalSessionName = 'caramagnols_private';
+}
+$privatePortalSessionName = preg_replace('/[^A-Za-z0-9_-]/', '_', $privatePortalSessionName) ?: 'caramagnols_private';
+$privateInactivityTimeoutSeconds = max(
+    300,
+    min(86400, (int) env('PRIVATE_INACTIVITY_TIMEOUT_SECONDS', 3600))
+);
+$privateReauthTimeoutSeconds = max(
+    300,
+    min(86400, (int) env('PRIVATE_REAUTH_TIMEOUT_SECONDS', 1800))
+);
+if ($privateReauthTimeoutSeconds > $privateInactivityTimeoutSeconds) {
+    $privateReauthTimeoutSeconds = $privateInactivityTimeoutSeconds;
+}
+$privateAuthMode = strtolower(trim((string) env('PRIVATE_AUTH_MODE', 'local')));
+if (!in_array($privateAuthMode, ['local', 'oidc'], true)) {
+    $privateAuthMode = 'local';
+}
+
+$privateLocalUserEmail = trim((string) env('PRIVATE_LOCAL_USER_EMAIL', ''));
+$privateLocalUserPasswordHash = trim((string) env('PRIVATE_LOCAL_USER_PASSWORD_HASH', ''));
+$privateLoginRateLimitAttempts = max(1, (int) env('PRIVATE_LOGIN_RATE_LIMIT_ATTEMPTS', 5));
+$privateLoginRateLimitWindow = max(60, (int) env('PRIVATE_LOGIN_RATE_LIMIT_WINDOW', 900));
+$privateAccountLockoutAttempts = max(1, (int) env('PRIVATE_ACCOUNT_LOCKOUT_ATTEMPTS', 3));
+$privateAccountLockoutSeconds = max(60, (int) env('PRIVATE_ACCOUNT_LOCKOUT_SECONDS', 86400));
+$privatePasswordMinLength = max(8, (int) env('PRIVATE_PASSWORD_MIN_LENGTH', 14));
+$privatePasswordComplexityEnabled = filter_var(
+    env('PRIVATE_PASSWORD_COMPLEXITY_ENABLED', true),
+    FILTER_VALIDATE_BOOLEAN,
+    FILTER_NULL_ON_FAILURE
+) ?? true;
+
 $appEnv = defined('CARAMAGNOLS_LOCAL_DEV_ROUTER') ? 'development' : env('APP_ENV', 'development');
 
 $appConfig = [
@@ -451,6 +487,37 @@ $appConfig = [
         'totp_period_seconds' => 30,
         'totp_allowed_drift_steps' => 1,
         'totp_skip_localhost' => (bool) $adminTotpSkipLocalhost,
+    ],
+    'private' => [
+        'enabled' => $privatePortalEnabled,
+        'base_path' => $privatePortalBasePath !== '' ? $privatePortalBasePath : 'private',
+        'session_name' => $privatePortalSessionName,
+        'inactivity_timeout_seconds' => $privateInactivityTimeoutSeconds,
+        'reauth_timeout_seconds' => $privateReauthTimeoutSeconds,
+        'auth_mode' => $privateAuthMode,
+        'local_user_email' => $privateLocalUserEmail,
+        'local_user_password_hash' => $privateLocalUserPasswordHash,
+        'login_rate_limit_attempts' => $privateLoginRateLimitAttempts,
+        'login_rate_limit_window' => $privateLoginRateLimitWindow,
+        'account_lockout_attempts' => $privateAccountLockoutAttempts,
+        'account_lockout_seconds' => $privateAccountLockoutSeconds,
+        'password_min_length' => $privatePasswordMinLength,
+        'password_complexity_enabled' => $privatePasswordComplexityEnabled,
+        'trust_proxy_headers' => filter_var(
+            env('PRIVATE_TRUST_PROXY_HEADERS', env('TRUST_PROXY_HEADERS', env('ADMIN_TRUST_PROXY_HEADERS', false))),
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        ) ?? false,
+        'mfa_totp_enabled' => filter_var(
+            env('PRIVATE_MFA_TOTP_ENABLED', false),
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        ) ?? false,
+        'mfa_backup_codes_enabled' => filter_var(
+            env('PRIVATE_MFA_BACKUP_CODES_ENABLED', true),
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        ) ?? true,
     ],
     'blog' => [
         'mode' => env('BLOG_MODE', 'experimental'),

@@ -12,6 +12,10 @@ use Caramagnols\Blog\BlogSaveService;
 use Caramagnols\Feed\RssFeedService;
 use Caramagnols\Feed\SitemapService;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivatePortal\Http\PrivatePortalController;
+use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
+use Caramagnols\PrivatePortal\Security\PrivateAuth;
+use Caramagnols\PrivatePortal\Security\PrivateSession;
 use Caramagnols\Seo\SeoUrlNormalizer;
 use FastRoute\Dispatcher;
 use FastRoute\RouteCollector;
@@ -20,14 +24,42 @@ final class FrontController
 {
     private Dispatcher $dispatcher;
     private AppEventLogger $eventLogger;
+    private ?PrivateRouteResolver $privateRouteResolver;
+    private ?PrivatePortalController $privatePortalController;
 
     public function __construct(
         private readonly AdminRouteResolver $adminRouteResolver,
         private readonly AdminController $adminController,
         private readonly BlogApiController $blogApiController,
-        ?AppEventLogger $eventLogger = null
+        ?AppEventLogger $eventLogger = null,
+        ?PrivateRouteResolver $privateRouteResolver = null,
+        ?PrivatePortalController $privatePortalController = null
     ) {
         $this->eventLogger = $eventLogger ?? app_event_logger();
+        $this->privateRouteResolver = null;
+        $this->privatePortalController = null;
+
+        if (private_portal_enabled()) {
+            $this->privateRouteResolver = $privateRouteResolver ?? private_route_resolver();
+            if ($privatePortalController !== null) {
+                $this->privatePortalController = $privatePortalController;
+            } else {
+                $this->privatePortalController = new PrivatePortalController(
+                    new PrivateAuth(
+                        new PrivateSession(
+                            (string) app_config('private.session_name', 'caramagnols_private')
+                        ),
+                        $this->eventLogger
+                    ),
+                    null,
+                    $this->eventLogger
+                );
+            }
+        } elseif ($privatePortalController !== null) {
+            $this->privatePortalController = $privatePortalController;
+            $this->privateRouteResolver = $privateRouteResolver;
+        }
+
         $this->dispatcher = \FastRoute\simpleDispatcher(function (RouteCollector $routes): void {
             $routes->addRoute('GET', '/core/api/lang.php', ['type' => 'api-lang']);
             $routes->addRoute('POST', '/core/blog/save_article.php', ['type' => 'blog', 'action' => 'save_article']);
@@ -43,6 +75,14 @@ final class FrontController
             foreach ($this->adminRouteResolver->routeDefinitions() as $definition) {
                 foreach ($definition['methods'] as $method) {
                     $routes->addRoute($method, $definition['path'], $definition['handler']);
+                }
+            }
+
+            if ($this->privateRouteResolver instanceof PrivateRouteResolver) {
+                foreach ($this->privateRouteResolver->routeDefinitions() as $definition) {
+                    foreach ($definition['methods'] as $method) {
+                        $routes->addRoute($method, $definition['path'], $definition['handler']);
+                    }
                 }
             }
         });
@@ -189,6 +229,14 @@ final class FrontController
                 }
 
                 return new Response((int) ($handler['status'] ?? 302), ['Location' => $location], '');
+            }
+
+            if (is_array($handler) && ($handler['type'] ?? null) === 'private') {
+                if (!$this->privatePortalController instanceof PrivatePortalController) {
+                    return new Response(404, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Private portal not configured.');
+                }
+
+                return $this->privatePortalController->handle((string) ($handler['page'] ?? 'login'), $request, $routeVars);
             }
         }
 
@@ -337,12 +385,18 @@ final class FrontController
     private function robotsTxtResponse(Request $request): Response
     {
         $adminPath = $this->adminRouteResolver->canonicalPath('login');
+        $privatePath = $this->privateRouteResolver instanceof PrivateRouteResolver
+            ? $this->privateRouteResolver->basePath()
+            : null;
         $lines = [
             'User-agent: *',
             'Allow: /',
             'Disallow: ' . $adminPath,
-            'Sitemap: ' . app_url('/sitemap.xml', $request),
         ];
+        if ($privatePath !== null && $privatePath !== '') {
+            $lines[] = 'Disallow: ' . $privatePath;
+        }
+        $lines[] = 'Sitemap: ' . app_url('/sitemap.xml', $request);
 
         return new Response(
             200,

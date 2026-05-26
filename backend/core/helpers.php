@@ -2,6 +2,7 @@
 
 use Caramagnols\Admin\AdminRouteResolver;
 use Caramagnols\Assets\ViteAssetManager;
+use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
 use Caramagnols\Blog\BlogDiscussionRepositoryInterface;
 use Caramagnols\Blog\BlogRepositoryInterface;
 use Caramagnols\Blog\DualWriteBlogDiscussionRepository;
@@ -290,6 +291,34 @@ function admin_route_resolver(): AdminRouteResolver
 function admin_url(string $page = 'login'): string
 {
     return admin_route_resolver()->canonicalPath($page);
+}
+
+function private_portal_enabled(): bool
+{
+    return (bool) app_config('private.enabled', false);
+}
+
+function private_route_resolver(): PrivateRouteResolver
+{
+    static $resolver = null;
+    static $configured = null;
+
+    $currentBasePath = (string) app_config('private.base_path', 'private');
+    if (!$resolver instanceof PrivateRouteResolver || $configured !== $currentBasePath) {
+        $resolver = new PrivateRouteResolver($currentBasePath);
+        $configured = $currentBasePath;
+    }
+
+    return $resolver;
+}
+
+function private_portal_url(string $page = 'login'): string
+{
+    if (!private_portal_enabled()) {
+        return '#';
+    }
+
+    return private_route_resolver()->canonicalPath($page);
 }
 
 function admin_blog_save_url(): string

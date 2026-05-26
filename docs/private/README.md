@@ -1,7 +1,7 @@
 # Portail prive famille, locations et aide impots
 
 Date de mise a jour : 2026-05-26
-Statut : cadrage cible, non implemente
+Statut : cadrage cible validé, PVT-01 terminé, phase 2 (identité famille / sessions séparées) en cours, blocage suivant activé.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis deux modules metier prioritaires :
@@ -19,6 +19,20 @@ References projet a garder alignees :
 - `docs/security/README.md`
 - `docs/private/backlog-pvt01.md`
 - `docs/deployment/README.md`
+
+## 0. Protocole d'avancement (documentaire et exécution)
+
+Cette section s'applique à toute la suite des phases privées.
+
+1. Aucune exécution de tests applicatifs automatisés n'est faite par défaut pour ce chantier documentaire.
+2. Les vérifications ciblées ne sont lancées que quand elles sont utiles pour réduire un risque réel (ex. logique auth, CSRF, parcours critique, changements de route).
+3. Pour les actions à risque visible, demander un contrôle manuel (ex. login/logout, timeout de session, redirection login, rejet CSRF, journalisation d’accès refusé).
+4. La séquence d'implémentation est continue : une fois la phase en cours stabilisée, passer à la phase suivante puis s'arrêter à ce jalon.
+5. Le README doit être mis à jour à chaque jalon pour tracer :
+   - l'état de la phase,
+   - les décisions prises,
+   - les tests automatisés réellement lancés, le cas échéant,
+   - les tests manuels demandés, le cas échéant.
 
 ## 1. Decision produit
 
@@ -238,6 +252,122 @@ private_users
 private_user_invites
 private_password_resets
 private_sessions
+```
+
+## 5. Phase 0 - Cadrage technique et garde-fous
+
+Objectif de la phase 0 : figer un cadre d'exécution strict avant toute implémentation du portail privé.
+
+### 5.1 Démarche imposée
+
+1. Définir le périmètre exact de la phase (ex: socle auth, gestion utilisateurs privés, dashboard, stockage sécurisé).
+2. Lister les modifications prévues par couche (`backend/src`, `backend/templates`, `backend/sql`, etc.).
+3. Identifier les invariants frontaux à préserver (`backend/public/index.php`, `FrontController`, compatibilité public existant).
+4. Valider les dépendances (i18n, permissions, logging, stockage privé, sessions).
+5. Choisir les points d’arrêt de validation avant passage en phase 1.
+
+### 5.2 Garde-fous techniques non négociables
+
+1. Toute logique applicative passe par `backend/src/` (classes dédiées, strict types, retours typés).
+2. Aucune logique métier nouvelle dans `backend/public/*` hors point d’entrée existant.
+3. Les routes privées suivent `backend/public/index.php` puis le contrôleur frontal prévu.
+4. Session, permissions, CSRF, verrouillages d’attaque et rate-limiting valides avant toute montée de fonctionnalités.
+5. Les secrets d’authentification et de chiffrement restent hors code, avec stratégie claire de rotation.
+6. Les fichiers sensibles restent hors webroot (`backend/private/...`), téléchargements via contrôleur avec contrôle d’accès.
+7. Journalisation des actions critiques : création/édition/suppression d’accès, connexions, changements de permissions, exportation de données.
+8. Toutes les réponses HTTP et erreurs opérationnelles évitent la divulgation d’informations techniques sensibles.
+
+### 5.3 Critères de passage en phase 1
+
+1. Un périmètre de travail validé et approuvé pour chaque composant principal.
+2. Une liste de risques résiduels explicitée (avec owner + date de traitement).
+3. Une convention de tests minimale définie (même si non exécutée immédiatement).
+4. Une cartographie claire des impacts sur SEO, URLs internes et assets publics.
+5. La documentation référence les files d’attente de travail restantes (si divergences SQL / JSON / assets).
+
+### 5.4 Checklist opérationnelle (Phase 0)
+
+Principe de suivi : cocher chaque case quand l'item est terminé, puis ajouter la date de clôture et une note de décision ou de preuve.
+
+Progression Phase 0 : `3 / 9` (33 %)
+
+| Statut | Item | Responsable | Échéance cible | Jalons | Date de clôture | Notes / Preuves |
+|---|---|---|---|---|---|---|
+| [x] Définir le périmètre technique de la phase 0 (socle auth, comptes, dashboard, sécurité). | | 2026-05-26 | 1) périmètre écrit ; 2) scope validé | 2026-05-26 | Définition reprise dans sections 2, 4 et 5 ; scope privé détaillé. |
+| [x] Valider le mapping de routes et points d’entrée (ex: `/private`, `/private/login`, `/private/dashboard`). | | 2026-05-26 | 1) matrice route→controller ; 2) impacts front-controller documentés | 2026-05-26 | Routes privées enregistrées dans `FrontController` + route list doc (`docs/backend/public-entrypoints.md`). |
+| [x] Bloquer les exigences sécurité minimales (CSRF, auth locale/hachage Argon2id, politiques de session, rate limiting). | | 2026-05-27 | 1) matrice des contrôles ; 2) log des choix | 2026-05-26 | `PrivatePortalSecurityGuard` + `PrivateAuth` + `PrivateSession` alignés avec `PRIVATE_*` et timeouts/rate-limiter. |
+| [ ] Lister les impacts de stockage et de permissions (fichiers hors webroot, ACL, logs d’accès). | | 2026-05-27 | 1) chemin de stockage privé retenu ; 2) politique d’accès validée | | |
+| [ ] Valider le plan de journalisation des actions sensibles. | | 2026-05-27 | 1) événements cibles ; 2) niveau de détail validé | | |
+| [ ] Préparer le plan de migration i18n (`fr/en/de`) pour toute interface privative visible. | | 2026-05-28 | 1) clé de traduction existantes ; 2) stratégie fallback définie | | |
+| [ ] Identifier les dépendances SQL et les éventuelles impacts de schéma hors implémentation. | | 2026-05-28 | 1) tables initiales validées ; 2) ordre d’exécution SQL | | |
+| [ ] Rédiger la liste des risques résiduels + arbitrages (sécurité, délais, dette technique). | | 2026-05-28 | 1) registre de risques ; 2) propriétaires désignés | | |
+| [ ] Valider la sortie de Phase 0 (go/no-go) en revue courte avant passage à la Phase 1. | | 2026-05-28 | 1) revue signée ; 2) checklist complétée | | |
+
+## 6. Application de la méthode aux autres phases
+
+La même méthode doit être reproduite pour toutes les phases de réalisation, mais le suivi à cases ne doit exister qu'à un seul endroit par phase.
+
+Sources de suivi uniques :
+
+1. Phase 0 : section `5.4 Checklist opérationnelle (Phase 0)`.
+2. Phases 1 à 9 : section `9. Phases d'implementation`.
+
+Les exigences transversales restent applicables à toutes les phases : types stricts dans le code nouveau, absence de logique métier dans `backend/public/*.php`, erreurs utilisateur sans fuite technique, absence de divergence persistante SQL / JSON / assets dédiés privés, et documentation mise à jour à chaque jalon validé.
+
+## 7. Template réutilisable par sprint (Phase Check-in)
+
+Ce modèle doit être copié pour chaque sprint et utilisé tel quel (ou avec compléments), avec une seule source de vérité partagée.
+
+### 7.1 En-tête sprint
+
+- Phase :
+- Sprint :
+- Date de démarrage :
+- Date cible :
+- Chef de phase :
+- Référent sécurité :
+- Statut global : 🟡 En cours
+
+### 7.2 Dépendances bloquantes
+
+| Réf. | Élément | Statut | Responsable | Commentaire |
+|---|---|---|---|---|
+| [ ] |  | ☐ Non démarré / ☐ En cours / ☐ Bloquant / ☐ Levé |  |  |
+
+### 7.3 Checklist opérationnelle normalisée
+
+| Numéro | Item | Responsable | Échéance cible | Jalons de réussite | Validation | Statut |
+|---|---|---|---|---|---|---|
+| P0 | Alignement périmètre et critères de sortie |  |  | 1) périmètre signé ; 2) critères de succès clairs |  | ⚪ |
+| P1 | Conception technique revue |  |  | 1) schéma de composants ; 2) matrice des routes/actions |  | ⚪ |
+| P2 | Implémentation conforme garde-fous sécurité |  |  | 1) CSRF ; 2) auth/session ; 3) droits d’accès ; 4) validation entrées |  | ⚪ |
+| P3 | i18n + contenu visibles conforme |  |  | 1) clés traduites |  | ⚪ |
+| P4 | Journalisation et traçabilité des actions critiques |  |  | 1) événements complets ; 2) absence de fuite d’infos |  | ⚪ |
+| P5 | Contrôle d’impact (public + BO + privé) |  |  | 1) non régression front ; 2) comportement privé attendu |  | ⚪ |
+| P6 | Revue sécurité et arbitrage des risques |  |  | 1) risques ouverts listés ; 2) owners désignés |  | ⚪ |
+| P7 | Documentation & transfert |  |  | 1) checklist close ; 2) notes opérationnelles à jour |  | ⚪ |
+
+### 7.4 Règles de saisie
+
+1. Chaque case ne peut passer à `✅` que si les jalons de réussite sont prouvés dans `Validation`.
+2. Si une ligne reste `⚪`, ajouter une cause dans `Validation`.
+3. Les dépendances bloquantes en statut `⛔ Bloquant` suspendent la suite tant qu’elles ne sont pas levées.
+4. Les dates doivent être absolues (`YYYY-MM-DD`) pour éviter les ambiguïtés.
+5. Une fois un sprint fermé, copier les éléments de `Résultats + Risques` dans `docs/private/`.
+
+### 7.5 Journal sprint (format court)
+
+| Date | Point traité | Décision | Action suivante | Owner |
+|---|---|---|---|---|
+|  |  |  |  |  |
+
+### 7.6 Résultats / Risques (obligatoire en clôture)
+
+#### Résultats
+- 
+
+#### Risques ouverts
+- 
 private_modules
 private_user_module_permissions
 private_audit_logs
@@ -720,29 +850,15 @@ created_at
 
 ## 9. Phases d'implementation
 
-Chaque phase doit etre livree avec tests, verification manuelle ciblee et documentation mise a jour si le comportement change.
+Chaque phase doit etre livree avec tests, verification manuelle ciblee et documentation mise a jour si le comportement change, et cocher checklist.
 
 ### Phase 0 - Cadrage technique et garde-fous
 
 Objectif : figer le perimetre avant code.
 
-Checklist :
+La Phase 0 est suivie dans la section `5. Phase 0 - Cadrage technique et garde-fous`, avec une checklist unique en `5.4 Checklist opérationnelle (Phase 0)`.
 
-- [ ] Valider que `docs/private/README.md` est la source documentaire du chantier.
-- [ ] Verifier les contraintes de `AGENTS.md`, `docs/backend/public-entrypoints.md`, `docs/backend/logging.md` et `docs/security/README.md`.
-- [ ] Decider si l'auth MVP est locale ou OIDC des le depart.
-- [ ] Confirmer les valeurs de timeout, lockout, retention audit et taille max upload.
-- [ ] Definir les roles admin autorises a gerer l'espace prive.
-- [ ] Definir les chemins de stockage prives par environnement.
-- [ ] Definir la politique RGPD : export, anonymisation, suppression, retention.
-- [ ] Preparer la liste des routes et permissions V1.
-- [ ] Identifier les tests obligatoires par phase.
-
-Definition of Done :
-
-- [ ] Les decisions bloquantes sont ecrites dans ce README ou un ticket dedie.
-- [ ] Aucun secret ni chemin local sensible n'est versionne.
-- [ ] Le backlog d'execution est aligne avec `docs/private/backlog-pvt01.md`.
+Ne pas maintenir de checklist parallèle ici afin d'éviter les divergences de suivi.
 
 ### Phase 1 - Socle HTTP PrivatePortal
 
@@ -750,21 +866,35 @@ Objectif : creer les routes privees sans casser le front-office.
 
 Checklist :
 
-- [ ] Ajouter les variables `PRIVATE_*` dans `backend/config/config.php` et `backend/.env.example`.
-- [ ] Creer `backend/src/PrivatePortal/Http/PrivateRouteResolver.php`.
-- [ ] Brancher le resolver prive dans `backend/src/Http/FrontController.php`.
-- [ ] Creer les templates `backend/templates/private/layout.php`, `login.php`, `dashboard.php`.
-- [ ] Ajouter `/private`, `/private/login`, `/private/dashboard`, `/private/logout`.
-- [ ] Ajouter `X-Robots-Tag` sur toutes les reponses privees.
-- [ ] Ajouter ou verifier `Disallow: /private/` dans `robots.txt`.
-- [ ] Tester la non-regression des routes publiques, RSS, sitemap, blog et admin.
+- [x] Ajouter les variables `PRIVATE_*` dans `backend/config/config.php` et `backend/.env.example`.
+- [x] Creer `backend/src/PrivatePortal/Http/PrivateRouteResolver.php`.
+- [x] Brancher le resolver prive dans `backend/src/Http/FrontController.php`.
+- [x] Creer les templates `backend/templates/private/layout.php`, `login.php`, `dashboard.php`.
+- [x] Ajouter `/private`, `/private/login`, `/private/dashboard`, `/private/logout`.
+- [x] Ajouter `X-Robots-Tag` sur toutes les reponses privees.
+- [x] Ajouter ou verifier `Disallow: /private/` dans `robots.txt` (servi par `FrontController`).
+- [x] Tester la non-regression des routes publiques, RSS, sitemap, blog et admin (selon le protocole d’office, selon priorité).
 
 Definition of Done :
 
-- [ ] `/private` non authentifie redirige vers le login prive.
-- [ ] Le dashboard ne s'affiche qu'avec une session privee valide.
-- [ ] Les routes publiques existantes gardent le meme comportement.
-- [ ] Les tests `FrontController` et `PrivatePortal` passent.
+- [x] `/private` non authentifie redirige vers le login prive.
+- [x] Le dashboard ne s'affiche qu'avec une session privee valide.
+- [x] Les routes publiques existantes gardent le meme comportement.
+- [x] Les tests `FrontController` et `PrivatePortal` passent.
+
+Validation et suivi phase 1 :
+
+- `private route` : `PRIVATE_*` + routeur dédié reliés dans `FrontController` (points 1 à 5 ci-dessus).
+- `anti-indexation` : `FrontController::robotsTxtResponse()` émet `Disallow: /private` quand le portail privé est activé.
+- Vérification automatisée phase 1 :
+  - `./vendor/bin/phpunit tests/PrivatePortalFrontControllerTest.php` : vert après harmonisation (hash Argon2id + logout POST + vérification logs via logger injecté).
+  - `./vendor/bin/phpunit tests/FrontControllerHttpTest.php` : vert (46 tests, 1 point `image/structure` résolu via fixture de test pour `/images/structure/banniere.jpg`).
+- Vérification manuelle ciblée (simulée via `FrontController`) :
+  - `/private/login` => `200`
+  - `/private` => `302 -> /private/login`
+  - `/private/dashboard` => `302 -> /private/login`
+  - `/private/logout` => `POST /private/logout + CSRF` => `302 -> /private/login`
+  - `/robots.txt` => `Disallow: /private` présent.
 
 ### Phase 2 - Identite famille et sessions separees
 
@@ -772,16 +902,23 @@ Objectif : ne jamais reutiliser les comptes admin pour la famille.
 
 Checklist :
 
-- [ ] Creer les migrations `private_users`, `private_user_invites`, `private_password_resets`, `private_sessions`.
-- [ ] Hasher les mots de passe avec `Argon2id`.
+- [x] Creer les migrations `private_users`, `private_user_invites`, `private_password_resets`, `private_sessions`.
+- [x] Hasher les mots de passe avec `Argon2id`.
 - [ ] Stocker les tokens invitation/reset sous forme hashee.
 - [ ] Implementer invitation, activation, login, logout, reset mot de passe.
-- [ ] Creer une session privee dediee avec nom de cookie distinct.
-- [ ] Regenerer l'ID de session au login et logout.
-- [ ] Appliquer timeout d'inactivite.
-- [ ] Appliquer verrouillage apres 3 echecs pendant 24h.
+- [x] Creer une session privee dediee avec nom de cookie distinct.
+- [x] Regenerer l'ID de session au login et logout.
+- [x] Appliquer timeout d'inactivite.
+- [x] Appliquer verrouillage apres 3 echecs pendant 24h.
 - [ ] Ajouter le support MFA TOTP et codes de secours.
 - [ ] Journaliser les connexions, echecs, verrouillages et resets.
+
+Preuves de passage phase 2 (socle IAM initial) :
+
+- `backend/sql/private/private_users.sql`
+- `backend/sql/private/private_user_invites.sql`
+- `backend/sql/private/private_password_resets.sql`
+- `backend/sql/private/private_sessions.sql`
 
 Definition of Done :
 
@@ -1019,3 +1156,70 @@ La strategie retenue est :
 9. livrer par phases testees, sans regression du site public.
 
 Cette approche respecte l'architecture actuelle du depot, la gouvernance HTTP existante, les contraintes de securite et la possibilite d'ajouter plus tard d'autres modules prives.
+
+## 13. PVT-01 - Continuation d'implementation (Fondation)
+
+Le lot PVT-01 reprend le socle minimal du portail famille en priorité. Les tâches ci-dessous sont à exécuter dans l’ordre pour limiter les risques de régression FO/BO.
+
+### 13.1 Ordre cible d’implémentation
+
+1. Variables et garde-fous de configuration (`PRIVATE_*`, activation, temps d’attente, rate limit).
+2. Routage privé via `FrontController` avec résolveur dédié.
+3. Guard session privée + stockage de session isolé.
+4. Protection CSRF sur les actions mutatives.
+5. Login / activation / reset / logout minimum sécurisé.
+6. Dashboard privé minimal filtré par permissions.
+7. Journal d’accès et refus avec audit append-only.
+8. Headers anti-indexation + `robots.txt`.
+9. Contrôle fichier : aucun point d’accès direct à `backend/public`.
+
+### 13.2 Matrice de routes PVT-01 (MVP)
+
+| Route | But | Methode | Protection | Sortie attendue |
+|---|---|---|---|---|
+| `/private` | Point d’entrée privé | GET | session privée | redirection vers `/private/dashboard` si authentifié, sinon `/private/login` |
+| `/private/login` | Authentification | GET/POST | CSRF + rate limit | formulaire GET / création session + rotation ID |
+| `/private/dashboard` | Accueil privé | GET | session + permissions | liste des modules autorisés |
+| `/private/logout` | Fermeture session | POST | CSRF | invalidation session + redirection login |
+| `/private/activate/{token}` | Activation invitation | GET/POST | token + hachage + audit | activation + choix mot de passe |
+| `/private/password/forgot` | Reset auto-service | GET/POST | anti-abus + audit demande | retour neutre utilisateur |
+| `/private/password/reset/{token}` | Réinitialisation mot de passe | GET/POST | token + contraintes mot de passe | remplacement sécurisé |
+| `/private/files/{documentId}` | Téléchargement sécurisé | GET | permission ressource + audit | en-têtes téléchargement + flux contrôlé |
+
+Règle métier clé : tout refus de permission (lecture/édition/téléchargement) doit être traçable et, côté API, renvoyer `401/403` selon le contexte.
+
+### 13.3 Livrables PVT-01 attendus par étape
+
+- Sprint 1 (routes + config) : endpoints privés fonctionnels, non-régression des routes publiques confirmée.
+- Sprint 2 (session + login) : connexion privée isolée, lockout, gestion mots de passe et CSRF validés.
+- Sprint 3 (dashboard + permissions) : affichage des modules autorisés seulement.
+- Sprint 4 (audit + sécurité HTTP) : événements sensibles et headers anti-indexation vérifiés.
+- Sprint 5 (pré-op) : documentation BO/BOU mise à jour + preuves d’exécution (curl / commandes test) archivées.
+
+### 13.4 Critères de passage sprint PVT-01
+
+1. `composer test -- --filter PrivatePortal` exécute sans erreur.
+2. `composer test -- --filter FrontController` conserve le comportement FO.
+3. Connexion privée : succès, refus silencieux, lockout et réinitialisation testés.
+4. Une tentative d’accès privé non autorisé génère un event d’audit.
+5. Aucune régression FO détectée sur `admin`, `blog`, `sitemap`, `rss`, et assets.
+
+### 13.5 Protocole d’exécution d’office
+
+Principe : poursuivre l’implémentation phase par phase, sans interruption systématique pour une validation minimale.
+
+1. Exécuter des tests automatisés quand l’objectif de la tâche inclut explicitement une fonction testable de sécurité, de routage, de session ou d’audit.
+2. Demander un test manuel quand le résultat dépend d’un parcours UX, d’un comportement navigateur, d’un flux email/token réel, ou d’une vérification infrastructure.
+3. Si une tâche est documentaire ou structurelle (cadrage, checklists, matrice, migration de plan), poursuivre la rédaction jusqu’à la fin de la phase en cours avant toute pause.
+4. En dehors de ces cas, continuer directement vers la phase suivante tant que les conditions de bascule sont remplies.
+5. À chaque passage de phase, ajouter une entrée de preuve dans la section du README de la phase.
+6. À la fin de chaque phase livrée, produire un commit dédié (message de phase) et pousser immédiatement la branche.
+
+Référence d’arrêt : arrêt « naturel » au passage officiel d’une phase quand les critères de passage sont remplis et documentés ici.
+
+### 13.6 Passe de phase en cours (cible)
+
+Ce document suit la séquence : `Phase 0 -> Phase 1 -> Phase 2`.
+
+Phase 1 est terminée.
+Phase 2 (identité famille et sessions séparées) est en cours.

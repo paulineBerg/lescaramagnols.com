@@ -629,10 +629,29 @@ final class FrontControllerHttpTest extends TestCase
 
     public function testLegacyImagePathRedirectsToCanonicalPublishedAsset(): void
     {
+        $publishedPath = ROOT_PATH . '/public/assets/images/structure/banniere.jpg';
+        $publishedPathCreated = false;
+
+        if (!is_file($publishedPath)) {
+            $publishedDir = dirname($publishedPath);
+            if (!is_dir($publishedDir)) {
+                mkdir($publishedDir, 0775, true);
+            }
+
+            if (file_put_contents($publishedPath, 'image') !== false) {
+                $publishedPathCreated = true;
+            }
+        }
+
         $response = $this->frontController()->handle($this->request('GET', '/images/structure/banniere.jpg'));
 
         $this->assertSame(301, $response->status);
         $this->assertSame('/assets/images/structure/banniere.jpg', $response->headers['Location'] ?? null);
+
+        if ($publishedPathCreated) {
+            @unlink($publishedPath);
+            $this->removeEmptyDirectoryChain($publishedPath);
+        }
     }
 
     public function testMissingLegacyImagePathFallsBackToPlaceholderAsset(): void
@@ -2057,5 +2076,19 @@ final class FrontControllerHttpTest extends TestCase
     {
         $path = $this->blogDir . '/' . $article['slug'] . '.' . $article['lang'] . '.json';
         file_put_contents($path, json_encode($article, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function removeEmptyDirectoryChain(string $path): void
+    {
+        $root = ROOT_PATH . '/public';
+        $directory = dirname($path);
+        while (is_dir($directory) && str_starts_with($directory, $root)) {
+            if (@rmdir($directory)) {
+                $directory = dirname($directory);
+                continue;
+            }
+
+            break;
+        }
     }
 }

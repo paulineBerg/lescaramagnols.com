@@ -70,41 +70,41 @@ Perimetre fonctionnel decide avec le super-admin :
 
 ### Checklist PVT01-T01 - Registre de configuration portail prive
 
-- [ ] Ajouter `PRIVATE_PORTAL_ENABLED` et `PRIVATE_PORTAL_BASE_PATH` dans `backend/config/config.php`.
-- [ ] Documenter les variables dans `backend/.env.example` avec valeurs par defaut non bloquantes.
+- [x] Ajouter `PRIVATE_PORTAL_ENABLED` et `PRIVATE_PORTAL_BASE_PATH` dans `backend/config/config.php`.
+- [x] Documenter les variables dans `backend/.env.example` avec valeurs par defaut non bloquantes.
 - [ ] Etendre `backend/core/tools/check_env.php` uniquement si de nouvelles contraintes deviennent critiques.
 - [ ] Verifier demarrage application avec et sans variables privees explicites.
 - [ ] Archiver la sortie `composer check-env` dans le dossier de preuve preprod courant.
 
 ### Checklist PVT01-T02 - Route resolver prive
 
-- [ ] Ajouter la resolution des routes privees dans `FrontController` sans regression des routes publiques.
-- [ ] Isoler le routage prive dans `backend/src/PrivatePortal/Http/*`.
+- [x] Ajouter la resolution des routes privees dans `FrontController` sans regression des routes publiques.
+- [x] Isoler le routage prive dans `backend/src/PrivatePortal/Http/*`.
 - [ ] Ajouter des tests routes privees et non-regression des routes publiques.
 - [ ] Valider `composer test -- --filter PrivatePortal` puis `--filter FrontController`.
 - [ ] Documenter les nouvelles routes dans `docs/backend/public-entrypoints.md` si exposition HTTP modifiee.
 
 ### Checklist PVT01-T03 - Guard authentification privee
 
-- [ ] Implementer un guard prive distinct du guard admin.
-- [ ] Configurer un cookie/session prive dedie (`name`, timeout inactivite, regeneration session id).
-- [ ] Implementer le verrouillage apres 3 echecs login pendant 24h.
+- [x] Implementer un guard prive distinct du guard admin.
+- [x] Configurer un cookie/session prive dedie (`name`, timeout inactivite, regeneration session id).
+- [x] Implementer le verrouillage apres 3 echecs login pendant 24h.
 - [ ] Integrer la MFA TOTP + codes de secours (non obligatoire globalement au demarrage).
-- [ ] Ajouter la redirection vers login prive en non-authentifie.
-- [ ] Verifier expiration de session privee sur inactivite.
+- [x] Ajouter la redirection vers login prive en non-authentifie.
+- [x] Verifier expiration de session privee sur inactivite.
 - [ ] Ajouter les tests `PrivatePortalSecurity` et archiver la sortie.
 
 ### Checklist PVT01-T04 - CSRF prive et protections POST
 
-- [ ] Appliquer CSRF sur tous les formulaires prives en POST/PUT/PATCH/DELETE.
-- [ ] Verifier rejet des requetes sans token et acceptation avec token valide.
+- [x] Appliquer CSRF sur tous les formulaires prives en POST/PUT/PATCH/DELETE.
+- [x] Verifier rejet des requetes sans token et acceptation avec token valide.
 - [ ] Ajouter les tests automatises cibles (`PrivatePortalCsrf`).
 - [ ] Verifier que la protection reste non bloquante pour le Front-Office public.
 - [ ] Mettre a jour la documentation securite si de nouvelles regles sont ajoutees.
 
 ### Checklist PVT01-T05 - Dashboard prive minimal
 
-- [ ] Creer `dashboard.php` et `layout.php` dedies dans `backend/templates/private/`.
+- [x] Creer `dashboard.php` et `layout.php` dedies dans `backend/templates/private/`.
 - [ ] Introduire un registre de modules prive (`backend/src/PrivatePortal/ModuleRegistry/*`).
 - [ ] Afficher uniquement les modules autorises par permissions.
 - [ ] Garantir que les utilisateurs prives ne peuvent pas modifier leurs droits/modules depuis le dashboard.
@@ -124,8 +124,8 @@ Perimetre fonctionnel decide avec le super-admin :
 
 ### Checklist PVT01-T07 - Headers anti-indexation portail prive
 
-- [ ] Ajouter `X-Robots-Tag: noindex, nofollow, noarchive` sur routes privees.
-- [ ] Ajouter `Disallow: /private/` dans `robots.txt` (ou route robots equivalente).
+- [x] Ajouter `X-Robots-Tag: noindex, nofollow, noarchive` sur routes privees.
+- [x] Ajouter `Disallow: /private/` dans `robots.txt` (ou route robots equivalente).
 - [ ] Verifier la presence du header sur une route privee representative.
 - [ ] Rejouer `check_security_headers.php` sur l'URL cible.
 - [ ] Documenter la verification dans `docs/security/README.md` et ce backlog.
@@ -575,7 +575,7 @@ npm run hygiene:docs
 - [ ] CSRF prive valide sur tous POST.
 - [ ] Logs audit prives visibles.
 - [ ] Retention audit 1 an + acces super-admin uniquement.
-- [ ] Anti-indexation privee active.
+- [x] Anti-indexation privee active.
 - [ ] Arborescence privee hors webroot en place.
 - [ ] UX mobile-first + installation Android (PWA) validees.
 - [ ] Tests quality gates verts.
