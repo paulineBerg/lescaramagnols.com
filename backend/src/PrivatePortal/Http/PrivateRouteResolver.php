@@ -53,9 +53,9 @@ final class PrivateRouteResolver
 
     public function basePath(): string
     {
-        $normalized = strtolower(trim((string) $this->configuredBasePath));
+        $normalized = trim((string) $this->configuredBasePath);
         $normalized = trim($normalized, '/');
-        $normalized = preg_replace('/[^a-z0-9_-]+/', '-', $normalized) ?: 'private';
+        $normalized = preg_replace('/[^A-Za-z0-9_-]+/', '-', $normalized) ?: 'private';
 
         return '/' . trim($normalized, '-_');
     }
