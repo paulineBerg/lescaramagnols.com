@@ -23,7 +23,7 @@ Terminal backend:
 
 ```bash
 cd backend/public
-php -S 127.0.0.1:8099
+php -S 127.0.0.1:8000
 ```
 
 Terminal frontend:

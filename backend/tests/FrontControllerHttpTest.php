@@ -165,6 +165,14 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertSame('/admin', $response->headers['Location'] ?? null);
     }
 
+    public function testProtectedPrivateMembersRouteRedirectsWhenUnauthenticated(): void
+    {
+        $response = $this->frontController()->handle($this->request('GET', '/admin/parametres/espace-prive'));
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin', $response->headers['Location'] ?? null);
+    }
+
     public function testLegacyAdminMenusAliasIsNoLongerExposed(): void
     {
         $response = $this->frontController()->handle($this->request('GET', '/legacy-admin/menus.php'));
@@ -230,6 +238,88 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('Builder des menus', $response->body);
         $this->assertStringContainsString('Aperçu simplifié · header desktop', $response->body);
         $this->assertStringContainsString('Les Caramagnols', $response->body);
+    }
+
+    public function testAuthenticatedPrivateMembersRouteIsAccessibleFromAdmin(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+
+        $response = $this->frontController()->handle($this->request('GET', '/admin/parametres/espace-prive'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Membres', $response->body);
+        $this->assertStringContainsString('Espace privé', $response->body);
+        $this->assertStringContainsString('Membres de l’espace privé', $response->body);
+        $this->assertStringContainsString('admin-main admin-main-wide', $response->body);
+        $this->assertStringContainsString('Connexion à l’espace privé', $response->body);
+        $this->assertStringContainsString('href="/private/login"', $response->body);
+    }
+
+    public function testAuthenticatedPrivateMembersPostRejectsInvalidCsrf(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+
+        $response = $this->frontController()->handle(
+            $this->request(
+                'POST',
+                '/admin/parametres/espace-prive',
+                [],
+                [
+                    'csrf_token' => 'invalid',
+                    'private_member_action' => 'invite',
+                    'email' => 'family@example.com',
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/parametres/espace-prive', $response->headers['Location'] ?? null);
+
+        $followUp = $this->frontController()->handle($this->request('GET', '/admin/parametres/espace-prive'));
+        $this->assertSame(200, $followUp->status);
+        $this->assertStringContainsString('Session expirée', $followUp->body);
+    }
+
+    public function testAuthenticatedPrivateMembersPostKeepsSafeReturnFragment(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+
+        $safeResponse = $this->frontController()->handle(
+            $this->request(
+                'POST',
+                '/admin/parametres/espace-prive',
+                [],
+                [
+                    'csrf_token' => 'invalid',
+                    'private_member_action' => 'modules',
+                    'private_user_id' => '42',
+                    'private_member_return_fragment' => 'private-member-42',
+                ]
+            )
+        );
+
+        $this->assertSame(302, $safeResponse->status);
+        $this->assertSame(
+            '/admin/parametres/espace-prive#private-member-42',
+            $safeResponse->headers['Location'] ?? null
+        );
+
+        $unsafeResponse = $this->frontController()->handle(
+            $this->request(
+                'POST',
+                '/admin/parametres/espace-prive',
+                [],
+                [
+                    'csrf_token' => 'invalid',
+                    'private_member_action' => 'modules',
+                    'private_user_id' => '42',
+                    'private_member_return_fragment' => 'https://example.test',
+                ]
+            )
+        );
+
+        $this->assertSame(302, $unsafeResponse->status);
+        $this->assertSame('/admin/parametres/espace-prive', $unsafeResponse->headers['Location'] ?? null);
     }
 
     public function testAuthenticatedMenusPostSwitchesLocationTabThroughFrontController(): void

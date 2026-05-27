@@ -92,6 +92,17 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $this->assertStringContainsString('csrf_token', $response->body);
     }
 
+    public function testPrivateLoginAliasAndDashboardAliasAreServed(): void
+    {
+        $loginAliasResponse = $this->frontController()->handle($this->request('GET', '/private/login/index.php'));
+        $dashboardAliasResponse = $this->frontController()->handle($this->request('GET', '/private/dashboard.php'));
+
+        $this->assertSame(200, $loginAliasResponse->status);
+        $this->assertStringContainsString('Se connecter', $loginAliasResponse->body);
+        $this->assertSame(301, $dashboardAliasResponse->status);
+        $this->assertSame('/private/dashboard', $dashboardAliasResponse->headers['Location'] ?? null);
+    }
+
     public function testPrivateRootRedirectsToLoginWhenNotAuthenticated(): void
     {
         $response = $this->frontController()->handle($this->request('GET', '/private'));
@@ -109,6 +120,14 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $securityLog = $this->privateSecurityLogContent();
         $this->assertNotSame('', $securityLog);
         $this->assertStringContainsString('private.access.denied', $securityLog);
+    }
+
+    public function testPrivateFileAccessIsProtectedWhenNotAuthenticated(): void
+    {
+        $response = $this->frontController()->handle($this->request('GET', '/private/files/document-1'));
+
+        $this->assertSame(403, $response->status);
+        $this->assertSame('Forbidden', $response->body);
     }
 
     public function testPrivateLoginIsEffectiveAndGrantsDashboardAccess(): void
@@ -136,6 +155,37 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $dashboard = $this->frontController()->handle($this->request('GET', '/private/dashboard'));
         $this->assertSame(200, $dashboard->status);
         $this->assertStringContainsString('Tableau de bord', $dashboard->body);
+    }
+
+    public function testPrivateRobotsTxtDisallowPrivatePathWhenPrivateEnabled(): void
+    {
+        $response = $this->frontController()->handle($this->request('GET', '/robots.txt'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame('text/plain; charset=UTF-8', $response->headers['Content-Type'] ?? null);
+        $this->assertStringContainsString('Disallow: /private', $response->body);
+    }
+
+    public function testPrivateFileAccessRequiresDocumentModulePermission(): void
+    {
+        $csrfToken = csrf_token('private');
+        $this->frontController()->handle(
+            $this->request(
+                'POST',
+                '/private/login',
+                [],
+                [
+                    'identifier' => 'family@example.com',
+                    'password' => 'secret123',
+                    'csrf_token' => $csrfToken,
+                ]
+            )
+        );
+
+        $response = $this->frontController()->handle($this->request('GET', '/private/files/document-1'));
+
+        $this->assertSame(403, $response->status);
+        $this->assertSame('Forbidden', $response->body);
     }
 
     public function testPrivateDashboardStillDeniedAfterInvalidCsrfOnLogin(): void

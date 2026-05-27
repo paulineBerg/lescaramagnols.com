@@ -12,8 +12,13 @@ use Caramagnols\Blog\BlogSaveService;
 use Caramagnols\Feed\RssFeedService;
 use Caramagnols\Feed\SitemapService;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Http\PrivatePortalController;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
+use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
+use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
 use Caramagnols\PrivatePortal\Security\PrivateSession;
 use Caramagnols\Seo\SeoUrlNormalizer;
@@ -44,15 +49,25 @@ final class FrontController
             if ($privatePortalController !== null) {
                 $this->privatePortalController = $privatePortalController;
             } else {
+                $privateUserRepository = new PrivateUserRepository(editorial_database());
+                $privateModulePermissionRepository = new PrivateModulePermissionRepository(
+                    editorial_database(),
+                    new PrivateModuleRegistry()
+                );
                 $this->privatePortalController = new PrivatePortalController(
                     new PrivateAuth(
                         new PrivateSession(
                             (string) app_config('private.session_name', 'caramagnols_private')
                         ),
-                        $this->eventLogger
+                        $this->eventLogger,
+                        $privateUserRepository
                     ),
                     null,
-                    $this->eventLogger
+                    $this->eventLogger,
+                    $privateUserRepository,
+                    $privateModulePermissionRepository,
+                    new PrivateDocumentRepository(editorial_database()),
+                    PrivateDocumentStorage::fromAppConfig($this->eventLogger)
                 );
             }
         } elseif ($privatePortalController !== null) {

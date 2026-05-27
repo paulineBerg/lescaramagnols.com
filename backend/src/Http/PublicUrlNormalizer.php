@@ -237,7 +237,6 @@ final class PublicUrlNormalizer
         }
 
         return $resolvedPlaceholder = self::IMAGE_PLACEHOLDER_PATH;
-
     }
 
     private static function normalizeLocalRoute(string $route, ?string $baseRoute = null): ?string

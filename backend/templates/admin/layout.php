@@ -28,6 +28,12 @@ $adminMenu = [
     ['id' => 'tiles', 'label' => $translate('TXT_ADMIN_NAV_TILES', 'Tuiles'), 'href' => $adminTilesUrl ?? admin_url('tiles'), 'icon' => '🧩'],
     ['id' => 'menus', 'label' => $translate('TXT_ADMIN_NAV_MENUS', 'Menus du site'), 'href' => $adminMenusUrl ?? admin_url('menus'), 'icon' => '🧭'],
     ['id' => 'logs', 'label' => $translate('TXT_ADMIN_NAV_LOGS', 'Logs'), 'href' => $adminLogsUrl ?? admin_url('logs'), 'icon' => '🧾'],
+    [
+        'id' => 'private_members',
+        'label' => $translate('TXT_ADMIN_NAV_PRIVATE_MEMBERS', 'Espace privé'),
+        'href' => is_string($adminPrivateMembersUrl ?? null) ? $adminPrivateMembersUrl : '#',
+        'icon' => '🔒',
+    ],
     ['id' => 'settings', 'label' => $translate('TXT_ADMIN_NAV_SETTINGS', 'Paramètres'), 'href' => $adminSettingsUrl ?? admin_url('settings'), 'icon' => '⚙️'],
 ];
 ?>
@@ -210,6 +216,10 @@ $adminMenu = [
       main.admin-main {
         padding: clamp(1.5rem, 4vw, 3rem);
         flex: 1;
+      }
+
+      main.admin-main-wide {
+        padding: clamp(0.8rem, 1.4vw, 1.35rem);
       }
 
       .cards-grid {
@@ -1417,6 +1427,192 @@ $adminMenu = [
         letter-spacing: 0.04em;
         text-transform: uppercase;
         color: var(--admin-muted);
+      }
+
+      .admin-private-members-card {
+        padding: 1.25rem;
+      }
+
+      .admin-private-members-intro-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .admin-private-members-intro-header h2 {
+        margin-top: 0.65rem;
+      }
+
+      .admin-private-members-login-link {
+        flex: 0 0 auto;
+        min-height: 2.35rem;
+        padding: 0.56rem 0.8rem;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+      }
+
+      .admin-main-wide .admin-private-members-card {
+        width: 100%;
+      }
+
+      .admin-private-members-count {
+        margin: 0 0 1rem;
+        color: var(--admin-muted);
+      }
+
+      .admin-private-members-table-shell {
+        width: 100%;
+        overflow-x: visible;
+      }
+
+      .admin-private-members-table {
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
+        font-size: 0.9rem;
+      }
+
+      .admin-private-members-table th,
+      .admin-private-members-table td {
+        padding: 0.55rem 0.65rem;
+        vertical-align: middle;
+      }
+
+      .admin-private-members-table th:nth-child(1) {
+        width: 19%;
+      }
+
+      .admin-private-members-table th:nth-child(2) {
+        width: 7%;
+      }
+
+      .admin-private-members-table th:nth-child(3) {
+        width: 33%;
+      }
+
+      .admin-private-members-table th:nth-child(4) {
+        width: 11%;
+      }
+
+      .admin-private-members-table th:nth-child(5) {
+        width: 12%;
+      }
+
+      .admin-private-members-table th:nth-child(6) {
+        width: 18%;
+      }
+
+      .admin-private-members-email {
+        word-break: break-word;
+        line-height: 1.35;
+      }
+
+      .admin-private-members-table tr[id] {
+        scroll-margin-top: 1rem;
+      }
+
+      .admin-private-members-status,
+      .admin-private-members-module-state {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.45rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        background: rgba(19, 41, 75, 0.07);
+        color: var(--admin-primary-dark);
+        font-size: 0.78rem;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .admin-private-members-status-active {
+        background: rgba(13, 108, 48, 0.12);
+        color: var(--admin-success);
+      }
+
+      .admin-private-members-status-suspended,
+      .admin-private-members-status-disabled,
+      .admin-private-members-module-state.is-inactive {
+        background: rgba(161, 26, 42, 0.1);
+        color: var(--admin-danger);
+      }
+
+      .admin-private-members-modules-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.45rem 0.6rem;
+        margin: 0;
+      }
+
+      .admin-private-members-module-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        min-width: 0;
+      }
+
+      .admin-private-members-module-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        min-height: 1.9rem;
+        padding: 0.25rem 0.45rem;
+        border: 1px solid rgba(39, 75, 109, 0.16);
+        border-radius: 8px;
+        background: rgba(19, 41, 75, 0.03);
+        color: var(--admin-text);
+        font-size: 0.82rem;
+        line-height: 1.15;
+      }
+
+      .admin-private-members-module-option input[type="checkbox"] {
+        width: 0.95rem;
+        height: 0.95rem;
+        margin: 0;
+      }
+
+      .admin-private-members-module-label {
+        max-width: 10rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .admin-private-members-module-state {
+        min-height: 1.2rem;
+        padding: 0.15rem 0.4rem;
+        font-size: 0.68rem;
+      }
+
+      .admin-private-members-date {
+        color: var(--admin-muted);
+        font-size: 0.86rem;
+        line-height: 1.35;
+      }
+
+      .admin-private-members-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        align-items: center;
+      }
+
+      .admin-private-members-actions form {
+        margin: 0;
+      }
+
+      .admin-private-members-actions button,
+      .admin-private-members-modules-form button {
+        min-height: 2rem;
+        padding: 0.42rem 0.62rem;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        line-height: 1.1;
+        white-space: nowrap;
       }
 
       .media-manager-breadcrumbs-card {
@@ -2806,7 +3002,7 @@ $adminMenu = [
           </a>
         </header>
 
-        <main class="admin-main">
+        <main class="admin-main <?php echo ($activeMenu ?? '') === 'private_members' ? 'admin-main-wide' : ''; ?>">
           <?php require ROOT_PATH . '/templates/admin/' . $contentTemplate; ?>
         </main>
       </div>

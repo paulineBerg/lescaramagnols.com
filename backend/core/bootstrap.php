@@ -42,6 +42,7 @@ load_env(ROOT_PATH . '/.env');
 // 2b. Helpers de validation
 require_once ROOT_PATH . '/core/validation.php';
 require_once ROOT_PATH . '/core/security.php';
+require_once ROOT_PATH . '/core/rate_limiter.php';
 enforce_https_redirect_if_needed();
 
 // 3. Chargement de la configuration globale

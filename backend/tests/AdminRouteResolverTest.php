@@ -22,6 +22,7 @@ final class AdminRouteResolverTest extends TestCase
         $this->assertSame('/admin-moderne/media', $resolver->canonicalPath('media'));
         $this->assertSame('/admin-moderne/logs', $resolver->canonicalPath('logs'));
         $this->assertSame('/admin-moderne/settings', $resolver->canonicalPath('settings'));
+        $this->assertSame('/admin-moderne/parametres/espace-prive', $resolver->canonicalPath('private_members'));
         $this->assertSame('/admin-moderne/logout', $resolver->canonicalPath('logout'));
         $this->assertSame('/admin-moderne/session/ping', $resolver->sessionPingPath());
         $this->assertSame('/admin-moderne/pages/new', $resolver->pageCreatePath());
@@ -56,6 +57,7 @@ final class AdminRouteResolverTest extends TestCase
         $this->assertContains('/admin/tiles', $paths);
         $this->assertContains('/admin/tiles/new', $paths);
         $this->assertContains('/admin/tiles/{id:[0-9]+}', $paths);
+        $this->assertContains('/admin/parametres/espace-prive', $paths);
         $this->assertNotContains('/legacy-admin/discussions.php', $paths);
         $this->assertContains('/admin/logs', $paths);
         $this->assertNotContains('/legacy-admin/menus.php', $paths);
@@ -82,6 +84,24 @@ final class AdminRouteResolverTest extends TestCase
 
         $this->assertIsArray($tilesRoute);
         $this->assertSame(['GET', 'POST'], $tilesRoute['methods'] ?? null);
+    }
+
+    public function testPrivateMembersRouteAcceptsPostForMemberActions(): void
+    {
+        $resolver = new AdminRouteResolver('admin');
+        $privateMembersRoute = null;
+
+        foreach ($resolver->routeDefinitions() as $route) {
+            if (($route['path'] ?? null) !== '/admin/parametres/espace-prive') {
+                continue;
+            }
+
+            $privateMembersRoute = $route;
+            break;
+        }
+
+        $this->assertIsArray($privateMembersRoute);
+        $this->assertSame(['GET', 'POST'], $privateMembersRoute['methods'] ?? null);
     }
 
     public function testLegacySegmentConfiguredAsLoginPathIsOnlyUsedAsCanonicalPath(): void

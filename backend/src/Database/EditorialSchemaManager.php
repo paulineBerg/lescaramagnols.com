@@ -73,7 +73,7 @@ final class EditorialSchemaManager
             throw new RuntimeException(sprintf('Impossible de lire la migration SQL : %s', $filePath));
         }
 
-        $statements = $this->splitStatements($this->replaceTableTokens($sql));
+        $statements = $this->splitStatements($this->replaceConstraintNames($this->replaceTableTokens($sql)));
         if ($statements === []) {
             return;
         }
@@ -135,6 +135,30 @@ final class EditorialSchemaManager
             fn (array $matches): string => sprintf('`%s`', $this->table((string) $matches[1])),
             $sql
         );
+    }
+
+    private function replaceConstraintNames(string $sql): string
+    {
+        return (string) preg_replace_callback(
+            '/CONSTRAINT\s+`([^`]+)`/i',
+            fn (array $matches): string => sprintf(
+                'CONSTRAINT `%s`',
+                $this->prefixedIdentifier((string) $matches[1])
+            ),
+            $sql
+        );
+    }
+
+    private function prefixedIdentifier(string $identifier): string
+    {
+        $prefix = (string) preg_replace('/[^a-zA-Z0-9_]/', '_', $this->tablePrefix);
+        $prefixed = $prefix === '' ? $identifier : $prefix . $identifier;
+
+        if (strlen($prefixed) <= 64) {
+            return $prefixed;
+        }
+
+        return substr($prefixed, 0, 55) . '_' . substr(sha1($prefixed), 0, 8);
     }
 
     /**

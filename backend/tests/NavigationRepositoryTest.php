@@ -219,7 +219,7 @@ final class NavigationRepositoryTest extends TestCase
             ],
         ]));
 
-        file_put_contents($this->snapshotDir, 'snapshot-disabled');
+        @file_put_contents($this->snapshotDir, 'snapshot-disabled');
 
         $this->assertTrue($repository->saveCanonical([
             'meta' => ['version' => 2],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\PrivatePortal\Security;
 
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 
 final class PrivateAuth
 {
@@ -19,22 +20,19 @@ final class PrivateAuth
     private readonly int $accountLockoutAttempts;
     private readonly int $accountLockoutSeconds;
     private readonly int $reauthTimeoutSeconds;
-    private readonly bool $trustProxyHeaders;
     private ?string $failureReason = null;
-
-    private readonly string $sessionName;
 
     public function __construct(
         private readonly PrivateSession $session,
-        private readonly ?AppEventLogger $eventLogger = null
+        private readonly ?AppEventLogger $eventLogger = null,
+        private readonly ?PrivateUserRepository $userRepository = null,
+        private readonly PrivateMfaVerifier $mfaVerifier = new PrivateMfaVerifier()
     ) {
-        $this->sessionName = $this->session->name();
         $this->inactivityTimeoutSeconds = max(300, (int) app_config('private.inactivity_timeout_seconds', 3600));
         $this->loginRateLimitAttempts = max(1, (int) app_config('private.login_rate_limit_attempts', 5));
         $this->loginRateLimitWindow = max(60, (int) app_config('private.login_rate_limit_window', 900));
         $this->accountLockoutAttempts = max(1, (int) app_config('private.account_lockout_attempts', 3));
         $this->accountLockoutSeconds = max(60, (int) app_config('private.account_lockout_seconds', 86400));
-        $this->trustProxyHeaders = (bool) app_config('private.trust_proxy_headers', false);
         $this->reauthTimeoutSeconds = max(300, min(86400, (int) app_config('private.reauth_timeout_seconds', 1800)));
     }
 
@@ -55,7 +53,7 @@ final class PrivateAuth
         }
 
         $identifier = trim((string) $context[self::SESSION_IDENTIFIER_KEY]);
-        if ($identifier === '' || $identifier !== $this->configuredIdentifier()) {
+        if ($identifier === '' || !$this->isKnownActiveIdentifier($identifier)) {
             $this->logout('identifier_mismatch');
             return false;
         }
@@ -160,7 +158,7 @@ final class PrivateAuth
         return true;
     }
 
-    public function login(string $identifier, string $password, ?string $clientIp = null): bool
+    public function login(string $identifier, string $password, ?string $clientIp = null, ?string $mfaCode = null): bool
     {
         if (strtolower($this->authMode()) !== 'local') {
             $this->failureReason = 'auth_mode_unsupported';
@@ -180,6 +178,16 @@ final class PrivateAuth
             return false;
         }
 
+        $repositoryUser = $this->repositoryUser($identifier);
+        if (is_array($repositoryUser)) {
+            return $this->loginRepositoryUser($repositoryUser, $identifier, $password, $clientIp, $mfaCode);
+        }
+
+        return $this->loginConfiguredUser($identifier, $password, $clientIp);
+    }
+
+    private function loginConfiguredUser(string $identifier, string $password, ?string $clientIp): bool
+    {
         $expectedIdentifier = $this->configuredIdentifier();
         $expectedHash = (string) app_config('private.local_user_password_hash', '');
 
@@ -251,6 +259,93 @@ final class PrivateAuth
         return true;
     }
 
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function loginRepositoryUser(
+        array $user,
+        string $identifier,
+        string $password,
+        ?string $clientIp,
+        ?string $mfaCode
+    ): bool {
+        $status = strtolower(trim((string) ($user['status'] ?? '')));
+        $expectedHash = is_string($user['password_hash'] ?? null) ? (string) $user['password_hash'] : '';
+        if ($status !== 'active' || $password === '' || $expectedHash === '' || !$this->isSupportedPasswordHash($expectedHash)) {
+            $this->recordFailedAttempt($identifier, (string) $clientIp);
+            $this->failureReason = 'invalid_credentials';
+            $this->logRejectedLogin($identifier, $clientIp);
+
+            return false;
+        }
+
+        if (!password_verify($password, $expectedHash)) {
+            $this->recordFailedAttempt($identifier, (string) $clientIp);
+            $this->failureReason = 'invalid_credentials';
+            $this->logRejectedLogin($identifier, $clientIp);
+
+            return false;
+        }
+
+        if ($this->mfaVerifier->requiresMfa($user)) {
+            if (!is_string($mfaCode) || trim($mfaCode) === '') {
+                $this->failureReason = 'mfa_required';
+                $this->logRejectedLogin($identifier, $clientIp, 'warning');
+
+                return false;
+            }
+
+            if (!$this->userRepository instanceof PrivateUserRepository || !$this->mfaVerifier->verify($user, $mfaCode, $this->userRepository)) {
+                $this->recordFailedAttempt($identifier, (string) $clientIp);
+                $this->failureReason = 'mfa_invalid';
+                $this->logRejectedLogin($identifier, $clientIp, 'warning');
+
+                return false;
+            }
+        }
+
+        $this->establishSession($identifier, $clientIp);
+
+        $userId = is_numeric($user['id'] ?? null) ? (int) $user['id'] : 0;
+        if ($userId > 0 && $this->userRepository instanceof PrivateUserRepository) {
+            $this->userRepository->recordLogin($userId, (string) $clientIp);
+        }
+
+        return true;
+    }
+
+    private function establishSession(string $identifier, ?string $clientIp): void
+    {
+        if (function_exists('session_regenerate_id')) {
+            session_regenerate_id(true);
+        }
+
+        $now = time();
+        $this->session->setAll([
+            self::SESSION_IDENTIFIER_KEY => $identifier,
+            self::SESSION_LOGIN_AT_KEY => $now,
+            self::SESSION_LAST_ACTIVITY_AT_KEY => $now,
+            self::SESSION_LAST_REAUTH_AT_KEY => $now,
+        ]);
+
+        $this->clearFailedAttempts($identifier, (string) $clientIp);
+        $this->failureReason = null;
+
+        $this->log('private.login.success', [
+            'identifier' => $this->maskIdentifier($identifier),
+            'ip' => $clientIp ?? '',
+        ]);
+    }
+
+    private function logRejectedLogin(string $identifier, ?string $clientIp, string $level = 'warning'): void
+    {
+        $this->log('private.login.rejected', [
+            'identifier' => $this->maskIdentifier($identifier),
+            'reason' => $this->failureReason,
+            'ip' => $clientIp ?? '',
+        ], $level);
+    }
+
     public function logout(?string $reason = null): void
     {
         $reason = is_string($reason) ? trim($reason) : null;
@@ -273,11 +368,6 @@ final class PrivateAuth
         $accountLimiter = $this->accountLimiter($normalized);
 
         return max($ipLimiter->retryAfter(), $accountLimiter->retryAfter());
-    }
-
-    private function canUseAccount(string $identifier): bool
-    {
-        return $this->accountLimiter($identifier)->allow();
     }
 
     private function isSupportedPasswordHash(string $hash): bool
@@ -313,6 +403,31 @@ final class PrivateAuth
         $normalizedIp = $clientIp === '' ? 'unknown' : $clientIp;
 
         return new \FileRateLimiter('private_login_ip_' . hash('sha256', $normalizedIp . '|' . $identifier), $this->loginRateLimitAttempts, $this->loginRateLimitWindow);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function repositoryUser(string $identifier): ?array
+    {
+        if (!$this->userRepository instanceof PrivateUserRepository) {
+            return null;
+        }
+
+        return $this->userRepository->findByEmail($identifier);
+    }
+
+    private function isKnownActiveIdentifier(string $identifier): bool
+    {
+        $identifier = $this->normalizeIdentifier($identifier);
+        $user = $this->repositoryUser($identifier);
+        if (is_array($user) && strtolower((string) ($user['status'] ?? '')) === 'active') {
+            return true;
+        }
+
+        $configuredIdentifier = $this->configuredIdentifier();
+
+        return $configuredIdentifier !== '' && hash_equals($configuredIdentifier, $identifier);
     }
 
     private function configuredIdentifier(): string

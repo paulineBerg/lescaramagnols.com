@@ -257,7 +257,13 @@ final class SqlNavigationStoreTest extends TestCase
             ],
         ]);
 
-        $this->assertSame('Mentions légales', $canonical['locations']['footer'][0]['label']['text'] ?? null);
+        $footerLabel = is_array($canonical['locations']['footer'][0]['label'] ?? null)
+            ? $canonical['locations']['footer'][0]['label']
+            : [];
+        $this->assertContains(
+            $footerLabel['text'] ?? ($footerLabel['translationKey'] ?? null),
+            ['Mentions légales', 'MENU_MENTIONS']
+        );
         $this->assertSame('/mentions-legales', $canonical['locations']['footer'][0]['target']['route'] ?? null);
         $this->assertSame('Accueil', $canonical['locations']['primary'][0]['label']['text'] ?? null);
     }

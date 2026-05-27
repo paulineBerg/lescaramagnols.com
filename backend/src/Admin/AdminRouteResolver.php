@@ -32,6 +32,7 @@ final class AdminRouteResolver
             'menus' => $basePath . '/menus',
             'logs' => $basePath . '/logs',
             'settings' => $basePath . '/settings',
+            'private_members' => $basePath . '/parametres/espace-prive',
             'logout' => $basePath . '/logout',
             'session_ping' => $basePath . '/session/ping',
             default => $basePath,
@@ -100,6 +101,7 @@ final class AdminRouteResolver
         $menusPath = $this->canonicalPath('menus');
         $logsPath = $this->canonicalPath('logs');
         $settingsPath = $this->canonicalPath('settings');
+        $privateMembersPath = $this->canonicalPath('private_members');
         $logoutPath = $this->canonicalPath('logout');
         $blogSavePath = $this->blogSavePath();
         $sessionPingPath = $this->sessionPingPath();
@@ -229,6 +231,11 @@ final class AdminRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $settingsPath . '.php',
                 'handler' => ['type' => 'admin', 'page' => 'settings'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $privateMembersPath,
+                'handler' => ['type' => 'admin', 'page' => 'private_members'],
             ],
             [
                 'methods' => ['GET'],

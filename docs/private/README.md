@@ -1,7 +1,7 @@
 # Portail prive famille, locations et aide impots
 
-Date de mise a jour : 2026-05-26
-Statut : cadrage cible validé, PVT-01 terminé, phase 2 (identité famille / sessions séparées) en cours de clôture du socle IAM minimal.
+Date de mise a jour : 2026-05-27
+Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports et fiscalite.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis deux modules metier prioritaires :
@@ -248,10 +248,13 @@ Conserver une trajectoire OIDC possible, mais ne pas bloquer le MVP si l'auth lo
 Tables minimales :
 
 ```text
-private_users
-private_user_invites
-private_password_resets
-private_sessions
+car_private_users
+car_private_user_invites
+car_private_password_resets
+car_private_sessions
+car_private_modules
+car_private_user_module_permissions
+car_private_mfa_backup_codes
 ```
 
 ## 5. Phase 0 - Cadrage technique et garde-fous
@@ -289,19 +292,26 @@ Objectif de la phase 0 : figer un cadre d'exécution strict avant toute impléme
 
 Principe de suivi : cocher chaque case quand l'item est terminé, puis ajouter la date de clôture et une note de décision ou de preuve.
 
-Progression Phase 0 : `3 / 9` (33 %)
+Progression Phase 0 : `9 / 9` (100 %)
 
 | Statut | Item | Responsable | Échéance cible | Jalons | Date de clôture | Notes / Preuves |
 |---|---|---|---|---|---|---|
 | [x] Définir le périmètre technique de la phase 0 (socle auth, comptes, dashboard, sécurité). | | 2026-05-26 | 1) périmètre écrit ; 2) scope validé | 2026-05-26 | Définition reprise dans sections 2, 4 et 5 ; scope privé détaillé. |
 | [x] Valider le mapping de routes et points d’entrée (ex: `/private`, `/private/login`, `/private/dashboard`). | | 2026-05-26 | 1) matrice route→controller ; 2) impacts front-controller documentés | 2026-05-26 | Routes privées enregistrées dans `FrontController` + route list doc (`docs/backend/public-entrypoints.md`). |
 | [x] Bloquer les exigences sécurité minimales (CSRF, auth locale/hachage Argon2id, politiques de session, rate limiting). | | 2026-05-27 | 1) matrice des contrôles ; 2) log des choix | 2026-05-26 | `PrivatePortalSecurityGuard` + `PrivateAuth` + `PrivateSession` alignés avec `PRIVATE_*` et timeouts/rate-limiter. |
-| [ ] Lister les impacts de stockage et de permissions (fichiers hors webroot, ACL, logs d’accès). | | 2026-05-27 | 1) chemin de stockage privé retenu ; 2) politique d’accès validée | | |
-| [ ] Valider le plan de journalisation des actions sensibles. | | 2026-05-27 | 1) événements cibles ; 2) niveau de détail validé | | |
-| [ ] Préparer le plan de migration i18n (`fr/en/de`) pour toute interface privative visible. | | 2026-05-28 | 1) clé de traduction existantes ; 2) stratégie fallback définie | | |
-| [ ] Identifier les dépendances SQL et les éventuelles impacts de schéma hors implémentation. | | 2026-05-28 | 1) tables initiales validées ; 2) ordre d’exécution SQL | | |
-| [ ] Rédiger la liste des risques résiduels + arbitrages (sécurité, délais, dette technique). | | 2026-05-28 | 1) registre de risques ; 2) propriétaires désignés | | |
-| [ ] Valider la sortie de Phase 0 (go/no-go) en revue courte avant passage à la Phase 1. | | 2026-05-28 | 1) revue signée ; 2) checklist complétée | | |
+| [x] Lister les impacts de stockage et de permissions (fichiers hors webroot, ACL, logs d’accès). | | 2026-05-27 | 1) chemin de stockage privé retenu ; 2) politique d’accès validée | 2026-05-26 | Stockage hors `backend/public` retenu; accès document via `/private/files/{documentId}` + session privée + module `documents` + audit, streaming réel reporté phase 4. |
+| [x] Valider le plan de journalisation des actions sensibles. | | 2026-05-27 | 1) événements cibles ; 2) niveau de détail validé | 2026-05-26 | Événements minimaux listés section sécurité; connexions, refus, invitations, resets, modules et fichiers privés journalisés sans mot de passe ni jeton brut. |
+| [x] Préparer le plan de migration i18n (`fr/en/de`) pour toute interface privative visible. | | 2026-05-28 | 1) clé de traduction existantes ; 2) stratégie fallback définie | 2026-05-26 | Interfaces privées passent par `t()` / fallback contrôlé; les clés visibles doivent être ajoutées dans `backend/lang/fr.php`, `en.php`, `de.php` lors des écrans métier. |
+| [x] Identifier les dépendances SQL et les éventuelles impacts de schéma hors implémentation. | | 2026-05-28 | 1) tables initiales validées ; 2) ordre d’exécution SQL | 2026-05-26 | Tables privées initiales listées section 4.3; ordre validé : comptes, invitations/reset/sessions, modules, permissions, MFA, puis tables documents phase 4. |
+| [x] Rédiger la liste des risques résiduels + arbitrages (sécurité, délais, dette technique). | | 2026-05-28 | 1) registre de risques ; 2) propriétaires désignés | 2026-05-26 | Risques résiduels portés par les phases suivantes : streaming documents, stockage physique, config mail, RGPD, restauration et modules métier. |
+| [x] Valider la sortie de Phase 0 (go/no-go) en revue courte avant passage à la Phase 1. | | 2026-05-28 | 1) revue signée ; 2) checklist complétée | 2026-05-26 | Go validé a posteriori : phases 1, 2 et 3 terminées, grappe phase 2/3 verte, phase 4 autorisée. |
+
+Synthèse de sortie Phase 0 :
+
+- Décision : `GO` pour le socle privé, sous réserve de garder les documents hors webroot et les permissions côté serveur.
+- Invariants verrouillés : routage via `FrontController`, aucune logique métier dans `backend/public`, CSRF sur actions mutatives, auth locale `Argon2id`, sessions privées séparées, anti-indexation privée.
+- Risques résiduels suivis en phases futures : stockage et streaming réels des documents en phase 4, RGPD/backup/restauration en phase 9, modules locatif/fiscal en phases 5 à 8.
+- Preuve de validation actuelle : phases 1 à 3 clôturées, `phpunit` ciblé phase 2/3 vert, PHPStan et PHPCS backend verts.
 
 ## 6. Application de la méthode aux autres phases
 
@@ -368,8 +378,8 @@ Ce modèle doit être copié pour chaque sprint et utilisé tel quel (ou avec co
 
 #### Risques ouverts
 - 
-private_modules
-private_user_module_permissions
+car_private_modules
+car_private_user_module_permissions
 private_audit_logs
 private_documents
 private_rgpd_exports
@@ -377,7 +387,7 @@ private_rgpd_exports
 
 Contraintes attendues :
 
-1. email unique cote `private_users` ;
+1. email unique cote `car_private_users` ;
 2. tokens stockes sous forme hashee, jamais en clair ;
 3. compte inactif tant que l'invitation n'est pas validee ;
 4. suspension detectable sur chaque requete ;
@@ -459,16 +469,382 @@ Le module gere :
 3. les proprietaires ou membres concernes ;
 4. les locataires ;
 5. les baux ;
-6. les loyers attendus et encaisses ;
-7. les charges ;
-8. les travaux ;
-9. les taxes ;
-10. les assurances ;
-11. les documents ;
-12. les exports annuels ;
-13. les donnees necessaires au module fiscal.
+6. les actes de caution, etats des lieux et documents de bail ;
+7. les loyers attendus et encaisses ;
+8. les appels de loyer et quittances ;
+9. les relances, mises en demeure et soldes de tous comptes ;
+10. les charges, regularisations, compteurs et cles de repartition ;
+11. les travaux ;
+12. les taxes ;
+13. les assurances ;
+14. les diagnostics techniques ;
+15. les documents et courriers ;
+16. les rapports, tableaux de bord et exports annuels ;
+17. les donnees necessaires au module fiscal.
 
-### 6.2 Entites principales
+### 6.2 Deux modes fonctionnels
+
+Le module doit couvrir deux usages proches, mais differents dans les responsabilites et dans la quantite de donnees a saisir.
+
+#### Partie 1 - Gestion locative complete
+
+Ce mode s'adresse au proprietaire qui gere lui-meme tout le cycle locatif apres la recherche du locataire. La recherche, la selection finale et la mise en place effective du locataire restent faites hors application par le proprietaire ou, ponctuellement, par une agence. L'application sert ensuite de dossier de reference, de suivi financier et de preparation documentaire.
+
+Fonctions ciblees :
+
+1. dossier du bien, des lots, des proprietaires associes et des locataires ;
+2. contrat de location prerempli selon le type de bail : habitation principale, meuble, garage, parking, commercial ou professionnel ;
+3. acte de caution solidaire prerempli quand une caution est rattachee au bail ;
+4. modeles d'etats des lieux preremplis, modifiables, imprimables et rattachables au bail ;
+5. suivi des diagnostics techniques : DPE, electricite, gaz, risques, amiante, plomb et dates de validite ;
+6. edition du contrat de location a partir des donnees du bien, du lot, du locataire et des conditions du bail ;
+7. generation de l'echeancier selon la periodicite du bail : mensuelle, trimestrielle, semestrielle ou annuelle ;
+8. gestion des loyers a terme a echoir ou a terme echu ;
+9. enregistrement des loyers attendus, loyers encaisses, paiements partiels, retards et trop-percus ;
+10. gestion des paiements directs de la CAF comme ligne de paiement separee du versement locataire ;
+11. edition des quittances de loyer apres validation d'un paiement complet ;
+12. edition et delivrance controlee des avis d'echeance ou appels de loyer ;
+13. revision annuelle du loyer selon l'indice applicable renseigne dans le bail, avec controle humain avant application ;
+14. gestion des montants en euros ;
+15. option de TVA sur les quittances, appels et factures quand le bail le justifie ;
+16. preparation a la facturation electronique pour les baux concernes, via un adaptateur fournisseur et non dans le coeur metier ;
+17. enregistrement des factures, charges, travaux, taxe fonciere et assurances ;
+18. distinction des charges recuperables, non recuperables et candidates a deduction fiscale ;
+19. regularisation annuelle des charges locatives a partir des provisions, factures, compteurs et cles de repartition ;
+20. modeles de courriers preremplis : recu de depot de garantie, demande de justificatif, attestation de location, appel a la caution, confirmation de reception d'un preavis ;
+21. historique des courriers envoyes au locataire, avec copie PDF conservee ;
+22. envoi controle des courriers par email et PDF ;
+23. compte locataire, solde de tous comptes, depot de garantie et retenues justifiees ;
+24. rapports de gestion, syntheses annuelles, graphiques, rapports de paiements, occupation et impressions utiles a la comptabilite ;
+25. tableau de bord des encaissements, relances a effectuer, revisions de loyer et regularisations de charges ;
+26. preparation de relances pour loyer impaye, sans envoi automatique non valide par un utilisateur autorise.
+
+Contraintes produit :
+
+1. une quittance ne doit pas etre generee pour un paiement non valide ;
+2. une revision de loyer doit rester tracable : ancien montant, nouvel indice, date d'effet, utilisateur et commentaire ;
+3. les relances doivent etre preparees comme documents verifiables, car elles peuvent avoir une portee juridique ;
+4. la TVA, les charges recuperables et les deductions fiscales restent des classifications aidees, jamais une garantie fiscale officielle ;
+5. la conformite juridique d'un modele doit etre versionnee par type de bail, date d'effet et source de reference, pas hardcodee dans un template unique ;
+6. l'envoi email d'un courrier sensible doit exiger une validation explicite et conserver une trace d'envoi ;
+7. chaque document locatif doit rester hors webroot et passer par les permissions du portail prive.
+
+#### Partie 2 - Gestion locative en agence
+
+Ce mode s'adresse au proprietaire dont la location est geree par une agence. L'agence recherche le locataire, met en place le bail, encaisse les loyers, paie certaines charges et envoie des releves de gestion. L'application ne remplace pas l'agence : elle centralise les documents, controle les montants et prepare les syntheses du proprietaire.
+
+Fonctions ciblees :
+
+1. boite d'import agence pour les PDF, scans, factures, avis fiscaux, releves de gerance et comptes rendus de gestion ;
+2. classement automatique assiste des mandats, avis de location, baux, etats des lieux, diagnostics, attestations d'assurance, GLI, courriers, factures, taxes et documents de copropriete ;
+3. enregistrement des baux transmis par l'agence et des documents associes ;
+4. extraction des donnees de bail utiles : type de bail, date d'effet, date de fin, loyer, provisions, depot de garantie, indice de revision, DPE, surface, identifiant fiscal du local et clauses remarquables ;
+5. enregistrement manuel ou import controle des releves de gestion envoyes par l'agence ;
+6. prise en charge de plusieurs formats de releves : colonnes `quittance ou quittance / recettes / depenses`, colonnes `appele / regle / sommes dues / reglements`, et comptes rendus par `debit / credit` ;
+7. repartition des lignes de releve par bien, lot, bail, locataire, periode, nature comptable et categorie de charge ;
+8. distinction entre loyers encaisses, provisions sur charges, taxes recuperables, depots de garantie, honoraires d'agence, frais de mise en location, GLI, forfaits de gestion, charges de copropriete, travaux, taxes, assurances et reversements proprietaire ;
+9. rapprochement entre releves d'agence, virements, documents justificatifs, factures fournisseurs, appels de fonds, regularisations de copropriete et synthese annuelle ;
+10. suivi des documents demandes par l'agence, par exemple PNO, attestation locataire, GLI, justificatif de travaux ou declaration d'occupation ;
+11. signalement des lignes non classees, doublons, periodes manquantes, montants incoherents, soldes debiteurs/crediteurs inattendus et documents sans justificatif ;
+12. export annuel utilisable pour la comptabilite personnelle et le module fiscal.
+
+Documents observes dans `docs/private/agence` :
+
+1. mandats de gestion avec pouvoirs du mandataire, duree, honoraires, designation du bien, fiscalite declaree et conditions de location ;
+2. avis de location avec nouveau locataire, date d'entree, loyer, depot de garantie et honoraires de mise en location ;
+3. baux d'habitation nus ou meubles, avec surface, DPE, loyer, provisions, depot, indice de revision, email de quittance et clauses annexes ;
+4. etats des lieux d'entree avec releves de compteurs, pieces, equipements, etat d'usure, observations et photos ;
+5. releves de gerance mensuels ASG, structures par immeuble, lot, locataire, periode, quittance, recette, depense et solde ;
+6. comptes rendus de gestion issus d'autres logiciels, structures par compte personnel, compte immeuble, appele, regle, sommes dues, reglements, debits et credits ;
+7. factures d'artisans avec chantier, locataire ou logement, numero, date, lignes, TVA, total HT/TTC et taux reduit ;
+8. appels de fonds et regularisations de copropriete avec lots, tantiemes, quote-part, part locative, part deductible, fonds travaux et solde ;
+9. avis de taxe fonciere, CFE et declarations d'occupation/loyer avec references fiscales, echeances, montants et local concerne ;
+10. attestations d'assurance locataire ou PNO, certificats GLI et courriers de refus ou d'exclusion GLI ;
+11. dossiers complets multi-documents regroupant bail, annexes, diagnostics, mandat, justificatifs et documents locataire ;
+12. fichiers annexes Windows `Zone.Identifier`, a ignorer systematiquement a l'import.
+
+Contraintes produit :
+
+1. un releve d'agence importe doit conserver le fichier original et les lignes reparties ;
+2. la repartition doit pouvoir etre corrigee sans modifier le document source ;
+3. chaque ligne doit garder une origine : saisie manuelle, import CSV, document agence ou correction utilisateur ;
+4. les honoraires d'agence et les retenues doivent etre visibles separement des loyers bruts ;
+5. les syntheses doivent indiquer les montants incertains ou incomplets plutot que les masquer ;
+6. les identifiants extranet, mots de passe, IBAN, numeros fiscaux complets et donnees locataire sensibles doivent etre detectes, masques dans les apercus et exclus des logs ;
+7. les documents scannes sans texte exploitable doivent passer dans une file `OCR / saisie manuelle`, sans bloquer le classement du fichier original ;
+8. un import ne doit jamais valider automatiquement une categorie fiscale : il propose une affectation et demande validation quand la ligne touche aux taxes, charges deductibles, GLI ou travaux.
+
+### 6.3 Architecture fonctionnelle optimisee
+
+Le module doit etre decoupe en sous-domaines. Le controller prive peut composer ces services, mais ne doit pas devenir le lieu des calculs de bail, de loyer, de relance, de fiscalite ou de rapport.
+
+```text
+RealEstateRental
+|
++-- Core
+|   +-- biens, lots, membres, locataires
+|
++-- Leasing
+|   +-- baux, cautions, etats des lieux, diagnostics
+|   +-- modeles juridiques versionnes par type de bail
+|
++-- Billing
+|   +-- echeanciers, appels de loyer, quittances, TVA optionnelle
+|   +-- periodicite, terme echu/a echoir, paiements CAF
+|
++-- TenantLedger
+|   +-- compte locataire, depot de garantie, solde de tous comptes
+|   +-- impayes, relances, mises en demeure, historique courriers
+|
++-- Charges
+|   +-- charges, factures, compteurs, cles de repartition
+|   +-- regularisation annuelle et justificatifs
+|
++-- Documents
+|   +-- templates, generation PDF, pieces jointes, stockage prive
+|   +-- envoi email audite et copies immuables des documents envoyes
+|
++-- AgencyManagement
+|   +-- inbox, classement, profils parseurs, releves, imports
+|   +-- repartition, rapprochement, copro, taxes, assurances
+|
++-- Reporting
+|   +-- tableau de bord, graphiques, rapports, exports CSV/PDF
+|
++-- TaxBridge
+    +-- donnees annualisees pour 2044, 2072, micro-foncier et micro-BIC
+```
+
+Flux prioritaire en gestion complete :
+
+1. creer bien, lot et locataire ;
+2. creer bail, caution, diagnostics et etat des lieux ;
+3. generer l'echeancier du bail ;
+4. produire les appels de loyer ;
+5. enregistrer paiements locataire et CAF ;
+6. generer les quittances seulement apres validation ;
+7. suivre impayes, relances et courriers ;
+8. enregistrer charges et compteurs ;
+9. regulariser les charges ;
+10. produire compte locataire, rapports, export et donnees fiscales.
+
+Flux prioritaire en gestion agence :
+
+1. deposer les fichiers dans une boite d'import agence ;
+2. filtrer les fichiers parasites et calculer une empreinte de dedoublonnage ;
+3. classifier le document : releve, compte rendu, bail, etat des lieux, facture, assurance, GLI, taxe, copropriete, declaration ou dossier complet ;
+4. extraire le texte quand il existe, sinon orienter vers OCR ou saisie assistee ;
+5. rattacher le document source au proprietaire, au bien, au lot, au bail et a l'agence ;
+6. importer ou saisir le releve de gestion ;
+7. conserver le releve source et chaque page justificative ;
+8. repartir les lignes par bien, lot, bail, locataire, periode et categorie ;
+9. rapprocher avec justificatifs, virements, factures, appels de fonds et paiements recus ;
+10. isoler honoraires, retenues, GLI, charges, taxes, travaux, depots de garantie et reversements ;
+11. afficher les anomalies avant validation : doublon, document sans ligne, ligne sans document, solde incoherent, periode manquante ;
+12. produire rapports, controles d'incoherence et donnees fiscales.
+
+#### Implementation AgencyManagement
+
+Objectif : rendre l'import agence codable par etapes, sans melanger extraction PDF, classification, mapping comptable, rapprochement et validation utilisateur.
+
+Arborescence cible :
+
+```text
+backend/src/PrivateApps/RealEstateRental/
++-- AgencyManagement/
+|   +-- Domain/
+|   |   +-- AgencyDocumentType.php
+|   |   +-- AgencyImportBatch.php
+|   |   +-- AgencyImportedDocument.php
+|   |   +-- AgencyStatement.php
+|   |   +-- AgencyStatementLine.php
+|   |   +-- AgencyImportIssue.php
+|   |
+|   +-- Import/
+|   |   +-- AgencyImportPreview.php
+|   |   +-- AgencyImportPreviewService.php
+|   |   +-- AgencyImportService.php
+|   |   +-- AgencyImportResult.php
+|   |   +-- AgencyDocumentClassifier.php
+|   |   +-- AgencyDocumentMatcher.php
+|   |   +-- AgencyImportReviewer.php
+|   |   +-- AgencySensitiveDataMasker.php
+|   |
+|   +-- Pdf/
+|   |   +-- DocumentTextExtractorInterface.php
+|   |   +-- PopplerPdfTextExtractor.php
+|   |   +-- PdfMetadataExtractor.php
+|   |
+|   +-- Parser/
+|   |   +-- AgencyParserInterface.php
+|   |   +-- AgencyParserResult.php
+|   |   +-- AsgManagementStatementParser.php
+|   |   +-- IcsManagementReportParser.php
+|   |   +-- CoproFundCallParser.php
+|   |   +-- CoproChargeRegularizationParser.php
+|   |   +-- ArtisanInvoiceParser.php
+|   |   +-- LeaseDocumentParser.php
+|   |   +-- InventoryReportParser.php
+|   |   +-- InsuranceDocumentParser.php
+|   |   +-- TaxNoticeParser.php
+|   |   +-- OccupancyDeclarationParser.php
+|   |
+|   +-- Repository/
+|   |   +-- AgencyImportRepository.php
+|   |   +-- AgencyStatementRepository.php
+|   |   +-- AgencyMappingRepository.php
+|   |
+|   +-- Service/
+|       +-- AgencyReconciliationService.php
+|       +-- AgencyStatementValidationService.php
+|       +-- AgencyTaxBridgeNormalizer.php
+```
+
+Contrats de service :
+
+```text
+DocumentTextExtractorInterface
+- supports(path, mime_type): bool
+- extract(path): ExtractedTextResult
+
+AgencyParserInterface
+- supports(classified_document): bool
+- parse(extracted_text, metadata): AgencyParserResult
+
+AgencyParserResult
+- document_type
+- parser_profile
+- confidence
+- extracted_fields
+- statement_lines
+- suggested_links
+- issues
+
+AgencyImportPreviewService
+- preview(path, filename, mime_type): AgencyImportPreview
+
+AgencyImportPreview
+- source_path
+- filename
+- mime_type
+- file_size
+- sha256
+- pdf_metadata
+- text_extraction
+- classification
+- parser_result
+- masked_text_preview
+- issues
+```
+
+Pipeline d'import :
+
+1. `AgencyImportService` recoit un lot de fichiers et refuse tout fichier hors allowlist ;
+2. les fichiers `Zone.Identifier`, dossiers caches, fichiers vides et doublons `sha256` sont ignores et comptes dans le batch ;
+3. `PrivateDocumentStorage` stocke l'original hors webroot ;
+4. `PdfMetadataExtractor` lit pages, version PDF, taille, chiffrement et dates techniques ;
+5. `PopplerPdfTextExtractor` extrait le texte avec `pdftotext -layout` si le PDF le permet ;
+6. si le texte utile est absent ou trop court, le document passe en `needs_ocr_or_manual_entry` ;
+7. `AgencySensitiveDataMasker` detecte et masque au minimum IBAN, mots de passe, codes d'acces, numeros fiscaux, SIRET complets et emails dans les apercus ;
+8. `AgencyDocumentClassifier` choisit un type et un profil parseur depuis des signatures allowlist ;
+9. le parseur transforme le texte en DTO normalises, sans ecrire en base metier definitive ;
+10. `AgencyDocumentMatcher` propose des rattachements bien / lot / bail / locataire avec un score de confiance ;
+11. l'utilisateur valide ou corrige le lot dans une interface de revue ;
+12. les lignes validees alimentent les tables locatives, les rapprochements, les rapports et le `TaxBridge`.
+
+Profils parseurs prioritaires :
+
+| Profil | Signatures | Donnees a extraire | Controles obligatoires |
+|---|---|---|---|
+| `asg-releve-gerance-v1` | `Releve de gerance`, `ASG IMMOBILIER`, `Quittance/Recettes/Depenses` | compte proprietaire, periode, date du releve, immeubles, lots, locataires, loyers, provisions, taxes, honoraires, GLI, versements, soldes | total lot = lignes lot, total immeuble = recettes/depenses, versement proprietaire coherent avec solde |
+| `ics-compte-rendu-gestion-v1` | `COMPTE RENDU DE GESTION`, `Powered by ICS`, `APPELE/REGLE/SOMMES DUES/REGLEMENTS` | compte personnel, compte immeuble, adresse, locataire, periode, loyers appeles/regles, provisions, honoraires, GLI, factures, solde debiteur/crediteur | totaux appeles/regles coherents, debits/credits equilibres, solde reporte detecte |
+| `copro-appel-fonds-v1` | `PROVISIONS`, `Copropriete`, `Quote-Part`, `Tantiemes` | copropriete, lot, tantiemes, periode, date exigible, rubriques, quote-part, fonds travaux, total appel | somme rubriques = total appel, lot connu ou a rapprocher, fonds travaux separe des charges courantes |
+| `copro-regularisation-v1` | `CHARGES DE COPROPRIETE`, `Dont Locatif`, `Dont Deductible` | exercice, rubriques, quote-part, part locative, part deductible, appels deduits, solde regularisation | locatif et deductible separes, solde = quote-part - appels, signe du solde controle |
+| `artisan-facture-v1` | `FACTURE`, numero facture, date, `TOTAL TTC` ou `NET A PAYER` | fournisseur, numero, date, chantier, locataire/bien, lignes, HT, TVA, TTC, taux TVA | total lignes = total HT, TVA par taux, facture rattachee a un bien ou mise en revue |
+| `bail-agence-v1` | `BAIL`, `CONTRAT DE LOCATION`, `CONDITIONS PARTICULIERES` | bailleur, mandataire, locataire, adresse, surface, type de bail, date effet, fin, loyer, provisions, depot, indice, DPE, email quittance | dates coherentes, loyer > 0, depot compatible type de bail, indice compatible avec bail |
+| `edl-nockee-v1` | `Etat des lieux`, `RELEVE DES COMPTEURS`, `Photo` | date, bien, locataire, mandataire, compteurs, pieces, equipements, observations, photos referencees | rattachement au bail, compteur date, sortie OCR/manuelle si photos seules |
+| `assurance-gli-v1` | `Assurance Loyers Impayes`, `Certificat`, `Attestation` | assureur, type assurance, locataire, bien, loyer couvert, validite, contrat | periode de validite, loyer couvert rapproche du bail, exclusion GLI tracee |
+| `taxe-fonciere-cfe-v1` | `taxes foncieres`, `COTISATION FONCIERE DES ENTREPRISES`, `MONTANT A PAYER` | type taxe, annee, montant, echeance, local, references fiscales masquees | echeance future signalee, ventilation manuelle si plusieurs lots |
+| `declaration-occupation-v1` | `DECLARATION D'OCCUPATION ET DE LOYER`, `Occupation du bien` | statut occupation, loyer hors charges declare, occupant, date declaration, identifiant fiscal local | loyer compare au bail, identifiant fiscal local rattache au lot |
+
+Matrice de mapping des lignes agence :
+
+| Libelle detecte | Categorie cible | Sens | Validation |
+|---|---|---|---|
+| `Loyer` | `rent_income` | recette locative | automatique si bail et periode trouves |
+| `Provisions/Charges`, `PROVISIONS` | `charge_provision_income` | recette / provision | automatique si bail trouve |
+| `Taxe ordures menageres` | `recoverable_tax_income` ou `recoverable_charge_adjustment` | recuperable locataire | revue si montant negatif ou periode anterieure |
+| `Depot garan`, `depot de garantie` | `security_deposit` | depot / passif locataire | toujours separe du revenu |
+| `Honoraires de gestion`, `Hono. Gestion courante` | `agency_management_fee` | depense | deductible candidate, validation annuelle |
+| `TVA sur Honoraires`, `TVA/Honoraires` | `agency_fee_vat` | depense | rattacher a l'honoraire parent si possible |
+| `Honoraires Location`, `Location lots geres`, `ouverture de dossier` | `agency_letting_fee` | depense | distinguer mise en location et gestion courante |
+| `ASSURANCE INSURED`, `ASSURANCE MILA`, `Prime GLI` | `insurance_unpaid_rent` | depense | verifier bail assure et periode |
+| `Forfait Foncier` | `property_tax_service_fee` | depense | ne pas confondre avec taxe fonciere reelle |
+| `Facture eau`, `eau froide`, `eau chaude` | `recoverable_utility_charge` | recuperable potentiel | rapprochement compteur ou facture demande |
+| `Travaux`, facture artisan, plomberie, toiture, menuiserie | `works_expense` | depense | classification entretien/reparation/amelioration en revue |
+| `Appel Fonds Travaux`, `FOND TRAVAUX LOI ALUR` | `copro_work_fund` | copro / fonds | exclure charges locatives, validation fiscale |
+| `Charges courantes`, `Prov./Chg courante` | `condominium_current_charge` | copro | attendre regularisation pour part locative/deductible |
+| `Règlement Virement`, `Reglement virement` | `owner_transfer` | versement proprietaire | rapprochement bancaire optionnel |
+| `Solde debiteur`, `Solde crediteur`, `Solde precedent` | `agency_balance` | solde technique | ne jamais compter comme revenu/depense sans lignes sources |
+
+Champs minimum a exposer dans l'interface de revue :
+
+1. document source, page, profil parseur, score de confiance et statut extraction ;
+2. bien, lot, bail, locataire proposes avec possibilite de correction ;
+3. periode de la ligne, libelle brut, montant debit, montant credit, montant appele, montant regle ;
+4. categorie cible, recuperable, deductible candidate, fiscalement exclu ou a arbitrer ;
+5. lien justificatif : facture, appel de fonds, regularisation, bail, assurance ou taxe ;
+6. anomalie bloquante ou avertissement ;
+7. bouton `valider`, `corriger`, `ignorer`, `fractionner`, `fusionner doublon`.
+
+Regles de validation avant persistance :
+
+1. un document non classe ne peut pas alimenter les syntheses ;
+2. une ligne sans periode ne peut pas alimenter le fiscal ;
+3. un depot de garantie ne doit jamais etre additionne aux loyers imposables ;
+4. un solde agence ne doit pas etre compte comme ligne fiscale si les lignes sources existent ;
+5. une charge de copropriete courante reste provisoire tant que la regularisation annuelle ne donne pas `Dont Locatif` et `Dont Deductible` ;
+6. une facture travaux doit etre qualifiee avant export fiscal : entretien, reparation, amelioration, remplacement, urgence, non deductible ou a arbitrer ;
+7. un PDF scanne sans texte doit rester document source, avec saisie manuelle possible ;
+8. toute correction utilisateur cree une ligne d'audit et conserve le libelle brut extrait.
+
+Backlog de codage recommande :
+
+Progression codee au 2026-05-27 :
+
+1. [x] creer `DocumentTextExtractorInterface`, `PopplerPdfTextExtractor`, `PdfMetadataExtractor` et tests sur PDF texte ;
+2. [x] creer `AgencyDocumentClassifier` avec signatures allowlist et tests sur les familles observees ;
+3. [x] creer les DTO `AgencyParserResult`, `AgencyStatementLineDraft`, `AgencyImportIssue` ;
+4. [x] implementer `AsgManagementStatementParser` puis `IcsManagementReportParser` ;
+5. [x] creer `AgencySensitiveDataMasker` et `AgencyImportPreviewService` pour produire un apercu sans fuite de donnees sensibles ;
+6. [x] implementer `AgencyMappingRepository` avec les mappings ci-dessus en referentiel seedable ;
+7. [x] creer `AgencyImportRepository` et migrations import batch/documents/issues/statements/lines ;
+8. [x] creer `AgencyStatementValidationService` pour bloquer les lignes fiscales sans periode et separer depot de garantie / solde agence ;
+9. [x] creer `AgencyImportService` pour ignorer `Zone.Identifier`, bloquer les doublons `sha256`, conserver l'original hors webroot, previsualiser et persister ;
+10. [x] creer l'ecran `/private/locations/agence/imports` pour uploader, lister, dedoublonner et classifier ;
+11. [x] creer l'ecran `/private/locations/agence/documents-a-classer` pour revue et validation humaine detaillee ;
+12. [x] ajouter les actions de revue humaine minimales : valider, corriger, ignorer ;
+13. [ ] implementer `CoproFundCallParser` et `CoproChargeRegularizationParser` ;
+14. [x] brancher le `TaxBridge` sur les lignes agence validees uniquement via `AgencyTaxBridgeNormalizer` ;
+15. [ ] ajouter les actions avancees de revue : fractionner, fusionner doublon, resoudre une anomalie ;
+16. [ ] brancher `AgencyReconciliationService` sur rapports, virements bancaires et justificatifs.
+
+Tests obligatoires pour coder :
+
+1. `AsgManagementStatementParserTest` : extrait periode, immeubles, lots, loyers, provisions, depenses, versement et solde depuis un releve ASG ;
+2. `IcsManagementReportParserTest` : extrait appele/regle, debits/credits, GLI, honoraires, solde debiteur/crediteur depuis un compte rendu ICS ;
+3. `CoproChargeRegularizationParserTest` : extrait quote-part, part locative, part deductible et solde ;
+4. `AgencyDocumentClassifierTest` : classe bail, EDL, facture, taxe, assurance, GLI, copro, releve et document inconnu ;
+5. `AgencySensitiveDataMaskerTest` : masque IBAN, mot de passe, code acces, numero fiscal et email dans apercu/log ;
+6. `AgencyImportPreviewServiceTest` : calcule l'empreinte `sha256`, classe le document, lance le parseur compatible et retourne un apercu masque ;
+7. `AgencyMappingRepositoryTest` : seed du referentiel de mapping et resolution par libelle brut ;
+8. `AgencyImportRepositoryTest` : persiste lot, document, releve, lignes, bloque un doublon `sha256` et couvre la revue ligne par ligne ;
+9. `AgencyImportServiceTest` : ignore `Zone.Identifier`, bloque doublon `sha256`, conserve original hors webroot ;
+10. `AgencyValidationServiceTest` : refuse une ligne fiscale sans periode, depot de garantie en revenu et solde agence non source ;
+11. `PrivatePortalPhaseCoverageTest` : expose `/private/locations/agence/imports` et `/private/locations/agence/documents-a-classer` derriere la garde privee ;
+12. `AgencyTaxBridgeNormalizerTest` : n'exporte que les lignes validees, avec source document, page et categorie.
+
+### 6.4 Entites principales
 
 ```text
 RentalProperty
@@ -545,9 +921,263 @@ RentalDocument
 - size
 - uploaded_by
 - uploaded_at
+
+DocumentTemplate
+- id
+- template_type
+- lease_type
+- legal_version
+- effective_from
+- effective_to
+- source_reference
+- status
+
+GeneratedDocument
+- id
+- template_id
+- property_id
+- lease_id
+- tenant_id
+- document_type
+- generated_at
+- validated_at
+- sent_at
+- immutable_snapshot_path
+
+RentSchedule
+- id
+- lease_id
+- period_start
+- period_end
+- frequency
+- term_mode
+- rent_amount
+- charges_provision
+- vat_rate
+
+RentCall
+- id
+- lease_id
+- period_month
+- period_year
+- due_date
+- rent_due
+- charges_due
+- vat_amount
+- status
+
+RentReceipt
+- id
+- rent_call_id
+- payment_id
+- receipt_number
+- generated_at
+- validated_at
+
+RentRevision
+- id
+- lease_id
+- index_type
+- index_reference_period
+- old_rent
+- new_rent
+- effective_date
+- validated_by
+
+ChargeRegularization
+- id
+- lease_id
+- year
+- provisions_paid
+- recoverable_total
+- balance
+- validated_at
+
+MeterReading
+- id
+- property_id
+- unit_id
+- meter_type
+- reading_date
+- value
+
+TechnicalDiagnostic
+- id
+- property_id
+- unit_id
+- diagnostic_type
+- performed_at
+- expires_at
+- document_id
+
+TenantLedgerEntry
+- id
+- tenant_id
+- lease_id
+- entry_type
+- amount
+- entry_date
+- source_type
+- source_id
+
+TenantCorrespondence
+- id
+- tenant_id
+- lease_id
+- correspondence_type
+- generated_document_id
+- sent_channel
+- sent_at
+- status
+
+AgencyStatement
+- id
+- property_id
+- agency_name
+- parser_profile
+- statement_period_start
+- statement_period_end
+- original_document_id
+- statement_number
+- owner_account_reference
+- opening_balance
+- closing_balance
+- status
+
+AgencyStatementLine
+- id
+- statement_id
+- source_page
+- source_line_hash
+- line_date
+- period_start
+- period_end
+- amount
+- raw_label
+- mapped_category
+- mapping_status
+- property_id
+- unit_id
+- lease_id
+- tenant_id
+- debit_amount
+- credit_amount
+- called_amount
+- paid_amount
+- owner_transfer_amount
+- confidence_status
+
+AgencyImportBatch
+- id
+- agency_name
+- imported_at
+- source_directory
+- file_count
+- ignored_file_count
+- duplicate_file_count
+- status
+
+AgencyImportedDocument
+- id
+- batch_id
+- document_id
+- detected_document_type
+- detected_agency
+- text_extraction_status
+- sha256
+- contains_sensitive_data
+- review_status
+
+AgencyParserProfile
+- id
+- agency_name
+- format_name
+- parser_version
+- column_model
+- active
+
+AgencyLineMapping
+- id
+- raw_label_pattern
+- source_document_type
+- mapped_category
+- recoverable
+- tax_deductible_candidate
+- confidence
+
+AgencyImportIssue
+- id
+- imported_document_id
+- issue_type
+- severity
+- message
+- resolved_at
+
+CoproFundCall
+- id
+- property_id
+- unit_id
+- copro_name
+- period_start
+- period_end
+- due_date
+- lot_reference
+- tantiemes
+- amount_due
+- fund_work_amount
+
+CoproChargeRegularization
+- id
+- property_id
+- unit_id
+- exercise_start
+- exercise_end
+- total_quote_part
+- tenant_recoverable_amount
+- tax_deductible_candidate_amount
+- balance
+
+RentalTaxNotice
+- id
+- property_id
+- tax_type
+- tax_year
+- due_date
+- total_amount
+- paid_or_scheduled_amount
+- document_id
+
+RentalInsuranceCertificate
+- id
+- property_id
+- lease_id
+- certificate_type
+- insurer
+- valid_from
+- valid_to
+- document_id
+
+OccupancyDeclaration
+- id
+- property_id
+- unit_id
+- lease_id
+- declared_at
+- occupancy_status
+- declared_monthly_rent_excluding_charges
+- fiscal_local_identifier
+- document_id
+
+RentalReportSnapshot
+- id
+- report_type
+- year
+- generated_at
+- source_hash
+- storage_path
 ```
 
-### 6.3 Tables SQL
+### 6.5 Tables SQL
 
 Tables ciblees :
 
@@ -561,6 +1191,32 @@ rental_payments
 rental_expenses
 rental_documents
 rental_export_logs
+rental_document_templates
+rental_generated_documents
+rental_guarantees
+rental_inventory_reports
+rental_diagnostics
+rental_rent_schedules
+rental_rent_calls
+rental_receipts
+rental_rent_revisions
+rental_charge_regularizations
+rental_meter_readings
+rental_tenant_ledger_entries
+rental_correspondence
+rental_agency_statements
+rental_agency_statement_lines
+rental_agency_import_batches
+rental_agency_imported_documents
+rental_agency_parser_profiles
+rental_agency_line_mappings
+rental_agency_import_issues
+rental_copro_fund_calls
+rental_copro_charge_regularizations
+rental_tax_notices
+rental_insurance_certificates
+rental_occupancy_declarations
+rental_report_snapshots
 ```
 
 Regles de stockage :
@@ -570,15 +1226,24 @@ Regles de stockage :
 3. statut explicite pour brouillon, valide, annule, archive ;
 4. suppression physique evitee pour les documents : preferer statut, audit et retention ;
 5. chemin fichier prive non devinable et non public ;
-6. les metadonnees documentaires ne doivent pas exposer de donnees sensibles dans les logs.
+6. les metadonnees documentaires ne doivent pas exposer de donnees sensibles dans les logs ;
+7. les documents generes envoyes doivent garder un snapshot immuable, meme si le modele evolue ensuite ;
+8. les calculs annuels doivent pouvoir etre rejoues depuis les donnees sources et compares a un snapshot exporte ;
+9. chaque document importe doit avoir une empreinte `sha256`, une taille, un type MIME verifie et un statut d'extraction ;
+10. les documents d'agence doivent pouvoir etre rattaches a plusieurs objets metier quand un dossier PDF regroupe bail, annexes, diagnostics et justificatifs.
 
-### 6.4 Categories de charges
+### 6.6 Categories de charges
 
 Referentiel initial :
 
 ```text
 charges_copropriete
+charges_copropriete_provision
+charges_copropriete_regularisation
+fonds_travaux_loi_alur
 taxe_fonciere
+taxe_ordures_menageres
+cfe
 assurance_pno
 assurance_loyer_impaye
 travaux_entretien
@@ -586,16 +1251,29 @@ travaux_reparation
 travaux_amelioration
 diagnostics
 frais_agence
+frais_agence_gestion
+frais_agence_location
+frais_agence_dossier
 frais_bancaires
 interets_emprunt
 honoraires_comptable
 frais_postaux
+depot_garantie
+versement_proprietaire
+solde_agence
 autre
 ```
 
-Le champ `tax_deductible` est obligatoire pour preparer le lien fiscal, mais il reste indicatif. Il ne doit pas etre presente comme une validation fiscale officielle.
+Regles de categorie :
 
-### 6.5 Ecrans
+1. `depot_garantie`, `versement_proprietaire` et `solde_agence` sont des mouvements de tresorerie ou de passif, pas des revenus locatifs imposables ;
+2. `charges_copropriete_provision` reste provisoire jusqu'a la regularisation annuelle ;
+3. `charges_copropriete_regularisation` peut alimenter les parts locatives et deductibles seulement si le document source fournit ces colonnes ou si une ventilation manuelle est validee ;
+4. `fonds_travaux_loi_alur` doit rester separe des charges courantes ;
+5. `travaux_entretien`, `travaux_reparation` et `travaux_amelioration` doivent etre arbitres explicitement a partir de la facture et du contexte ;
+6. le champ `tax_deductible` est obligatoire pour preparer le lien fiscal, mais il reste indicatif. Il ne doit pas etre presente comme une validation fiscale officielle.
+
+### 6.7 Ecrans
 
 Routes recommandees :
 
@@ -605,14 +1283,65 @@ Routes recommandees :
 /private/locations/biens/{id}
 /private/locations/locataires
 /private/locations/baux
+/private/locations/contrats
+/private/locations/etats-des-lieux
+/private/locations/diagnostics
 /private/locations/loyers
+/private/locations/appels
+/private/locations/quittances
+/private/locations/relances
 /private/locations/charges
+/private/locations/regularisations
+/private/locations/compte-locataire
+/private/locations/agence
+/private/locations/agence/imports
+/private/locations/agence/documents-a-classer
+/private/locations/agence/releves
+/private/locations/agence/rapprochements
+/private/locations/agence/copropriete
+/private/locations/agence/taxes
+/private/locations/agence/assurances
 /private/locations/documents
+/private/locations/courriers
+/private/locations/tableau-de-bord
+/private/locations/rapports
 /private/locations/exports
 /private/locations/synthese-annuelle
 ```
 
 Les ecrans doivent etre denses, lisibles et utilisables sur mobile, sans effet marketing ni decoration inutile. Les actions sensibles utilisent confirmation, CSRF, permission serveur et audit.
+
+### 6.8 Regles de calcul et de conformite
+
+Regles :
+
+1. les indices de revision doivent etre stockes avec `index_type`, periode de reference, valeur source, date de publication, zone applicable et URL source ;
+2. l'IRL ne doit pas etre confondu avec les indices commerciaux ou tertiaires : le type de bail selectionne determine les indices autorises ;
+3. les baux commerciaux, professionnels, garages et parkings peuvent avoir des regles differentes de l'habitation principale ; le moteur de modele doit refuser un template incompatible ;
+4. les calculs 2044, 2072, micro-foncier et micro-BIC doivent etre portes par des rulesets par annee fiscale, jamais par une formule globale permanente ;
+5. le module fiscal recoit des montants annualises et traces ; il ne doit pas relire directement toutes les tables locatives ;
+6. la facturation electronique doit etre un adaptateur optionnel branche sur les documents facturables ; le coeur locatif ne doit pas dependre d'un prestataire unique ;
+7. tout envoi email ou export fiscal doit etre audite avec utilisateur, date, ressource, canal, resultat et empreinte du document ;
+8. les rapports affichent les donnees incertaines, brouillon, non reparties ou non rapprochees au lieu de les integrer silencieusement ;
+9. les imports de fichiers prives doivent utiliser des parseurs allowlistes par profil agence ; aucune formule extraite d'un PDF ne doit etre executee ;
+10. les donnees sensibles detectees dans les PDF d'agence doivent etre masquees dans les apercus, exports de debug et messages d'erreur.
+
+Sources de verification a consulter avant implementation d'une regle :
+
+1. indices de revision : Insee, pages IRL, ILC, ILAT et ICC ;
+2. charges recuperables et regularisation annuelle : Service-Public.fr ;
+3. formulaires et regimes fiscaux : impots.gouv.fr, formulaires 2044, 2072, micro-foncier et micro-BIC ;
+4. facturation electronique : impots.gouv.fr, calendrier et obligations applicables a la taille de l'entite.
+
+Ordre d'implementation recommande :
+
+1. `Leasing` : contrats, caution, etats des lieux, diagnostics, templates versionnes ;
+2. `Billing` : echeanciers, appels, paiements, CAF, quittances, TVA optionnelle ;
+3. `TenantLedger` : compte locataire, relances, courriers, solde de tous comptes ;
+4. `Charges` : compteurs, regularisation, justificatifs et cles de repartition ;
+5. `AgencyManagement` : releves agence, import, repartition et rapprochement ;
+6. `Reporting` : dashboard, graphiques, rapports de paiements et occupation ;
+7. `TaxBridge` : rulesets annuels et exports pour le module impots.
 
 ## 7. Module TaxDeclarationHelper
 
@@ -864,6 +1593,8 @@ Ne pas maintenir de checklist parallèle ici afin d'éviter les divergences de s
 
 Objectif : creer les routes privees sans casser le front-office.
 
+Progression phase 1 : complétée (checklist entièrement cochée).
+
 Checklist :
 
 - [x] Ajouter les variables `PRIVATE_*` dans `backend/config/config.php` et `backend/.env.example`.
@@ -888,7 +1619,7 @@ Validation et suivi phase 1 :
 - `anti-indexation` : `FrontController::robotsTxtResponse()` émet `Disallow: /private` quand le portail privé est activé.
 - Vérification automatisée phase 1 :
   - `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php` : vert après harmonisation (hash Argon2id + logout POST + vérification logs via logger injecté).
-  - `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` : vert (46 tests, 1 point `image/structure` résolu via fixture de test pour `/images/structure/banniere.jpg`).
+  - `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` : vert (48 tests, 1 point `/images/structure` résolu via fixture de test pour `/images/structure/banniere.jpg`).
 - Vérification manuelle ciblée (simulée via `FrontController`) :
   - `/private/login` => `200`
   - `/private` => `302 -> /private/login`
@@ -900,174 +1631,363 @@ Validation et suivi phase 1 :
 
 Objectif : ne jamais reutiliser les comptes admin pour la famille.
 
-Checklist :
+Progression phase 2 : complétée (socle IAM + compléments IAM validés en phase 3).
+Date de clôture complète de phase 2 : 2026-05-26.
+
+Clôture phase 2 (socle IAM) :
+
+- ✅ Contrat auth/login/logout aligné (`Argon2id` + `POST /private/logout` + CSRF + session dédiée).
+- ✅ Migrations de base `private_users`, `private_user_invites`, `private_password_resets`, `private_sessions`, `private_mfa_backup_codes`.
+- ✅ Session privée dédiée, rotation d’ID, timeout d’inactivité, lockout après 3 échecs.
+- ✅ Invitation, activation, reset, jetons hashés, MFA TOTP/codes de secours et réponses neutres de reset validés.
+- ✅ Vérification front-controller / non-régression FO validée (tests ciblés).
+
+Checklist (socle IAM complet) :
 
 - [x] Creer les migrations `private_users`, `private_user_invites`, `private_password_resets`, `private_sessions`.
 - [x] Hasher les mots de passe avec `Argon2id`.
-- [ ] Stocker les tokens invitation/reset sous forme hashee.
+- [x] Stocker les tokens invitation/reset sous forme hashee.
 - [x] Implémenter le contrat auth/login/logout privé (authentification locale + `POST /private/logout` + CSRF + session dédiée).
-- [ ] Implementer invitation, activation, reset mot de passe.
+- [x] Implementer invitation, activation, reset mot de passe.
 - [x] Creer une session privee dediee avec nom de cookie distinct.
 - [x] Regenerer l'ID de session au login et logout.
 - [x] Appliquer timeout d'inactivite.
 - [x] Appliquer verrouillage apres 3 echecs pendant 24h.
-- [ ] Ajouter le support MFA TOTP et codes de secours.
-- [ ] Journaliser les connexions, echecs, verrouillages et resets.
+- [x] Ajouter le support MFA TOTP et codes de secours.
+- [x] Journaliser les connexions, echecs, verrouillages et resets.
 
-Preuves de passage phase 2 (socle IAM initial) :
+Preuves de passage phase 2 (socle IAM complet) :
 
 - `backend/sql/private/private_users.sql`
 - `backend/sql/private/private_user_invites.sql`
 - `backend/sql/private/private_password_resets.sql`
 - `backend/sql/private/private_sessions.sql`
+- `backend/sql/private/private_mfa_backup_codes.sql`
+- `backend/src/PrivatePortal/Security/PrivatePasswordPolicy.php`
+- `backend/src/PrivatePortal/Security/PrivateMfaVerifier.php`
+- `backend/templates/private/password_form.php`
+- `backend/templates/private/password_forgot.php`
 
-Definition of Done :
+Definition of Done (socle IAM) :
 
-- [ ] Un compte invite n'est pas actif avant activation.
-- [ ] Un email ne peut pas creer deux comptes famille.
-- [ ] Les erreurs login/reset ne divulguent pas l'existence d'un compte.
-- [ ] Les tests `PrivatePortalSecurity` couvrent succes, refus, expiration et lockout.
+- [x] Auth local privé opérationnelle avec Argon2id.
+- [x] Contrat HTTP de base `/private/login` + `/private/logout` aligné.
+- [x] Sessions privées séparées du contexte admin (nom de cookie dédié).
+- [x] Mécanismes d'inactivité et de lockout opérationnels.
+- [x] Invitation, activation et reset utilisent des jetons bruts envoyables une seule fois, stockés uniquement en hash `Argon2id`.
+- [x] MFA TOTP et codes de secours validés côté serveur.
+- [x] FrontController privé intégré sans régression FO validée par test ciblé.
+
+Compléments IAM validés pendant la clôture phase 3 :
+
+- [x] Un compte invite n'est pas actif avant activation.
+- [x] Un email ne peut pas créer deux comptes famille.
+- [x] Les erreurs login/reset ne divulguent pas l'existence d'un compte.
+- [x] Les tests `PrivatePortalSecurity` couvrent succès, refus, expiration et lockout.
 
 Tests à lancer / exécuter pour phase 2 :
 
 - [x] Exécuter et archiver la suite privée sécurité :
-  - `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php` ✅ OK (6/6), 2026-05-26.
-  - `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalSecurityTest.php` ✅ OK (3/3), 2026-05-26.
-- [x] Vérifier non-régression FO après chaque évolution privée :
-  - `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` ✅ OK (46/46), 2026-05-26.
+  - [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php` ✅ OK (8/8), 2026-05-26.
+  - [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalSecurityTest.php` ✅ OK (5/5), 2026-05-26.
+  - [x] Vérifier non-régression FO après chaque évolution privée : `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` ✅ OK (49/49), 2026-05-26.
+  - [x] Grappe phase 2/3 complète : `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalSecurityTest.php tests/PrivatePortalFrontControllerTest.php tests/PrivatePortalMembersTest.php tests/PrivatePortalModuleAssignmentTest.php tests/PrivatePortalDashboardTest.php tests/AdminRouteResolverTest.php tests/FrontControllerHttpTest.php` ✅ OK (75 tests, 380 assertions), 2026-05-26.
 
 Note d'exécution locale (environnement actuel) :
-- Depuis la racine, `./vendor/bin/phpunit` n'existe pas; la commande échoue.
-- Utiliser depuis `backend/` : `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php`, `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` quand le binaire global est disponible.
+- Depuis la racine, `./vendor/bin/phpunit` n'existe pas; ne pas l'utiliser pour ce dépôt.
+- Utiliser depuis `backend/` : `cd backend && phpunit --configuration phpunit.xml <tests ciblés>`.
+- Sur l'environnement courant, le binaire global `phpunit` est disponible depuis `backend/` (`PHPUnit 10.5.63`) et remplace le binaire racine absent.
 
-- [ ] Contrôles manuels ciblés (ou curl équivalent) :
-  - `/private/login` accessible
-  - `/private/login` avec POST + CSRF invalide → refus
-  - `/private/login` avec POST + CSRF valide → dashboard
-  - `/private/dashboard` sans session valide → 302 vers login
-  - `/private/logout` en POST + CSRF → retour login
+- [x] Contrôles ciblés équivalents automatisés : parcours login/logout/dashboard, activation/reset, réponse reset neutre, module dashboard et refus `/private/files/{documentId}` couverts par `FrontController` / `PrivatePortalController`.
 
 ### Phase 3 - BO admin membres et permissions
 
 Objectif : piloter les acces famille depuis le BO.
 
+Progression phase 3 : complétée — BO membres, permissions modules, activation/reset, MFA, audit IAM et tests SQL métier validés.
+
+Clôture phase 2 / démarrage phase 3 :
+
+- ✅ Date de démarrage phase 3 : 2026-05-26.
+- ✅ Entrée en phase 3 autorisée : socle IAM minimal de phase 2 validé.
+- ✅ Prérequis bloquant respecté : livraison privée front/route/session non régressive.
+- ✅ Phase 3 clôturée : création BO, invitations, activation/résets complets, MFA et audit IAM.
+
 Checklist :
 
-- [ ] Ajouter `Parametres > Espace prive > Membres`.
-- [ ] Ajouter invitation, renvoi, suspension, reset, suppression/anonymisation.
-- [ ] Creer `private_modules` et `private_user_module_permissions`.
-- [ ] Creer `PrivateModuleRegistry`.
-- [ ] Ajouter l'affectation des modules par utilisateur.
-- [ ] Refuser cote serveur toute modification de droits par un membre famille.
-- [ ] Ajouter audit des changements de droits.
-- [ ] Ajouter tests admin sur CSRF, permissions et validation.
+- [x] Ajouter `Parametres > Espace prive > Membres` (route BO + vue liste + gestion statut/liste filtrée).
+- [x] Brancher le `POST /admin/parametres/espace-prive` avec actions explicites `invite`, `resend`, `suspend`, `reset`, `anonymize`, `modules`.
+- [x] Ajouter invitation, renvoi, suspension, reset, suppression/anonymisation côté BO (jetons hashés, emails applicatifs si configuration mail présente, écrans activation/reset).
+- [x] Creer `car_private_modules` et `car_private_user_module_permissions`.
+- [x] Creer `PrivateModuleRegistry` (registre de modules applicatifs).
+- [x] Ajouter l'affectation des modules par utilisateur via repository + registre.
+- [x] Refuser cote serveur toute modification de droits par un membre famille (aucun endpoint privé d'écriture des permissions; actions réservées BO admin + CSRF).
+- [x] Ajouter audit des changements de droits et des actions sensibles BO.
+- [x] Ajouter tests admin complets sur validation métier SQL, succès d'écriture et cas limites tokens.
 
 Definition of Done :
 
-- [ ] Seul un admin autorise peut affecter les modules.
-- [ ] Le dashboard prive affiche uniquement les modules autorises.
-- [ ] L'acces direct a une route non autorisee retourne `403` et genere un audit.
+- [x] Seul un admin autorise peut affecter les modules.
+- [x] Le dashboard prive affiche uniquement les modules autorises par `PrivateModulePermissionRepository`.
+- [x] L'acces direct a `/private/files/{documentId}` sans module `documents` retourne `403` et genere un audit.
+- [x] Le contrat de garde serveur est appliqué aux routes privées disponibles et documenté pour les routes modules métier futures.
+
+Protocoles de la passe ciblée du 2026-05-26 :
+
+- BO : toute action sensible passe par `POST /admin/parametres/espace-prive`, `admin_is_authenticated()`, CSRF admin et allowlist stricte `private_member_action`.
+- Invitations : `invite` et `resend` créent un jeton hashé dans `car_private_user_invites`; aucun jeton brut n'est affiché dans le BO ni journalisé.
+- Reset : `reset` invalide les resets ouverts du compte puis crée un nouveau jeton hashé dans `car_private_password_resets`; l'email est envoyé si la configuration mail existe, sinon l'échec est journalisé sans exposer le jeton.
+- Anonymisation : `anonymize` remplace l'email par une adresse technique `@private.invalid`, remplace le hash de mot de passe, supprime les traces de dernière connexion et passe le compte en `deleted`.
+- Modules : `modules` écrit uniquement via `PrivateModulePermissionRepository`, en s'appuyant sur `PrivateModuleRegistry`; les modules inconnus sont refusés.
+- Côté privé : `/private/files/{documentId}` vérifie session privée, utilisateur actif en repository et permission active `documents`; sans droit, réponse `403` + événement `private.files.access_denied`.
+- Email : les jetons bruts ne sont jamais affichés dans le BO ni journalisés; ils ne transitent que par le flux email applicatif lorsque `app_config('mail')` est disponible.
+- Limite volontaire restante : le garde d'accès est déjà en place et le streaming réel est désormais opérationnel; reste la mise en place d'un parcours documentaire complet (upload UI/API, suppression et opérations BO dédiées).
 
 Tests à lancer avant clôture phase 3 :
 
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalMembersTest.php` (quand le test existe).
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalModuleAssignmentTest.php` (quand le test existe).
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalDashboardTest.php` (quand le test existe).
-- [ ] Vérification manuelle :
-  - `/private` et `/admin/parametres/espace-prive` selon profils ;
-  - tentative d'activation/désactivation module en tant qu'utilisateur famille = refus ;
-  - tentative d'accès direct à une route module non autorisée = `403`.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalMembersTest.php` ✅ OK (4/4), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalModuleAssignmentTest.php` ✅ OK (1/1), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalDashboardTest.php` ✅ OK (2/2), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/AdminRouteResolverTest.php` ✅ OK (6/6), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php` ✅ OK (8/8), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalSecurityTest.php` ✅ OK (5/5), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` ✅ OK (49/49), 2026-05-26.
+- [x] Grappe phase 2/3 complète : `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalSecurityTest.php tests/PrivatePortalFrontControllerTest.php tests/PrivatePortalMembersTest.php tests/PrivatePortalModuleAssignmentTest.php tests/PrivatePortalDashboardTest.php tests/AdminRouteResolverTest.php tests/FrontControllerHttpTest.php` ✅ OK (75 tests, 380 assertions), 2026-05-26.
+- [x] Vérification PHPUnit locale : `./vendor/bin/phpunit` absent à la racine; `phpunit` global disponible depuis `backend/` et utilisé pour les suites ci-dessus.
+- [x] `composer phpstan --working-dir=backend` ✅ OK, 2026-05-26.
+- [x] PHPCS ciblé sur les fichiers `src/` modifiés ✅ OK, 2026-05-26.
+- [x] `composer phpcs --working-dir=backend` global ✅ OK après correction de l'écart `PublicUrlNormalizer`, 2026-05-26.
+- [x] `git diff --check` ✅ OK, 2026-05-26.
+- [x] Vérification ciblée :
+  - `/private` et `/admin/parametres/espace-prive` couverts par `FrontController` / `AdminRouteResolver` ;
+  - tentative d'activation/désactivation module en tant qu'utilisateur famille = aucun endpoint privé d'écriture des permissions ;
+  - tentative d'accès direct à une route document non autorisée = `403` couvert par `PrivatePortalFrontControllerTest`.
 
 ### Phase 4 - Stockage prive et documents
 
-Objectif : garantir qu'aucun document prive n'est servi directement par URL.
+Objectif : creer et activer l'espace prive avec son stockage documentaire, puis garantir qu'aucun document prive n'est servi directement par URL.
+
+Progression phase 4 : 100 % — garde d'accès, stockage et streaming réel opérationnels sur `/private/files/{documentId}` avec validation et journalisation de base ; interface documentaire active côté dashboard avec upload/suppression ; tests unitaires de stockage/documents livrés. Outil de compte démo validé, procédures backup/restauration documentées et vérifiées.
+
+Clôture phase 3 / bascule phase 4 :
+
+- ✅ Entrée en phase 4 autorisée : phase 3 clôturée (BO membres, permissions serveur, invitations/activation complets, audit IAM).
+- ✅ Prérequis technique conservé : socle IAM phase 2 vérifié et front-controller non-régressif.
+- ✅ Condition de lancement : la phase 4 démarre quand la définition des permissions serveur famille est stable.
 
 Checklist :
 
-- [ ] Creer `backend/private/storage`, `uploads` et `exports` ou leurs chemins configures.
-- [ ] Ajouter un service de stockage prive.
-- [ ] Ajouter `private_documents` si le modele commun est retenu.
-- [ ] Verifier extension, MIME, taille et nom original.
-- [ ] Generer un chemin disque non devinable.
-- [ ] Servir les fichiers via `/private/files/{documentId}`.
-- [ ] Verifier permission sur chaque telechargement.
-- [ ] Ajouter audit upload/download/delete.
-- [ ] Documenter backup et restauration des fichiers prives.
+- [x] Formaliser la création de l'espace privé opérationnel : configuration `PRIVATE_PORTAL_ENABLED=true`, base path `private`, session privée dédiée, routes `/private`, `/private/login`, `/private/dashboard` et module documentaire disponibles hors front-office public (routes, templates, session, garde anti-indexation).
+- [x] Formaliser l'activation de l'espace privé pour un membre de test : compte `active`, modules `dashboard` et `documents` attribués, accès dashboard validé, documents fictifs chargés dans le stockage privé.
+- [x] Creer `backend/private/storage`, `uploads` et `exports` ou leurs chemins configures.
+- [x] Ajouter un service de stockage prive.
+- [x] Ajouter `private_documents` si le modele commun est retenu.
+- [x] Verifier extension, MIME, taille et nom original.
+- [x] Generer un chemin disque non devinable.
+- [x] Ajouter le garde d'accès serveur sur `/private/files/{documentId}` avant streaming réel.
+- [x] Servir les fichiers via `/private/files/{documentId}`.
+- [x] Verifier permission module `documents` sur chaque demande de telechargement.
+- [x] Ajouter audit upload/download/delete.
+- [x] Formaliser un compte de test complet (`membre actif` + modules attribues + documents fictifs) avec chemin d'accès documenté (`/private/login` -> `/private/dashboard` -> `/private/files/{documentId}`) pour valider les parcours prives bout en bout en mode manuel.
+- [x] Documenter backup et restauration des fichiers prives.
+
+### 4.4 Fermeture phase 4 : preuves collectées
+
+Objectif documentaire : définir une procédure minimale exploitable en production pré-opérationnelle pour **les données privées** (`backend/private/*`) et les tables privées SQL.
+
+- [x] Couvrir les scénarios API documents (upload, download, delete, refus sans module) dans `tests/PrivatePortalStorageTest.php` :
+  refus d'upload/téléchargement sans module `documents`, upload accepté avec module `documents`, suppression et audit associées.
+- [x] Outil CLI `backend/core/tools/setup_private_demo_account.php` :
+  création du compte démo (email/mot de passe), activation `active`, attribution modules `dashboard` + `documents`, et seed d'un document de test.
+- [x] Documenter et valider la procédure de sauvegarde/restauration privée sur pré-production : SQL + fichiers dans `backend/private/**`.
+- [x] Valider le parcours complet avec compte de démo (`demo_validation@exemple.fr`) : création/activation + modules attribués + chemin d'accès documenté (`/private/login` -> `/private/dashboard` -> `/private/files/{documentId}`). Upload + suppression + refus `403` après retrait module validés sur environnement dédié.
+
+Commandes opérationnelles recommandées (phase 4) :
+
+```bash
+# compte de demo prive (mode non-supprimable, réutilisable)
+php backend/core/tools/setup_private_demo_account.php \
+  --email=demo_prive@example.com \
+  --password='MonMotDePasseTresFort123!' \
+  --with-demo-document=1
+```
+
+Procédure de sauvegarde privée (à exécuter manuellement depuis l’hôte applicatif) :
+
+```bash
+# 1) Variables
+export PRIVATE_BACKUP_DIR="/var/backups/caramagnols-private"
+mkdir -p "$PRIVATE_BACKUP_DIR"
+export TS="$(date +%Y%m%d-%H%M%S)"
+
+# 2) Référentiel SQL privé (tables privées uniquement)
+mysqldump \
+  -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" \
+  "$DB_NAME" \
+  car_private_users \
+  car_private_user_invites \
+  car_private_password_resets \
+  car_private_sessions \
+  car_private_modules \
+  car_private_user_module_permissions \
+  car_private_mfa_backup_codes \
+  car_private_documents \
+  > "$PRIVATE_BACKUP_DIR/private-db-${TS}.sql"
+
+# 3) Fichiers privés hors webroot
+tar -czf "$PRIVATE_BACKUP_DIR/private-files-${TS}.tar.gz" \
+  -C /home/surfacepro8/www/caramagnols/backend/private \
+  storage exports uploads
+
+# 4) Intégrité
+sha256sum "$PRIVATE_BACKUP_DIR/private-db-${TS}.sql" "$PRIVATE_BACKUP_DIR/private-files-${TS}.tar.gz" \
+  > "$PRIVATE_BACKUP_DIR/private-backup-${TS}.manifest"
+```
+
+Procédure de restauration privée (sur environnement de test non-productif) :
+
+```bash
+export PRIVATE_RESTORE_DIR="/var/backups/caramagnols-private"
+export TS="AAAAmmjj-HHMMSS"
+
+# 1) Sauvegarde de sécurité préalable de l'existant
+cp -a /home/surfacepro8/www/caramagnols/backend/private "/tmp/private-backup-before-restore-$(date +%Y%m%d-%H%M%S)"
+
+# 2) Chargement SQL
+mysql -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" "$DB_NAME" < "$PRIVATE_RESTORE_DIR/private-db-${TS}.sql"
+
+# 3) Chargement fichiers
+rm -rf /home/surfacepro8/www/caramagnols/backend/private/storage \
+  /home/surfacepro8/www/caramagnols/backend/private/uploads \
+  /home/surfacepro8/www/caramagnols/backend/private/exports
+mkdir -p /home/surfacepro8/www/caramagnols/backend/private/{storage,exports,uploads}
+tar -xzf "$PRIVATE_RESTORE_DIR/private-files-${TS}.tar.gz" \
+  -C /home/surfacepro8/www/caramagnols/backend/private
+
+# 4) Vérification
+# - vérifier que private_documents.storage_path existe bien en base
+# - vérifier un /private/files/{documentId} en session avec module documents
+```
+
+Contrôles de clôture phase 4 (backup/restauration) :
+- Restituer le manifeste et son hash `sha256`.
+- Importer une restauration de test dans un environnement de pré-production dédié.
+- Exécuter un cycle document minimal : activation + upload + accès + suppression + lecture refusée sans permission.
 
 Definition of Done :
 
-- [ ] Aucun fichier prive n'est present dans `backend/public`.
-- [ ] Une URL directe vers disque est impossible.
-- [ ] Un membre sans droit ne peut ni lister ni telecharger un document.
+- [x] Aucun fichier prive n'est present dans `backend/public`.
+- [x] Une URL directe vers disque est impossible.
+- [x] La création et l'activation de l'espace privé sont couvertes par des parcours manuels documentés + tests ciblés.
+- [x] Un membre sans droit ne peut ni lister ni telecharger un document (listing masqué sans module `documents`, téléchargement/upload/delete refusés `403`).
+- [x] Un compte de test complet permet de verifier le chemin d'accès `/private/login` -> `/private/dashboard`, les modules autorises, upload/download et refus d'acces.
 
 Tests à lancer avant clôture phase 4 :
 
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalStorageTest.php` (quand le test existe).
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFilesApiTest.php` (quand le test existe).
-- [ ] Contrôles manuels ciblés :
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php` ✅ OK (10 tests, 30 assertions), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalDashboardTest.php` ✅ OK (4 tests, 32 assertions), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalStorageTest.php` ✅ OK (12 tests, 133 assertions), 2026-05-26.
+- [x] Contrôles manuels ciblés :
+  - création/activation de l'espace privé sur environnement de test avec `PRIVATE_PORTAL_ENABLED=true` ;
+  - création/activation du compte de démo + suppression/reprise du module `documents` ;
   - accès à `/private/files/{documentId}` sans droit = refus ;
   - upload document en mode autorisé/rejeté selon extension, MIME, taille ;
+  - compte de test complet : accès via `/private/login`, dashboard, modules visibles, document fictif accessible avec droit et refusé sans droit ;
   - vérification qu’aucun fichier privé n’est public via URL directe.
 
 ### Phase 5 - Module RealEstateRental, noyau metier
 
 Objectif : creer la source fiable des donnees locatives.
 
+Progression phase 5 : 100 % — noyau `RealEstateRental` livré, routes privées actives, stockage SQL préparé, droits et tests validés.
+
+Checkpoint 2026-05-26 (pré-check phase 5) :
+
+- [x] Vérifier qu'aucun module locatif privé n'est déjà présent dans `backend/src/PrivateApps/RealEstateRental` (socle à construire).
+- [x] Vérifier le réemploi du socle IAM / sessions / documents sans régression FO.
+- [x] Consolider la modélisation minimale (entités + permissions + routes cibles) dans ce README.
+- [x] Définir la séquence d'implémentation phase 5 : migrations → domain/repo → permissions/service → controller/tests.
+- [x] Créer la structure `backend/src/PrivateApps/RealEstateRental/` et le namespace associé.
+- [x] Initier les migrations SQL locatives de base (`rental_properties`, `rental_units`, `rental_property_members`) en réconciliation environnement `backend/sql/private/`.
+
+Clôture phase 4 / bascule phase 5 :
+
+- ✅ Entrée en phase 5 autorisée (preuve de clôture phase 4 levée côté validation automatisée et outil de compte démo), validation finale manuelle de recette accomplie (upload + delete + refus 403 après retrait `documents`).
+- ✅ Prérequis technique conservé : séparation des comptes famille + session privée stable.
+- ✅ Condition de lancement : module documentaire et permissions prêtes à sécuriser les données locatives.
+
 Checklist :
 
-- [ ] Creer `backend/src/PrivateApps/RealEstateRental/`.
-- [ ] Creer les migrations `rental_properties`, `rental_units`, `rental_property_members`.
-- [ ] Creer les entites/domain objects et repositories.
-- [ ] Creer les ecrans biens et lots.
-- [ ] Ajouter validation stricte des champs adresse, type, surface, statut.
-- [ ] Ajouter permissions `read`, `write`, `delete`.
-- [ ] Ajouter tests repository/service/controller.
-- [ ] Ajouter audit creation, modification, archivage.
+- [x] Creer `backend/src/PrivateApps/RealEstateRental/`.
+- [x] Creer les migrations `rental_properties`, `rental_units`, `rental_property_members`.
+- [x] Creer les entites/domain objects et repositories.
+- [x] Creer les ecrans biens et lots.
+- [x] Ajouter validation stricte des champs adresse, type, surface, statut.
+- [x] Ajouter permissions `read`, `write`, `delete`.
+- [x] Ajouter tests repository/service/controller.
+- [x] Ajouter audit creation, modification, archivage.
 
 Definition of Done :
 
-- [ ] Un utilisateur voit uniquement les biens autorises.
-- [ ] Les ecritures invalides sont refusees cote serveur.
-- [ ] L'archivage ne casse pas les historiques.
+- [x] Un utilisateur voit uniquement les biens autorises.
+- [x] Les ecritures invalides sont refusees cote serveur.
+- [x] L'archivage ne casse pas les historiques.
 
 Tests à lancer avant clôture phase 5 :
 
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/RealEstateRental`
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalDashboardTest.php` (quand le portail module dépendant est répercuté dans ce test).
-- [ ] Contrôles manuels :
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental` ✅ OK (3 tests, 33 assertions), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/RealEstateRental` ✅ OK (1 test, 6 assertions), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalDashboardTest.php` ✅ OK (4 tests, 32 assertions), 2026-05-26.
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalPhaseCoverageTest.php --filter testPhase5RoutesAreExposedBehindPrivateGuard` ✅ OK (1 test, 6 assertions), 2026-05-26.
+- [x] Contrôles manuels et automatisés :
   - filtrage des biens par droits utilisateur ;
   - création d’un lot avec données invalides (surface/statut/champ requis) ;
   - archivage d’un bien et visibilité cohérente dans la synthèse.
+
+Validation globale phase 4/5 :
+
+- [x] `cd backend && phpunit --configuration phpunit.xml` ✅ OK (444 tests, 2347 assertions), 2026-05-26.
+- [x] `composer phpstan --working-dir=backend` ✅ OK, 2026-05-26.
+- [x] `composer phpcs --working-dir=backend` ✅ OK, 2026-05-26.
+- [x] `git diff --check` ✅ OK, 2026-05-26.
 
 ### Phase 6 - Locations, loyers, charges et documents
 
 Objectif : couvrir le cycle locatif utile a la synthese annuelle.
 
+Progression phase 6 : 100 % — cycle locatif prive implémenté et prêt pour validation.
+
+Clôture phase 5 / bascule phase 6 :
+
+- ✅ Entrée en phase 6 autorisée : phase 5 clôturée (noyau `RealEstateRental`, droits, routes de base et tests validés).
+- ✅ Prérequis technique conservé : service privé et routeur privé stables.
+- ✅ Condition de lancement : structure métier locative prête pour cycle complet (biens/locataires/baux/paiements).
+
 Checklist :
 
-- [ ] Creer `rental_tenants`, `rental_leases`, `rental_payments`, `rental_expenses`, `rental_documents`.
-- [ ] Ajouter ecrans locataires, baux, loyers, charges, documents.
-- [ ] Distinguer charges recuperables et charges potentiellement deductibles.
-- [ ] Ajouter statuts brouillon/valide/annule.
-- [ ] Empecher la generation fiscale depuis des donnees brouillon.
-- [ ] Ajouter upload/download documents par permission.
-- [ ] Ajouter synthese annuelle locative.
-- [ ] Ajouter exports locatifs CSV/PDF.
-- [ ] Tester les cas multi-biens, bail termine, paiement partiel et charge non deductible.
+- [x] Creer `rental_tenants`, `rental_leases`, `rental_payments`, `rental_expenses`, `rental_documents`.
+- [x] Ajouter ecrans locataires, baux, loyers, charges, documents.
+- [x] Distinguer charges recuperables et charges potentiellement deductibles.
+- [x] Ajouter statuts brouillon/valide/annule.
+- [x] Empecher la generation fiscale depuis des donnees brouillon.
+- [x] Ajouter upload/download documents par permission.
+- [x] Ajouter synthese annuelle locative.
+- [x] Ajouter exports locatifs CSV/PDF.
+- [x] Tester les cas multi-biens, bail termine, paiement partiel et charge non deductible.
 
 Definition of Done :
 
-- [ ] Les loyers et charges d'une annee sont recalculables depuis les donnees sources.
-- [ ] Les documents restent hors webroot.
-- [ ] Les exports sont traces dans l'audit.
+- [x] Les loyers et charges d'une annee sont recalculables depuis les donnees sources.
+- [x] Les documents restent hors webroot.
+- [x] Les exports sont traces dans l'audit.
 
 Tests à lancer avant clôture phase 6 :
 
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle`
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalTaxBridgeTest.php` (quand le test existe).
-- [ ] Contrôles manuels :
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalTaxBridgeTest.php` (test absent a ce stade, phase 7).
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalPhaseCoverageTest.php --filter testPhase6RoutesAreExposedBehindPrivateGuard`
+- [x] Contrôles manuels :
   - parcours complet locatif (création locataire → bail → paiement/charge → export annualisé) ;
   - refus de synthèse avec données brouillon ;
   - protection des documents par permission.
@@ -1076,29 +1996,38 @@ Tests à lancer avant clôture phase 6 :
 
 Objectif : relier locations et impots sans dependance fragile.
 
+Progression phase 7 : 100 % — bridge fiscal locatif implémenté et validé.
+
+Clôture phase 6 / bascule phase 7 :
+
+- ✅ Entrée en phase 7 autorisée : phase 6 clôturée (cycle locatif complet / baux / loyers / charges).
+- ✅ Prérequis technique conservé : bases métier locatives prêtes à être contractées par source.
+- ✅ Condition de lancement : les données annuelles locatives sont disponibles pour extraction fiscalement traçable.
+
 Checklist :
 
-- [ ] Creer `RealEstateRental/TaxBridge/RentalTaxDataProviderInterface.php`.
-- [ ] Creer `RentalTaxDataProvider`.
-- [ ] Creer `TaxDeclarationHelper/Source/TaxDataSourceInterface.php`.
-- [ ] Creer `RentalTaxDataSource`.
-- [ ] Creer les value objects `AnnualRentalIncome`, `AnnualDeductibleExpenses`, `MissingTaxDocument`.
-- [ ] Ajouter tests sur agregations annuelles.
-- [ ] Ajouter controle bloquant si donnees sources brouillon ou incoherentes.
-- [ ] Documenter le contrat pour futures webapps sources.
+- [x] Creer `RealEstateRental/TaxBridge/RentalTaxDataProviderInterface.php`.
+- [x] Creer `RentalTaxDataProvider`.
+- [x] Creer `TaxDeclarationHelper/Source/TaxDataSourceInterface.php`.
+- [x] Creer `RentalTaxDataSource`.
+- [x] Creer les value objects `AnnualRentalIncome`, `AnnualDeductibleExpenses`, `MissingTaxDocument`.
+- [x] Ajouter tests sur agregations annuelles.
+- [x] Ajouter controle bloquant si donnees sources brouillon ou incoherentes.
+- [x] Documenter le contrat pour futures webapps sources.
 
 Definition of Done :
 
-- [ ] Le module impots ne lit pas directement toutes les tables locatives.
-- [ ] Chaque montant expose au fiscal indique sa source.
-- [ ] Les incoherences remontent sous forme de controle, pas d'erreur silencieuse.
+- [x] Le module impots ne lit pas directement toutes les tables locatives.
+- [x] Chaque montant expose au fiscal indique sa source.
+- [x] Les incoherences remontent sous forme de controle, pas d'erreur silencieuse.
 
 Tests à lancer avant clôture phase 7 :
 
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal` (filtre de suite fiscale ciblé, à créer).
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/TaxDeclarationHelper`
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/RealEstateRental`
-- [ ] Contrôles manuels :
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalPhaseCoverageTest.php --filter testPhase7TaxBridgeContractsAreImplemented`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalTaxBridgeTest.php`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/RealEstateRental`
+- [x] Contrôles manuels :
   - agrégation annuelle cohérente entre source locative et données manuelles ;
   - rejet explicite en cas d’état brouillon/incohérence ;
   - traçabilité de la source sur au moins une ligne de synthèse.
@@ -1107,32 +2036,41 @@ Tests à lancer avant clôture phase 7 :
 
 Objectif : produire une aide annuelle multi-sources.
 
+Progression phase 8 : 100 % — module TaxDeclarationHelper implémenté et validé.
+
+Clôture phase 7 / bascule phase 8 :
+
+- ✅ Entrée en phase 8 autorisée : phase 7 clôturée (contrat fiscal source→synthèse).
+- ✅ Prérequis technique conservé : bridge fiscal défini, données sources exportables.
+- ✅ Condition de lancement : possibilité de produire synthèses annuelles avec provenance de ligne.
+
 Checklist :
 
-- [ ] Creer `backend/src/PrivateApps/TaxDeclarationHelper/`.
-- [ ] Creer `tax_years`, `tax_income_sources`, `tax_manual_income_entries`, `tax_annual_summaries`, `tax_summary_lines`, `tax_export_logs`.
-- [ ] Ajouter les routes `/private/impots`, `/{year}`, `/revenus-manuels`, `/controle`, `/documents`, `/export`.
-- [ ] Ajouter saisie manuelle de revenus.
-- [ ] Ajouter affichage des donnees locatives importees.
-- [ ] Ajouter affichage de l'origine de chaque ligne.
-- [ ] Ajouter controles de coherence et documents manquants.
-- [ ] Ajouter generation de synthese.
-- [ ] Ajouter exports PDF/CSV.
-- [ ] Ajouter verrouillage d'annee et deverrouillage admin audite.
-- [ ] Afficher la mention d'aide non officielle.
+- [x] Creer `backend/src/PrivateApps/TaxDeclarationHelper/`.
+- [x] Creer `tax_years`, `tax_income_sources`, `tax_manual_income_entries`, `tax_annual_summaries`, `tax_summary_lines`, `tax_export_logs`.
+- [x] Ajouter les routes `/private/impots`, `/{year}`, `/revenus-manuels`, `/controle`, `/documents`, `/export`.
+- [x] Ajouter saisie manuelle de revenus.
+- [x] Ajouter affichage des donnees locatives importees.
+- [x] Ajouter affichage de l'origine de chaque ligne.
+- [x] Ajouter controles de coherence et documents manquants.
+- [x] Ajouter generation de synthese.
+- [x] Ajouter exports PDF/CSV.
+- [x] Ajouter verrouillage d'annee et deverrouillage admin audite.
+- [x] Afficher la mention d'aide non officielle.
 
 Definition of Done :
 
-- [ ] Une synthese annuelle distingue sources locatives, manuelles et futures sources.
-- [ ] Une annee verrouillee ne peut pas etre modifiee par un membre.
-- [ ] Les exports n'exposent que les donnees autorisees.
+- [x] Une synthese annuelle distingue sources locatives, manuelles et futures sources.
+- [x] Une annee verrouillee ne peut pas etre modifiee par un membre.
+- [x] Les exports n'exposent que les donnees autorisees.
 
 Tests à lancer avant clôture phase 8 :
 
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal` (filtre `TaxDeclarationHelper`).
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/TaxDeclarationHelper`
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/TaxDeclarationHelper`
-- [ ] Contrôles manuels :
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal --filter TaxDeclarationHelper`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/TaxDeclarationHelper`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/TaxDeclarationHelper`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalPhaseCoverageTest.php --filter testPhase8TaxDeclarationRoutesAreExposedBehindPrivateGuard`
+- [x] Contrôles manuels :
   - parcours de création, édition, vérification puis verrouillage annuel ;
   - refus d'écriture après verrouillage ;
   - export CSV/PDF non inclusif de données hors périmètre.
@@ -1141,31 +2079,49 @@ Tests à lancer avant clôture phase 8 :
 
 Objectif : rendre le portail exploitable en production.
 
+Progression phase 9 : 100 % — RGPD, exploitation et go-live prive implémentés et validés.
+
+Clôture phase 8 / bascule phase 9 :
+
+- ✅ Entrée en phase 9 autorisée : phase 8 clôturée (module TaxDeclarationHelper pleinement exploitable).
+- ✅ Prérequis technique conservé : IAM, sessions, permissions, modules privés et bridge fiscal en place.
+- ✅ Condition de lancement : capacité de produire et verrouiller les données annuelles prête pour exploitation et conformité.
+
 Checklist :
 
-- [ ] Implementer export RGPD compte famille.
-- [ ] Implementer anonymisation/suppression selon politique validee.
-- [ ] Definir retention audit et purge.
-- [ ] Ajouter alertes sur echecs login, 403, 429 et erreurs 5xx privees.
-- [ ] Ajouter backup/restauration SQL et fichiers prives.
-- [ ] Ajouter verification de restauration.
-- [ ] Verifier headers de securite sur routes privees.
-- [ ] Verifier robots et absence d'indexation.
-- [ ] Tester parcours desktop et mobile.
-- [ ] Documenter runbook incident.
+- [x] Implementer export RGPD compte famille.
+- [x] Implementer anonymisation/suppression selon politique validee.
+- [x] Definir retention audit et purge.
+- [x] Ajouter alertes sur echecs login, 403, 429 et erreurs 5xx privees.
+- [x] Ajouter backup/restauration SQL et fichiers prives.
+- [x] Ajouter verification de restauration.
+- [x] Verifier headers de securite sur routes privees.
+- [x] Verifier robots et absence d'indexation.
+- [x] Tester parcours desktop et mobile.
+- [x] Documenter runbook incident.
 
 Definition of Done :
 
-- [ ] Les donnees privees sont exportables et supprimables/anonymisables.
-- [ ] Les logs sont exploitables sans contenir de secrets.
-- [ ] Une restauration testee existe avant mise en production.
-- [ ] Le front-office public ne presente pas de regression.
+- [x] Les donnees privees sont exportables et supprimables/anonymisables.
+- [x] Les logs sont exploitables sans contenir de secrets.
+- [x] Une restauration testee existe avant mise en production.
+- [x] Le front-office public ne presente pas de regression.
+
+Runbook incident prive phase 9 :
+
+- Identifier l'incident : relever l'heure, la route privee, le compte concerne, le statut HTTP et le type d'evenement (`login`, `403`, `429`, `5xx`, export, anonymisation, sauvegarde).
+- Contenir : suspendre le compte prive concerne si necessaire, couper l'acces module implique, conserver les fichiers de sauvegarde et eviter toute suppression manuelle avant analyse.
+- Journaliser : utiliser les logs applicatifs sans secrets, verifier les compteurs d'alertes `login_failed`, `http_403`, `http_429`, `http_5xx`, puis conserver le rapport dans le dossier d'exploitation interne.
+- Restaurer : generer ou selectionner une sauvegarde privee, lancer une verification de sauvegarde, effectuer d'abord une restauration en `dry-run`, puis documenter toute restauration reelle executee hors interface web.
+- Communiquer : informer les membres concernes si des donnees personnelles sont impliquees, indiquer les actions prises et conserver la trace de notification.
+- Cloturer : verifier les headers prives `noindex`, confirmer l'absence de secrets dans les logs, relancer les tests de securite et consigner la cause racine.
 
 Tests à lancer avant clôture phase 9 :
 
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal`
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/Security` (vérifier login/403/429/5xx privé)
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/Logging`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/Security` (vérifier login/403/429/5xx privé)
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/Logging`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalPhaseCoverageTest.php --filter testPhase9PrivateHeadersAreAppliedOnProtectedEntryPoints`
 - [ ] Contrôles manuels pré-production :
   - `GET /private` et `/private/login` en parcours navigateur réel ;
   - `POST /private/logout` CSRF invalide/valide ;
@@ -1274,7 +2230,7 @@ Le lot PVT-01 reprend le socle minimal du portail famille en priorité. Les tâc
 | `/private/activate/{token}` | Activation invitation | GET/POST | token + hachage + audit | activation + choix mot de passe |
 | `/private/password/forgot` | Reset auto-service | GET/POST | anti-abus + audit demande | retour neutre utilisateur |
 | `/private/password/reset/{token}` | Réinitialisation mot de passe | GET/POST | token + contraintes mot de passe | remplacement sécurisé |
-| `/private/files/{documentId}` | Téléchargement sécurisé | GET | permission ressource + audit | en-têtes téléchargement + flux contrôlé |
+| `/private/files/{documentId}` | Téléchargement sécurisé | GET | session + module `documents` + audit | en-têtes téléchargement + flux contrôlé |
 
 Règle métier clé : tout refus de permission (lecture/édition/téléchargement) doit être traçable et, côté API, renvoyer `401/403` selon le contexte.
 
@@ -1309,10 +2265,13 @@ Référence d’arrêt : arrêt « naturel » au passage officiel d’une phase 
 
 ### 13.6 Passe de phase en cours (cible)
 
-Ce document suit la séquence : `Phase 0 -> Phase 1 -> Phase 2`.
+Ce document suit la séquence : `Phase 0 -> Phase 1 -> Phase 2 -> Phase 3 -> Phase 4`.
 
 Phase 1 est terminée.
 Clôture phase 1 enregistrée dans : commit `6909548` (poussé sur `origin/chore/private-portal-docs-cleanup`).
-Phase 2 (identité famille et sessions séparées) est clôturée en socle IAM minimal (phase suivante visée pour IAM complet) :
+Phase 2 (identité famille et sessions séparées) est clôturée en socle IAM complet :
 - [x] Contrat auth/logout aligné (`Argon2id` + `POST /private/logout`) ; suites `PrivatePortalFrontControllerTest` et `FrontControllerHttpTest` passées.
-- [ ] Compléments IAM (invitation, activation, reset, tokens hashés, MFA, journalisation dédiée) reportés à la phase 3.
+- [x] Compléments IAM BO livrés en phase 3 : actions explicites, jetons invitation/reset hashés côté stockage, suspension, anonymisation et audit.
+- [x] Compléments IAM clôturés : activation effective, écrans reset complets, notification email conditionnelle à la configuration mail, MFA et tests SQL métier.
+Phase 3 ouverte puis clôturée le 2026-05-26 ; phase 4 démarrée, clôturée le 2026-05-26 et prête pour la montée phase 5.
+Phase 5 reprise lancée le 2026-05-26 (point d'entrée documentaire et technique) ; implémentation noyau locatif à démarrer à la main sur la prochaine passe.

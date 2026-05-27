@@ -440,6 +440,98 @@ $privatePasswordComplexityEnabled = filter_var(
     FILTER_NULL_ON_FAILURE
 ) ?? true;
 
+$normalizePrivateDocumentExtensions = static function (mixed $values): array {
+    $rawItems = is_array($values) ? $values : preg_split('/\s*,\s*/', (string) $values, -1, PREG_SPLIT_NO_EMPTY);
+    $rawItems = is_array($rawItems) ? $rawItems : [];
+
+    $normalized = [];
+    foreach ($rawItems as $value) {
+        $normalizedValue = strtolower(trim((string) $value));
+        if (
+            $normalizedValue === ''
+            || preg_match('/\A[a-z0-9]{1,16}\z/', $normalizedValue) !== 1
+            || in_array($normalizedValue, $normalized, true)
+        ) {
+            continue;
+        }
+
+        $normalized[] = $normalizedValue;
+    }
+
+    return $normalized;
+};
+
+$normalizePrivateDocumentMimeTypes = static function (mixed $values): array {
+    $rawItems = is_array($values) ? $values : preg_split('/\s*,\s*/', (string) $values, -1, PREG_SPLIT_NO_EMPTY);
+    $rawItems = is_array($rawItems) ? $rawItems : [];
+
+    $normalized = [];
+    foreach ($rawItems as $value) {
+        $normalizedValue = strtolower(trim((string) $value));
+        if (
+            $normalizedValue === ''
+            || preg_match('/\A[a-z0-9.+-]+\/[a-z0-9.+-]+\z/i', $normalizedValue) !== 1
+            || in_array($normalizedValue, $normalized, true)
+        ) {
+            continue;
+        }
+
+        $normalized[] = $normalizedValue;
+    }
+
+    return $normalized;
+};
+
+$privateDocumentStorageRootPath = trim((string) env('PRIVATE_DOCUMENT_STORAGE_ROOT_PATH', ROOT_PATH . '/private'));
+if ($privateDocumentStorageRootPath === '') {
+    $privateDocumentStorageRootPath = ROOT_PATH . '/private';
+}
+
+$privateDocumentStorageDirectory = trim((string) env('PRIVATE_DOCUMENT_STORAGE_DIRECTORY', 'storage'));
+if ($privateDocumentStorageDirectory === '') {
+    $privateDocumentStorageDirectory = 'storage';
+}
+
+$privateDocumentUploadsDirectory = trim((string) env('PRIVATE_DOCUMENT_UPLOADS_DIRECTORY', 'uploads'));
+if ($privateDocumentUploadsDirectory === '') {
+    $privateDocumentUploadsDirectory = 'uploads';
+}
+
+$privateDocumentExportsDirectory = trim((string) env('PRIVATE_DOCUMENT_EXPORTS_DIRECTORY', 'exports'));
+if ($privateDocumentExportsDirectory === '') {
+    $privateDocumentExportsDirectory = 'exports';
+}
+
+$privateDocumentMaxUploadBytes = (int) env('PRIVATE_DOCUMENT_MAX_UPLOAD_BYTES', 20 * 1024 * 1024);
+if ($privateDocumentMaxUploadBytes < 1) {
+    $privateDocumentMaxUploadBytes = 20 * 1024 * 1024;
+}
+
+$privateDocumentAllowedExtensions = $normalizePrivateDocumentExtensions(
+    env(
+        'PRIVATE_DOCUMENT_ALLOWED_EXTENSIONS',
+        'pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif,webp,txt'
+    )
+);
+
+$privateDocumentAllowedMimeTypes = $normalizePrivateDocumentMimeTypes(
+    env(
+        'PRIVATE_DOCUMENT_ALLOWED_MIME_TYPES',
+        implode(',', [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+            'text/plain',
+        ])
+    )
+);
+
 $appEnv = defined('CARAMAGNOLS_LOCAL_DEV_ROUTER') ? 'development' : env('APP_ENV', 'development');
 
 $appConfig = [
@@ -503,6 +595,15 @@ $appConfig = [
         'account_lockout_seconds' => $privateAccountLockoutSeconds,
         'password_min_length' => $privatePasswordMinLength,
         'password_complexity_enabled' => $privatePasswordComplexityEnabled,
+        'documents' => [
+            'storage_root_path' => $privateDocumentStorageRootPath,
+            'storage_directory' => $privateDocumentStorageDirectory,
+            'uploads_directory' => $privateDocumentUploadsDirectory,
+            'exports_directory' => $privateDocumentExportsDirectory,
+            'max_upload_bytes' => $privateDocumentMaxUploadBytes,
+            'allowed_extensions' => $privateDocumentAllowedExtensions,
+            'allowed_mime_types' => $privateDocumentAllowedMimeTypes,
+        ],
         'trust_proxy_headers' => filter_var(
             env('PRIVATE_TRUST_PROXY_HEADERS', env('TRUST_PROXY_HEADERS', env('ADMIN_TRUST_PROXY_HEADERS', false))),
             FILTER_VALIDATE_BOOLEAN,

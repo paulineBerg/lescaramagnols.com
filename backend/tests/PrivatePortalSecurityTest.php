@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
+use Caramagnols\PrivatePortal\Security\PrivatePasswordPolicy;
 use Caramagnols\PrivatePortal\Security\PrivateSession;
+use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
+use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/../core/bootstrap.php';
@@ -11,6 +14,8 @@ require_once __DIR__ . '/../core/rate_limiter.php';
 
 final class PrivatePortalSecurityTest extends TestCase
 {
+    use EditorialSqlTestTrait;
+
     private string $rateLimitDir;
     private ?string $previousRateLimitDir = null;
     private string $sessionName;
@@ -50,6 +55,7 @@ final class PrivatePortalSecurityTest extends TestCase
     protected function tearDown(): void
     {
         $_SESSION = [];
+        $this->cleanupEditorialSqlDatabase();
 
         $files = glob($this->rateLimitDir . '/*');
         if (is_array($files)) {
@@ -72,6 +78,26 @@ final class PrivatePortalSecurityTest extends TestCase
         } else {
             unset($appConfig['private']);
         }
+    }
+
+    public function testLoginRejectsRepositoryUsersNotInActiveStatus(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $passwordHash = password_hash('secret123', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $this->assertIsInt($userRepository->create('family@example.com', $passwordHash, 'invited'));
+        $this->configurePrivatePasswordHash($passwordHash);
+
+        $auth = new PrivateAuth(
+            new PrivateSession($this->sessionName),
+            null,
+            $userRepository
+        );
+
+        $this->assertFalse($auth->login('family@example.com', 'secret123', '127.0.0.1'));
+        $this->assertSame('invalid_credentials', $auth->failureReason());
+        $this->assertFalse($auth->isAuthenticated());
     }
 
     public function testLoginRejectsUnsupportedPasswordHashAlgorithm(): void
@@ -119,6 +145,43 @@ final class PrivatePortalSecurityTest extends TestCase
         $this->assertFalse($auth->isAuthenticated());
 
         $this->assertNotSame($sessionBefore, $this->sessionId());
+    }
+
+    public function testSessionExpiresAfterInactivityTimeout(): void
+    {
+        $this->configurePrivatePasswordHash(password_hash('secret123', PASSWORD_ARGON2ID));
+        $this->setPrivateConfigValue('inactivity_timeout_seconds', 300);
+        $auth = $this->privateAuth();
+
+        $this->assertTrue($auth->login('family@example.com', 'secret123', '127.0.0.1'));
+        $_SESSION['private_user']['last_activity_at'] = time() - 301;
+
+        $this->assertFalse($auth->isAuthenticated());
+    }
+
+    public function testReauthTimeoutInvalidatesAuthenticatedSession(): void
+    {
+        $this->configurePrivatePasswordHash(password_hash('secret123', PASSWORD_ARGON2ID));
+        $this->setPrivateConfigValue('reauth_timeout_seconds', 301);
+        $auth = $this->privateAuth();
+
+        $this->assertTrue($auth->login('family@example.com', 'secret123', '127.0.0.1'));
+
+        $context = $_SESSION['private_user'] ?? [];
+        $this->assertIsArray($context);
+        $context['last_reauth_at'] = time() - 302;
+        $_SESSION['private_user'] = $context;
+
+        $this->assertFalse($auth->isAuthenticated());
+    }
+
+    public function testPasswordPolicyRejectsWeakPasswordsAndMismatchedConfirmation(): void
+    {
+        $policy = new PrivatePasswordPolicy();
+
+        $this->assertNotSame([], $policy->validate('weak', 'weak'));
+        $this->assertContains('password_confirmation', $policy->validate('StrongPassword1!', 'OtherPassword1!'));
+        $this->assertSame([], $policy->validate('StrongPassword1!', 'StrongPassword1!'));
     }
 
     private function privateAuth(): PrivateAuth

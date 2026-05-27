@@ -3406,6 +3406,7 @@ final class AdminControllerTest extends TestCase
             null,
             null,
             null,
+            null,
             $cronCenterService
         );
     }

@@ -121,14 +121,18 @@ final class AppEventLogger
         $normalized = [];
 
         foreach ($context as $key => $value) {
-            $normalized[$key] = $this->normalizeValue($value);
+            $normalized[$key] = $this->normalizeValue($value, (string) $key);
         }
 
         return $normalized;
     }
 
-    private function normalizeValue(mixed $value): mixed
+    private function normalizeValue(mixed $value, string $key = ''): mixed
     {
+        if ($this->isSensitiveKey($key)) {
+            return '[redacted]';
+        }
+
         if (is_null($value) || is_scalar($value)) {
             if (is_string($value)) {
                 return function_exists('mb_substr') ? mb_substr($value, 0, 500) : substr($value, 0, 500);
@@ -141,7 +145,7 @@ final class AppEventLogger
             $normalized = [];
 
             foreach ($value as $itemKey => $itemValue) {
-                $normalized[(string) $itemKey] = $this->normalizeValue($itemValue);
+                $normalized[(string) $itemKey] = $this->normalizeValue($itemValue, (string) $itemKey);
             }
 
             return $normalized;
@@ -156,5 +160,21 @@ final class AppEventLogger
         }
 
         return gettype($value);
+    }
+
+    private function isSensitiveKey(string $key): bool
+    {
+        $key = strtolower(trim($key));
+        if ($key === '') {
+            return false;
+        }
+
+        foreach (['password', 'passwd', 'token', 'secret', 'csrf', 'authorization', 'cookie', 'hash'] as $needle) {
+            if (str_contains($key, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

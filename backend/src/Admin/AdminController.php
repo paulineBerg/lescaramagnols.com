@@ -10,6 +10,9 @@ use Caramagnols\Cron\CronJobRepository;
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivatePortal\PrivateModuleRegistry;
+use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
+use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 
 final class AdminController
 {
@@ -27,6 +30,7 @@ final class AdminController
     private AdminTileService $tileService;
     private AdminSerializedFormNormalizer $serializedFormNormalizer;
     private AdminEditorialImageService $editorialImageService;
+    private AdminPrivateMembersService $privateMembersService;
 
     public function __construct(
         private readonly AdminRouteResolver $routeResolver,
@@ -41,6 +45,7 @@ final class AdminController
         ?AdminSerializedFormNormalizer $serializedFormNormalizer = null,
         ?AdminEditorialImageService $editorialImageService = null,
         ?AdminTileService $tileService = null,
+        ?AdminPrivateMembersService $privateMembersService = null,
         ?AdminCronCenterService $cronCenterService = null
     ) {
         require_once ROOT_PATH . '/core/auth/admin.php';
@@ -100,6 +105,11 @@ final class AdminController
             $pageRepository,
             site_available_languages(),
             (string) app_config('default_lang', 'fr')
+        );
+        $this->privateMembersService = $privateMembersService ?? new AdminPrivateMembersService(
+            new PrivateUserRepository(editorial_database()),
+            new PrivateModulePermissionRepository(editorial_database(), new PrivateModuleRegistry()),
+            $this->eventLogger
         );
     }
 
@@ -325,6 +335,7 @@ final class AdminController
             'menus' => $this->menus($request),
             'logs' => $this->logs($request),
             'settings' => $this->settings($request),
+            'private_members' => $this->privateMembers($request),
             'session_ping' => $this->sessionPing($request),
             'logout' => $this->logout($request),
             default => new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Page admin introuvable.'),
@@ -480,6 +491,108 @@ final class AdminController
                 'draftContentCount' => (int) $pageSummary['drafts'] + (int) $articleSummary['drafts'],
             ]
         );
+    }
+
+    private function privateMembers(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'private_members');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $query = $request->query();
+        $statusFilter = is_string($query['status'] ?? null) ? trim((string) $query['status']) : null;
+        $search = is_string($query['q'] ?? null) ? trim((string) $query['q']) : '';
+        $flash = admin_pop_flash_message();
+        $message = null;
+        $error = null;
+        if (is_array($flash)) {
+            if (($flash['type'] ?? '') === 'success') {
+                $message = (string) ($flash['message'] ?? '');
+            } elseif (($flash['type'] ?? '') === 'error') {
+                $error = (string) ($flash['message'] ?? '');
+            }
+        }
+
+        if ($request->method() === 'POST') {
+            $body = is_array($request->body()) ? $request->body() : [];
+            $token = $body['csrf_token'] ?? '';
+
+            if (!admin_validate_csrf_token(is_string($token) ? $token : null)) {
+                $this->eventLogger->security(
+                    'admin.private_members.invalid_csrf',
+                    [
+                        'uri' => $request->uri(),
+                        'actor' => admin_current_masked_identifier(),
+                    ],
+                    'warning'
+                );
+                admin_set_flash_message(
+                    'error',
+                    $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.')
+                );
+
+                return $this->redirect($this->privateMembersRedirectLocation($body));
+            }
+
+            $result = $this->privateMembersService->handleAction(
+                $body,
+                admin_current_identifier(),
+                $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)),
+                (string) ($request->server('HTTP_USER_AGENT', '') ?? '')
+            );
+            admin_set_flash_message(
+                ($result['success'] ?? false) ? 'success' : 'error',
+                (string) (($result['success'] ?? false) ? ($result['message'] ?? '') : ($result['error'] ?? ''))
+            );
+
+            return $this->redirect($this->privateMembersRedirectLocation($body));
+        }
+
+        $viewModel = $this->privateMembersService->listMembersViewModel($statusFilter, $search);
+
+        return $this->renderPage(
+            'private_members_list.php',
+            [
+                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_PRIVATE_MEMBERS', 'Membres de l’espace privé'),
+                'activeMenu' => 'private_members',
+                'adminPrivateMembersUrl' => $this->routeResolver->canonicalPath('private_members'),
+                'adminPrivatePortalLoginUrl' => private_route_resolver()->canonicalPath('login'),
+                'statusFilter' => is_string($viewModel['statusFilter'] ?? null) ? $viewModel['statusFilter'] : '',
+                'searchQuery' => is_string($viewModel['searchQuery'] ?? null) ? $viewModel['searchQuery'] : '',
+                'privateMembers' => is_array($viewModel['members'] ?? null) ? $viewModel['members'] : [],
+                'privateMembersStats' => is_array($viewModel['stats'] ?? null) ? $viewModel['stats'] : [],
+                'privateModuleRegistry' => is_array($viewModel['moduleRegistry'] ?? null) ? $viewModel['moduleRegistry'] : [],
+                'message' => $message,
+                'error' => $error,
+                'csrfToken' => admin_csrf_token(),
+            ]
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function privateMembersRedirectLocation(array $body): string
+    {
+        $location = $this->routeResolver->canonicalPath('private_members');
+        $fragment = $this->privateMembersReturnFragment($body['private_member_return_fragment'] ?? null);
+
+        return $fragment !== '' ? $location . '#' . $fragment : $location;
+    }
+
+    private function privateMembersReturnFragment(mixed $fragment): string
+    {
+        if (!is_string($fragment)) {
+            return '';
+        }
+
+        $normalized = trim($fragment);
+        if (!preg_match('/\Aprivate-member-[1-9][0-9]*\z/', $normalized)) {
+            return '';
+        }
+
+        return $normalized;
     }
 
     private function pages(Request $request): Response
@@ -2174,6 +2287,7 @@ final class AdminController
             'adminMenusUrl' => $this->routeResolver->canonicalPath('menus'),
             'adminLogsUrl' => $this->routeResolver->canonicalPath('logs'),
             'adminSettingsUrl' => $this->routeResolver->canonicalPath('settings'),
+            'adminPrivateMembersUrl' => $this->routeResolver->canonicalPath('private_members'),
             'adminLogoutUrl' => $this->routeResolver->canonicalPath('logout'),
             'adminSessionPingUrl' => $this->routeResolver->sessionPingPath(),
             'adminBlogSaveUrl' => $this->routeResolver->blogSavePath(),

@@ -61,5 +61,7 @@ backend/config/admin.override.php
 backend/config/site.override.php
 backend/public/tmp_config/
 backend/config/db.php
+backend/private/storage/
+docs/private/agence/
 
 *:Zone.Identifier

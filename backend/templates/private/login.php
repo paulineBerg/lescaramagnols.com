@@ -49,6 +49,13 @@ $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null)
       <input id="password" name="password" type="password" required autocomplete="current-password" />
     </div>
 
+    <div>
+      <label for="mfa_code">
+        <?php echo htmlspecialchars($translate('TXT_PRIVATE_MFA_CODE_LABEL', 'Code de vérification'), ENT_QUOTES, 'UTF-8'); ?>
+      </label>
+      <input id="mfa_code" name="mfa_code" type="text" inputmode="numeric" autocomplete="one-time-code" />
+    </div>
+
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
 
     <div class="private-actions">
