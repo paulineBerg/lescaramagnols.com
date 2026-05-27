@@ -1,13 +1,14 @@
 # Portail prive famille, locations et aide impots
 
 Date de mise a jour : 2026-05-27
-Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports et fiscalite.
+Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
-Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis deux modules metier prioritaires :
+Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis trois modules metier prioritaires :
 
 1. `RealEstateRental` : gestion des locations immobilieres.
 2. `TaxDeclarationHelper` : aide a la preparation annuelle des impots, alimentee par les locations et par d'autres sources declarees.
+3. `FamilyDiscussion` : discussions entre membres, messages prives, groupes, images, fichiers et purge automatique a 60 jours.
 
 References projet a garder alignees :
 
@@ -57,6 +58,7 @@ Vocabulaire retenu :
 | Libelle utilisateur | `Espace famille` |
 | Module locations | `Locations immobilieres` |
 | Module fiscal | `Aide declaration impots` |
+| Module discussions | `Discussions famille` |
 
 Le mot `client` est a eviter dans le code et l'interface, sauf contrainte metier future explicite. Il est trop ambigu pour ce projet familial et peut laisser croire a un usage commercial.
 
@@ -94,13 +96,22 @@ Portail prive famille
 |   +-- Bridge fiscal
 |
 +-- Module TaxDeclarationHelper
-    +-- Sources declaratives
-    +-- Donnees locatives importees
-    +-- Revenus manuels
-    +-- Futures sources specialisees
-    +-- Controle de coherence
-    +-- Synthese annuelle
-    +-- Exports PDF/CSV
+|   +-- Sources declaratives
+|   +-- Donnees locatives importees
+|   +-- Revenus manuels
+|   +-- Futures sources specialisees
+|   +-- Controle de coherence
+|   +-- Synthese annuelle
+|   +-- Exports PDF/CSV
+|
++-- Module FamilyDiscussion
+    +-- Conversations directes
+    +-- Groupes de discussion
+    +-- Messages quasi instantanes
+    +-- Images avec apercu
+    +-- Fichiers joints
+    +-- Accuses de lecture
+    +-- Purge glissante a 60 jours
 ```
 
 Regles d'architecture :
@@ -147,6 +158,14 @@ backend/
 |           +-- Source/
 |           +-- Rules/
 |           +-- Export/
+|       |
+|       +-- FamilyDiscussion/
+|           +-- Domain/
+|           +-- Repository/
+|           +-- Service/
+|           +-- Controller/
+|           +-- Attachment/
+|           +-- Retention/
 |
 +-- templates/
 |   +-- private/
@@ -156,11 +175,13 @@ backend/
 |       +-- modules/
 |           +-- real-estate-rental/
 |           +-- tax-declaration-helper/
+|           +-- family-discussion/
 |
 +-- private/
 |   +-- storage/
 |   |   +-- real-estate-rental/
 |   |   +-- tax-declaration-helper/
+|   |   +-- family-discussion/
 |   +-- uploads/
 |   +-- exports/
 |
@@ -170,6 +191,7 @@ backend/
         +-- 002_private_permissions.sql
         +-- 003_real_estate_rental.sql
         +-- 004_tax_declaration_helper.sql
+        +-- 005_family_discussion.sql
 ```
 
 Ne pas modifier directement :
@@ -1506,7 +1528,322 @@ Hors perimetre V1 :
 5. choix automatique du regime fiscal ;
 6. webapp separee pour chaque revenu occasionnel.
 
-## 8. Securite et confidentialite
+## 8. Module FamilyDiscussion
+
+### 8.1 Objectif
+
+`FamilyDiscussion` est un module de discussion privee entre membres du portail famille. Il doit permettre des echanges rapides, proches d'une messagerie instantanee, sans exposer les conversations au front-office public ni au BO administrateur hors actions strictement necessaires d'exploitation.
+
+Le module gere des conversations courtes et transitoires. Il ne remplace pas le stockage documentaire durable : les messages, images et fichiers joints sont supprimes automatiquement apres `60` jours, au fur et a mesure de l'ouverture du module par chaque membre, avec une purge de securite planifiee en complement.
+
+Principes produit :
+
+1. discussions accessibles uniquement aux membres actifs autorises ;
+2. conversations directes entre deux membres ;
+3. conversations de groupe creees par un membre autorise ;
+4. messages texte avec affichage quasi instantane ;
+5. images envoyees avec apercu dans la conversation ;
+6. fichiers joints telechargeables via endpoint controle ;
+7. compteur de messages non lus par conversation ;
+8. purge glissante des contenus de plus de `60` jours ;
+9. audit minimal sans contenu de message.
+
+### 8.2 Fonctions V1
+
+Fonctions attendues :
+
+1. lister les conversations accessibles au membre connecte ;
+2. creer une conversation privee avec un autre membre actif ;
+3. creer un groupe avec nom, description courte optionnelle et liste de membres ;
+4. ajouter ou retirer des membres d'un groupe si l'utilisateur est createur du groupe ou administrateur prive autorise ;
+5. quitter un groupe, sauf si cela laisse le groupe sans responsable ;
+6. envoyer un message texte ;
+7. joindre une ou plusieurs images avec generation d'un apercu ;
+8. joindre un fichier courant avec nom, taille, type et bouton de telechargement ;
+9. afficher l'etat lu/non lu par conversation ;
+10. marquer automatiquement comme lus les messages visibles a l'ouverture d'une conversation ;
+11. afficher les erreurs d'envoi sans perdre le brouillon local ;
+12. filtrer les conversations par nom, membre ou groupe.
+
+Hors perimetre V1 :
+
+1. chiffrement de bout en bout ;
+2. appels audio ou video ;
+3. notifications push navigateur ;
+4. WebSocket obligatoire ;
+5. edition riche HTML ;
+6. archivage permanent des conversations ;
+7. recherche plein texte sur des messages purges ;
+8. moderation publique ou publication vers le site.
+
+### 8.3 Temps reel et experience utilisateur
+
+Le MVP doit rester compatible avec l'architecture PHP actuelle, sans runtime Node en production.
+
+Strategie recommandee :
+
+1. utiliser un rafraichissement court cote navigateur quand l'onglet de conversation est visible ;
+2. appeler un endpoint JSON `GET` avec curseur `after_message_id` ou `since` toutes les `3` a `5` secondes ;
+3. ralentir automatiquement le polling quand l'onglet est cache, quand aucune activite n'est detectee ou apres erreur reseau ;
+4. envoyer les messages par `POST` CSRF protege, avec reponse JSON contenant le message normalise ;
+5. garder une option future `SSE` si l'hebergement le supporte proprement ;
+6. eviter WebSocket en V1 sauf decision technique explicite et infra supervisee.
+
+Regles d'interface :
+
+1. le fil de discussion charge les derniers messages non expires ;
+2. un bouton permet de remonter plus loin dans l'historique restant, limite a `60` jours ;
+3. les images s'affichent en miniature cliquable, l'original restant servi par endpoint protege ;
+4. les fichiers non image s'affichent avec nom nettoye, taille lisible et type general ;
+5. les messages supprimes par retention ne doivent pas laisser de contenu visible, seulement une coupure temporelle sobre si necessaire ;
+6. aucun texte visible ne doit promettre une conservation longue.
+
+### 8.4 Architecture fonctionnelle
+
+Decoupage cible :
+
+```text
+backend/src/PrivateApps/FamilyDiscussion/
++-- Domain/
+|   +-- DiscussionConversation.php
+|   +-- DiscussionMessage.php
+|   +-- DiscussionAttachment.php
+|   +-- DiscussionMember.php
++-- Repository/
+|   +-- DiscussionConversationRepository.php
+|   +-- DiscussionMessageRepository.php
+|   +-- DiscussionAttachmentRepository.php
+|   +-- DiscussionReadRepository.php
++-- Service/
+|   +-- DiscussionConversationService.php
+|   +-- DiscussionMessageService.php
+|   +-- DiscussionNotificationService.php
+|   +-- DiscussionAccessPolicy.php
++-- Attachment/
+|   +-- DiscussionAttachmentStorage.php
+|   +-- DiscussionImagePreviewBuilder.php
++-- Retention/
+|   +-- DiscussionRetentionService.php
+|   +-- DiscussionRetentionCommand.php
++-- Controller/
+    +-- DiscussionController.php
+```
+
+Regles d'architecture :
+
+1. `DiscussionAccessPolicy` verifie toujours que l'utilisateur est participant actif de la conversation ;
+2. `DiscussionMessageService` valide le contenu, applique les limites, cree les messages et declenche les evenements d'audit ;
+3. `DiscussionAttachmentStorage` reutilise les principes de stockage prive : chemin hors webroot, nom disque aleatoire, MIME verifie, endpoint controle ;
+4. `DiscussionImagePreviewBuilder` cree une miniature non sensible si GD ou Imagick est disponible ; sinon l'image reste telechargeable sans generation hasardeuse ;
+5. `DiscussionRetentionService` purge les messages et fichiers expires par lots courts ;
+6. le controller reste mince et ne contient ni logique de permission, ni logique de purge, ni traitement image.
+
+### 8.5 Tables SQL
+
+Tables ciblees :
+
+```text
+discussion_conversations
+discussion_conversation_members
+discussion_messages
+discussion_message_attachments
+discussion_message_reads
+discussion_retention_runs
+```
+
+Champs minimum :
+
+```text
+discussion_conversations
+- id
+- type: direct / group
+- title
+- created_by_user_id
+- created_at
+- updated_at
+- last_message_at
+- archived_at nullable
+
+discussion_conversation_members
+- conversation_id
+- user_id
+- role: owner / member
+- joined_at
+- left_at nullable
+- muted_until nullable
+- last_opened_at nullable
+
+discussion_messages
+- id
+- conversation_id
+- sender_user_id
+- body
+- body_format: plain
+- created_at
+- edited_at nullable
+- deleted_at nullable
+- expires_at
+- purge_status: active / pending / purged
+
+discussion_message_attachments
+- id
+- message_id
+- original_filename
+- storage_path
+- preview_storage_path nullable
+- mime_type
+- size_bytes
+- sha256
+- width nullable
+- height nullable
+- created_at
+- expires_at
+- purge_status: active / pending / purged
+
+discussion_message_reads
+- conversation_id
+- message_id
+- user_id
+- read_at
+
+discussion_retention_runs
+- id
+- user_id nullable
+- scope: user_open / scheduled
+- started_at
+- finished_at nullable
+- purged_messages_count
+- purged_attachments_count
+- status
+- error_message nullable
+```
+
+Contraintes et index :
+
+1. unicite d'une conversation directe pour un couple de membres actifs, si la logique produit retient une seule conversation directe par paire ;
+2. index sur `conversation_id`, `created_at`, `expires_at`, `sender_user_id` ;
+3. index sur `discussion_conversation_members(user_id, left_at)` pour lister vite les conversations ;
+4. suppression du contenu message et des fichiers sans supprimer les lignes minimales utiles aux compteurs et audits ;
+5. aucune donnee de message dans les logs SQL ou applicatifs.
+
+### 8.6 Routes recommandees
+
+Routes HTML :
+
+```text
+/private/discussions
+/private/discussions/new
+/private/discussions/{conversationId}
+```
+
+Routes JSON ou POST controlees :
+
+```text
+GET  /private/discussions/api/conversations
+POST /private/discussions/api/conversations
+GET  /private/discussions/api/conversations/{conversationId}/messages
+POST /private/discussions/api/conversations/{conversationId}/messages
+POST /private/discussions/api/conversations/{conversationId}/members
+POST /private/discussions/api/conversations/{conversationId}/leave
+POST /private/discussions/api/conversations/{conversationId}/read
+GET  /private/discussions/files/{attachmentId}
+GET  /private/discussions/files/{attachmentId}/preview
+```
+
+Regles HTTP :
+
+1. toutes les routes passent par le `FrontController` et le `PrivateRouteResolver` ;
+2. le base path reste configurable par `PRIVATE_PORTAL_BASE_PATH` ;
+3. les `POST` exigent CSRF, session privee et permission module `discussions` ;
+4. les endpoints JSON retournent `401` si non connecte, `403` si connecte mais non participant ;
+5. les telechargements verifient module, participation, message non purge et fichier non expire ;
+6. toutes les reponses privees emettent `X-Robots-Tag: noindex, nofollow, noarchive`.
+
+### 8.7 Retention et suppression a 60 jours
+
+La retention par defaut du module est `60` jours.
+
+Variables a prevoir :
+
+```env
+PRIVATE_DISCUSSION_RETENTION_DAYS=60
+PRIVATE_DISCUSSION_MAX_MESSAGE_LENGTH=4000
+PRIVATE_DISCUSSION_MAX_ATTACHMENTS_PER_MESSAGE=5
+PRIVATE_DISCUSSION_MAX_ATTACHMENT_MB=20
+PRIVATE_DISCUSSION_POLL_INTERVAL_SECONDS=5
+```
+
+Regles de purge :
+
+1. chaque message et chaque fichier joint recoit un `expires_at = created_at + 60 jours` ;
+2. a l'ouverture de `/private/discussions`, lancer `DiscussionRetentionService::purgeExpiredForUser($userId)` avant la liste des conversations ;
+3. la purge utilisateur traite seulement les conversations auxquelles le membre a acces ;
+4. la purge se fait par lots courts pour ne pas ralentir l'ouverture du module ;
+5. le contenu du message, le chemin fichier et la miniature sont effaces ou anonymises quand la ligne passe a `purged` ;
+6. les fichiers physiques sont supprimes hors webroot ; en cas d'erreur disque, marquer l'attachement `pending` et journaliser sans exposer le chemin ;
+7. une commande planifiee quotidienne purge aussi les contenus expires des membres inactifs, afin de ne pas conserver indefiniment les donnees d'un compte qui ne se reconnecte plus ;
+8. les evenements d'audit ne contiennent jamais le texte du message, le nom original complet si sensible, ni le chemin disque.
+
+Evenements d'audit :
+
+```text
+private.discussion.conversation.created
+private.discussion.group.member_added
+private.discussion.group.member_removed
+private.discussion.message.sent
+private.discussion.attachment.uploaded
+private.discussion.attachment.downloaded
+private.discussion.access.denied
+private.discussion.retention.purged
+```
+
+### 8.8 Securite
+
+Controles obligatoires :
+
+1. module `discussions` actif pour l'utilisateur ;
+2. utilisateur membre de la conversation pour toute lecture, ecriture ou telechargement ;
+3. validation stricte des IDs, titres de groupe, messages, fichiers et types MIME ;
+4. echappement HTML systematique des messages ;
+5. stockage texte en format `plain`, pas de HTML utilisateur ;
+6. interdiction des fichiers executables, SVG inline, HTML, scripts, archives dangereuses et types inconnus ;
+7. images acceptees en allowlist stricte : JPEG, PNG, WebP, GIF si besoin explicite ;
+8. taille maximale appliquee cote serveur, independamment du front ;
+9. noms originaux nettoyes avant affichage ;
+10. telechargement avec en-tetes prudents et `Content-Disposition` adapte ;
+11. rate limit sur creation de conversation, envoi message et upload ;
+12. audit des refus sans fuite de contenu ;
+13. aucun acces administrateur au contenu des messages par defaut, hors procedure d'exploitation exceptionnelle documentee.
+
+Le module ne doit pas promettre un chiffrement de bout en bout tant qu'il n'existe pas. En V1, les messages sont proteges par session, permissions, stockage prive, transport HTTPS et controle serveur.
+
+### 8.9 Ordre d'implementation recommande
+
+1. Ajouter le module `discussions` dans `PrivateModuleRegistry`.
+2. Creer la migration `005_family_discussion.sql`.
+3. Creer les repositories SQL et tests de persistence.
+4. Creer `DiscussionAccessPolicy`.
+5. Creer `DiscussionConversationService` et les ecrans de liste/detail.
+6. Creer `DiscussionMessageService` avec envoi texte et polling JSON.
+7. Ajouter stockage et telechargement des fichiers joints.
+8. Ajouter generation d'apercu image.
+9. Ajouter `DiscussionRetentionService` declenche a l'ouverture du module.
+10. Ajouter la commande planifiee de purge de securite.
+11. Ajouter compteurs non lus et marquage lu.
+12. Ajouter tests HTTP : autorise, non autorise, non participant, CSRF invalide, fichier refuse, purge 60 jours.
+
+Critere de sortie V1 :
+
+1. un membre autorise peut discuter avec un autre membre autorise ;
+2. un membre peut creer un groupe et y ajouter des membres actifs ;
+3. un non participant ne peut ni lire ni telecharger ;
+4. une image envoyee affiche une miniature ;
+5. un fichier joint est telechargeable par les seuls participants ;
+6. les messages de plus de `60` jours sont purges a l'ouverture du module ;
+7. les tests de purge prouvent la suppression du contenu et des fichiers ;
+8. le dashboard prive n'affiche le module qu'aux utilisateurs autorises.
+
+## 9. Securite et confidentialite
 
 Controles obligatoires :
 
@@ -1550,6 +1887,10 @@ private.password_reset.completed
 private.module.access.denied
 private.document.uploaded
 private.document.downloaded
+private.discussion.message.sent
+private.discussion.attachment.uploaded
+private.discussion.access.denied
+private.discussion.retention.purged
 rental.property.created
 rental.lease.updated
 rental.payment.saved
@@ -1577,7 +1918,7 @@ status
 created_at
 ```
 
-## 9. Phases d'implementation
+## 10. Phases d'implementation
 
 Chaque phase doit etre livree avec tests, verification manuelle ciblee et documentation mise a jour si le comportement change, et cocher checklist.
 
@@ -2128,7 +2469,55 @@ Tests à lancer avant clôture phase 9 :
   - `robots.txt` et absence de régression FO (admin/blog/rss/sitemap/assets) ;
   - restauration privée documentée (données + fichiers) sur environnement test.
 
-## 10. Commandes de validation ciblees
+### Phase 10 - Module FamilyDiscussion
+
+Objectif : ajouter une messagerie privee entre membres, avec conversations directes, groupes, images, fichiers et suppression glissante apres `60` jours.
+
+Progression phase 10 : a demarrer.
+
+Prerequis :
+
+- [ ] Phase 3 finalisee : membres, permissions et registre de modules operationnels.
+- [ ] Phase 4 finalisee : stockage prive, telechargement controle et politique fichiers disponibles.
+- [ ] Phase 9 suffisamment couverte : retention, audit, export/anonymisation et runbook incident compatibles avec un module conversationnel.
+
+Checklist :
+
+- [ ] Ajouter le module `discussions` dans `PrivateModuleRegistry`.
+- [ ] Creer la migration SQL `005_family_discussion.sql`.
+- [ ] Creer les repositories conversations, membres, messages, attachments et lectures.
+- [ ] Creer `DiscussionAccessPolicy`.
+- [ ] Ajouter routes HTML `/private/discussions`, `/new`, `/{conversationId}`.
+- [ ] Ajouter endpoints JSON pour liste, creation conversation, messages, membres, lecture.
+- [ ] Ajouter envoi de message texte avec CSRF, validation et rate limit.
+- [ ] Ajouter upload image/fichier avec stockage hors webroot.
+- [ ] Ajouter apercu image quand la bibliotheque image est disponible.
+- [ ] Ajouter telechargement controle des fichiers et apercus.
+- [ ] Ajouter compteur non lu et marquage lu.
+- [ ] Ajouter `DiscussionRetentionService::purgeExpiredForUser($userId)` a l'ouverture du module.
+- [ ] Ajouter commande planifiee de purge quotidienne des contenus expires.
+- [ ] Ajouter audit sans contenu de message.
+- [ ] Ajouter tests unitaires, repositories, HTTP et retention.
+
+Definition of Done :
+
+- [ ] Seuls les membres autorises voient le module.
+- [ ] Seuls les participants lisent une conversation.
+- [ ] Un membre peut envoyer un message texte a un membre ou un groupe.
+- [ ] Les images ont un apercu ou un fallback propre si la generation est indisponible.
+- [ ] Les fichiers joints sont stockes hors webroot et servis par endpoint controle.
+- [ ] Les contenus de plus de `60` jours sont purges a l'ouverture du module et par commande planifiee.
+- [ ] Les logs n'incluent jamais le contenu des messages.
+
+Tests a lancer avant cloture phase 10 :
+
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/FamilyDiscussion`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalPhaseCoverageTest.php --filter Discussion`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalStorageTest.php`
+- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalSecurityTest.php`
+- [ ] Controle manuel : conversation directe, groupe, image avec apercu, fichier joint, non-participant refuse, purge simulee a `60` jours.
+
+## 11. Commandes de validation ciblees
 
 Adapter les filtres aux noms finaux des tests.
 
@@ -2140,6 +2529,7 @@ composer test -- --filter PrivatePortalDashboard
 composer test -- --filter PrivatePortalAudit
 composer test -- --filter RealEstateRental
 composer test -- --filter TaxDeclarationHelper
+composer test -- --filter FamilyDiscussion
 composer phpstan
 composer phpcs
 ```
@@ -2172,9 +2562,15 @@ Points a verifier manuellement :
 10. generation synthese fiscale avec donnees validees ;
 11. blocage synthese fiscale avec donnees brouillon ;
 12. export CSV/PDF ;
-13. verrouillage et deverrouillage admin audite.
+13. verrouillage et deverrouillage admin audite ;
+14. conversation directe entre deux membres ;
+15. groupe de discussion avec ajout/retrait de membre ;
+16. image envoyee avec apercu ;
+17. fichier joint telechargeable par participant ;
+18. refus d'acces discussion pour non-participant ;
+19. purge des messages et fichiers de plus de `60` jours.
 
-## 11. Pieges a eviter
+## 12. Pieges a eviter
 
 1. Ne pas reutiliser les comptes admin pour la famille.
 2. Ne pas exposer les documents prives dans `backend/public`.
@@ -2185,9 +2581,12 @@ Points a verifier manuellement :
 7. Ne pas promettre une declaration fiscale officielle.
 8. Ne pas creer une nouvelle webapp pour un revenu rare qui peut rester manuel.
 9. Ne pas logger de mots de passe, tokens, chemins sensibles ou documents.
-10. Ne pas modifier le front-office public en meme temps que le coeur prive sans tests de non-regression.
+10. Ne pas promettre un chiffrement de bout en bout pour les discussions tant qu'il n'existe pas.
+11. Ne pas conserver les messages et fichiers de discussion au-dela de la retention `60` jours.
+12. Ne pas servir d'image ou de fichier de discussion directement depuis `backend/public`.
+13. Ne pas modifier le front-office public en meme temps que le coeur prive sans tests de non-regression.
 
-## 12. Decision finale
+## 13. Decision finale
 
 La strategie retenue est :
 
@@ -2196,18 +2595,19 @@ La strategie retenue est :
 3. ajouter le registre de modules et les permissions serveur ;
 4. creer `RealEstateRental` comme source de verite locative ;
 5. creer `TaxDeclarationHelper` comme module de synthese multi-sources ;
-6. garder les documents hors webroot ;
-7. auditer chaque action sensible ;
-8. ne jamais presenter l'aide impots comme un conseil fiscal officiel ;
-9. livrer par phases testees, sans regression du site public.
+6. creer `FamilyDiscussion` comme module conversationnel transitoire avec retention courte ;
+7. garder les documents et fichiers de discussion hors webroot ;
+8. auditer chaque action sensible ;
+9. ne jamais presenter l'aide impots comme un conseil fiscal officiel ;
+10. livrer par phases testees, sans regression du site public.
 
 Cette approche respecte l'architecture actuelle du depot, la gouvernance HTTP existante, les contraintes de securite et la possibilite d'ajouter plus tard d'autres modules prives.
 
-## 13. PVT-01 - Continuation d'implementation (Fondation)
+## 14. PVT-01 - Continuation d'implementation (Fondation)
 
 Le lot PVT-01 reprend le socle minimal du portail famille en priorité. Les tâches ci-dessous sont à exécuter dans l’ordre pour limiter les risques de régression FO/BO.
 
-### 13.1 Ordre cible d’implémentation
+### 14.1 Ordre cible d’implémentation
 
 1. Variables et garde-fous de configuration (`PRIVATE_*`, activation, temps d’attente, rate limit).
 2. Routage privé via `FrontController` avec résolveur dédié.
@@ -2219,7 +2619,7 @@ Le lot PVT-01 reprend le socle minimal du portail famille en priorité. Les tâc
 8. Headers anti-indexation + `robots.txt`.
 9. Contrôle fichier : aucun point d’accès direct à `backend/public`.
 
-### 13.2 Matrice de routes PVT-01 (MVP)
+### 14.2 Matrice de routes PVT-01 (MVP)
 
 | Route | But | Methode | Protection | Sortie attendue |
 |---|---|---|---|---|
@@ -2234,7 +2634,7 @@ Le lot PVT-01 reprend le socle minimal du portail famille en priorité. Les tâc
 
 Règle métier clé : tout refus de permission (lecture/édition/téléchargement) doit être traçable et, côté API, renvoyer `401/403` selon le contexte.
 
-### 13.3 Livrables PVT-01 attendus par étape
+### 14.3 Livrables PVT-01 attendus par étape
 
 - Sprint 1 (routes + config) : endpoints privés fonctionnels, non-régression des routes publiques confirmée.
 - Sprint 2 (session + login) : connexion privée isolée, lockout, gestion mots de passe et CSRF validés.
@@ -2242,7 +2642,7 @@ Règle métier clé : tout refus de permission (lecture/édition/téléchargemen
 - Sprint 4 (audit + sécurité HTTP) : événements sensibles et headers anti-indexation vérifiés.
 - Sprint 5 (pré-op) : documentation BO/BOU mise à jour + preuves d’exécution (curl / commandes test) archivées.
 
-### 13.4 Critères de passage sprint PVT-01
+### 14.4 Critères de passage sprint PVT-01
 
 1. `composer test -- --filter PrivatePortal` exécute sans erreur.
 2. `composer test -- --filter FrontController` conserve le comportement FO.
@@ -2250,7 +2650,7 @@ Règle métier clé : tout refus de permission (lecture/édition/téléchargemen
 4. Une tentative d’accès privé non autorisé génère un event d’audit.
 5. Aucune régression FO détectée sur `admin`, `blog`, `sitemap`, `rss`, et assets.
 
-### 13.5 Protocole d’exécution d’office
+### 14.5 Protocole d’exécution d’office
 
 Principe : poursuivre l’implémentation phase par phase, sans interruption systématique pour une validation minimale.
 
@@ -2263,7 +2663,7 @@ Principe : poursuivre l’implémentation phase par phase, sans interruption sys
 
 Référence d’arrêt : arrêt « naturel » au passage officiel d’une phase quand les critères de passage sont remplis et documentés ici.
 
-### 13.6 Passe de phase en cours (cible)
+### 14.6 Passe de phase en cours (cible)
 
 Ce document suit la séquence : `Phase 0 -> Phase 1 -> Phase 2 -> Phase 3 -> Phase 4`.
 
