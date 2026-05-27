@@ -13,6 +13,7 @@ final class PrivateBackupService
     private const DEFAULT_TABLES = [
         'private_users',
         'private_user_module_permissions',
+        'private_document_categories',
         'private_documents',
         'rental_properties',
         'rental_units',

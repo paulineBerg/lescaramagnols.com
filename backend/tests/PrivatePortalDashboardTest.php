@@ -86,6 +86,8 @@ final class PrivatePortalDashboardTest extends TestCase
         $userId = $userRepository->create('family@example.com', $passwordHash, 'active');
         $this->assertIsInt($userId);
         $this->assertTrue($moduleRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
+        $category = $documentRepository->createCategory($userId, 'Assurances habitation', '#2563eb');
+        $this->assertIsArray($category);
 
         $documentId = substr((string) bin2hex(random_bytes(16)), 0, 32);
         $document = $documentRepository->create(
@@ -96,7 +98,8 @@ final class PrivatePortalDashboardTest extends TestCase
             'txt',
             'text/plain',
             42,
-            $userId
+            $userId,
+            (int) $category['id']
         );
         $this->assertIsArray($document);
 
@@ -114,6 +117,8 @@ final class PrivatePortalDashboardTest extends TestCase
         $dashboard = $controller->handle('dashboard', $this->request('GET', '/private/dashboard'));
         $this->assertSame(200, $dashboard->status);
         $this->assertStringContainsString('name="document_file"', $dashboard->body);
+        $this->assertStringContainsString('name="category_name"', $dashboard->body);
+        $this->assertStringContainsString('Assurances habitation', $dashboard->body);
         $this->assertStringContainsString('compte-rendu.doc', $dashboard->body);
         $this->assertStringContainsString('/private/files/' . $documentId, $dashboard->body);
     }

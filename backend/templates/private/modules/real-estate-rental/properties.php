@@ -3,17 +3,12 @@ $properties = is_array($viewModel['rentalProperties'] ?? null) ? $viewModel['ren
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
-$propertiesUrl = is_string($viewModel['rentalPropertiesUrl'] ?? null) ? (string) $viewModel['rentalPropertiesUrl'] : private_portal_url('rental_properties');
-$unitsUrl = is_string($viewModel['rentalUnitsUrl'] ?? null) ? (string) $viewModel['rentalUnitsUrl'] : private_portal_url('rental_units');
-$membersUrl = is_string($viewModel['rentalMembersUrl'] ?? null) ? (string) $viewModel['rentalMembersUrl'] : private_portal_url('rental_property_members');
+$urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
+$propertiesUrl = is_string($urls['properties'] ?? null) ? (string) $urls['properties'] : private_portal_url('rental_properties');
 $statuses = ['draft' => 'Brouillon', 'active' => 'Actif', 'archived' => 'Archivé'];
 ?>
 <section>
-  <p class="muted">
-    <a href="<?php echo htmlspecialchars($propertiesUrl, ENT_QUOTES, 'UTF-8'); ?>">Biens</a>
-    · <a href="<?php echo htmlspecialchars($unitsUrl, ENT_QUOTES, 'UTF-8'); ?>">Lots</a>
-    · <a href="<?php echo htmlspecialchars($membersUrl, ENT_QUOTES, 'UTF-8'); ?>">Membres</a>
-  </p>
+  <?php include __DIR__ . '/_nav.php'; ?>
 
   <?php if ($notice !== ''): ?>
     <p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p>

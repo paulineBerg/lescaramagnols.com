@@ -87,10 +87,12 @@ final class PrivatePortalController
             ),
             'files' => $this->handleFiles($request, (string) ($routeParams['documentId'] ?? '')),
             'files_upload' => $this->handleFilesUpload($request),
+            'files_categories' => $this->handleFilesCategoryCreate($request),
             'files_delete' => $this->handleFilesDelete(
                 $request,
                 (string) ($routeParams['documentId'] ?? '')
             ),
+            'rental_dashboard' => $this->handleRentalDashboard($request),
             'rental_properties' => $this->handleRentalProperties($request),
             'rental_property_archive' => $this->handleRentalPropertyArchive(
                 $request,
@@ -229,6 +231,7 @@ final class PrivatePortalController
         $identifier = $this->auth->currentIdentifier();
         $privateModules = [];
         $privateDocuments = [];
+        $privateDocumentCategories = [];
         $hasDocumentsModule = false;
         $userId = $this->currentPrivateUserId();
         if ($userId !== null) {
@@ -247,6 +250,7 @@ final class PrivatePortalController
             );
             if ($hasDocumentsModule) {
                 $privateDocuments = $this->privateDocumentRepository()->listActiveByUser($userId, self::MAX_DOCUMENT_LIST);
+                $privateDocumentCategories = $this->privateDocumentRepository()->listCategoriesForUser($userId);
             }
         }
 
@@ -260,12 +264,15 @@ final class PrivatePortalController
             'privateModules' => $privateModules,
             'privateDocumentsEnabled' => $hasDocumentsModule,
             'privateDocuments' => $privateDocuments,
+            'privateDocumentCategories' => $privateDocumentCategories,
             'privateDocumentUploadCsrfToken' => csrf_token(self::CSRF_DOCUMENTS),
             'privateDocumentsUploadUrl' => private_portal_url('files_upload'),
+            'privateDocumentCategoriesUrl' => private_portal_url('files_categories'),
             'privateFilesBaseUrl' => private_portal_url('files'),
             'notice' => match ($notice) {
                 'document_uploaded' => $this->translate('TXT_PRIVATE_DOCUMENT_UPLOAD_SUCCESS', 'Document envoyé.'),
                 'document_deleted' => $this->translate('TXT_PRIVATE_DOCUMENT_DELETE_SUCCESS', 'Document supprimé.'),
+                'document_category_created' => $this->translate('TXT_PRIVATE_DOCUMENT_CATEGORY_CREATE_SUCCESS', 'Catégorie créée.'),
                 default => null,
             },
             'errorMessage' => match ($error) {
@@ -274,6 +281,7 @@ final class PrivatePortalController
                 'missing_file' => $this->translate('TXT_PRIVATE_DOCUMENT_UPLOAD_MISSING_FILE', 'Aucun fichier reçu.'),
                 'delete_forbidden' => $this->translate('TXT_PRIVATE_DOCUMENT_DELETE_FORBIDDEN', 'Vous n’avez pas le droit de supprimer ce document.'),
                 'delete_not_found' => $this->translate('TXT_PRIVATE_DOCUMENT_NOT_FOUND', 'Document introuvable.'),
+                'category_failed' => $this->translate('TXT_PRIVATE_DOCUMENT_CATEGORY_CREATE_ERROR', 'La catégorie n’a pas pu être créée.'),
                 'invalid_request' => $this->translate('TXT_PRIVATE_ERROR_CSRF', 'Requête invalide.'),
                 default => null,
             },
@@ -281,6 +289,16 @@ final class PrivatePortalController
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
             'privatePasswordForgotUrl' => private_portal_url('password_forgot'),
         ]);
+    }
+
+    private function handleRentalDashboard(Request $request): Response
+    {
+        $userId = $this->requireRentalModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        return $this->renderRentalDashboard($userId);
     }
 
     private function handleRentalProperties(Request $request): Response
@@ -2028,6 +2046,9 @@ final class PrivatePortalController
             return $this->redirect($this->dashboardUrlWithError('missing_file'));
         }
 
+        $post = $request->body();
+        $categoryId = $this->normalizeNumericId($post['category_id'] ?? null);
+        $categoryId = $categoryId > 0 ? $categoryId : null;
         $storage = $this->privateDocumentStorage();
         $validated = $storage->validateUploadedFile($uploadedFile);
         if ($validated === null) {
@@ -2067,7 +2088,8 @@ final class PrivatePortalController
             (string) $stored['extension'],
             (string) $stored['mimeType'],
             (int) $stored['sizeBytes'],
-            $userId
+            $userId,
+            $categoryId
         );
         if (!is_array($created)) {
             $storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
@@ -2088,6 +2110,45 @@ final class PrivatePortalController
         ]);
 
         return $this->redirect($this->dashboardUrlWithNotice('document_uploaded'));
+    }
+
+    private function handleFilesCategoryCreate(Request $request): Response
+    {
+        $userId = $this->userIdOrAccessDenied($request);
+        if ($userId === null) {
+            return $this->handleFilesAccessDenied();
+        }
+
+        if ($request->method() !== self::METHOD_POST || !$this->guard()->validateCsrf($request, self::CSRF_DOCUMENTS)) {
+            $this->logEvent('private.files.category_rejected', [
+                'reason' => $request->method() !== self::METHOD_POST ? 'method_not_allowed' : 'csrf_invalid',
+                'private_user_id' => $userId,
+            ]);
+
+            return $this->redirect($this->dashboardUrlWithError('invalid_request'));
+        }
+
+        $body = $request->body();
+        $category = $this->privateDocumentRepository()->createCategory(
+            $userId,
+            is_string($body['category_name'] ?? null) ? (string) $body['category_name'] : '',
+            is_string($body['category_color'] ?? null) ? (string) $body['category_color'] : ''
+        );
+        if (!is_array($category)) {
+            $this->logEvent('private.files.category_rejected', [
+                'reason' => 'invalid_category',
+                'private_user_id' => $userId,
+            ]);
+
+            return $this->redirect($this->dashboardUrlWithError('category_failed'));
+        }
+
+        $this->logEvent('private.files.category_created', [
+            'private_user_id' => $userId,
+            'category_id' => (int) ($category['id'] ?? 0),
+        ]);
+
+        return $this->redirect($this->dashboardUrlWithNotice('document_category_created'));
     }
 
     private function handleFilesDelete(Request $request, string $documentId): Response
@@ -2163,6 +2224,63 @@ final class PrivatePortalController
         ));
     }
 
+    private function renderRentalDashboard(int $userId): Response
+    {
+        $propertyIds = $this->authorizedPropertyIds($userId);
+        $properties = $propertyIds === []
+            ? []
+            : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
+        $units = $propertyIds === []
+            ? []
+            : $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
+        $tenants = $this->rentalLifecycleRepository()->listTenants($propertyIds, self::MAX_RENTAL_LIST);
+        $leases = $this->rentalLifecycleRepository()->listLeases($propertyIds, self::MAX_RENTAL_LIST);
+        $year = (int) date('Y');
+        $summary = $this->rentalAnnualSummaryService()->build($year, $propertyIds);
+        $documents = $this->rentalLifecycleRepository()->listDocuments($propertyIds, self::MAX_RENTAL_LIST);
+        $agencyDocuments = $this->agencyImportRepository()->listRecentDocumentsForUser($userId, self::MAX_RENTAL_LIST);
+
+        $pendingAgencyDocuments = 0;
+        foreach ($agencyDocuments as $document) {
+            $status = is_array($document) && is_string($document['reviewStatus'] ?? null)
+                ? (string) $document['reviewStatus']
+                : '';
+            if (in_array($status, ['pending', 'to_review', 'new'], true)) {
+                ++$pendingAgencyDocuments;
+            }
+        }
+
+        $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
+
+        return $this->render('modules/real-estate-rental/dashboard', array_merge(
+            $this->rentalBaseViewModel('Tableau de bord locatif', '', ''),
+            [
+                'rentalCurrentSection' => 'dashboard',
+                'rentalDashboardStats' => [
+                    'year' => $year,
+                    'propertyCount' => count($properties),
+                    'unitCount' => count($units),
+                    'tenantCount' => count($tenants),
+                    'activeLeaseCount' => count(array_filter(
+                        $leases,
+                        static fn (array $lease): bool => in_array((string) ($lease['status'] ?? ''), ['draft', 'validated'], true)
+                    )),
+                    'documentCount' => count($documents),
+                    'agencyDocumentCount' => count($agencyDocuments),
+                    'pendingAgencyDocumentCount' => $pendingAgencyDocuments,
+                    'rentDue' => (float) ($totals['rentDue'] ?? 0.0),
+                    'rentPaid' => (float) ($totals['rentPaid'] ?? 0.0),
+                    'unpaidRent' => (float) ($totals['unpaidRent'] ?? 0.0),
+                    'summaryBlocked' => !empty($summary['blocked']),
+                    'issueCount' => count(is_array($summary['issues'] ?? null) ? $summary['issues'] : []),
+                ],
+                'rentalProperties' => $this->objectsToArrays($properties),
+                'rentalRecentDocuments' => array_slice($documents, 0, 8),
+                'agencyImportDocuments' => array_slice($agencyDocuments, 0, 8),
+            ]
+        ));
+    }
+
     private function renderRentalProperties(int $userId, string $notice = '', string $error = ''): Response
     {
         $propertyIds = $this->authorizedPropertyIds($userId);
@@ -2170,21 +2288,14 @@ final class PrivatePortalController
             ? []
             : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
 
-        return $this->render('modules/real-estate-rental/properties', [
-            'privatePageTitle' => 'Biens locatifs',
-            'rentalProperties' => array_map(
-                static fn ($property): array => method_exists($property, 'toArray') ? $property->toArray() : [],
-                $properties
-            ),
-            'rentalCsrfToken' => csrf_token(self::CSRF_RENTAL),
-            'rentalNotice' => $this->rentalNotice($notice),
-            'rentalError' => $this->rentalError($error),
-            'rentalPropertiesUrl' => private_portal_url('rental_properties'),
-            'rentalUnitsUrl' => private_portal_url('rental_units'),
-            'rentalMembersUrl' => private_portal_url('rental_property_members'),
-            'privateDashboardLogoutUrl' => private_portal_url('logout'),
-            'privateLogoutCsrfToken' => csrf_token('private_logout'),
-        ]);
+        return $this->render('modules/real-estate-rental/properties', array_merge(
+            $this->rentalBaseViewModel('Biens locatifs', $notice, $error),
+            [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'properties',
+                'rentalProperties' => $this->objectsToArrays($properties),
+            ]
+        ));
     }
 
     /**
@@ -2200,25 +2311,15 @@ final class PrivatePortalController
     ): Response {
         unset($userId);
 
-        return $this->render('modules/real-estate-rental/units', [
-            'privatePageTitle' => 'Lots locatifs',
-            'rentalProperties' => array_map(
-                static fn ($property): array => method_exists($property, 'toArray') ? $property->toArray() : [],
-                $properties
-            ),
-            'rentalUnits' => array_map(
-                static fn ($unit): array => method_exists($unit, 'toArray') ? $unit->toArray() : [],
-                $units
-            ),
-            'rentalCsrfToken' => csrf_token(self::CSRF_RENTAL),
-            'rentalNotice' => $this->rentalNotice($notice),
-            'rentalError' => $this->rentalError($error),
-            'rentalPropertiesUrl' => private_portal_url('rental_properties'),
-            'rentalUnitsUrl' => private_portal_url('rental_units'),
-            'rentalMembersUrl' => private_portal_url('rental_property_members'),
-            'privateDashboardLogoutUrl' => private_portal_url('logout'),
-            'privateLogoutCsrfToken' => csrf_token('private_logout'),
-        ]);
+        return $this->render('modules/real-estate-rental/units', array_merge(
+            $this->rentalBaseViewModel('Lots locatifs', $notice, $error),
+            [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'units',
+                'rentalProperties' => $this->objectsToArrays($properties),
+                'rentalUnits' => $this->objectsToArrays($units),
+            ]
+        ));
     }
 
     /**
@@ -2231,22 +2332,15 @@ final class PrivatePortalController
             ? []
             : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
 
-        return $this->render('modules/real-estate-rental/property-members', [
-            'privatePageTitle' => 'Membres locatifs',
-            'rentalProperties' => array_map(
-                static fn ($property): array => method_exists($property, 'toArray') ? $property->toArray() : [],
-                $properties
-            ),
-            'rentalMembers' => $members,
-            'rentalCsrfToken' => csrf_token(self::CSRF_RENTAL),
-            'rentalNotice' => $this->rentalNotice($notice),
-            'rentalError' => $this->rentalError($error),
-            'rentalPropertiesUrl' => private_portal_url('rental_properties'),
-            'rentalUnitsUrl' => private_portal_url('rental_units'),
-            'rentalMembersUrl' => private_portal_url('rental_property_members'),
-            'privateDashboardLogoutUrl' => private_portal_url('logout'),
-            'privateLogoutCsrfToken' => csrf_token('private_logout'),
-        ]);
+        return $this->render('modules/real-estate-rental/property-members', array_merge(
+            $this->rentalBaseViewModel('Membres locatifs', $notice, $error),
+            [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'members',
+                'rentalProperties' => $this->objectsToArrays($properties),
+                'rentalMembers' => $members,
+            ]
+        ));
     }
 
     /**
@@ -2262,6 +2356,8 @@ final class PrivatePortalController
         return $this->render('modules/real-estate-rental/tenants', array_merge(
             $this->rentalBaseViewModel('Locataires locatifs', $notice, $error),
             [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'tenants',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalTenants' => $tenants,
             ]
@@ -2285,6 +2381,8 @@ final class PrivatePortalController
         return $this->render('modules/real-estate-rental/leases', array_merge(
             $this->rentalBaseViewModel('Baux locatifs', $notice, $error),
             [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'leases',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
                 'rentalTenants' => $tenants,
@@ -2306,6 +2404,8 @@ final class PrivatePortalController
         return $this->render('modules/real-estate-rental/payments', array_merge(
             $this->rentalBaseViewModel('Loyers et paiements', $notice, $error),
             [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'payments',
                 'rentalLeases' => $leases,
                 'rentalPayments' => $payments,
             ]
@@ -2327,6 +2427,8 @@ final class PrivatePortalController
         return $this->render('modules/real-estate-rental/expenses', array_merge(
             $this->rentalBaseViewModel('Charges locatives', $notice, $error),
             [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'expenses',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
                 'rentalExpenses' => $expenses,
@@ -2351,6 +2453,8 @@ final class PrivatePortalController
         return $this->render('modules/real-estate-rental/documents', array_merge(
             $this->rentalBaseViewModel('Documents locatifs', $notice, $error),
             [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'documents',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
                 'rentalLeases' => $leases,
@@ -2364,6 +2468,8 @@ final class PrivatePortalController
         return $this->render('modules/real-estate-rental/agency-imports', array_merge(
             $this->rentalBaseViewModel('Imports agence', $notice, $error),
             [
+                'rentalCurrentSection' => 'agency',
+                'rentalCurrentSubsection' => 'agencyImports',
                 'agencyImportDocuments' => $this->agencyImportRepository()->listRecentDocumentsForUser(
                     $userId,
                     self::MAX_RENTAL_LIST
@@ -2401,6 +2507,8 @@ final class PrivatePortalController
         return $this->render('modules/real-estate-rental/agency-review', array_merge(
             $this->rentalBaseViewModel('Documents agence a classer', $notice, $error),
             [
+                'rentalCurrentSection' => 'agency',
+                'rentalCurrentSubsection' => 'agencyReview',
                 'agencyReviewDocuments' => $documents,
                 'agencyReviewSelectedDocument' => $selectedDocument,
                 'agencyReviewProperties' => $this->authorizedRentalProperties($userId),
@@ -2416,7 +2524,11 @@ final class PrivatePortalController
     {
         return $this->render('modules/real-estate-rental/summary', array_merge(
             $this->rentalBaseViewModel('Synthèse annuelle locative', '', ''),
-            ['rentalSummary' => $summary]
+            [
+                'rentalCurrentSection' => 'reports',
+                'rentalCurrentSubsection' => 'summary',
+                'rentalSummary' => $summary,
+            ]
         ));
     }
 
@@ -2569,6 +2681,7 @@ final class PrivatePortalController
             'rentalNotice' => $this->rentalNotice($notice),
             'rentalError' => $this->rentalError($error),
             'rentalUrls' => [
+                'dashboard' => private_portal_url('rental_dashboard'),
                 'properties' => private_portal_url('rental_properties'),
                 'units' => private_portal_url('rental_units'),
                 'members' => private_portal_url('rental_property_members'),
@@ -3066,12 +3179,18 @@ final class PrivatePortalController
         $privateDocuments = is_array($viewModel['privateDocuments'] ?? null)
             ? $viewModel['privateDocuments']
             : [];
+        $privateDocumentCategories = is_array($viewModel['privateDocumentCategories'] ?? null)
+            ? $viewModel['privateDocumentCategories']
+            : [];
         $privateDocumentUploadCsrfToken = is_string($viewModel['privateDocumentUploadCsrfToken'] ?? null)
             ? $viewModel['privateDocumentUploadCsrfToken']
             : '';
         $privateDocumentsUploadUrl = is_string($viewModel['privateDocumentsUploadUrl'] ?? null)
             ? $viewModel['privateDocumentsUploadUrl']
             : private_portal_url('files_upload');
+        $privateDocumentCategoriesUrl = is_string($viewModel['privateDocumentCategoriesUrl'] ?? null)
+            ? $viewModel['privateDocumentCategoriesUrl']
+            : private_portal_url('files_categories');
         $privateFilesBaseUrl = is_string($viewModel['privateFilesBaseUrl'] ?? null)
             ? $viewModel['privateFilesBaseUrl']
             : private_portal_url('files');

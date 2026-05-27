@@ -21,11 +21,7 @@ $labelForProperty = static function (array $property): string {
 };
 ?>
 <section>
-  <p class="muted">
-    <a href="<?php echo $h($importsUrl); ?>">Imports agence</a>
-    · <a href="<?php echo $h($reviewUrl); ?>">Documents a classer</a>
-    · <a href="<?php echo $h($summaryUrl); ?>">Synthese</a>
-  </p>
+  <?php include __DIR__ . '/_nav.php'; ?>
 
   <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo $h($notice); ?></p><?php endif; ?>
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo $h($error); ?></p><?php endif; ?>

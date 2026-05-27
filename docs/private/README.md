@@ -1,7 +1,7 @@
 # Portail prive famille, locations et aide impots
 
 Date de mise a jour : 2026-05-27
-Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1.
+Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, categories documentaires et tableau de bord locatif.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis trois modules metier prioritaires :
@@ -1331,6 +1331,13 @@ Routes recommandees :
 /private/locations/synthese-annuelle
 ```
 
+Implementation actuelle :
+
+1. `/private/locations` est le tableau de bord locatif et le point d'entree du module ;
+2. le menu haut sticky separe `Tableau de bord`, `Gestion perso`, `Gestion agence` et `Rapports` ;
+3. le sous-menu depend de la section active pour eviter le melange entre saisie proprietaire et imports agence ;
+4. les pages historiques gardent leurs routes techniques actuelles (`/private/rental-properties`, `/private/rental-units`, `/private/rental-property-members`, `/private/locations/locataires`, `/private/leases`, `/private/payments`, `/private/charges`) tant que les shims propres ne sont pas migres.
+
 Les ecrans doivent etre denses, lisibles et utilisables sur mobile, sans effet marketing ni decoration inutile. Les actions sensibles utilisent confirmation, CSRF, permission serveur et audit.
 
 ### 6.8 Regles de calcul et de conformite
@@ -2198,6 +2205,7 @@ Checklist :
 - [x] Creer `backend/private/storage`, `uploads` et `exports` ou leurs chemins configures.
 - [x] Ajouter un service de stockage prive.
 - [x] Ajouter `private_documents` si le modele commun est retenu.
+- [x] Ajouter `private_document_categories` et l'affectation optionnelle d'une categorie a l'upload documentaire.
 - [x] Verifier extension, MIME, taille et nom original.
 - [x] Generer un chemin disque non devinable.
 - [x] Ajouter le garde d'accès serveur sur `/private/files/{documentId}` avant streaming réel.

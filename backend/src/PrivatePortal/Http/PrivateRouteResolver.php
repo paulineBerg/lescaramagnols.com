@@ -23,11 +23,13 @@ final class PrivateRouteResolver
             'password_reset' => $basePath . '/password/reset',
             'files' => $basePath . '/files',
             'files_upload' => $basePath . '/files/upload',
+            'files_categories' => $basePath . '/files/categories',
             'files_delete' => $basePath . '/files',
+            'rental_dashboard' => $basePath . '/locations',
             'rental_properties' => $basePath . '/rental-properties',
             'rental_units' => $basePath . '/rental-units',
             'rental_property_members' => $basePath . '/rental-property-members',
-            'rental_tenants' => $basePath . '/locations',
+            'rental_tenants' => $basePath . '/locations/locataires',
             'rental_leases' => $basePath . '/leases',
             'rental_payments' => $basePath . '/payments',
             'rental_rents' => $basePath . '/rents',
@@ -132,8 +134,18 @@ final class PrivateRouteResolver
             ],
             [
                 'methods' => ['POST'],
+                'path' => $this->canonicalPath('files_categories'),
+                'handler' => ['type' => 'private', 'page' => 'files_categories'],
+            ],
+            [
+                'methods' => ['POST'],
                 'path' => $this->canonicalPath('files') . '/{documentId:[A-Za-z0-9._-]+}/delete',
                 'handler' => ['type' => 'private', 'page' => 'files_delete'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('rental_dashboard'),
+                'handler' => ['type' => 'private', 'page' => 'rental_dashboard'],
             ],
             [
                 'methods' => ['GET', 'POST'],

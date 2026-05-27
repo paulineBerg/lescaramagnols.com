@@ -1,0 +1,116 @@
+<?php
+$stats = is_array($viewModel['rentalDashboardStats'] ?? null) ? $viewModel['rentalDashboardStats'] : [];
+$properties = is_array($viewModel['rentalProperties'] ?? null) ? $viewModel['rentalProperties'] : [];
+$documents = is_array($viewModel['rentalRecentDocuments'] ?? null) ? $viewModel['rentalRecentDocuments'] : [];
+$agencyDocuments = is_array($viewModel['agencyImportDocuments'] ?? null) ? $viewModel['agencyImportDocuments'] : [];
+$urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
+$money = static fn (mixed $value): string => number_format(is_numeric($value) ? (float) $value : 0.0, 2, ',', ' ') . ' €';
+?>
+<section>
+  <?php include __DIR__ . '/_nav.php'; ?>
+
+  <div class="private-kpi-grid">
+    <div class="private-kpi"><span>Biens</span><strong><?php echo htmlspecialchars((string) (int) ($stats['propertyCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <div class="private-kpi"><span>Lots</span><strong><?php echo htmlspecialchars((string) (int) ($stats['unitCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <div class="private-kpi"><span>Locataires</span><strong><?php echo htmlspecialchars((string) (int) ($stats['tenantCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <div class="private-kpi"><span>Baux actifs</span><strong><?php echo htmlspecialchars((string) (int) ($stats['activeLeaseCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <div class="private-kpi"><span>Loyers encaisses</span><strong><?php echo htmlspecialchars($money($stats['rentPaid'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <div class="private-kpi"><span>Reste impaye</span><strong><?php echo htmlspecialchars($money($stats['unpaidRent'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+  </div>
+
+  <?php if (!empty($stats['summaryBlocked'])): ?>
+    <p class="notice notice-error">
+      Synthese annuelle <?php echo htmlspecialchars((string) (int) ($stats['year'] ?? date('Y')), ENT_QUOTES, 'UTF-8'); ?> bloquee :
+      <?php echo htmlspecialchars((string) (int) ($stats['issueCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> point(s) a corriger.
+    </p>
+  <?php endif; ?>
+
+  <div class="cards-grid">
+    <section class="card">
+      <h2>Gestion perso</h2>
+      <ul>
+        <li><a href="<?php echo htmlspecialchars((string) ($urls['properties'] ?? private_portal_url('rental_properties')), ENT_QUOTES, 'UTF-8'); ?>">Biens et lots</a></li>
+        <li><a href="<?php echo htmlspecialchars((string) ($urls['tenants'] ?? private_portal_url('rental_tenants')), ENT_QUOTES, 'UTF-8'); ?>">Locataires</a></li>
+        <li><a href="<?php echo htmlspecialchars((string) ($urls['payments'] ?? private_portal_url('rental_payments')), ENT_QUOTES, 'UTF-8'); ?>">Loyers et paiements</a></li>
+        <li><a href="<?php echo htmlspecialchars((string) ($urls['expenses'] ?? private_portal_url('rental_expenses')), ENT_QUOTES, 'UTF-8'); ?>">Charges</a></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Gestion agence</h2>
+      <p class="muted">
+        <?php echo htmlspecialchars((string) (int) ($stats['pendingAgencyDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>
+        document(s) a classer sur
+        <?php echo htmlspecialchars((string) (int) ($stats['agencyDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> import(s).
+      </p>
+      <p class="private-actions">
+        <a href="<?php echo htmlspecialchars((string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports')), ENT_QUOTES, 'UTF-8'); ?>">Importer</a>
+        <a href="<?php echo htmlspecialchars((string) ($urls['agencyReview'] ?? private_portal_url('rental_agency_review')), ENT_QUOTES, 'UTF-8'); ?>">Revoir</a>
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Rapports</h2>
+      <dl>
+        <dt>Loyers attendus</dt>
+        <dd><?php echo htmlspecialchars($money($stats['rentDue'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
+        <dt>Documents locatifs</dt>
+        <dd><?php echo htmlspecialchars((string) (int) ($stats['documentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
+      </dl>
+      <p class="private-actions">
+        <a href="<?php echo htmlspecialchars((string) ($urls['summary'] ?? private_portal_url('rental_summary')), ENT_QUOTES, 'UTF-8'); ?>">Synthese</a>
+      </p>
+    </section>
+  </div>
+
+  <section class="card private-card-wide">
+    <h2>Biens suivis</h2>
+    <?php if ($properties === []): ?>
+      <p class="muted">Aucun bien autorise pour ce compte.</p>
+    <?php else: ?>
+      <table>
+        <thead><tr><th>Bien</th><th>Type</th><th>Statut</th></tr></thead>
+        <tbody>
+          <?php foreach ($properties as $property): ?>
+            <?php if (!is_array($property)) { continue; } ?>
+            <tr>
+              <td><?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($property['propertyType'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($property['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php endif; ?>
+  </section>
+
+  <div class="cards-grid">
+    <section class="card">
+      <h2>Derniers documents locatifs</h2>
+      <?php if ($documents === []): ?>
+        <p class="muted">Aucun document locatif.</p>
+      <?php else: ?>
+        <ul>
+          <?php foreach ($documents as $document): ?>
+            <?php if (!is_array($document)) { continue; } ?>
+            <li><?php echo htmlspecialchars((string) ($document['originalName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
+    </section>
+
+    <section class="card">
+      <h2>Derniers imports agence</h2>
+      <?php if ($agencyDocuments === []): ?>
+        <p class="muted">Aucun import agence.</p>
+      <?php else: ?>
+        <ul>
+          <?php foreach ($agencyDocuments as $document): ?>
+            <?php if (!is_array($document)) { continue; } ?>
+            <li><?php echo htmlspecialchars((string) ($document['filename'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
+    </section>
+  </div>
+</section>

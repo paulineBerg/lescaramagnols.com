@@ -15,10 +15,7 @@ foreach ($properties as $property) {
 }
 ?>
 <section>
-  <p class="muted">
-    <a href="<?php echo htmlspecialchars((string) ($urls['documents'] ?? private_portal_url('rental_documents')), ENT_QUOTES, 'UTF-8'); ?>">Documents</a>
-    · <a href="<?php echo htmlspecialchars((string) ($urls['summary'] ?? private_portal_url('rental_summary')), ENT_QUOTES, 'UTF-8'); ?>">Synthese</a>
-  </p>
+  <?php include __DIR__ . '/_nav.php'; ?>
   <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 

@@ -102,6 +102,7 @@ if ($privateHasModule('Discussions')) {
 
 if ($privateHasModule('Locations immobilières')) {
     $privateRentalPaths = [
+        private_portal_url('rental_dashboard'),
         private_portal_url('rental_properties'),
         private_portal_url('rental_units'),
         private_portal_url('rental_property_members'),
@@ -110,11 +111,13 @@ if ($privateHasModule('Locations immobilières')) {
         private_portal_url('rental_payments'),
         private_portal_url('rental_expenses'),
         private_portal_url('rental_documents'),
+        private_portal_url('rental_agency_imports'),
+        private_portal_url('rental_agency_review'),
         private_portal_url('rental_summary'),
     ];
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_NAV_RENTAL', 'Locations immobilières'),
-        'href' => private_portal_url('rental_summary'),
+        'href' => private_portal_url('rental_dashboard'),
         'icon' => '🏠',
         'active' => $privatePathIsOneOf($privateRentalPaths),
     ];
@@ -406,6 +409,79 @@ if ($privateHasModule('Aide impôts')) {
         color: var(--private-primary-dark);
         text-decoration: none;
         font-weight: 600;
+      }
+
+      .private-module-nav {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: rgba(246, 249, 252, 0.96);
+        border: 1px solid rgba(19, 41, 75, 0.08);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin: 0 0 1.2rem;
+        backdrop-filter: blur(12px);
+      }
+
+      .private-module-nav-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .private-module-nav-row + .private-module-nav-row {
+        margin-top: 0.55rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid rgba(19, 41, 75, 0.08);
+      }
+
+      .private-module-nav a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.35rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: 8px;
+        background: rgba(19, 41, 75, 0.06);
+        color: var(--private-primary-dark);
+        text-decoration: none;
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+
+      .private-module-nav a.active,
+      .private-module-nav a:hover,
+      .private-module-nav a:focus-visible {
+        background: var(--private-primary);
+        color: #fff;
+      }
+
+      .private-kpi-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        margin: 0 0 1.5rem;
+      }
+
+      .private-kpi {
+        border: 1px solid rgba(19, 41, 75, 0.08);
+        border-radius: 8px;
+        background: #fff;
+        padding: 1rem;
+      }
+
+      .private-kpi span {
+        display: block;
+        color: var(--private-muted);
+        font-size: 0.82rem;
+      }
+
+      .private-kpi strong {
+        display: block;
+        margin-top: 0.3rem;
+        color: var(--private-primary-dark);
+        font-size: 1.35rem;
       }
 
       .private-logout-form {

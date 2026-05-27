@@ -104,6 +104,7 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
         $frontController = $this->frontController();
         $phase6Routes = [
             '/private/locations',
+            '/private/locations/locataires',
             '/private/locations/documents',
             '/private/locations/agence/imports',
             '/private/locations/agence/documents-a-classer',

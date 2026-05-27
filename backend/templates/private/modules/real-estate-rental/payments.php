@@ -8,12 +8,7 @@ $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : 
 $paymentStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled' => 'Annule'];
 ?>
 <section>
-  <p class="muted">
-    <a href="<?php echo htmlspecialchars((string) ($urls['leases'] ?? private_portal_url('rental_leases')), ENT_QUOTES, 'UTF-8'); ?>">Baux</a>
-    · <a href="<?php echo htmlspecialchars((string) ($urls['payments'] ?? private_portal_url('rental_payments')), ENT_QUOTES, 'UTF-8'); ?>">Loyers</a>
-    · <a href="<?php echo htmlspecialchars((string) ($urls['expenses'] ?? private_portal_url('rental_expenses')), ENT_QUOTES, 'UTF-8'); ?>">Charges</a>
-    · <a href="<?php echo htmlspecialchars((string) ($urls['summary'] ?? private_portal_url('rental_summary')), ENT_QUOTES, 'UTF-8'); ?>">Synthese</a>
-  </p>
+  <?php include __DIR__ . '/_nav.php'; ?>
   <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 

@@ -4,9 +4,8 @@ $units = is_array($viewModel['rentalUnits'] ?? null) ? $viewModel['rentalUnits']
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
-$propertiesUrl = is_string($viewModel['rentalPropertiesUrl'] ?? null) ? (string) $viewModel['rentalPropertiesUrl'] : private_portal_url('rental_properties');
-$unitsUrl = is_string($viewModel['rentalUnitsUrl'] ?? null) ? (string) $viewModel['rentalUnitsUrl'] : private_portal_url('rental_units');
-$membersUrl = is_string($viewModel['rentalMembersUrl'] ?? null) ? (string) $viewModel['rentalMembersUrl'] : private_portal_url('rental_property_members');
+$urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
+$unitsUrl = is_string($urls['units'] ?? null) ? (string) $urls['units'] : private_portal_url('rental_units');
 $unitStatuses = ['available' => 'Disponible', 'occupied' => 'Occupé', 'maintenance' => 'Maintenance', 'archived' => 'Archivé'];
 $propertyNames = [];
 foreach ($properties as $property) {
@@ -16,11 +15,7 @@ foreach ($properties as $property) {
 }
 ?>
 <section>
-  <p class="muted">
-    <a href="<?php echo htmlspecialchars($propertiesUrl, ENT_QUOTES, 'UTF-8'); ?>">Biens</a>
-    · <a href="<?php echo htmlspecialchars($unitsUrl, ENT_QUOTES, 'UTF-8'); ?>">Lots</a>
-    · <a href="<?php echo htmlspecialchars($membersUrl, ENT_QUOTES, 'UTF-8'); ?>">Membres</a>
-  </p>
+  <?php include __DIR__ . '/_nav.php'; ?>
 
   <?php if ($notice !== ''): ?>
     <p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p>

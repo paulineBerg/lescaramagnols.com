@@ -38,7 +38,13 @@ final class PrivateDataProtectionService
                 'private_documents',
                 '`private_user_id` = :private_user_id',
                 ['private_user_id' => $privateUserId],
-                ['document_id', 'original_name', 'extension', 'mime_type', 'size_bytes', 'is_active', 'uploaded_at']
+                ['document_id', 'category_id', 'original_name', 'extension', 'mime_type', 'size_bytes', 'is_active', 'uploaded_at']
+            ),
+            'documentCategories' => $this->rows(
+                'private_document_categories',
+                '`private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['id', 'name', 'slug', 'color', 'is_active', 'created_at', 'updated_at']
             ),
             'rentalMemberships' => $this->rows(
                 'rental_property_members',

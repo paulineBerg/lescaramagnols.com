@@ -8,11 +8,7 @@ $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
 $summaryUrl = (string) ($urls['summary'] ?? private_portal_url('rental_summary'));
 ?>
 <section>
-  <p class="muted">
-    <a href="<?php echo htmlspecialchars((string) ($urls['payments'] ?? private_portal_url('rental_payments')), ENT_QUOTES, 'UTF-8'); ?>">Loyers</a>
-    · <a href="<?php echo htmlspecialchars((string) ($urls['expenses'] ?? private_portal_url('rental_expenses')), ENT_QUOTES, 'UTF-8'); ?>">Charges</a>
-    · <a href="<?php echo htmlspecialchars($summaryUrl, ENT_QUOTES, 'UTF-8'); ?>">Synthese</a>
-  </p>
+  <?php include __DIR__ . '/_nav.php'; ?>
 
   <section class="card">
     <h2>Synthese annuelle locative</h2>

@@ -284,6 +284,66 @@ final class PrivatePortalStorageTest extends TestCase
         $this->assertTrue(is_file($absolutePath));
     }
 
+    public function testFilesCategoriesCanBeCreatedAndAssignedOnUpload(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $documentRepository = new PrivateDocumentRepository($database);
+        $passwordHash = password_hash('SecretPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+
+        $userId = $userRepository->create('family@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
+
+        $storage = PrivateDocumentStorage::fromAppConfig();
+        $controller = new PrivatePortalController(
+            $this->privateAuth($userRepository, $userId),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository,
+            $documentRepository,
+            $storage
+        );
+
+        $categoryResponse = $controller->handle(
+            'files_categories',
+            $this->request('POST', '/private/files/categories', [
+                'csrf_token' => csrf_token('private_documents'),
+                'category_name' => 'Assurances habitation',
+                'category_color' => '#2563eb',
+            ])
+        );
+        $this->assertSame(302, $categoryResponse->status);
+        $categories = $documentRepository->listCategoriesForUser($userId);
+        $this->assertCount(1, $categories);
+        $categoryId = (int) ($categories[0]['id'] ?? 0);
+        $this->assertGreaterThan(0, $categoryId);
+
+        $upload = $this->createUploadFixture('assurance.txt', 'text/plain', 'attestation');
+        $uploadResponse = $controller->handle(
+            'files_upload',
+            $this->request(
+                'POST',
+                '/private/files/upload',
+                [
+                    'csrf_token' => csrf_token('private_documents'),
+                    'category_id' => $categoryId,
+                ],
+                ['document_file' => $upload]
+            )
+        );
+        $this->cleanupUploadFixture($upload['tmp_name']);
+
+        $this->assertSame(302, $uploadResponse->status);
+        $documents = $documentRepository->listActiveByUser($userId, 10);
+        $this->assertCount(1, $documents);
+        $this->assertSame($categoryId, $documents[0]['categoryId']);
+        $this->assertSame('Assurances habitation', $documents[0]['categoryName']);
+    }
+
     public function testFilesDeleteRemovesDocumentAndStorageFile(): void
     {
         $database = $this->editorialSqlDatabase();

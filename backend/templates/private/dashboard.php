@@ -15,11 +15,13 @@ $translate = static function (string $key, string $fallback): string {
 $privateModules = is_array($privateModules ?? null) ? $privateModules : [];
 $privateDocumentsEnabled = is_bool($privateDocumentsEnabled ?? null) ? (bool) $privateDocumentsEnabled : false;
 $privateDocuments = is_array($privateDocuments ?? null) ? $privateDocuments : [];
+$privateDocumentCategories = is_array($privateDocumentCategories ?? null) ? $privateDocumentCategories : [];
 $privateUserIdentifier = is_string($privateUserIdentifier ?? null) ? (string) $privateUserIdentifier : '';
 $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null) ? (string) $privatePasswordForgotUrl : private_portal_url('password_forgot');
 $privateDashboardNotice = is_string($privateDashboardNotice ?? null) ? (string) $privateDashboardNotice : '';
 $privateDashboardErrorMessage = is_string($privateDashboardErrorMessage ?? null) ? (string) $privateDashboardErrorMessage : '';
 $privateDocumentsUploadUrl = is_string($privateDocumentsUploadUrl ?? null) ? (string) $privateDocumentsUploadUrl : private_portal_url('files_upload');
+$privateDocumentCategoriesUrl = is_string($privateDocumentCategoriesUrl ?? null) ? (string) $privateDocumentCategoriesUrl : private_portal_url('files_categories');
 $privateDocumentUploadCsrfToken = is_string($privateDocumentUploadCsrfToken ?? null)
     ? (string) $privateDocumentUploadCsrfToken
     : '';
@@ -123,14 +125,11 @@ $formatBytes = static function (int $size): string {
       <span class="tag"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DASHBOARD_RENTAL_TAG', 'Gestion'), ENT_QUOTES, 'UTF-8'); ?></span>
       <h2>Locations immobilières</h2>
       <p class="private-actions">
+        <a href="<?php echo htmlspecialchars(private_portal_url('rental_dashboard'), ENT_QUOTES, 'UTF-8'); ?>">Tableau de bord</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_properties'), ENT_QUOTES, 'UTF-8'); ?>">Biens</a>
-        <a href="<?php echo htmlspecialchars(private_portal_url('rental_units'), ENT_QUOTES, 'UTF-8'); ?>">Lots</a>
-        <a href="<?php echo htmlspecialchars(private_portal_url('rental_property_members'), ENT_QUOTES, 'UTF-8'); ?>">Membres</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_tenants'), ENT_QUOTES, 'UTF-8'); ?>">Locataires</a>
-        <a href="<?php echo htmlspecialchars(private_portal_url('rental_leases'), ENT_QUOTES, 'UTF-8'); ?>">Baux</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_payments'), ENT_QUOTES, 'UTF-8'); ?>">Loyers</a>
-        <a href="<?php echo htmlspecialchars(private_portal_url('rental_expenses'), ENT_QUOTES, 'UTF-8'); ?>">Charges</a>
-        <a href="<?php echo htmlspecialchars(private_portal_url('rental_documents'), ENT_QUOTES, 'UTF-8'); ?>">Documents locatifs</a>
+        <a href="<?php echo htmlspecialchars(private_portal_url('rental_agency_imports'), ENT_QUOTES, 'UTF-8'); ?>">Agence</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_summary'), ENT_QUOTES, 'UTF-8'); ?>">Synthèse</a>
       </p>
     </section>
@@ -152,12 +151,47 @@ $formatBytes = static function (int $size): string {
       <h2><?php echo htmlspecialchars($translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'), ENT_QUOTES, 'UTF-8'); ?></h2>
 
       <?php if ($privateDocumentsEnabled): ?>
+        <form method="post" action="<?php echo htmlspecialchars($privateDocumentCategoriesUrl, ENT_QUOTES, 'UTF-8'); ?>">
+          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($privateDocumentUploadCsrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+          <label for="private-document-category-name"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_CATEGORY_LABEL', 'Nouvelle catégorie'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="private-document-category-name" type="text" name="category_name" maxlength="80" required />
+          <label for="private-document-category-color"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_CATEGORY_COLOR', 'Couleur'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <input id="private-document-category-color" type="color" name="category_color" value="#6b7280" />
+          <button type="submit"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_CATEGORY_SUBMIT', 'Créer'), ENT_QUOTES, 'UTF-8'); ?></button>
+        </form>
         <form method="post" action="<?php echo htmlspecialchars($privateDocumentsUploadUrl, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($privateDocumentUploadCsrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+          <label for="private-document-category"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_CATEGORY_SELECT', 'Catégorie'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <select id="private-document-category" name="category_id">
+            <option value=""><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_CATEGORY_NONE', 'Sans catégorie'), ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php foreach ($privateDocumentCategories as $category): ?>
+              <?php if (!is_array($category) || !is_numeric($category['id'] ?? null)) { continue; } ?>
+              <option value="<?php echo htmlspecialchars((string) (int) $category['id'], ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
           <label for="private-document-file"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_FILE_LABEL', 'Ajouter un document'), ENT_QUOTES, 'UTF-8'); ?></label>
           <input id="private-document-file" type="file" name="<?php echo htmlspecialchars('document_file', ENT_QUOTES, 'UTF-8'); ?>" required />
           <button type="submit"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_UPLOAD_SUBMIT', 'Envoyer'), ENT_QUOTES, 'UTF-8'); ?></button>
         </form>
+        <?php if ($privateDocumentCategories !== []): ?>
+          <p class="muted">
+            <?php foreach ($privateDocumentCategories as $category): ?>
+              <?php if (!is_array($category)) { continue; } ?>
+              <?php
+              $categoryName = is_string($category['name'] ?? null) ? (string) $category['name'] : '';
+              $categoryColor = is_string($category['color'] ?? null) ? (string) $category['color'] : '';
+              if ($categoryName === '') {
+                  continue;
+              }
+              ?>
+              <span class="tag" <?php echo $categoryColor !== '' ? 'style="border-color:' . htmlspecialchars($categoryColor, ENT_QUOTES, 'UTF-8') . ';color:' . htmlspecialchars($categoryColor, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+                <?php echo htmlspecialchars($categoryName, ENT_QUOTES, 'UTF-8'); ?>
+              </span>
+            <?php endforeach; ?>
+          </p>
+        <?php endif; ?>
       <?php else: ?>
         <p class="muted">
           <?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_MODULE_DISABLED', 'Le module documents n’est pas activé pour votre compte.'), ENT_QUOTES, 'UTF-8'); ?>
@@ -173,6 +207,7 @@ $formatBytes = static function (int $size): string {
           <thead>
             <tr>
               <th><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_TABLE_NAME', 'Nom'), ENT_QUOTES, 'UTF-8'); ?></th>
+              <th><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_TABLE_CATEGORY', 'Catégorie'), ENT_QUOTES, 'UTF-8'); ?></th>
               <th><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_TABLE_SIZE', 'Poids'), ENT_QUOTES, 'UTF-8'); ?></th>
               <th><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_TABLE_DATE', 'Ajouté le'), ENT_QUOTES, 'UTF-8'); ?></th>
               <th><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_TABLE_ACTIONS', 'Actions'), ENT_QUOTES, 'UTF-8'); ?></th>
@@ -186,6 +221,8 @@ $formatBytes = static function (int $size): string {
               <?php
               $documentId = is_string($document['documentId'] ?? null) ? trim((string) $document['documentId']) : '';
               $originalName = is_string($document['originalName'] ?? null) ? trim((string) $document['originalName']) : '';
+              $categoryName = is_string($document['categoryName'] ?? null) ? trim((string) $document['categoryName']) : '';
+              $categoryColor = is_string($document['categoryColor'] ?? null) ? trim((string) $document['categoryColor']) : '';
               $sizeBytes = is_scalar($document['sizeBytes'] ?? null) ? (int) $document['sizeBytes'] : 0;
               $uploadedAtRaw = is_string($document['uploadedAt'] ?? null) ? trim((string) $document['uploadedAt']) : '';
 
@@ -205,6 +242,15 @@ $formatBytes = static function (int $size): string {
                   <a href="<?php echo htmlspecialchars($downloadUrl, ENT_QUOTES, 'UTF-8'); ?>">
                     <?php echo htmlspecialchars($originalName !== '' ? $originalName : $documentId, ENT_QUOTES, 'UTF-8'); ?>
                   </a>
+                </td>
+                <td>
+                  <?php if ($categoryName !== ''): ?>
+                    <span class="tag" <?php echo $categoryColor !== '' ? 'style="border-color:' . htmlspecialchars($categoryColor, ENT_QUOTES, 'UTF-8') . ';color:' . htmlspecialchars($categoryColor, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+                      <?php echo htmlspecialchars($categoryName, ENT_QUOTES, 'UTF-8'); ?>
+                    </span>
+                  <?php else: ?>
+                    <span class="muted"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DOCUMENT_CATEGORY_NONE_SHORT', 'Sans catégorie'), ENT_QUOTES, 'UTF-8'); ?></span>
+                  <?php endif; ?>
                 </td>
                 <td><?php echo htmlspecialchars($formatBytes(max(0, $sizeBytes)), ENT_QUOTES, 'UTF-8'); ?></td>
                 <td><?php echo htmlspecialchars($uploadedAt, ENT_QUOTES, 'UTF-8'); ?></td>

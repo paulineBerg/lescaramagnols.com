@@ -107,6 +107,7 @@ trait EditorialSqlTestTrait
                     'private_user_module_permissions',
                     'private_modules',
                     'private_documents',
+                    'private_document_categories',
                     'private_password_resets',
                     'private_user_invites',
                     'private_users',
