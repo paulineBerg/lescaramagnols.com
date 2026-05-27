@@ -44,6 +44,10 @@ final class PrivateRouteResolver
             'tax_controls' => $basePath . '/impots',
             'tax_documents' => $basePath . '/impots',
             'tax_export' => $basePath . '/impots',
+            'discussion_index' => $basePath . '/discussions',
+            'discussion_new' => $basePath . '/discussions/new',
+            'discussion_api_conversations' => $basePath . '/discussions/api/conversations',
+            'discussion_files' => $basePath . '/discussions/files',
             'privacy_export' => $basePath . '/privacy/export',
             'privacy_anonymize' => $basePath . '/privacy/anonymize',
             'ops_backup' => $basePath . '/ops/backup',
@@ -244,6 +248,56 @@ final class PrivateRouteResolver
                 'methods' => ['GET'],
                 'path' => $this->canonicalPath('tax_export') . '/{year:[0-9]{4}}/export',
                 'handler' => ['type' => 'private', 'page' => 'tax_export'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('discussion_index'),
+                'handler' => ['type' => 'private', 'page' => 'discussion_index'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('discussion_new'),
+                'handler' => ['type' => 'private', 'page' => 'discussion_new'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('discussion_index') . '/{conversationId:[0-9]+}',
+                'handler' => ['type' => 'private', 'page' => 'discussion_conversation'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('discussion_api_conversations'),
+                'handler' => ['type' => 'private', 'page' => 'discussion_api_conversations'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('discussion_api_conversations') . '/{conversationId:[0-9]+}/messages',
+                'handler' => ['type' => 'private', 'page' => 'discussion_api_messages'],
+            ],
+            [
+                'methods' => ['POST'],
+                'path' => $this->canonicalPath('discussion_api_conversations') . '/{conversationId:[0-9]+}/members',
+                'handler' => ['type' => 'private', 'page' => 'discussion_api_members'],
+            ],
+            [
+                'methods' => ['POST'],
+                'path' => $this->canonicalPath('discussion_api_conversations') . '/{conversationId:[0-9]+}/leave',
+                'handler' => ['type' => 'private', 'page' => 'discussion_api_leave'],
+            ],
+            [
+                'methods' => ['POST'],
+                'path' => $this->canonicalPath('discussion_api_conversations') . '/{conversationId:[0-9]+}/read',
+                'handler' => ['type' => 'private', 'page' => 'discussion_api_read'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('discussion_files') . '/{attachmentId:[A-Za-z0-9._-]+}',
+                'handler' => ['type' => 'private', 'page' => 'discussion_file'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('discussion_files') . '/{attachmentId:[A-Za-z0-9._-]+}/preview',
+                'handler' => ['type' => 'private', 'page' => 'discussion_file_preview'],
             ],
             [
                 'methods' => ['GET'],

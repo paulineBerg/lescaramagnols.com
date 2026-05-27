@@ -532,6 +532,39 @@ $privateDocumentAllowedMimeTypes = $normalizePrivateDocumentMimeTypes(
     )
 );
 
+$privateDiscussionRetentionDays = max(1, (int) env('PRIVATE_DISCUSSION_RETENTION_DAYS', 60));
+$privateDiscussionMaxMessageLength = max(1, min(10000, (int) env('PRIVATE_DISCUSSION_MAX_MESSAGE_LENGTH', 4000)));
+$privateDiscussionMaxAttachmentsPerMessage = max(0, min(10, (int) env('PRIVATE_DISCUSSION_MAX_ATTACHMENTS_PER_MESSAGE', 5)));
+$privateDiscussionMaxAttachmentBytes = max(1, (int) env('PRIVATE_DISCUSSION_MAX_ATTACHMENT_BYTES', 20 * 1024 * 1024));
+$privateDiscussionPollIntervalSeconds = max(3, min(60, (int) env('PRIVATE_DISCUSSION_POLL_INTERVAL_SECONDS', 5)));
+$privateDiscussionMessageRateLimitAttempts = max(1, (int) env('PRIVATE_DISCUSSION_MESSAGE_RATE_LIMIT_ATTEMPTS', 30));
+$privateDiscussionMessageRateLimitWindow = max(30, (int) env('PRIVATE_DISCUSSION_MESSAGE_RATE_LIMIT_WINDOW', 60));
+$privateDiscussionConversationRateLimitAttempts = max(1, (int) env('PRIVATE_DISCUSSION_CONVERSATION_RATE_LIMIT_ATTEMPTS', 10));
+$privateDiscussionConversationRateLimitWindow = max(60, (int) env('PRIVATE_DISCUSSION_CONVERSATION_RATE_LIMIT_WINDOW', 300));
+$privateDiscussionAllowedExtensions = $normalizePrivateDocumentExtensions(
+    env(
+        'PRIVATE_DISCUSSION_ALLOWED_EXTENSIONS',
+        'pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif,webp,txt'
+    )
+);
+$privateDiscussionAllowedMimeTypes = $normalizePrivateDocumentMimeTypes(
+    env(
+        'PRIVATE_DISCUSSION_ALLOWED_MIME_TYPES',
+        implode(',', [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+            'text/plain',
+        ])
+    )
+);
+
 $appEnv = defined('CARAMAGNOLS_LOCAL_DEV_ROUTER') ? 'development' : env('APP_ENV', 'development');
 
 $appConfig = [
@@ -603,6 +636,20 @@ $appConfig = [
             'max_upload_bytes' => $privateDocumentMaxUploadBytes,
             'allowed_extensions' => $privateDocumentAllowedExtensions,
             'allowed_mime_types' => $privateDocumentAllowedMimeTypes,
+        ],
+        'discussions' => [
+            'storage_root_path' => $privateDocumentStorageRootPath,
+            'retention_days' => $privateDiscussionRetentionDays,
+            'max_message_length' => $privateDiscussionMaxMessageLength,
+            'max_attachments_per_message' => $privateDiscussionMaxAttachmentsPerMessage,
+            'max_attachment_bytes' => $privateDiscussionMaxAttachmentBytes,
+            'poll_interval_seconds' => $privateDiscussionPollIntervalSeconds,
+            'message_rate_limit_attempts' => $privateDiscussionMessageRateLimitAttempts,
+            'message_rate_limit_window' => $privateDiscussionMessageRateLimitWindow,
+            'conversation_rate_limit_attempts' => $privateDiscussionConversationRateLimitAttempts,
+            'conversation_rate_limit_window' => $privateDiscussionConversationRateLimitWindow,
+            'allowed_extensions' => $privateDiscussionAllowedExtensions,
+            'allowed_mime_types' => $privateDiscussionAllowedMimeTypes,
         ],
         'trust_proxy_headers' => filter_var(
             env('PRIVATE_TRUST_PROXY_HEADERS', env('TRUST_PROXY_HEADERS', env('ADMIN_TRUST_PROXY_HEADERS', false))),

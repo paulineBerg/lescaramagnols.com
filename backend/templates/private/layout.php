@@ -90,6 +90,16 @@ if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)
     ];
 }
 
+if ($privateHasModule('Discussions')) {
+    $privateNavItems[] = [
+        'label' => $translate('TXT_PRIVATE_NAV_DISCUSSIONS', 'Discussions'),
+        'href' => private_portal_url('discussion_index'),
+        'icon' => '✉',
+        'active' => $privateCurrentPath !== ''
+            && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('discussion_index'))),
+    ];
+}
+
 if ($privateHasModule('Locations immobilières')) {
     $privateRentalPaths = [
         private_portal_url('rental_properties'),

@@ -107,6 +107,17 @@ $formatBytes = static function (int $size): string {
       <?php endif; ?>
     </section>
 
+    <?php if (in_array('Discussions', $privateModules, true)): ?>
+    <section class="card">
+      <span class="tag">Messages</span>
+      <h2>Discussions famille</h2>
+      <p class="muted">Messages privés, groupes, images et fichiers joints avec conservation limitée à 60 jours.</p>
+      <p class="private-actions">
+        <a href="<?php echo htmlspecialchars(private_portal_url('discussion_index'), ENT_QUOTES, 'UTF-8'); ?>">Ouvrir les discussions</a>
+      </p>
+    </section>
+    <?php endif; ?>
+
     <?php if (in_array('Locations immobilières', $privateModules, true)): ?>
     <section class="card">
       <span class="tag"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DASHBOARD_RENTAL_TAG', 'Gestion'), ENT_QUOTES, 'UTF-8'); ?></span>

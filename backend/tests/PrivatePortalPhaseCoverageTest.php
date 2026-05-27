@@ -159,6 +159,31 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
         }
     }
 
+    public function testPhase10DiscussionRoutesAreExposedBehindPrivateGuard(): void
+    {
+        $frontController = $this->frontController();
+        $routes = [
+            ['GET', '/private/discussions'],
+            ['GET', '/private/discussions/new'],
+            ['GET', '/private/discussions/1'],
+            ['GET', '/private/discussions/api/conversations'],
+            ['POST', '/private/discussions/api/conversations'],
+            ['GET', '/private/discussions/api/conversations/1/messages'],
+            ['POST', '/private/discussions/api/conversations/1/messages'],
+            ['POST', '/private/discussions/api/conversations/1/members'],
+            ['POST', '/private/discussions/api/conversations/1/leave'],
+            ['POST', '/private/discussions/api/conversations/1/read'],
+            ['GET', '/private/discussions/files/demo'],
+            ['GET', '/private/discussions/files/demo/preview'],
+        ];
+
+        foreach ($routes as [$method, $route]) {
+            $response = $frontController->handle($this->request($method, $route));
+            $this->assertSame(403, $response->status, 'Phase 10 discussion routes must be private-guarded when unauthenticated.');
+            $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
+        }
+    }
+
     public function testPhase9PrivateHeadersAreAppliedOnProtectedEntryPoints(): void
     {
         $frontController = $this->frontController();

@@ -1769,8 +1769,12 @@ Variables a prevoir :
 PRIVATE_DISCUSSION_RETENTION_DAYS=60
 PRIVATE_DISCUSSION_MAX_MESSAGE_LENGTH=4000
 PRIVATE_DISCUSSION_MAX_ATTACHMENTS_PER_MESSAGE=5
-PRIVATE_DISCUSSION_MAX_ATTACHMENT_MB=20
+PRIVATE_DISCUSSION_MAX_ATTACHMENT_BYTES=20971520
 PRIVATE_DISCUSSION_POLL_INTERVAL_SECONDS=5
+PRIVATE_DISCUSSION_MESSAGE_RATE_LIMIT_ATTEMPTS=30
+PRIVATE_DISCUSSION_MESSAGE_RATE_LIMIT_WINDOW=60
+PRIVATE_DISCUSSION_CONVERSATION_RATE_LIMIT_ATTEMPTS=10
+PRIVATE_DISCUSSION_CONVERSATION_RATE_LIMIT_WINDOW=300
 ```
 
 Regles de purge :
@@ -2473,46 +2477,46 @@ Tests à lancer avant clôture phase 9 :
 
 Objectif : ajouter une messagerie privee entre membres, avec conversations directes, groupes, images, fichiers et suppression glissante apres `60` jours.
 
-Progression phase 10 : a demarrer.
+Progression phase 10 : V1 implementee, validations ciblees a maintenir avant evolution.
 
 Prerequis :
 
-- [ ] Phase 3 finalisee : membres, permissions et registre de modules operationnels.
-- [ ] Phase 4 finalisee : stockage prive, telechargement controle et politique fichiers disponibles.
-- [ ] Phase 9 suffisamment couverte : retention, audit, export/anonymisation et runbook incident compatibles avec un module conversationnel.
+- [x] Phase 3 finalisee : membres, permissions et registre de modules operationnels.
+- [x] Phase 4 finalisee : stockage prive, telechargement controle et politique fichiers disponibles.
+- [x] Phase 9 suffisamment couverte : retention, audit, export/anonymisation et runbook incident compatibles avec un module conversationnel.
 
 Checklist :
 
-- [ ] Ajouter le module `discussions` dans `PrivateModuleRegistry`.
-- [ ] Creer la migration SQL `005_family_discussion.sql`.
-- [ ] Creer les repositories conversations, membres, messages, attachments et lectures.
-- [ ] Creer `DiscussionAccessPolicy`.
-- [ ] Ajouter routes HTML `/private/discussions`, `/new`, `/{conversationId}`.
-- [ ] Ajouter endpoints JSON pour liste, creation conversation, messages, membres, lecture.
-- [ ] Ajouter envoi de message texte avec CSRF, validation et rate limit.
-- [ ] Ajouter upload image/fichier avec stockage hors webroot.
-- [ ] Ajouter apercu image quand la bibliotheque image est disponible.
-- [ ] Ajouter telechargement controle des fichiers et apercus.
-- [ ] Ajouter compteur non lu et marquage lu.
-- [ ] Ajouter `DiscussionRetentionService::purgeExpiredForUser($userId)` a l'ouverture du module.
-- [ ] Ajouter commande planifiee de purge quotidienne des contenus expires.
-- [ ] Ajouter audit sans contenu de message.
-- [ ] Ajouter tests unitaires, repositories, HTTP et retention.
+- [x] Ajouter le module `discussions` dans `PrivateModuleRegistry`.
+- [x] Creer les fichiers SQL `discussion_*` sous `backend/sql/private/`.
+- [x] Creer les repositories conversations, membres, messages, attachments et lectures.
+- [x] Creer `DiscussionAccessPolicy`.
+- [x] Ajouter routes HTML `/private/discussions`, `/new`, `/{conversationId}`.
+- [x] Ajouter endpoints JSON pour liste, creation conversation, messages, membres, lecture.
+- [x] Ajouter envoi de message texte avec CSRF, validation et rate limit.
+- [x] Ajouter upload image/fichier avec stockage hors webroot.
+- [x] Ajouter apercu image ou fallback inline quand la generation dediee est indisponible.
+- [x] Ajouter telechargement controle des fichiers et apercus.
+- [x] Ajouter compteur non lu et marquage lu.
+- [x] Ajouter `DiscussionRetentionService::purgeExpiredForUser($userId)` a l'ouverture du module.
+- [x] Ajouter commande planifiee de purge quotidienne des contenus expires.
+- [x] Ajouter audit sans contenu de message.
+- [x] Ajouter tests unitaires, repositories, HTTP et retention.
 
 Definition of Done :
 
-- [ ] Seuls les membres autorises voient le module.
-- [ ] Seuls les participants lisent une conversation.
-- [ ] Un membre peut envoyer un message texte a un membre ou un groupe.
-- [ ] Les images ont un apercu ou un fallback propre si la generation est indisponible.
-- [ ] Les fichiers joints sont stockes hors webroot et servis par endpoint controle.
-- [ ] Les contenus de plus de `60` jours sont purges a l'ouverture du module et par commande planifiee.
-- [ ] Les logs n'incluent jamais le contenu des messages.
+- [x] Seuls les membres autorises voient le module.
+- [x] Seuls les participants lisent une conversation.
+- [x] Un membre peut envoyer un message texte a un membre ou un groupe.
+- [x] Les images ont un apercu ou un fallback propre si la generation est indisponible.
+- [x] Les fichiers joints sont stockes hors webroot et servis par endpoint controle.
+- [x] Les contenus de plus de `60` jours sont purges a l'ouverture du module et par commande planifiee.
+- [x] Les logs n'incluent jamais le contenu des messages.
 
 Tests a lancer avant cloture phase 10 :
 
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/FamilyDiscussion`
-- [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalPhaseCoverageTest.php --filter Discussion`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/FamilyDiscussion`
+- [x] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalPhaseCoverageTest.php --filter Discussion`
 - [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalStorageTest.php`
 - [ ] `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalSecurityTest.php`
 - [ ] Controle manuel : conversation directe, groupe, image avec apercu, fichier joint, non-participant refuse, purge simulee a `60` jours.

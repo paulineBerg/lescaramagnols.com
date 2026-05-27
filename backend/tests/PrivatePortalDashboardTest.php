@@ -118,6 +118,36 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertStringContainsString('/private/files/' . $documentId, $dashboard->body);
     }
 
+    public function testDashboardShowsDiscussionCardForDiscussionModule(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+
+        $userId = $userRepository->create('family@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['discussions'], 'admin@example.com'));
+
+        $session = new PrivateSession('_private_dashboard_test');
+        $auth = new PrivateAuth($session, null, $userRepository);
+        $controller = new PrivatePortalController($auth, null, null, $userRepository, $moduleRepository);
+
+        $login = $controller->handle('login', $this->request('POST', '/private/login', [
+            'identifier' => 'family@example.com',
+            'password' => 'StrongPassword1!',
+            'csrf_token' => csrf_token('private'),
+        ]));
+        $this->assertSame(302, $login->status);
+
+        $dashboard = $controller->handle('dashboard', $this->request('GET', '/private/dashboard'));
+        $this->assertSame(200, $dashboard->status);
+        $this->assertStringContainsString('Discussions famille', $dashboard->body);
+        $this->assertStringContainsString('/private/discussions', $dashboard->body);
+        $this->assertStringNotContainsString('name="document_file"', $dashboard->body);
+    }
+
     public function testDashboardHidesDocumentUploadWithoutDocumentsModule(): void
     {
         $database = $this->editorialSqlDatabase();

@@ -7,6 +7,11 @@ namespace Caramagnols\PrivatePortal\Http;
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivateApps\FamilyDiscussion\Attachment\DiscussionAttachmentStorage;
+use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
+use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionService;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
@@ -42,6 +47,7 @@ final class PrivatePortalController
     private const RENTAL_DOCUMENT_UPLOAD_FIELD = 'rental_document_file';
     private const AGENCY_IMPORT_UPLOAD_FIELD = 'agency_import_file';
     private const CSRF_TAX = 'private_tax_declaration';
+    private const CSRF_DISCUSSIONS = 'private_discussions';
 
     public function __construct(
         private readonly PrivateAuth $auth,
@@ -59,7 +65,11 @@ final class PrivatePortalController
         private readonly ?TaxDeclarationRepository $taxDeclarationRepository = null,
         private readonly ?TaxDeclarationSummaryService $taxDeclarationSummaryService = null,
         private readonly ?PrivateDataProtectionService $privateDataProtectionService = null,
-        private readonly ?PrivateBackupService $privateBackupService = null
+        private readonly ?PrivateBackupService $privateBackupService = null,
+        private readonly ?DiscussionRepository $discussionRepository = null,
+        private readonly ?DiscussionAttachmentStorage $discussionAttachmentStorage = null,
+        private readonly ?DiscussionService $discussionService = null,
+        private readonly ?DiscussionRetentionService $discussionRetentionService = null
     ) {
     }
 
@@ -112,6 +122,39 @@ final class PrivatePortalController
             'tax_controls' => $this->handleTaxControls($request, (int) ($routeParams['year'] ?? 0)),
             'tax_documents' => $this->handleTaxDocuments($request, (int) ($routeParams['year'] ?? 0)),
             'tax_export' => $this->handleTaxExport($request, (int) ($routeParams['year'] ?? 0)),
+            'discussion_index' => $this->handleDiscussionIndex($request),
+            'discussion_new' => $this->handleDiscussionIndex($request),
+            'discussion_conversation' => $this->handleDiscussionConversation(
+                $request,
+                (int) ($routeParams['conversationId'] ?? 0)
+            ),
+            'discussion_api_conversations' => $this->handleDiscussionApiConversations($request),
+            'discussion_api_messages' => $this->handleDiscussionApiMessages(
+                $request,
+                (int) ($routeParams['conversationId'] ?? 0)
+            ),
+            'discussion_api_members' => $this->handleDiscussionApiMembers(
+                $request,
+                (int) ($routeParams['conversationId'] ?? 0)
+            ),
+            'discussion_api_leave' => $this->handleDiscussionApiLeave(
+                $request,
+                (int) ($routeParams['conversationId'] ?? 0)
+            ),
+            'discussion_api_read' => $this->handleDiscussionApiRead(
+                $request,
+                (int) ($routeParams['conversationId'] ?? 0)
+            ),
+            'discussion_file' => $this->handleDiscussionFile(
+                $request,
+                (string) ($routeParams['attachmentId'] ?? ''),
+                false
+            ),
+            'discussion_file_preview' => $this->handleDiscussionFile(
+                $request,
+                (string) ($routeParams['attachmentId'] ?? ''),
+                true
+            ),
             'privacy_export' => $this->handlePrivacyExport($request),
             'privacy_anonymize' => $this->handlePrivacyAnonymize($request),
             'ops_backup' => $this->handleOpsBackup($request),
@@ -1254,6 +1297,261 @@ final class PrivatePortalController
         ], $this->taxDeclarationSummaryService()->csv($summary)));
     }
 
+    private function handleDiscussionIndex(Request $request): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $this->discussionRetentionService()->purgeExpiredForUser($userId);
+
+        if ($request->method() === self::METHOD_POST) {
+            if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+                return $this->redirect(private_portal_url('discussion_index') . '?error=csrf');
+            }
+            if (!$this->discussionRateLimitHit($request, $userId, 'conversation')) {
+                return $this->redirect(private_portal_url('discussion_index') . '?error=rate_limited');
+            }
+
+            $body = $request->body();
+            $type = is_string($body['type'] ?? null) ? strtolower(trim((string) $body['type'])) : 'direct';
+            $conversation = null;
+            if ($type === 'group') {
+                $conversation = $this->discussionService()->createGroupConversation(
+                    $userId,
+                    (string) ($body['title'] ?? ''),
+                    $this->discussionMemberIdsFromPayload($body['member_ids'] ?? [])
+                );
+            } else {
+                $recipientId = is_numeric($body['recipient_id'] ?? null) ? (int) $body['recipient_id'] : 0;
+                $conversation = $this->discussionService()->createDirectConversation($userId, $recipientId);
+            }
+
+            if (is_array($conversation)) {
+                return $this->redirect(private_portal_url('discussion_index') . '/' . (int) $conversation['id']);
+            }
+
+            return $this->redirect(private_portal_url('discussion_index') . '?error=conversation');
+        }
+
+        return $this->render('modules/family-discussion/index', $this->discussionViewModel($userId, [
+            'privatePageTitle' => 'Discussions famille',
+            'conversations' => $this->discussionService()->listConversations($userId),
+            'members' => $this->discussionService()->listActiveMembers($userId),
+            'error' => is_string($request->query()['error'] ?? null) ? (string) $request->query()['error'] : '',
+        ]));
+    }
+
+    private function handleDiscussionConversation(Request $request, int $conversationId): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $this->discussionRetentionService()->purgeExpiredForUser($userId);
+        $conversation = $this->discussionRepository()->findConversationForUser($conversationId, $userId);
+        if (!is_array($conversation)) {
+            $this->logEvent('private.discussion.access.denied', ['private_user_id' => $userId, 'conversation_id' => $conversationId]);
+            return $this->handleModuleAccessDenied('discussions');
+        }
+
+        if ($request->method() === self::METHOD_POST) {
+            if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=csrf');
+            }
+            if (!$this->discussionRateLimitHit($request, $userId, 'message')) {
+                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=rate_limited');
+            }
+
+            $body = $request->body();
+            $message = $this->discussionService()->sendMessage(
+                $userId,
+                $conversationId,
+                is_string($body['body'] ?? null) ? (string) $body['body'] : '',
+                $request->files()
+            );
+
+            return $this->redirect(
+                private_portal_url('discussion_index') . '/' . $conversationId . (is_array($message) ? '?notice=sent' : '?error=message')
+            );
+        }
+
+        $messages = $this->discussionService()->listMessages($conversationId, $userId);
+        $this->discussionService()->markRead($conversationId, $userId);
+
+        return $this->render('modules/family-discussion/conversation', $this->discussionViewModel($userId, [
+            'privatePageTitle' => 'Discussion',
+            'conversation' => $conversation,
+            'messages' => $messages,
+            'members' => $this->discussionService()->listActiveMembers($userId),
+            'error' => is_string($request->query()['error'] ?? null) ? (string) $request->query()['error'] : '',
+            'notice' => is_string($request->query()['notice'] ?? null) ? (string) $request->query()['notice'] : '',
+        ]));
+    }
+
+    private function handleDiscussionApiConversations(Request $request): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        $this->discussionRetentionService()->purgeExpiredForUser($userId);
+        if ($request->method() === self::METHOD_GET) {
+            return $this->jsonPrivateResponse(['conversations' => $this->discussionService()->listConversations($userId)]);
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+            return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
+        }
+        if (!$this->discussionRateLimitHit($request, $userId, 'conversation')) {
+            return $this->jsonPrivateResponse(['error' => 'rate_limited'], 429);
+        }
+
+        $body = $request->body();
+        $type = is_string($body['type'] ?? null) ? strtolower(trim((string) $body['type'])) : 'direct';
+        $conversation = $type === 'group'
+            ? $this->discussionService()->createGroupConversation($userId, (string) ($body['title'] ?? ''), $this->discussionMemberIdsFromPayload($body['member_ids'] ?? []))
+            : $this->discussionService()->createDirectConversation($userId, is_numeric($body['recipient_id'] ?? null) ? (int) $body['recipient_id'] : 0);
+
+        return is_array($conversation)
+            ? $this->jsonPrivateResponse(['conversation' => $conversation], 201)
+            : $this->jsonPrivateResponse(['error' => 'invalid_conversation'], 422);
+    }
+
+    private function handleDiscussionApiMessages(Request $request, int $conversationId): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        $this->discussionRetentionService()->purgeExpiredForUser($userId);
+        if (!$this->discussionRepository()->isParticipant($conversationId, $userId)) {
+            $this->logEvent('private.discussion.access.denied', ['private_user_id' => $userId, 'conversation_id' => $conversationId]);
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if ($request->method() === self::METHOD_GET) {
+            $after = is_numeric($request->query()['after_message_id'] ?? null) ? (int) $request->query()['after_message_id'] : 0;
+            $messages = $this->discussionService()->listMessages($conversationId, $userId, $after);
+            $this->discussionService()->markRead($conversationId, $userId);
+
+            return $this->jsonPrivateResponse(['messages' => $messages]);
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+            return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
+        }
+        if (!$this->discussionRateLimitHit($request, $userId, 'message')) {
+            return $this->jsonPrivateResponse(['error' => 'rate_limited'], 429);
+        }
+
+        $body = $request->body();
+        $message = $this->discussionService()->sendMessage(
+            $userId,
+            $conversationId,
+            is_string($body['body'] ?? null) ? (string) $body['body'] : '',
+            $request->files()
+        );
+
+        return is_array($message)
+            ? $this->jsonPrivateResponse(['message' => $message], 201)
+            : $this->jsonPrivateResponse(['error' => 'invalid_message'], 422);
+    }
+
+    private function handleDiscussionApiMembers(Request $request, int $conversationId): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if ($request->method() !== self::METHOD_POST || !$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+            return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
+        }
+
+        $added = $this->discussionService()->addMembers(
+            $userId,
+            $conversationId,
+            $this->discussionMemberIdsFromPayload($request->body()['member_ids'] ?? []),
+            new DiscussionAccessPolicy($this->discussionRepository())
+        );
+
+        return $added ? $this->jsonPrivateResponse(['ok' => true]) : $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+    }
+
+    private function handleDiscussionApiLeave(Request $request, int $conversationId): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if ($request->method() !== self::METHOD_POST || !$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+            return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
+        }
+
+        return $this->discussionService()->leaveConversation($conversationId, $userId)
+            ? $this->jsonPrivateResponse(['ok' => true])
+            : $this->jsonPrivateResponse(['error' => 'invalid_leave'], 422);
+    }
+
+    private function handleDiscussionApiRead(Request $request, int $conversationId): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if ($request->method() !== self::METHOD_POST || !$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+            return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
+        }
+
+        return $this->discussionService()->markRead($conversationId, $userId)
+            ? $this->jsonPrivateResponse(['ok' => true])
+            : $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+    }
+
+    private function handleDiscussionFile(Request $request, string $attachmentId, bool $preview): Response
+    {
+        unset($request);
+        $userId = $this->currentPrivateUserId();
+        if ($userId === null || !$this->modulePermissionRepository()->userHasModuleAccess($userId, 'discussions')) {
+            return $this->handleModuleAccessDenied('discussions');
+        }
+
+        $attachment = $this->discussionRepository()->findAttachmentForUser($attachmentId, $userId);
+        if (!is_array($attachment)) {
+            return $this->handleNotFound();
+        }
+
+        $storagePath = $preview && is_string($attachment['previewStoragePath'] ?? null) && trim((string) $attachment['previewStoragePath']) !== ''
+            ? (string) $attachment['previewStoragePath']
+            : (string) ($attachment['storagePath'] ?? '');
+        $absolutePath = $this->discussionAttachmentStorage()->absolutePath($storagePath);
+        if ($absolutePath === null || !is_file($absolutePath) || !is_readable($absolutePath)) {
+            return $this->handleNotFound();
+        }
+
+        $mimeType = is_string($attachment['mimeType'] ?? null) ? (string) $attachment['mimeType'] : 'application/octet-stream';
+        $filename = $this->sanitizeDownloadFilename((string) ($attachment['originalFilename'] ?? 'piece-jointe'));
+        $disposition = $preview || str_starts_with($mimeType, 'image/') ? 'inline' : 'attachment';
+        $this->logEvent('private.discussion.attachment.downloaded', [
+            'private_user_id' => $userId,
+            'attachment_id' => (string) ($attachment['attachmentId'] ?? ''),
+        ]);
+
+        return $this->withPrivateHeaders(new Response(200, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => sprintf('%s; filename="%s"', $disposition, addslashes($filename)),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ], (string) file_get_contents($absolutePath)));
+    }
+
     private function handlePrivacyExport(Request $request): Response
     {
         $userId = $this->requireAuthenticatedUser($request);
@@ -2089,6 +2387,44 @@ final class PrivatePortalController
     }
 
     /**
+     * @param array<string, mixed> $extra
+     * @return array<string, mixed>
+     */
+    private function discussionViewModel(int $userId, array $extra = []): array
+    {
+        return array_merge([
+            'privatePageTitle' => 'Discussions famille',
+            'discussionCurrentUserId' => $userId,
+            'discussionCsrfToken' => csrf_token(self::CSRF_DISCUSSIONS),
+            'discussionUrls' => [
+                'index' => private_portal_url('discussion_index'),
+                'new' => private_portal_url('discussion_new'),
+                'apiConversations' => private_portal_url('discussion_api_conversations'),
+                'files' => private_portal_url('discussion_files'),
+            ],
+            'privateDashboardLogoutUrl' => private_portal_url('logout'),
+            'privateLogoutCsrfToken' => csrf_token('private_logout'),
+        ], $extra);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function discussionMemberIdsFromPayload(mixed $payload): array
+    {
+        $values = is_array($payload) ? $payload : [$payload];
+        $ids = [];
+        foreach ($values as $value) {
+            $id = is_numeric($value) ? (int) $value : 0;
+            if ($id > 0 && !in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function rentalBaseViewModel(string $title, string $notice, string $error): array
@@ -2456,6 +2792,16 @@ final class PrivatePortalController
         return $result;
     }
 
+    private function requireDiscussionModuleUser(Request $request): int|Response
+    {
+        $result = $this->requireModuleOrUnauthorized($request, 'discussions');
+        if ($result === null) {
+            return $this->handleModuleAccessDenied('discussions');
+        }
+
+        return $result;
+    }
+
     private function requireAuthenticatedUser(Request $request): int|Response
     {
         $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), true);
@@ -2501,6 +2847,44 @@ final class PrivatePortalController
     private function handleNotFound(): Response
     {
         return $this->withPrivateHeaders(new Response(404, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Not Found'));
+    }
+
+    private function jsonPrivateResponse(array $payload, int $status = 200): Response
+    {
+        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($encoded)) {
+            $encoded = '{}';
+        }
+
+        return $this->withPrivateHeaders(new Response($status, ['Content-Type' => 'application/json; charset=UTF-8'], $encoded));
+    }
+
+    private function discussionRateLimitHit(Request $request, int $userId, string $action): bool
+    {
+        $config = is_array(app_config('private.discussions', [])) ? (array) app_config('private.discussions') : [];
+        $action = $action === 'conversation' ? 'conversation' : 'message';
+        $attemptsKey = $action === 'conversation' ? 'conversation_rate_limit_attempts' : 'message_rate_limit_attempts';
+        $windowKey = $action === 'conversation' ? 'conversation_rate_limit_window' : 'message_rate_limit_window';
+        $attempts = max(1, (int) ($config[$attemptsKey] ?? ($action === 'conversation' ? 10 : 30)));
+        $window = max(30, (int) ($config[$windowKey] ?? ($action === 'conversation' ? 300 : 60)));
+        $ip = $request->clientIp((bool) app_config('private.trust_proxy_headers', false)) ?? 'unknown';
+        $limiter = new \FileRateLimiter(
+            'private_discussion_' . $action . '_' . $userId . '_' . hash('sha256', $ip),
+            $attempts,
+            $window
+        );
+
+        if ($limiter->hit()) {
+            return true;
+        }
+
+        $this->logEvent('private.discussion.rate_limited', [
+            'private_user_id' => $userId,
+            'action' => $action,
+            'ip' => $ip,
+        ]);
+
+        return false;
     }
 
     private function render(string $template, array $viewModel = []): Response
@@ -2731,6 +3115,35 @@ final class PrivatePortalController
                     new AgencyTaxBridgeNormalizer($this->agencyImportRepository())
                 )),
             ]
+        );
+    }
+
+    private function discussionRepository(): DiscussionRepository
+    {
+        return $this->discussionRepository ?? new DiscussionRepository(editorial_database());
+    }
+
+    private function discussionAttachmentStorage(): DiscussionAttachmentStorage
+    {
+        return $this->discussionAttachmentStorage ?? DiscussionAttachmentStorage::fromAppConfig();
+    }
+
+    private function discussionService(): DiscussionService
+    {
+        return $this->discussionService ?? new DiscussionService(
+            $this->discussionRepository(),
+            $this->privateUserRepository(),
+            $this->discussionAttachmentStorage(),
+            $this->eventLogger
+        );
+    }
+
+    private function discussionRetentionService(): DiscussionRetentionService
+    {
+        return $this->discussionRetentionService ?? new DiscussionRetentionService(
+            $this->discussionRepository(),
+            $this->discussionAttachmentStorage(),
+            $this->eventLogger
         );
     }
 
