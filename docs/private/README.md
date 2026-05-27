@@ -1376,9 +1376,9 @@ Ordre d'implementation recommande :
 
 ### 7.1 Objectif
 
-`TaxDeclarationHelper` est un assistant de preparation et de controle. Il lit les donnees locatives validees, accepte des revenus manuels au cas par cas et pourra integrer plus tard d'autres webapps sources.
+`TaxDeclarationHelper` est un assistant de preparation annuelle. Il rapproche les donnees locatives validees, les saisies manuelles et les justificatifs pour produire une synthese exploitable avant declaration.
 
-Il ne doit jamais se presenter comme une declaration fiscale automatique garantie.
+Il ne doit jamais se presenter comme une declaration fiscale automatique garantie, ni choisir seul un regime fiscal. Le module prepare, signale et exporte ; l'utilisateur verifie et declare officiellement.
 
 Mention a afficher dans le module :
 
@@ -1386,59 +1386,82 @@ Mention a afficher dans le module :
 Les montants fournis sont une aide a la preparation. Ils doivent etre verifies avant declaration officielle.
 ```
 
-### 7.2 Donnees par annee
+### 7.2 Reperes IR a couvrir
 
-Le module doit produire une synthese annuelle distinguant toujours l'origine des donnees :
+Source de travail locale : `docs/private/ir/Brochure-IR-2026.pdf`.
+
+La brochure IR 2026 confirme que le module doit separer clairement les familles suivantes :
+
+| Famille | Usage module | Points de controle |
+| --- | --- | --- |
+| Location nue - revenus fonciers | aide 2042/2044, revenus encaisses, charges candidates, deficits et justificatifs | ne pas melanger avec location meublee ; distinguer micro-foncier et regime reel sans arbitrage automatique |
+| Micro-foncier | total des recettes brutes si l'utilisateur confirme son eligibilite | seuils et exclusions a confirmer par l'utilisateur |
+| Regime reel foncier | preparation du detail utile a la 2044 puis report de synthese | charges candidates, travaux, taxes, interets, deficits, documents |
+| SCI | preparation d'un futur rapprochement 2072 | quote-parts et associes hors V1 si non modelises |
+| Location meublee | orientation 2042 C PRO / BIC, micro-BIC ou reel selon choix utilisateur | ne jamais classer automatiquement une ligne fonciere en BIC |
+| Prelevements sociaux et PAS | indicateurs seulement | aucun calcul officiel garanti |
+
+Le module doit donc produire par annee :
 
 ```text
 Annee fiscale
-Biens concernes
-Loyers encaisses
-Autres revenus saisis manuellement
-Autres revenus importes depuis une future webapp source
-Charges encaisses
+Statut : brouillon / genere / verrouille
+Sources activees manuellement
+Biens et lots concernes
+Regime fiscal indique par l'utilisateur : nu, meuble, SCI, mixte, non renseigne
+Loyers encaisses valides
+Revenus manuels valides
+Charges recuperables et non recuperables
 Charges potentiellement deductibles
-Travaux
-Assurances
-Taxes
-Interets eventuels
-Frais divers
-Documents manquants
-Anomalies
-Export de synthese
+Travaux, assurances, taxes, interets, frais divers
+Regularisations et remboursements
+Documents justificatifs rattaches ou manquants
+Anomalies bloquantes ou alertes
+Export CSV/PDF de travail
 ```
 
-### 7.3 Sources declaratives
+### 7.3 Architecture applicative
 
-La relation entre modules doit passer par un contrat de source, pas par une lecture directe de toutes les tables locatives depuis le module fiscal.
+La relation entre modules passe par un contrat de source. Le module fiscal ne lit pas directement toutes les tables locatives : il consomme des fournisseurs declares et activables.
 
 ```text
 RealEstateRental
 +-- TaxBridge/
     +-- RentalTaxDataProvider.php
+    +-- RentalTaxDataProviderInterface.php
 
 TaxDeclarationHelper
++-- Repository/
+|   +-- TaxDeclarationRepository.php
 +-- Source/
 |   +-- TaxDataSourceInterface.php
-|   +-- ManualIncomeSource.php
 |   +-- RentalTaxDataSource.php
 +-- Service/
-    +-- AnnualTaxSummaryBuilder.php
+    +-- TaxDeclarationSummaryService.php
 ```
 
-Contrat indicatif :
+Contrat source actuel :
 
 ```php
-interface RentalTaxDataProviderInterface
+interface TaxDataSourceInterface
 {
-    public function getAnnualRentalIncome(int $year, int $userId): AnnualRentalIncome;
+    public function code(): string;
 
-    public function getAnnualDeductibleExpenses(int $year, int $userId): AnnualDeductibleExpenses;
+    public function label(): string;
+
+    public function annualRentalIncome(int $year, array $scopeIds): AnnualRentalIncome;
+
+    public function annualDeductibleExpenses(int $year, array $scopeIds): AnnualDeductibleExpenses;
 
     /**
      * @return list<MissingTaxDocument>
      */
-    public function getMissingTaxDocuments(int $year, int $userId): array;
+    public function missingDocuments(int $year, array $scopeIds): array;
+
+    /**
+     * @return list<string>
+     */
+    public function controls(int $year, array $scopeIds): array;
 }
 ```
 
@@ -1449,7 +1472,36 @@ Cette couche permet :
 3. d'ajouter plus tard une webapp source pour un revenu recurrent ;
 4. d'afficher clairement l'origine de chaque ligne.
 
-### 7.4 Revenus manuels V1
+### 7.4 Activation manuelle des sources
+
+Aucune source applicative externe ne doit etre incluse par defaut dans une synthese fiscale. L'utilisateur active la liaison par annee depuis `/private/impots/{year}`.
+
+Regles :
+
+1. `tax_source_activations` stocke `private_user_id`, `year`, `source_code`, `is_enabled`, dates et acteur ;
+2. une annee verrouillee refuse toute activation ou desactivation ;
+3. la generation ne consomme que les sources actives pour l'annee ;
+4. une source inactive ne produit ni revenu, ni charge, ni document manquant ;
+5. les exports conservent l'origine de chaque ligne generee ;
+6. toute activation/desactivation est journalisee.
+
+### 7.5 Liaison RealEstateRental -> TaxDeclarationHelper
+
+Liaison activee par source code `real_estate_rental`.
+
+| Donnee RealEstateRental | Condition d'inclusion | Ligne TaxDeclarationHelper | Controle |
+| --- | --- | --- | --- |
+| `rental_payments.amount_paid` | paiement `validated`, annee de periode cible, bien autorise | `income`, libelle `Loyers encaisses`, origine `rental_payments` | brouillons ou paiements partiels signales par la synthese locative |
+| `rental_payments.amount_due - amount_paid` | paiement valide avec impaye | metadonnee de controle, pas revenu encaisse | verifier relances et solde locataire |
+| `rental_expenses.amount` | depense `validated`, `is_deductible_candidate = 1` | `expense`, libelle `Charges potentiellement deductibles`, origine `rental_expenses` | l'utilisateur confirme la deductibilite reelle |
+| `rental_expenses.is_recoverable` | depense recuperable | metadonnee de controle | ne pas additionner deux fois charge locataire et charge proprietaire |
+| `rental_agency_statement_lines` | ligne agence validee et normalisee fiscalement | revenu ou charge selon mapping | revue humaine obligatoire avant pont fiscal |
+| `rental_documents` | justificatif rattache au bien | suppression de l'alerte document manquant | alerte si revenus/charges sans justificatif |
+| `rental_leases` | bail valide sur l'annee | contexte d'occupation | incoherence si paiement hors bail ou bail brouillon |
+
+Les champs locatifs restent proprietaires de leur logique. Le module fiscal ne modifie pas les loyers, les depenses, les releves agence ou les documents source.
+
+### 7.6 Revenus manuels V1
 
 En V1, les autres revenus restent saisis dans l'aide impots, sans creer une webapp separee.
 
@@ -1479,13 +1531,14 @@ origine = manuel
 
 Creer une nouvelle webapp source seulement si le revenu devient frequent, structure, repetitif, documente, utile a plusieurs annees fiscales ou trop complexe pour une simple saisie manuelle.
 
-### 7.5 Tables SQL
+### 7.7 Tables SQL
 
 Tables ciblees :
 
 ```text
 tax_years
 tax_income_sources
+tax_source_activations
 tax_manual_income_entries
 tax_annual_summaries
 tax_summary_lines
@@ -1496,11 +1549,11 @@ Regles :
 
 1. une synthese annuelle garde une trace des sources utilisees ;
 2. les lignes importees et les lignes manuelles restent separees ;
-3. un statut `draft`, `generated`, `locked`, `archived` doit exister ;
+3. un statut `draft`, `generated`, `locked` existe en V1 ;
 4. une annee verrouillee ne peut plus etre modifiee sans action admin auditee ;
 5. les exports doivent etre regenerables ou tracables.
 
-### 7.6 Ecrans
+### 7.8 Ecrans
 
 Routes recommandees :
 
@@ -1516,15 +1569,16 @@ Routes recommandees :
 Fonctions V1 :
 
 1. choisir une annee ;
-2. afficher les loyers encaisses ;
-3. saisir ou modifier d'autres revenus manuels ;
-4. afficher l'origine de chaque montant ;
-5. distinguer charges, travaux, assurances, taxes et interets ;
-6. signaler les documents manquants ;
-7. bloquer la generation si des donnees sources sont encore en brouillon ;
-8. produire une synthese annuelle ;
-9. exporter PDF et CSV ;
-10. verrouiller une annee validee.
+2. activer ou desactiver manuellement la liaison `Locations immobilieres` ;
+3. afficher les loyers encaisses uniquement si la liaison est active ;
+4. saisir ou modifier d'autres revenus manuels ;
+5. afficher l'origine de chaque montant ;
+6. distinguer charges, travaux, assurances, taxes et interets ;
+7. signaler les documents manquants ;
+8. bloquer la generation si des donnees sources sont encore en brouillon ;
+9. produire une synthese annuelle ;
+10. exporter PDF et CSV ;
+11. verrouiller une annee validee.
 
 Hors perimetre V1 :
 
@@ -1534,6 +1588,22 @@ Hors perimetre V1 :
 4. optimisation fiscale automatique ;
 5. choix automatique du regime fiscal ;
 6. webapp separee pour chaque revenu occasionnel.
+
+### 7.9 Checklist de construction du module fiscal
+
+- [x] Maintenir le disclaimer non officiel visible sur chaque ecran fiscal.
+- [x] Creer la persistance `tax_source_activations`.
+- [x] Exiger une activation manuelle par annee avant toute inclusion RealEstateRental.
+- [x] Bloquer activation, saisie et generation quand l'annee est verrouillee.
+- [x] Conserver `sourceCode`, `sourceLabel`, `sourceReference` et metadonnees par ligne.
+- [x] Ne lire que les donnees locatives validees et autorisees.
+- [x] Ne consommer les lignes agence qu'apres revue humaine et mapping fiscal.
+- [x] Separer revenus fonciers, meublés/BIC, SCI et revenus manuels dans le modele fonctionnel.
+- [x] Exporter CSV/PDF sans masquer l'origine ni le statut non officiel.
+- [ ] Ajouter plus tard un ecran de choix de regime declaratif par bien/annee.
+- [ ] Ajouter plus tard le detail 2044 ligne par ligne si le regime reel est confirme.
+- [ ] Ajouter plus tard la preparation SCI 2072 avec quote-parts.
+- [ ] Ajouter plus tard la location meublee 2042 C PRO/BIC sans melange avec foncier.
 
 ## 8. Module FamilyDiscussion
 
@@ -2471,10 +2541,11 @@ Clôture phase 7 / bascule phase 8 :
 Checklist :
 
 - [x] Creer `backend/src/PrivateApps/TaxDeclarationHelper/`.
-- [x] Creer `tax_years`, `tax_income_sources`, `tax_manual_income_entries`, `tax_annual_summaries`, `tax_summary_lines`, `tax_export_logs`.
+- [x] Creer `tax_years`, `tax_income_sources`, `tax_source_activations`, `tax_manual_income_entries`, `tax_annual_summaries`, `tax_summary_lines`, `tax_export_logs`.
 - [x] Ajouter les routes `/private/impots`, `/{year}`, `/revenus-manuels`, `/controle`, `/documents`, `/export`.
 - [x] Ajouter saisie manuelle de revenus.
-- [x] Ajouter affichage des donnees locatives importees.
+- [x] Ajouter activation manuelle annuelle des donnees locatives importees.
+- [x] Ajouter affichage des donnees locatives importees uniquement apres activation.
 - [x] Ajouter affichage de l'origine de chaque ligne.
 - [x] Ajouter controles de coherence et documents manquants.
 - [x] Ajouter generation de synthese.

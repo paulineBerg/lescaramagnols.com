@@ -58,6 +58,12 @@ final class PrivateDataProtectionService
                 ['private_user_id' => $privateUserId],
                 ['year', 'status', 'locked_at', 'unlocked_at', 'created_at', 'updated_at']
             ),
+            'taxSourceActivations' => $this->rows(
+                'tax_source_activations',
+                '`private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['year', 'source_code', 'is_enabled', 'enabled_at', 'disabled_at', 'created_at', 'updated_at']
+            ),
             'taxManualEntries' => $this->rows(
                 'tax_manual_income_entries',
                 '`private_user_id` = :private_user_id',
@@ -121,6 +127,17 @@ final class PrivateDataProtectionService
                 '`label` = :label, `notes` = NULL, `updated_at` = :updated_at',
                 '`private_user_id` = :private_user_id',
                 ['label' => 'Ligne anonymisee', 'updated_at' => date('Y-m-d H:i:s'), 'private_user_id' => $privateUserId]
+            );
+            $this->safeUpdate(
+                'tax_source_activations',
+                '`is_enabled` = 0, `disabled_at` = :disabled_at, `disabled_by_private_user_id` = :actor, `updated_at` = :updated_at',
+                '`private_user_id` = :private_user_id',
+                [
+                    'disabled_at' => date('Y-m-d H:i:s'),
+                    'actor' => $actorPrivateUserId,
+                    'updated_at' => date('Y-m-d H:i:s'),
+                    'private_user_id' => $privateUserId,
+                ]
             );
 
             $pdo->commit();

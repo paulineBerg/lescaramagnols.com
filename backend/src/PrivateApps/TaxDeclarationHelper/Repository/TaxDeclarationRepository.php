@@ -12,6 +12,7 @@ final class TaxDeclarationRepository
     private const YEAR_MIN = 2000;
     private const YEAR_MAX = 2100;
     private const MANUAL_STATUSES = ['draft', 'validated', 'cancelled'];
+    private const ACTIVABLE_SOURCES = ['real_estate_rental' => 'Locations immobilieres'];
     private bool $schemaReady = false;
 
     public function __construct(private readonly EditorialDatabase $database)
@@ -31,6 +32,11 @@ final class TaxDeclarationRepository
     public function manualEntriesTable(): string
     {
         return $this->database->table('tax_manual_income_entries');
+    }
+
+    public function sourceActivationsTable(): string
+    {
+        return $this->database->table('tax_source_activations');
     }
 
     public function summariesTable(): string
@@ -326,6 +332,136 @@ final class TaxDeclarationRepository
     }
 
     /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function listSourceActivations(int $privateUserId, int $year): array
+    {
+        if ($privateUserId <= 0 || !$this->validYear($year)) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT * FROM `%s`
+                     WHERE `private_user_id` = :private_user_id AND `year` = :year
+                     ORDER BY `source_code` ASC',
+                    $this->sourceActivationsTable()
+                )
+            );
+            $statement->execute(['private_user_id' => $privateUserId, 'year' => $year]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $activations = [];
+        foreach ($this->normalizeRows($rows) as $row) {
+            $sourceCode = is_string($row['sourceCode'] ?? null) ? $row['sourceCode'] : '';
+            if ($sourceCode !== '') {
+                $activations[$sourceCode] = $row;
+            }
+        }
+
+        return $activations;
+    }
+
+    public function isSourceActive(int $privateUserId, int $year, string $sourceCode): bool
+    {
+        $sourceCode = $this->normalizeText($sourceCode, 80);
+        if ($privateUserId <= 0 || !$this->validYear($year) || !$this->validActivableSource($sourceCode)) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT `is_enabled` FROM `%s`
+                     WHERE `private_user_id` = :private_user_id
+                       AND `year` = :year
+                       AND `source_code` = :source_code
+                     LIMIT 1',
+                    $this->sourceActivationsTable()
+                )
+            );
+            $statement->execute([
+                'private_user_id' => $privateUserId,
+                'year' => $year,
+                'source_code' => $sourceCode,
+            ]);
+            $value = $statement->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return is_numeric($value) && (int) $value === 1;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function setSourceActivation(
+        int $privateUserId,
+        int $year,
+        string $sourceCode,
+        bool $enabled,
+        int $actorPrivateUserId
+    ): ?array {
+        $sourceCode = $this->normalizeText($sourceCode, 80);
+        if (
+            $privateUserId <= 0
+            || $actorPrivateUserId <= 0
+            || !$this->validYear($year)
+            || !$this->validActivableSource($sourceCode)
+            || $this->isYearLocked($privateUserId, $year)
+        ) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $this->ensureSource($sourceCode, self::ACTIVABLE_SOURCES[$sourceCode]);
+            $this->findOrCreateYear($privateUserId, $year);
+            $now = date('Y-m-d H:i:s');
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'INSERT INTO `%s`
+                        (`private_user_id`, `year`, `source_code`, `is_enabled`, `enabled_at`,
+                         `enabled_by_private_user_id`, `disabled_at`, `disabled_by_private_user_id`, `updated_at`)
+                     VALUES
+                        (:private_user_id, :year, :source_code, :is_enabled, :enabled_at,
+                         :enabled_by, :disabled_at, :disabled_by, :updated_at)
+                     ON DUPLICATE KEY UPDATE
+                        `is_enabled` = VALUES(`is_enabled`),
+                        `enabled_at` = VALUES(`enabled_at`),
+                        `enabled_by_private_user_id` = VALUES(`enabled_by_private_user_id`),
+                        `disabled_at` = VALUES(`disabled_at`),
+                        `disabled_by_private_user_id` = VALUES(`disabled_by_private_user_id`),
+                        `updated_at` = VALUES(`updated_at`)',
+                    $this->sourceActivationsTable()
+                )
+            );
+            $statement->execute([
+                'private_user_id' => $privateUserId,
+                'year' => $year,
+                'source_code' => $sourceCode,
+                'is_enabled' => $enabled ? 1 : 0,
+                'enabled_at' => $enabled ? $now : null,
+                'enabled_by' => $enabled ? $actorPrivateUserId : null,
+                'disabled_at' => $enabled ? null : $now,
+                'disabled_by' => $enabled ? null : $actorPrivateUserId,
+                'updated_at' => $now,
+            ]);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $this->listSourceActivations($privateUserId, $year)[$sourceCode] ?? null;
+    }
+
+    /**
      * @param array<string, mixed> $totals
      * @param array<int, array<string, mixed>> $lines
      * @return array<string, mixed>|null
@@ -543,6 +679,24 @@ final class TaxDeclarationRepository
                 `id` INT AUTO_INCREMENT PRIMARY KEY,
                 `private_user_id` INT NOT NULL,
                 `year` SMALLINT NOT NULL,
+                `source_code` VARCHAR(80) NOT NULL,
+                `is_enabled` TINYINT(1) NOT NULL DEFAULT 0,
+                `enabled_at` DATETIME NULL,
+                `enabled_by_private_user_id` INT NULL,
+                `disabled_at` DATETIME NULL,
+                `disabled_by_private_user_id` INT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY `uq_tax_source_activations_user_year_source` (`private_user_id`, `year`, `source_code`),
+                KEY `idx_tax_source_activations_source` (`source_code`, `is_enabled`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+            $this->sourceActivationsTable()
+        ));
+        $pdo->exec(sprintf(
+            'CREATE TABLE IF NOT EXISTS `%s` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `private_user_id` INT NOT NULL,
+                `year` SMALLINT NOT NULL,
                 `source_code` VARCHAR(80) NOT NULL DEFAULT "manual",
                 `label` VARCHAR(160) NOT NULL,
                 `amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
@@ -625,6 +779,11 @@ final class TaxDeclarationRepository
             )
         );
         $statement->execute(['code' => $code, 'label' => $label]);
+    }
+
+    private function validActivableSource(string $sourceCode): bool
+    {
+        return array_key_exists($sourceCode, self::ACTIVABLE_SOURCES);
     }
 
     /**

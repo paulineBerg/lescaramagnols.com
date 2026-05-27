@@ -78,6 +78,7 @@ trait EditorialSqlTestTrait
                     'tax_summary_lines',
                     'tax_annual_summaries',
                     'tax_manual_income_entries',
+                    'tax_source_activations',
                     'tax_income_sources',
                     'tax_years',
                     'discussion_retention_runs',

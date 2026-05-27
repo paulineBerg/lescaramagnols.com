@@ -22,6 +22,7 @@ final class PrivateBackupService
         'rental_payments',
         'rental_expenses',
         'tax_years',
+        'tax_source_activations',
         'tax_manual_income_entries',
         'tax_annual_summaries',
         'tax_summary_lines',

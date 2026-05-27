@@ -1186,6 +1186,29 @@ final class PrivatePortalController
 
             $body = $request->body();
             $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
+            if ($action === 'enable_source' || $action === 'disable_source') {
+                $sourceCode = is_string($body['source_code'] ?? null) ? (string) $body['source_code'] : '';
+                $activation = $this->taxDeclarationRepository()->setSourceActivation(
+                    $userId,
+                    $year,
+                    $sourceCode,
+                    $action === 'enable_source',
+                    $userId
+                );
+                if (!is_array($activation)) {
+                    return $this->renderTaxYear($userId, $year, '', 'tax_source_link_failed');
+                }
+
+                $this->logEvent('private.tax_source_activation.updated', [
+                    'private_user_id' => $userId,
+                    'year' => $year,
+                    'source_code' => $sourceCode,
+                    'enabled' => $action === 'enable_source',
+                ]);
+
+                return $this->redirect($this->taxYearUrl($year) . '?notice=' . ($action === 'enable_source' ? 'source_enabled' : 'source_disabled'));
+            }
+
             if ($action === 'generate_summary') {
                 $generated = $this->taxDeclarationSummaryService()->generate(
                     $userId,
@@ -2956,6 +2979,8 @@ final class PrivatePortalController
             'year_locked' => 'Année fiscale verrouillée.',
             'year_unlocked' => 'Année fiscale déverrouillée.',
             'manual_created' => 'Revenu manuel ajouté.',
+            'source_enabled' => 'Liaison source activée pour cette année.',
+            'source_disabled' => 'Liaison source désactivée pour cette année.',
             default => '',
         };
     }
@@ -2967,6 +2992,7 @@ final class PrivatePortalController
             'tax_locked' => 'Année verrouillée : modification refusée.',
             'tax_write_failed' => 'Écriture fiscale impossible.',
             'tax_locked_or_invalid' => 'Revenu manuel refusé : année verrouillée ou données invalides.',
+            'tax_source_link_failed' => 'Activation de la source refusée ou impossible.',
             default => '',
         };
     }

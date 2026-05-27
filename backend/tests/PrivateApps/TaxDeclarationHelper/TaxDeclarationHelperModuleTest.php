@@ -73,6 +73,28 @@ final class TaxDeclarationHelperModuleTest extends TestCase
         $lines = is_array($summary['lines'] ?? null) ? $summary['lines'] : [];
 
         $this->assertSame(500.0, $totals['manualIncome'] ?? null);
+        $this->assertSame(0.0, $totals['rentalIncome'] ?? null);
+        $this->assertNotContains('real_estate_rental', array_column($lines, 'sourceCode'));
+        $this->assertNull($taxRepository->setSourceActivation(
+            $context['ownerId'],
+            2026,
+            'unknown_source',
+            true,
+            $context['ownerId']
+        ));
+
+        $this->assertNotNull($taxRepository->setSourceActivation(
+            $context['ownerId'],
+            2026,
+            'real_estate_rental',
+            true,
+            $context['ownerId']
+        ));
+
+        $summary = $service->build($context['ownerId'], 2026, [$context['propertyId']]);
+        $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
+        $lines = is_array($summary['lines'] ?? null) ? $summary['lines'] : [];
+
         $this->assertSame(1000.0, $totals['rentalIncome'] ?? null);
         $this->assertSame(1500.0, $totals['grossIncome'] ?? null);
         $this->assertSame(120.0, $totals['deductibleExpenses'] ?? null);
@@ -117,6 +139,13 @@ final class TaxDeclarationHelperModuleTest extends TestCase
         $service = $context['service'];
 
         $this->assertTrue($taxRepository->lockYear($context['ownerId'], 2026, $context['ownerId']));
+        $this->assertNull($taxRepository->setSourceActivation(
+            $context['ownerId'],
+            2026,
+            'real_estate_rental',
+            true,
+            $context['ownerId']
+        ));
         $this->assertNull($taxRepository->createManualEntry(
             $context['ownerId'],
             2026,
@@ -138,6 +167,13 @@ final class TaxDeclarationHelperModuleTest extends TestCase
             'validated',
             $context['ownerId'],
             null
+        ));
+        $this->assertNotNull($taxRepository->setSourceActivation(
+            $context['ownerId'],
+            2026,
+            'real_estate_rental',
+            true,
+            $context['ownerId']
         ));
     }
 

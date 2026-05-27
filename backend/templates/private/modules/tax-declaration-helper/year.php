@@ -2,6 +2,8 @@
 $summary = is_array($viewModel['taxSummary'] ?? null) ? $viewModel['taxSummary'] : [];
 $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
 $lines = is_array($summary['lines'] ?? null) ? $summary['lines'] : [];
+$availableSources = is_array($summary['availableSources'] ?? null) ? $summary['availableSources'] : [];
+$sourceActivations = is_array($summary['sourceActivations'] ?? null) ? $summary['sourceActivations'] : [];
 $year = is_numeric($summary['year'] ?? null) ? (int) $summary['year'] : (int) date('Y');
 $locked = !empty($summary['locked']);
 $notice = is_string($viewModel['taxNotice'] ?? null) ? (string) $viewModel['taxNotice'] : '';
@@ -20,6 +22,46 @@ $yearUrl = (string) ($urls['year'] ?? (private_portal_url('tax_dashboard') . '/'
   <p class="notice">Aide non officielle : cette synthese ne remplace pas une declaration fiscale ni un conseil professionnel.</p>
   <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+
+  <section class="card">
+    <h2>Liaisons de donnees</h2>
+    <p class="muted">Les donnees d'une autre application privee ne sont ajoutees a la synthese fiscale qu'apres activation manuelle pour cette annee.</p>
+    <?php if ($availableSources === []): ?>
+      <p class="muted">Aucune source connectable.</p>
+    <?php else: ?>
+      <table>
+        <thead><tr><th>Source</th><th>Etat</th><th>Action</th></tr></thead>
+        <tbody>
+          <?php foreach ($availableSources as $source): ?>
+            <?php
+            if (!is_array($source)) {
+                continue;
+            }
+            $sourceCode = is_string($source['code'] ?? null) ? (string) $source['code'] : '';
+            $sourceLabel = is_string($source['label'] ?? null) ? (string) $source['label'] : $sourceCode;
+            $activation = is_array($sourceActivations[$sourceCode] ?? null) ? $sourceActivations[$sourceCode] : [];
+            $enabled = is_numeric($activation['isEnabled'] ?? null) && (int) $activation['isEnabled'] === 1;
+            ?>
+            <tr>
+              <td><?php echo htmlspecialchars($sourceLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo $enabled ? 'Activee' : 'Inactive'; ?></td>
+              <td>
+                <form method="post" action="<?php echo htmlspecialchars($yearUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                  <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                  <input type="hidden" name="source_code" value="<?php echo htmlspecialchars($sourceCode, ENT_QUOTES, 'UTF-8'); ?>" />
+                  <?php if ($enabled): ?>
+                    <button type="submit" name="action" value="disable_source" <?php echo $locked ? 'disabled' : ''; ?>>Desactiver</button>
+                  <?php else: ?>
+                    <button type="submit" name="action" value="enable_source" <?php echo $locked ? 'disabled' : ''; ?>>Activer la liaison</button>
+                  <?php endif; ?>
+                </form>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    <?php endif; ?>
+  </section>
 
   <section class="card">
     <h2>Synthese <?php echo htmlspecialchars((string) $year, ENT_QUOTES, 'UTF-8'); ?> <?php echo $locked ? '(verrouillee)' : ''; ?></h2>

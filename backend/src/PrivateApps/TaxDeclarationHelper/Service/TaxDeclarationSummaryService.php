@@ -29,6 +29,7 @@ final class TaxDeclarationSummaryService
         $this->repository->findOrCreateYear($privateUserId, $year);
         $manualEntries = $this->repository->listManualEntries($privateUserId, $year);
         $yearRow = $this->repository->findYear($privateUserId, $year) ?? [];
+        $sourceActivations = $this->repository->listSourceActivations($privateUserId, $year);
         $lines = [];
         $controls = [];
         $missingDocuments = [];
@@ -60,6 +61,10 @@ final class TaxDeclarationSummaryService
         }
 
         foreach ($this->sources as $source) {
+            if (!$this->sourceIsEnabled($sourceActivations[$source->code()] ?? null)) {
+                continue;
+            }
+
             $sourceControls = $source->controls($year, $scopeIds);
             foreach ($sourceControls as $control) {
                 $control = trim((string) $control);
@@ -139,6 +144,8 @@ final class TaxDeclarationSummaryService
             'totals' => $totals,
             'lines' => $lines,
             'manualEntries' => $manualEntries,
+            'sourceActivations' => $sourceActivations,
+            'availableSources' => $this->availableSources(),
             'controls' => $controls,
             'missingDocuments' => $missingDocuments,
         ];
@@ -217,5 +224,31 @@ final class TaxDeclarationSummaryService
     private function amount(mixed $value): float
     {
         return is_numeric($value) ? round((float) $value, 2) : 0.0;
+    }
+
+    /**
+     * @param array<string, mixed>|null $activation
+     */
+    private function sourceIsEnabled(?array $activation): bool
+    {
+        return is_array($activation)
+            && is_numeric($activation['isEnabled'] ?? null)
+            && (int) $activation['isEnabled'] === 1;
+    }
+
+    /**
+     * @return array<int, array{code:string,label:string}>
+     */
+    private function availableSources(): array
+    {
+        $sources = [];
+        foreach ($this->sources as $source) {
+            $sources[] = [
+                'code' => $source->code(),
+                'label' => $source->label(),
+            ];
+        }
+
+        return $sources;
     }
 }
