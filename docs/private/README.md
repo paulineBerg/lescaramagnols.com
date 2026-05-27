@@ -2802,7 +2802,7 @@ Regle non negociable : le portail prive ne doit etre deplace que module par modu
 
 ### 14.2 Choix technique recommande avec OVH Performance
 
-Contrainte d'hebergement connue : le projet est prevu sur un hebergement web OVH Performance. Cette offre est adaptee a PHP, SFTP/SSH, taches CRON et site web classique. Elle ne doit pas etre consideree comme un environnement naturel pour une API Node persistante tant que l'espace client OVH ne confirme pas explicitement un runtime Node supervise sur l'offre active.
+Contrainte d'hebergement connue : le projet est prevu sur un hebergement web OVH Performance. Cette offre est adaptee a PHP, SFTP/SSH, taches CRON et site web classique. Node.js n'est pas refuse par principe : il reste utile pour le build Vite/TypeScript et peut devenir pertinent cote serveur avec une offre adaptee. En revanche, l'offre Performance affichee ne doit pas etre consideree comme un environnement naturel pour une API Node persistante tant que l'espace client OVH ne confirme pas explicitement un runtime Node supervise sur l'offre active.
 
 Sources OVH a garder en reference d'exploitation :
 
@@ -2835,7 +2835,7 @@ Choix secondaire si un hebergement applicatif est ajoute :
 | Temps reel | SSE puis WebSocket | Seulement si le runtime et le proxy sont maitrises. |
 | Supervision | systemd/PM2 equivalent + logs + alertes | Obligatoire avant go-live. |
 
-Decision retenue pour le cadrage OVH Performance : ne pas demarrer une API Node persistante dans ce depot tant que l'hebergement reste Performance standard. La meilleure trajectoire est une modernisation securisee du prive en PHP strict/Symfony-compatible, avec TypeScript pour l'interface privee. TypeScript/Fastify reste une option future si l'infrastructure evolue vers Cloud Web Node, POWER Node ou VPS.
+Decision retenue pour le cadrage OVH Performance : ne pas demarrer une API Node persistante dans ce depot tant que l'hebergement reste Performance standard sans runtime applicatif supervise visible. La meilleure trajectoire est une modernisation securisee du prive en PHP strict/Symfony-compatible, avec TypeScript pour l'interface privee. TypeScript/Fastify reste une option future si l'infrastructure evolue vers Cloud Web Node, POWER Node ou VPS.
 
 ### 14.3 Ce qui reste en PHP
 
@@ -2909,8 +2909,12 @@ Contraintes :
 Objectif : ne pas demarrer une deuxieme stack sans capacite de production claire.
 
 - [x] Identifier l'hebergement cible actuel : OVH Performance.
-- [ ] Dans l'espace client OVH, ouvrir `Web Cloud > Hebergements > hebergement du site`.
-- [ ] Confirmer les versions PHP disponibles, SSH/SFTP, CRON, logs et limites d'execution.
+- [x] Dans l'espace client OVH, ouvrir `Web Cloud > Hebergements > hebergement du site`.
+- [x] Confirmer la version PHP globale visible : `8.2`.
+- [x] Confirmer la presence d'un Web Cloud Database associe.
+- [x] Confirmer la capacite SQL disponible : `1/20` base utilisee.
+- [x] Confirmer la marge disque disponible : offre a `500 Go`, utilisation inferieure a la moitie au moment du controle.
+- [ ] Confirmer SSH/SFTP, CRON, logs et limites d'execution dans les onglets OVH dedies.
 - [ ] Confirmer explicitement si un runtime Node supervise est disponible sur l'offre active. Par defaut : non retenu.
 - [ ] Confirmer TLS, reverse proxy, logs, redemarrage automatique et backups.
 - [ ] Confirmer la strategie DB : meme base avec nouveaux schemas/tables, ou base privee separee.
