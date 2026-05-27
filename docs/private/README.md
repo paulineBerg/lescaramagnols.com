@@ -1,7 +1,7 @@
 # Portail prive famille, locations et aide impots
 
 Date de mise a jour : 2026-05-27
-Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, categories documentaires et tableau de bord locatif.
+Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis trois modules metier prioritaires :
@@ -2766,11 +2766,323 @@ La strategie retenue est :
 
 Cette approche respecte l'architecture actuelle du depot, la gouvernance HTTP existante, les contraintes de securite et la possibilite d'ajouter plus tard d'autres modules prives.
 
-## 14. PVT-01 - Continuation d'implementation (Fondation)
+## 14. Migration progressive vers une application privee moderne
+
+### 14.1 Decision d'architecture
+
+La migration ne doit pas etre une reecriture globale. Le site public, le blog, le SEO, le RSS, le sitemap et les pages editoriales peuvent rester en PHP rendu serveur. Cette partie est stable, rapide, peu interactive et deja compatible avec l'architecture actuelle.
+
+La zone a extraire en priorite est l'espace prive :
+
+1. authentification famille ;
+2. documents prives ;
+3. discussions ;
+4. gestion locative ;
+5. imports agence ;
+6. aide fiscale ;
+7. permissions, audit, exports, retention.
+
+Le bon modele est une migration progressive par "strangler pattern" :
+
+```text
+Phase actuelle
+PHP public + PHP prive
+
+Transition
+PHP public + routes privees PHP encore actives
+             |
+             +-- reverse proxy /private-4h6F1c vers nouvelle app privee
+
+Cible
+PHP public uniquement
+Nouvelle application privee separee
+```
+
+Regle non negociable : le portail prive ne doit etre deplace que module par module, avec tests, sauvegarde, plan de retour arriere et reconciliation des donnees. Tant que la nouvelle application n'a pas atteint le meme niveau de securite que le PHP existant, elle reste en preproduction.
+
+### 14.2 Choix technique recommande avec OVH Performance
+
+Contrainte d'hebergement connue : le projet est prevu sur un hebergement web OVH Performance. Cette offre est adaptee a PHP, SFTP/SSH, taches CRON et site web classique. Elle ne doit pas etre consideree comme un environnement naturel pour une API Node persistante tant que l'espace client OVH ne confirme pas explicitement un runtime Node supervise sur l'offre active.
+
+Sources OVH a garder en reference d'exploitation :
+
+- Acces SSH sur hebergement web : `https://help.ovhcloud.com/csm/fr-web-hosting-ssh-access`
+- Taches CRON sur hebergement web : `https://help.ovhcloud.com/csm/fr-web-hosting-automated-tasks-cron`
+- Hebergement Cloud Web avec runtime Node.js : `https://help.ovhcloud.com/csm/fr-cloud-web-hosting-install-ghost`
+- Hebergement POWER pour Node.js/Python/Ruby : `https://help.ovhcloud.com/csm/fr-power-web-hosting-getting-started`
+
+Choix principal pour OVH Performance :
+
+| Couche | Choix recommande | Raison |
+|---|---|---|
+| Langage serveur | PHP moderne strict, puis Symfony ou composants Symfony si extraction plus forte | Compatible OVH Performance, moins de risque d'exploitation, securite mature. |
+| Architecture privee | Modular monolith PHP separe du legacy | Reduit la surface sans ajouter un deuxieme runtime. |
+| Validation | DTO/Form Request + validateurs explicites | Validation serveur stricte sans dependre du front. |
+| SQL | Repositories parametres + migrations SQL versionnees | Compatible avec l'existant et facile a sauvegarder/restaurer. |
+| Front prive | Vite + TypeScript, React seulement si un ecran le justifie | UI moderne sans imposer Node en production serveur. |
+| Sessions | Cookies HttpOnly Secure SameSite + sessions serveur SQL/PHP | Pas de token dans `localStorage`, invalidation serveur, audit possible. |
+| Temps reel | Polling court ou SSE si supporte proprement | Plus realiste sur hebergement web que WebSocket permanent. |
+| Fichiers | Stockage hors webroot + streaming PHP controle | Compatible avec l'existant et les permissions serveur. |
+| Chiffrement discussion | WebCrypto client + enveloppes par appareil | Continuer le chiffrement local texte V1 sans exposer les cles serveur. |
+| Observabilite | Logs applicatifs + CRON de purge/controle | Exploitable sur OVH Performance sans service supplementaire. |
+
+Choix secondaire si un hebergement applicatif est ajoute :
+
+| Couche | Choix recommande | Condition |
+|---|---|---|
+| API privee | TypeScript strict + Fastify | Seulement avec Cloud Web Node, POWER Node, VPS ou autre runtime supervise. |
+| SQL TypeScript | Kysely ou requetes parametrees typées | Utile si l'API Node devient source de verite. |
+| Temps reel | SSE puis WebSocket | Seulement si le runtime et le proxy sont maitrises. |
+| Supervision | systemd/PM2 equivalent + logs + alertes | Obligatoire avant go-live. |
+
+Decision retenue pour le cadrage OVH Performance : ne pas demarrer une API Node persistante dans ce depot tant que l'hebergement reste Performance standard. La meilleure trajectoire est une modernisation securisee du prive en PHP strict/Symfony-compatible, avec TypeScript pour l'interface privee. TypeScript/Fastify reste une option future si l'infrastructure evolue vers Cloud Web Node, POWER Node ou VPS.
+
+### 14.3 Ce qui reste en PHP
+
+- [ ] Front-office public.
+- [ ] Blog public et pages editoriales.
+- [ ] SEO serveur : canonical, Open Graph, Twitter, JSON-LD, sitemap, RSS.
+- [ ] Admin editorial public tant qu'il n'est pas un frein de securite.
+- [ ] Pipeline assets Vite vers `backend/public`.
+- [ ] Outillage PHP existant de migration, diagnostic, import SQL et generation sitemap.
+
+Le PHP prive actuel devient une couche transitoire puis modernisee. Il ne doit pas recevoir de nouveaux modules lourds hors architecture `PrivatePortal` / `PrivateApps`, sauf correctif de securite ou maintien fonctionnel.
+
+### 14.4 Arborescence cible proposee
+
+Option retenue tant que l'hebergement reste OVH Performance :
+
+```text
+backend/
+  src/
+    PrivatePortal/
+      Http/
+      Security/
+      Repository/
+      Service/
+      ViewModel/
+    PrivateApps/
+      Documents/
+      FamilyDiscussion/
+      RealEstateRental/
+      AgencyImports/
+      TaxDeclarationHelper/
+  sql/
+    private/
+  templates/
+    private/
+
+frontend/
+  src/
+    private/
+      app/
+      components/
+      features/
+      security/
+      styles/
+```
+
+Option future seulement avec runtime Node supervise :
+
+```text
+private-app/
+  api/
+  web/
+  shared/
+  ops/
+```
+
+Contraintes :
+
+- [ ] Aucun secret dans le depot.
+- [ ] Aucun fichier prive dans un dossier public.
+- [ ] Aucun token d'auth dans `localStorage`.
+- [ ] Aucun schema fiscal ou locatif duplique sans source et version.
+- [ ] Les contrats DTO/schemas sont la source de verite entre serveur prive et interface privee.
+- [ ] Les migrations sont idempotentes ou rejouables sur base de test.
+- [ ] Les logs ne contiennent jamais message, document, mot de passe, token, chemin serveur complet ou montant sensible inutile.
+
+### 14.5 Phases de migration
+
+#### Phase M0 - Decision et prerequis exploitation
+
+Objectif : ne pas demarrer une deuxieme stack sans capacite de production claire.
+
+- [x] Identifier l'hebergement cible actuel : OVH Performance.
+- [ ] Dans l'espace client OVH, ouvrir `Web Cloud > Hebergements > hebergement du site`.
+- [ ] Confirmer les versions PHP disponibles, SSH/SFTP, CRON, logs et limites d'execution.
+- [ ] Confirmer explicitement si un runtime Node supervise est disponible sur l'offre active. Par defaut : non retenu.
+- [ ] Confirmer TLS, reverse proxy, logs, redemarrage automatique et backups.
+- [ ] Confirmer la strategie DB : meme base avec nouveaux schemas/tables, ou base privee separee.
+- [ ] Confirmer un environnement preproduction proche production.
+- [ ] Confirmer la procedure de restauration base + fichiers prives.
+- [ ] Definir le proprietaire du runtime : commandes de demarrage, mise a jour, surveillance.
+- [ ] Documenter la decision finale : PHP moderne/Symfony-compatible sur OVH Performance, ou upgrade hebergement pour TypeScript/Fastify.
+
+Critere de passage : un socle prive modernise est deployable en preproduction avec headers securite, logs, CRON et restauration documentes. Si Node est retenu plus tard, un `hello private-api` non expose publiquement devra etre deployable avec supervision avant toute migration metier.
+
+#### Phase M1 - Cartographie et contrats
+
+Objectif : figer les surfaces avant extraction.
+
+- [ ] Lister toutes les routes privees PHP actuelles.
+- [ ] Lister toutes les tables privees et leurs proprietaires fonctionnels.
+- [ ] Lister tous les fichiers prives et chemins de stockage.
+- [ ] Lister les evenements d'audit existants et manquants.
+- [ ] Lister les permissions par module et action.
+- [ ] Ecrire les contrats API cibles : auth, user, document, discussion, rental, agency import, tax.
+- [ ] Ecrire les schemas d'erreur communs : validation, auth, permission, conflit, rate limit.
+- [ ] Ajouter tests de non-regression PHP sur les routes qui resteront actives pendant la transition.
+
+Critere de passage : chaque endpoint cible a un contrat, une permission, une erreur attendue et un test minimal.
+
+#### Phase M2 - Frontiere HTTP et point d'entree prive
+
+Objectif : separer l'entree privee sans casser le site public.
+
+- [ ] Garder `/private-4h6F1c` comme chemin prive non liste dans `robots.txt`.
+- [ ] Sur OVH Performance, garder le controle via `FrontController` PHP et headers applicatifs.
+- [ ] Si un hebergement Node/VPS est ajoute, placer la nouvelle app derriere reverse proxy, non accessible directement depuis internet.
+- [ ] Appliquer `X-Robots-Tag: noindex, nofollow, noarchive` cote app et cote proxy si proxy disponible.
+- [ ] Appliquer CSP stricte, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`.
+- [ ] Desactiver tout script de consentement public dans le prive.
+- [ ] Verifier que public, blog, admin editorial, sitemap, RSS et assets gardent leur comportement.
+- [ ] Prevoir un routage par module : module modernise dans `PrivateApps`, ou module migre vers app externe si l'infrastructure evolue.
+
+Critere de passage : bascule reversible par configuration, sans changement d'URL visible pour l'utilisateur.
+
+#### Phase M3 - Socle applicatif prive
+
+Objectif : reconstruire le coeur securite avant les modules metier.
+
+- [ ] Renforcer le socle PHP prive en code strict, services courts, repositories et tests.
+- [ ] Ajouter composants Symfony utiles si le gain est net : routing/validator/http-foundation/security selon besoin.
+- [ ] Isoler les templates prives du legacy public.
+- [ ] Ajouter validation d'environnement au demarrage.
+- [ ] Ajouter gestion erreurs sans fuite d'information.
+- [ ] Ajouter sessions serveur, cookie HttpOnly, CSRF et rotation d'ID.
+- [ ] Ajouter rate limit login et actions sensibles.
+- [ ] Ajouter RBAC/permissions serveur.
+- [ ] Ajouter audit append-only.
+- [ ] Ajouter tests unitaires securite : CSRF, session, permission, rate limit.
+- [ ] Ajouter tests HTTP : login, logout, route protegee, route refusee.
+- [ ] Ajouter scan dependances et lint dans CI locale.
+- [ ] Reporter TypeScript/Fastify dans une branche technique uniquement si un runtime Node supervise est confirme.
+
+Critere de passage : la nouvelle app sait authentifier un utilisateur de test, refuser les acces non autorises et journaliser sans exposer de secrets.
+
+#### Phase M4 - Donnees, fichiers et coexistence
+
+Objectif : migrer sans perte et sans double ecriture fragile.
+
+- [ ] Faire un backup base + fichiers avant toute migration.
+- [ ] Creer migrations SQL cibles avec prefixe clair.
+- [ ] Ecrire scripts de lecture de l'ancien modele.
+- [ ] Ecrire scripts d'import idempotents.
+- [ ] Ajouter reconciliation : nombre de lignes, hash fichiers, tailles, dates, proprietaires.
+- [ ] Interdire la double ecriture durable sauf fenetre de bascule tres courte.
+- [ ] Definir le statut par module : `php_source`, `migrating`, `new_source`, `retired`.
+- [ ] Tester restauration sur environnement de test.
+
+Critere de passage : un module peut etre migre puis restaure sans perte mesurable.
+
+#### Phase M5 - Migration des modules
+
+Ordre recommande :
+
+1. `PrivateCore` : comptes famille, permissions, audit.
+2. `Documents` : categories, stockage, download controle, retention.
+3. `FamilyDiscussion` : conversations, groupes, images, fichiers, purge 60 jours, chiffrement texte.
+4. `RealEstateRental` : biens, lots, locataires, baux, loyers, charges, rapports.
+5. `AgencyImports` : lots, documents, lignes, issues, revue humaine.
+6. `TaxDeclarationHelper` : sources validees, activation manuelle, synthese fiscale.
+
+Checklist commune a chaque module :
+
+- [ ] Contrat API valide.
+- [ ] Schema SQL et migration.
+- [ ] Import depuis PHP ou compatibilite lecture ancien modele.
+- [ ] Permissions par action.
+- [ ] Tests unitaires metier.
+- [ ] Tests HTTP auth/permission/CSRF.
+- [ ] Tests de validation formulaire et fichier.
+- [ ] Audit des actions sensibles.
+- [ ] Ecran UI complet avec etats vide, erreur, chargement, succes.
+- [ ] Smoke test navigateur.
+- [ ] Reconciliation donnees avant bascule.
+- [ ] Bascule reversible.
+- [ ] Ancienne route PHP retiree ou redirigee seulement apres validation.
+
+Critere de passage : le module fonctionne dans la nouvelle app pendant une periode d'observation sans divergence avec le PHP.
+
+#### Phase M6 - Retrait progressif du prive PHP
+
+Objectif : reduire la surface d'attaque.
+
+- [ ] Marquer chaque route PHP privee comme migree, conservee ou supprimee.
+- [ ] Supprimer le code prive PHP devenu inactif apres backup et tag Git.
+- [ ] Garder uniquement les helpers communs encore utiles au public.
+- [ ] Supprimer les permissions obsoletes.
+- [ ] Supprimer les templates prives PHP obsoletes.
+- [ ] Supprimer les endpoints de fichiers prives PHP si remplaces.
+- [ ] Verifier qu'aucune route privee legacy n'est encore resolue par erreur.
+- [ ] Mettre a jour `docs/private/README.md`, `docs/security/README.md` et runbooks.
+
+Critere de passage : PHP ne sert plus que le public, le blog et l'admin editorial conserve.
+
+### 14.6 Checklist securite de la nouvelle app
+
+- [ ] Threat model court par module : donnees sensibles, acteurs, abus possibles, contre-mesures.
+- [ ] Validation stricte de toutes les entrees.
+- [ ] Requetes SQL parametrees uniquement.
+- [ ] Sorties HTML echappees par defaut.
+- [ ] CSRF obligatoire sur toutes les mutations cookie-based.
+- [ ] Cookies `HttpOnly`, `Secure` en HTTPS, `SameSite=Strict` pour le prive.
+- [ ] CSP sans `unsafe-inline`, sauf exception noncee documentee.
+- [ ] Rate limit login, reset password, upload, imports et messages.
+- [ ] Antivirus ou quarantaine documentaire si disponible en production.
+- [ ] Limites de taille, type MIME detecte serveur et extension controlee.
+- [ ] Audit sans contenu sensible.
+- [ ] Backups testes.
+- [ ] Secrets hors depot, rotation documentee.
+- [ ] Pas de chemins admin/prive dans `robots.txt`.
+- [ ] Reponses `401/403/404` coherentes sans enumeration inutile.
+- [ ] Revue dependances avant go-live.
+- [ ] Test manuel login/logout/timeout/refus CSRF.
+- [ ] Test manuel compte suspendu et permission retiree.
+- [ ] Test manuel restauration fichier et base.
+
+### 14.7 Definition of Done de la migration
+
+- [ ] Le public PHP reste stable, rapide et indexable.
+- [ ] Le prive est servi par une application separee ou un contexte Symfony separe.
+- [ ] Aucun module prive critique ne depend encore de templates PHP legacy.
+- [ ] Les donnees locatives et fiscales ont une source de verite unique.
+- [ ] Les imports agence sont reconciliables et auditables.
+- [ ] Les messages de discussion respectent la retention `60` jours.
+- [ ] Les fichiers prives restent hors webroot.
+- [ ] Les logs et exports ne fuitent pas de contenu sensible.
+- [ ] Le plan de restauration est teste.
+- [ ] Les anciennes routes privees PHP sont supprimees, bloquees ou redirigees explicitement.
+- [ ] Les README et runbooks refletent l'architecture reelle.
+
+### 14.8 Decision pratique a court terme
+
+Ne pas commencer la migration tant que les modules prives PHP en cours ne sont pas stabilises et testes. La prochaine bonne etape est documentaire et preparatoire :
+
+1. terminer l'audit de securite BO admin/prive ;
+2. completer les tests HTTP et parcours navigateur critiques ;
+3. figer les contrats fonctionnels de `Documents`, `FamilyDiscussion`, `RealEstateRental`, `AgencyImports` et `TaxDeclarationHelper` ;
+4. acter la trajectoire OVH Performance : PHP moderne/Symfony-compatible pour le serveur prive ;
+5. ne creer `private-app/` que si l'hebergement evolue vers Cloud Web Node, POWER Node, VPS ou equivalent supervise.
+
+Cette decision evite de transformer une dette PHP en dette multi-stack. La migration doit reduire le risque, pas l'augmenter.
+
+## 15. PVT-01 - Continuation d'implementation (Fondation)
 
 Le lot PVT-01 reprend le socle minimal du portail famille en priorité. Les tâches ci-dessous sont à exécuter dans l’ordre pour limiter les risques de régression FO/BO.
 
-### 14.1 Ordre cible d’implémentation
+### 15.1 Ordre cible d’implémentation
 
 1. Variables et garde-fous de configuration (`PRIVATE_*`, activation, temps d’attente, rate limit).
 2. Routage privé via `FrontController` avec résolveur dédié.
@@ -2782,7 +3094,7 @@ Le lot PVT-01 reprend le socle minimal du portail famille en priorité. Les tâc
 8. Headers anti-indexation + `robots.txt`.
 9. Contrôle fichier : aucun point d’accès direct à `backend/public`.
 
-### 14.2 Matrice de routes PVT-01 (MVP)
+### 15.2 Matrice de routes PVT-01 (MVP)
 
 | Route | But | Methode | Protection | Sortie attendue |
 |---|---|---|---|---|
@@ -2797,7 +3109,7 @@ Le lot PVT-01 reprend le socle minimal du portail famille en priorité. Les tâc
 
 Règle métier clé : tout refus de permission (lecture/édition/téléchargement) doit être traçable et, côté API, renvoyer `401/403` selon le contexte.
 
-### 14.3 Livrables PVT-01 attendus par étape
+### 15.3 Livrables PVT-01 attendus par étape
 
 - Sprint 1 (routes + config) : endpoints privés fonctionnels, non-régression des routes publiques confirmée.
 - Sprint 2 (session + login) : connexion privée isolée, lockout, gestion mots de passe et CSRF validés.
@@ -2805,7 +3117,7 @@ Règle métier clé : tout refus de permission (lecture/édition/téléchargemen
 - Sprint 4 (audit + sécurité HTTP) : événements sensibles et headers anti-indexation vérifiés.
 - Sprint 5 (pré-op) : documentation BO/BOU mise à jour + preuves d’exécution (curl / commandes test) archivées.
 
-### 14.4 Critères de passage sprint PVT-01
+### 15.4 Critères de passage sprint PVT-01
 
 1. `composer test -- --filter PrivatePortal` exécute sans erreur.
 2. `composer test -- --filter FrontController` conserve le comportement FO.
@@ -2813,7 +3125,7 @@ Règle métier clé : tout refus de permission (lecture/édition/téléchargemen
 4. Une tentative d’accès privé non autorisé génère un event d’audit.
 5. Aucune régression FO détectée sur `admin`, `blog`, `sitemap`, `rss`, et assets.
 
-### 14.5 Protocole d’exécution d’office
+### 15.5 Protocole d’exécution d’office
 
 Principe : poursuivre l’implémentation phase par phase, sans interruption systématique pour une validation minimale.
 
@@ -2826,7 +3138,7 @@ Principe : poursuivre l’implémentation phase par phase, sans interruption sys
 
 Référence d’arrêt : arrêt « naturel » au passage officiel d’une phase quand les critères de passage sont remplis et documentés ici.
 
-### 14.6 Passe de phase en cours (cible)
+### 15.6 Passe de phase en cours (cible)
 
 Ce document suit la séquence : `Phase 0 -> Phase 1 -> Phase 2 -> Phase 3 -> Phase 4`.
 
