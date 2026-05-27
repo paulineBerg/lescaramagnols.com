@@ -1175,6 +1175,20 @@ return [
     'TXT_ADMIN_SETTINGS_SECURITY_RULE_LOGGING' => 'Each sensitive change is logged in backend/data/logs/security.log.',
     'TXT_ADMIN_SETTINGS_SECURITY_ACTIVE_OVERRIDES' => 'Active overrides:',
 
+    // Private area
+    'TXT_PRIVATE_LOGIN_PAGE_TITLE' => 'Private area',
+    'TXT_PRIVATE_LOGIN_INTRO' => 'Sign in to access the private area.',
+    'TXT_PRIVATE_IDENTIFIER_LABEL' => 'Identifier',
+    'TXT_PRIVATE_PASSWORD_LABEL' => 'Password',
+    'TXT_PRIVATE_MFA_CODE_LABEL' => 'Verification code',
+    'TXT_PRIVATE_LOGIN_SUBMIT' => 'Sign in',
+    'TXT_PRIVATE_FORGOT_PASSWORD_LINK' => 'Forgot password',
+    'TXT_PRIVATE_ERROR_CSRF' => 'Session expired or invalid form. Reload the page and try again.',
+    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Account temporarily locked after several failed attempts.',
+    'TXT_PRIVATE_ERROR_RATE_LIMIT' => 'Too many attempts. Try again in a few minutes.',
+    'TXT_PRIVATE_ERROR_MFA' => 'Invalid or missing verification code.',
+    'TXT_PRIVATE_ERROR_INVALID_CREDENTIALS' => 'Incorrect identifier or password.',
+
     // Instagram
     'TXT_INSTAGRAM_LATEST_POSTS' => 'Latest Instagram posts',
     'TXT_INSTAGRAM_EMPTY' => 'No Instagram posts available for now.',

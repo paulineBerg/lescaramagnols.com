@@ -162,6 +162,20 @@ final class PrivatePortalSecurityTest extends TestCase
 
         $this->assertSame($session->name(), session_name());
         $this->assertTrue($session->isStarted());
+        $privateSessionId = session_id();
+        $_SESSION['private_marker'] = 'kept';
+
+        session_write_close();
+        $_COOKIE[$session->name()] = $privateSessionId;
+        session_name('caramagnols_session');
+        session_id('');
+        session_start();
+
+        $restartedSession = new PrivateSession($this->sessionName);
+        $restartedSession->start();
+
+        $this->assertSame($privateSessionId, session_id());
+        $this->assertSame('kept', $_SESSION['private_marker'] ?? null);
     }
 
     public function testSessionExpiresAfterInactivityTimeout(): void

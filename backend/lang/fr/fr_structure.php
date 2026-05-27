@@ -1175,6 +1175,20 @@ return [
     'TXT_ADMIN_SETTINGS_SECURITY_RULE_LOGGING' => 'Chaque changement sensible est journalisé dans backend/data/logs/security.log.',
     'TXT_ADMIN_SETTINGS_SECURITY_ACTIVE_OVERRIDES' => 'Overrides actifs :',
 
+    // Espace privé
+    'TXT_PRIVATE_LOGIN_PAGE_TITLE' => 'Espace privé',
+    'TXT_PRIVATE_LOGIN_INTRO' => 'Connectez-vous pour accéder à l’espace privé.',
+    'TXT_PRIVATE_IDENTIFIER_LABEL' => 'Identifiant',
+    'TXT_PRIVATE_PASSWORD_LABEL' => 'Mot de passe',
+    'TXT_PRIVATE_MFA_CODE_LABEL' => 'Code de vérification',
+    'TXT_PRIVATE_LOGIN_SUBMIT' => 'Se connecter',
+    'TXT_PRIVATE_FORGOT_PASSWORD_LINK' => 'Mot de passe oublié',
+    'TXT_PRIVATE_ERROR_CSRF' => 'Session expirée ou formulaire invalide. Rechargez la page puis réessayez.',
+    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Compte temporairement verrouillé après plusieurs tentatives échouées.',
+    'TXT_PRIVATE_ERROR_RATE_LIMIT' => 'Trop de tentatives. Réessayez dans quelques minutes.',
+    'TXT_PRIVATE_ERROR_MFA' => 'Code de vérification invalide ou manquant.',
+    'TXT_PRIVATE_ERROR_INVALID_CREDENTIALS' => 'Identifiant ou mot de passe incorrect.',
+
     // Instagram
     'TXT_INSTAGRAM_LATEST_POSTS' => 'Derniers posts Instagram',
     'TXT_INSTAGRAM_EMPTY' => 'Aucun post Instagram disponible pour le moment.',

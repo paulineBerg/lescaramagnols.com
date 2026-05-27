@@ -23,7 +23,6 @@ final class PrivateSession
 
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_write_close();
-            session_id('');
         }
 
         ini_set('session.use_strict_mode', '1');
@@ -43,6 +42,8 @@ final class PrivateSession
         ];
 
         session_name($this->sessionName);
+        $sessionId = $this->cookieSessionId();
+        session_id($sessionId ?? '');
         session_set_cookie_params($cookieParams);
         session_cache_limiter('nocache');
         session_start();
@@ -122,5 +123,15 @@ final class PrivateSession
         }
 
         return $normalized;
+    }
+
+    private function cookieSessionId(): ?string
+    {
+        $value = $_COOKIE[$this->sessionName] ?? null;
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        return preg_match('/\A[A-Za-z0-9,-]{16,128}\z/', $value) === 1 ? $value : null;
     }
 }

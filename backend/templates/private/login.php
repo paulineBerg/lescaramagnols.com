@@ -5,7 +5,7 @@ $translate = static function (string $key, string $fallback): string {
     }
 
     $translated = t($key);
-    if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+    if (!is_string($translated) || $translated === '' || $translated === $key || $translated === '[[' . $key . ']]') {
         return $fallback;
     }
 

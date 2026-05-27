@@ -5,7 +5,7 @@ $translate = static function (string $key, string $fallback = ''): string {
     }
 
     $translated = t($key);
-    if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+    if (!is_string($translated) || $translated === '' || $translated === $key || $translated === '[[' . $key . ']]') {
         return $fallback;
     }
 
@@ -629,7 +629,7 @@ if ($privateHasModule('Aide impôts')) {
     </style>
   </head>
   <body class="<?php echo $isAuthenticated ? 'private-app-page' : 'private-auth-page'; ?>">
-    <?php if ($isAuthenticated): ?>
+    <?php if ($isAuthenticated) : ?>
       <div class="private-app-shell">
         <nav class="private-nav" aria-label="Navigation privée">
           <div class="private-nav-brand">
@@ -637,16 +637,16 @@ if ($privateHasModule('Aide impôts')) {
             <span><?php echo htmlspecialchars($translate('TXT_PRIVATE_LAYOUT_BRAND_SUBTITLE', 'Espace privé sécurisé'), ENT_QUOTES, 'UTF-8'); ?></span>
           </div>
           <ul class="private-nav-menu">
-            <?php foreach ($privateNavItems as $privateNavItem): ?>
-              <?php
-              $navLabel = is_string($privateNavItem['label'] ?? null) ? (string) $privateNavItem['label'] : '';
-              $navHref = is_string($privateNavItem['href'] ?? null) ? (string) $privateNavItem['href'] : '#';
-              $navIcon = is_string($privateNavItem['icon'] ?? null) ? (string) $privateNavItem['icon'] : '';
-              $navIsActive = (bool) ($privateNavItem['active'] ?? false);
-              if ($navLabel === '') {
-                  continue;
-              }
-              ?>
+            <?php foreach ($privateNavItems as $privateNavItem) : ?>
+                <?php
+                $navLabel = is_string($privateNavItem['label'] ?? null) ? (string) $privateNavItem['label'] : '';
+                $navHref = is_string($privateNavItem['href'] ?? null) ? (string) $privateNavItem['href'] : '#';
+                $navIcon = is_string($privateNavItem['icon'] ?? null) ? (string) $privateNavItem['icon'] : '';
+                $navIsActive = (bool) ($privateNavItem['active'] ?? false);
+                if ($navLabel === '') {
+                    continue;
+                }
+                ?>
               <li>
                 <a class="<?php echo $navIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>">
                   <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($navIcon, ENT_QUOTES, 'UTF-8'); ?></span>
@@ -661,9 +661,9 @@ if ($privateHasModule('Aide impôts')) {
           <header class="private-header">
             <div>
               <h1><?php echo htmlspecialchars((string) ($privatePageTitle ?? 'Espace privé'), ENT_QUOTES, 'UTF-8'); ?></h1>
-              <?php if ($privateUserIdentifier !== ''): ?>
+              <?php if ($privateUserIdentifier !== '') : ?>
                 <p class="private-header-meta">
-                  <?php echo htmlspecialchars($translate('TXT_PRIVATE_LAYOUT_CONNECTED_AS', 'Connecté en tant que'), ENT_QUOTES, 'UTF-8'); ?>
+                    <?php echo htmlspecialchars($translate('TXT_PRIVATE_LAYOUT_CONNECTED_AS', 'Connecté en tant que'), ENT_QUOTES, 'UTF-8'); ?>
                   <strong><?php echo htmlspecialchars($privateUserIdentifier, ENT_QUOTES, 'UTF-8'); ?></strong>
                 </p>
               <?php endif; ?>
@@ -677,11 +677,11 @@ if ($privateHasModule('Aide impôts')) {
           </header>
 
           <main class="private-main">
-            <?php if ($noticeText !== null): ?>
+            <?php if ($noticeText !== null) : ?>
               <div class="notice notice-success"><?php echo htmlspecialchars($noticeText, ENT_QUOTES, 'UTF-8'); ?></div>
             <?php endif; ?>
 
-            <?php if ($error !== null): ?>
+            <?php if ($error !== null) : ?>
               <div class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
             <?php endif; ?>
 
@@ -689,18 +689,18 @@ if ($privateHasModule('Aide impôts')) {
           </main>
         </div>
       </div>
-    <?php else: ?>
+    <?php else : ?>
       <main class="private-auth-shell">
         <header class="private-auth-header">
           <p>Les Caramagnols</p>
           <h1><?php echo htmlspecialchars((string) ($privatePageTitle ?? 'Espace privé'), ENT_QUOTES, 'UTF-8'); ?></h1>
         </header>
 
-        <?php if ($noticeText !== null): ?>
+        <?php if ($noticeText !== null) : ?>
           <div class="notice notice-success"><?php echo htmlspecialchars($noticeText, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
 
-        <?php if ($error !== null): ?>
+        <?php if ($error !== null) : ?>
           <div class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
         <?php endif; ?>
 

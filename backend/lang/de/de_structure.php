@@ -1173,6 +1173,20 @@ return [
     'TXT_ADMIN_SETTINGS_SECURITY_RULE_LOGGING' => 'Jede sensible Aenderung wird in backend/data/logs/security.log protokolliert.',
     'TXT_ADMIN_SETTINGS_SECURITY_ACTIVE_OVERRIDES' => 'Aktive Overrides:',
 
+    // Privater Bereich
+    'TXT_PRIVATE_LOGIN_PAGE_TITLE' => 'Privater Bereich',
+    'TXT_PRIVATE_LOGIN_INTRO' => 'Melden Sie sich an, um den privaten Bereich zu oeffnen.',
+    'TXT_PRIVATE_IDENTIFIER_LABEL' => 'Kennung',
+    'TXT_PRIVATE_PASSWORD_LABEL' => 'Passwort',
+    'TXT_PRIVATE_MFA_CODE_LABEL' => 'Bestaetigungscode',
+    'TXT_PRIVATE_LOGIN_SUBMIT' => 'Anmelden',
+    'TXT_PRIVATE_FORGOT_PASSWORD_LINK' => 'Passwort vergessen',
+    'TXT_PRIVATE_ERROR_CSRF' => 'Sitzung abgelaufen oder Formular ungueltig. Laden Sie die Seite neu und versuchen Sie es erneut.',
+    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Konto nach mehreren fehlgeschlagenen Versuchen voruebergehend gesperrt.',
+    'TXT_PRIVATE_ERROR_RATE_LIMIT' => 'Zu viele Versuche. Bitte in einigen Minuten erneut versuchen.',
+    'TXT_PRIVATE_ERROR_MFA' => 'Bestaetigungscode ungueltig oder fehlt.',
+    'TXT_PRIVATE_ERROR_INVALID_CREDENTIALS' => 'Kennung oder Passwort ist falsch.',
+
     // Instagram
     'TXT_INSTAGRAM_LATEST_POSTS' => 'Neueste Instagram-Posts',
     'TXT_INSTAGRAM_EMPTY' => 'Derzeit keine Instagram-Posts verfügbar.',
