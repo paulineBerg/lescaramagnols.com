@@ -147,6 +147,23 @@ final class PrivatePortalSecurityTest extends TestCase
         $this->assertNotSame($sessionBefore, $this->sessionId());
     }
 
+    public function testPrivateSessionUsesDedicatedCookieNameAfterBootstrapSession(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        session_name('caramagnols_session');
+        session_start();
+
+        $this->assertSame('caramagnols_session', session_name());
+
+        $session = new PrivateSession($this->sessionName);
+        $session->start();
+
+        $this->assertSame($session->name(), session_name());
+        $this->assertTrue($session->isStarted());
+    }
+
     public function testSessionExpiresAfterInactivityTimeout(): void
     {
         $this->configurePrivatePasswordHash(password_hash('secret123', PASSWORD_ARGON2ID));

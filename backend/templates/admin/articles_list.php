@@ -270,7 +270,8 @@ $scheduledCount = (int) ($articleListSummary['scheduled'] ?? $legacyScheduledCou
   <?php endif; ?>
 </section>
 
-<script>
+<?php $cspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
+<script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
 (function () {
   document.querySelectorAll('form[data-article-delete-form]').forEach(function (form) {
     if (!(form instanceof HTMLFormElement)) {

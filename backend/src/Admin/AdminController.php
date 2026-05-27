@@ -308,7 +308,7 @@ final class AdminController
      */
     public function handle(string $page, Request $request, array $routeParams = []): Response
     {
-        return match ($page) {
+        $response = match ($page) {
             'login' => $this->login($request),
             'dashboard' => $this->dashboard($request),
             'pages' => $this->pages($request),
@@ -340,6 +340,8 @@ final class AdminController
             'logout' => $this->logout($request),
             default => new Response(404, ['Content-Type' => 'text/html; charset=utf-8'], 'Page admin introuvable.'),
         };
+
+        return $this->withAdminHeaders($response);
     }
 
     private function login(Request $request): Response
@@ -2563,5 +2565,28 @@ final class AdminController
     private function redirect(string $location, int $status = 302): Response
     {
         return new Response($status, ['Location' => $location], '');
+    }
+
+    private function withAdminHeaders(Response $response): Response
+    {
+        $response->headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive';
+        $response->headers['Cache-Control'] = 'private, no-store, no-cache, must-revalidate';
+        $response->headers['Pragma'] = 'no-cache';
+        $response->headers['Expires'] = '0';
+        $response->headers['X-Frame-Options'] = 'DENY';
+        $response->headers['X-Content-Type-Options'] = 'nosniff';
+        $response->headers['Referrer-Policy'] = 'no-referrer';
+        $response->headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()';
+        $response->headers['Content-Security-Policy'] = $this->backOfficeContentSecurityPolicy();
+
+        return $response;
+    }
+
+    private function backOfficeContentSecurityPolicy(): string
+    {
+        $nonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_nonce'] : '';
+        $scriptSrc = $nonce !== '' ? "'self' 'nonce-{$nonce}'" : "'self' 'unsafe-inline'";
+
+        return "default-src 'self'; script-src {$scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';";
     }
 }

@@ -2008,13 +2008,20 @@ Controles obligatoires :
 7. rate limit par IP et identifiant ;
 8. MFA TOTP + codes de secours supportes ;
 9. `X-Robots-Tag: noindex, nofollow, noarchive` sur routes privees ;
-10. `Disallow: /private/` dans `robots.txt` ;
+10. meta `robots` `noindex,nofollow,noarchive` dans les layouts admin et prive ;
 11. aucun token dans `localStorage` ;
 12. aucun fichier prive dans `backend/public` ;
 13. aucun chemin disque prive dans les reponses HTTP ;
 14. logs sans mot de passe, token, document sensible ou montant inutile ;
 15. erreurs utilisateur non verbeuses ;
 16. actions sensibles journalisees avec `request_id`.
+
+Regles BO admin/private :
+
+1. `tarteaucitron` reste reserve au site public. Les BO admin et prive ne chargent pas le script public de consentement, sauf ajout futur d'un service tiers reel dans le BO et decision documentee.
+2. `robots.txt` ne doit pas publier les chemins admin ou prive : un `Disallow` revelerait les URLs sensibles. Les BO sont proteges par chemins non publics, authentification, headers `X-Robots-Tag`, meta robots et absence de liens publics.
+3. les reponses BO ajoutent `Cache-Control: private, no-store, no-cache, must-revalidate`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, `Permissions-Policy` restrictive et CSP BO avec `frame-ancestors 'none'`.
+4. les scripts inline BO doivent porter le nonce CSP lorsqu'un script est indispensable.
 
 Fichiers prives :
 
@@ -2096,7 +2103,7 @@ Checklist :
 - [x] Creer les templates `backend/templates/private/layout.php`, `login.php`, `dashboard.php`.
 - [x] Ajouter `/private`, `/private/login`, `/private/dashboard`, `/private/logout`.
 - [x] Ajouter `X-Robots-Tag` sur toutes les reponses privees.
-- [x] Ajouter ou verifier `Disallow: /private/` dans `robots.txt` (servi par `FrontController`).
+- [x] Ne pas exposer `/private` dans `robots.txt`; utiliser `X-Robots-Tag`, meta robots et auth.
 - [x] Tester la non-regression des routes publiques, RSS, sitemap, blog et admin (selon le protocole d’office, selon priorité).
 
 Definition of Done :
@@ -2109,7 +2116,7 @@ Definition of Done :
 Validation et suivi phase 1 :
 
 - `private route` : `PRIVATE_*` + routeur dédié reliés dans `FrontController` (points 1 à 5 ci-dessus).
-- `anti-indexation` : `FrontController::robotsTxtResponse()` émet `Disallow: /private` quand le portail privé est activé.
+- `anti-indexation` : les reponses privees emettent `X-Robots-Tag`; `robots.txt` ne divulgue plus le chemin prive.
 - Vérification automatisée phase 1 :
   - `cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalFrontControllerTest.php` : vert après harmonisation (hash Argon2id + logout POST + vérification logs via logger injecté).
   - `cd backend && phpunit --configuration phpunit.xml tests/FrontControllerHttpTest.php` : vert (48 tests, 1 point `/images/structure` résolu via fixture de test pour `/images/structure/banniere.jpg`).
@@ -2118,7 +2125,7 @@ Validation et suivi phase 1 :
   - `/private` => `302 -> /private/login`
   - `/private/dashboard` => `302 -> /private/login`
   - `/private/logout` => `POST /private/logout + CSRF` => `302 -> /private/login`
-  - `/robots.txt` => `Disallow: /private` présent.
+  - `/robots.txt` => chemin prive absent.
 
 ### Phase 2 - Identite famille et sessions separees
 

@@ -75,7 +75,7 @@ final class PrivatePortalController
 
     public function handle(string $page, Request $request, array $routeParams = []): Response
     {
-        return match ($page) {
+        $response = match ($page) {
             'login' => $this->handleLogin($request),
             'dashboard' => $this->handleDashboard($request),
             'logout' => $this->handleLogout($request),
@@ -167,6 +167,8 @@ final class PrivatePortalController
             'ops_backup' => $this->handleOpsBackup($request),
             default => $this->handleNotFound(),
         };
+
+        return $this->withPrivateHeaders($response);
     }
 
     private function handleLogin(Request $request): Response
@@ -3282,12 +3284,28 @@ final class PrivatePortalController
     private function withPrivateHeaders(Response $response): Response
     {
         $response->headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive';
+        $response->headers['Cache-Control'] = 'private, no-store, no-cache, must-revalidate';
+        $response->headers['Pragma'] = 'no-cache';
+        $response->headers['Expires'] = '0';
+        $response->headers['X-Frame-Options'] = 'DENY';
+        $response->headers['X-Content-Type-Options'] = 'nosniff';
+        $response->headers['Referrer-Policy'] = 'no-referrer';
+        $response->headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()';
+        $response->headers['Content-Security-Policy'] = $this->backOfficeContentSecurityPolicy();
 
         if (!isset($response->headers['Content-Type'])) {
             $response->headers['Content-Type'] = 'text/html; charset=UTF-8';
         }
 
         return $response;
+    }
+
+    private function backOfficeContentSecurityPolicy(): string
+    {
+        $nonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_nonce'] : '';
+        $scriptSrc = $nonce !== '' ? "'self' 'nonce-{$nonce}'" : "'self' 'unsafe-inline'";
+
+        return "default-src 'self'; script-src {$scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';";
     }
 
     private function guard(): PrivatePortalSecurityGuard

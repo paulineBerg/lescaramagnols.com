@@ -1651,7 +1651,7 @@ $articleEditorFormId = 'article-editor-form';
   })();
 </script>
 
-<script>
+<script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
     const categorySelect = document.querySelector('[data-blog-category-select]');
     const subcategorySelect = document.querySelector('[data-blog-subcategory-select]');

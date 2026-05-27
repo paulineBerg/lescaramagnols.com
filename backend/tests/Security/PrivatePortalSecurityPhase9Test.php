@@ -70,6 +70,9 @@ final class PrivatePortalSecurityPhase9Test extends TestCase
             $response = $this->frontController()->handle($this->request('GET', $route));
             $this->assertSame(403, $response->status);
             $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
+            $this->assertSame('private, no-store, no-cache, must-revalidate', $response->headers['Cache-Control'] ?? null);
+            $this->assertSame('DENY', $response->headers['X-Frame-Options'] ?? null);
+            $this->assertStringContainsString("frame-ancestors 'none'", $response->headers['Content-Security-Policy'] ?? '');
         }
     }
 

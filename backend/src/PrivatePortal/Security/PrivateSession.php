@@ -17,8 +17,13 @@ final class PrivateSession
 
     public function start(): void
     {
-        if (session_status() === PHP_SESSION_ACTIVE) {
+        if ($this->isStarted()) {
             return;
+        }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+            session_id('');
         }
 
         ini_set('session.use_strict_mode', '1');
@@ -49,7 +54,7 @@ final class PrivateSession
 
     public function isStarted(): bool
     {
-        return session_status() === PHP_SESSION_ACTIVE;
+        return session_status() === PHP_SESSION_ACTIVE && session_name() === $this->sessionName;
     }
 
     public function contextKey(): string

@@ -399,18 +399,10 @@ final class FrontController
 
     private function robotsTxtResponse(Request $request): Response
     {
-        $adminPath = $this->adminRouteResolver->canonicalPath('login');
-        $privatePath = $this->privateRouteResolver instanceof PrivateRouteResolver
-            ? $this->privateRouteResolver->basePath()
-            : null;
         $lines = [
             'User-agent: *',
             'Allow: /',
-            'Disallow: ' . $adminPath,
         ];
-        if ($privatePath !== null && $privatePath !== '') {
-            $lines[] = 'Disallow: ' . $privatePath;
-        }
         $lines[] = 'Sitemap: ' . app_url('/sitemap.xml', $request);
 
         return new Response(

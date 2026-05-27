@@ -140,7 +140,13 @@ final class FrontControllerHttpTest extends TestCase
         $response = $this->frontController()->handle($this->request('GET', '/admin'));
 
         $this->assertSame(200, $response->status);
+        $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
+        $this->assertSame('private, no-store, no-cache, must-revalidate', $response->headers['Cache-Control'] ?? null);
+        $this->assertSame('DENY', $response->headers['X-Frame-Options'] ?? null);
+        $this->assertStringContainsString("frame-ancestors 'none'", $response->headers['Content-Security-Policy'] ?? '');
         $this->assertStringContainsString('Connexion Admin', $response->body);
+        $this->assertStringContainsString('<meta name="robots" content="noindex,nofollow,noarchive" />', $response->body);
+        $this->assertStringNotContainsString('/tarteaucitron/', $response->body);
     }
 
     public function testAssetsIndexPhpIsNotExposedThroughFrontController(): void
@@ -1902,14 +1908,15 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringNotContainsString('article-brouillon', $response->body);
     }
 
-    public function testRobotsRouteAdvertisesSitemapAndDisallowsAdminLoginPath(): void
+    public function testRobotsRouteAdvertisesSitemapWithoutLeakingBackOfficePaths(): void
     {
         $response = $this->frontController()->handle($this->request('GET', '/robots.txt'));
 
         $this->assertSame(200, $response->status);
         $this->assertSame('text/plain; charset=UTF-8', $response->headers['Content-Type'] ?? null);
         $this->assertStringContainsString('User-agent: *', $response->body);
-        $this->assertStringContainsString('Disallow: /admin', $response->body);
+        $this->assertStringNotContainsString('Disallow: /admin', $response->body);
+        $this->assertStringNotContainsString('Disallow: /private', $response->body);
         $this->assertStringContainsString('Sitemap: http://127.0.0.1:8000/sitemap.xml', $response->body);
     }
 

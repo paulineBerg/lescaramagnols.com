@@ -88,8 +88,11 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $response = $this->frontController()->handle($this->request('GET', '/private/login'));
 
         $this->assertSame(200, $response->status);
+        $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
         $this->assertStringContainsString('Se connecter', $response->body);
         $this->assertStringContainsString('csrf_token', $response->body);
+        $this->assertStringContainsString('<meta name="robots" content="noindex,nofollow,noarchive" />', $response->body);
+        $this->assertStringNotContainsString('/tarteaucitron/', $response->body);
     }
 
     public function testPrivateLoginAliasAndDashboardAliasAreServed(): void
@@ -157,13 +160,14 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $this->assertStringContainsString('Tableau de bord', $dashboard->body);
     }
 
-    public function testPrivateRobotsTxtDisallowPrivatePathWhenPrivateEnabled(): void
+    public function testPrivateRobotsTxtDoesNotExposePrivatePathWhenPrivateEnabled(): void
     {
         $response = $this->frontController()->handle($this->request('GET', '/robots.txt'));
 
         $this->assertSame(200, $response->status);
         $this->assertSame('text/plain; charset=UTF-8', $response->headers['Content-Type'] ?? null);
-        $this->assertStringContainsString('Disallow: /private', $response->body);
+        $this->assertStringNotContainsString('Disallow: /private', $response->body);
+        $this->assertStringContainsString('Sitemap: http://127.0.0.1:8000/sitemap.xml', $response->body);
     }
 
     public function testPrivateFileAccessRequiresDocumentModulePermission(): void
