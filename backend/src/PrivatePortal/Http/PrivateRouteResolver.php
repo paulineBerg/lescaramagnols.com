@@ -47,6 +47,7 @@ final class PrivateRouteResolver
             'discussion_index' => $basePath . '/discussions',
             'discussion_new' => $basePath . '/discussions/new',
             'discussion_api_conversations' => $basePath . '/discussions/api/conversations',
+            'discussion_api_crypto_devices' => $basePath . '/discussions/api/crypto/devices',
             'discussion_files' => $basePath . '/discussions/files',
             'privacy_export' => $basePath . '/privacy/export',
             'privacy_anonymize' => $basePath . '/privacy/anonymize',
@@ -273,6 +274,16 @@ final class PrivateRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('discussion_api_conversations') . '/{conversationId:[0-9]+}/messages',
                 'handler' => ['type' => 'private', 'page' => 'discussion_api_messages'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('discussion_api_crypto_devices'),
+                'handler' => ['type' => 'private', 'page' => 'discussion_api_crypto_devices'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('discussion_api_conversations') . '/{conversationId:[0-9]+}/keys',
+                'handler' => ['type' => 'private', 'page' => 'discussion_api_conversation_keys'],
             ],
             [
                 'methods' => ['POST'],

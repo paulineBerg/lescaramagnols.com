@@ -119,8 +119,16 @@ final class DiscussionService
         return $added;
     }
 
-    public function sendMessage(int $actorId, int $conversationId, string $body, array $uploadedFiles = []): ?array
-    {
+    /**
+     * @param array<string, mixed> $encryption
+     */
+    public function sendMessage(
+        int $actorId,
+        int $conversationId,
+        string $body,
+        array $uploadedFiles = [],
+        array $encryption = []
+    ): ?array {
         $policy = new DiscussionAccessPolicy($this->repository);
         if (!$policy->canSendMessage($conversationId, $actorId)) {
             $this->logAccessDenied($actorId, $conversationId);
@@ -128,13 +136,22 @@ final class DiscussionService
         }
 
         $body = $this->normalizeBody($body);
+        $encryptionPayload = $this->normalizeEncryptionPayload($encryption);
         $uploadedFiles = array_slice($this->normalizeUploadedFiles($uploadedFiles), 0, $this->maxAttachmentsPerMessage);
-        if ($body === '' && $uploadedFiles === []) {
+        if ($body === '' && $uploadedFiles === [] && $encryptionPayload === null) {
             return null;
         }
 
         $expiresAt = $this->expiresAt();
-        $message = $this->repository->createMessage($conversationId, $actorId, $body, $expiresAt);
+        $message = $this->repository->createMessage(
+            $conversationId,
+            $actorId,
+            $encryptionPayload === null ? $body : '',
+            $expiresAt,
+            is_array($encryptionPayload) ? (string) $encryptionPayload['mode'] : 'none',
+            is_array($encryptionPayload) ? (string) $encryptionPayload['payload'] : null,
+            is_array($encryptionPayload) ? (string) $encryptionPayload['metadata'] : null
+        );
         if (!is_array($message)) {
             return null;
         }
@@ -181,6 +198,7 @@ final class DiscussionService
             'conversation_id' => $conversationId,
             'message_id' => (int) $message['id'],
             'attachments' => count($attachments),
+            'encrypted' => ($message['encryptionMode'] ?? 'none') !== 'none',
         ]);
 
         return $message;
@@ -259,6 +277,38 @@ final class DiscussionService
         }
 
         return $body;
+    }
+
+    /**
+     * @param array<string, mixed> $encryption
+     * @return array{mode:string,payload:string,metadata:string}|null
+     */
+    private function normalizeEncryptionPayload(array $encryption): ?array
+    {
+        $mode = is_string($encryption['mode'] ?? null)
+            ? strtolower(trim((string) $encryption['mode']))
+            : '';
+        $payload = is_string($encryption['payload'] ?? null) ? trim((string) $encryption['payload']) : '';
+        $metadata = is_string($encryption['metadata'] ?? null) ? trim((string) $encryption['metadata']) : '';
+        if ($mode !== 'client_aes_gcm_v1' || $payload === '' || $metadata === '') {
+            return null;
+        }
+
+        if (strlen($payload) > 50000 || preg_match('/\A[A-Za-z0-9+\/=_-]+\z/', $payload) !== 1) {
+            return null;
+        }
+
+        $decoded = json_decode($metadata, true);
+        if (
+            !is_array($decoded)
+            || ($decoded['algorithm'] ?? '') !== 'AES-GCM'
+            || !is_string($decoded['iv'] ?? null)
+            || preg_match('/\A[A-Za-z0-9+\/=_-]+\z/', (string) $decoded['iv']) !== 1
+        ) {
+            return null;
+        }
+
+        return ['mode' => $mode, 'payload' => $payload, 'metadata' => $metadata];
     }
 
     private function expiresAt(): string

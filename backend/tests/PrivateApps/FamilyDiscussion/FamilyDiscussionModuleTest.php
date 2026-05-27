@@ -201,6 +201,121 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertFileExists($activePath);
     }
 
+    public function testEncryptedTextMessagesStoreOnlyCiphertext(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $service = new DiscussionService($repository, $userRepository, $this->storage());
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $ciphertext = base64_encode(random_bytes(48));
+        $metadata = json_encode([
+            'algorithm' => 'AES-GCM',
+            'iv' => base64_encode(random_bytes(12)),
+            'version' => 1,
+        ]);
+        $this->assertIsString($metadata);
+
+        $message = $service->sendMessage($aliceId, $conversationId, 'Texte confidentiel', [], [
+            'mode' => 'client_aes_gcm_v1',
+            'payload' => $ciphertext,
+            'metadata' => $metadata,
+        ]);
+        $this->assertIsArray($message);
+        $this->assertSame('', $message['body']);
+        $this->assertSame('client_aes_gcm_v1', $message['encryptionMode']);
+        $this->assertSame($ciphertext, $message['encryptedPayload']);
+        $this->assertSame($metadata, $message['encryptionMetadata']);
+
+        $statement = $database->pdo()->prepare(sprintf(
+            'SELECT `body`, `body_format`, `encrypted_payload` FROM `%s` WHERE `id` = :id',
+            $database->table('discussion_messages')
+        ));
+        $statement->execute(['id' => (int) $message['id']]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        $this->assertIsArray($row);
+        $this->assertNull($row['body']);
+        $this->assertSame('encrypted', $row['body_format']);
+        $this->assertSame($ciphertext, $row['encrypted_payload']);
+
+        $messages = $service->listMessages($conversationId, $bobId);
+        $this->assertCount(1, $messages);
+        $this->assertSame('', $messages[0]['body']);
+        $this->assertSame($ciphertext, $messages[0]['encryptedPayload']);
+
+        $conversations = $service->listConversations($bobId);
+        $this->assertSame('[message chiffre]', $conversations[0]['lastBody'] ?? '');
+    }
+
+    public function testConversationCryptoKeysAreScopedToParticipantDevices(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $service = new DiscussionService($repository, $userRepository, $this->storage());
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $outsiderId = $this->createPrivateUser($userRepository, 'outsider@example.com');
+
+        $aliceDevice = $repository->registerCryptoDevice(
+            $aliceId,
+            'alice-device-0001',
+            $this->publicKeyJwk('alice-key'),
+            'Alice'
+        );
+        $bobDevice = $repository->registerCryptoDevice(
+            $bobId,
+            'bob-device-000001',
+            $this->publicKeyJwk('bob-key'),
+            'Bob'
+        );
+        $outsiderDevice = $repository->registerCryptoDevice(
+            $outsiderId,
+            'outsider-device1',
+            $this->publicKeyJwk('outsider-key'),
+            'Outsider'
+        );
+        $this->assertIsArray($aliceDevice);
+        $this->assertIsArray($bobDevice);
+        $this->assertIsArray($outsiderDevice);
+
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $inserted = $repository->upsertConversationKeys($conversationId, $aliceId, [
+            [
+                'privateUserId' => $aliceId,
+                'deviceId' => 'alice-device-0001',
+                'encryptedKey' => base64_encode(random_bytes(48)),
+            ],
+            [
+                'privateUserId' => $bobId,
+                'deviceId' => 'bob-device-000001',
+                'encryptedKey' => base64_encode(random_bytes(48)),
+            ],
+            [
+                'privateUserId' => $outsiderId,
+                'deviceId' => 'outsider-device1',
+                'encryptedKey' => base64_encode(random_bytes(48)),
+            ],
+        ]);
+
+        $this->assertSame(2, $inserted);
+        $this->assertSame(2, $repository->countConversationKeys($conversationId));
+        $this->assertCount(1, $repository->listConversationKeysForUser($conversationId, $aliceId));
+        $this->assertCount(1, $repository->listConversationKeysForUser($conversationId, $bobId));
+        $this->assertSame([], $repository->listConversationKeysForUser($conversationId, $outsiderId));
+    }
+
     public function testDashboardShowsDiscussionModuleOnlyWhenAssigned(): void
     {
         $database = $this->editorialSqlDatabase();
@@ -270,6 +385,19 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertIsInt($userId);
 
         return $userId;
+    }
+
+    private function publicKeyJwk(string $keyId): string
+    {
+        return json_encode([
+            'kty' => 'RSA',
+            'alg' => 'RSA-OAEP-256',
+            'kid' => $keyId,
+            'n' => rtrim(strtr(base64_encode(random_bytes(128)), '+/', '-_'), '='),
+            'e' => 'AQAB',
+            'ext' => true,
+            'key_ops' => ['encrypt'],
+        ], JSON_THROW_ON_ERROR);
     }
 
     /**

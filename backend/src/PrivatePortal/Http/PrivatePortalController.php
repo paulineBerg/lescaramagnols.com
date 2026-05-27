@@ -133,6 +133,11 @@ final class PrivatePortalController
                 $request,
                 (int) ($routeParams['conversationId'] ?? 0)
             ),
+            'discussion_api_crypto_devices' => $this->handleDiscussionApiCryptoDevices($request),
+            'discussion_api_conversation_keys' => $this->handleDiscussionApiConversationKeys(
+                $request,
+                (int) ($routeParams['conversationId'] ?? 0)
+            ),
             'discussion_api_members' => $this->handleDiscussionApiMembers(
                 $request,
                 (int) ($routeParams['conversationId'] ?? 0)
@@ -1370,7 +1375,8 @@ final class PrivatePortalController
                 $userId,
                 $conversationId,
                 is_string($body['body'] ?? null) ? (string) $body['body'] : '',
-                $request->files()
+                $request->files(),
+                $this->discussionEncryptionFromPayload($body)
             );
 
             return $this->redirect(
@@ -1454,12 +1460,93 @@ final class PrivatePortalController
             $userId,
             $conversationId,
             is_string($body['body'] ?? null) ? (string) $body['body'] : '',
-            $request->files()
+            $request->files(),
+            $this->discussionEncryptionFromPayload($body)
         );
 
         return is_array($message)
             ? $this->jsonPrivateResponse(['message' => $message], 201)
             : $this->jsonPrivateResponse(['error' => 'invalid_message'], 422);
+    }
+
+    private function handleDiscussionApiCryptoDevices(Request $request): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if ($request->method() === self::METHOD_GET) {
+            $conversationId = is_numeric($request->query()['conversation_id'] ?? null)
+                ? (int) $request->query()['conversation_id']
+                : 0;
+            if ($conversationId > 0) {
+                if (!$this->discussionRepository()->isParticipant($conversationId, $userId)) {
+                    return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+                }
+
+                $memberIds = array_values(array_filter(array_map(
+                    static fn (array $member): int => (int) ($member['privateUserId'] ?? 0),
+                    $this->discussionRepository()->listConversationMembers($conversationId)
+                ), static fn (int $id): bool => $id > 0));
+
+                return $this->jsonPrivateResponse([
+                    'devices' => $this->discussionRepository()->listCryptoDevicesForUsers($memberIds),
+                    'members' => $this->discussionRepository()->listConversationMembers($conversationId),
+                ]);
+            }
+
+            return $this->jsonPrivateResponse([
+                'devices' => $this->discussionRepository()->listCryptoDevicesForUsers([$userId]),
+            ]);
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+            return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
+        }
+
+        $body = $request->body();
+        $device = $this->discussionRepository()->registerCryptoDevice(
+            $userId,
+            is_string($body['device_id'] ?? null) ? (string) $body['device_id'] : '',
+            is_string($body['public_key_jwk'] ?? null) ? (string) $body['public_key_jwk'] : '',
+            is_string($body['device_label'] ?? null) ? (string) $body['device_label'] : ''
+        );
+
+        return is_array($device)
+            ? $this->jsonPrivateResponse(['device' => $device], 201)
+            : $this->jsonPrivateResponse(['error' => 'invalid_device'], 422);
+    }
+
+    private function handleDiscussionApiConversationKeys(Request $request, int $conversationId): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if (!$this->discussionRepository()->isParticipant($conversationId, $userId)) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if ($request->method() === self::METHOD_GET) {
+            return $this->jsonPrivateResponse([
+                'keys' => $this->discussionRepository()->listConversationKeysForUser($conversationId, $userId),
+                'knownKeyCount' => $this->discussionRepository()->countConversationKeys($conversationId),
+            ]);
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+            return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
+        }
+
+        $payload = $request->body() !== [] ? $request->body() : $request->json();
+        $wrappers = $this->discussionKeyWrappersFromPayload($payload['keys'] ?? []);
+        $count = $this->discussionRepository()->upsertConversationKeys($conversationId, $userId, $wrappers);
+
+        return $count > 0
+            ? $this->jsonPrivateResponse(['ok' => true, 'count' => $count])
+            : $this->jsonPrivateResponse(['error' => 'invalid_keys'], 422);
     }
 
     private function handleDiscussionApiMembers(Request $request, int $conversationId): Response
@@ -2400,6 +2487,7 @@ final class PrivatePortalController
                 'index' => private_portal_url('discussion_index'),
                 'new' => private_portal_url('discussion_new'),
                 'apiConversations' => private_portal_url('discussion_api_conversations'),
+                'apiCryptoDevices' => private_portal_url('discussion_api_crypto_devices'),
                 'files' => private_portal_url('discussion_files'),
             ],
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
@@ -2422,6 +2510,52 @@ final class PrivatePortalController
         }
 
         return $ids;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, string>
+     */
+    private function discussionEncryptionFromPayload(array $payload): array
+    {
+        $mode = is_string($payload['encryption_mode'] ?? null) ? (string) $payload['encryption_mode'] : '';
+        $encryptedPayload = is_string($payload['encrypted_payload'] ?? null) ? (string) $payload['encrypted_payload'] : '';
+        $metadata = is_string($payload['encryption_metadata'] ?? null) ? (string) $payload['encryption_metadata'] : '';
+
+        return [
+            'mode' => $mode,
+            'payload' => $encryptedPayload,
+            'metadata' => $metadata,
+        ];
+    }
+
+    /**
+     * @return array<int, array{privateUserId:int,deviceId:string,encryptedKey:string}>
+     */
+    private function discussionKeyWrappersFromPayload(mixed $payload): array
+    {
+        $items = is_array($payload) ? $payload : [];
+        $wrappers = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $privateUserId = is_numeric($item['privateUserId'] ?? null) ? (int) $item['privateUserId'] : 0;
+            $deviceId = is_string($item['deviceId'] ?? null) ? trim((string) $item['deviceId']) : '';
+            $encryptedKey = is_string($item['encryptedKey'] ?? null) ? trim((string) $item['encryptedKey']) : '';
+            if ($privateUserId <= 0 || $deviceId === '' || $encryptedKey === '') {
+                continue;
+            }
+
+            $wrappers[] = [
+                'privateUserId' => $privateUserId,
+                'deviceId' => $deviceId,
+                'encryptedKey' => $encryptedKey,
+            ];
+        }
+
+        return $wrappers;
     }
 
     /**

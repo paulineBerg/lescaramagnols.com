@@ -1,7 +1,7 @@
 # Portail prive famille, locations et aide impots
 
 Date de mise a jour : 2026-05-27
-Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees.
+Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis trois modules metier prioritaires :
@@ -1546,7 +1546,8 @@ Principes produit :
 6. fichiers joints telechargeables via endpoint controle ;
 7. compteur de messages non lus par conversation ;
 8. purge glissante des contenus de plus de `60` jours ;
-9. audit minimal sans contenu de message.
+9. chiffrement local du texte des messages quand Web Crypto est disponible ;
+10. audit minimal sans contenu de message.
 
 ### 8.2 Fonctions V1
 
@@ -1563,18 +1564,21 @@ Fonctions attendues :
 9. afficher l'etat lu/non lu par conversation ;
 10. marquer automatiquement comme lus les messages visibles a l'ouverture d'une conversation ;
 11. afficher les erreurs d'envoi sans perdre le brouillon local ;
-12. filtrer les conversations par nom, membre ou groupe.
+12. chiffrer le corps texte cote navigateur avec une cle de conversation AES-GCM ;
+13. envelopper la cle de conversation pour chaque appareil de participant via cle publique RSA-OAEP ;
+14. filtrer les conversations par nom, membre ou groupe.
 
 Hors perimetre V1 :
 
-1. chiffrement de bout en bout ;
+1. chiffrement de bout en bout des fichiers joints ;
 2. appels audio ou video ;
 3. notifications push navigateur ;
 4. WebSocket obligatoire ;
 5. edition riche HTML ;
 6. archivage permanent des conversations ;
 7. recherche plein texte sur des messages purges ;
-8. moderation publique ou publication vers le site.
+8. masquage E2EE des metadonnees techniques : participants, dates, tailles, titres de groupes et presence de fichiers ;
+9. moderation publique ou publication vers le site.
 
 ### 8.3 Temps reel et experience utilisateur
 
@@ -1619,6 +1623,9 @@ backend/src/PrivateApps/FamilyDiscussion/
 |   +-- DiscussionMessageService.php
 |   +-- DiscussionNotificationService.php
 |   +-- DiscussionAccessPolicy.php
++-- Crypto/
+|   +-- DiscussionDeviceKeyService.php
+|   +-- DiscussionConversationKeyService.php
 +-- Attachment/
 |   +-- DiscussionAttachmentStorage.php
 |   +-- DiscussionImagePreviewBuilder.php
@@ -1636,7 +1643,11 @@ Regles d'architecture :
 3. `DiscussionAttachmentStorage` reutilise les principes de stockage prive : chemin hors webroot, nom disque aleatoire, MIME verifie, endpoint controle ;
 4. `DiscussionImagePreviewBuilder` cree une miniature non sensible si GD ou Imagick est disponible ; sinon l'image reste telechargeable sans generation hasardeuse ;
 5. `DiscussionRetentionService` purge les messages et fichiers expires par lots courts ;
-6. le controller reste mince et ne contient ni logique de permission, ni logique de purge, ni traitement image.
+6. `DiscussionDeviceKeyService` gere les appareils et les cles publiques sans jamais recevoir de cle privee ;
+7. `DiscussionConversationKeyService` stocke uniquement les cles de conversation enveloppees pour les appareils autorises ;
+8. le controller reste mince et ne contient ni logique de permission, ni logique de purge, ni traitement image.
+
+Note d'implementation actuelle : le code V1 garde un `DiscussionRepository` compact pour rester coherent avec la modernisation progressive du portail prive. Le decoupage `Crypto/` ci-dessus est la cible naturelle si le module grossit.
 
 ### 8.5 Tables SQL
 
@@ -1649,6 +1660,8 @@ discussion_messages
 discussion_message_attachments
 discussion_message_reads
 discussion_retention_runs
+discussion_crypto_devices
+discussion_conversation_keys
 ```
 
 Champs minimum :
@@ -1678,12 +1691,15 @@ discussion_messages
 - conversation_id
 - sender_user_id
 - body
-- body_format: plain
+- body_format: plain / encrypted
 - created_at
 - edited_at nullable
 - deleted_at nullable
 - expires_at
 - purge_status: active / pending / purged
+- encryption_mode: none / client_aes_gcm_v1
+- encrypted_payload nullable
+- encryption_metadata nullable
 
 discussion_message_attachments
 - id
@@ -1716,6 +1732,28 @@ discussion_retention_runs
 - purged_attachments_count
 - status
 - error_message nullable
+
+discussion_crypto_devices
+- id
+- private_user_id
+- device_id
+- device_label
+- public_key_jwk
+- algorithm: RSA-OAEP-256
+- created_at
+- last_seen_at
+- revoked_at nullable
+
+discussion_conversation_keys
+- id
+- conversation_id
+- private_user_id
+- device_id
+- encrypted_key
+- algorithm: RSA-OAEP-256/AES-GCM-256
+- created_by_private_user_id
+- created_at
+- revoked_at nullable
 ```
 
 Contraintes et index :
@@ -1724,7 +1762,32 @@ Contraintes et index :
 2. index sur `conversation_id`, `created_at`, `expires_at`, `sender_user_id` ;
 3. index sur `discussion_conversation_members(user_id, left_at)` pour lister vite les conversations ;
 4. suppression du contenu message et des fichiers sans supprimer les lignes minimales utiles aux compteurs et audits ;
-5. aucune donnee de message dans les logs SQL ou applicatifs.
+5. unicite de l'appareil par `(private_user_id, device_id)` ;
+6. unicite de la cle enveloppee par `(conversation_id, private_user_id, device_id)` ;
+7. aucune donnee de message dans les logs SQL ou applicatifs.
+
+### 8.5.1 Chiffrement local texte V1
+
+Objectif : eviter que le serveur stocke le corps des messages texte en clair, tout en restant compatible avec le rendu PHP existant.
+
+Choix retenus :
+
+1. chiffrement et dechiffrement dans le navigateur uniquement, via Web Crypto ;
+2. une cle AES-GCM `256 bits` par conversation, stockee localement dans IndexedDB sous forme `CryptoKey` non exposee au serveur ;
+3. une paire RSA-OAEP `2048 bits / SHA-256` par appareil, generee dans le navigateur ;
+4. la cle publique d'appareil est stockee cote serveur au format JWK ;
+5. la cle AES de conversation est enveloppee pour chaque appareil autorise et stockee dans `discussion_conversation_keys` ;
+6. le serveur stocke seulement `encrypted_payload` et `encryption_metadata` pour le corps texte chiffre ;
+7. les anciens messages `plain` restent lisibles pour compatibilite, mais l'interface bloque l'envoi d'un texte si Web Crypto est indisponible ;
+8. un appareil sans cle ne cree pas de cle concurrente si la conversation possede deja des cles enveloppees.
+
+Limites assumees V1 :
+
+1. les fichiers joints ne sont pas encore chiffres bout en bout ;
+2. les noms de fichiers, dates, participants, titres de groupe, tailles et compteurs restent visibles au serveur ;
+3. un nouvel appareil ne peut dechiffrer l'historique que si une cle de conversation lui est partagee par un appareil deja autorise ;
+4. la rotation de cle et la revocation forte d'un appareil restent une evolution V2 ;
+5. la perte de l'IndexedDB local ou du profil navigateur peut rendre les anciens messages indechiffrables sur cet appareil.
 
 ### 8.6 Routes recommandees
 
@@ -1743,6 +1806,10 @@ GET  /private/discussions/api/conversations
 POST /private/discussions/api/conversations
 GET  /private/discussions/api/conversations/{conversationId}/messages
 POST /private/discussions/api/conversations/{conversationId}/messages
+GET  /private/discussions/api/crypto/devices
+POST /private/discussions/api/crypto/devices
+GET  /private/discussions/api/conversations/{conversationId}/keys
+POST /private/discussions/api/conversations/{conversationId}/keys
 POST /private/discussions/api/conversations/{conversationId}/members
 POST /private/discussions/api/conversations/{conversationId}/leave
 POST /private/discussions/api/conversations/{conversationId}/read
@@ -1817,9 +1884,10 @@ Controles obligatoires :
 10. telechargement avec en-tetes prudents et `Content-Disposition` adapte ;
 11. rate limit sur creation de conversation, envoi message et upload ;
 12. audit des refus sans fuite de contenu ;
-13. aucun acces administrateur au contenu des messages par defaut, hors procedure d'exploitation exceptionnelle documentee.
+13. validation stricte des modes de chiffrement, JWK publics, identifiants d'appareil, IV et payloads chiffrés ;
+14. aucun acces administrateur au contenu des messages par defaut, hors procedure d'exploitation exceptionnelle documentee.
 
-Le module ne doit pas promettre un chiffrement de bout en bout tant qu'il n'existe pas. En V1, les messages sont proteges par session, permissions, stockage prive, transport HTTPS et controle serveur.
+Le module peut annoncer le chiffrement local du texte des messages lorsque Web Crypto est actif. Il ne doit pas annoncer un chiffrement de bout en bout complet tant que les fichiers joints, metadonnees, rotation de cle et revocation d'appareil ne sont pas couverts.
 
 ### 8.9 Ordre d'implementation recommande
 
@@ -1829,12 +1897,14 @@ Le module ne doit pas promettre un chiffrement de bout en bout tant qu'il n'exis
 4. Creer `DiscussionAccessPolicy`.
 5. Creer `DiscussionConversationService` et les ecrans de liste/detail.
 6. Creer `DiscussionMessageService` avec envoi texte et polling JSON.
-7. Ajouter stockage et telechargement des fichiers joints.
-8. Ajouter generation d'apercu image.
-9. Ajouter `DiscussionRetentionService` declenche a l'ouverture du module.
-10. Ajouter la commande planifiee de purge de securite.
-11. Ajouter compteurs non lus et marquage lu.
-12. Ajouter tests HTTP : autorise, non autorise, non participant, CSRF invalide, fichier refuse, purge 60 jours.
+7. Ajouter les tables appareils et cles enveloppees pour le chiffrement local texte.
+8. Ajouter le chiffrement AES-GCM navigateur et l'enveloppement RSA-OAEP par appareil.
+9. Ajouter stockage et telechargement des fichiers joints.
+10. Ajouter generation d'apercu image.
+11. Ajouter `DiscussionRetentionService` declenche a l'ouverture du module.
+12. Ajouter la commande planifiee de purge de securite.
+13. Ajouter compteurs non lus et marquage lu.
+14. Ajouter tests HTTP : autorise, non autorise, non participant, CSRF invalide, fichier refuse, purge 60 jours, texte chiffre sans stockage clair.
 
 Critere de sortie V1 :
 
@@ -1843,9 +1913,10 @@ Critere de sortie V1 :
 3. un non participant ne peut ni lire ni telecharger ;
 4. une image envoyee affiche une miniature ;
 5. un fichier joint est telechargeable par les seuls participants ;
-6. les messages de plus de `60` jours sont purges a l'ouverture du module ;
-7. les tests de purge prouvent la suppression du contenu et des fichiers ;
-8. le dashboard prive n'affiche le module qu'aux utilisateurs autorises.
+6. un message texte chiffre n'a pas de corps clair en base ;
+7. les messages de plus de `60` jours sont purges a l'ouverture du module ;
+8. les tests de purge prouvent la suppression du contenu et des fichiers ;
+9. le dashboard prive n'affiche le module qu'aux utilisateurs autorises.
 
 ## 9. Securite et confidentialite
 
@@ -2477,7 +2548,7 @@ Tests à lancer avant clôture phase 9 :
 
 Objectif : ajouter une messagerie privee entre membres, avec conversations directes, groupes, images, fichiers et suppression glissante apres `60` jours.
 
-Progression phase 10 : V1 implementee, validations ciblees a maintenir avant evolution.
+Progression phase 10 : V1 implementee, chiffrement local texte ajoute, validations ciblees a maintenir avant evolution.
 
 Prerequis :
 
@@ -2501,6 +2572,7 @@ Checklist :
 - [x] Ajouter `DiscussionRetentionService::purgeExpiredForUser($userId)` a l'ouverture du module.
 - [x] Ajouter commande planifiee de purge quotidienne des contenus expires.
 - [x] Ajouter audit sans contenu de message.
+- [x] Ajouter chiffrement local texte V1 : appareils, cles enveloppees, payloads chiffrés, affichage/dechiffrement navigateur.
 - [x] Ajouter tests unitaires, repositories, HTTP et retention.
 
 Definition of Done :
@@ -2512,6 +2584,7 @@ Definition of Done :
 - [x] Les fichiers joints sont stockes hors webroot et servis par endpoint controle.
 - [x] Les contenus de plus de `60` jours sont purges a l'ouverture du module et par commande planifiee.
 - [x] Les logs n'incluent jamais le contenu des messages.
+- [x] Les nouveaux messages texte chiffrés ne stockent pas de corps clair en base.
 
 Tests a lancer avant cloture phase 10 :
 
@@ -2585,7 +2658,7 @@ Points a verifier manuellement :
 7. Ne pas promettre une declaration fiscale officielle.
 8. Ne pas creer une nouvelle webapp pour un revenu rare qui peut rester manuel.
 9. Ne pas logger de mots de passe, tokens, chemins sensibles ou documents.
-10. Ne pas promettre un chiffrement de bout en bout pour les discussions tant qu'il n'existe pas.
+10. Ne pas promettre un chiffrement de bout en bout complet pour les discussions tant que les fichiers joints, metadonnees, rotations de cle et revocations d'appareil ne sont pas couverts.
 11. Ne pas conserver les messages et fichiers de discussion au-dela de la retention `60` jours.
 12. Ne pas servir d'image ou de fichier de discussion directement depuis `backend/public`.
 13. Ne pas modifier le front-office public en meme temps que le coeur prive sans tests de non-regression.

@@ -71,12 +71,19 @@ final class DiscussionRepository
                 `deleted_at` DATETIME NULL,
                 `expires_at` DATETIME NOT NULL,
                 `purge_status` VARCHAR(16) NOT NULL DEFAULT 'active',
+                `encryption_mode` VARCHAR(32) NOT NULL DEFAULT 'none',
+                `encrypted_payload` MEDIUMTEXT NULL,
+                `encryption_metadata` TEXT NULL,
                 KEY `idx_discussion_messages_conversation` (`conversation_id`, `id`),
                 KEY `idx_discussion_messages_sender` (`sender_private_user_id`),
-                KEY `idx_discussion_messages_expiry` (`expires_at`, `purge_status`)
+                KEY `idx_discussion_messages_expiry` (`expires_at`, `purge_status`),
+                KEY `idx_discussion_messages_encryption` (`encryption_mode`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->messageTable()
         ));
+        $this->ensureColumn($pdo, $this->messageTable(), 'encryption_mode', "`encryption_mode` VARCHAR(32) NOT NULL DEFAULT 'none'");
+        $this->ensureColumn($pdo, $this->messageTable(), 'encrypted_payload', '`encrypted_payload` MEDIUMTEXT NULL');
+        $this->ensureColumn($pdo, $this->messageTable(), 'encryption_metadata', '`encryption_metadata` TEXT NULL');
 
         $pdo->exec(sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (
@@ -132,6 +139,41 @@ final class DiscussionRepository
             $this->retentionRunTable()
         ));
 
+        $pdo->exec(sprintf(
+            "CREATE TABLE IF NOT EXISTS `%s` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `private_user_id` INT NOT NULL,
+                `device_id` VARCHAR(64) NOT NULL,
+                `device_label` VARCHAR(120) NOT NULL DEFAULT '',
+                `public_key_jwk` MEDIUMTEXT NOT NULL,
+                `algorithm` VARCHAR(64) NOT NULL DEFAULT 'RSA-OAEP-256',
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `last_seen_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `revoked_at` DATETIME NULL,
+                UNIQUE KEY `uq_discussion_crypto_device` (`private_user_id`, `device_id`),
+                KEY `idx_discussion_crypto_devices_user` (`private_user_id`, `revoked_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+            $this->cryptoDeviceTable()
+        ));
+
+        $pdo->exec(sprintf(
+            "CREATE TABLE IF NOT EXISTS `%s` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `conversation_id` INT NOT NULL,
+                `private_user_id` INT NOT NULL,
+                `device_id` VARCHAR(64) NOT NULL,
+                `encrypted_key` MEDIUMTEXT NOT NULL,
+                `algorithm` VARCHAR(64) NOT NULL DEFAULT 'RSA-OAEP-256/AES-GCM-256',
+                `created_by_private_user_id` INT NOT NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `revoked_at` DATETIME NULL,
+                UNIQUE KEY `uq_discussion_conversation_key` (`conversation_id`, `private_user_id`, `device_id`),
+                KEY `idx_discussion_conversation_keys_user` (`private_user_id`, `device_id`, `revoked_at`),
+                KEY `idx_discussion_conversation_keys_conversation` (`conversation_id`, `revoked_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+            $this->conversationKeyTable()
+        ));
+
         $this->schemaReady = true;
     }
 
@@ -158,7 +200,10 @@ final class DiscussionRepository
                           AND (cm.`last_opened_at` IS NULL OR unread.`created_at` > cm.`last_opened_at`)
                     ) AS unread_count,
                     (
-                        SELECT last_message.`body`
+                        SELECT CASE
+                            WHEN last_message.`encryption_mode` <> 'none' THEN '[message chiffre]'
+                            ELSE last_message.`body`
+                        END
                         FROM `%s` last_message
                         WHERE last_message.`conversation_id` = c.`id`
                           AND last_message.`purge_status` = 'active'
@@ -402,10 +447,27 @@ final class DiscussionRepository
         }
     }
 
-    public function createMessage(int $conversationId, int $senderUserId, string $body, string $expiresAt): ?array
-    {
+    public function createMessage(
+        int $conversationId,
+        int $senderUserId,
+        string $body,
+        string $expiresAt,
+        string $encryptionMode = 'none',
+        ?string $encryptedPayload = null,
+        ?string $encryptionMetadata = null
+    ): ?array {
         $body = $this->normalizeBody($body);
-        if ($conversationId <= 0 || $senderUserId <= 0 || $expiresAt === '') {
+        $encryptionMode = $this->normalizeEncryptionMode($encryptionMode);
+        $encryptedPayload = $encryptedPayload !== null ? $this->normalizeEncryptedPayload($encryptedPayload) : null;
+        $encryptionMetadata = $encryptionMetadata !== null ? $this->normalizeEncryptionMetadata($encryptionMetadata) : null;
+        if ($encryptionMode === 'none') {
+            $encryptedPayload = null;
+            $encryptionMetadata = null;
+        } elseif ($encryptedPayload === '' || $encryptionMetadata === '') {
+            return null;
+        }
+
+        if ($conversationId <= 0 || $senderUserId <= 0 || $expiresAt === '' || ($body === '' && $encryptedPayload === null)) {
             return null;
         }
 
@@ -415,17 +477,21 @@ final class DiscussionRepository
             $pdo = $this->database->pdo();
             $statement = $pdo->prepare(sprintf(
                 "INSERT INTO `%s`
-                    (`conversation_id`, `sender_private_user_id`, `body`, `body_format`, `created_at`, `expires_at`)
+                    (`conversation_id`, `sender_private_user_id`, `body`, `body_format`, `created_at`, `expires_at`, `encryption_mode`, `encrypted_payload`, `encryption_metadata`)
                  VALUES
-                    (:conversation_id, :sender_id, :body, 'plain', :created_at, :expires_at)",
+                    (:conversation_id, :sender_id, :body, :body_format, :created_at, :expires_at, :encryption_mode, :encrypted_payload, :encryption_metadata)",
                 $this->messageTable()
             ));
             $statement->execute([
                 'conversation_id' => $conversationId,
                 'sender_id' => $senderUserId,
-                'body' => $body !== '' ? $body : null,
+                'body' => $encryptionMode === 'none' && $body !== '' ? $body : null,
+                'body_format' => $encryptionMode === 'none' ? 'plain' : 'encrypted',
                 'created_at' => $now,
                 'expires_at' => $expiresAt,
+                'encryption_mode' => $encryptionMode,
+                'encrypted_payload' => $encryptedPayload,
+                'encryption_metadata' => $encryptionMetadata,
             ]);
             $messageId = (int) $pdo->lastInsertId();
             $this->touchConversation($conversationId, $now);
@@ -724,6 +790,8 @@ final class DiscussionRepository
             $statement = $this->database->pdo()->prepare(sprintf(
                 "UPDATE `%s`
                  SET `body` = NULL,
+                     `encrypted_payload` = NULL,
+                     `encryption_metadata` = NULL,
                      `deleted_at` = :deleted_at,
                      `purge_status` = 'purged'
                  WHERE `id` = :id
@@ -756,6 +824,305 @@ final class DiscussionRepository
             ]);
 
             return (int) $this->database->pdo()->lastInsertId();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    public function registerCryptoDevice(int $userId, string $deviceId, string $publicKeyJwk, string $label = ''): ?array
+    {
+        $deviceId = $this->normalizeDeviceId($deviceId);
+        $publicKeyJwk = $this->normalizePublicKeyJwk($publicKeyJwk);
+        $label = $this->normalizeDeviceLabel($label);
+        if ($userId <= 0 || $deviceId === '' || $publicKeyJwk === '') {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $now = $this->now();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "INSERT INTO `%s`
+                    (`private_user_id`, `device_id`, `device_label`, `public_key_jwk`, `algorithm`, `created_at`, `last_seen_at`, `revoked_at`)
+                 VALUES
+                    (:user_id, :device_id, :device_label, :public_key_jwk, 'RSA-OAEP-256', :created_at, :last_seen_at, NULL)
+                 ON DUPLICATE KEY UPDATE
+                    `device_label` = VALUES(`device_label`),
+                    `public_key_jwk` = VALUES(`public_key_jwk`),
+                    `last_seen_at` = VALUES(`last_seen_at`),
+                    `revoked_at` = NULL",
+                $this->cryptoDeviceTable()
+            ));
+            $statement->execute([
+                'user_id' => $userId,
+                'device_id' => $deviceId,
+                'device_label' => $label,
+                'public_key_jwk' => $publicKeyJwk,
+                'created_at' => $now,
+                'last_seen_at' => $now,
+            ]);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $this->findCryptoDevice($userId, $deviceId);
+    }
+
+    public function findCryptoDevice(int $userId, string $deviceId): ?array
+    {
+        $deviceId = $this->normalizeDeviceId($deviceId);
+        if ($userId <= 0 || $deviceId === '') {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `private_user_id` = :user_id
+                   AND `device_id` = :device_id
+                   AND `revoked_at` IS NULL
+                 LIMIT 1",
+                $this->cryptoDeviceTable()
+            ));
+            $statement->execute(['user_id' => $userId, 'device_id' => $deviceId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->hydrateCryptoDevice($row) : null;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listConversationMembers(int $conversationId): array
+    {
+        if ($conversationId <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT `private_user_id`, `role`, `joined_at`, `last_opened_at`
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `left_at` IS NULL
+                 ORDER BY `role` DESC, `private_user_id` ASC",
+                $this->memberTable()
+            ));
+            $statement->execute(['conversation_id' => $conversationId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $members = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            if (!is_array($row) || !is_numeric($row['private_user_id'] ?? null)) {
+                continue;
+            }
+
+            $members[] = [
+                'privateUserId' => (int) $row['private_user_id'],
+                'role' => is_string($row['role'] ?? null) ? (string) $row['role'] : 'member',
+                'joinedAt' => is_string($row['joined_at'] ?? null) ? (string) $row['joined_at'] : '',
+                'lastOpenedAt' => is_string($row['last_opened_at'] ?? null) ? (string) $row['last_opened_at'] : '',
+            ];
+        }
+
+        return $members;
+    }
+
+    /**
+     * @param array<int, int> $userIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function listCryptoDevicesForUsers(array $userIds): array
+    {
+        $userIds = $this->normalizeIds($userIds);
+        if ($userIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `private_user_id` IN (%s)
+                   AND `revoked_at` IS NULL
+                 ORDER BY `private_user_id` ASC, `last_seen_at` DESC, `id` DESC",
+                $this->cryptoDeviceTable(),
+                $placeholders
+            ));
+            foreach ($userIds as $index => $userId) {
+                $statement->bindValue($index + 1, $userId, PDO::PARAM_INT);
+            }
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $devices = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $device = $this->hydrateCryptoDevice($row);
+            if (is_array($device)) {
+                $devices[] = $device;
+            }
+        }
+
+        return $devices;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $wrappers
+     */
+    public function upsertConversationKeys(int $conversationId, int $createdByUserId, array $wrappers): int
+    {
+        if ($conversationId <= 0 || $createdByUserId <= 0 || $wrappers === []) {
+            return 0;
+        }
+
+        $members = array_map(
+            static fn (array $member): int => (int) ($member['privateUserId'] ?? 0),
+            $this->listConversationMembers($conversationId)
+        );
+        $members = array_values(array_filter($members, static fn (int $id): bool => $id > 0));
+        if (!in_array($createdByUserId, $members, true)) {
+            return 0;
+        }
+
+        $validDeviceKeys = [];
+        foreach ($this->listCryptoDevicesForUsers($members) as $device) {
+            $validDeviceKeys[(int) ($device['privateUserId'] ?? 0) . ':' . (string) ($device['deviceId'] ?? '')] = true;
+        }
+
+        $inserted = 0;
+        try {
+            $this->ensureSchema();
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+            $statement = $pdo->prepare(sprintf(
+                "INSERT INTO `%s`
+                    (`conversation_id`, `private_user_id`, `device_id`, `encrypted_key`, `algorithm`, `created_by_private_user_id`, `created_at`, `revoked_at`)
+                 VALUES
+                    (:conversation_id, :user_id, :device_id, :encrypted_key, 'RSA-OAEP-256/AES-GCM-256', :created_by, :created_at, NULL)
+                 ON DUPLICATE KEY UPDATE
+                    `encrypted_key` = VALUES(`encrypted_key`),
+                    `algorithm` = VALUES(`algorithm`),
+                    `created_by_private_user_id` = VALUES(`created_by_private_user_id`),
+                    `created_at` = VALUES(`created_at`),
+                    `revoked_at` = NULL",
+                $this->conversationKeyTable()
+            ));
+            foreach ($wrappers as $wrapper) {
+                $recipientUserId = is_numeric($wrapper['privateUserId'] ?? null) ? (int) $wrapper['privateUserId'] : 0;
+                $deviceId = $this->normalizeDeviceId(is_string($wrapper['deviceId'] ?? null) ? (string) $wrapper['deviceId'] : '');
+                $encryptedKey = $this->normalizeEncryptedKey(is_string($wrapper['encryptedKey'] ?? null) ? (string) $wrapper['encryptedKey'] : '');
+                if ($recipientUserId <= 0 || $deviceId === '' || $encryptedKey === '') {
+                    continue;
+                }
+                if (empty($validDeviceKeys[$recipientUserId . ':' . $deviceId])) {
+                    continue;
+                }
+
+                $statement->execute([
+                    'conversation_id' => $conversationId,
+                    'user_id' => $recipientUserId,
+                    'device_id' => $deviceId,
+                    'encrypted_key' => $encryptedKey,
+                    'created_by' => $createdByUserId,
+                    'created_at' => $this->now(),
+                ]);
+                ++$inserted;
+            }
+            $pdo->commit();
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return 0;
+        }
+
+        return $inserted;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listConversationKeysForUser(int $conversationId, int $userId): array
+    {
+        if ($conversationId <= 0 || $userId <= 0 || !$this->isParticipant($conversationId, $userId)) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `private_user_id` = :user_id
+                   AND `revoked_at` IS NULL
+                 ORDER BY `created_at` DESC, `id` DESC",
+                $this->conversationKeyTable()
+            ));
+            $statement->execute(['conversation_id' => $conversationId, 'user_id' => $userId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $keys = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            if (!is_array($row) || !is_numeric($row['id'] ?? null)) {
+                continue;
+            }
+
+            $keys[] = [
+                'id' => (int) $row['id'],
+                'conversationId' => (int) ($row['conversation_id'] ?? 0),
+                'privateUserId' => (int) ($row['private_user_id'] ?? 0),
+                'deviceId' => is_string($row['device_id'] ?? null) ? (string) $row['device_id'] : '',
+                'encryptedKey' => is_string($row['encrypted_key'] ?? null) ? (string) $row['encrypted_key'] : '',
+                'algorithm' => is_string($row['algorithm'] ?? null) ? (string) $row['algorithm'] : '',
+                'createdByPrivateUserId' => (int) ($row['created_by_private_user_id'] ?? 0),
+                'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
+            ];
+        }
+
+        return $keys;
+    }
+
+    public function countConversationKeys(int $conversationId): int
+    {
+        if ($conversationId <= 0) {
+            return 0;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT COUNT(*)
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `revoked_at` IS NULL",
+                $this->conversationKeyTable()
+            ));
+            $statement->execute(['conversation_id' => $conversationId]);
+
+            return max(0, (int) $statement->fetchColumn());
         } catch (\Throwable) {
             return 0;
         }
@@ -820,6 +1187,16 @@ final class DiscussionRepository
     private function retentionRunTable(): string
     {
         return $this->database->table('discussion_retention_runs');
+    }
+
+    private function cryptoDeviceTable(): string
+    {
+        return $this->database->table('discussion_crypto_devices');
+    }
+
+    private function conversationKeyTable(): string
+    {
+        return $this->database->table('discussion_conversation_keys');
     }
 
     private function conversationIdByDirectKey(PDO $pdo, string $directKey): ?int
@@ -1061,6 +1438,9 @@ final class DiscussionRepository
             'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
             'expiresAt' => is_string($row['expires_at'] ?? null) ? (string) $row['expires_at'] : '',
             'purgeStatus' => is_string($row['purge_status'] ?? null) ? (string) $row['purge_status'] : '',
+            'encryptionMode' => is_string($row['encryption_mode'] ?? null) ? (string) $row['encryption_mode'] : 'none',
+            'encryptedPayload' => is_string($row['encrypted_payload'] ?? null) ? (string) $row['encrypted_payload'] : '',
+            'encryptionMetadata' => is_string($row['encryption_metadata'] ?? null) ? (string) $row['encryption_metadata'] : '',
             'attachments' => [],
         ];
     }
@@ -1106,6 +1486,28 @@ final class DiscussionRepository
             'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
             'expiresAt' => is_string($row['expires_at'] ?? null) ? (string) $row['expires_at'] : '',
             'purgeStatus' => is_string($row['purge_status'] ?? null) ? (string) $row['purge_status'] : '',
+        ];
+    }
+
+    private function hydrateCryptoDevice(array $row): ?array
+    {
+        $id = (int) ($row['id'] ?? 0);
+        $userId = (int) ($row['private_user_id'] ?? 0);
+        $deviceId = is_string($row['device_id'] ?? null) ? (string) $row['device_id'] : '';
+        $publicKeyJwk = is_string($row['public_key_jwk'] ?? null) ? (string) $row['public_key_jwk'] : '';
+        if ($id <= 0 || $userId <= 0 || $deviceId === '' || $publicKeyJwk === '') {
+            return null;
+        }
+
+        return [
+            'id' => $id,
+            'privateUserId' => $userId,
+            'deviceId' => $deviceId,
+            'deviceLabel' => is_string($row['device_label'] ?? null) ? (string) $row['device_label'] : '',
+            'publicKeyJwk' => $publicKeyJwk,
+            'algorithm' => is_string($row['algorithm'] ?? null) ? (string) $row['algorithm'] : '',
+            'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
+            'lastSeenAt' => is_string($row['last_seen_at'] ?? null) ? (string) $row['last_seen_at'] : '',
         ];
     }
 
@@ -1168,6 +1570,99 @@ final class DiscussionRepository
         }
 
         return preg_match('/\A[a-z0-9._\/-]+\z/i', $storagePath) === 1 ? $storagePath : '';
+    }
+
+    private function normalizeEncryptionMode(string $mode): string
+    {
+        $mode = strtolower(trim($mode));
+
+        return in_array($mode, ['none', 'client_aes_gcm_v1'], true) ? $mode : 'none';
+    }
+
+    private function normalizeEncryptedPayload(string $payload): string
+    {
+        $payload = trim($payload);
+        if ($payload === '' || strlen($payload) > 50000) {
+            return '';
+        }
+
+        return preg_match('/\A[A-Za-z0-9+\/=_-]+\z/', $payload) === 1 ? $payload : '';
+    }
+
+    private function normalizeEncryptionMetadata(string $metadata): string
+    {
+        $metadata = trim($metadata);
+        if ($metadata === '' || strlen($metadata) > 2000) {
+            return '';
+        }
+
+        $decoded = json_decode($metadata, true);
+        if (!is_array($decoded)) {
+            return '';
+        }
+
+        return $metadata;
+    }
+
+    private function normalizeDeviceId(string $deviceId): string
+    {
+        $deviceId = trim($deviceId);
+
+        return preg_match('/\A[A-Za-z0-9._-]{16,64}\z/', $deviceId) === 1 ? $deviceId : '';
+    }
+
+    private function normalizeDeviceLabel(string $label): string
+    {
+        $label = sanitize_text_field($label, 120);
+        $label = trim((string) preg_replace('/\s+/', ' ', $label));
+
+        return strlen($label) <= 120 ? $label : '';
+    }
+
+    private function normalizePublicKeyJwk(string $publicKeyJwk): string
+    {
+        $publicKeyJwk = trim($publicKeyJwk);
+        if ($publicKeyJwk === '' || strlen($publicKeyJwk) > 12000) {
+            return '';
+        }
+
+        $decoded = json_decode($publicKeyJwk, true);
+        if (!is_array($decoded) || ($decoded['kty'] ?? '') !== 'RSA' || ($decoded['alg'] ?? '') !== 'RSA-OAEP-256') {
+            return '';
+        }
+
+        return $publicKeyJwk;
+    }
+
+    private function normalizeEncryptedKey(string $encryptedKey): string
+    {
+        $encryptedKey = trim($encryptedKey);
+        if ($encryptedKey === '' || strlen($encryptedKey) > 12000) {
+            return '';
+        }
+
+        return preg_match('/\A[A-Za-z0-9+\/=_-]+\z/', $encryptedKey) === 1 ? $encryptedKey : '';
+    }
+
+    private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                "SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column"
+            );
+            $statement->execute(['table' => $table, 'column' => $column]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $table, $definition));
+        } catch (\Throwable) {
+            return;
+        }
     }
 
     private function now(): string
