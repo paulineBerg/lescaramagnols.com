@@ -98,13 +98,13 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $this->assertStringNotContainsString('/tarteaucitron/', $response->body);
     }
 
-    public function testPrivateLoginAliasAndDashboardAliasAreServed(): void
+    public function testPrivateLoginAliasAndDashboardAliasAreRedirected(): void
     {
         $loginAliasResponse = $this->frontController()->handle($this->request('GET', '/private/login/index.php'));
         $dashboardAliasResponse = $this->frontController()->handle($this->request('GET', '/private/dashboard.php'));
 
-        $this->assertSame(200, $loginAliasResponse->status);
-        $this->assertStringContainsString('Se connecter', $loginAliasResponse->body);
+        $this->assertSame(301, $loginAliasResponse->status);
+        $this->assertSame('/private/login', $loginAliasResponse->headers['Location'] ?? null);
         $this->assertSame(301, $dashboardAliasResponse->status);
         $this->assertSame('/private/dashboard', $dashboardAliasResponse->headers['Location'] ?? null);
         $this->assertSame('noindex, nofollow, noarchive', $dashboardAliasResponse->headers['X-Robots-Tag'] ?? null);

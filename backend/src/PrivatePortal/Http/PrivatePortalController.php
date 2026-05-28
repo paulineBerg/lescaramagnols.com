@@ -167,7 +167,6 @@ final class PrivatePortalController
                 true
             ),
             'privacy_export' => $this->handlePrivacyExport($request),
-            'privacy_anonymize' => $this->handlePrivacyAnonymize($request),
             'ops_backup' => $this->handleOpsBackup($request),
             default => $this->handleNotFound(),
         };
@@ -2134,29 +2133,6 @@ final class PrivatePortalController
             'Content-Disposition' => 'attachment; filename="private-account-export.json"',
             'X-Content-Type-Options' => 'nosniff',
         ], $encoded));
-    }
-
-    private function handlePrivacyAnonymize(Request $request): Response
-    {
-        $userId = $this->requireAuthenticatedUser($request);
-        if ($userId instanceof Response) {
-            return $userId;
-        }
-
-        if ($request->method() !== self::METHOD_POST || !$this->guard()->validateCsrf($request, 'private_privacy')) {
-            return $this->withPrivateHeaders(new Response(403, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Forbidden'));
-        }
-
-        $body = $request->body();
-        $reason = is_string($body['reason'] ?? null) ? (string) $body['reason'] : 'self-service anonymization';
-        if (!$this->privateDataProtectionService()->anonymizeAccount($userId, $userId, $reason)) {
-            return $this->withPrivateHeaders(new Response(422, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Anonymisation impossible'));
-        }
-
-        $this->logEvent('private.privacy.anonymized', ['private_user_id' => $userId]);
-        $this->auth->logout('privacy_anonymized');
-
-        return $this->withPrivateHeaders(new Response(200, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Compte anonymisé'));
     }
 
     private function handleOpsBackup(Request $request): Response

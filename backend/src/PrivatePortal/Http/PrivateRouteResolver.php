@@ -54,7 +54,6 @@ final class PrivateRouteResolver
             'discussion_api_crypto_devices' => $basePath . '/discussions/api/crypto/devices',
             'discussion_files' => $basePath . '/discussions/files',
             'privacy_export' => $basePath . '/privacy/export',
-            'privacy_anonymize' => $basePath . '/privacy/anonymize',
             'ops_backup' => $basePath . '/ops/backup',
             default => $basePath,
         };
@@ -90,9 +89,9 @@ final class PrivateRouteResolver
                 'handler' => ['type' => 'private', 'page' => 'login'],
             ],
             [
-                'methods' => ['GET', 'POST'],
+                'methods' => ['GET'],
                 'path' => $loginPath . '/index.php',
-                'handler' => ['type' => 'private', 'page' => 'login'],
+                'handler' => ['type' => 'redirect', 'location' => $loginPath, 'status' => 301],
             ],
             [
                 'methods' => ['GET'],
@@ -338,11 +337,6 @@ final class PrivateRouteResolver
                 'methods' => ['GET'],
                 'path' => $this->canonicalPath('privacy_export'),
                 'handler' => ['type' => 'private', 'page' => 'privacy_export'],
-            ],
-            [
-                'methods' => ['POST'],
-                'path' => $this->canonicalPath('privacy_anonymize'),
-                'handler' => ['type' => 'private', 'page' => 'privacy_anonymize'],
             ],
             [
                 'methods' => ['GET'],

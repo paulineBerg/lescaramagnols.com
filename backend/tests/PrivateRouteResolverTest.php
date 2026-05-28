@@ -51,7 +51,7 @@ final class PrivateRouteResolverTest extends TestCase
         $expected = [
             '/private' => ['methods' => ['GET'], 'handler' => 'redirect:/private/login'],
             '/private/login' => ['methods' => ['GET', 'POST'], 'handler' => 'private:login'],
-            '/private/login/index.php' => ['methods' => ['GET', 'POST'], 'handler' => 'private:login'],
+            '/private/login/index.php' => ['methods' => ['GET'], 'handler' => 'redirect:/private/login'],
             '/private/dashboard' => ['methods' => ['GET'], 'handler' => 'private:dashboard'],
             '/private/documents' => ['methods' => ['GET'], 'handler' => 'private:documents'],
             '/private/blocnote' => ['methods' => ['GET', 'POST'], 'handler' => 'private:blocnote'],
@@ -101,7 +101,6 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}' => ['methods' => ['GET'], 'handler' => 'private:discussion_file'],
             '/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}/preview' => ['methods' => ['GET'], 'handler' => 'private:discussion_file_preview'],
             '/private/privacy/export' => ['methods' => ['GET'], 'handler' => 'private:privacy_export'],
-            '/private/privacy/anonymize' => ['methods' => ['POST'], 'handler' => 'private:privacy_anonymize'],
             '/private/ops/backup' => ['methods' => ['GET'], 'handler' => 'private:ops_backup'],
         ];
 

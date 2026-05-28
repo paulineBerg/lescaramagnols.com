@@ -188,6 +188,7 @@ En cas de suspicion de compromission:
 - Pas de WAF natif dans le repo.
 - Pas de blocage automatique type fail2ban dans le repo.
 - Pas de 2FA materiel (WebAuthn/U2F) pour le moment.
+- Retrait progressif du prive PHP en cours : `/{private}/privacy/anonymize` est bloque depuis M6, les routes restantes sont inventoriees par `php backend/core/tools/private_migration_reconcile.php m6-retirement` avec statut explicite.
 
 Plan court terme recommande:
 

@@ -3029,7 +3029,6 @@ Routes privees PHP actuelles :
 | Discussions fichiers | GET | `/{private}/discussions/files/{attachmentId}` | `discussion_file` | membre conversation | not_found, forbidden |
 | Discussions fichiers | GET | `/{private}/discussions/files/{attachmentId}/preview` | `discussion_file_preview` | membre conversation | not_found, forbidden |
 | Vie privee | GET | `/{private}/privacy/export` | `privacy_export` | session | forbidden, export |
-| Vie privee | POST | `/{private}/privacy/anonymize` | `privacy_anonymize` | session + reauth | csrf, conflict |
 | Exploitation | GET | `/{private}/ops/backup` | `ops_backup` | session | forbidden, backup |
 
 Tables privees et proprietaires fonctionnels :
@@ -3076,7 +3075,7 @@ Evenements d'audit existants :
 - Imports agence : `private.rental_agency_import.imported`, `private.rental_agency_review.property_updated`, `private.rental_agency_review.line_reviewed`.
 - Impots : `private.tax_source_activation.updated`, `private.tax_summary.generated`, `private.tax_year.locked`, `private.tax_year.unlocked`, `private.tax_manual_income.created`, `private.tax_export.created`.
 - Discussions : `private.discussion.access.denied`, `private.discussion.attachment.downloaded`, `private.discussion.rate_limited`, `private.discussion.invite_email_sent`, `private.discussion.invite_email_failed`.
-- Vie privee et operations : `private.privacy.exported`, `private.privacy.anonymized`, `private.ops.backup_created`, `private.module.access_denied`.
+- Vie privee et operations : `private.privacy.exported`, `private.ops.backup_created`, `private.module.access_denied`.
 
 Evenements a ajouter quand les API seront extraites :
 
@@ -3283,14 +3282,22 @@ Critere de passage : le module fonctionne dans la nouvelle app pendant une perio
 
 Objectif : reduire la surface d'attaque.
 
-- [ ] Marquer chaque route PHP privee comme migree, conservee ou supprimee.
-- [ ] Supprimer le code prive PHP devenu inactif apres backup et tag Git.
-- [ ] Garder uniquement les helpers communs encore utiles au public.
-- [ ] Supprimer les permissions obsoletes.
-- [ ] Supprimer les templates prives PHP obsoletes.
-- [ ] Supprimer les endpoints de fichiers prives PHP si remplaces.
-- [ ] Verifier qu'aucune route privee legacy n'est encore resolue par erreur.
-- [ ] Mettre a jour `docs/private/README.md`, `docs/security/README.md` et runbooks.
+- [x] Marquer chaque route PHP privee comme migree, conservee ou supprimee.
+- [x] Supprimer le code prive PHP devenu inactif apres backup et tag Git.
+- [x] Garder uniquement les helpers communs encore utiles au public.
+- [x] Supprimer les permissions obsoletes.
+- [x] Supprimer les templates prives PHP obsoletes.
+- [x] Supprimer les endpoints de fichiers prives PHP si remplaces.
+- [x] Verifier qu'aucune route privee legacy n'est encore resolue par erreur.
+- [x] Mettre a jour `docs/private/README.md`, `docs/security/README.md` et runbooks.
+
+Implementation M6 figee le 2026-05-28 :
+- `/{private}/privacy/anonymize` est retire du routeur prive : l'anonymisation self-service n'est plus une voie de suppression, la politique retenue reste sauvegarde, purge des donnees, avertissement J+20 puis suppression compte + sauvegarde a J+30.
+- `/{private}/login/index.php` est maintenant une redirection explicite vers `/{private}/login`, comme `/{private}/dashboard.php` vers `/{private}/dashboard`.
+- `PrivateLegacyRetirementService` inventorie les routes privees restantes avec statut `kept`, `redirected`, `blocked` ou `retired`, les templates actifs, les permissions actives et les endpoints fichiers encore controles.
+- La commande `php backend/core/tools/private_migration_reconcile.php m6-retirement` expose cet inventaire en JSON et echoue si une route bloquee reste active.
+- Les endpoints fichiers conserves restent uniquement derriere session privee, permission module et controle metier; aucun fichier prive n'est servi directement par `backend/public`.
+- Les permissions obsoletes et templates obsoletes sont a zero dans l'inventaire M6; les suppressions physiques futures devront rester precedees par backup et tag Git.
 
 Critere de passage : PHP ne sert plus que le public, le blog et l'admin editorial conserve.
 

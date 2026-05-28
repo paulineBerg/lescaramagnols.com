@@ -4,6 +4,7 @@
 declare(strict_types=1);
 
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
+use Caramagnols\PrivatePortal\Operations\PrivateLegacyRetirementService;
 use Caramagnols\PrivatePortal\Operations\PrivateModuleMigrationPlanService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
@@ -29,6 +30,7 @@ Usage:
   php backend/core/tools/private_migration_reconcile.php import module /path/private-backup.json [--apply]
   php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json
   php backend/core/tools/private_migration_reconcile.php m5-plan [module] [--output=/path/plan.json]
+  php backend/core/tools/private_migration_reconcile.php m6-retirement [--output=/path/inventory.json]
 
 Par defaut, l'import est un dry-run. L'option --apply est refusee si le module n'est pas au statut migrating.
 
@@ -113,6 +115,18 @@ try {
         $readiness = $planService->readiness(is_string($args[1] ?? null) ? (string) $args[1] : null);
         writeJsonResult($readiness, optionValue($args, '--output'));
         exit(($readiness['success'] ?? false) === true && ($readiness['ready'] ?? false) === true ? 0 : 1);
+    }
+
+    if ($command === 'm6-retirement') {
+        $privateConfig = (array) app_config('private', []);
+        $basePath = is_string($privateConfig['base_path'] ?? null) ? (string) $privateConfig['base_path'] : 'private';
+        $retirementService = new PrivateLegacyRetirementService(
+            new PrivateRouteResolver($basePath),
+            $moduleRegistry
+        );
+        $inventory = $retirementService->inventory();
+        writeJsonResult($inventory, optionValue($args, '--output'));
+        exit(($inventory['success'] ?? false) === true && ($inventory['ready'] ?? false) === true ? 0 : 1);
     }
 
     throw new RuntimeException(sprintf('Commande inconnue: %s', $command));
