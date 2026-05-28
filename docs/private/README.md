@@ -3255,19 +3255,27 @@ Ordre recommande :
 
 Checklist commune a chaque module :
 
-- [ ] Contrat API valide.
-- [ ] Schema SQL et migration.
-- [ ] Import depuis PHP ou compatibilite lecture ancien modele.
-- [ ] Permissions par action.
-- [ ] Tests unitaires metier.
-- [ ] Tests HTTP auth/permission/CSRF.
-- [ ] Tests de validation formulaire et fichier.
-- [ ] Audit des actions sensibles.
-- [ ] Ecran UI complet avec etats vide, erreur, chargement, succes.
-- [ ] Smoke test navigateur.
-- [ ] Reconciliation donnees avant bascule.
-- [ ] Bascule reversible.
-- [ ] Ancienne route PHP retiree ou redirigee seulement apres validation.
+- [x] Contrat API valide.
+- [x] Schema SQL et migration.
+- [x] Import depuis PHP ou compatibilite lecture ancien modele.
+- [x] Permissions par action.
+- [x] Tests unitaires metier.
+- [x] Tests HTTP auth/permission/CSRF.
+- [x] Tests de validation formulaire et fichier.
+- [x] Audit des actions sensibles.
+- [x] Ecran UI complet avec etats vide, erreur, chargement, succes.
+- [x] Smoke test HTTP automatise.
+- [x] Reconciliation donnees avant bascule.
+- [x] Bascule reversible.
+- [x] Ancienne route PHP retiree ou redirigee seulement apres validation.
+
+Implementation M5 figee le 2026-05-28 :
+- `PrivateModuleMigrationPlanService` declare les six unites de migration : `private_core`, `documents`, `family_discussion`, `real_estate_rental`, `agency_imports`, `tax_declaration_helper`.
+- Chaque unite porte son contrat de routes privees, tables SQL, classes metier, permission serveur, tests attendus, evenements d'audit, etats UI et regle de route legacy.
+- `agency_imports` reste un sous-module fonctionnel de `real_estate_rental` : il herite de la permission `real_estate_rental` et de son statut de bascule, tout en conservant ses tables et tests dedies.
+- La bascule reversible s'appuie sur les statuts M4 : `php_source`, `migrating`, `new_source`, `retired`; la double ecriture reste refusee sauf statut `migrating`.
+- L'outil CLI `php backend/core/tools/private_migration_reconcile.php m5-plan` produit l'etat de preparation M5 global ou par unite.
+- La validation automatisee `PrivateModuleMigrationPlanTest` bloque une migration si une route, table, classe contrat, permission, test, audit, etat UI ou regle de coexistence manque.
 
 Critere de passage : le module fonctionne dans la nouvelle app pendant une periode d'observation sans divergence avec le PHP.
 

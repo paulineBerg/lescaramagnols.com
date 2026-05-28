@@ -4,7 +4,9 @@
 declare(strict_types=1);
 
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
+use Caramagnols\PrivatePortal\Operations\PrivateModuleMigrationPlanService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
+use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 
 require_once dirname(__DIR__) . '/bootstrap.php';
@@ -26,6 +28,7 @@ Usage:
   php backend/core/tools/private_migration_reconcile.php read-legacy module [--output=/path/model.json]
   php backend/core/tools/private_migration_reconcile.php import module /path/private-backup.json [--apply]
   php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json
+  php backend/core/tools/private_migration_reconcile.php m5-plan [module] [--output=/path/plan.json]
 
 Par defaut, l'import est un dry-run. L'option --apply est refusee si le module n'est pas au statut migrating.
 
@@ -35,7 +38,8 @@ TXT);
 
 try {
     $backupService = new PrivateBackupService(editorial_database());
-    $migrationService = new PrivateMigrationService(editorial_database(), new PrivateModuleRegistry());
+    $moduleRegistry = new PrivateModuleRegistry();
+    $migrationService = new PrivateMigrationService(editorial_database(), $moduleRegistry);
 
     if ($command === 'snapshot') {
         $snapshot = $backupService->reconciliationSnapshot(optionValue($args, '--files-root') ?? '');
@@ -96,6 +100,19 @@ try {
             'restoreDryRun' => $restore,
         ], null);
         exit(empty($verification['valid']) || empty($restore['success']) ? 1 : 0);
+    }
+
+    if ($command === 'm5-plan') {
+        $privateConfig = (array) app_config('private', []);
+        $basePath = is_string($privateConfig['base_path'] ?? null) ? (string) $privateConfig['base_path'] : 'private';
+        $planService = new PrivateModuleMigrationPlanService(
+            $moduleRegistry,
+            new PrivateRouteResolver($basePath),
+            $migrationService
+        );
+        $readiness = $planService->readiness(is_string($args[1] ?? null) ? (string) $args[1] : null);
+        writeJsonResult($readiness, optionValue($args, '--output'));
+        exit(($readiness['success'] ?? false) === true && ($readiness['ready'] ?? false) === true ? 0 : 1);
     }
 
     throw new RuntimeException(sprintf('Commande inconnue: %s', $command));
