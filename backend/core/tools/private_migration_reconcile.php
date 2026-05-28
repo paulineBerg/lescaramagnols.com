@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateLegacyRetirementService;
+use Caramagnols\PrivatePortal\Operations\PrivateMigrationDefinitionOfDoneService;
 use Caramagnols\PrivatePortal\Operations\PrivateModuleMigrationPlanService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
 use Caramagnols\PrivatePortal\Operations\PrivateSecurityChecklistService;
@@ -33,6 +34,7 @@ Usage:
   php backend/core/tools/private_migration_reconcile.php m5-plan [module] [--output=/path/plan.json]
   php backend/core/tools/private_migration_reconcile.php m6-retirement [--output=/path/inventory.json]
   php backend/core/tools/private_migration_reconcile.php security-checklist [--output=/path/security.json]
+  php backend/core/tools/private_migration_reconcile.php migration-dod [--output=/path/dod.json]
 
 Par defaut, l'import est un dry-run. L'option --apply est refusee si le module n'est pas au statut migrating.
 
@@ -152,6 +154,36 @@ try {
         ))->checklist();
         writeJsonResult($checklist, optionValue($args, '--output'));
         exit(($checklist['success'] ?? false) === true && ($checklist['ready'] ?? false) === true ? 0 : 1);
+    }
+
+    if ($command === 'migration-dod') {
+        $privateConfig = (array) app_config('private', []);
+        $basePath = is_string($privateConfig['base_path'] ?? null) ? (string) $privateConfig['base_path'] : 'private';
+        $routeResolver = new PrivateRouteResolver($basePath);
+        $planService = new PrivateModuleMigrationPlanService(
+            $moduleRegistry,
+            $routeResolver,
+            $migrationService
+        );
+        $retirementService = new PrivateLegacyRetirementService(
+            $routeResolver,
+            $moduleRegistry
+        );
+        $securityService = new PrivateSecurityChecklistService(
+            $moduleRegistry,
+            $routeResolver,
+            $planService,
+            $retirementService
+        );
+        $definitionOfDone = (new PrivateMigrationDefinitionOfDoneService(
+            $moduleRegistry,
+            $routeResolver,
+            $planService,
+            $retirementService,
+            $securityService
+        ))->checklist();
+        writeJsonResult($definitionOfDone, optionValue($args, '--output'));
+        exit(($definitionOfDone['success'] ?? false) === true && ($definitionOfDone['ready'] ?? false) === true ? 0 : 1);
     }
 
     throw new RuntimeException(sprintf('Commande inconnue: %s', $command));

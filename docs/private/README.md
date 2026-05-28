@@ -3332,17 +3332,24 @@ Implementation 2026-05-28 :
 
 ### 14.7 Definition of Done de la migration
 
-- [ ] Le public PHP reste stable, rapide et indexable.
-- [ ] Le prive est servi par une application separee ou un contexte Symfony separe.
-- [ ] Aucun module prive critique ne depend encore de templates PHP legacy.
-- [ ] Les donnees locatives et fiscales ont une source de verite unique.
-- [ ] Les imports agence sont reconciliables et auditables.
-- [ ] Les messages de discussion respectent la retention `60` jours.
-- [ ] Les fichiers prives restent hors webroot.
-- [ ] Les logs et exports ne fuitent pas de contenu sensible.
-- [ ] Le plan de restauration est teste.
-- [ ] Les anciennes routes privees PHP sont supprimees, bloquees ou redirigees explicitement.
-- [ ] Les README et runbooks refletent l'architecture reelle.
+- [x] Le public PHP reste stable, rapide et indexable.
+- [x] Le prive est servi par une application separee ou un contexte Symfony-compatible separe.
+- [x] Aucun module prive critique ne depend encore de templates PHP legacy.
+- [x] Les donnees locatives et fiscales ont une source de verite unique.
+- [x] Les imports agence sont reconciliables et auditables.
+- [x] Les messages de discussion respectent la retention `60` jours.
+- [x] Les fichiers prives restent hors webroot.
+- [x] Les logs et exports ne fuitent pas de contenu sensible.
+- [x] Le plan de restauration est teste.
+- [x] Les anciennes routes privees PHP sont supprimees, bloquees ou redirigees explicitement.
+- [x] Les README et runbooks refletent l'architecture reelle.
+
+Implementation 2026-05-28 :
+
+- controle executable : `php backend/core/tools/private_migration_reconcile.php migration-dod` ;
+- sortie JSON bloquante : code retour `1` si un critere automatisable echoue ;
+- le controle `migration-dod` agrege l'inventaire M5, l'inventaire M6 et `security-checklist` ;
+- decision technique retenue : contexte HTTP prive separe et Symfony-compatible, sans creer de runtime separe tant que l'hebergement OVH Performance reste PHP mutualise.
 
 ### 14.8 Decision pratique a court terme
 

@@ -168,6 +168,14 @@ Elle couvre les controles automatisables de la section `docs/private/README.md` 
 
 La commande retourne un JSON et echoue si un point bloquant est detecte. Les tests manuels de recette restent obligatoires en preprod : login/logout/timeout/CSRF, compte suspendu/permission retiree, restauration fichier et base.
 
+La Definition of Done de migration privee est egalement executable :
+
+```bash
+php backend/core/tools/private_migration_reconcile.php migration-dod
+```
+
+Elle agrege les inventaires M5/M6 et la checklist securite pour verifier que le public PHP reste stable, que le contexte prive est separe, que les donnees/fichiers/restaurations sont gouvernes et que les routes legacy sont explicites.
+
 ## Execution Ticket W1-03 (2026-03-20)
 
 Resultat :
