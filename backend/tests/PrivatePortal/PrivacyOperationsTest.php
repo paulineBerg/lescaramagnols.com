@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
+use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
+use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
@@ -62,9 +64,70 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertGreaterThanOrEqual(1, (int) ($verification['tableCount'] ?? 0));
         $this->assertGreaterThanOrEqual(1, (int) ($verification['fileCount'] ?? 0));
 
+        $payload = json_decode((string) file_get_contents((string) $backup['path']), true);
+        $this->assertIsArray($payload);
+        $this->assertArrayHasKey('private_blocnote_notes', $payload['tables'] ?? []);
+        $this->assertArrayHasKey('discussion_messages', $payload['tables'] ?? []);
+        $this->assertArrayHasKey('summary', $payload);
+        $files = is_array($payload['files'] ?? null) ? $payload['files'] : [];
+        $this->assertIsArray($files[0] ?? null);
+        $this->assertArrayHasKey('mtimeIso', $files[0]);
+        $this->assertArrayHasKey('owner', $files[0]);
+        $this->assertArrayHasKey('sha256', $files[0]);
+
+        $snapshot = $service->reconciliationSnapshot($this->tempDir);
+        $comparison = $service->compareSnapshots($snapshot, $snapshot);
+        $this->assertTrue((bool) ($comparison['equal'] ?? false));
+
         $restore = $service->restoreBackup((string) $backup['path'], true);
         $this->assertTrue((bool) ($restore['success'] ?? false));
         $this->assertTrue((bool) ($restore['dryRun'] ?? false));
+    }
+
+    public function testPrivateModuleMigrationStatusAndIdempotentBackupImport(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $this->createPrivateUser($userRepository, 'migration-m4@example.com');
+        $this->tempDir = sys_get_temp_dir() . '/caramagnols-m4-migration-' . bin2hex(random_bytes(6));
+        mkdir($this->tempDir, 0700, true);
+
+        $backupService = new PrivateBackupService($database);
+        $backup = $backupService->createBackup($this->tempDir . '/exports');
+        $this->assertTrue((bool) ($backup['success'] ?? false));
+        $payload = json_decode((string) file_get_contents((string) $backup['path']), true);
+        $this->assertIsArray($payload);
+
+        $migrationService = new PrivateMigrationService($database, new PrivateModuleRegistry());
+        $initialStatus = $migrationService->moduleStatus('dashboard');
+        $this->assertTrue((bool) ($initialStatus['success'] ?? false));
+        $this->assertSame('php_source', $initialStatus['status'] ?? null);
+        $this->assertFalse($migrationService->canDoubleWrite('dashboard'));
+
+        $migratingStatus = $migrationService->setModuleStatus('dashboard', 'migrating', 'phpunit', 'M4 test');
+        $this->assertTrue((bool) ($migratingStatus['success'] ?? false));
+        $this->assertTrue($migrationService->canDoubleWrite('dashboard'));
+
+        $dryRunImport = $migrationService->importBackupModule('dashboard', $payload, true);
+        $this->assertTrue((bool) ($dryRunImport['success'] ?? false));
+        $this->assertTrue((bool) ($dryRunImport['dryRun'] ?? false));
+        $this->assertGreaterThanOrEqual(1, (int) ($dryRunImport['rows'] ?? 0));
+
+        $appliedImport = $migrationService->importBackupModule('dashboard', $payload, false);
+        $this->assertTrue((bool) ($appliedImport['success'] ?? false));
+        $this->assertFalse((bool) ($appliedImport['dryRun'] ?? true));
+
+        $legacyRead = $migrationService->readLegacyModel('dashboard');
+        $this->assertTrue((bool) ($legacyRead['success'] ?? false));
+        $tables = is_array($legacyRead['tables'] ?? null) ? $legacyRead['tables'] : [];
+        $this->assertGreaterThanOrEqual(1, (int) ($tables['private_users']['rows'] ?? 0));
+
+        $newSourceStatus = $migrationService->setModuleStatus('dashboard', 'new_source', 'phpunit', 'M4 done');
+        $this->assertTrue((bool) ($newSourceStatus['success'] ?? false));
+        $this->assertFalse($migrationService->canDoubleWrite('dashboard'));
+
+        $invalidStatus = $migrationService->setModuleStatus('dashboard', 'always_double_write', 'phpunit');
+        $this->assertFalse((bool) ($invalidStatus['success'] ?? true));
     }
 
     private function createPrivateUser(PrivateUserRepository $repository, string $email): int

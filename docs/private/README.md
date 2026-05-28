@@ -3221,14 +3221,24 @@ Critere de passage : la nouvelle app sait authentifier un utilisateur de test, r
 
 Objectif : migrer sans perte et sans double ecriture fragile.
 
-- [ ] Faire un backup base + fichiers avant toute migration.
-- [ ] Creer migrations SQL cibles avec prefixe clair.
-- [ ] Ecrire scripts de lecture de l'ancien modele.
-- [ ] Ecrire scripts d'import idempotents.
-- [ ] Ajouter reconciliation : nombre de lignes, hash fichiers, tailles, dates, proprietaires.
-- [ ] Interdire la double ecriture durable sauf fenetre de bascule tres courte.
-- [ ] Definir le statut par module : `php_source`, `migrating`, `new_source`, `retired`.
-- [ ] Tester restauration sur environnement de test.
+- [x] Faire un backup base + fichiers avant toute migration.
+- [x] Creer migrations SQL cibles avec prefixe clair.
+- [x] Ecrire scripts de lecture de l'ancien modele.
+- [x] Ecrire scripts d'import idempotents.
+- [x] Ajouter reconciliation : nombre de lignes, hash fichiers, tailles, dates, proprietaires.
+- [x] Interdire la double ecriture durable sauf fenetre de bascule tres courte.
+- [x] Definir le statut par module : `php_source`, `migrating`, `new_source`, `retired`.
+- [x] Tester restauration sur environnement de test.
+
+Implementation M4 figee le 2026-05-28 :
+- `PrivateBackupService` couvre maintenant les tables privees connues des modules `dashboard`, `documents`, `blocnote`, `discussions`, `real_estate_rental` et `tax_declaration_helper`; les fichiers prives sont inventories avec chemin relatif, taille, hash SHA-256, date de modification, proprietaire et groupe.
+- `PrivateBackupService::reconciliationSnapshot()` produit un etat mesurable base + fichiers, et `compareSnapshots()` signale les divergences de lignes, hash et tailles.
+- `backend/sql/private/private_module_migrations.sql` documente la table cible `private_module_migrations`; le service cree aussi cette table avec le prefixe SQL actif pour les tests et les environnements existants.
+- `PrivateMigrationService` porte le contrat de coexistence par module : `php_source`, `migrating`, `new_source`, `retired`; la double ecriture n'est autorisee que pendant `migrating`.
+- `PrivateMigrationService::readLegacyModel()` lit l'ancien modele PHP/SQL par module et calcule les hash de controle.
+- `PrivateMigrationService::importBackupModule()` importe un backup par module de maniere idempotente; le mode reel est refuse si le module n'est pas explicitement au statut `migrating`.
+- L'outil CLI `php backend/core/tools/private_migration_reconcile.php` permet de generer un snapshot, comparer deux snapshots, verifier un backup, lire l'ancien modele, changer le statut d'un module et lancer un import dry-run ou applique.
+- Les tests M4 couvrent backup base + fichiers, metadonnees de fichiers, reconciliation identique, restauration dry-run, statut de migration, interdiction de double ecriture hors `migrating` et import idempotent depuis backup.
 
 Critere de passage : un module peut etre migre puis restaure sans perte mesurable.
 

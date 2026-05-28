@@ -12,20 +12,47 @@ final class PrivateBackupService
     /** @var array<int, string> */
     private const DEFAULT_TABLES = [
         'private_users',
+        'private_user_invites',
+        'private_password_resets',
+        'private_sessions',
+        'private_mfa_backup_codes',
+        'private_modules',
         'private_user_module_permissions',
         'private_document_categories',
         'private_documents',
+        'private_blocnote_categories',
+        'private_blocnote_notes',
+        'private_module_migrations',
+        'discussion_conversations',
+        'discussion_conversation_members',
+        'discussion_messages',
+        'discussion_message_reads',
+        'discussion_message_attachments',
+        'discussion_conversation_keys',
+        'discussion_crypto_devices',
+        'discussion_retention_runs',
         'rental_properties',
         'rental_units',
+        'rental_property_members',
         'rental_tenants',
         'rental_leases',
         'rental_payments',
         'rental_expenses',
+        'rental_documents',
+        'rental_export_logs',
+        'rental_agency_import_batches',
+        'rental_agency_imported_documents',
+        'rental_agency_statements',
+        'rental_agency_statement_lines',
+        'rental_agency_import_issues',
+        'rental_agency_line_mappings',
         'tax_years',
+        'tax_income_sources',
         'tax_source_activations',
         'tax_manual_income_entries',
         'tax_annual_summaries',
         'tax_summary_lines',
+        'tax_export_logs',
     ];
 
     public function __construct(private readonly EditorialDatabase $database)
@@ -51,6 +78,7 @@ final class PrivateBackupService
             'tables' => $this->tableDump(),
             'files' => $this->fileManifest($privateFilesRoot),
         ];
+        $payload['summary'] = $this->summaryFromPayload($payload);
         $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if (!is_string($encoded)) {
             return ['success' => false, 'error' => 'json_failed'];
@@ -125,6 +153,92 @@ final class PrivateBackupService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function reconciliationSnapshot(string $privateFilesRoot = ''): array
+    {
+        $this->database->ensureReady();
+
+        $tables = [];
+        foreach (self::DEFAULT_TABLES as $table) {
+            $rows = $this->fetchRows($table);
+            $tables[$table] = [
+                'rows' => count($rows),
+                'sha256' => $this->hashRows($rows),
+            ];
+        }
+
+        $files = $this->fileManifest($privateFilesRoot);
+        $sizeBytes = 0;
+        foreach ($files as $file) {
+            $sizeBytes += (int) ($file['size'] ?? 0);
+        }
+
+        return [
+            'version' => 1,
+            'generatedAt' => date('c'),
+            'tables' => $tables,
+            'files' => [
+                'count' => count($files),
+                'sizeBytes' => $sizeBytes,
+                'sha256' => $this->hashRows($files),
+                'items' => $files,
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $left
+     * @param array<string, mixed> $right
+     *
+     * @return array{success: bool, equal: bool, differences: array<string, mixed>}
+     */
+    public function compareSnapshots(array $left, array $right): array
+    {
+        $differences = [];
+        $leftTables = is_array($left['tables'] ?? null) ? $left['tables'] : [];
+        $rightTables = is_array($right['tables'] ?? null) ? $right['tables'] : [];
+        $tableNames = array_values(array_unique(array_merge(array_keys($leftTables), array_keys($rightTables))));
+        sort($tableNames);
+
+        foreach ($tableNames as $table) {
+            $leftTable = is_array($leftTables[$table] ?? null) ? $leftTables[$table] : [];
+            $rightTable = is_array($rightTables[$table] ?? null) ? $rightTables[$table] : [];
+            if (
+                ($leftTable['rows'] ?? null) === ($rightTable['rows'] ?? null)
+                && ($leftTable['sha256'] ?? null) === ($rightTable['sha256'] ?? null)
+            ) {
+                continue;
+            }
+
+            $differences['tables'][$table] = [
+                'leftRows' => $leftTable['rows'] ?? null,
+                'rightRows' => $rightTable['rows'] ?? null,
+                'leftSha256' => $leftTable['sha256'] ?? null,
+                'rightSha256' => $rightTable['sha256'] ?? null,
+            ];
+        }
+
+        $leftFiles = is_array($left['files'] ?? null) ? $left['files'] : [];
+        $rightFiles = is_array($right['files'] ?? null) ? $right['files'] : [];
+        foreach (['count', 'sizeBytes', 'sha256'] as $key) {
+            if (($leftFiles[$key] ?? null) === ($rightFiles[$key] ?? null)) {
+                continue;
+            }
+            $differences['files'][$key] = [
+                'left' => $leftFiles[$key] ?? null,
+                'right' => $rightFiles[$key] ?? null,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'equal' => $differences === [],
+            'differences' => $differences,
+        ];
+    }
+
+    /**
      * @return array<string, array<int, array<string, mixed>>>
      */
     private function tableDump(): array
@@ -132,16 +246,25 @@ final class PrivateBackupService
         $this->database->ensureReady();
         $dump = [];
         foreach (self::DEFAULT_TABLES as $table) {
-            try {
-                $statement = $this->database->pdo()->query(sprintf('SELECT * FROM `%s`', $this->database->table($table)));
-                $rows = $statement instanceof \PDOStatement ? $statement->fetchAll(PDO::FETCH_ASSOC) : [];
-                $dump[$table] = is_array($rows) ? $rows : [];
-            } catch (\Throwable) {
-                $dump[$table] = [];
-            }
+            $dump[$table] = $this->fetchRows($table);
         }
 
         return $dump;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchRows(string $table): array
+    {
+        try {
+            $statement = $this->database->pdo()->query(sprintf('SELECT * FROM `%s`', $this->database->table($table)));
+            $rows = $statement instanceof \PDOStatement ? $statement->fetchAll(PDO::FETCH_ASSOC) : [];
+
+            return is_array($rows) ? $rows : [];
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /**
@@ -164,13 +287,100 @@ final class PrivateBackupService
             }
             $path = str_replace('\\', '/', $file->getPathname());
             $relative = ltrim(substr($path, strlen($root)), '/');
+            $mtime = $file->getMTime();
             $manifest[] = [
                 'path' => $relative,
                 'size' => $file->getSize(),
+                'mtime' => $mtime,
+                'mtimeIso' => date('c', $mtime),
+                'owner' => (string) $file->getOwner(),
+                'group' => (string) $file->getGroup(),
                 'sha256' => hash_file('sha256', $path) ?: '',
             ];
         }
 
+        usort(
+            $manifest,
+            static fn (array $left, array $right): int => strcmp((string) $left['path'], (string) $right['path'])
+        );
+
         return $manifest;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     *
+     * @return array<string, mixed>
+     */
+    private function summaryFromPayload(array $payload): array
+    {
+        $tables = is_array($payload['tables'] ?? null) ? $payload['tables'] : [];
+        $files = is_array($payload['files'] ?? null) ? $payload['files'] : [];
+        $rows = 0;
+        foreach ($tables as $tableRows) {
+            $rows += is_array($tableRows) ? count($tableRows) : 0;
+        }
+        $sizeBytes = 0;
+        foreach ($files as $file) {
+            if (!is_array($file)) {
+                continue;
+            }
+            $sizeBytes += (int) ($file['size'] ?? 0);
+        }
+
+        return [
+            'tableCount' => count($tables),
+            'rowCount' => $rows,
+            'fileCount' => count($files),
+            'fileSizeBytes' => $sizeBytes,
+            'tablesSha256' => $this->hashRows($tables),
+            'filesSha256' => $this->hashRows($files),
+        ];
+    }
+
+    /**
+     * @param array<mixed> $rows
+     */
+    private function hashRows(array $rows): string
+    {
+        $normalized = $this->normalizeValue($rows);
+        $encoded = json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        return hash('sha256', is_string($encoded) ? $encoded : '');
+    }
+
+    /**
+     * @param mixed $value
+     *
+     * @return mixed
+     */
+    private function normalizeValue(mixed $value): mixed
+    {
+        if (!is_array($value)) {
+            return $value;
+        }
+
+        $normalized = [];
+        foreach ($value as $key => $item) {
+            $normalized[$key] = $this->normalizeValue($item);
+        }
+
+        if (array_is_list($normalized)) {
+            usort(
+                $normalized,
+                static function (mixed $left, mixed $right): int {
+                    $leftJson = json_encode($left, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    $rightJson = json_encode($right, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+                    return strcmp(is_string($leftJson) ? $leftJson : '', is_string($rightJson) ? $rightJson : '');
+                }
+            );
+
+            return $normalized;
+        }
+
+        ksort($normalized);
+
+        return $normalized;
     }
 }
