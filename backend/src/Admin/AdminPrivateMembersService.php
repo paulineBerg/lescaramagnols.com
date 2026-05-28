@@ -259,10 +259,12 @@ final class AdminPrivateMembersService
         }
 
         $this->logAction('admin.private.member_suspended', $actorIdentifier, $userId, $email);
-        $emailSent = $this->sendMemberNotificationEmail(
+        $emailSent = $this->sendTemplateEmail(
             $email,
+            'member_suspended_subject',
             'Compte privé suspendu',
-            "Bonjour,\n\nVotre compte privé Les Caramagnols a été suspendu. Vous ne pouvez plus vous connecter tant qu’il n’est pas réactivé.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com.",
+            'member_suspended_body',
+            "Bonjour,\n\nVotre compte privé {{site_name}} a été suspendu. Vous ne pouvez plus vous connecter tant qu’il n’est pas réactivé.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
             'admin.private.member_suspended_notification',
             $actorIdentifier,
             $userId
@@ -303,10 +305,12 @@ final class AdminPrivateMembersService
         }
 
         $this->logAction('admin.private.member_reactivated', $actorIdentifier, $userId, $email);
-        $emailSent = $this->sendMemberNotificationEmail(
+        $emailSent = $this->sendTemplateEmail(
             $email,
+            'member_reactivated_subject',
             'Compte privé réactivé',
-            "Bonjour,\n\nVotre compte privé Les Caramagnols a été réactivé. Vous pouvez de nouveau vous connecter à l’espace privé.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com.",
+            'member_reactivated_body',
+            "Bonjour,\n\nVotre compte privé {{site_name}} a été réactivé. Vous pouvez de nouveau vous connecter à l’espace privé : {{login_url}}\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
             'admin.private.member_reactivated_notification',
             $actorIdentifier,
             $userId
@@ -372,13 +376,16 @@ final class AdminPrivateMembersService
         );
         $deleteAfter = is_string($deletion['deleteAfter'] ?? null) ? (string) $deletion['deleteAfter'] : '';
         $deleteAfterLabel = strtotime($deleteAfter) !== false ? date('d/m/Y', (int) strtotime($deleteAfter)) : 'dans 30 jours';
-        $emailSent = $this->sendMemberNotificationEmail(
+        $emailSent = $this->sendTemplateEmail(
             $email,
+            'member_deletion_scheduled_subject',
             'Suppression programmée de votre compte privé',
-            "Bonjour,\n\nLa suppression de votre compte privé Les Caramagnols a été programmée.\n\nUne sauvegarde ZIP des données a été créée, puis les données rattachées au compte ont été purgées. Le compte suspendu et la sauvegarde seront supprimés définitivement le " . $deleteAfterLabel . ".\n\nUn email de rappel sera envoyé après 20 jours.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com.",
+            'member_deletion_scheduled_body',
+            "Bonjour,\n\nLa suppression de votre compte privé {{site_name}} a été programmée.\n\nUne sauvegarde ZIP des données a été créée, puis les données rattachées au compte ont été purgées. Le compte suspendu et la sauvegarde seront supprimés définitivement le {{delete_after}}.\n\nUn email de rappel sera envoyé après 20 jours.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
             'admin.private.member_deletion_scheduled_notification',
             $actorIdentifier,
-            $userId
+            $userId,
+            ['delete_after' => $deleteAfterLabel]
         );
 
         return $this->result(
@@ -581,17 +588,18 @@ final class AdminPrivateMembersService
     private function sendActivationEmail(string $email, string $token, ?string $actorIdentifier, int $userId): void
     {
         $url = app_url(private_portal_url('activate') . '/' . rawurlencode($token));
-        $message = strtr($this->privateMailTemplate(
+        $message = $this->renderPrivateMailTemplate($this->privateMailTemplate(
             'admin_invite_body',
             "Bonjour,\n\nVotre espace privé est prêt.\n\nIdentifiant de connexion : {{email}}\nLien d'activation : {{activation_url}}\n\nChoisissez votre mot de passe depuis ce lien sécurisé."
-        ), [
-            '{{activation_url}}' => $url,
-            '{{email}}' => $email,
-        ]);
+        ), $email, ['activation_url' => $url]);
 
         $this->sendPrivateEmail(
             $email,
-            $this->privateMailSubject('admin_invite_subject', 'Activation de votre espace privé'),
+            $this->renderPrivateMailTemplate(
+                $this->privateMailSubject('admin_invite_subject', 'Activation de votre espace privé'),
+                $email,
+                ['activation_url' => $url]
+            ),
             $this->plainTextToHtml($message),
             'admin.private.invite_email',
             $actorIdentifier,
@@ -602,17 +610,18 @@ final class AdminPrivateMembersService
     private function sendPasswordResetEmail(string $email, string $token, ?string $actorIdentifier, int $userId): bool
     {
         $url = app_url(private_portal_url('password_reset') . '/' . rawurlencode($token));
-        $message = strtr($this->privateMailTemplate(
+        $message = $this->renderPrivateMailTemplate($this->privateMailTemplate(
             'password_reset_body',
             "Bonjour,\n\nRéinitialisez votre mot de passe avec ce lien sécurisé : {{reset_url}}"
-        ), [
-            '{{reset_url}}' => $url,
-            '{{email}}' => $email,
-        ]);
+        ), $email, ['reset_url' => $url]);
 
         return $this->sendPrivateEmail(
             $email,
-            $this->privateMailSubject('password_reset_subject', 'Réinitialisation de votre espace privé'),
+            $this->renderPrivateMailTemplate(
+                $this->privateMailSubject('password_reset_subject', 'Réinitialisation de votre espace privé'),
+                $email,
+                ['reset_url' => $url]
+            ),
             $this->plainTextToHtml($message),
             'admin.private.password_reset_email',
             $actorIdentifier,
@@ -657,18 +666,24 @@ final class AdminPrivateMembersService
         return $sent;
     }
 
-    private function sendMemberNotificationEmail(
+    /**
+     * @param array<string, string> $variables
+     */
+    private function sendTemplateEmail(
         string $email,
-        string $subject,
-        string $message,
+        string $subjectKey,
+        string $subjectFallback,
+        string $bodyKey,
+        string $bodyFallback,
         string $event,
         ?string $actorIdentifier,
-        int $userId
+        int $userId,
+        array $variables = []
     ): bool {
         return $this->sendPrivateEmail(
             $email,
-            $subject,
-            $this->plainTextToHtml($message),
+            $this->renderPrivateMailTemplate($this->privateMailSubject($subjectKey, $subjectFallback), $email, $variables),
+            $this->plainTextToHtml($this->renderPrivateMailTemplate($this->privateMailTemplate($bodyKey, $bodyFallback), $email, $variables)),
             $event,
             $actorIdentifier,
             $userId
@@ -687,6 +702,27 @@ final class AdminPrivateMembersService
         $template = app_config('private.mail.templates.' . $key, $fallback);
 
         return is_scalar($template) ? (string) $template : $fallback;
+    }
+
+    /**
+     * @param array<string, string> $variables
+     */
+    private function renderPrivateMailTemplate(string $template, string $email, array $variables = []): string
+    {
+        $commonVariables = [
+            'email' => $email,
+            'today' => date('d/m/Y'),
+            'login_url' => app_url(private_portal_url('login')),
+            'private_url' => app_url(private_portal_url('login')),
+            'site_name' => (string) app_config('site.name', 'Les Caramagnols'),
+            'reply_to' => (string) app_config('private.mail.reply_to', 'private@lescaramagnols.com'),
+        ];
+        $replacements = [];
+        foreach (array_merge($commonVariables, $variables) as $key => $value) {
+            $replacements['{{' . $key . '}}'] = (string) $value;
+        }
+
+        return strtr($template, $replacements);
     }
 
     private function plainTextToHtml(string $message): string

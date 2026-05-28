@@ -23,6 +23,11 @@ final class PrivateModuleRegistry
                 'description' => 'Accès au centre de stockage privé.',
             ],
             [
+                'code' => 'blocnote',
+                'name' => 'Bloc-note',
+                'description' => 'Notes privées, catégories et suivi personnel.',
+            ],
+            [
                 'code' => 'discussions',
                 'name' => 'Discussions',
                 'description' => 'Espace d’échanges privé.',

@@ -273,6 +273,7 @@ final class RentalLifecycleTest extends TestCase
         $this->assertNotNull($unit);
         $tenant = $lifecycleRepository->createTenant(
             $property->id,
+            $unit->id,
             'Locataire ' . substr(md5($propertyName), 0, 6),
             null,
             null,

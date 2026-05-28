@@ -84,9 +84,18 @@ $privateNavItems = [
 if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)) {
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'),
-        'href' => $privateDashboardUrl . '#private-documents',
+        'href' => private_portal_url('documents'),
         'icon' => '🗂️',
-        'active' => false,
+        'active' => $privatePathIs(private_portal_url('documents')),
+    ];
+}
+
+if ($privateHasModule('Bloc-note')) {
+    $privateNavItems[] = [
+        'label' => 'Bloc-note',
+        'href' => private_portal_url('blocnote'),
+        'icon' => '📝',
+        'active' => $privatePathIs(private_portal_url('blocnote')),
     ];
 }
 

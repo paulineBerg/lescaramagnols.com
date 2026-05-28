@@ -1225,5 +1225,7 @@ return [
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DOWNLOAD' => 'Download ZIP backup',
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DELETE_AFTER' => 'Final deletion of the account and backup scheduled for %s.',
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_NO_RESTORE' => 'The ZIP backup contains backup.json, manifest.json and recovered files. It does not reactivate the account and does not automatically restore data.',
+    'TXT_ADMIN_PRIVATE_MAIL_VARIABLES_TITLE' => 'Available variables',
+    'TXT_ADMIN_PRIVATE_MAIL_VARIABLES_HELP' => 'Variables unavailable for a message remain unchanged. Examples: {{activation_url}} is used for invitations, {{reset_url}} for password resets, {{delete_after}} for scheduled deletions.',
 
 ];

@@ -2851,6 +2851,8 @@ Choix secondaire si un hebergement applicatif est ajoute :
 
 Decision retenue pour le cadrage OVH Performance : ne pas demarrer une API Node persistante dans ce depot tant que l'hebergement reste Performance standard sans runtime applicatif supervise visible. La meilleure trajectoire est une modernisation securisee du prive en PHP strict/Symfony-compatible, avec TypeScript pour l'interface privee. TypeScript/Fastify reste une option future si l'infrastructure evolue vers Cloud Web Node, POWER Node ou VPS.
 
+Decision d'exploitation actee le 2026-05-28 a partir du controle OVH Manager : l'offre active `ovh performance1` reste le socle de production. Le domaine `lescaramagnols.com` et `www.lescaramagnols.com` pointent vers `caramagnols/backend/public`; le backend prive reste donc servi par le front-controller PHP et par les headers applicatifs. Aucun runtime applicatif Node supervise n'est visible dans l'offre active ; Node reste limite au build frontend.
+
 ### 14.3 Ce qui reste en PHP
 
 - [ ] Front-office public.
@@ -2928,14 +2930,28 @@ Objectif : ne pas demarrer une deuxieme stack sans capacite de production claire
 - [x] Confirmer la presence d'un Web Cloud Database associe.
 - [x] Confirmer la capacite SQL disponible : `1/20` base utilisee.
 - [x] Confirmer la marge disque disponible : offre a `500 Go`, utilisation inferieure a la moitie au moment du controle.
-- [ ] Confirmer SSH/SFTP, CRON, logs et limites d'execution dans les onglets OVH dedies.
-- [ ] Confirmer explicitement si un runtime Node supervise est disponible sur l'offre active. Par defaut : non retenu.
-- [ ] Confirmer TLS, reverse proxy, logs, redemarrage automatique et backups.
-- [ ] Confirmer la strategie DB : meme base avec nouveaux schemas/tables, ou base privee separee.
-- [ ] Confirmer un environnement preproduction proche production.
-- [ ] Confirmer la procedure de restauration base + fichiers prives.
-- [ ] Definir le proprietaire du runtime : commandes de demarrage, mise a jour, surveillance.
-- [ ] Documenter la decision finale : PHP moderne/Symfony-compatible sur OVH Performance, ou upgrade hebergement pour TypeScript/Fastify.
+- [x] Confirmer SSH/SFTP, CRON, logs et limites d'execution dans les onglets OVH dedies.
+- [x] Confirmer explicitement si un runtime Node supervise est disponible sur l'offre active. Decision : aucun runtime Node supervise n'est retenu sur l'offre OVH Performance active.
+- [x] Confirmer TLS, reverse proxy, logs, redemarrage automatique et backups.
+- [x] Confirmer la strategie DB : meme base MySQL avec tables privees prefixees `private_*`; pas de base privee separee tant que le volume et les droits ne l'imposent pas.
+- [x] Confirmer un environnement preproduction proche production : meme stack PHP 8.2/MySQL, meme front-controller, donnees anonymisees ou jeu de test, pas de secrets production.
+- [x] Confirmer la procedure de restauration base + fichiers prives : backup SQL + fichiers prives hors webroot avant migration, restauration testee sur environnement de preproduction avant toute operation destructive.
+- [x] Definir le proprietaire du runtime : PHP-FPM/HTTP et CRON OVH, scripts applicatifs sous `backend/core/tools/`, surveillance via logs OVH et logs applicatifs.
+- [x] Documenter la decision finale : PHP moderne/Symfony-compatible sur OVH Performance ; upgrade hebergement uniquement si une API TypeScript/Fastify persistante devient indispensable.
+
+Constats OVH Manager du 2026-05-28 :
+
+- Hebergement : `ovh performance1`, service actif, renouvellement automatique prevu en fevrier 2027.
+- PHP : version globale visible `8.2`.
+- Chemins web : `lescaramagnols.com` et `www.lescaramagnols.com` servent `caramagnols/backend/public`.
+- SSH/SFTP : serveur FTP/SFTP `ftp.cluster103.hosting.ovh.net`, serveur SSH `ssh.cluster103.hosting.ovh.net`, port SFTP/SSH `22`, port FTP `21`, home `/home/lescaramgl`.
+- SQL : MySQL `8.0`, base `lescaramgl896`, capacite `1/20`, sauvegardes OVH visibles.
+- TLS : certificats Let's Encrypt actifs pour les domaines du perimetre, expiration visible au 2026-07-23 lors du controle.
+- Logs : acces aux statistiques, logs HTTP et logs OVH en moins de quelques minutes.
+- CRON : `caramagnols/backend/core/tools/run_cron_center.php` actif en PHP `8.2`, frequence `8 * * * *`.
+- Reverse proxy : aucun reverse proxy applicatif maitrise n'est expose dans l'offre ; les protections doivent rester applicatives cote PHP.
+- Redemarrage automatique : non applicable a une API persistante puisque le modele retenu est PHP requete/CRON, sans daemon applicatif long vivant.
+- Limites d'execution : interdire les traitements longs en requete HTTP ; toute operation longue doit etre idempotente, journalisee et decoupee en CRON.
 
 Critere de passage : un socle prive modernise est deployable en preproduction avec headers securite, logs, CRON et restauration documentes. Si Node est retenu plus tard, un `hello private-api` non expose publiquement devra etre deployable avec supervision avant toute migration metier.
 
@@ -2943,14 +2959,203 @@ Critere de passage : un socle prive modernise est deployable en preproduction av
 
 Objectif : figer les surfaces avant extraction.
 
-- [ ] Lister toutes les routes privees PHP actuelles.
-- [ ] Lister toutes les tables privees et leurs proprietaires fonctionnels.
-- [ ] Lister tous les fichiers prives et chemins de stockage.
-- [ ] Lister les evenements d'audit existants et manquants.
-- [ ] Lister les permissions par module et action.
-- [ ] Ecrire les contrats API cibles : auth, user, document, discussion, rental, agency import, tax.
-- [ ] Ecrire les schemas d'erreur communs : validation, auth, permission, conflit, rate limit.
-- [ ] Ajouter tests de non-regression PHP sur les routes qui resteront actives pendant la transition.
+- [x] Lister toutes les routes privees PHP actuelles.
+- [x] Lister toutes les tables privees et leurs proprietaires fonctionnels.
+- [x] Lister tous les fichiers prives et chemins de stockage.
+- [x] Lister les evenements d'audit existants et manquants.
+- [x] Lister les permissions par module et action.
+- [x] Ecrire les contrats API cibles : auth, user, document, discussion, rental, agency import, tax.
+- [x] Ecrire les schemas d'erreur communs : validation, auth, permission, conflit, rate limit.
+- [x] Ajouter tests de non-regression PHP sur les routes qui resteront actives pendant la transition.
+
+Cartographie M1 figee le 2026-05-28.
+
+Source canonique des routes : `backend/src/PrivatePortal/Http/PrivateRouteResolver.php`.
+Base de route configurable : `private.base_path`. Les exemples ci-dessous utilisent `/{private}` pour designer le chemin reel, par exemple `/private-4h6F1c` en local ou production.
+
+Routes privees PHP actuelles :
+
+| Domaine | Methodes | Route | Handler | Permission minimale | Erreurs attendues |
+|---|---:|---|---|---|---|
+| Entree | GET | `/{private}` | redirection login | aucune | 302 |
+| Auth | GET, POST | `/{private}/login` | `login` | aucune | validation, rate limit, compte suspendu |
+| Auth legacy | GET, POST | `/{private}/login/index.php` | `login` | aucune | validation, rate limit, compte suspendu |
+| Tableau de bord | GET | `/{private}/dashboard` | `dashboard` | session + module `dashboard` implicite | unauthenticated, forbidden |
+| Documents | GET | `/{private}/documents` | `documents` | session + module `documents` | unauthenticated, forbidden |
+| Bloc-note | GET, POST | `/{private}/blocnote` | `blocnote` | session + module `blocnote` | validation, csrf, forbidden |
+| Dashboard legacy | GET | `/{private}/dashboard.php` | redirection dashboard | aucune | 301 |
+| Session | GET, POST | `/{private}/logout` | `logout` | session | method, csrf |
+| Activation | GET, POST | `/{private}/activate/{token}` | `activate` | token valide | token invalid/expired, validation |
+| Mot de passe | GET, POST | `/{private}/password/forgot` | `password_forgot` | aucune | validation, rate limit |
+| Mot de passe | GET, POST | `/{private}/password/reset/{token}` | `password_reset` | token valide | token invalid/expired, validation |
+| Fichiers documents | GET | `/{private}/files/{documentId}` | `files` | session + module `documents` + proprietaire | not_found, forbidden |
+| Fichiers documents | POST | `/{private}/files/upload` | `files_upload` | session + module `documents` | validation, csrf, payload_too_large, storage |
+| Categories documents | POST | `/{private}/files/categories` | `files_categories` | session + module `documents` | validation, csrf, conflict |
+| Fichiers documents | POST | `/{private}/files/{documentId}/delete` | `files_delete` | session + module `documents` + proprietaire | validation, csrf, not_found |
+| Locations | GET | `/{private}/locations` | `rental_dashboard` | session + module `real_estate_rental` | forbidden |
+| Locations | GET, POST | `/{private}/rental-properties` | `rental_properties` | module `real_estate_rental` | validation, csrf |
+| Locations | POST | `/{private}/rental-properties/{propertyId}/archive` | `rental_property_archive` | proprietaire/gestionnaire | validation, csrf, forbidden |
+| Locations | GET, POST | `/{private}/rental-units` | `rental_units` | acces bien | validation, csrf |
+| Locations | POST | `/{private}/rental-units/{unitId}/archive` | `rental_unit_archive` | acces bien | validation, csrf, forbidden |
+| Locations | GET, POST | `/{private}/rental-property-members` | `rental_property_members` | proprietaire/gestionnaire | validation, csrf, forbidden |
+| Locations | GET, POST | `/{private}/locations/locataires` | `rental_tenants` | acces bien | validation, csrf |
+| Locations | GET, POST | `/{private}/leases` | `rental_leases` | acces bien | validation, csrf |
+| Locations | GET, POST | `/{private}/payments` | `rental_payments` | acces bail/bien | validation, csrf |
+| Locations | GET, POST | `/{private}/rents` | `rental_payments` | acces bail/bien | validation, csrf |
+| Locations | GET, POST | `/{private}/charges` | `rental_expenses` | acces bien | validation, csrf |
+| Locations | GET, POST | `/{private}/locations/documents` | `rental_documents` | acces bien | validation, csrf, storage |
+| Agence | GET, POST | `/{private}/locations/agence/imports` | `rental_agency_imports` | module `real_estate_rental` | validation, csrf, storage |
+| Agence | GET, POST | `/{private}/locations/agence/documents-a-classer` | `rental_agency_review` | module `real_estate_rental` | validation, csrf |
+| Locations | GET | `/{private}/locations/documents/{documentId}` | `rental_document_file` | acces bien/document | not_found, forbidden |
+| Locations | GET | `/{private}/locations/summary` | `rental_summary` | module `real_estate_rental` | forbidden |
+| Locations | GET | `/{private}/locations/export.csv` | `rental_export_csv` | module `real_estate_rental` | forbidden, export |
+| Locations | GET | `/{private}/locations/export.pdf` | `rental_export_pdf` | module `real_estate_rental` | forbidden, export |
+| Impots | GET | `/{private}/impots` | `tax_dashboard` | module `tax_declaration_helper` | forbidden |
+| Impots | GET, POST | `/{private}/impots/{year}` | `tax_year` | module `tax_declaration_helper` | validation, csrf |
+| Impots | GET, POST | `/{private}/impots/{year}/revenus-manuels` | `tax_manual_entries` | module `tax_declaration_helper` | validation, csrf |
+| Impots | GET | `/{private}/impots/{year}/controle` | `tax_controls` | module `tax_declaration_helper` | forbidden |
+| Impots | GET, POST | `/{private}/impots/{year}/documents` | `tax_documents` | module `tax_declaration_helper` | validation, csrf |
+| Impots | GET | `/{private}/impots/{year}/export` | `tax_export` | module `tax_declaration_helper` | forbidden, export |
+| Discussions | GET, POST | `/{private}/discussions` | `discussion_index` | module `discussions` | validation, csrf, rate limit |
+| Discussions | GET, POST | `/{private}/discussions/new` | `discussion_new` | module `discussions` | validation, csrf |
+| Discussions | GET, POST | `/{private}/discussions/{conversationId}` | `discussion_conversation` | membre conversation | forbidden, not_found |
+| Discussions API | GET, POST | `/{private}/discussions/api/conversations` | `discussion_api_conversations` | module `discussions` | validation, csrf, rate limit |
+| Discussions API | GET, POST | `/{private}/discussions/api/conversations/{conversationId}/messages` | `discussion_api_messages` | membre conversation | validation, csrf, rate limit |
+| Discussions API | GET, POST | `/{private}/discussions/api/crypto/devices` | `discussion_api_crypto_devices` | module `discussions` | validation, csrf |
+| Discussions API | GET, POST | `/{private}/discussions/api/conversations/{conversationId}/keys` | `discussion_api_conversation_keys` | membre conversation | validation, csrf |
+| Discussions API | POST | `/{private}/discussions/api/conversations/{conversationId}/members` | `discussion_api_members` | membre autorise | validation, csrf, forbidden |
+| Discussions API | POST | `/{private}/discussions/api/conversations/{conversationId}/leave` | `discussion_api_leave` | membre conversation | csrf, conflict |
+| Discussions API | POST | `/{private}/discussions/api/conversations/{conversationId}/read` | `discussion_api_read` | membre conversation | csrf, not_found |
+| Discussions fichiers | GET | `/{private}/discussions/files/{attachmentId}` | `discussion_file` | membre conversation | not_found, forbidden |
+| Discussions fichiers | GET | `/{private}/discussions/files/{attachmentId}/preview` | `discussion_file_preview` | membre conversation | not_found, forbidden |
+| Vie privee | GET | `/{private}/privacy/export` | `privacy_export` | session | forbidden, export |
+| Vie privee | POST | `/{private}/privacy/anonymize` | `privacy_anonymize` | session + reauth | csrf, conflict |
+| Exploitation | GET | `/{private}/ops/backup` | `ops_backup` | session | forbidden, backup |
+
+Tables privees et proprietaires fonctionnels :
+
+| Domaine | Tables | Proprietaire fonctionnel |
+|---|---|---|
+| Identite et acces | `private_users`, `private_user_invites`, `private_password_resets`, `private_sessions`, `private_mfa_backup_codes` | Socle securite prive |
+| Modules | `private_modules`, `private_user_module_permissions` | Admin technique, attribution par compte |
+| Documents | `private_document_categories`, `private_documents` | Module `documents`, proprietaire `private_user_id` |
+| Bloc-note | `private_blocnote_categories`, `private_blocnote_notes` | Module `blocnote`, proprietaire `private_user_id` |
+| Discussions chiffrees | `discussion_conversations`, `discussion_conversation_members`, `discussion_messages`, `discussion_message_reads`, `discussion_message_attachments`, `discussion_crypto_devices`, `discussion_conversation_keys`, `discussion_retention_runs` | Module `discussions`, acces par membre conversation |
+| Locations socle | `rental_properties`, `rental_units`, `rental_property_members`, `rental_tenants`, `rental_leases`, `rental_payments`, `rental_expenses`, `rental_documents`, `rental_export_logs` | Module `real_estate_rental`, acces par membre de bien |
+| Imports agence | `rental_agency_import_batches`, `rental_agency_imported_documents`, `rental_agency_import_issues`, `rental_agency_statements`, `rental_agency_statement_lines`, `rental_agency_line_mappings` | Sous-domaine agence du module locations |
+| Aide impots | `tax_years`, `tax_income_sources`, `tax_source_activations`, `tax_manual_income_entries`, `tax_annual_summaries`, `tax_summary_lines`, `tax_export_logs` | Module `tax_declaration_helper`, proprietaire `private_user_id` |
+
+Chemins de fichiers prives :
+
+| Usage | Chemin logique | Regle |
+|---|---|---|
+| Stockage prive racine | `backend/private` par defaut, configurable via `PRIVATE_DOCUMENT_STORAGE_ROOT` | Hors webroot, jamais servi directement. |
+| Documents et documents locatifs | `backend/private/storage/uploads/**` | Acces par streaming PHP apres verification proprietaire/module. |
+| Exports et backups ponctuels | `backend/private/storage/exports/**` | Acces admin/prive controle, suppression manuelle ou retention dediee. |
+| Sauvegarde avant purge de compte | `backend/var/private-account-deletion-backups/**` | ZIP + JSON, retention 30 jours, suppression par CRON. |
+| Logs applicatifs | `backend/var/**` ou dossier configure | Ne jamais stocker contenu sensible, document, mot de passe, token ou chemin serveur complet. |
+
+Permissions serveur :
+
+| Module | Code | Lecture | Ecriture | Suppression/export |
+|---|---|---|---|---|
+| Tableau de bord | `dashboard` | session active | aucune ecriture metier | aucune |
+| Documents | `documents` | documents du compte | upload, categorie | suppression logique/physique controlee |
+| Bloc-note | `blocnote` | notes du compte | note, categorie | suppression note/categorie du compte |
+| Discussions | `discussions` | conversations dont l'utilisateur est membre | messages, cles, appareils | leave, lecture, pieces jointes selon appartenance |
+| Locations | `real_estate_rental` | biens accessibles via `rental_property_members` | selon role bien | archive/export si role autorise |
+| Aide impots | `tax_declaration_helper` | annees fiscales du compte | sources, saisies, documents | export controle, verrouillage annuel |
+
+Evenements d'audit existants :
+
+- Auth/session : `private.login.success`, `private.login.rejected`, `private.logout`, `private.session.expired`, `private.csrf.rejected`, `private.access.denied`.
+- Admin comptes prives : `admin.private.member_invited`, `admin.private.invite_resent`, `admin.private.member_suspended`, `admin.private.member_reactivated`, `admin.private.password_reset_requested`, `admin.private.modules_updated`, `admin.private.member_deletion_scheduled_with_backup`.
+- Documents : `private.files.uploaded`, `private.files.deleted`, `private.files.downloaded`, `private.files.category_created`, `private.files.category_deleted`, `private.files.upload_rejected`, `private.files.access_denied`.
+- Bloc-note : `private.blocnote.note.saved`, `private.blocnote.note.deleted`, `private.blocnote.category.saved`, `private.blocnote.category.deleted`.
+- Locations : `private.rental_property.*`, `private.rental_unit.*`, `private.rental_property_member.*`, `private.rental_tenant.*`, `private.rental_lease.*`, `private.rental_payment.*`, `private.rental_expense.*`, `private.rental_document.*`, `private.rental_export.*`.
+- Imports agence : `private.rental_agency_import.imported`, `private.rental_agency_review.property_updated`, `private.rental_agency_review.line_reviewed`.
+- Impots : `private.tax_source_activation.updated`, `private.tax_summary.generated`, `private.tax_year.locked`, `private.tax_year.unlocked`, `private.tax_manual_income.created`, `private.tax_export.created`.
+- Discussions : `private.discussion.access.denied`, `private.discussion.attachment.downloaded`, `private.discussion.rate_limited`, `private.discussion.invite_email_sent`, `private.discussion.invite_email_failed`.
+- Vie privee et operations : `private.privacy.exported`, `private.privacy.anonymized`, `private.ops.backup_created`, `private.module.access_denied`.
+
+Evenements a ajouter quand les API seront extraites :
+
+- `private.api.validation_failed` avec endpoint, champs refuses et request id, sans payload sensible.
+- `private.api.permission_denied` avec module/action et identifiant masque.
+- `private.api.conflict` pour doublons, etats verrouilles et actions non idempotentes.
+- `private.api.storage_failed` pour upload, streaming, ZIP et restauration.
+- `private.api.contract_violation` en preproduction uniquement, si une reponse sort du schema attendu.
+
+Contrats API cibles. En M1, ces contrats guident la modernisation ; les routes PHP serveur restent la source active tant que M2/M3 ne sont pas terminees.
+
+| Domaine | Endpoint cible | Methode | Entree minimale | Sortie nominale | Permission |
+|---|---|---:|---|---|---|
+| Auth | `/api/private/auth/login` | POST | `email`, `password`, `csrf` | session ouverte, profil minimal | aucune + rate limit |
+| Auth | `/api/private/auth/logout` | POST | `csrf` | session fermee | session |
+| Auth | `/api/private/auth/password/forgot` | POST | `email`, `csrf` | demande acceptee sans divulguer l'existence du compte | rate limit |
+| Auth | `/api/private/auth/password/reset` | POST | `token`, `password`, `password_confirmation` | mot de passe remplace | token valide |
+| User | `/api/private/me` | GET | session | compte, modules actifs, session | session |
+| User | `/api/private/me/modules` | GET | session | modules et droits effectifs | session |
+| Documents | `/api/private/documents` | GET | filtres categorie/recherche | liste paginee | module `documents` |
+| Documents | `/api/private/documents` | POST | fichier, categorie, csrf | document cree | module `documents` |
+| Documents | `/api/private/documents/{id}` | GET | id | flux fichier | proprietaire |
+| Documents | `/api/private/documents/{id}` | DELETE | csrf | document supprime | proprietaire |
+| Documents | `/api/private/document-categories` | POST | nom, couleur, csrf | categorie creee ou modifiee | module `documents` |
+| Bloc-note | `/api/private/notes` | GET | filtres categorie/recherche | liste paginee | module `blocnote` |
+| Bloc-note | `/api/private/notes` | POST | titre, contenu, categorie, csrf | note creee | module `blocnote` |
+| Bloc-note | `/api/private/notes/{id}` | PATCH | champs modifies, csrf | note mise a jour | proprietaire |
+| Bloc-note | `/api/private/notes/{id}` | DELETE | csrf | note supprimee | proprietaire |
+| Discussions | `/api/private/discussions/conversations` | GET, POST | titre, membres, cles | conversation/liste | module `discussions` |
+| Discussions | `/api/private/discussions/conversations/{id}/messages` | GET, POST | message chiffre, pieces jointes | messages/livraison | membre conversation |
+| Discussions | `/api/private/discussions/crypto/devices` | GET, POST | device id, cle publique | appareil enregistre | module `discussions` |
+| Rental | `/api/private/rental/properties` | GET, POST | bien, adresse, type | bien/liste | module `real_estate_rental` |
+| Rental | `/api/private/rental/units` | GET, POST | bien, lot | lot/liste | acces bien |
+| Rental | `/api/private/rental/tenants` | GET, POST | locataire | locataire/liste | acces bien |
+| Rental | `/api/private/rental/leases` | GET, POST | bail | bail/liste | acces bien |
+| Rental | `/api/private/rental/payments` | GET, POST | echeance/paiement | paiement/liste | acces bien |
+| Rental | `/api/private/rental/expenses` | GET, POST | charge | charge/liste | acces bien |
+| Agency import | `/api/private/rental/agency/imports` | POST | fichiers agence | lot d'import | module `real_estate_rental` |
+| Agency import | `/api/private/rental/agency/review` | GET, POST | lignes a classer | rapprochement sauvegarde | module `real_estate_rental` |
+| Tax | `/api/private/tax/years` | GET, POST | annee | annee fiscale | module `tax_declaration_helper` |
+| Tax | `/api/private/tax/years/{year}/manual-income` | GET, POST | revenu manuel | saisie fiscale | module `tax_declaration_helper` |
+| Tax | `/api/private/tax/years/{year}/summary` | GET, POST | sources activees | synthese annuelle | module `tax_declaration_helper` |
+| Tax | `/api/private/tax/years/{year}/export` | GET | format | fichier export | module `tax_declaration_helper` |
+
+Schema d'erreur commun cible :
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "validation_failed",
+    "message": "La demande est invalide.",
+    "fields": {
+      "email": ["invalid_email"]
+    },
+    "requestId": "req_20260528_abcdef"
+  }
+}
+```
+
+Codes d'erreur cibles :
+
+| Code | HTTP | Usage |
+|---|---:|---|
+| `validation_failed` | 422 | Champ absent, format invalide, taille excessive, enum inconnue. |
+| `csrf_invalid` | 403 | Jeton CSRF absent ou invalide. |
+| `unauthenticated` | 401 | Session absente ou expiree. |
+| `forbidden` | 403 | Module non attribue ou permission action insuffisante. |
+| `not_found` | 404 | Ressource inexistante ou masquee par securite. |
+| `conflict` | 409 | Etat incompatible, doublon, verrouillage annuel, suppression deja planifiee. |
+| `rate_limited` | 429 | Login, reset, discussion ou action sensible limitee. |
+| `payload_too_large` | 413 | Fichier ou corps HTTP trop volumineux. |
+| `storage_failed` | 500 | Echec de stockage, streaming, ZIP ou suppression fichier. |
+| `server_error` | 500 | Erreur non divulguee, journalisee cote serveur. |
+
+Tests M1 :
+
+- `PrivateRouteResolverTest::testPhaseM1RouteDefinitionsMatchDocumentedContracts` fige la carte actuelle des routes privees et force toute modification future a mettre a jour le contrat.
+- Les tests existants `PrivatePortalPhaseCoverageTest` gardent les routes metier derriere la garde privee et les headers `noindex`.
 
 Critere de passage : chaque endpoint cible a un contrat, une permission, une erreur attendue et un test minimal.
 

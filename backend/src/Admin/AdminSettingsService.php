@@ -568,15 +568,25 @@ final class AdminSettingsService
     {
         return [
             'rental_subject' => 'Document locatif',
-            'rental_body' => "Bonjour,\n\nVous trouverez le document locatif en pièce jointe.\n\nCordialement,\nLes Caramagnols",
+            'rental_body' => "Bonjour,\n\nVous trouverez le document locatif en pièce jointe.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.\n\n{{site_name}}",
             'tax_subject' => 'Aide impôts - document PDF',
-            'tax_body' => "Bonjour,\n\nVous trouverez le PDF d'aide à la déclaration en pièce jointe.\n\nCordialement,\nLes Caramagnols",
+            'tax_body' => "Bonjour,\n\nVous trouverez le PDF d'aide à la déclaration en pièce jointe.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.\n\n{{site_name}}",
             'discussion_invite_subject' => 'Invitation à rejoindre les discussions famille',
-            'discussion_invite_body' => "Bonjour,\n\nVous êtes invité à rejoindre l'espace privé Les Caramagnols pour accéder aux discussions famille.\n\nModules disponibles selon vos droits : documents privés, discussions famille, locations immobilières, aide impôts.\n\nLien d'activation : {{activation_url}}\nIdentifiant : {{email}}\n\nPour toute question ou une demande d'accès, vous pouvez écrire à private@lescaramagnols.com.",
+            'discussion_invite_body' => "Bonjour,\n\nVous êtes invité à rejoindre l'espace privé {{site_name}} pour accéder aux discussions famille.\n\nModules disponibles selon vos droits : documents privés, discussions famille, locations immobilières, aide impôts.\n\nLien d'activation : {{activation_url}}\nIdentifiant : {{email}}\n\nPour toute question ou une demande d'accès, vous pouvez écrire à {{reply_to}}.",
             'admin_invite_subject' => 'Accès à votre espace privé',
-            'admin_invite_body' => "Bonjour,\n\nVotre accès à l'espace privé Les Caramagnols a été préparé.\n\nUn mot de passe temporaire fort a été généré côté serveur. Pour des raisons de sécurité, il n'est pas envoyé par email : définissez votre mot de passe personnel depuis le lien sécurisé.\n\nLien d'activation : {{activation_url}}\nIdentifiant : {{email}}\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com.",
+            'admin_invite_body' => "Bonjour,\n\nVotre accès à l'espace privé {{site_name}} a été préparé.\n\nUn mot de passe temporaire fort a été généré côté serveur. Pour des raisons de sécurité, il n'est pas envoyé par email : définissez votre mot de passe personnel depuis le lien sécurisé.\n\nLien d'activation : {{activation_url}}\nIdentifiant : {{email}}\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
             'password_reset_subject' => 'Réinitialisation de votre espace privé',
-            'password_reset_body' => "Bonjour,\n\nRéinitialisez votre mot de passe avec ce lien sécurisé : {{reset_url}}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
+            'password_reset_body' => "Bonjour,\n\nRéinitialisez votre mot de passe {{site_name}} avec ce lien sécurisé : {{reset_url}}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
+            'member_suspended_subject' => 'Compte privé suspendu',
+            'member_suspended_body' => "Bonjour,\n\nVotre compte privé {{site_name}} a été suspendu. Vous ne pouvez plus vous connecter tant qu’il n’est pas réactivé.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
+            'member_reactivated_subject' => 'Compte privé réactivé',
+            'member_reactivated_body' => "Bonjour,\n\nVotre compte privé {{site_name}} a été réactivé. Vous pouvez de nouveau vous connecter à l’espace privé : {{login_url}}\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
+            'member_deletion_scheduled_subject' => 'Suppression programmée de votre compte privé',
+            'member_deletion_scheduled_body' => "Bonjour,\n\nLa suppression de votre compte privé {{site_name}} a été programmée.\n\nUne sauvegarde ZIP des données a été créée, puis les données rattachées au compte ont été purgées. Le compte suspendu et la sauvegarde seront supprimés définitivement le {{delete_after}}.\n\nUn email de rappel sera envoyé après 20 jours.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
+            'member_deletion_warning_subject' => 'Suppression prochaine de votre compte privé',
+            'member_deletion_warning_body' => "Bonjour,\n\nVotre compte privé {{site_name}} est programmé pour suppression définitive le {{delete_after}}.\n\nUne sauvegarde ZIP des données purgées peut encore être récupérée avant cette date par l’administration de l’espace privé. Elle contient les données SQL et les fichiers retrouvés au moment de la sauvegarde. Cette sauvegarde sert uniquement à conserver ou transmettre les données : elle ne permet pas de récupérer ni de réactiver le compte.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
+            'member_deletion_final_subject' => 'Suppression définitive de votre compte privé',
+            'member_deletion_final_body' => "Bonjour,\n\nVotre compte privé {{site_name}} et les données rattachées ont été supprimés définitivement le {{today}}.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
         ];
     }
 

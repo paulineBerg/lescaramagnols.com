@@ -48,6 +48,18 @@ final class PrivateDataProtectionService
                 ['private_user_id' => $privateUserId],
                 ['id', 'name', 'slug', 'color', 'is_active', 'created_at', 'updated_at']
             ),
+            'blocnoteNotes' => $this->rows(
+                'private_blocnote_notes',
+                '`private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['id', 'private_user_id', 'category_id', 'title', 'content', 'color', 'created_at', 'updated_at']
+            ),
+            'blocnoteCategories' => $this->rows(
+                'private_blocnote_categories',
+                '`private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['id', 'private_user_id', 'name', 'slug', 'color', 'is_default', 'created_at', 'updated_at']
+            ),
             'rentalMemberships' => $this->rows(
                 'rental_property_members',
                 '`private_user_id` = :private_user_id',
@@ -790,6 +802,8 @@ final class PrivateDataProtectionService
             'private_mfa_backup_codes' => '`private_user_id` = :private_user_id',
             'private_documents' => '`private_user_id` = :private_user_id OR `uploaded_by_private_user_id` = :private_user_id OR `deleted_by_private_user_id` = :private_user_id',
             'private_document_categories' => '`private_user_id` = :private_user_id',
+            'private_blocnote_notes' => '`private_user_id` = :private_user_id',
+            'private_blocnote_categories' => '`private_user_id` = :private_user_id',
             'discussion_messages' => '`sender_private_user_id` = :private_user_id',
             'discussion_message_attachments' => $messageIds,
             'discussion_conversation_members' => '`private_user_id` = :private_user_id',
@@ -830,6 +844,8 @@ final class PrivateDataProtectionService
             'discussion_conversation_members',
             'private_documents',
             'private_document_categories',
+            'private_blocnote_notes',
+            'private_blocnote_categories',
             'rental_export_logs',
             'rental_documents',
             'rental_payments',
@@ -981,10 +997,13 @@ final class PrivateDataProtectionService
 
                 $email = is_array($payload) ? $this->backupEmail($payload) : '';
                 if ($email !== '') {
-                    $this->sendPrivateAccountEmail(
+                    $this->sendPrivateAccountTemplateEmail(
                         $email,
+                        'member_deletion_final_subject',
                         'Suppression définitive de votre compte privé',
-                        "Bonjour,\n\nVotre compte privé Les Caramagnols et les données rattachées ont été supprimés définitivement.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com."
+                        'member_deletion_final_body',
+                        "Bonjour,\n\nVotre compte privé {{site_name}} et les données rattachées ont été supprimés définitivement le {{today}}.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
+                        $payload
                     );
                 }
 
@@ -1060,10 +1079,13 @@ final class PrivateDataProtectionService
                 continue;
             }
 
-            $sent = $this->sendPrivateAccountEmail(
+            $sent = $this->sendPrivateAccountTemplateEmail(
                 $email,
+                'member_deletion_warning_subject',
                 'Suppression prochaine de votre compte privé',
-                "Bonjour,\n\nVotre compte privé Les Caramagnols est programmé pour suppression définitive le " . date('d/m/Y', $deleteAfter) . ".\n\nUne sauvegarde ZIP des données purgées peut encore être récupérée avant cette date par l’administration de l’espace privé. Elle contient les données SQL et les fichiers retrouvés au moment de la sauvegarde. Cette sauvegarde sert uniquement à conserver ou transmettre les données : elle ne permet pas de récupérer ni de réactiver le compte.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com."
+                'member_deletion_warning_body',
+                "Bonjour,\n\nVotre compte privé {{site_name}} est programmé pour suppression définitive le {{delete_after}}.\n\nUne sauvegarde ZIP des données purgées peut encore être récupérée avant cette date par l’administration de l’espace privé. Elle contient les données SQL et les fichiers retrouvés au moment de la sauvegarde. Cette sauvegarde sert uniquement à conserver ou transmettre les données : elle ne permet pas de récupérer ni de réactiver le compte.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
+                $payload
             );
             if (!$sent) {
                 ++$result['errors'];
@@ -1109,6 +1131,28 @@ final class PrivateDataProtectionService
         return filter_var($email, FILTER_VALIDATE_EMAIL) ? strtolower($email) : '';
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function sendPrivateAccountTemplateEmail(
+        string $email,
+        string $subjectKey,
+        string $subjectFallback,
+        string $bodyKey,
+        string $bodyFallback,
+        array $payload
+    ): bool {
+        $variables = [
+            'delete_after' => $this->payloadDeleteAfterLabel($payload),
+        ];
+
+        return $this->sendPrivateAccountEmail(
+            $email,
+            $this->renderPrivateAccountMailTemplate($this->privateMailTemplate($subjectKey, $subjectFallback), $email, $variables),
+            $this->renderPrivateAccountMailTemplate($this->privateMailTemplate($bodyKey, $bodyFallback), $email, $variables)
+        );
+    }
+
     private function sendPrivateAccountEmail(string $email, string $subject, string $message): bool
     {
         $mailConfig = app_config('private.mail', []);
@@ -1130,6 +1174,44 @@ final class PrivateDataProtectionService
         $html = '<p>' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), false) . '</p>';
 
         return send_private_email($email, sanitize_text_field($subject, 180), $html);
+    }
+
+    private function privateMailTemplate(string $key, string $fallback): string
+    {
+        $template = app_config('private.mail.templates.' . $key, $fallback);
+
+        return is_scalar($template) ? (string) $template : $fallback;
+    }
+
+    /**
+     * @param array<string, string> $variables
+     */
+    private function renderPrivateAccountMailTemplate(string $template, string $email, array $variables = []): string
+    {
+        $commonVariables = [
+            'email' => $email,
+            'today' => date('d/m/Y'),
+            'login_url' => app_url(private_portal_url('login')),
+            'private_url' => app_url(private_portal_url('login')),
+            'site_name' => (string) app_config('site.name', 'Les Caramagnols'),
+            'reply_to' => (string) app_config('private.mail.reply_to', 'private@lescaramagnols.com'),
+        ];
+        $replacements = [];
+        foreach (array_merge($commonVariables, $variables) as $key => $value) {
+            $replacements['{{' . $key . '}}'] = (string) $value;
+        }
+
+        return strtr($template, $replacements);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function payloadDeleteAfterLabel(array $payload): string
+    {
+        $deleteAfter = is_string($payload['deleteAfter'] ?? null) ? strtotime((string) $payload['deleteAfter']) : false;
+
+        return $deleteAfter !== false ? date('d/m/Y', $deleteAfter) : '';
     }
 
     private function deletionBackupRoot(): string

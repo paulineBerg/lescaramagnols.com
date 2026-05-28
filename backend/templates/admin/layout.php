@@ -96,22 +96,27 @@ $adminMenu = [
         display: flex;
         min-height: 100vh;
         align-items: flex-start;
+        width: 100%;
       }
 
       nav.admin-nav {
         flex: 0 0 var(--admin-nav-width);
         width: var(--admin-nav-width);
+        height: 100vh;
         min-height: 100vh;
-        max-height: 100vh;
+        max-height: none;
         background: linear-gradient(180deg, var(--admin-primary), #24a0b5);
         color: #fff;
         padding: 2.5rem 1.8rem;
         display: flex;
         flex-direction: column;
         gap: 2rem;
-        position: sticky;
+        position: fixed;
         top: 0;
+        left: 0;
+        z-index: 20;
         overflow-y: auto;
+        overscroll-behavior: contain;
       }
 
       .nav-brand {
@@ -171,6 +176,8 @@ $adminMenu = [
         flex: 1 1 auto;
         display: flex;
         flex-direction: column;
+        width: calc(100% - var(--admin-nav-width));
+        margin-left: var(--admin-nav-width);
         min-width: 0;
         min-height: 100vh;
       }
@@ -1639,6 +1646,50 @@ $adminMenu = [
         line-height: 1.35;
       }
 
+      .admin-private-members-delete-dialog {
+        position: fixed;
+        inset: 0;
+        z-index: 1300;
+        display: grid;
+        place-items: center;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 1rem;
+        background: rgba(19, 41, 75, 0.45);
+        overflow-y: auto;
+      }
+
+      .admin-private-members-delete-dialog[hidden] {
+        display: none;
+      }
+
+      .admin-private-members-delete-dialog .admin-private-members-delete-form {
+        width: min(32rem, 100%);
+        max-width: none;
+        padding: 1.15rem;
+        box-shadow: 0 24px 60px rgba(19, 41, 75, 0.24);
+      }
+
+      .admin-private-members-delete-dialog-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .admin-private-members-delete-dialog-header h3 {
+        margin: 0;
+        color: #9b1c2a;
+        font-size: 1.05rem;
+      }
+
+      .admin-private-members-delete-dialog-email {
+        margin: 0;
+        color: var(--admin-muted);
+        overflow-wrap: anywhere;
+      }
+
       .admin-private-members-backup-note {
         margin: 0;
         max-width: 22rem;
@@ -2982,11 +3033,19 @@ $adminMenu = [
         nav.admin-nav {
           flex: 1 1 auto;
           width: 100%;
+          height: auto;
           min-height: auto;
           max-height: none;
           position: static;
+          top: auto;
+          left: auto;
           overflow: visible;
           padding: 2rem 1.4rem;
+        }
+
+        .admin-content {
+          width: 100%;
+          margin-left: 0;
         }
 
         .nav-menu {
@@ -3194,6 +3253,78 @@ $adminMenu = [
       .admin-private-members-confirm-actions .button-small {
         white-space: normal;
         text-align: left;
+      }
+
+      .admin-private-members-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .admin-private-members-delete-panel {
+        width: 100%;
+        max-width: 24rem;
+      }
+
+      .admin-private-members-delete-panel > summary {
+        display: inline-flex;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .admin-private-members-delete-panel > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .admin-private-members-delete-panel[open] > summary {
+        margin-bottom: 0.55rem;
+      }
+
+      .admin-private-members-delete-panel .admin-private-members-delete-form {
+        max-width: min(24rem, 100%);
+      }
+
+      .admin-private-members-confirm-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      @media (min-width: 1100px) {
+        .admin-private-members-confirm-actions {
+          grid-template-columns: repeat(2, minmax(0, max-content));
+        }
+      }
+
+      .admin-private-members-table th:nth-child(6),
+      .admin-private-members-table td:nth-child(6) {
+        min-width: 18rem;
+      }
+
+      .admin-private-mail-template-help {
+        display: grid;
+        gap: 0.45rem;
+        margin: 1rem 0;
+        padding: 0.9rem 1rem;
+        border: 1px solid rgba(43, 146, 165, 0.2);
+        border-radius: 0.9rem;
+        background: rgba(43, 146, 165, 0.07);
+        color: var(--admin-primary-dark);
+      }
+
+      .admin-private-mail-template-help p {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin: 0;
+      }
+
+      .admin-private-mail-template-help code {
+        display: inline-flex;
+        padding: 0.2rem 0.45rem;
+        border-radius: 0.45rem;
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--admin-primary-dark);
+        font-size: 0.85rem;
       }
     </style>
   </head>

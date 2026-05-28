@@ -96,8 +96,9 @@ final class RealEstateRentalModuleTest extends TestCase
         $dashboard = $controller->handle('rental_dashboard', $this->request('GET', '/private/locations'));
         $this->assertSame(200, $dashboard->status);
         $this->assertStringContainsString('Tableau de bord locatif', $dashboard->body);
-        $this->assertStringContainsString('Gestion perso', $dashboard->body);
-        $this->assertStringContainsString('Gestion agence', $dashboard->body);
+        $this->assertStringContainsString('Biens et locations', $dashboard->body);
+        $this->assertStringContainsString('Documents agence', $dashboard->body);
+        $this->assertStringContainsString('Rapports', $dashboard->body);
         $this->assertStringContainsString('Maison A', $dashboard->body);
         $this->assertStringNotContainsString('Maison B', $dashboard->body);
     }

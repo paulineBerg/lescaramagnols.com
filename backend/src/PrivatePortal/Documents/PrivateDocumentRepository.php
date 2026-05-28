@@ -10,6 +10,16 @@ use PDO;
 final class PrivateDocumentRepository
 {
     private const DOCUMENT_ID_MAX_LENGTH = 64;
+    public const DEFAULT_CATEGORY_COLOR = '#ffffff';
+    public const CATEGORY_COLORS = [
+        '#ffffff',
+        '#fff1d6',
+        '#ffe0e0',
+        '#e1f7d5',
+        '#d6ecff',
+        '#eadbff',
+        '#ffdff3',
+    ];
 
     private bool $privateSchemaReady = false;
 
@@ -163,11 +173,20 @@ final class PrivateDocumentRepository
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT *
+                    'SELECT c.*,
+                            (
+                                SELECT COUNT(*)
+                                FROM `%s` d
+                                WHERE d.`category_id` = c.`id`
+                                  AND d.`private_user_id` = c.`private_user_id`
+                                  AND d.`is_active` = 1
+                            ) AS `documents_count`
                      FROM `%s`
-                     WHERE `private_user_id` = :user_id
-                       AND `is_active` = 1
-                     ORDER BY `name` ASC, `id` ASC',
+                     c
+                     WHERE c.`private_user_id` = :user_id
+                       AND c.`is_active` = 1
+                     ORDER BY c.`name` ASC, c.`id` ASC',
+                    $this->table(),
                     $this->categoryTable()
                 )
             );
@@ -222,6 +241,11 @@ final class PrivateDocumentRepository
 
     public function createCategory(int $userId, string $name, string $color = ''): ?array
     {
+        return $this->saveCategory($userId, 0, $name, $color);
+    }
+
+    public function saveCategory(int $userId, int $categoryId, string $name, string $color = ''): ?array
+    {
         $name = sanitize_text_field($name, 80);
         $name = trim((string) preg_replace('/\s+/', ' ', $name));
         $slug = $this->slugifyCategoryName($name);
@@ -232,6 +256,33 @@ final class PrivateDocumentRepository
 
         try {
             $this->ensureSchema();
+            if ($categoryId > 0 && $this->findCategoryForUser($categoryId, $userId) !== null) {
+                $statement = $this->database->pdo()->prepare(
+                    sprintf(
+                        'UPDATE `%s`
+                         SET `name` = :name,
+                             `slug` = :slug,
+                             `color` = :color,
+                             `is_active` = 1,
+                             `updated_at` = :updated_at
+                         WHERE `id` = :id
+                           AND `private_user_id` = :user_id
+                           AND `is_active` = 1',
+                        $this->categoryTable()
+                    )
+                );
+                $statement->execute([
+                    'name' => $name,
+                    'slug' => $slug,
+                    'color' => $color,
+                    'updated_at' => $this->currentDateTime(),
+                    'id' => $categoryId,
+                    'user_id' => $userId,
+                ]);
+
+                return $this->findCategoryForUser($categoryId, $userId);
+            }
+
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
@@ -259,6 +310,57 @@ final class PrivateDocumentRepository
             return $this->findCategoryBySlugForUser($slug, $userId);
         } catch (\Throwable) {
             return null;
+        }
+    }
+
+    public function deactivateCategory(int $userId, int $categoryId): bool
+    {
+        if ($userId <= 0 || $categoryId <= 0 || $this->findCategoryForUser($categoryId, $userId) === null) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+
+            $detachDocuments = $pdo->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `category_id` = NULL
+                     WHERE `private_user_id` = :user_id
+                       AND `category_id` = :category_id',
+                    $this->table()
+                )
+            );
+            $detachDocuments->execute(['user_id' => $userId, 'category_id' => $categoryId]);
+
+            $deactivate = $pdo->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `is_active` = 0,
+                         `updated_at` = :updated_at
+                     WHERE `private_user_id` = :user_id
+                       AND `id` = :category_id
+                       AND `is_active` = 1',
+                    $this->categoryTable()
+                )
+            );
+            $deactivate->execute([
+                'updated_at' => $this->currentDateTime(),
+                'user_id' => $userId,
+                'category_id' => $categoryId,
+            ]);
+
+            $pdo->commit();
+
+            return $deactivate->rowCount() > 0;
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return false;
         }
     }
 
@@ -509,6 +611,7 @@ final class PrivateDocumentRepository
             'name' => $name,
             'slug' => $slug,
             'color' => is_string($row['color'] ?? null) ? (string) $row['color'] : '',
+            'documentsCount' => is_scalar($row['documents_count'] ?? null) ? (int) $row['documents_count'] : 0,
             'isActive' => (int) ($row['is_active'] ?? 0) === 1,
             'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
             'updatedAt' => is_string($row['updated_at'] ?? null) ? (string) $row['updated_at'] : '',
@@ -576,7 +679,7 @@ final class PrivateDocumentRepository
     {
         $color = trim($color);
 
-        return preg_match('/\A#[0-9A-Fa-f]{6}\z/', $color) === 1 ? strtolower($color) : '';
+        return preg_match('/\A#[0-9A-Fa-f]{6}\z/', $color) === 1 ? strtolower($color) : self::DEFAULT_CATEGORY_COLOR;
     }
 
     private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void

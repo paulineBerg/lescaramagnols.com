@@ -94,7 +94,8 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
 
         foreach ($phase5Routes as $route) {
             $response = $frontController->handle($this->request('GET', $route));
-            $this->assertSame(403, $response->status, 'Phase 5 routes must be private-guarded when unauthenticated.');
+            $this->assertSame(302, $response->status, 'Phase 5 routes must redirect to login when unauthenticated.');
+            $this->assertSame('/private/login', $response->headers['Location'] ?? null);
             $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
         }
     }
@@ -116,7 +117,8 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
 
         foreach ($phase6Routes as $route) {
             $response = $frontController->handle($this->request('GET', $route));
-            $this->assertSame(403, $response->status, 'Phase 6 routes must be private-guarded when unauthenticated.');
+            $this->assertSame(302, $response->status, 'Phase 6 routes must redirect to login when unauthenticated.');
+            $this->assertSame('/private/login', $response->headers['Location'] ?? null);
             $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
         }
     }
@@ -155,7 +157,8 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
 
         foreach ($phase8Routes as $route) {
             $response = $frontController->handle($this->request('GET', $route));
-            $this->assertSame(403, $response->status, 'Phase 8 routes must be private-guarded when unauthenticated.');
+            $this->assertSame(302, $response->status, 'Phase 8 routes must redirect to login when unauthenticated.');
+            $this->assertSame('/private/login', $response->headers['Location'] ?? null);
             $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
         }
     }
@@ -184,7 +187,10 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
 
         foreach ($routes as [$method, $route]) {
             $response = $frontController->handle($this->request($method, $route));
-            $this->assertSame(403, $response->status, 'Phase 10 discussion routes must be private-guarded when unauthenticated.');
+            $this->assertContains($response->status, [302, 403], 'Phase 10 discussion routes must stay behind the private guard.');
+            if ($response->status === 302) {
+                $this->assertSame('/private/login', $response->headers['Location'] ?? null);
+            }
             $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
         }
     }
@@ -199,7 +205,8 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
 
         foreach (['/private/privacy/export', '/private/ops/backup'] as $route) {
             $privateResponse = $frontController->handle($this->request('GET', $route));
-            $this->assertSame(403, $privateResponse->status);
+            $this->assertSame(302, $privateResponse->status);
+            $this->assertSame('/private/login', $privateResponse->headers['Location'] ?? null);
             $this->assertSame('noindex, nofollow, noarchive', $privateResponse->headers['X-Robots-Tag'] ?? null);
         }
     }

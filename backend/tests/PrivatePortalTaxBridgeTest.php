@@ -168,6 +168,7 @@ final class PrivatePortalTaxBridgeTest extends TestCase
         $this->assertNotNull($unit);
         $tenant = $lifecycleRepository->createTenant(
             $property->id,
+            $unit->id,
             'Locataire bridge ' . substr(md5($propertyName), 0, 4),
             null,
             null,

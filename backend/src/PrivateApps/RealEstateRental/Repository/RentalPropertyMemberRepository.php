@@ -450,6 +450,10 @@ final class RentalPropertyMemberRepository
         }
 
         $this->database->ensureReady();
+        $propertyConstraint = $this->constraintName('property');
+        $userConstraint = $this->constraintName('user');
+        $addedByConstraint = $this->constraintName('added_by_user');
+        $removedByConstraint = $this->constraintName('removed_by_user');
         $this->database->pdo()->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -468,27 +472,31 @@ final class RentalPropertyMemberRepository
                     UNIQUE KEY `uq_rental_property_members_property_user` (`rental_property_id`, `private_user_id`),
                     KEY `idx_rental_property_members_property` (`rental_property_id`, `is_active`),
                     KEY `idx_rental_property_members_user` (`private_user_id`, `is_active`),
-                    CONSTRAINT fk_rental_property_members_property
+                    CONSTRAINT `%s`
                         FOREIGN KEY (`rental_property_id`)
                         REFERENCES `%s` (`id`)
                         ON DELETE CASCADE,
-                    CONSTRAINT fk_rental_property_members_user
+                    CONSTRAINT `%s`
                         FOREIGN KEY (`private_user_id`)
                         REFERENCES `%s` (`id`)
                         ON DELETE CASCADE,
-                    CONSTRAINT fk_rental_property_members_added_by_user
+                    CONSTRAINT `%s`
                         FOREIGN KEY (`added_by_private_user_id`)
                         REFERENCES `%s` (`id`)
                         ON DELETE CASCADE,
-                    CONSTRAINT fk_rental_property_members_removed_by_user
+                    CONSTRAINT `%s`
                         FOREIGN KEY (`removed_by_private_user_id`)
                         REFERENCES `%s` (`id`)
                         ON DELETE SET NULL
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->table(),
+                $propertyConstraint,
                 $this->database->table('rental_properties'),
+                $userConstraint,
                 $this->database->table('private_users'),
+                $addedByConstraint,
                 $this->database->table('private_users'),
+                $removedByConstraint,
                 $this->database->table('private_users')
             )
         );
@@ -521,5 +529,12 @@ final class RentalPropertyMemberRepository
         }
 
         return min($limit, 500);
+    }
+
+    private function constraintName(string $name): string
+    {
+        $base = preg_replace('/[^A-Za-z0-9_]+/', '_', $this->database->table('rental_property_members') . '_' . $name) ?? $name;
+
+        return substr($base, 0, 64);
     }
 }

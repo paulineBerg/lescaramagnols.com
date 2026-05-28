@@ -68,7 +68,8 @@ final class PrivatePortalSecurityPhase9Test extends TestCase
     {
         foreach (['/private/privacy/export', '/private/ops/backup'] as $route) {
             $response = $this->frontController()->handle($this->request('GET', $route));
-            $this->assertSame(403, $response->status);
+            $this->assertSame(302, $response->status);
+            $this->assertSame('/private/login', $response->headers['Location'] ?? null);
             $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
             $this->assertSame('private, no-store, no-cache, must-revalidate', $response->headers['Cache-Control'] ?? null);
             $this->assertSame('DENY', $response->headers['X-Frame-Options'] ?? null);

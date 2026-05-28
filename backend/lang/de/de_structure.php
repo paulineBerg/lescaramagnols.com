@@ -1223,5 +1223,7 @@ return [
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DOWNLOAD' => 'ZIP-Sicherung herunterladen',
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DELETE_AFTER' => 'Endgueltige Loeschung von Konto und Sicherung geplant am %s.',
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_NO_RESTORE' => 'Die ZIP-Sicherung enthaelt backup.json, manifest.json und gefundene Dateien. Sie reaktiviert das Konto nicht und stellt Daten nicht automatisch wieder her.',
+    'TXT_ADMIN_PRIVATE_MAIL_VARIABLES_TITLE' => 'Verfügbare Variablen',
+    'TXT_ADMIN_PRIVATE_MAIL_VARIABLES_HELP' => 'Variablen, die fuer eine Nachricht nicht verfuegbar sind, bleiben unveraendert. Beispiele: {{activation_url}} fuer Einladungen, {{reset_url}} fuer Passwort-Resets, {{delete_after}} fuer geplante Loeschungen.',
 
 ];

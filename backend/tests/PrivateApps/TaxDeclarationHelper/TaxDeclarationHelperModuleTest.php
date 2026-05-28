@@ -204,7 +204,7 @@ final class TaxDeclarationHelperModuleTest extends TestCase
         $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
         $unit = $unitRepository->create($property->id, 'Lot fiscal ' . bin2hex(random_bytes(2)), 40.0, false, 'available', null, $ownerId);
         $this->assertNotNull($unit);
-        $tenant = $lifecycleRepository->createTenant($property->id, 'Locataire fiscal', null, null, 'validated', $ownerId, null);
+        $tenant = $lifecycleRepository->createTenant($property->id, $unit->id, 'Locataire fiscal', null, null, 'validated', $ownerId, null);
         $this->assertIsArray($tenant);
         $lease = $lifecycleRepository->createLease($property->id, $unit->id, (int) $tenant['id'], '2026-01-01', null, 1000.0, 50.0, 'validated', $ownerId, null);
         $this->assertIsArray($lease);

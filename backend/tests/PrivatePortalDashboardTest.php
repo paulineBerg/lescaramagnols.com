@@ -64,7 +64,7 @@ final class PrivatePortalDashboardTest extends TestCase
         $login = $controller->handle('login', $this->request('POST', '/private/login', [
             'identifier' => 'family@example.com',
             'password' => 'StrongPassword1!',
-            'csrf_token' => csrf_token('private'),
+            'csrf_token' => $this->privateCsrfToken($session, 'private'),
         ]));
         $this->assertSame(302, $login->status);
 
@@ -110,17 +110,22 @@ final class PrivatePortalDashboardTest extends TestCase
         $login = $controller->handle('login', $this->request('POST', '/private/login', [
             'identifier' => 'family@example.com',
             'password' => 'StrongPassword1!',
-            'csrf_token' => csrf_token('private'),
+            'csrf_token' => $this->privateCsrfToken($session, 'private'),
         ]));
         $this->assertSame(302, $login->status);
 
         $dashboard = $controller->handle('dashboard', $this->request('GET', '/private/dashboard'));
         $this->assertSame(200, $dashboard->status);
-        $this->assertStringContainsString('name="document_file"', $dashboard->body);
-        $this->assertStringContainsString('name="category_name"', $dashboard->body);
-        $this->assertStringContainsString('Assurances habitation', $dashboard->body);
-        $this->assertStringContainsString('compte-rendu.doc', $dashboard->body);
-        $this->assertStringContainsString('/private/files/' . $documentId, $dashboard->body);
+        $this->assertStringContainsString('/private/documents', $dashboard->body);
+        $this->assertStringNotContainsString('name="document_file"', $dashboard->body);
+
+        $documents = $controller->handle('documents', $this->request('GET', '/private/documents'));
+        $this->assertSame(200, $documents->status);
+        $this->assertStringContainsString('name="document_file"', $documents->body);
+        $this->assertStringContainsString('name="category_name"', $documents->body);
+        $this->assertStringContainsString('Assurances habitation', $documents->body);
+        $this->assertStringContainsString('compte-rendu.doc', $documents->body);
+        $this->assertStringContainsString('/private/files/' . $documentId, $documents->body);
     }
 
     public function testDashboardShowsDiscussionCardForDiscussionModule(): void
@@ -142,7 +147,7 @@ final class PrivatePortalDashboardTest extends TestCase
         $login = $controller->handle('login', $this->request('POST', '/private/login', [
             'identifier' => 'family@example.com',
             'password' => 'StrongPassword1!',
-            'csrf_token' => csrf_token('private'),
+            'csrf_token' => $this->privateCsrfToken($session, 'private'),
         ]));
         $this->assertSame(302, $login->status);
 
@@ -184,7 +189,7 @@ final class PrivatePortalDashboardTest extends TestCase
         $login = $controller->handle('login', $this->request('POST', '/private/login', [
             'identifier' => 'family@example.com',
             'password' => 'StrongPassword1!',
-            'csrf_token' => csrf_token('private'),
+            'csrf_token' => $this->privateCsrfToken($session, 'private'),
         ]));
         $this->assertSame(302, $login->status);
 
@@ -193,7 +198,11 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertStringNotContainsString('name="document_file"', $dashboard->body);
         $this->assertStringNotContainsString('document-cache.txt', $dashboard->body);
         $this->assertStringNotContainsString('/private/files/' . $documentId, $dashboard->body);
-        $this->assertStringContainsString('Le module documents n’est pas activé pour votre compte.', $dashboard->body);
+        $this->assertStringNotContainsString('/private/documents', $dashboard->body);
+
+        $documents = $controller->handle('documents', $this->request('GET', '/private/documents'));
+        $this->assertSame(302, $documents->status);
+        $this->assertSame('/private/login', $documents->headers['Location'] ?? null);
     }
 
     public function testPasswordForgotUsesNeutralResponseForKnownAndUnknownAccount(): void
@@ -214,7 +223,7 @@ final class PrivatePortalDashboardTest extends TestCase
             $userRepository,
             $moduleRepository
         );
-        $csrfToken = csrf_token('private_password');
+        $csrfToken = $this->privateCsrfToken($session, 'private_password');
 
         $knownResponse = $controller->handle('password_forgot', $this->request('POST', '/private/password/forgot', [
             'identifier' => 'family@example.com',
@@ -247,5 +256,12 @@ final class PrivatePortalDashboardTest extends TestCase
             [],
             ['Host' => '127.0.0.1:8000']
         );
+    }
+
+    private function privateCsrfToken(PrivateSession $session, string $scope): string
+    {
+        $session->start();
+
+        return csrf_token($scope);
     }
 }

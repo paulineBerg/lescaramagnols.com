@@ -104,6 +104,8 @@ trait EditorialSqlTestTrait
                     'rental_property_members',
                     'rental_units',
                     'rental_properties',
+                    'private_blocnote_notes',
+                    'private_blocnote_categories',
                     'private_mfa_backup_codes',
                     'private_user_module_permissions',
                     'private_modules',

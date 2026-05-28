@@ -1225,5 +1225,7 @@ return [
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DOWNLOAD' => 'Récupérer la sauvegarde ZIP',
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DELETE_AFTER' => 'Suppression définitive du compte et de la sauvegarde prévue le %s.',
     'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_NO_RESTORE' => 'La sauvegarde ZIP contient backup.json, manifest.json et les fichiers retrouvés. Elle ne réactive pas le compte et ne restaure pas automatiquement les données.',
+    'TXT_ADMIN_PRIVATE_MAIL_VARIABLES_TITLE' => 'Variables utilisables',
+    'TXT_ADMIN_PRIVATE_MAIL_VARIABLES_HELP' => 'Les variables non disponibles pour un message restent inchangées. Exemples : {{activation_url}} sert aux invitations, {{reset_url}} aux réinitialisations, {{delete_after}} aux suppressions programmées.',
 
 ];

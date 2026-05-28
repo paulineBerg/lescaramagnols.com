@@ -146,6 +146,23 @@ $statusLabels = [
 
     <details class="admin-private-mail-templates">
       <summary><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_TEMPLATES', 'Messages par défaut')); ?></summary>
+      <div class="admin-private-mail-template-help">
+        <strong><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_VARIABLES_TITLE', 'Variables utilisables')); ?></strong>
+        <p>
+          <code>{{email}}</code>
+          <code>{{today}}</code>
+          <code>{{login_url}}</code>
+          <code>{{private_url}}</code>
+          <code>{{reply_to}}</code>
+          <code>{{site_name}}</code>
+          <code>{{activation_url}}</code>
+          <code>{{reset_url}}</code>
+          <code>{{delete_after}}</code>
+        </p>
+        <small>
+          <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_VARIABLES_HELP', 'Les variables non disponibles pour un message restent inchangées. Exemples : {{activation_url}} sert aux invitations, {{reset_url}} aux réinitialisations, {{delete_after}} aux suppressions programmées.')); ?>
+        </small>
+      </div>
       <div class="admin-private-mail-template-list">
         <?php foreach ([
             [
@@ -177,6 +194,36 @@ $statusLabels = [
                 'subject_label' => 'Sujet reset membre',
                 'body_key' => 'password_reset_body',
                 'body_label' => 'Message reset membre',
+            ],
+            [
+                'subject_key' => 'member_suspended_subject',
+                'subject_label' => 'Sujet compte suspendu',
+                'body_key' => 'member_suspended_body',
+                'body_label' => 'Message compte suspendu',
+            ],
+            [
+                'subject_key' => 'member_reactivated_subject',
+                'subject_label' => 'Sujet compte réactivé',
+                'body_key' => 'member_reactivated_body',
+                'body_label' => 'Message compte réactivé',
+            ],
+            [
+                'subject_key' => 'member_deletion_scheduled_subject',
+                'subject_label' => 'Sujet suppression programmée',
+                'body_key' => 'member_deletion_scheduled_body',
+                'body_label' => 'Message suppression programmée',
+            ],
+            [
+                'subject_key' => 'member_deletion_warning_subject',
+                'subject_label' => 'Sujet rappel J+20',
+                'body_key' => 'member_deletion_warning_body',
+                'body_label' => 'Message rappel J+20',
+            ],
+            [
+                'subject_key' => 'member_deletion_final_subject',
+                'subject_label' => 'Sujet suppression définitive',
+                'body_key' => 'member_deletion_final_body',
+                'body_label' => 'Message suppression définitive',
             ],
         ] as $template): ?>
         <div class="admin-private-mail-template-pair">
@@ -429,30 +476,48 @@ $statusLabels = [
                     <?php endif; ?>
 
                     <?php if (!is_array($deletionBackup)): ?>
-                      <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="admin-private-members-delete-form">
-                        <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
-                        <input type="hidden" name="private_member_action" value="delete_suspended" />
-                        <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
-                        <input type="hidden" name="private_member_delete_confirm" value="1" />
-                        <?php if ($memberFragment !== ''): ?>
-                          <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
-                        <?php endif; ?>
-                        <div class="admin-private-members-delete-note">
-                          <strong><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE', 'Suppression du compte')); ?></strong>
-                          <span><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP', 'Une sauvegarde est créée, les données sont purgées, puis le compte et la sauvegarde seront supprimés par cron après 30 jours.')); ?></span>
-                        </div>
-                        <p class="admin-private-members-confirm-question">
-                          <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION', 'Voulez-vous supprimer ce compte suspendu ?')); ?>
-                        </p>
-                        <div class="admin-private-members-confirm-actions">
-                          <a class="button-small button-muted" href="<?php echo $escape($memberFragment !== '' ? '#' . $memberFragment : $membersUrl); ?>">
-                            <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO', 'Non')); ?>
-                          </a>
-                          <button class="button-small button-danger" type="submit">
-                            <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_YES', 'Oui, sauvegarder et purger les données')); ?>
-                          </button>
-                        </div>
-                      </form>
+                      <?php $deleteDialogId = 'admin-private-member-delete-dialog-' . $memberId; ?>
+                      <button
+                        class="button-small button-danger"
+                        type="button"
+                        aria-controls="<?php echo $escape($deleteDialogId); ?>"
+                        data-admin-private-delete-open="<?php echo $escape($deleteDialogId); ?>"
+                        onclick="var panel=document.getElementById('<?php echo $escape($deleteDialogId); ?>'); if(panel){ panel.hidden=false; var firstButton=panel.querySelector('button'); if(firstButton){ firstButton.focus(); } }"
+                      >
+                        <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE', 'Suppression du compte')); ?>
+                      </button>
+                      <div class="admin-private-members-delete-dialog" id="<?php echo $escape($deleteDialogId); ?>" role="dialog" aria-modal="true" hidden>
+                        <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="admin-private-members-delete-form">
+                          <div class="admin-private-members-delete-dialog-header">
+                            <h3><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE', 'Suppression du compte')); ?></h3>
+                            <button class="button-small button-muted" type="button" data-admin-close-dialog onclick="var panel=this.closest('.admin-private-members-delete-dialog'); if(panel){ panel.hidden=true; }" aria-label="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO', 'Non')); ?>">×</button>
+                          </div>
+                          <p class="admin-private-members-delete-dialog-email">
+                            <?php echo $escape((string) ($member['email'] ?? '-')); ?>
+                          </p>
+                          <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+                          <input type="hidden" name="private_member_action" value="delete_suspended" />
+                          <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
+                          <input type="hidden" name="private_member_delete_confirm" value="1" />
+                          <?php if ($memberFragment !== ''): ?>
+                            <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
+                          <?php endif; ?>
+                          <div class="admin-private-members-delete-note">
+                            <span><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP', 'Une sauvegarde est créée, les données sont purgées, puis le compte et la sauvegarde seront supprimés par cron après 30 jours.')); ?></span>
+                          </div>
+                          <p class="admin-private-members-confirm-question">
+                            <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION', 'Voulez-vous supprimer ce compte suspendu ?')); ?>
+                          </p>
+                          <div class="admin-private-members-confirm-actions">
+                            <button class="button-small button-muted" type="button" data-admin-close-dialog onclick="var panel=this.closest('.admin-private-members-delete-dialog'); if(panel){ panel.hidden=true; }">
+                              <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO', 'Non')); ?>
+                            </button>
+                            <button class="button-small button-danger" type="submit">
+                              <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_YES', 'Oui, sauvegarder et purger les données')); ?>
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     <?php endif; ?>
                   <?php else: ?>
                     <form method="POST" action="<?php echo $escape($membersUrl); ?>">
@@ -488,6 +553,28 @@ $statusLabels = [
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const openButton = target ? target.closest('[data-admin-private-delete-open]') : null;
+      if (openButton instanceof HTMLElement) {
+        const panelId = openButton.dataset.adminPrivateDeleteOpen || '';
+        const panel = panelId !== '' ? document.getElementById(panelId) : null;
+        if (panel instanceof HTMLElement) {
+          panel.hidden = false;
+          const firstButton = panel.querySelector('button');
+          if (firstButton instanceof HTMLButtonElement) {
+            firstButton.focus();
+          }
+        }
+      }
+
+      const closeDialogButton = target ? target.closest('[data-admin-close-dialog]') : null;
+      const panel = closeDialogButton ? closeDialogButton.closest('.admin-private-members-delete-dialog') : null;
+      if (panel instanceof HTMLElement) {
+        panel.hidden = true;
+      }
+    });
+
     const searchInput = document.querySelector('[data-private-member-search]');
     const emailChoices = document.getElementById('private-member-email-choices');
     const filterForm = searchInput ? searchInput.closest('form') : null;

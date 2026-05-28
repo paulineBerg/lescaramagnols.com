@@ -122,6 +122,9 @@ final class PrivateModulePermissionRepository
         $counts['documents'] = $this->countRows('private_documents', '`private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
             + $this->countRows('private_document_categories', '`private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId]);
 
+        $counts['blocnote'] = $this->countRows('private_blocnote_notes', '`private_user_id` = :user_id', ['user_id' => $userId])
+            + $this->countRows('private_blocnote_categories', '`private_user_id` = :user_id', ['user_id' => $userId]);
+
         $counts['discussions'] = $this->countRows('discussion_conversation_members', '`private_user_id` = :user_id AND `left_at` IS NULL', ['user_id' => $userId])
             + $this->countRows('discussion_messages', '`sender_private_user_id` = :user_id AND `purge_status` = \'active\' AND `deleted_at` IS NULL', ['user_id' => $userId])
             + $this->countRows('discussion_crypto_devices', '`private_user_id` = :user_id AND `revoked_at` IS NULL', ['user_id' => $userId]);
