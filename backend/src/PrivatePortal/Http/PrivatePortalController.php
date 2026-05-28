@@ -3631,18 +3631,6 @@ final class PrivatePortalController
         return $unit !== null && $unit->rentalPropertyId === $propertyId;
     }
 
-    private function tenantBelongsToProperty(int $tenantId, int $propertyId): bool
-    {
-        if ($tenantId <= 0 || $propertyId <= 0) {
-            return false;
-        }
-
-        $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
-        return is_array($tenant)
-            && is_numeric($tenant['rentalPropertyId'] ?? null)
-            && (int) $tenant['rentalPropertyId'] === $propertyId;
-    }
-
     private function tenantBelongsToUnit(int $tenantId, int $unitId, int $propertyId): bool
     {
         if ($tenantId <= 0 || $unitId <= 0 || $propertyId <= 0) {
@@ -4014,7 +4002,7 @@ final class PrivatePortalController
     private function privateModuleNamesForUser(int $userId): array
     {
         return array_values(array_filter(array_map(
-            static fn (array $module): string => is_string($module['name'] ?? null) ? (string) $module['name'] : '',
+            static fn (array $module): string => (string) $module['name'],
             $this->modulePermissionRepository()->activeModulesForUser($userId)
         )));
     }
@@ -4325,11 +4313,6 @@ final class PrivatePortalController
     private function withPrivateHeaders(Response $response): Response
     {
         return PrivateResponseHeaders::apply($response);
-    }
-
-    private function backOfficeContentSecurityPolicy(): string
-    {
-        return PrivateResponseHeaders::contentSecurityPolicy();
     }
 
     private function guard(): PrivatePortalSecurityGuard

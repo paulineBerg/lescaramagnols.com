@@ -152,6 +152,24 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $this->assertSame('DENY', $response->headers['X-Frame-Options'] ?? null);
     }
 
+    public function testInvalidPrivateEnvironmentIsRejectedBeforeRendering(): void
+    {
+        global $appConfig;
+        $appConfig['private']['local_user_password_hash'] = password_hash('secret123', PASSWORD_BCRYPT);
+
+        $response = $this->frontController()->handle($this->request('GET', '/private/login'));
+
+        $this->assertSame(503, $response->status);
+        $this->assertSame('Espace privé temporairement indisponible.', $response->body);
+        $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
+        $this->assertStringNotContainsString('Se connecter', $response->body);
+
+        $log = $this->privateSecurityLogContent();
+        $this->assertStringContainsString('private.environment.invalid', $log);
+        $this->assertStringContainsString('private_local_password_hash_algo_invalid', $log);
+        $this->assertStringNotContainsString((string) $appConfig['private']['local_user_password_hash'], $log);
+    }
+
     public function testPrivateDashboardAccessIsProtectedWhenNotAuthenticated(): void
     {
         $response = $this->frontController()->handle($this->request('GET', '/private/dashboard'));

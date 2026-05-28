@@ -47,7 +47,10 @@ final class FrontController
         $this->privateHttpBoundary = $privateHttpBoundary ?? new PrivateHttpBoundary(
             $privateRouteResolver,
             $privateEnabled ? ($privatePortalController ?? $this->createPrivatePortalController()) : null,
-            $privateEnabled
+            $privateEnabled,
+            null,
+            null,
+            $this->eventLogger
         );
 
         $this->dispatcher = \FastRoute\simpleDispatcher(function (RouteCollector $routes): void {

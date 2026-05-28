@@ -6,14 +6,24 @@ namespace Caramagnols\PrivatePortal\Http;
 
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
+use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivatePortal\Security\PrivateEnvironmentValidator;
 
 final class PrivateHttpBoundary
 {
+    private readonly PrivateEnvironmentValidator $environmentValidator;
+    private readonly PrivateErrorResponder $errorResponder;
+
     public function __construct(
         private readonly PrivateRouteResolver $routeResolver,
         private readonly ?PrivatePortalController $controller,
-        private readonly bool $enabled
+        private readonly bool $enabled,
+        ?PrivateEnvironmentValidator $environmentValidator = null,
+        ?PrivateErrorResponder $errorResponder = null,
+        ?AppEventLogger $eventLogger = null
     ) {
+        $this->environmentValidator = $environmentValidator ?? new PrivateEnvironmentValidator($this->routeResolver);
+        $this->errorResponder = $errorResponder ?? new PrivateErrorResponder($eventLogger);
     }
 
     /**
@@ -34,6 +44,11 @@ final class PrivateHttpBoundary
             return $this->disabledResponse();
         }
 
+        $environmentIssues = $this->environmentValidator->issues();
+        if ($environmentIssues !== []) {
+            return $this->errorResponder->environmentInvalid($request, $environmentIssues);
+        }
+
         $type = is_string($handler['type'] ?? null) ? (string) $handler['type'] : '';
         if ($type === 'redirect') {
             $status = max(300, min(399, (int) ($handler['status'] ?? 302)));
@@ -46,9 +61,13 @@ final class PrivateHttpBoundary
             return $this->disabledResponse();
         }
 
-        return PrivateResponseHeaders::apply(
-            $this->controller->handle((string) ($handler['page'] ?? 'login'), $request, $routeVars)
-        );
+        try {
+            return PrivateResponseHeaders::apply(
+                $this->controller->handle((string) ($handler['page'] ?? 'login'), $request, $routeVars)
+            );
+        } catch (\Throwable $exception) {
+            return $this->errorResponder->exception($request, $exception);
+        }
     }
 
     /**

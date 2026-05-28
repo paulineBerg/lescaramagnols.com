@@ -3188,19 +3188,32 @@ Critere de passage : bascule reversible par configuration, sans changement d'URL
 
 Objectif : reconstruire le coeur securite avant les modules metier.
 
-- [ ] Renforcer le socle PHP prive en code strict, services courts, repositories et tests.
-- [ ] Ajouter composants Symfony utiles si le gain est net : routing/validator/http-foundation/security selon besoin.
-- [ ] Isoler les templates prives du legacy public.
-- [ ] Ajouter validation d'environnement au demarrage.
-- [ ] Ajouter gestion erreurs sans fuite d'information.
-- [ ] Ajouter sessions serveur, cookie HttpOnly, CSRF et rotation d'ID.
-- [ ] Ajouter rate limit login et actions sensibles.
-- [ ] Ajouter RBAC/permissions serveur.
-- [ ] Ajouter audit append-only.
-- [ ] Ajouter tests unitaires securite : CSRF, session, permission, rate limit.
-- [ ] Ajouter tests HTTP : login, logout, route protegee, route refusee.
-- [ ] Ajouter scan dependances et lint dans CI locale.
-- [ ] Reporter TypeScript/Fastify dans une branche technique uniquement si un runtime Node supervise est confirme.
+- [x] Renforcer le socle PHP prive en code strict, services courts, repositories et tests.
+- [x] Ajouter composants Symfony utiles si le gain est net : routing/validator/http-foundation/security selon besoin.
+- [x] Isoler les templates prives du legacy public.
+- [x] Ajouter validation d'environnement au demarrage.
+- [x] Ajouter gestion erreurs sans fuite d'information.
+- [x] Ajouter sessions serveur, cookie HttpOnly, CSRF et rotation d'ID.
+- [x] Ajouter rate limit login et actions sensibles.
+- [x] Ajouter RBAC/permissions serveur.
+- [x] Ajouter audit append-only.
+- [x] Ajouter tests unitaires securite : CSRF, session, permission, rate limit.
+- [x] Ajouter tests HTTP : login, logout, route protegee, route refusee.
+- [x] Ajouter scan dependances et lint dans CI locale.
+- [x] Reporter TypeScript/Fastify dans une branche technique uniquement si un runtime Node supervise est confirme.
+
+Implementation M3 figee le 2026-05-28 :
+- Le socle prive reste en PHP strict dans `backend/src/PrivatePortal/**`, sans ajouter Symfony pour cette phase : les briques existantes couvrent deja routage, requete/reponse, sessions, CSRF et persistence sans benefice net a introduire un nouveau composant.
+- Les templates prives sont isoles sous `backend/templates/private/**` et ne chargent pas le script public de consentement.
+- `PrivateEnvironmentValidator` controle au demarrage effectif des routes privees la configuration critique : chemin prive, nom de session, email local, hash Argon2id si present, rate-limit et timeouts.
+- `PrivateErrorResponder` renvoie des erreurs generiques avec headers prives et journalise la classe d'exception sans exposer message, fichier, ligne, secret, token, hash ou mot de passe.
+- `PrivateSession` force une session dediee, cookie `HttpOnly`, `SameSite=Strict`, `use_strict_mode`, `use_only_cookies` et rotation d'identifiant a la connexion/deconnexion.
+- `PrivatePortalSecurityGuard` couvre authentification, reauthentification fraiche, CSRF POST/API et journalisation des refus.
+- `PrivateAuth` couvre login local Argon2id, statut actif obligatoire, expiration d'inactivite, timeout de reauthentification, verrouillage de compte et rate-limit IP + compte.
+- Le RBAC serveur est porte par `PrivateModulePermissionRepository::userHasModuleAccess()` et applique par module avant rendu ou action.
+- L'audit append-only est porte par `AppEventLogger` sur le canal `security`, avec redaction automatique des cles sensibles (`password`, `token`, `secret`, `csrf`, `hash`, etc.).
+- La validation M3 couvre explicitement CSRF, session, permission, rate-limit, audit redaction, erreur privee sans fuite, login/logout, route protegee, route refusee et environnement invalide.
+- Les commandes de validation locale M3 sont `cd backend && ./vendor/bin/phpunit`, `cd backend && composer lint`, `cd backend && composer audit` et `git diff --check`.
 
 Critere de passage : la nouvelle app sait authentifier un utilisateur de test, refuser les acces non autorises et journaliser sans exposer de secrets.
 

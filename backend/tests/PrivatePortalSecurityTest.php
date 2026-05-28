@@ -3,9 +3,18 @@
 declare(strict_types=1);
 
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
+use Caramagnols\PrivatePortal\Security\PrivateEnvironmentValidator;
 use Caramagnols\PrivatePortal\Security\PrivatePasswordPolicy;
+use Caramagnols\PrivatePortal\Security\PrivatePortalSecurityGuard;
 use Caramagnols\PrivatePortal\Security\PrivateSession;
+use Caramagnols\PrivatePortal\Http\PrivateErrorResponder;
+use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
+use Caramagnols\PrivatePortal\PrivateModuleRegistry;
+use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
+use Caramagnols\Http\Request;
+use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\Logging\LoggerFactory;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
@@ -16,6 +25,7 @@ final class PrivatePortalSecurityTest extends TestCase
 {
     use EditorialSqlTestTrait;
 
+    private string $logDir;
     private string $rateLimitDir;
     private ?string $previousRateLimitDir = null;
     private string $sessionName;
@@ -32,7 +42,9 @@ final class PrivatePortalSecurityTest extends TestCase
             ? $appConfig['security']['rate_limit_dir']
             : null;
 
+        $this->logDir = sys_get_temp_dir() . '/caramagnols-private-security-logs-' . bin2hex(random_bytes(6));
         $this->rateLimitDir = sys_get_temp_dir() . '/caramagnols-private-security-rate-limits-' . bin2hex(random_bytes(6));
+        mkdir($this->logDir, 0777, true);
         mkdir($this->rateLimitDir, 0777, true);
 
         $this->sessionName = '_private_auth_' . bin2hex(random_bytes(4));
@@ -56,6 +68,14 @@ final class PrivatePortalSecurityTest extends TestCase
     {
         $_SESSION = [];
         $this->cleanupEditorialSqlDatabase();
+
+        $logFiles = glob($this->logDir . '/*');
+        if (is_array($logFiles)) {
+            foreach ($logFiles as $file) {
+                @unlink($file);
+            }
+        }
+        @rmdir($this->logDir);
 
         $files = glob($this->rateLimitDir . '/*');
         if (is_array($files)) {
@@ -215,6 +235,96 @@ final class PrivatePortalSecurityTest extends TestCase
         $this->assertSame([], $policy->validate('StrongPassword1!', 'StrongPassword1!'));
     }
 
+    public function testPrivateEnvironmentValidatorRejectsUnsafePrivateConfig(): void
+    {
+        $this->configurePrivatePasswordHash(password_hash('secret123', PASSWORD_BCRYPT));
+        $this->setPrivateConfigValue('local_user_email', 'invalid-email');
+        $this->setPrivateConfigValue('session_name', 'bad session name');
+
+        $validator = new PrivateEnvironmentValidator(new PrivateRouteResolver('private'));
+        $issues = $validator->issues();
+
+        $this->assertContains('private_local_password_hash_algo_invalid', $issues);
+        $this->assertContains('private_local_user_email_invalid', $issues);
+        $this->assertContains('private_session_name_invalid', $issues);
+        $this->assertFalse($validator->isValid());
+    }
+
+    public function testSecurityGuardRejectsInvalidCsrfAndLogsAuditEvent(): void
+    {
+        csrf_token('private_documents');
+        $logger = new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
+        $guard = new PrivatePortalSecurityGuard($this->privateAuth(), $logger);
+
+        $request = $this->request('POST', '/private/files/upload', ['csrf_token' => 'invalid-secret-token']);
+
+        $this->assertFalse($guard->validateCsrf($request, 'private_documents'));
+        $log = $this->securityLogContent();
+        $this->assertStringContainsString('private.csrf.rejected', $log);
+        $this->assertStringContainsString('private_documents', $log);
+        $this->assertStringNotContainsString('invalid-secret-token', $log);
+    }
+
+    public function testPrivateModulePermissionRepositoryEnforcesRbac(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $permissionRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('secret123', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('rbac@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $this->assertTrue($permissionRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
+
+        $this->assertTrue($permissionRepository->userHasModuleAccess($userId, 'documents'));
+        $this->assertFalse($permissionRepository->userHasModuleAccess($userId, 'blocnote'));
+        $this->assertFalse($permissionRepository->userHasModuleAccess(0, 'documents'));
+    }
+
+    public function testPrivateAuditLogRedactsSensitiveContextAndAppendsEvents(): void
+    {
+        $logger = new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
+
+        $logger->security('private.audit.first', [
+            'identifier' => 'family@example.com',
+            'password' => 'RawPassword123!',
+            'reset_token' => 'raw-reset-token',
+        ]);
+        $logger->security('private.audit.second', [
+            'csrf_token' => 'raw-csrf-token',
+        ]);
+
+        $log = $this->securityLogContent();
+        $this->assertStringContainsString('private.audit.first', $log);
+        $this->assertStringContainsString('private.audit.second', $log);
+        $this->assertGreaterThanOrEqual(2, substr_count(trim($log), "\n") + 1);
+        $this->assertStringNotContainsString('RawPassword123!', $log);
+        $this->assertStringNotContainsString('raw-reset-token', $log);
+        $this->assertStringNotContainsString('raw-csrf-token', $log);
+        $this->assertStringContainsString('[redacted]', $log);
+    }
+
+    public function testPrivateErrorResponderDoesNotLeakExceptionDetails(): void
+    {
+        $logger = new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
+        $responder = new PrivateErrorResponder($logger);
+        $response = $responder->exception(
+            $this->request('GET', '/private/dashboard'),
+            new RuntimeException('secret database password leaked')
+        );
+
+        $this->assertSame(500, $response->status);
+        $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
+        $this->assertStringContainsString('Erreur interne', $response->body);
+        $this->assertStringNotContainsString('secret database password leaked', $response->body);
+
+        $log = $this->securityLogContent();
+        $this->assertStringContainsString('private.request.error', $log);
+        $this->assertStringContainsString('RuntimeException', $log);
+        $this->assertStringNotContainsString('secret database password leaked', $log);
+    }
+
     private function privateAuth(): PrivateAuth
     {
         return new PrivateAuth(
@@ -241,5 +351,35 @@ final class PrivatePortalSecurityTest extends TestCase
         }
 
         return session_id();
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     */
+    private function request(string $method, string $uri, array $post = []): Request
+    {
+        return new Request(
+            [
+                'REQUEST_METHOD' => $method,
+                'REQUEST_URI' => $uri,
+                'REMOTE_ADDR' => '127.0.0.1',
+            ],
+            [],
+            $post,
+            [],
+            ['Host' => '127.0.0.1:8000']
+        );
+    }
+
+    private function securityLogContent(): string
+    {
+        $path = $this->logDir . '/security.log';
+        if (!is_file($path)) {
+            return '';
+        }
+
+        $contents = file_get_contents($path);
+
+        return is_string($contents) ? $contents : '';
     }
 }
