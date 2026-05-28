@@ -98,6 +98,8 @@ Par défaut, l'exemple `.env` utilise `ADMIN_LOGIN_PATH=admin` et `base_path=/`,
 - resolueur legacy de pages publiques : `backend/src/Http/LegacyRouteResolver.php` (appele via wrapper `core/router.php`, langue derivee de l'URL + fallback blog vers `DEFAULT_LANG`)
 - résolution des routes admin : `backend/src/Admin/AdminRouteResolver.php`
 - contrôleur admin : `backend/src/Admin/AdminController.php`
+- frontière HTTP privée : `backend/src/PrivatePortal/Http/PrivateHttpBoundary.php`
+- headers privés communs : `backend/src/PrivatePortal/Http/PrivateResponseHeaders.php`
 - service pages admin : `backend/src/Admin/AdminPageService.php`
 - service navigation admin : `backend/src/Admin/AdminNavigationService.php`
 - projection legacy des menus : `backend/src/Navigation/LegacyMenuRuntime.php` (appele via wrapper `core/menu_loader.php`)
@@ -112,10 +114,10 @@ Par défaut, l'exemple `.env` utilise `ADMIN_LOGIN_PATH=admin` et `base_path=/`,
 
 Le webroot ne doit plus contenir la logique métier de l'admin, du RSS ni de l'ecriture blog.
 - `backend/public/index.php` ne doit plus porter la logique de routage lui-meme ; il doit deleguer a `backend/src/Http/FrontController.php`.
-- les routes privées doivent rester désactivées tant que `private.enabled` est faux
+- les routes privées doivent passer par `PrivateHttpBoundary` et rester désactivées tant que `private.enabled` est faux
+- le chemin privé configuré reste réservé par la frontière HTTP même lorsque `private.enabled=false`, afin d'éviter un fallback accidentel vers une page publique
 
-`/robots.txt` annonce désormais aussi :
-- `Disallow: /private`
+Le chemin privé configuré n'est pas listé dans `/robots.txt`; l'interdiction d'indexation est portée par les headers privés et les metas de l'application.
 
 Verification securite associee :
 - `backend/public/.htaccess` force HTTPS et bloque l'acces direct a des fichiers techniques/sensibles.

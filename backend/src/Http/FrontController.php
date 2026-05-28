@@ -15,6 +15,7 @@ use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
+use Caramagnols\PrivatePortal\Http\PrivateHttpBoundary;
 use Caramagnols\PrivatePortal\Http\PrivatePortalController;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
@@ -29,8 +30,7 @@ final class FrontController
 {
     private Dispatcher $dispatcher;
     private AppEventLogger $eventLogger;
-    private ?PrivateRouteResolver $privateRouteResolver;
-    private ?PrivatePortalController $privatePortalController;
+    private ?PrivateHttpBoundary $privateHttpBoundary;
 
     public function __construct(
         private readonly AdminRouteResolver $adminRouteResolver,
@@ -38,42 +38,17 @@ final class FrontController
         private readonly BlogApiController $blogApiController,
         ?AppEventLogger $eventLogger = null,
         ?PrivateRouteResolver $privateRouteResolver = null,
-        ?PrivatePortalController $privatePortalController = null
+        ?PrivatePortalController $privatePortalController = null,
+        ?PrivateHttpBoundary $privateHttpBoundary = null
     ) {
         $this->eventLogger = $eventLogger ?? app_event_logger();
-        $this->privateRouteResolver = null;
-        $this->privatePortalController = null;
-
-        if (private_portal_enabled()) {
-            $this->privateRouteResolver = $privateRouteResolver ?? private_route_resolver();
-            if ($privatePortalController !== null) {
-                $this->privatePortalController = $privatePortalController;
-            } else {
-                $privateUserRepository = new PrivateUserRepository(editorial_database());
-                $privateModulePermissionRepository = new PrivateModulePermissionRepository(
-                    editorial_database(),
-                    new PrivateModuleRegistry()
-                );
-                $this->privatePortalController = new PrivatePortalController(
-                    new PrivateAuth(
-                        new PrivateSession(
-                            (string) app_config('private.session_name', 'caramagnols_private')
-                        ),
-                        $this->eventLogger,
-                        $privateUserRepository
-                    ),
-                    null,
-                    $this->eventLogger,
-                    $privateUserRepository,
-                    $privateModulePermissionRepository,
-                    new PrivateDocumentRepository(editorial_database()),
-                    PrivateDocumentStorage::fromAppConfig($this->eventLogger)
-                );
-            }
-        } elseif ($privatePortalController !== null) {
-            $this->privatePortalController = $privatePortalController;
-            $this->privateRouteResolver = $privateRouteResolver;
-        }
+        $privateEnabled = private_portal_enabled() || $privatePortalController instanceof PrivatePortalController;
+        $privateRouteResolver ??= private_route_resolver();
+        $this->privateHttpBoundary = $privateHttpBoundary ?? new PrivateHttpBoundary(
+            $privateRouteResolver,
+            $privateEnabled ? ($privatePortalController ?? $this->createPrivatePortalController()) : null,
+            $privateEnabled
+        );
 
         $this->dispatcher = \FastRoute\simpleDispatcher(function (RouteCollector $routes): void {
             $routes->addRoute('GET', '/core/api/lang.php', ['type' => 'api-lang']);
@@ -93,8 +68,8 @@ final class FrontController
                 }
             }
 
-            if ($this->privateRouteResolver instanceof PrivateRouteResolver) {
-                foreach ($this->privateRouteResolver->routeDefinitions() as $definition) {
+            if ($this->privateHttpBoundary instanceof PrivateHttpBoundary) {
+                foreach ($this->privateHttpBoundary->routeDefinitions() as $definition) {
                     foreach ($definition['methods'] as $method) {
                         $routes->addRoute($method, $definition['path'], $definition['handler']);
                     }
@@ -227,6 +202,14 @@ final class FrontController
                 return Response::json(['error' => 'Action blog inconnue.'], 404);
             }
 
+            if (
+                is_array($handler)
+                && $this->privateHttpBoundary instanceof PrivateHttpBoundary
+                && $this->privateHttpBoundary->ownsHandler($handler)
+            ) {
+                return $this->privateHttpBoundary->handle($handler, $request, $routeVars);
+            }
+
             if (is_array($handler) && ($handler['type'] ?? null) === 'redirect') {
                 $queryString = parse_url($request->uri(), PHP_URL_QUERY);
                 $location = (string) ($handler['location'] ?? '/');
@@ -245,17 +228,41 @@ final class FrontController
 
                 return new Response((int) ($handler['status'] ?? 302), ['Location' => $location], '');
             }
+        }
 
-            if (is_array($handler) && ($handler['type'] ?? null) === 'private') {
-                if (!$this->privatePortalController instanceof PrivatePortalController) {
-                    return new Response(404, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Private portal not configured.');
-                }
-
-                return $this->privatePortalController->handle((string) ($handler['page'] ?? 'login'), $request, $routeVars);
-            }
+        if (
+            $this->privateHttpBoundary instanceof PrivateHttpBoundary
+            && $this->privateHttpBoundary->matchesPrivatePath($request)
+        ) {
+            return $this->privateHttpBoundary->disabledResponse();
         }
 
         return $this->pageResponse($request);
+    }
+
+    private function createPrivatePortalController(): PrivatePortalController
+    {
+        $privateUserRepository = new PrivateUserRepository(editorial_database());
+        $privateModulePermissionRepository = new PrivateModulePermissionRepository(
+            editorial_database(),
+            new PrivateModuleRegistry()
+        );
+
+        return new PrivatePortalController(
+            new PrivateAuth(
+                new PrivateSession(
+                    (string) app_config('private.session_name', 'caramagnols_private')
+                ),
+                $this->eventLogger,
+                $privateUserRepository
+            ),
+            null,
+            $this->eventLogger,
+            $privateUserRepository,
+            $privateModulePermissionRepository,
+            new PrivateDocumentRepository(editorial_database()),
+            PrivateDocumentStorage::fromAppConfig($this->eventLogger)
+        );
     }
 
     private function canonicalRedirectResponse(Request $request): ?Response

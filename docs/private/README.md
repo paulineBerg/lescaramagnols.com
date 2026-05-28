@@ -3163,14 +3163,24 @@ Critere de passage : chaque endpoint cible a un contrat, une permission, une err
 
 Objectif : separer l'entree privee sans casser le site public.
 
-- [ ] Garder `/private-4h6F1c` comme chemin prive non liste dans `robots.txt`.
-- [ ] Sur OVH Performance, garder le controle via `FrontController` PHP et headers applicatifs.
-- [ ] Si un hebergement Node/VPS est ajoute, placer la nouvelle app derriere reverse proxy, non accessible directement depuis internet.
-- [ ] Appliquer `X-Robots-Tag: noindex, nofollow, noarchive` cote app et cote proxy si proxy disponible.
-- [ ] Appliquer CSP stricte, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`.
-- [ ] Desactiver tout script de consentement public dans le prive.
-- [ ] Verifier que public, blog, admin editorial, sitemap, RSS et assets gardent leur comportement.
-- [ ] Prevoir un routage par module : module modernise dans `PrivateApps`, ou module migre vers app externe si l'infrastructure evolue.
+- [x] Garder `/private-4h6F1c` comme chemin prive non liste dans `robots.txt`.
+- [x] Sur OVH Performance, garder le controle via `FrontController` PHP et headers applicatifs.
+- [x] Si un hebergement Node/VPS est ajoute, placer la nouvelle app derriere reverse proxy, non accessible directement depuis internet.
+- [x] Appliquer `X-Robots-Tag: noindex, nofollow, noarchive` cote app et cote proxy si proxy disponible.
+- [x] Appliquer CSP stricte, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`.
+- [x] Desactiver tout script de consentement public dans le prive.
+- [x] Verifier que public, blog, admin editorial, sitemap, RSS et assets gardent leur comportement.
+- [x] Prevoir un routage par module : module modernise dans `PrivateApps`, ou module migre vers app externe si l'infrastructure evolue.
+
+Implementation M2 figee le 2026-05-28 :
+- `backend/public/index.php` reste un point d'entree minimal et delegue toujours a `backend/src/Http/FrontController.php`.
+- `FrontController` orchestre la route globale, mais la frontiere privee est maintenant isolee dans `backend/src/PrivatePortal/Http/PrivateHttpBoundary.php`.
+- `PrivateHttpBoundary` possede les routes privees, applique les headers de frontiere aussi aux redirections privees et reserve le chemin configure meme quand `private.enabled=false`.
+- `PrivateResponseHeaders` centralise les headers prives : `X-Robots-Tag`, no-store, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy` restrictive et CSP avec `frame-ancestors 'none'`.
+- `/robots.txt` ne liste pas le chemin prive configure ; l'anti-indexation est volontairement portee par les headers et la meta robots des pages privees pour ne pas publier l'URL secrete.
+- Le chemin `/private-4h6F1c` est valide par configuration `private.base_path`, sans changement visible si la valeur reste stable.
+- Les scripts de consentement publics restent absents des templates prives.
+- La validation M2 couvre le comportement public existant via `FrontControllerHttpTest`, le comportement prive via `PrivatePortalFrontControllerTest` et les contrats de routes via `PrivateRouteResolverTest`.
 
 Critere de passage : bascule reversible par configuration, sans changement d'URL visible pour l'utilisateur.
 

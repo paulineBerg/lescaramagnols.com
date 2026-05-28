@@ -89,6 +89,9 @@ final class PrivatePortalFrontControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
+        $this->assertSame('DENY', $response->headers['X-Frame-Options'] ?? null);
+        $this->assertSame('no-referrer', $response->headers['Referrer-Policy'] ?? null);
+        $this->assertStringContainsString("frame-ancestors 'none'", $response->headers['Content-Security-Policy'] ?? '');
         $this->assertStringContainsString('Se connecter', $response->body);
         $this->assertStringContainsString('csrf_token', $response->body);
         $this->assertStringContainsString('<meta name="robots" content="noindex,nofollow,noarchive" />', $response->body);
@@ -104,6 +107,8 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $this->assertStringContainsString('Se connecter', $loginAliasResponse->body);
         $this->assertSame(301, $dashboardAliasResponse->status);
         $this->assertSame('/private/dashboard', $dashboardAliasResponse->headers['Location'] ?? null);
+        $this->assertSame('noindex, nofollow, noarchive', $dashboardAliasResponse->headers['X-Robots-Tag'] ?? null);
+        $this->assertSame('DENY', $dashboardAliasResponse->headers['X-Frame-Options'] ?? null);
     }
 
     public function testPrivateRootRedirectsToLoginWhenNotAuthenticated(): void
@@ -112,6 +117,39 @@ final class PrivatePortalFrontControllerTest extends TestCase
 
         $this->assertSame(302, $response->status);
         $this->assertSame('/private/login', $response->headers['Location'] ?? null);
+        $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
+        $this->assertSame('DENY', $response->headers['X-Frame-Options'] ?? null);
+    }
+
+    public function testConfiguredPrivateBasePathIsServedWithoutRobotsLeak(): void
+    {
+        global $appConfig;
+        $appConfig['private']['base_path'] = 'private-4h6F1c';
+
+        $login = $this->frontController()->handle($this->request('GET', '/private-4h6F1c/login'));
+        $root = $this->frontController()->handle($this->request('GET', '/private-4h6F1c'));
+        $robots = $this->frontController()->handle($this->request('GET', '/robots.txt'));
+
+        $this->assertSame(200, $login->status);
+        $this->assertStringContainsString('Se connecter', $login->body);
+        $this->assertStringNotContainsString('/tarteaucitron/', $login->body);
+        $this->assertSame(302, $root->status);
+        $this->assertSame('/private-4h6F1c/login', $root->headers['Location'] ?? null);
+        $this->assertStringNotContainsString('private-4h6F1c', $robots->body);
+    }
+
+    public function testPrivateBoundaryReturnsNotFoundWhenDisabledByConfiguration(): void
+    {
+        global $appConfig;
+        $appConfig['private']['enabled'] = false;
+        $appConfig['private']['base_path'] = 'private-4h6F1c';
+
+        $response = $this->frontController()->handle($this->request('GET', '/private-4h6F1c/login'));
+
+        $this->assertSame(404, $response->status);
+        $this->assertSame('Not found', $response->body);
+        $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
+        $this->assertSame('DENY', $response->headers['X-Frame-Options'] ?? null);
     }
 
     public function testPrivateDashboardAccessIsProtectedWhenNotAuthenticated(): void
