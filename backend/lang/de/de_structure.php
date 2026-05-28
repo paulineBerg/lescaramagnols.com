@@ -1178,6 +1178,8 @@ return [
     'TXT_PRIVATE_LOGIN_INTRO' => 'Melden Sie sich an, um den privaten Bereich zu oeffnen.',
     'TXT_PRIVATE_IDENTIFIER_LABEL' => 'Kennung',
     'TXT_PRIVATE_PASSWORD_LABEL' => 'Passwort',
+    'TXT_PRIVATE_PASSWORD_SHOW' => 'Anzeigen',
+    'TXT_PRIVATE_PASSWORD_HIDE' => 'Verbergen',
     'TXT_PRIVATE_MFA_CODE_LABEL' => 'Bestaetigungscode',
     'TXT_PRIVATE_LOGIN_SUBMIT' => 'Anmelden',
     'TXT_PRIVATE_FORGOT_PASSWORD_LINK' => 'Passwort vergessen',
@@ -1210,5 +1212,16 @@ return [
     'TXT_CONTACT_EMAIL' => 'E-Mail',
     'TXT_CONTACT_MESSAGE' => 'Nachricht',
     'TXT_CONTACT_SUBMIT' => 'Senden',
+
+    // Admin privater Bereich
+    'TXT_ADMIN_PRIVATE_MEMBERS_ACTION_REACTIVATE' => 'Konto reaktivieren',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE' => 'Kontoloeschung',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP' => 'Eine Sicherung wird erstellt, die Daten werden bereinigt, danach werden Konto und Sicherung nach 30 Tagen per Cron geloescht.',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION' => 'Moechten Sie dieses gesperrte Konto loeschen?',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO' => 'Nein',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_YES' => 'Ja, sichern und Daten bereinigen',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DOWNLOAD' => 'ZIP-Sicherung herunterladen',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DELETE_AFTER' => 'Endgueltige Loeschung von Konto und Sicherung geplant am %s.',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_NO_RESTORE' => 'Die ZIP-Sicherung enthaelt backup.json, manifest.json und gefundene Dateien. Sie reaktiviert das Konto nicht und stellt Daten nicht automatisch wieder her.',
 
 ];

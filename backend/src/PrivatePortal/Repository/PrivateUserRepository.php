@@ -22,6 +22,11 @@ final class PrivateUserRepository
         return $this->database->table('private_users');
     }
 
+    public function database(): EditorialDatabase
+    {
+        return $this->database;
+    }
+
     public function findByEmail(string $email): ?array
     {
         $email = $this->normalizeEmail($email);
@@ -582,6 +587,45 @@ final class PrivateUserRepository
                 'status' => 'deleted',
                 'updated_at' => $this->currentDateTime(),
                 'id' => $userId,
+            ]);
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function restoreAnonymized(int $userId, string $email, string $passwordHash): bool
+    {
+        $email = $this->normalizeEmail($email);
+        if ($userId <= 0 || $email === '' || $passwordHash === '') {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `email` = :email,
+                         `password_hash` = :password_hash,
+                         `status` = :status,
+                         `updated_at` = :updated_at,
+                         `last_login_at` = NULL,
+                         `last_login_ip` = NULL,
+                         `mfa_enabled` = 0,
+                         `mfa_secret_encrypted` = NULL
+                     WHERE `id` = :id AND `status` = :deleted',
+                    $this->table()
+                )
+            );
+            $statement->execute([
+                'email' => $email,
+                'password_hash' => $passwordHash,
+                'status' => 'invited',
+                'updated_at' => $this->currentDateTime(),
+                'id' => $userId,
+                'deleted' => 'deleted',
             ]);
 
             return $statement->rowCount() > 0;

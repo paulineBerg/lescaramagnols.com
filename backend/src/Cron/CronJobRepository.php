@@ -360,6 +360,15 @@ final class CronJobRepository
                 'schedule_expression' => '40 3 * * *',
                 'timeout_seconds' => 300,
             ],
+            [
+                'code' => 'purge_private_account_deletion_backups',
+                'name' => 'Suppressions comptes privés',
+                'description' => 'Avertit à J+20 puis supprime les données, le compte et la sauvegarde après 30 jours de rétention.',
+                'script_path' => 'core/tools/purge_private_account_deletion_backups.php',
+                'arguments' => ['args' => ['--quiet']],
+                'schedule_expression' => '55 3 * * *',
+                'timeout_seconds' => 300,
+            ],
         ];
     }
 

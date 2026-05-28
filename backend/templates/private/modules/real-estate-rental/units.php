@@ -27,12 +27,12 @@ foreach ($properties as $property) {
   <section class="card">
     <h2>Ajouter un lot</h2>
     <?php if ($properties === []): ?>
-      <p class="muted">Créer d’abord un bien locatif autorisé.</p>
+      <p class="muted">Créer d’abord un immeuble autorisé.</p>
     <?php else: ?>
       <form method="post" action="<?php echo htmlspecialchars($unitsUrl, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
         <input type="hidden" name="action" value="create_unit" />
-        <label>Bien
+        <label>Immeuble
           <select name="rental_property_id" required>
             <?php foreach ($propertyNames as $id => $name): ?>
               <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
@@ -41,7 +41,7 @@ foreach ($properties as $property) {
         </label>
         <label>Libellé <input type="text" name="label" maxlength="160" required /></label>
         <label>Surface <input type="number" name="surface" min="0.5" max="10000" step="0.01" required /></label>
-        <label><input type="checkbox" name="furnished" value="1" /> Meublé</label>
+        <label class="private-checkbox-inline"><input type="checkbox" name="furnished" value="1" /> Meublé</label>
         <label>Statut
           <select name="status">
             <option value="available">Disponible</option>
@@ -60,6 +60,45 @@ foreach ($properties as $property) {
     <?php if ($units === []): ?>
       <p class="muted">Aucun lot locatif actif.</p>
     <?php else: ?>
+      <table class="private-click-table">
+        <thead>
+          <tr>
+            <th>Lot</th>
+            <th>Immeuble</th>
+            <th>Surface</th>
+            <th>Meublé</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($units as $unit): ?>
+            <?php
+            if (!is_array($unit)) {
+                continue;
+            }
+            $id = is_numeric($unit['id'] ?? null) ? (int) $unit['id'] : 0;
+            $propertyId = is_numeric($unit['rentalPropertyId'] ?? null) ? (int) $unit['rentalPropertyId'] : 0;
+            if ($id <= 0 || $propertyId <= 0) {
+                continue;
+            }
+            $status = is_string($unit['status'] ?? null) ? (string) $unit['status'] : 'available';
+            $dialogId = 'rental-unit-dialog-' . $id;
+            ?>
+            <tr class="private-click-row" role="button" tabindex="0" aria-controls="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" data-private-dialog-open="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>">
+              <td><strong><?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+              <td><?php echo htmlspecialchars((string) ($propertyNames[$propertyId] ?? ('Immeuble #' . $propertyId)), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($unit['surface'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> m²</td>
+              <td><?php echo !empty($unit['furnished']) ? 'Oui' : 'Non'; ?></td>
+              <td><?php echo htmlspecialchars((string) ($unitStatuses[$status] ?? $status), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td>
+                <button type="button" class="private-row-action" data-private-dialog-open="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>">Modifier</button>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+
       <?php foreach ($units as $unit): ?>
         <?php
         if (!is_array($unit)) {
@@ -71,41 +110,48 @@ foreach ($properties as $property) {
             continue;
         }
         $status = is_string($unit['status'] ?? null) ? (string) $unit['status'] : 'available';
+        $dialogId = 'rental-unit-dialog-' . $id;
         ?>
-        <article class="card">
-          <form method="post" action="<?php echo htmlspecialchars($unitsUrl, ENT_QUOTES, 'UTF-8'); ?>">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-            <input type="hidden" name="action" value="update_unit" />
-            <input type="hidden" name="unit_id" value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" />
-            <label>Bien
-              <select name="rental_property_id" required>
-                <?php foreach ($propertyNames as $optionId => $name): ?>
-                  <option value="<?php echo htmlspecialchars((string) $optionId, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $propertyId === $optionId ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </label>
-            <label>Libellé <input type="text" name="label" maxlength="160" value="<?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
-            <label>Surface <input type="number" name="surface" min="0.5" max="10000" step="0.01" value="<?php echo htmlspecialchars((string) ($unit['surface'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
-            <label><input type="checkbox" name="furnished" value="1" <?php echo !empty($unit['furnished']) ? 'checked' : ''; ?> /> Meublé</label>
-            <label>Statut
-              <select name="status">
-                <?php foreach ($unitStatuses as $value => $label): ?>
-                  <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $status === $value ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </label>
-            <label>Notes <textarea name="notes" maxlength="2000"><?php echo htmlspecialchars((string) ($unit['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
-            <button type="submit">Mettre à jour</button>
-          </form>
-          <form method="post" action="<?php echo htmlspecialchars(rtrim($unitsUrl, '/') . '/' . $id . '/archive', ENT_QUOTES, 'UTF-8'); ?>">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-            <button type="submit">Archiver</button>
-          </form>
-        </article>
+        <dialog class="private-dialog" id="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
+          <div class="private-dialog-panel">
+            <header class="private-dialog-header">
+              <h3 id="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Modifier le lot <?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></h3>
+              <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+            </header>
+            <form method="post" action="<?php echo htmlspecialchars($unitsUrl, ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="update_unit" />
+              <input type="hidden" name="unit_id" value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" />
+              <label>Immeuble
+                <select name="rental_property_id" required>
+                  <?php foreach ($propertyNames as $optionId => $name): ?>
+                    <option value="<?php echo htmlspecialchars((string) $optionId, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $propertyId === $optionId ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Libellé <input type="text" name="label" maxlength="160" value="<?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+              <label>Surface <input type="number" name="surface" min="0.5" max="10000" step="0.01" value="<?php echo htmlspecialchars((string) ($unit['surface'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+              <label class="private-checkbox-inline"><input type="checkbox" name="furnished" value="1" <?php echo !empty($unit['furnished']) ? 'checked' : ''; ?> /> Meublé</label>
+              <label>Statut
+                <select name="status">
+                  <?php foreach ($unitStatuses as $value => $label): ?>
+                    <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $status === $value ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Notes <textarea name="notes" maxlength="2000"><?php echo htmlspecialchars((string) ($unit['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+              <button type="submit">Mettre à jour</button>
+            </form>
+            <form method="post" action="<?php echo htmlspecialchars(rtrim($unitsUrl, '/') . '/' . $id . '/archive', ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <button type="submit" class="private-button-danger">Archiver</button>
+            </form>
+          </div>
+        </dialog>
       <?php endforeach; ?>
     <?php endif; ?>
   </section>

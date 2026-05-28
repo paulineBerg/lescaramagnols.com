@@ -68,8 +68,44 @@ final class AdminSettingsService
             $this->configuredDiscussionSettings(),
             $this->configuredInstagramSettings(),
             $this->configuredLogAlertsSettings(),
-            $this->configuredTranslationSettings()
+            $this->configuredTranslationSettings(),
+            $this->configuredPrivateMailSettings()
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function privateMailViewModel(): array
+    {
+        return $this->privateMailView();
+    }
+
+    /**
+     * @param array<string, mixed> $privateMail
+     * @return array<string, mixed>
+     */
+    private function privateMailView(array $privateMail = []): array
+    {
+        if ($privateMail === []) {
+            $privateMail = $this->configuredPrivateMailSettings();
+        }
+
+        $privateMailPasswordConfigured = trim((string) ($privateMail['smtpPasswordFallback'] ?? app_config('private.mail.smtp_password', ''))) !== '';
+
+        return [
+            'enabled' => $this->normalizeBooleanValue($privateMail['enabled'] ?? true, true),
+            'smtpHost' => (string) ($privateMail['smtpHost'] ?? 'ssl0.ovh.net'),
+            'smtpPort' => (int) ($privateMail['smtpPort'] ?? 465),
+            'smtpUser' => (string) ($privateMail['smtpUser'] ?? 'ne-pas-repondre@lescaramagnols.com'),
+            'smtpPassword' => '',
+            'smtpPasswordConfigured' => $privateMailPasswordConfigured,
+            'smtpEncryption' => (string) ($privateMail['smtpEncryption'] ?? 'ssl'),
+            'fromAddress' => (string) ($privateMail['fromAddress'] ?? 'ne-pas-repondre@lescaramagnols.com'),
+            'fromName' => (string) ($privateMail['fromName'] ?? 'Les Caramagnols'),
+            'replyTo' => (string) ($privateMail['replyTo'] ?? 'private@lescaramagnols.com'),
+            'templates' => array_merge($this->defaultPrivateMailTemplates(), $this->normalizePrivateMailTemplates($privateMail['templates'] ?? [])),
+        ];
     }
 
     /**
@@ -163,6 +199,30 @@ final class AdminSettingsService
         return $this->logAlertsSettingsManager->configured(
             app_config('site.log_alerts.notify_on', env('LOG_ALERTS_NOTIFY_ON', 'alerts'))
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function configuredPrivateMailSettings(): array
+    {
+        $mail = app_config('private.mail', []);
+        $mail = is_array($mail) ? $mail : [];
+        $templates = is_array($mail['templates'] ?? null) ? $mail['templates'] : [];
+
+        return [
+            'enabled' => $this->normalizeBooleanValue($mail['enabled'] ?? true, true),
+            'smtpHost' => trim((string) ($mail['smtp_host'] ?? 'ssl0.ovh.net')),
+            'smtpPort' => (int) ($mail['smtp_port'] ?? 465),
+            'smtpUser' => trim((string) ($mail['smtp_user'] ?? 'ne-pas-repondre@lescaramagnols.com')),
+            'smtpPassword' => '',
+            'smtpPasswordFallback' => (string) ($mail['smtp_password'] ?? ''),
+            'smtpEncryption' => strtolower(trim((string) ($mail['smtp_encryption'] ?? 'ssl'))),
+            'fromAddress' => trim((string) ($mail['from_address'] ?? 'ne-pas-repondre@lescaramagnols.com')),
+            'fromName' => trim((string) ($mail['from_name'] ?? 'Les Caramagnols')),
+            'replyTo' => trim((string) ($mail['reply_to'] ?? 'private@lescaramagnols.com')),
+            'templates' => array_merge($this->defaultPrivateMailTemplates(), $this->normalizePrivateMailTemplates($templates)),
+        ];
     }
 
     private function configuredInstagramCachePath(): string
@@ -406,6 +466,30 @@ final class AdminSettingsService
     }
 
     /**
+     * @param array<string, mixed> $fallback
+     * @return array<string, mixed>
+     */
+    private function privateMailForm(array $payload, array $fallback): array
+    {
+        $fallbackTemplates = is_array($fallback['templates'] ?? null) ? $fallback['templates'] : $this->defaultPrivateMailTemplates();
+        $payloadTemplates = is_array($payload['templates'] ?? null) ? $payload['templates'] : [];
+
+        return [
+            'enabled' => $this->postBoolean($payload, 'enabled', $this->normalizeBooleanValue($fallback['enabled'] ?? true, true)),
+            'smtpHost' => trim((string) ($payload['smtp_host'] ?? ($fallback['smtpHost'] ?? 'ssl0.ovh.net'))),
+            'smtpPort' => trim((string) ($payload['smtp_port'] ?? ($fallback['smtpPort'] ?? 465))),
+            'smtpUser' => trim((string) ($payload['smtp_user'] ?? ($fallback['smtpUser'] ?? 'ne-pas-repondre@lescaramagnols.com'))),
+            'smtpPassword' => (string) ($payload['smtp_password'] ?? ''),
+            'smtpPasswordFallback' => (string) ($fallback['smtpPasswordFallback'] ?? ''),
+            'smtpEncryption' => strtolower(trim((string) ($payload['smtp_encryption'] ?? ($fallback['smtpEncryption'] ?? 'ssl')))),
+            'fromAddress' => trim((string) ($payload['from_address'] ?? ($fallback['fromAddress'] ?? 'ne-pas-repondre@lescaramagnols.com'))),
+            'fromName' => trim((string) ($payload['from_name'] ?? ($fallback['fromName'] ?? 'Les Caramagnols'))),
+            'replyTo' => trim((string) ($payload['reply_to'] ?? ($fallback['replyTo'] ?? 'private@lescaramagnols.com'))),
+            'templates' => array_merge($fallbackTemplates, $this->normalizePrivateMailTemplates($payloadTemplates)),
+        ];
+    }
+
+    /**
      * @param array{languages: array<int, string>, textByLanguage: array<string, string>} $translations
      * @return array{data: array<string, array<string, string>>, error: string|null}
      */
@@ -415,11 +499,114 @@ final class AdminSettingsService
     }
 
     /**
+     * @param array<string, mixed> $mail
+     * @return array{data: array<string, mixed>, error: string|null}
+     */
+    private function normalizePrivateMailConfig(array $mail): array
+    {
+        $host = trim((string) ($mail['smtpHost'] ?? ''));
+        if ($host === '' || preg_match('/^[A-Za-z0-9.-]{1,255}$/', $host) !== 1) {
+            return ['data' => [], 'error' => 'Le serveur SMTP privé est invalide.'];
+        }
+
+        $port = filter_var((string) ($mail['smtpPort'] ?? ''), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => 65535],
+        ]);
+        if ($port === false) {
+            return ['data' => [], 'error' => 'Le port SMTP privé doit être compris entre 1 et 65535.'];
+        }
+
+        $encryption = strtolower(trim((string) ($mail['smtpEncryption'] ?? 'ssl')));
+        if (!in_array($encryption, ['', 'ssl', 'tls', 'starttls'], true)) {
+            return ['data' => [], 'error' => 'Le chiffrement SMTP privé est invalide.'];
+        }
+
+        $fromAddress = strtolower(trim((string) ($mail['fromAddress'] ?? '')));
+        if ($fromAddress === '' || filter_var($fromAddress, FILTER_VALIDATE_EMAIL) === false) {
+            return ['data' => [], 'error' => 'L’adresse expéditeur privée est invalide.'];
+        }
+
+        $replyTo = strtolower(trim((string) ($mail['replyTo'] ?? '')));
+        if ($replyTo !== '' && filter_var($replyTo, FILTER_VALIDATE_EMAIL) === false) {
+            return ['data' => [], 'error' => 'L’adresse de réponse privée est invalide.'];
+        }
+
+        $password = (string) ($mail['smtpPassword'] ?? '');
+        if ($password === '') {
+            $password = (string) ($mail['smtpPasswordFallback'] ?? '');
+        }
+
+        return [
+            'data' => [
+                'enabled' => $this->normalizeBooleanValue($mail['enabled'] ?? true, true),
+                'smtp_host' => $host,
+                'smtp_port' => (int) $port,
+                'smtp_user' => trim((string) ($mail['smtpUser'] ?? '')),
+                'smtp_password' => $password,
+                'smtp_encryption' => $encryption,
+                'from_address' => $fromAddress,
+                'from_name' => sanitize_text_field((string) ($mail['fromName'] ?? 'Les Caramagnols'), 120),
+                'reply_to' => $replyTo,
+                'templates' => array_merge($this->defaultPrivateMailTemplates(), $this->normalizePrivateMailTemplates($mail['templates'] ?? [])),
+            ],
+            'error' => null,
+        ];
+    }
+
+    /**
      * @return array<int, string>
      */
     private function knownTranslationKeys(): array
     {
         return $this->translationSettingsManager->knownKeys();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function defaultPrivateMailTemplates(): array
+    {
+        return [
+            'rental_subject' => 'Document locatif',
+            'rental_body' => "Bonjour,\n\nVous trouverez le document locatif en pièce jointe.\n\nCordialement,\nLes Caramagnols",
+            'tax_subject' => 'Aide impôts - document PDF',
+            'tax_body' => "Bonjour,\n\nVous trouverez le PDF d'aide à la déclaration en pièce jointe.\n\nCordialement,\nLes Caramagnols",
+            'discussion_invite_subject' => 'Invitation à rejoindre les discussions famille',
+            'discussion_invite_body' => "Bonjour,\n\nVous êtes invité à rejoindre l'espace privé Les Caramagnols pour accéder aux discussions famille.\n\nModules disponibles selon vos droits : documents privés, discussions famille, locations immobilières, aide impôts.\n\nLien d'activation : {{activation_url}}\nIdentifiant : {{email}}\n\nPour toute question ou une demande d'accès, vous pouvez écrire à private@lescaramagnols.com.",
+            'admin_invite_subject' => 'Accès à votre espace privé',
+            'admin_invite_body' => "Bonjour,\n\nVotre accès à l'espace privé Les Caramagnols a été préparé.\n\nUn mot de passe temporaire fort a été généré côté serveur. Pour des raisons de sécurité, il n'est pas envoyé par email : définissez votre mot de passe personnel depuis le lien sécurisé.\n\nLien d'activation : {{activation_url}}\nIdentifiant : {{email}}\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com.",
+            'password_reset_subject' => 'Réinitialisation de votre espace privé',
+            'password_reset_body' => "Bonjour,\n\nRéinitialisez votre mot de passe avec ce lien sécurisé : {{reset_url}}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.",
+        ];
+    }
+
+    /**
+     * @param mixed $templates
+     * @return array<string, string>
+     */
+    private function normalizePrivateMailTemplates(mixed $templates): array
+    {
+        if (!is_array($templates)) {
+            return [];
+        }
+
+        $allowedKeys = array_keys($this->defaultPrivateMailTemplates());
+        $normalized = [];
+        foreach ($templates as $key => $value) {
+            $key = trim((string) $key);
+            if (!in_array($key, $allowedKeys, true) || !is_scalar($value)) {
+                continue;
+            }
+
+            $text = trim((string) $value);
+            if ($text === '') {
+                continue;
+            }
+
+            $normalized[$key] = sanitize_text_field($text, 4000);
+        }
+
+        return $normalized;
     }
 
     /**
@@ -765,12 +952,14 @@ final class AdminSettingsService
         $instagramPayload = is_array($payload['instagram'] ?? null) ? $payload['instagram'] : [];
         $logAlertsPayload = is_array($payload['log_alerts'] ?? null) ? $payload['log_alerts'] : [];
         $translationsPayload = is_array($payload['translations'] ?? null) ? $payload['translations'] : [];
+        $privateMailPayload = is_array($payload['private_mail'] ?? null) ? $payload['private_mail'] : [];
         $configuredUrl = $this->configuredUrlSettings();
         $configuredTarteaucitron = $this->configuredTarteaucitronSettings();
         $configuredDiscussions = $this->configuredDiscussionSettings();
         $configuredInstagram = $this->configuredInstagramSettings();
         $configuredLogAlerts = $this->configuredLogAlertsSettings();
         $configuredTranslations = $this->configuredTranslationSettings();
+        $configuredPrivateMail = $this->configuredPrivateMailSettings();
 
         $databaseForm = [
             'host' => trim((string) ($databasePayload['host'] ?? app_config('database.host', '127.0.0.1'))),
@@ -803,6 +992,7 @@ final class AdminSettingsService
         $instagramForm = $this->instagramForm($instagramPayload, $configuredInstagram);
         $logAlertsForm = $this->logAlertsForm($logAlertsPayload, $configuredLogAlerts);
         $translationsForm = $this->translationsForm($translationsPayload, $configuredTranslations);
+        $privateMailForm = $this->privateMailForm($privateMailPayload, $configuredPrivateMail);
 
         $databaseConfig = $this->normalizeDatabaseConfig($databaseForm);
         if ($databaseConfig['error'] !== null) {
@@ -903,6 +1093,17 @@ final class AdminSettingsService
             ];
         }
 
+        $privateMailConfig = $this->normalizePrivateMailConfig($privateMailForm);
+        if ($privateMailConfig['error'] !== null) {
+            return [
+                'success' => false,
+                'message' => null,
+                'error' => $privateMailConfig['error'],
+                'view' => $this->buildViewModel($databaseForm, $adminForm, $urlForm, $headForm, $tarteaucitronForm, $discussionsForm, $instagramForm, $logAlertsForm, $translationsForm, $privateMailForm),
+                'adminIdentifier' => null,
+            ];
+        }
+
         $previousDatabase = [
             'host' => (string) app_config('database.host', ''),
             'port' => (int) app_config('database.port', 3306),
@@ -924,6 +1125,7 @@ final class AdminSettingsService
         $previousDiscussions = $configuredDiscussions;
         $previousInstagram = $configuredInstagram;
         $previousLogAlerts = $configuredLogAlerts;
+        $previousPrivateMail = $configuredPrivateMail;
         $previousTranslations = $this->normalizeI18nOverrides(app_config('site.i18n_overrides', []));
 
         $databasePassword = $databaseConfig['data']['password'] !== ''
@@ -961,6 +1163,11 @@ final class AdminSettingsService
             'inactivity_timeout_seconds' => (int) $adminConfig['data']['inactivityTimeoutSeconds'],
             'reauth_timeout_seconds' => (int) $adminConfig['data']['reauthTimeoutSeconds'],
         ];
+        $existingSiteOverride = $this->readPhpArrayFile($this->siteOverridePath);
+        $existingPrivateOverride = is_array($existingSiteOverride['private'] ?? null)
+            ? $existingSiteOverride['private']
+            : [];
+
         $siteOverride = [
             'url' => [
                 'domain' => (string) $urlConfig['data']['domain'],
@@ -1026,6 +1233,9 @@ final class AdminSettingsService
                 'tar_binary' => trim((string) app_config('backup.tar_binary', 'tar')) ?: 'tar',
                 'mysqldump_binary' => trim((string) app_config('backup.mysqldump_binary', 'mysqldump')) ?: 'mysqldump',
             ],
+            'private' => array_merge($existingPrivateOverride, [
+                'mail' => $privateMailConfig['data'],
+            ]),
             'i18n_overrides' => $translationsConfig['data'],
         ];
 
@@ -1117,6 +1327,15 @@ final class AdminSettingsService
                     'log_alerts' => [
                         'notify_on' => (string) $previousLogAlerts['notifyOn'] !== (string) $siteOverride['log_alerts']['notify_on'],
                     ],
+                    'private_mail' => [
+                        'enabled' => (bool) ($previousPrivateMail['enabled'] ?? true) !== (bool) $siteOverride['private']['mail']['enabled'],
+                        'smtp_host' => (string) ($previousPrivateMail['smtpHost'] ?? '') !== (string) $siteOverride['private']['mail']['smtp_host'],
+                        'smtp_port' => (int) ($previousPrivateMail['smtpPort'] ?? 0) !== (int) $siteOverride['private']['mail']['smtp_port'],
+                        'smtp_user' => (string) ($previousPrivateMail['smtpUser'] ?? '') !== (string) $siteOverride['private']['mail']['smtp_user'],
+                        'smtp_password' => (string) ($privateMailForm['smtpPassword'] ?? '') !== '',
+                        'from_address' => (string) ($previousPrivateMail['fromAddress'] ?? '') !== (string) $siteOverride['private']['mail']['from_address'],
+                        'reply_to' => (string) ($previousPrivateMail['replyTo'] ?? '') !== (string) $siteOverride['private']['mail']['reply_to'],
+                    ],
                     'i18n_overrides' => $previousTranslations !== $this->normalizeI18nOverrides($siteOverride['i18n_overrides']),
                 ],
                 'storage' => [
@@ -1136,6 +1355,78 @@ final class AdminSettingsService
             'error' => null,
             'view' => $this->viewModel(),
             'adminIdentifier' => $adminOverride['identifier'],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, message: string|null, error: string|null, view: array<string, mixed>}
+     */
+    public function savePrivateMail(array $payload, ?string $actorIdentifier = null): array
+    {
+        $privateMailPayload = is_array($payload['private_mail'] ?? null) ? $payload['private_mail'] : [];
+        $configuredPrivateMail = $this->configuredPrivateMailSettings();
+        $privateMailForm = $this->privateMailForm($privateMailPayload, $configuredPrivateMail);
+        $privateMailConfig = $this->normalizePrivateMailConfig($privateMailForm);
+
+        if ($privateMailConfig['error'] !== null) {
+            return [
+                'success' => false,
+                'message' => null,
+                'error' => $privateMailConfig['error'],
+                'view' => $this->privateMailView($privateMailForm),
+            ];
+        }
+
+        $previousPrivateMail = $configuredPrivateMail;
+        $siteOverride = $this->readPhpArrayFile($this->siteOverridePath);
+        $existingPrivateOverride = is_array($siteOverride['private'] ?? null) ? $siteOverride['private'] : [];
+        $siteOverride['private'] = array_merge($existingPrivateOverride, [
+            'mail' => $privateMailConfig['data'],
+        ]);
+
+        try {
+            $this->writePhpArrayFile($this->siteOverridePath, $siteOverride);
+            $this->applyPrivateMailRuntimeConfig($privateMailConfig['data']);
+        } catch (\Throwable $exception) {
+            $this->eventLogger->security(
+                'admin.private_mail.save_failed',
+                [
+                    'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                    'exception' => $exception->getMessage(),
+                ],
+                'error'
+            );
+
+            return [
+                'success' => false,
+                'message' => null,
+                'error' => 'Impossible de sauvegarder la configuration email privée.',
+                'view' => $this->privateMailViewModel(),
+            ];
+        }
+
+        $this->eventLogger->security(
+            'admin.private_mail.saved',
+            [
+                'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                'changes' => [
+                    'enabled' => (bool) ($previousPrivateMail['enabled'] ?? true) !== (bool) $privateMailConfig['data']['enabled'],
+                    'smtp_host' => (string) ($previousPrivateMail['smtpHost'] ?? '') !== (string) $privateMailConfig['data']['smtp_host'],
+                    'smtp_port' => (int) ($previousPrivateMail['smtpPort'] ?? 0) !== (int) $privateMailConfig['data']['smtp_port'],
+                    'smtp_user' => (string) ($previousPrivateMail['smtpUser'] ?? '') !== (string) $privateMailConfig['data']['smtp_user'],
+                    'smtp_password' => (string) ($privateMailForm['smtpPassword'] ?? '') !== '',
+                    'from_address' => (string) ($previousPrivateMail['fromAddress'] ?? '') !== (string) $privateMailConfig['data']['from_address'],
+                    'reply_to' => (string) ($previousPrivateMail['replyTo'] ?? '') !== (string) $privateMailConfig['data']['reply_to'],
+                ],
+            ]
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Configuration email privée sauvegardée.',
+            'error' => null,
+            'view' => $this->privateMailViewModel(),
         ];
     }
 
@@ -1479,6 +1770,7 @@ final class AdminSettingsService
      * @param array<string, bool|int|string> $instagram
      * @param array<string, string> $logAlerts
      * @param array{languages?: array<int, string>, textByLanguage?: array<string, string>} $translations
+     * @param array<string, mixed> $privateMail
      * @return array<string, mixed>
      */
     private function buildViewModel(
@@ -1490,8 +1782,13 @@ final class AdminSettingsService
         array $discussions,
         array $instagram,
         array $logAlerts,
-        array $translations = []
+        array $translations = [],
+        array $privateMail = []
     ): array {
+        if ($privateMail === []) {
+            $privateMail = $this->configuredPrivateMailSettings();
+        }
+
         $databasePasswordConfigured = ((string) app_config('database.password', '')) !== '';
         $adminPasswordConfigured = ((string) app_config('admin.password_hash', '')) !== '';
         $adminTotpSecretConfigured = trim((string) ($admin['totpSecretFallback'] ?? '')) !== '';
@@ -1614,6 +1911,7 @@ final class AdminSettingsService
                 'blogPublishScriptPath' => $this->scheduledBlogPublishScriptPath(),
                 'blogPublishCronCommand' => $this->scheduledBlogPublishCronCommand(),
             ],
+            'privateMail' => $this->privateMailView($privateMail),
             'backup' => $this->configuredBackupSettings(),
             'translations' => [
                 'languages' => $translationLanguages,
@@ -1916,9 +2214,40 @@ final class AdminSettingsService
             'i18n_overrides' => $this->normalizeI18nOverrides($siteOverride['i18n_overrides'] ?? []),
         ]);
 
+        if (is_array($siteOverride['private']['mail'] ?? null)) {
+            $this->applyPrivateMailRuntimeConfig($siteOverride['private']['mail']);
+        }
+
         if (is_array($siteOverride['backup'] ?? null)) {
             $this->applyBackupRuntimeConfig($siteOverride['backup']);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $mail
+     */
+    private function applyPrivateMailRuntimeConfig(array $mail): void
+    {
+        global $appConfig;
+
+        if (!is_array($appConfig)) {
+            return;
+        }
+
+        $appConfig['private'] = array_merge((array) ($appConfig['private'] ?? []), [
+            'mail' => [
+                'enabled' => $this->normalizeBooleanValue($mail['enabled'] ?? true, true),
+                'smtp_host' => trim((string) ($mail['smtp_host'] ?? 'ssl0.ovh.net')),
+                'smtp_port' => max(1, min(65535, (int) ($mail['smtp_port'] ?? 465))),
+                'smtp_user' => trim((string) ($mail['smtp_user'] ?? '')),
+                'smtp_password' => (string) ($mail['smtp_password'] ?? ''),
+                'smtp_encryption' => strtolower(trim((string) ($mail['smtp_encryption'] ?? 'ssl'))),
+                'from_address' => trim((string) ($mail['from_address'] ?? 'ne-pas-repondre@lescaramagnols.com')),
+                'from_name' => trim((string) ($mail['from_name'] ?? 'Les Caramagnols')),
+                'reply_to' => trim((string) ($mail['reply_to'] ?? 'private@lescaramagnols.com')),
+                'templates' => array_merge($this->defaultPrivateMailTemplates(), $this->normalizePrivateMailTemplates($mail['templates'] ?? [])),
+            ],
+        ]);
     }
 
     /**

@@ -21,6 +21,20 @@ References projet a garder alignees :
 - `docs/private/backlog-pvt01.md`
 - `docs/deployment/README.md`
 
+Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
+- ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
+- cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
+- les modules prives peuvent envoyer des emails via cette configuration : documents locatifs en pieces jointes, quittance de loyer PDF depuis un paiement, PDF fiscal annuel et invitations FamilyDiscussion;
+- RealEstateRental permet maintenant la suppression individuelle des locataires, baux, paiements, charges et documents, ainsi que la suppression globale des documents ou des donnees locatives avec confirmation explicite `SUPPRIMER`;
+- FamilyDiscussion permet l'invitation email d'un membre, la suppression d'un message, d'une piece jointe ou de tous les messages/fichiers envoyes par l'utilisateur dans une conversation;
+- dans le BO membres prives, un module deja affecte ne peut pas etre decoche tant que des informations rattachees existent; les comptes anonymises peuvent etre reinvites sur une nouvelle adresse ou purges cote donnees, sans restaurer de donnees anonymisees;
+- aucune recuperation serveur des messages chiffres client n'est ajoutee : sans cle locale d'un appareil participant, le contenu chiffre reste illisible par conception.
+
+Validations lancees pour ce jalon :
+- `backend/vendor/bin/phpunit -c backend/phpunit.xml backend/tests/PrivatePortalMembersTest.php backend/tests/PrivatePortal/PrivacyOperationsTest.php backend/tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php backend/tests/PrivateApps/FamilyDiscussion/FamilyDiscussionModuleTest.php backend/tests/PrivateApps/TaxDeclarationHelper/TaxDeclarationHelperModuleTest.php backend/tests/PrivateRouteResolverTest.php`
+- `vendor/bin/phpstan analyse` depuis `backend/`
+- `vendor/bin/phpcs` depuis `backend/`
+
 ## 0. Protocole d'avancement (documentaire et exécution)
 
 Cette section s'applique à toute la suite des phases privées.

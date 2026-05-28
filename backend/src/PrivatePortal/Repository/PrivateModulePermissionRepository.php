@@ -109,6 +109,76 @@ final class PrivateModulePermissionRepository
         ));
     }
 
+    /**
+     * @return array<string, int>
+     */
+    public function moduleDataCountsForUser(int $userId): array
+    {
+        $counts = array_fill_keys($this->moduleRegistry->moduleCodes(), 0);
+        if ($userId <= 0) {
+            return $counts;
+        }
+
+        $counts['documents'] = $this->countRows('private_documents', '`private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
+            + $this->countRows('private_document_categories', '`private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId]);
+
+        $counts['discussions'] = $this->countRows('discussion_conversation_members', '`private_user_id` = :user_id AND `left_at` IS NULL', ['user_id' => $userId])
+            + $this->countRows('discussion_messages', '`sender_private_user_id` = :user_id AND `purge_status` = \'active\' AND `deleted_at` IS NULL', ['user_id' => $userId])
+            + $this->countRows('discussion_crypto_devices', '`private_user_id` = :user_id AND `revoked_at` IS NULL', ['user_id' => $userId]);
+
+        $counts['real_estate_rental'] = $this->countRows('rental_properties', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
+            + $this->countRows('rental_units', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
+            + $this->countRows('rental_property_members', '`private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
+            + $this->countRows('rental_tenants', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
+            + $this->countRows('rental_leases', '`created_by_private_user_id` = :user_id AND `status` <> \'cancelled\'', ['user_id' => $userId])
+            + $this->countRows('rental_payments', '`created_by_private_user_id` = :user_id AND `status` <> \'cancelled\'', ['user_id' => $userId])
+            + $this->countRows('rental_expenses', '`created_by_private_user_id` = :user_id AND `status` <> \'cancelled\'', ['user_id' => $userId])
+            + $this->countRows('rental_documents', '`uploaded_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
+            + $this->countRows('rental_export_logs', '`private_user_id` = :user_id', ['user_id' => $userId]);
+
+        $counts['tax_declaration_helper'] = $this->countRows('tax_years', '`private_user_id` = :user_id', ['user_id' => $userId])
+            + $this->countRows('tax_source_activations', '`private_user_id` = :user_id', ['user_id' => $userId])
+            + $this->countRows('tax_manual_income_entries', '`private_user_id` = :user_id AND `status` <> \'cancelled\'', ['user_id' => $userId])
+            + $this->countRows('tax_annual_summaries', '`private_user_id` = :user_id', ['user_id' => $userId])
+            + $this->countRows('tax_export_logs', '`private_user_id` = :user_id', ['user_id' => $userId]);
+
+        return $counts;
+    }
+
+    /**
+     * @param array<int, string> $selectedCodes
+     * @return array<int, array{code: string, name: string, count: int}>
+     */
+    public function blockedModuleRevocations(int $userId, array $selectedCodes): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $selectedCodes = $this->normalizeModuleCodes($selectedCodes);
+        $counts = $this->moduleDataCountsForUser($userId);
+        $blocked = [];
+        foreach ($this->listModuleStatesForUser($userId) as $module) {
+            $code = is_string($module['code'] ?? null) ? strtolower(trim((string) $module['code'])) : '';
+            if ($code === '' || empty($module['assigned']) || in_array($code, $selectedCodes, true)) {
+                continue;
+            }
+
+            $count = max(0, (int) ($counts[$code] ?? 0));
+            if ($count <= 0) {
+                continue;
+            }
+
+            $blocked[] = [
+                'code' => $code,
+                'name' => is_string($module['name'] ?? null) ? (string) $module['name'] : $code,
+                'count' => $count,
+            ];
+        }
+
+        return $blocked;
+    }
+
     public function userHasModuleAccess(int $userId, string $moduleCode): bool
     {
         $module = $this->moduleRegistry->moduleCode($moduleCode);
@@ -215,6 +285,24 @@ final class PrivateModulePermissionRepository
     private function permissionTable(): string
     {
         return $this->database->table('private_user_module_permissions');
+    }
+
+    /**
+     * @param array<string, int|string|null> $params
+     */
+    private function countRows(string $table, string $where, array $params): int
+    {
+        try {
+            $this->database->ensureReady();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT COUNT(*) FROM `%s` WHERE %s', $this->database->table($table), $where)
+            );
+            $statement->execute($params);
+
+            return max(0, (int) $statement->fetchColumn());
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     private function ensureSchema(): void

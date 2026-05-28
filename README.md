@@ -57,9 +57,11 @@ Procedure d'installation securisee (hors webroot): `docs/backend/installation-ho
 Terminal 1:
 
 ```bash
-cd backend/public
-php -S 127.0.0.1:8099
+cd backend
+php -S 127.0.0.1:8000 -t public public/dev-router.php
 ```
+
+Le routeur `public/dev-router.php` est necessaire en local pour servir les routes dynamiques du front-controller, par exemple les anciennes URL publiques en `.php`.
 
 Terminal 2:
 

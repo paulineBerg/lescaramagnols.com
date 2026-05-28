@@ -5,21 +5,23 @@ declare(strict_types=1);
 namespace Caramagnols\Admin;
 
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 
 final class AdminPrivateMembersService
 {
     /** @var array<int, string> */
-    private const ALLOWED_STATUS_FILTERS = ['invited', 'active', 'suspended', 'disabled', 'deleted'];
+    private const ALLOWED_STATUS_FILTERS = ['invited', 'active', 'suspended', 'disabled'];
 
     /** @var array<int, string> */
-    private const ALLOWED_ACTIONS = ['invite', 'resend', 'suspend', 'reset', 'anonymize', 'modules'];
+    private const ALLOWED_ACTIONS = ['invite', 'resend', 'suspend', 'reactivate', 'delete_suspended', 'reset', 'modules'];
 
     public function __construct(
         private readonly PrivateUserRepository $privateUserRepository,
         private readonly PrivateModulePermissionRepository $modulePermissionRepository,
-        private readonly ?AppEventLogger $eventLogger = null
+        private readonly ?AppEventLogger $eventLogger = null,
+        private ?PrivateDataProtectionService $dataProtectionService = null
     ) {
     }
 
@@ -29,6 +31,7 @@ final class AdminPrivateMembersService
      *   searchQuery: string,
      *   members: array<int, array<string, mixed>>,
      *   stats: array<string, int>,
+     *   memberEmailChoices: array<int, string>,
      *   moduleRegistry: array<int, array<string, mixed>>
      * }
      */
@@ -41,16 +44,33 @@ final class AdminPrivateMembersService
             $normalizedStatusFilter === '' ? null : $normalizedStatusFilter,
             $normalizedSearchQuery
         );
+        $members = array_values(array_filter(
+            $members,
+            fn (array $member): bool => $this->normalizeStatusFilter((string) ($member['status'] ?? '')) !== ''
+        ));
         $members = array_map(
             fn (array $member): array => $this->memberView($member),
             $members
         );
+        $allMembers = array_values(array_filter(
+            $this->privateUserRepository->listMembers(null, ''),
+            fn (array $member): bool => $this->normalizeStatusFilter((string) ($member['status'] ?? '')) !== ''
+        ));
+        $memberEmailChoices = [];
+        foreach ($allMembers as $member) {
+            $email = is_string($member['email'] ?? null) ? trim((string) $member['email']) : '';
+            if ($email !== '' && !in_array($email, $memberEmailChoices, true)) {
+                $memberEmailChoices[] = $email;
+            }
+        }
+        usort($memberEmailChoices, static fn (string $left, string $right): int => strcasecmp($left, $right));
 
         return [
             'statusFilter' => $normalizedStatusFilter,
             'searchQuery' => $normalizedSearchQuery,
             'members' => $members,
             'stats' => $this->membersStats($members),
+            'memberEmailChoices' => $memberEmailChoices,
             'moduleRegistry' => $this->modulePermissionRepository->listRegistryModuleStates(),
         ];
     }
@@ -74,8 +94,9 @@ final class AdminPrivateMembersService
             'invite' => $this->invite($payload, $actorIdentifier),
             'resend' => $this->resend($payload, $actorIdentifier),
             'suspend' => $this->suspend($payload, $actorIdentifier),
+            'reactivate' => $this->reactivate($payload, $actorIdentifier),
+            'delete_suspended' => $this->deleteSuspended($payload, $actorIdentifier),
             'reset' => $this->resetPassword($payload, $actorIdentifier, $clientIp, $userAgent),
-            'anonymize' => $this->anonymize($payload, $actorIdentifier),
             'modules' => $this->assignModules($payload, $actorIdentifier),
             default => $this->result(false, null, 'Action privée inconnue.'),
         };
@@ -113,8 +134,38 @@ final class AdminPrivateMembersService
     {
         $id = is_numeric($member['id'] ?? null) ? (int) $member['id'] : 0;
         $member['moduleStates'] = $this->modulePermissionRepository->listModuleStatesForUser($id);
+        $member['moduleDataCounts'] = $this->modulePermissionRepository->moduleDataCountsForUser($id);
+        $member['deletionBackup'] = $id > 0 ? $this->dataProtectionService()->latestDeletionBackupForUser($id) : null;
 
         return $member;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, filename?: string, content?: string, contentType?: string, error?: string}
+     */
+    public function downloadDeletionBackup(array $payload, ?string $actorIdentifier = null): array
+    {
+        $member = $this->memberFromPayload($payload);
+        if ($member === null) {
+            return ['success' => false, 'error' => 'Compte privé introuvable.'];
+        }
+
+        $userId = (int) $member['id'];
+        $email = (string) $member['email'];
+        $download = $this->dataProtectionService()->deletionBackupDownloadForUser($userId);
+        if (!is_array($download)) {
+            return ['success' => false, 'error' => 'Aucune sauvegarde disponible pour ce compte.'];
+        }
+
+        $this->logAction('admin.private.deletion_backup_downloaded', $actorIdentifier, $userId, $email);
+
+        return [
+            'success' => true,
+            'filename' => is_string($download['filename'] ?? null) ? (string) $download['filename'] : 'private-account-backup.zip',
+            'content' => is_string($download['content'] ?? null) ? (string) $download['content'] : '',
+            'contentType' => is_string($download['contentType'] ?? null) ? (string) $download['contentType'] : 'application/zip',
+        ];
     }
 
     /**
@@ -129,7 +180,7 @@ final class AdminPrivateMembersService
         }
 
         $existing = $this->privateUserRepository->findByEmail($email);
-        if (is_array($existing) && $this->normalizeStatusFilter((string) ($existing['status'] ?? '')) !== 'deleted') {
+        if (is_array($existing)) {
             return $this->result(false, null, 'Un compte privé existe déjà pour cette adresse.');
         }
 
@@ -199,10 +250,6 @@ final class AdminPrivateMembersService
         }
 
         $status = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
-        if ($status === 'deleted') {
-            return $this->result(false, null, 'Un compte anonymisé ne peut pas être suspendu.');
-        }
-
         $userId = (int) $member['id'];
         $email = (string) $member['email'];
         if ($status !== 'suspended' && !$this->privateUserRepository->updateStatus($userId, 'suspended')) {
@@ -212,8 +259,135 @@ final class AdminPrivateMembersService
         }
 
         $this->logAction('admin.private.member_suspended', $actorIdentifier, $userId, $email);
+        $emailSent = $this->sendMemberNotificationEmail(
+            $email,
+            'Compte privé suspendu',
+            "Bonjour,\n\nVotre compte privé Les Caramagnols a été suspendu. Vous ne pouvez plus vous connecter tant qu’il n’est pas réactivé.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com.",
+            'admin.private.member_suspended_notification',
+            $actorIdentifier,
+            $userId
+        );
 
-        return $this->result(true, 'Compte privé suspendu.', null);
+        return $this->result(
+            true,
+            $emailSent ? 'Compte privé suspendu. Email envoyé.' : 'Compte privé suspendu, mais l’email n’a pas pu être envoyé.',
+            null
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, message: ?string, error: ?string}
+     */
+    private function reactivate(array $payload, ?string $actorIdentifier): array
+    {
+        $member = $this->memberFromPayload($payload);
+        if ($member === null) {
+            return $this->result(false, null, 'Compte privé introuvable.');
+        }
+
+        $status = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
+        $userId = (int) $member['id'];
+        $email = (string) $member['email'];
+        if ($status !== 'suspended') {
+            return $this->result(false, null, 'Seul un compte suspendu peut être réactivé.');
+        }
+        if (is_array($this->dataProtectionService()->latestDeletionBackupForUser($userId))) {
+            return $this->result(false, null, 'La suppression de ce compte est déjà programmée. Les données ont été purgées.');
+        }
+
+        if (!$this->privateUserRepository->updateStatus($userId, 'active')) {
+            $this->logAction('admin.private.member_reactivate_failed', $actorIdentifier, $userId, $email, 'warning');
+
+            return $this->result(false, null, 'Impossible de réactiver le compte privé.');
+        }
+
+        $this->logAction('admin.private.member_reactivated', $actorIdentifier, $userId, $email);
+        $emailSent = $this->sendMemberNotificationEmail(
+            $email,
+            'Compte privé réactivé',
+            "Bonjour,\n\nVotre compte privé Les Caramagnols a été réactivé. Vous pouvez de nouveau vous connecter à l’espace privé.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com.",
+            'admin.private.member_reactivated_notification',
+            $actorIdentifier,
+            $userId
+        );
+
+        return $this->result(
+            true,
+            $emailSent ? 'Compte privé réactivé. Email envoyé.' : 'Compte privé réactivé, mais l’email n’a pas pu être envoyé.',
+            null
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, message: ?string, error: ?string}
+     */
+    private function deleteSuspended(array $payload, ?string $actorIdentifier): array
+    {
+        $member = $this->memberFromPayload($payload);
+        if ($member === null) {
+            return $this->result(false, null, 'Compte privé introuvable.');
+        }
+
+        $status = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
+        $userId = (int) $member['id'];
+        $email = (string) $member['email'];
+        if ($status !== 'suspended') {
+            return $this->result(false, null, 'La suppression est réservée aux comptes suspendus.');
+        }
+
+        if ((string) ($payload['private_member_delete_confirm'] ?? '') !== '1') {
+            return $this->result(false, null, 'Merci de confirmer la suppression avant de continuer.');
+        }
+
+        try {
+            $deletion = $this->dataProtectionService()->deleteSuspendedAccountWithBackup($userId, $actorIdentifier ?? 'admin', 30);
+        } catch (\Throwable) {
+            $this->logAction('admin.private.member_delete_suspended_failed', $actorIdentifier, $userId, $email, 'warning');
+
+            return $this->result(false, null, 'Impossible de supprimer le compte privé suspendu.');
+        }
+
+        $success = (bool) ($deletion['success'] ?? $deletion['ok'] ?? false);
+        if (!$success) {
+            $error = is_string($deletion['error'] ?? null) && trim((string) $deletion['error']) !== ''
+                ? (string) $deletion['error']
+                : 'Impossible de supprimer le compte privé suspendu.';
+            $this->logAction('admin.private.member_delete_suspended_failed', $actorIdentifier, $userId, $email, 'warning');
+
+            return $this->result(false, null, $error);
+        }
+
+        $this->logAction(
+            'admin.private.member_deletion_scheduled_with_backup',
+            $actorIdentifier,
+            $userId,
+            $email,
+            'info',
+            [
+                'backup_path' => is_string($deletion['backupPath'] ?? null) ? (string) $deletion['backupPath'] : null,
+                'delete_after' => is_string($deletion['deleteAfter'] ?? null) ? (string) $deletion['deleteAfter'] : null,
+            ]
+        );
+        $deleteAfter = is_string($deletion['deleteAfter'] ?? null) ? (string) $deletion['deleteAfter'] : '';
+        $deleteAfterLabel = strtotime($deleteAfter) !== false ? date('d/m/Y', (int) strtotime($deleteAfter)) : 'dans 30 jours';
+        $emailSent = $this->sendMemberNotificationEmail(
+            $email,
+            'Suppression programmée de votre compte privé',
+            "Bonjour,\n\nLa suppression de votre compte privé Les Caramagnols a été programmée.\n\nUne sauvegarde ZIP des données a été créée, puis les données rattachées au compte ont été purgées. Le compte suspendu et la sauvegarde seront supprimés définitivement le " . $deleteAfterLabel . ".\n\nUn email de rappel sera envoyé après 20 jours.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com.",
+            'admin.private.member_deletion_scheduled_notification',
+            $actorIdentifier,
+            $userId
+        );
+
+        return $this->result(
+            true,
+            $emailSent
+                ? 'Sauvegarde créée, données purgées, suppression du compte programmée. Email envoyé.'
+                : 'Sauvegarde créée, données purgées, suppression du compte programmée, mais l’email n’a pas pu être envoyé.',
+            null
+        );
     }
 
     /**
@@ -231,11 +405,6 @@ final class AdminPrivateMembersService
             return $this->result(false, null, 'Compte privé introuvable.');
         }
 
-        $status = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
-        if ($status === 'deleted') {
-            return $this->result(false, null, 'Un compte anonymisé ne peut pas recevoir de reset.');
-        }
-
         $userId = (int) $member['id'];
         $email = (string) $member['email'];
         $token = $this->privateUserRepository->createPasswordResetToken($userId, $clientIp, $userAgent);
@@ -245,39 +414,14 @@ final class AdminPrivateMembersService
             return $this->result(false, null, 'Impossible de générer un jeton de réinitialisation.');
         }
 
-        $this->sendPasswordResetEmail($email, $token, $actorIdentifier, $userId);
+        $emailSent = $this->sendPasswordResetEmail($email, $token, $actorIdentifier, $userId);
+        if (!$emailSent) {
+            return $this->result(false, null, 'La demande de réinitialisation a été créée, mais l’email n’a pas pu être envoyé.');
+        }
+
         $this->logAction('admin.private.password_reset_requested', $actorIdentifier, $userId, $email);
 
-        return $this->result(true, 'Réinitialisation privée enregistrée.', null);
-    }
-
-    /**
-     * @param array<string, mixed> $payload
-     * @return array{success: bool, message: ?string, error: ?string}
-     */
-    private function anonymize(array $payload, ?string $actorIdentifier): array
-    {
-        $member = $this->memberFromPayload($payload);
-        if ($member === null) {
-            return $this->result(false, null, 'Compte privé introuvable.');
-        }
-
-        $status = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
-        if ($status === 'deleted') {
-            return $this->result(true, 'Compte privé déjà anonymisé.', null);
-        }
-
-        $userId = (int) $member['id'];
-        $email = (string) $member['email'];
-        if (!$this->privateUserRepository->anonymize($userId)) {
-            $this->logAction('admin.private.member_anonymize_failed', $actorIdentifier, $userId, $email, 'warning');
-
-            return $this->result(false, null, 'Impossible d’anonymiser le compte privé.');
-        }
-
-        $this->logAction('admin.private.member_anonymized', $actorIdentifier, $userId, $email);
-
-        return $this->result(true, 'Compte privé anonymisé.', null);
+        return $this->result(true, 'Demande de réinitialisation envoyée.', null);
     }
 
     /**
@@ -291,11 +435,6 @@ final class AdminPrivateMembersService
             return $this->result(false, null, 'Compte privé introuvable.');
         }
 
-        $status = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
-        if ($status === 'deleted') {
-            return $this->result(false, null, 'Un compte anonymisé ne peut pas recevoir de modules.');
-        }
-
         $rawCodes = $this->rawModuleCodes($payload['modules'] ?? []);
         $validCodes = $this->modulePermissionRepository->validModuleCodesFromPayload($rawCodes);
         if (count($rawCodes) !== count($validCodes)) {
@@ -304,6 +443,20 @@ final class AdminPrivateMembersService
 
         $userId = (int) $member['id'];
         $email = (string) $member['email'];
+        $blockedRevocations = $this->modulePermissionRepository->blockedModuleRevocations($userId, $validCodes);
+        if ($blockedRevocations !== []) {
+            $names = array_map(
+                static fn (array $module): string => $module['name'],
+                $blockedRevocations
+            );
+
+            return $this->result(
+                false,
+                null,
+                'Impossible de retirer un module contenant encore des informations : ' . implode(', ', array_filter($names)) . '.'
+            );
+        }
+
         if (!$this->modulePermissionRepository->setUserModules($userId, $validCodes, $actorIdentifier)) {
             $this->logAction('admin.private.modules_update_failed', $actorIdentifier, $userId, $email, 'warning');
 
@@ -427,30 +580,40 @@ final class AdminPrivateMembersService
 
     private function sendActivationEmail(string $email, string $token, ?string $actorIdentifier, int $userId): void
     {
-        $url = private_portal_url('activate') . '/' . rawurlencode($token);
+        $url = app_url(private_portal_url('activate') . '/' . rawurlencode($token));
+        $message = strtr($this->privateMailTemplate(
+            'admin_invite_body',
+            "Bonjour,\n\nVotre espace privé est prêt.\n\nIdentifiant de connexion : {{email}}\nLien d'activation : {{activation_url}}\n\nChoisissez votre mot de passe depuis ce lien sécurisé."
+        ), [
+            '{{activation_url}}' => $url,
+            '{{email}}' => $email,
+        ]);
+
         $this->sendPrivateEmail(
             $email,
-            'Activation de votre espace privé',
-            sprintf(
-                '<p>Bonjour,</p><p>Activez votre espace privé avec ce lien sécurisé :</p><p><a href="%1$s">%1$s</a></p>',
-                htmlspecialchars($url, ENT_QUOTES, 'UTF-8')
-            ),
+            $this->privateMailSubject('admin_invite_subject', 'Activation de votre espace privé'),
+            $this->plainTextToHtml($message),
             'admin.private.invite_email',
             $actorIdentifier,
             $userId
         );
     }
 
-    private function sendPasswordResetEmail(string $email, string $token, ?string $actorIdentifier, int $userId): void
+    private function sendPasswordResetEmail(string $email, string $token, ?string $actorIdentifier, int $userId): bool
     {
-        $url = private_portal_url('password_reset') . '/' . rawurlencode($token);
-        $this->sendPrivateEmail(
+        $url = app_url(private_portal_url('password_reset') . '/' . rawurlencode($token));
+        $message = strtr($this->privateMailTemplate(
+            'password_reset_body',
+            "Bonjour,\n\nRéinitialisez votre mot de passe avec ce lien sécurisé : {{reset_url}}"
+        ), [
+            '{{reset_url}}' => $url,
+            '{{email}}' => $email,
+        ]);
+
+        return $this->sendPrivateEmail(
             $email,
-            'Réinitialisation de votre espace privé',
-            sprintf(
-                '<p>Bonjour,</p><p>Réinitialisez votre mot de passe avec ce lien sécurisé :</p><p><a href="%1$s">%1$s</a></p>',
-                htmlspecialchars($url, ENT_QUOTES, 'UTF-8')
-            ),
+            $this->privateMailSubject('password_reset_subject', 'Réinitialisation de votre espace privé'),
+            $this->plainTextToHtml($message),
             'admin.private.password_reset_email',
             $actorIdentifier,
             $userId
@@ -464,23 +627,23 @@ final class AdminPrivateMembersService
         string $event,
         ?string $actorIdentifier,
         int $userId
-    ): void {
-        $mailConfig = app_config('mail', []);
-        if (!is_array($mailConfig) || $mailConfig === []) {
+    ): bool {
+        $mailConfig = app_config('private.mail', []);
+        if (!is_array($mailConfig) || !($mailConfig['enabled'] ?? false)) {
             $this->logAction($event . '_failed', $actorIdentifier, $userId, $email, 'warning');
 
-            return;
+            return false;
         }
 
-        if (!function_exists('send_notification_email')) {
+        if (!function_exists('send_private_email')) {
             $mailerPath = ROOT_PATH . '/core/mailer.php';
             if (is_file($mailerPath)) {
                 require_once $mailerPath;
             }
         }
 
-        $sent = function_exists('send_notification_email')
-            ? send_notification_email($email, $subject, $html)
+        $sent = function_exists('send_private_email')
+            ? send_private_email($email, $subject, $html)
             : false;
 
         $this->logAction(
@@ -490,6 +653,56 @@ final class AdminPrivateMembersService
             $email,
             $sent ? 'info' : 'warning'
         );
+
+        return $sent;
+    }
+
+    private function sendMemberNotificationEmail(
+        string $email,
+        string $subject,
+        string $message,
+        string $event,
+        ?string $actorIdentifier,
+        int $userId
+    ): bool {
+        return $this->sendPrivateEmail(
+            $email,
+            $subject,
+            $this->plainTextToHtml($message),
+            $event,
+            $actorIdentifier,
+            $userId
+        );
+    }
+
+    private function privateMailSubject(string $key, string $fallback): string
+    {
+        $subject = $this->privateMailTemplate($key, $fallback);
+
+        return sanitize_text_field($subject, 180);
+    }
+
+    private function privateMailTemplate(string $key, string $fallback = ''): string
+    {
+        $template = app_config('private.mail.templates.' . $key, $fallback);
+
+        return is_scalar($template) ? (string) $template : $fallback;
+    }
+
+    private function plainTextToHtml(string $message): string
+    {
+        $message = sanitize_text_field($message, 4000);
+
+        return '<p>' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), false) . '</p>';
+    }
+
+    private function dataProtectionService(): PrivateDataProtectionService
+    {
+        if (!$this->dataProtectionService instanceof PrivateDataProtectionService) {
+            $this->dataProtectionService = new PrivateDataProtectionService(editorial_database());
+        }
+
+        return $this->dataProtectionService;
     }
 
     /**

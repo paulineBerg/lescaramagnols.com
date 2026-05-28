@@ -67,10 +67,11 @@ $expenseStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled'
       <p class="muted">Aucune charge enregistree.</p>
     <?php else: ?>
       <table>
-        <thead><tr><th>Date</th><th>Bien</th><th>Libelle</th><th>Montant</th><th>Nature</th><th>Statut</th></tr></thead>
+        <thead><tr><th>Date</th><th>Bien</th><th>Libelle</th><th>Montant</th><th>Nature</th><th>Statut</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($expenses as $expense): ?>
             <?php if (!is_array($expense)) { continue; } ?>
+            <?php $expenseId = is_numeric($expense['id'] ?? null) ? (int) $expense['id'] : 0; ?>
             <tr>
               <td><?php echo htmlspecialchars((string) ($expense['expenseDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($expense['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -81,6 +82,16 @@ $expenseStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled'
                 <?php echo ((int) ($expense['isDeductibleCandidate'] ?? 0) === 1) ? 'potentiellement deductible' : 'non deductible'; ?>
               </td>
               <td><?php echo htmlspecialchars((string) ($expenseStatuses[(string) ($expense['status'] ?? '')] ?? ($expense['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td>
+                <?php if ($expenseId > 0): ?>
+                  <form method="post" action="<?php echo htmlspecialchars((string) ($urls['expenses'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                    <input type="hidden" name="action" value="delete_expense" />
+                    <input type="hidden" name="expense_id" value="<?php echo htmlspecialchars((string) $expenseId, ENT_QUOTES, 'UTF-8'); ?>" />
+                    <button class="button-small button-danger" type="submit">Supprimer</button>
+                  </form>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>

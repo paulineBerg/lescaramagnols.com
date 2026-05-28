@@ -1432,6 +1432,23 @@ $adminMenu = [
 
       .admin-private-members-card {
         padding: 1.25rem;
+        scroll-margin-top: 1rem;
+      }
+
+      main.admin-main > .notice.notice-success,
+      main.admin-main > .notice.notice-error,
+      .admin-screen-notice {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 1200;
+        width: min(44rem, calc(100vw - 2rem));
+        margin: 0;
+        box-shadow: 0 18px 40px rgba(19, 41, 75, 0.18);
+      }
+
+      .admin-filter-scroll-target {
+        scroll-margin-top: 1rem;
       }
 
       .admin-private-members-intro-header {
@@ -1459,6 +1476,91 @@ $adminMenu = [
         width: 100%;
       }
 
+      .admin-private-members-tabs {
+        margin-bottom: 1rem;
+      }
+
+      .admin-private-mail-form {
+        margin-top: 1rem;
+      }
+
+      .admin-private-mail-toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        width: fit-content;
+        margin: 0;
+        padding: 0.75rem 0.9rem;
+        border: 1px solid rgba(39, 75, 109, 0.16);
+        border-radius: 10px;
+        background: rgba(19, 41, 75, 0.04);
+      }
+
+      .admin-private-mail-toggle input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        margin: 0;
+      }
+
+      .admin-private-mail-templates {
+        padding: 1rem;
+        border: 1px solid rgba(39, 75, 109, 0.16);
+        border-radius: 12px;
+        background: rgba(19, 41, 75, 0.03);
+      }
+
+      .admin-private-mail-templates summary {
+        cursor: pointer;
+        color: var(--admin-primary-dark);
+        font-weight: 700;
+      }
+
+      .admin-private-mail-templates[open] summary {
+        margin-bottom: 1rem;
+      }
+
+      .admin-private-mail-template-list {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .admin-private-mail-template-pair {
+        display: grid;
+        grid-template-columns: minmax(220px, 0.35fr) minmax(280px, 1fr);
+        gap: 1rem;
+        align-items: start;
+        padding: 1rem;
+        border: 1px solid rgba(39, 75, 109, 0.12);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.62);
+      }
+
+      .admin-private-mail-template-pair .field {
+        margin-bottom: 0;
+      }
+
+      .private-checkbox-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        width: fit-content;
+        margin: 0.25rem 0;
+      }
+
+      .private-checkbox-inline input[type="checkbox"] {
+        flex: 0 0 auto;
+        width: 1rem;
+        height: 1rem;
+        min-height: auto;
+        margin: 0;
+      }
+
+      @media (max-width: 760px) {
+        .admin-private-mail-template-pair {
+          grid-template-columns: 1fr;
+        }
+      }
+
       .admin-private-members-count {
         margin: 0 0 1rem;
         color: var(--admin-muted);
@@ -1483,7 +1585,7 @@ $adminMenu = [
       }
 
       .admin-private-members-table th:nth-child(1) {
-        width: 19%;
+        width: 18%;
       }
 
       .admin-private-members-table th:nth-child(2) {
@@ -1491,19 +1593,19 @@ $adminMenu = [
       }
 
       .admin-private-members-table th:nth-child(3) {
-        width: 33%;
+        width: 29%;
       }
 
       .admin-private-members-table th:nth-child(4) {
-        width: 11%;
+        width: 10%;
       }
 
       .admin-private-members-table th:nth-child(5) {
-        width: 12%;
+        width: 11%;
       }
 
       .admin-private-members-table th:nth-child(6) {
-        width: 18%;
+        width: 25%;
       }
 
       .admin-private-members-email {
@@ -1513,6 +1615,58 @@ $adminMenu = [
 
       .admin-private-members-table tr[id] {
         scroll-margin-top: 1rem;
+      }
+
+      .admin-private-members-table tr.admin-private-members-row-active td {
+        background: rgba(42, 150, 169, 0.12);
+        transition: background 0.2s ease;
+      }
+
+      .admin-private-members-delete-form {
+        display: grid;
+        gap: 0.55rem;
+        max-width: 22rem;
+        padding: 0.85rem;
+        border: 1px solid rgba(172, 32, 45, 0.22);
+        border-radius: 0.9rem;
+        background: rgba(172, 32, 45, 0.055);
+      }
+
+      .admin-private-members-delete-note {
+        display: grid;
+        gap: 0.25rem;
+        color: #6b4a51;
+        line-height: 1.35;
+      }
+
+      .admin-private-members-backup-note {
+        margin: 0;
+        max-width: 22rem;
+        color: var(--admin-muted);
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+
+      .admin-private-members-delete-note strong,
+      .admin-private-members-confirm-question {
+        color: #9b1c2a;
+      }
+
+      .admin-private-members-confirm-question {
+        margin: 0;
+        font-weight: 800;
+      }
+
+      .admin-private-members-confirm-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+        align-items: center;
+      }
+
+      .button-danger {
+        color: #9b1c2a;
+        background: #f2d9dd;
       }
 
       .admin-private-members-status,
@@ -1596,10 +1750,10 @@ $adminMenu = [
       }
 
       .admin-private-members-actions {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, max-content));
         gap: 0.35rem;
-        align-items: center;
+        align-items: start;
       }
 
       .admin-private-members-actions form {
@@ -2958,6 +3112,89 @@ $adminMenu = [
           padding: 1rem;
         }
       }
+      html,
+      body {
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      main,
+      .admin-main,
+      .admin-content,
+      .card,
+      .table-shell,
+      .admin-table,
+      .admin-form-grid,
+      .inline-form,
+      .actions-inline,
+      .admin-private-members-actions,
+      .admin-private-members-confirm-actions {
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      img,
+      video,
+      canvas,
+      svg,
+      iframe {
+        max-width: 100%;
+        height: auto;
+      }
+
+      input,
+      select,
+      textarea,
+      button,
+      .button-link,
+      .button-small {
+        max-width: 100%;
+      }
+
+      .table-shell {
+        width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .admin-table {
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      .admin-table th,
+      .admin-table td,
+      .admin-private-members-email,
+      .admin-private-members-date,
+      .admin-private-members-delete-note,
+      .admin-private-members-confirm-question,
+      .admin-private-members-backup-note {
+        overflow-wrap: anywhere;
+        word-break: normal;
+      }
+
+      .admin-private-members-actions {
+        align-items: flex-start;
+        width: 100%;
+      }
+
+      .admin-private-members-delete-form {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .admin-private-members-delete-form .button-small,
+      .admin-private-members-confirm-actions .button-small {
+        white-space: normal;
+        text-align: left;
+      }
     </style>
   </head>
   <body class="<?php echo $isLoginPage ? 'admin-login-page' : ''; ?>">
@@ -3023,6 +3260,173 @@ $adminMenu = [
     </div>
     <?php endif; ?>
     <?php $cspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
+    <?php if (!$isLoginPage): ?>
+    <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+      (() => {
+        const storageKey = 'caramagnols.admin.filterScroll';
+
+        const stackScreenNotices = () => {
+          let offset = 16;
+          document.querySelectorAll('main.admin-main > .notice.notice-success, main.admin-main > .notice.notice-error, .admin-screen-notice')
+            .forEach((notice) => {
+              if (!(notice instanceof HTMLElement)) {
+                return;
+              }
+
+              notice.style.top = `${offset}px`;
+              offset += notice.offsetHeight + 8;
+            });
+        };
+
+        stackScreenNotices();
+        window.addEventListener('resize', stackScreenNotices);
+
+        const filterForms = () => Array.from(document.querySelectorAll('form')).filter((form) => {
+          if (!(form instanceof HTMLFormElement)) {
+            return false;
+          }
+
+          const method = (form.getAttribute('method') || 'get').toLowerCase();
+          if (method !== 'get') {
+            return false;
+          }
+
+          if (form.classList.contains('filters-form') || form.dataset.adminFilterForm === 'true') {
+            return true;
+          }
+
+          const submitControls = Array.from(form.querySelectorAll('button, input[type="submit"]'));
+          const hasFilterSubmit = submitControls.some((control) => {
+            const label = control instanceof HTMLInputElement
+              ? control.value
+              : control.textContent;
+
+            return /filtrer|filter/i.test(String(label || ''));
+          });
+          if (!hasFilterSubmit) {
+            return false;
+          }
+
+          return Array.from(form.elements).some((element) => {
+            if (!(element instanceof HTMLInputElement || element instanceof HTMLSelectElement || element instanceof HTMLTextAreaElement)) {
+              return false;
+            }
+
+            return ['q', 'status', 'lang', 'type', 'channel', 'event', 'level', 'date', 'folder', 'mime', 'extension'].includes(element.name);
+          });
+        });
+
+        const isVisible = (element) => {
+          if (!(element instanceof HTMLElement)) {
+            return false;
+          }
+
+          const style = window.getComputedStyle(element);
+
+          return style.display !== 'none' && style.visibility !== 'hidden' && element.offsetParent !== null;
+        };
+
+        const firstVisibleAfter = (form, selector) => {
+          const candidates = Array.from(document.querySelectorAll(selector));
+
+          return candidates.find((candidate) => {
+            if (!(candidate instanceof HTMLElement) || !isVisible(candidate)) {
+              return false;
+            }
+
+            return Boolean(form.compareDocumentPosition(candidate) & Node.DOCUMENT_POSITION_FOLLOWING);
+          }) || null;
+        };
+
+        const resolveTarget = (form) => {
+          const explicitTargetId = form.dataset.adminFilterTarget || '';
+          if (explicitTargetId !== '') {
+            const explicitTarget = document.getElementById(explicitTargetId);
+            if (explicitTarget instanceof HTMLElement) {
+              return explicitTarget;
+            }
+          }
+
+          const existingHashTarget = window.location.hash !== ''
+            ? document.getElementById(window.location.hash.slice(1))
+            : null;
+          if (existingHashTarget instanceof HTMLElement) {
+            return existingHashTarget;
+          }
+
+          const explicitResult = firstVisibleAfter(form, '[data-admin-filter-results], .admin-filter-results, #private-members-results');
+          if (explicitResult instanceof HTMLElement) {
+            return explicitResult;
+          }
+
+          const tabularResult = firstVisibleAfter(form, '.table-shell, table.admin-table, .admin-table');
+          if (tabularResult instanceof HTMLElement) {
+            return tabularResult;
+          }
+
+          const closestCard = form.closest('.card');
+          let sibling = closestCard instanceof HTMLElement ? closestCard.nextElementSibling : form.nextElementSibling;
+          while (sibling !== null) {
+            if (sibling instanceof HTMLElement && isVisible(sibling)) {
+              return sibling;
+            }
+
+            sibling = sibling.nextElementSibling;
+          }
+
+          return form;
+        };
+
+        const scrollToTarget = (target) => {
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+
+          target.classList.add('admin-filter-scroll-target');
+          window.requestAnimationFrame(() => {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+          });
+        };
+
+        const forms = filterForms();
+        forms.forEach((form, index) => {
+          form.addEventListener('submit', () => {
+            window.sessionStorage.setItem(storageKey, JSON.stringify({
+              path: window.location.pathname,
+              index,
+            }));
+          });
+        });
+
+        const pendingRaw = window.sessionStorage.getItem(storageKey);
+        if (pendingRaw === null) {
+          return;
+        }
+
+        window.sessionStorage.removeItem(storageKey);
+
+        let pending = null;
+        try {
+          pending = JSON.parse(pendingRaw);
+        } catch (error) {
+          pending = null;
+        }
+
+        if (!pending || pending.path !== window.location.pathname) {
+          return;
+        }
+
+        const targetForm = forms[Number(pending.index)] || forms[0] || null;
+        if (!(targetForm instanceof HTMLFormElement)) {
+          return;
+        }
+
+        window.setTimeout(() => {
+          scrollToTarget(resolveTarget(targetForm));
+        }, 80);
+      })();
+    </script>
+    <?php endif; ?>
     <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
       (() => {
         const openers = document.querySelectorAll('[data-region-modal-open]');

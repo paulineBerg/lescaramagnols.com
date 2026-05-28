@@ -96,6 +96,9 @@ Regles associees:
 - ne pas editer un artefact genere si la source canonique existe ailleurs
 - ne pas toucher aux secrets ou aux overrides locaux sauf demande explicite
 - ne pas supprimer `backend/public/uploads/editorial/**` ni le traiter comme un cache
+- tout nouveau developpement de l'espace prive qui cree des donnees utilisateur doit etre raccorde au registre central de sauvegarde ZIP, purge immediate et suppression differee 30 jours dans `backend/src/PrivatePortal/Operations/PrivateDataProtectionService.php`
+- tout nouveau module prive doit declarer ses tables SQL dans les scopes de sauvegarde et de purge, et ses fichiers physiques dans les scopes fichiers; une suppression de donnees utilisateur hors de ce service central est interdite sauf justification explicite
+- tout nouvel ecran admin ou prive doit empecher le debordement horizontal global: aucun composant ne doit s'afficher hors ecran; les contenus larges doivent soit se replier, soit scroller dans leur bloc local avec `max-width: 100%`, `min-width: 0` et `overflow-x: auto` si necessaire
 - si un contenu editorial est d'abord prepare dans `backend/data/pages.json`, l'importer ensuite vers SQL dans le meme passage de travail et signaler explicitement si un miroir JSON / SQL reste divergent
 - la racine `docs/` est reservee aux documents projet maintenus: `README`, rapports, runbooks, audits, notes d'architecture et modes operatoires
 - ne pas multiplier les fichiers `.md` sans valeur distincte: regrouper par fonction utile (backend, blog, admin, deploiement, securite, roadmap) et preferer un `README.md` par dossier comme point d'entree

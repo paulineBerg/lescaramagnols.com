@@ -1,10 +1,19 @@
 <?php
 $members = is_array($privateMembers ?? null) ? $privateMembers : [];
+$memberEmailChoices = is_array($privateMemberEmailChoices ?? null) ? array_values(array_filter($privateMemberEmailChoices, 'is_string')) : [];
 $stats = is_array($privateMembersStats ?? null) ? $privateMembersStats : [];
 $moduleRegistry = is_array($privateModuleRegistry ?? null) ? $privateModuleRegistry : [];
+$privateMail = is_array($privateMail ?? null) ? $privateMail : [];
+$privateMailTemplates = is_array($privateMail['templates'] ?? null) ? $privateMail['templates'] : [];
 $statusFilter = is_string($statusFilter ?? null) ? $statusFilter : '';
 $searchQuery = is_string($searchQuery ?? null) ? $searchQuery : '';
+$activeTab = is_string($privateMembersActiveTab ?? null) ? (string) $privateMembersActiveTab : 'members';
+if (!in_array($activeTab, ['members', 'email'], true)) {
+    $activeTab = 'members';
+}
 $membersUrl = is_string($adminPrivateMembersUrl ?? null) ? $adminPrivateMembersUrl : '#';
+$membersTabUrl = $membersUrl;
+$emailTabUrl = $membersUrl . (str_contains($membersUrl, '?') ? '&' : '?') . 'tab=email';
 $privatePortalLoginUrl = is_string($adminPrivatePortalLoginUrl ?? null) && trim((string) $adminPrivatePortalLoginUrl) !== ''
     ? trim((string) $adminPrivatePortalLoginUrl)
     : (function_exists('private_portal_url') ? private_portal_url('login') : '#');
@@ -38,7 +47,6 @@ $statusLabels = [
     'active' => $translate('TXT_ADMIN_PRIVATE_MEMBER_STATUS_ACTIVE', 'Actif'),
     'suspended' => $translate('TXT_ADMIN_PRIVATE_MEMBER_STATUS_SUSPENDED', 'Suspendu'),
     'disabled' => $translate('TXT_ADMIN_PRIVATE_MEMBER_STATUS_DISABLED', 'Désactivé'),
-    'deleted' => $translate('TXT_ADMIN_PRIVATE_MEMBER_STATUS_DELETED', 'Anonymisé'),
 ];
 ?>
 
@@ -50,6 +58,148 @@ $statusLabels = [
   <div class="notice notice-error" role="alert"><?php echo $escape($error); ?></div>
 <?php endif; ?>
 
+<nav class="menu-builder-tabs admin-private-members-tabs" role="tablist" aria-label="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_TABS_LABEL', 'Sections de l’espace privé')); ?>">
+  <a
+    class="menu-builder-tab<?php echo $activeTab === 'members' ? ' menu-builder-tab-active' : ''; ?>"
+    href="<?php echo $escape($membersTabUrl); ?>"
+    role="tab"
+    aria-selected="<?php echo $activeTab === 'members' ? 'true' : 'false'; ?>"
+  >
+    <strong><?php echo $escape($translate('TXT_ADMIN_PRIVATE_TAB_MEMBERS', 'Membres')); ?></strong>
+    <small><?php echo $escape($translate('TXT_ADMIN_PRIVATE_TAB_MEMBERS_HELP', 'Comptes, modules et accès')); ?></small>
+  </a>
+  <a
+    class="menu-builder-tab<?php echo $activeTab === 'email' ? ' menu-builder-tab-active' : ''; ?>"
+    href="<?php echo $escape($emailTabUrl); ?>"
+    role="tab"
+    aria-selected="<?php echo $activeTab === 'email' ? 'true' : 'false'; ?>"
+  >
+    <strong><?php echo $escape($translate('TXT_ADMIN_PRIVATE_TAB_EMAIL', 'Email privé IMAP / SMTP')); ?></strong>
+    <small><?php echo $escape($translate('TXT_ADMIN_PRIVATE_TAB_EMAIL_HELP', 'Serveur d’envoi privé uniquement')); ?></small>
+  </a>
+</nav>
+
+<?php if ($activeTab === 'email'): ?>
+<section class="card admin-private-mail-card">
+  <div class="admin-private-members-intro-header">
+    <div>
+      <span class="tag"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_TAG', 'Espace privé')); ?></span>
+      <h2><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_TITLE', 'Configuration email de l’espace privé')); ?></h2>
+    </div>
+  </div>
+  <p class="notice-muted">
+    <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_HELP', 'Cette configuration s’applique uniquement à l’espace privé. IMAP sert à la réception des emails; pour l’envoi depuis les modules privés, la configuration utilisée est le serveur SMTP ci-dessous.')); ?>
+  </p>
+
+  <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="admin-form-grid admin-private-mail-form" autocomplete="off" novalidate>
+    <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+    <input type="hidden" name="private_member_action" value="mail_settings" />
+    <input type="hidden" name="private_members_tab" value="email" />
+
+    <label class="admin-private-mail-toggle">
+      <input type="hidden" name="private_mail[enabled]" value="0" />
+      <input type="checkbox" name="private_mail[enabled]" value="1"<?php echo !empty($privateMail['enabled']) ? ' checked' : ''; ?> />
+      <span><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_ENABLED', 'Activer les envois email de l’espace privé')); ?></span>
+    </label>
+
+    <div class="admin-form-grid admin-form-grid-3">
+      <div class="field">
+        <label for="private_mail_smtp_host"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_HOST', 'Serveur SMTP')); ?></label>
+        <input id="private_mail_smtp_host" name="private_mail[smtp_host]" type="text" value="<?php echo $escape((string) ($privateMail['smtpHost'] ?? 'ssl0.ovh.net')); ?>" required />
+      </div>
+      <div class="field">
+        <label for="private_mail_smtp_port"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PORT', 'Port')); ?></label>
+        <input id="private_mail_smtp_port" name="private_mail[smtp_port]" type="number" min="1" max="65535" value="<?php echo (int) ($privateMail['smtpPort'] ?? 465); ?>" required />
+      </div>
+      <div class="field">
+        <label for="private_mail_smtp_encryption"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_ENCRYPTION', 'Chiffrement')); ?></label>
+        <select id="private_mail_smtp_encryption" name="private_mail[smtp_encryption]">
+          <?php foreach (['ssl' => 'SSL', 'tls' => 'TLS/STARTTLS', 'starttls' => 'STARTTLS', '' => 'Aucun'] as $value => $label): ?>
+            <option value="<?php echo $escape($value); ?>"<?php echo (string) ($privateMail['smtpEncryption'] ?? 'ssl') === $value ? ' selected' : ''; ?>>
+              <?php echo $escape($label); ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="field">
+        <label for="private_mail_smtp_user"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_USER', 'Utilisateur SMTP')); ?></label>
+        <input id="private_mail_smtp_user" name="private_mail[smtp_user]" type="text" value="<?php echo $escape((string) ($privateMail['smtpUser'] ?? 'ne-pas-repondre@lescaramagnols.com')); ?>" />
+      </div>
+      <div class="field">
+        <label for="private_mail_smtp_password"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD', 'Mot de passe SMTP')); ?></label>
+        <input id="private_mail_smtp_password" name="private_mail[smtp_password]" type="password" value="" autocomplete="new-password" />
+        <small><?php echo $escape(!empty($privateMail['smtpPasswordConfigured']) ? $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_SET', 'Laisser vide pour conserver le mot de passe enregistré.') : $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_EMPTY', 'Renseigner le mot de passe avant activation en production.')); ?></small>
+      </div>
+      <div class="field">
+        <label for="private_mail_from_address"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_FROM', 'Adresse expéditeur')); ?></label>
+        <input id="private_mail_from_address" name="private_mail[from_address]" type="email" value="<?php echo $escape((string) ($privateMail['fromAddress'] ?? 'ne-pas-repondre@lescaramagnols.com')); ?>" required />
+      </div>
+      <div class="field">
+        <label for="private_mail_from_name"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_FROM_NAME', 'Nom expéditeur')); ?></label>
+        <input id="private_mail_from_name" name="private_mail[from_name]" type="text" value="<?php echo $escape((string) ($privateMail['fromName'] ?? 'Les Caramagnols')); ?>" required />
+      </div>
+      <div class="field">
+        <label for="private_mail_reply_to"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_REPLY_TO', 'Adresse de réponse')); ?></label>
+        <input id="private_mail_reply_to" name="private_mail[reply_to]" type="email" value="<?php echo $escape((string) ($privateMail['replyTo'] ?? 'private@lescaramagnols.com')); ?>" />
+      </div>
+    </div>
+
+    <details class="admin-private-mail-templates">
+      <summary><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_TEMPLATES', 'Messages par défaut')); ?></summary>
+      <div class="admin-private-mail-template-list">
+        <?php foreach ([
+            [
+                'subject_key' => 'rental_subject',
+                'subject_label' => 'Sujet document locatif',
+                'body_key' => 'rental_body',
+                'body_label' => 'Message document locatif',
+            ],
+            [
+                'subject_key' => 'tax_subject',
+                'subject_label' => 'Sujet PDF fiscal',
+                'body_key' => 'tax_body',
+                'body_label' => 'Message PDF fiscal',
+            ],
+            [
+                'subject_key' => 'discussion_invite_subject',
+                'subject_label' => 'Sujet invitation discussion',
+                'body_key' => 'discussion_invite_body',
+                'body_label' => 'Message invitation discussion',
+            ],
+            [
+                'subject_key' => 'admin_invite_subject',
+                'subject_label' => 'Sujet invitation membre',
+                'body_key' => 'admin_invite_body',
+                'body_label' => 'Message invitation membre',
+            ],
+            [
+                'subject_key' => 'password_reset_subject',
+                'subject_label' => 'Sujet reset membre',
+                'body_key' => 'password_reset_body',
+                'body_label' => 'Message reset membre',
+            ],
+        ] as $template): ?>
+        <div class="admin-private-mail-template-pair">
+          <div class="field">
+            <label for="private_mail_template_<?php echo $escape($template['subject_key']); ?>"><?php echo $escape($template['subject_label']); ?></label>
+            <input id="private_mail_template_<?php echo $escape($template['subject_key']); ?>" name="private_mail[templates][<?php echo $escape($template['subject_key']); ?>]" type="text" value="<?php echo $escape((string) ($privateMailTemplates[$template['subject_key']] ?? '')); ?>" />
+          </div>
+          <div class="field">
+            <label for="private_mail_template_<?php echo $escape($template['body_key']); ?>"><?php echo $escape($template['body_label']); ?></label>
+            <textarea id="private_mail_template_<?php echo $escape($template['body_key']); ?>" name="private_mail[templates][<?php echo $escape($template['body_key']); ?>]" rows="4"><?php echo $escape((string) ($privateMailTemplates[$template['body_key']] ?? '')); ?></textarea>
+          </div>
+        </div>
+      <?php endforeach; ?>
+      </div>
+    </details>
+
+    <div class="actions-inline">
+      <button type="submit"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_SAVE', 'Enregistrer')); ?></button>
+      <a class="button-link button-link-muted" href="<?php echo $escape($membersTabUrl); ?>"><?php echo $escape($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler')); ?></a>
+    </div>
+  </form>
+</section>
+<?php else: ?>
 <section class="card">
   <div class="admin-private-members-intro-header">
     <div>
@@ -81,12 +231,12 @@ $statusLabels = [
     </div>
   </form>
 
-  <form method="GET" action="<?php echo $escape($membersUrl); ?>" class="filters-form" aria-label="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_FILTERS', 'Filtres membres privés')); ?>">
+  <form method="GET" action="<?php echo $escape($membersUrl); ?>#private-members-results" class="filters-form" aria-label="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_FILTERS', 'Filtres membres privés')); ?>">
     <div class="inline-form">
       <label for="member-status"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_FILTER_STATUS', 'Filtrer le statut')); ?></label>
       <select id="member-status" name="status">
         <option value=""><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_FILTER_STATUS_ALL', 'Tous')); ?></option>
-        <?php foreach (['invited', 'active', 'suspended', 'disabled', 'deleted'] as $statusOption): ?>
+        <?php foreach (['invited', 'active', 'suspended', 'disabled'] as $statusOption): ?>
           <option value="<?php echo $escape($statusOption); ?>" <?php echo $statusOption === $statusFilter ? 'selected' : ''; ?>>
             <?php echo $escape($statusLabels[$statusOption] ?? $statusOption); ?>
           </option>
@@ -94,7 +244,18 @@ $statusLabels = [
       </select>
 
       <label for="member-search"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_FILTER_SEARCH', 'Rechercher un email')); ?></label>
-      <input id="member-search" type="search" name="q" value="<?php echo $escape($searchQuery); ?>" placeholder="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_SEARCH_PLACEHOLDER', 'adresse@email.fr')); ?>" />
+      <input id="member-search" type="search" name="q" value="<?php echo $escape($searchQuery); ?>" list="private-member-email-choices" data-private-member-search placeholder="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_SEARCH_PLACEHOLDER', 'adresse@email.fr')); ?>" />
+      <?php if ($memberEmailChoices !== []): ?>
+        <datalist id="private-member-email-choices">
+          <?php foreach ($memberEmailChoices as $memberEmailChoice): ?>
+            <?php $memberEmailChoice = trim($memberEmailChoice); ?>
+            <?php if ($memberEmailChoice === '') {
+                continue;
+            } ?>
+            <option value="<?php echo $escape($memberEmailChoice); ?>"></option>
+          <?php endforeach; ?>
+        </datalist>
+      <?php endif; ?>
 
       <button type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_FILTER_APPLY', 'Filtrer')); ?></button>
       <a class="button-link button-link-muted" href="<?php echo $escape($membersUrl); ?>"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_FILTER_RESET', 'Réinitialiser')); ?></a>
@@ -126,7 +287,7 @@ $statusLabels = [
   <?php endif; ?>
 </section>
 
-<section class="card admin-private-members-card">
+<section id="private-members-results" class="card admin-private-members-card">
   <h2><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_LIST_TITLE', 'Liste des comptes')); ?></h2>
   <p class="admin-private-members-count"><?php echo $escape(sprintf($translate('TXT_ADMIN_PRIVATE_MEMBERS_LIST_COUNT', 'Total : %d compte(s).'), $membersTotal)); ?></p>
   <div class="table-shell admin-private-members-table-shell">
@@ -153,11 +314,16 @@ $statusLabels = [
             $statusValue = is_string($member['status'] ?? null) ? trim($member['status']) : '';
             $statusLabel = $statusLabels[$statusValue] ?? $statusValue;
             $moduleStates = is_array($member['moduleStates'] ?? null) ? $member['moduleStates'] : [];
-            $isDeleted = $statusValue === 'deleted';
+            $moduleDataCounts = is_array($member['moduleDataCounts'] ?? null) ? $member['moduleDataCounts'] : [];
+            $deletionBackup = is_array($member['deletionBackup'] ?? null) ? $member['deletionBackup'] : null;
+            $deletionBackupDeleteAfter = is_array($deletionBackup) && is_string($deletionBackup['deleteAfter'] ?? null)
+                ? (string) $deletionBackup['deleteAfter']
+                : '';
+            $deletionBackupDeleteAfterTimestamp = $deletionBackupDeleteAfter !== '' ? strtotime($deletionBackupDeleteAfter) : false;
             $memberFragment = $memberId > 0 ? 'private-member-' . $memberId : '';
             ?>
             <tr<?php echo $memberFragment !== '' ? ' id="' . $escape($memberFragment) . '"' : ''; ?>>
-              <td class="admin-private-members-email"><?php echo $escape((string) ($member['email'] ?? '-')); ?></td>
+              <td class="admin-private-members-email" data-private-member-email="<?php echo $escape((string) ($member['email'] ?? '')); ?>"><?php echo $escape((string) ($member['email'] ?? '-')); ?></td>
               <td>
                 <span class="admin-private-members-status admin-private-members-status-<?php echo $escape($statusValue !== '' ? $statusValue : 'unknown'); ?>">
                   <?php echo $escape($statusLabel !== '' ? $statusLabel : $translate('TXT_ADMIN_PRIVATE_MEMBERS_STATUS_UNKNOWN', 'Inconnu')); ?>
@@ -181,19 +347,28 @@ $statusLabels = [
                       $moduleName = is_string($module['name'] ?? null) ? (string) $module['name'] : $moduleCode;
                       $moduleActive = (bool) ($module['active'] ?? false);
                       $moduleAssigned = (bool) ($module['assigned'] ?? false);
+                      $moduleDataCount = max(0, (int) ($moduleDataCounts[$moduleCode] ?? 0));
+                      $moduleLocked = $moduleAssigned && $moduleDataCount > 0;
                       ?>
                       <label class="admin-private-members-module-option">
-                        <input type="checkbox" name="modules[]" value="<?php echo $escape($moduleCode); ?>" <?php echo $moduleAssigned ? 'checked' : ''; ?> <?php echo ($isDeleted || !$moduleActive) ? 'disabled' : ''; ?> />
+                        <?php if ($moduleLocked): ?>
+                          <input type="hidden" name="modules[]" value="<?php echo $escape($moduleCode); ?>" />
+                        <?php endif; ?>
+                        <input type="checkbox" name="modules[]" value="<?php echo $escape($moduleCode); ?>" <?php echo $moduleAssigned ? 'checked' : ''; ?> <?php echo (!$moduleActive || $moduleLocked) ? 'disabled' : ''; ?> />
                         <span class="admin-private-members-module-label"><?php echo $escape($moduleName); ?></span>
                         <?php if (!$moduleActive): ?>
                           <span class="admin-private-members-module-state is-inactive">
                             <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MODULE_INACTIVE', 'inactif')); ?>
                           </span>
+                        <?php elseif ($moduleLocked): ?>
+                          <span class="admin-private-members-module-state is-inactive">
+                            <?php echo $escape(sprintf('infos existantes : %d', $moduleDataCount)); ?>
+                          </span>
                         <?php endif; ?>
                       </label>
                     <?php endforeach; ?>
                   </div>
-                  <button class="button-small" type="submit" <?php echo $isDeleted ? 'disabled' : ''; ?>>
+                  <button class="button-small" type="submit">
                     <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_MODULES_SAVE', 'Enregistrer')); ?>
                   </button>
                 </form>
@@ -214,7 +389,72 @@ $statusLabels = [
                     </form>
                   <?php endif; ?>
 
-                  <?php if (!$isDeleted && $statusValue !== 'suspended'): ?>
+                  <?php if ($statusValue === 'suspended'): ?>
+                    <?php if (!is_array($deletionBackup)): ?>
+                      <form method="POST" action="<?php echo $escape($membersUrl); ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+                        <input type="hidden" name="private_member_action" value="reactivate" />
+                        <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
+                        <?php if ($memberFragment !== ''): ?>
+                          <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
+                        <?php endif; ?>
+                        <button class="button-small" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_REACTIVATE', 'Réactiver le compte')); ?></button>
+                      </form>
+                    <?php endif; ?>
+
+                    <?php if (is_array($deletionBackup)): ?>
+                      <form method="POST" action="<?php echo $escape($membersUrl); ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+                        <input type="hidden" name="private_member_action" value="download_backup" />
+                        <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
+                        <button class="button-small button-muted" type="submit">
+                          <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DOWNLOAD', 'Récupérer la sauvegarde ZIP')); ?>
+                        </button>
+                      </form>
+                      <?php if ($deletionBackupDeleteAfterTimestamp !== false): ?>
+                        <p class="admin-private-members-backup-note">
+                          <?php
+                          echo $escape(
+                              sprintf(
+                                  $translate('TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DELETE_AFTER', 'Suppression définitive prévue le %s.'),
+                                  date('d/m/Y', (int) $deletionBackupDeleteAfterTimestamp)
+                              )
+                          );
+                          ?>
+                        </p>
+                      <?php endif; ?>
+                      <p class="admin-private-members-backup-note">
+                        <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_NO_RESTORE', 'La sauvegarde ZIP contient backup.json, manifest.json et les fichiers retrouvés. Elle ne réactive pas le compte et ne restaure pas automatiquement les données.')); ?>
+                      </p>
+                    <?php endif; ?>
+
+                    <?php if (!is_array($deletionBackup)): ?>
+                      <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="admin-private-members-delete-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+                        <input type="hidden" name="private_member_action" value="delete_suspended" />
+                        <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
+                        <input type="hidden" name="private_member_delete_confirm" value="1" />
+                        <?php if ($memberFragment !== ''): ?>
+                          <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
+                        <?php endif; ?>
+                        <div class="admin-private-members-delete-note">
+                          <strong><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE', 'Suppression du compte')); ?></strong>
+                          <span><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP', 'Une sauvegarde est créée, les données sont purgées, puis le compte et la sauvegarde seront supprimés par cron après 30 jours.')); ?></span>
+                        </div>
+                        <p class="admin-private-members-confirm-question">
+                          <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION', 'Voulez-vous supprimer ce compte suspendu ?')); ?>
+                        </p>
+                        <div class="admin-private-members-confirm-actions">
+                          <a class="button-small button-muted" href="<?php echo $escape($memberFragment !== '' ? '#' . $memberFragment : $membersUrl); ?>">
+                            <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO', 'Non')); ?>
+                          </a>
+                          <button class="button-small button-danger" type="submit">
+                            <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_YES', 'Oui, sauvegarder et purger les données')); ?>
+                          </button>
+                        </div>
+                      </form>
+                    <?php endif; ?>
+                  <?php else: ?>
                     <form method="POST" action="<?php echo $escape($membersUrl); ?>">
                       <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
                       <input type="hidden" name="private_member_action" value="suspend" />
@@ -224,9 +464,7 @@ $statusLabels = [
                       <?php endif; ?>
                       <button class="button-small button-muted" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_SUSPEND', 'Suspendre')); ?></button>
                     </form>
-                  <?php endif; ?>
 
-                  <?php if (!$isDeleted): ?>
                     <form method="POST" action="<?php echo $escape($membersUrl); ?>">
                       <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
                       <input type="hidden" name="private_member_action" value="reset" />
@@ -234,17 +472,7 @@ $statusLabels = [
                       <?php if ($memberFragment !== ''): ?>
                         <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
                       <?php endif; ?>
-                      <button class="button-small button-muted" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_RESET', 'Reset')); ?></button>
-                    </form>
-
-                    <form method="POST" action="<?php echo $escape($membersUrl); ?>">
-                      <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
-                      <input type="hidden" name="private_member_action" value="anonymize" />
-                      <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
-                      <?php if ($memberFragment !== ''): ?>
-                        <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
-                      <?php endif; ?>
-                      <button class="button-small button-danger" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_ANONYMIZE', 'Anonymiser')); ?></button>
+                      <button class="button-small button-muted" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_RESET', 'Reset password')); ?></button>
                     </form>
                   <?php endif; ?>
                 </div>
@@ -256,3 +484,66 @@ $statusLabels = [
     </table>
   </div>
 </section>
+<?php endif; ?>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.querySelector('[data-private-member-search]');
+    const emailChoices = document.getElementById('private-member-email-choices');
+    const filterForm = searchInput ? searchInput.closest('form') : null;
+    if (!(searchInput instanceof HTMLInputElement) || !(filterForm instanceof HTMLFormElement)) {
+      return;
+    }
+
+    const knownEmails = new Set(
+      Array.from(emailChoices ? emailChoices.querySelectorAll('option') : [])
+        .map((option) => option.value.trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    const scrollToMemberEmail = (email) => {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (normalizedEmail === '') {
+        return false;
+      }
+
+      const matchingCell = Array.from(document.querySelectorAll('[data-private-member-email]'))
+        .find((cell) => cell.dataset.privateMemberEmail.trim().toLowerCase() === normalizedEmail);
+      const matchingRow = matchingCell ? matchingCell.closest('tr[id]') : null;
+      if (!(matchingRow instanceof HTMLTableRowElement)) {
+        return false;
+      }
+
+      document.querySelectorAll('.admin-private-members-row-active')
+        .forEach((row) => row.classList.remove('admin-private-members-row-active'));
+      matchingRow.classList.add('admin-private-members-row-active');
+      matchingRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      return true;
+    };
+
+    const handleSelection = () => {
+      const email = searchInput.value.trim();
+      if (!knownEmails.has(email.toLowerCase())) {
+        return;
+      }
+
+      if (!scrollToMemberEmail(email)) {
+        const statusSelect = filterForm.querySelector('select[name="status"]');
+        if (statusSelect instanceof HTMLSelectElement) {
+          statusSelect.value = '';
+        }
+        filterForm.requestSubmit();
+      }
+    };
+
+    searchInput.addEventListener('input', handleSelection);
+    searchInput.addEventListener('change', handleSelection);
+
+    if (searchInput.value.trim() !== '') {
+      window.setTimeout(() => {
+        scrollToMemberEmail(searchInput.value);
+      }, 120);
+    }
+  });
+</script>

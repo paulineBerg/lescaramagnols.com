@@ -149,7 +149,7 @@ final class DiscussionAttachmentStorage
         }
 
         $sha256 = hash_file('sha256', $tmpPath);
-        if (!is_string($sha256) || $sha256 === '') {
+        if ($sha256 === false) {
             $this->lastError = 'checksum_failed';
             return null;
         }
@@ -160,8 +160,8 @@ final class DiscussionAttachmentStorage
         if ($isImage) {
             $dimensions = @getimagesize($tmpPath);
             if (is_array($dimensions)) {
-                $width = is_numeric($dimensions[0] ?? null) ? (int) $dimensions[0] : null;
-                $height = is_numeric($dimensions[1] ?? null) ? (int) $dimensions[1] : null;
+                $width = (int) $dimensions[0];
+                $height = (int) $dimensions[1];
             }
         }
 

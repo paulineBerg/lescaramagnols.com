@@ -549,8 +549,56 @@ final class PrivatePortalController
         }
 
         $action = strtolower(trim((string) ($body['action'] ?? '')));
-        if ($action !== 'create_member') {
+        if (!in_array($action, ['create_member', 'update_member', 'delete_member'], true)) {
             return $this->renderRentalMembers($userId, $members, '', 'rental_invalid_request');
+        }
+
+        if ($action === 'update_member' || $action === 'delete_member') {
+            $memberId = $this->normalizeNumericId($body['member_id'] ?? null);
+            $member = $this->rentalPropertyMemberRepository()->findById($memberId);
+            if ($member === null || !$member->isActive || $member->status !== 'active') {
+                return $this->renderRentalMembers($userId, $members, '', 'member_forbidden');
+            }
+
+            if (!$this->canWriteByPropertyId($member->rentalPropertyId, $userId)) {
+                return $this->renderRentalMembers($userId, $members, '', 'member_forbidden');
+            }
+
+            if ($member->privateUserId === $userId) {
+                return $this->renderRentalMembers($userId, $members, '', 'member_self_forbidden');
+            }
+
+            if ($action === 'delete_member') {
+                if (!$this->rentalPropertyMemberRepository()->deactivate($member->rentalPropertyId, $member->privateUserId, $userId)) {
+                    return $this->renderRentalMembers($userId, $members, '', 'member_delete_failed');
+                }
+
+                $this->logEvent('private.rental_property_member.deleted', [
+                    'private_user_id' => $userId,
+                    'rental_property_id' => $member->rentalPropertyId,
+                    'member_user_id' => $member->privateUserId,
+                ]);
+
+                return $this->redirect(private_portal_url('rental_property_members') . '?notice=member_deleted');
+            }
+
+            $role = is_string($body['role'] ?? null) ? strtolower(trim((string) $body['role'])) : '';
+            $updated = $this->rentalPropertyMemberRepository()->update(
+                $memberId,
+                $role,
+                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+            );
+            if (!$updated) {
+                return $this->renderRentalMembers($userId, $members, '', 'member_update_failed');
+            }
+
+            $this->logEvent('private.rental_property_member.updated', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $member->rentalPropertyId,
+                'member_user_id' => $member->privateUserId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_property_members') . '?notice=member_updated');
         }
 
         $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
@@ -599,27 +647,94 @@ final class PrivatePortalController
 
         $propertyIds = $this->authorizedPropertyIds($userId);
         $properties = $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
+        $units = $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
         $tenants = $this->rentalLifecycleRepository()->listTenants($propertyIds, self::MAX_RENTAL_LIST);
         $query = $request->query();
         $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
         $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
 
         if ($request->method() !== self::METHOD_POST) {
-            return $this->renderRentalTenants($properties, $tenants, $notice, $error);
+            return $this->renderRentalTenants($properties, $units, $tenants, $notice, $error);
         }
 
         if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
-            return $this->renderRentalTenants($properties, $tenants, '', 'rental_invalid_request');
+            return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_invalid_request');
         }
 
         $body = $request->body();
-        $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_tenant';
+        if ($action === 'update_tenant') {
+            $tenantId = $this->normalizeNumericId($body['tenant_id'] ?? null);
+            $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
+            $tenantPropertyId = is_array($tenant) && is_numeric($tenant['rentalPropertyId'] ?? null)
+                ? (int) $tenant['rentalPropertyId']
+                : 0;
+            if ($tenantId <= 0 || !in_array($tenantPropertyId, $propertyIds, true) || !$this->canWriteByPropertyId($tenantPropertyId, $userId)) {
+                return $this->renderRentalTenants($properties, $units, $tenants, '', 'property_forbidden');
+            }
+
+            $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
+            $unit = $this->rentalUnitRepository()->findById($unitId);
+            $propertyId = $unit !== null ? $unit->rentalPropertyId : 0;
+            if ($unit === null || !in_array($propertyId, $propertyIds, true) || !$this->canWriteByPropertyId($propertyId, $userId)) {
+                return $this->renderRentalTenants($properties, $units, $tenants, '', 'unit_forbidden');
+            }
+
+            $updated = $this->rentalLifecycleRepository()->updateTenant(
+                $tenantId,
+                $propertyId,
+                $unitId,
+                (string) ($body['full_name'] ?? ''),
+                is_string($body['email'] ?? null) ? (string) $body['email'] : null,
+                is_string($body['phone'] ?? null) ? (string) $body['phone'] : null,
+                is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
+                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+            );
+            if (!is_array($updated)) {
+                return $this->renderRentalTenants($properties, $units, $tenants, '', 'tenant_update_failed');
+            }
+
+            $this->logEvent('private.rental_tenant.updated', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $propertyId,
+                'rental_unit_id' => $unitId,
+                'rental_tenant_id' => $tenantId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_tenants') . '?notice=tenant_updated#rental-feedback');
+        }
+
+        if ($action === 'delete_tenant') {
+            $tenantId = $this->normalizeNumericId($body['tenant_id'] ?? null);
+            if ($tenantId <= 0 || !$this->rentalLifecycleRepository()->deleteTenant($tenantId, $propertyIds)) {
+                return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_delete_failed');
+            }
+
+            $this->logEvent('private.rental_tenant.deleted', [
+                'private_user_id' => $userId,
+                'rental_tenant_id' => $tenantId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_tenants') . '?notice=tenant_deleted#rental-feedback');
+        }
+
+        if ($action !== 'create_tenant') {
+            return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_invalid_request');
+        }
+
+        $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
+        $unit = $this->rentalUnitRepository()->findById($unitId);
+        $propertyId = $unit !== null ? $unit->rentalPropertyId : 0;
+        if ($unit === null || !in_array($propertyId, $propertyIds, true)) {
+            return $this->renderRentalTenants($properties, $units, $tenants, '', 'unit_forbidden');
+        }
         if (!$this->canWriteByPropertyId($propertyId, $userId)) {
-            return $this->renderRentalTenants($properties, $tenants, '', 'property_forbidden');
+            return $this->renderRentalTenants($properties, $units, $tenants, '', 'property_forbidden');
         }
 
         $created = $this->rentalLifecycleRepository()->createTenant(
             $propertyId,
+            $unitId,
             (string) ($body['full_name'] ?? ''),
             is_string($body['email'] ?? null) ? (string) $body['email'] : null,
             is_string($body['phone'] ?? null) ? (string) $body['phone'] : null,
@@ -628,12 +743,13 @@ final class PrivatePortalController
             is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
         );
         if (!is_array($created)) {
-            return $this->renderRentalTenants($properties, $tenants, '', 'rental_write_failed');
+            return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_write_failed');
         }
 
         $this->logEvent('private.rental_tenant.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
+            'rental_unit_id' => $unitId,
             'rental_tenant_id' => (int) ($created['id'] ?? 0),
         ]);
 
@@ -665,14 +781,33 @@ final class PrivatePortalController
         }
 
         $body = $request->body();
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_lease';
+        if ($action === 'delete_lease') {
+            $leaseId = $this->normalizeNumericId($body['lease_id'] ?? null);
+            if ($leaseId <= 0 || !$this->rentalLifecycleRepository()->deleteLease($leaseId, $propertyIds)) {
+                return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_delete_failed');
+            }
+
+            $this->logEvent('private.rental_lease.deleted', [
+                'private_user_id' => $userId,
+                'rental_lease_id' => $leaseId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_deleted');
+        }
+
+        if ($action !== 'create_lease') {
+            return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_invalid_request');
+        }
+
         $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
         $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
         $tenantId = $this->normalizeNumericId($body['rental_tenant_id'] ?? null);
         if (!$this->canWriteByPropertyId($propertyId, $userId)) {
             return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'property_forbidden');
         }
-        if (!$this->unitBelongsToProperty($unitId, $propertyId) || !$this->tenantBelongsToProperty($tenantId, $propertyId)) {
-            return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_invalid_request');
+        if (!$this->unitBelongsToProperty($unitId, $propertyId) || !$this->tenantBelongsToUnit($tenantId, $unitId, $propertyId)) {
+            return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'tenant_required_for_unit');
         }
 
         $created = $this->rentalLifecycleRepository()->createLease(
@@ -723,6 +858,31 @@ final class PrivatePortalController
         }
 
         $body = $request->body();
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_payment';
+        if ($action === 'email_receipt') {
+            $sent = $this->sendRentalReceiptByEmail($body, $propertyIds, $userId);
+
+            return $this->redirect(private_portal_url('rental_payments') . ($sent ? '?notice=receipt_emailed' : '?error=email_failed'));
+        }
+
+        if ($action === 'delete_payment') {
+            $paymentId = $this->normalizeNumericId($body['payment_id'] ?? null);
+            if ($paymentId <= 0 || !$this->rentalLifecycleRepository()->deletePayment($paymentId, $propertyIds)) {
+                return $this->renderRentalPayments($leases, $payments, '', 'rental_delete_failed');
+            }
+
+            $this->logEvent('private.rental_payment.deleted', [
+                'private_user_id' => $userId,
+                'rental_payment_id' => $paymentId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_deleted');
+        }
+
+        if ($action !== 'create_payment') {
+            return $this->renderRentalPayments($leases, $payments, '', 'rental_invalid_request');
+        }
+
         $leaseId = $this->normalizeNumericId($body['rental_lease_id'] ?? null);
         $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
         $propertyId = is_array($lease) && is_numeric($lease['rentalPropertyId'] ?? null)
@@ -785,6 +945,25 @@ final class PrivatePortalController
         }
 
         $body = $request->body();
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_expense';
+        if ($action === 'delete_expense') {
+            $expenseId = $this->normalizeNumericId($body['expense_id'] ?? null);
+            if ($expenseId <= 0 || !$this->rentalLifecycleRepository()->deleteExpense($expenseId, $propertyIds)) {
+                return $this->renderRentalExpenses($properties, $units, $expenses, '', 'rental_delete_failed');
+            }
+
+            $this->logEvent('private.rental_expense.deleted', [
+                'private_user_id' => $userId,
+                'rental_expense_id' => $expenseId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_expenses') . '?notice=expense_deleted');
+        }
+
+        if ($action !== 'create_expense') {
+            return $this->renderRentalExpenses($properties, $units, $expenses, '', 'rental_invalid_request');
+        }
+
         $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
         $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
         if (!$this->canWriteByPropertyId($propertyId, $userId)) {
@@ -844,6 +1023,69 @@ final class PrivatePortalController
         }
 
         $body = $request->body();
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'upload_document';
+
+        if ($action === 'delete_document' || $action === 'delete_selected_documents' || $action === 'delete_all_documents') {
+            if ($action === 'delete_all_documents') {
+                $confirmation = is_string($body['confirm_delete_all'] ?? null) ? trim((string) $body['confirm_delete_all']) : '';
+                if ($confirmation !== 'SUPPRIMER') {
+                    return $this->renderRentalDocuments($properties, $units, $leases, $documents, '', 'rental_purge_confirmation_required');
+                }
+            }
+
+            $documentIds = $action === 'delete_all_documents'
+                ? array_values(array_filter(
+                    array_map(
+                        static fn (array $document): string => is_string($document['documentId'] ?? null) ? (string) $document['documentId'] : '',
+                        $documents
+                    ),
+                    static fn (string $documentId): bool => $documentId !== ''
+                ))
+                : $this->documentIdsFromPayload($body['document_ids'] ?? $body['document_id'] ?? []);
+
+            $deletedCount = $this->deleteRentalDocuments($documentIds, $propertyIds, $userId);
+            if ($deletedCount <= 0) {
+                return $this->renderRentalDocuments($properties, $units, $leases, $documents, '', 'rental_delete_failed');
+            }
+
+            return $this->redirect(private_portal_url('rental_documents') . '?notice=document_deleted');
+        }
+
+        if ($action === 'email_documents') {
+            $sent = $this->sendRentalDocumentsByEmail($body, $propertyIds, $userId);
+            return $this->redirect(private_portal_url('rental_documents') . ($sent ? '?notice=document_emailed' : '?error=email_failed'));
+        }
+
+        if ($action === 'purge_rental_data') {
+            $confirmation = is_string($body['confirm_purge'] ?? null) ? trim((string) $body['confirm_purge']) : '';
+            if ($confirmation !== 'SUPPRIMER') {
+                return $this->renderRentalDocuments($properties, $units, $leases, $documents, '', 'rental_purge_confirmation_required');
+            }
+
+            $documentsBeforeDelete = $documents;
+            $deleted = $this->rentalLifecycleRepository()->deleteLifecycleDataByPropertyIds($propertyIds);
+            foreach ($documentsBeforeDelete as $document) {
+                if (!is_array($document)) {
+                    continue;
+                }
+                $this->privateDocumentStorage()->deleteStoredDocument(
+                    is_string($document['storagePath'] ?? null) ? (string) $document['storagePath'] : '',
+                    is_string($document['documentId'] ?? null) ? (string) $document['documentId'] : null
+                );
+            }
+
+            $this->logEvent('private.rental_data.purged', [
+                'private_user_id' => $userId,
+                'counts' => $deleted,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_documents') . '?notice=rental_data_purged');
+        }
+
+        if ($action !== 'upload_document') {
+            return $this->renderRentalDocuments($properties, $units, $leases, $documents, '', 'rental_invalid_request');
+        }
+
         $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
         $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
         $leaseId = $this->normalizeNumericId($body['rental_lease_id'] ?? null);
@@ -1308,9 +1550,29 @@ final class PrivatePortalController
             return $userId;
         }
 
+        $year = $this->normalizeTaxYear($year);
+        if ($request->method() === self::METHOD_POST) {
+            if (!$this->guard()->validateCsrf($request, self::CSRF_TAX)) {
+                return $this->render('modules/tax-declaration-helper/documents', $this->taxViewModel(
+                    $userId,
+                    $year,
+                    'Documents fiscaux',
+                    '',
+                    'tax_invalid_request'
+                ));
+            }
+
+            $body = $request->body();
+            $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
+            if ($action === 'email_tax_pdf') {
+                $sent = $this->sendTaxPdfByEmail($body, $userId, $year);
+                return $this->redirect($this->taxYearUrl($year) . '/documents' . ($sent ? '?notice=tax_pdf_emailed' : '?error=email_failed'));
+            }
+        }
+
         return $this->render('modules/tax-declaration-helper/documents', $this->taxViewModel(
             $userId,
-            $this->normalizeTaxYear($year),
+            $year,
             'Documents fiscaux'
         ));
     }
@@ -1363,6 +1625,12 @@ final class PrivatePortalController
             }
 
             $body = $request->body();
+            $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
+            if ($action === 'invite_member') {
+                $sent = $this->sendDiscussionInvitation($body, $userId);
+                return $this->redirect(private_portal_url('discussion_index') . ($sent ? '?notice=invite_sent' : '?error=invite'));
+            }
+
             $type = is_string($body['type'] ?? null) ? strtolower(trim((string) $body['type'])) : 'direct';
             $conversation = null;
             if ($type === 'group') {
@@ -1388,6 +1656,7 @@ final class PrivatePortalController
             'conversations' => $this->discussionService()->listConversations($userId),
             'members' => $this->discussionService()->listActiveMembers($userId),
             'error' => is_string($request->query()['error'] ?? null) ? (string) $request->query()['error'] : '',
+            'notice' => is_string($request->query()['notice'] ?? null) ? (string) $request->query()['notice'] : '',
         ]));
     }
 
@@ -1409,11 +1678,38 @@ final class PrivatePortalController
             if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=csrf');
             }
+
+            $body = $request->body();
+            $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'send_message';
+            if ($action === 'delete_message') {
+                $messageId = $this->normalizeNumericId($body['message_id'] ?? null);
+                $deleted = $this->discussionService()->deleteMessage($userId, $messageId);
+
+                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deleted ? '?notice=deleted' : '?error=delete'));
+            }
+            if ($action === 'delete_attachment') {
+                $attachmentId = is_string($body['attachment_id'] ?? null) ? (string) $body['attachment_id'] : '';
+                $deleted = $this->discussionService()->deleteAttachment($userId, $attachmentId);
+
+                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deleted ? '?notice=deleted' : '?error=delete'));
+            }
+            if ($action === 'delete_my_conversation_data') {
+                $confirmation = is_string($body['confirm_delete'] ?? null) ? trim((string) $body['confirm_delete']) : '';
+                if ($confirmation !== 'SUPPRIMER') {
+                    return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=delete_confirmation');
+                }
+
+                $deletedCount = $this->discussionService()->deleteOwnConversationData($userId, $conversationId);
+
+                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deletedCount > 0 ? '?notice=deleted' : '?error=delete'));
+            }
+            if ($action !== 'send_message') {
+                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=message');
+            }
             if (!$this->discussionRateLimitHit($request, $userId, 'message')) {
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=rate_limited');
             }
 
-            $body = $request->body();
             $message = $this->discussionService()->sendMessage(
                 $userId,
                 $conversationId,
@@ -2364,16 +2660,19 @@ final class PrivatePortalController
                 'rentalCurrentSubsection' => 'members',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalMembers' => $members,
+                'rentalCurrentPrivateUserId' => $userId,
             ]
         ));
     }
 
     /**
      * @param array<int, object> $properties
+     * @param array<int, object> $units
      * @param array<int, array<string, mixed>> $tenants
      */
     private function renderRentalTenants(
         array $properties,
+        array $units,
         array $tenants,
         string $notice = '',
         string $error = ''
@@ -2384,6 +2683,7 @@ final class PrivatePortalController
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'tenants',
                 'rentalProperties' => $this->objectsToArrays($properties),
+                'rentalUnits' => $this->objectsToArrays($units),
                 'rentalTenants' => $tenants,
             ]
         ));
@@ -2491,7 +2791,7 @@ final class PrivatePortalController
     private function renderRentalAgencyImports(int $userId, string $notice = '', string $error = ''): Response
     {
         return $this->render('modules/real-estate-rental/agency-imports', array_merge(
-            $this->rentalBaseViewModel('Imports agence', $notice, $error),
+            $this->rentalBaseViewModel('Importer des documents agence', $notice, $error),
             [
                 'rentalCurrentSection' => 'agency',
                 'rentalCurrentSubsection' => 'agencyImports',
@@ -2530,7 +2830,7 @@ final class PrivatePortalController
         }
 
         return $this->render('modules/real-estate-rental/agency-review', array_merge(
-            $this->rentalBaseViewModel('Documents agence a classer', $notice, $error),
+            $this->rentalBaseViewModel('Documents agence à classer', $notice, $error),
             [
                 'rentalCurrentSection' => 'agency',
                 'rentalCurrentSubsection' => 'agencyReview',
@@ -2596,6 +2896,11 @@ final class PrivatePortalController
             'taxCsrfToken' => csrf_token(self::CSRF_TAX),
             'taxNotice' => $this->taxNotice($notice),
             'taxError' => $this->taxError($error),
+            'taxMailDefaults' => [
+                'recipientEmail' => $this->auth->currentIdentifier(),
+                'subject' => $this->privateMailTemplate('tax_subject', 'Aide impôts - document PDF'),
+                'message' => $this->privateMailTemplate('tax_body'),
+            ],
             'taxUrls' => [
                 'dashboard' => private_portal_url('tax_dashboard'),
                 'year' => $this->taxYearUrl($year),
@@ -2627,9 +2932,309 @@ final class PrivatePortalController
                 'apiCryptoDevices' => private_portal_url('discussion_api_crypto_devices'),
                 'files' => private_portal_url('discussion_files'),
             ],
+            'discussionInviteDefaults' => [
+                'subject' => $this->privateMailTemplate('discussion_invite_subject', 'Invitation à rejoindre les discussions famille'),
+                'message' => $this->privateMailTemplate('discussion_invite_body'),
+            ],
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ], $extra);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function documentIdsFromPayload(mixed $payload): array
+    {
+        $values = is_array($payload) ? $payload : [$payload];
+        $ids = [];
+        foreach ($values as $value) {
+            $id = $this->normalizeDocumentId((string) $value);
+            if ($id !== '' && !in_array($id, $ids, true)) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param array<int, string> $documentIds
+     * @param array<int, int> $propertyIds
+     */
+    private function deleteRentalDocuments(array $documentIds, array $propertyIds, int $userId): int
+    {
+        $deleted = 0;
+        foreach ($documentIds as $documentId) {
+            $document = $this->rentalLifecycleRepository()->findDocumentByDocumentId($documentId);
+            $propertyId = is_array($document) && is_numeric($document['rentalPropertyId'] ?? null)
+                ? (int) $document['rentalPropertyId']
+                : 0;
+            if (!is_array($document) || !in_array($propertyId, $propertyIds, true)) {
+                continue;
+            }
+
+            if (!$this->rentalLifecycleRepository()->deactivateDocumentByDocumentId($documentId, $propertyIds)) {
+                continue;
+            }
+
+            $this->privateDocumentStorage()->deleteStoredDocument(
+                is_string($document['storagePath'] ?? null) ? (string) $document['storagePath'] : '',
+                $documentId
+            );
+            ++$deleted;
+            $this->logEvent('private.rental_document.deleted', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $propertyId,
+                'document_id' => $documentId,
+            ]);
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @param array<int, int> $propertyIds
+     */
+    private function sendRentalDocumentsByEmail(array $body, array $propertyIds, int $userId): bool
+    {
+        $to = $this->normalizeEmailInput($body['recipient_email'] ?? null);
+        $documentIds = $this->documentIdsFromPayload($body['document_ids'] ?? []);
+        if ($to === '' || $documentIds === []) {
+            return false;
+        }
+
+        $attachments = [];
+        foreach ($documentIds as $documentId) {
+            $document = $this->rentalLifecycleRepository()->findDocumentByDocumentId($documentId);
+            $propertyId = is_array($document) && is_numeric($document['rentalPropertyId'] ?? null)
+                ? (int) $document['rentalPropertyId']
+                : 0;
+            if (!is_array($document) || !in_array($propertyId, $propertyIds, true)) {
+                continue;
+            }
+
+            $storagePath = is_string($document['storagePath'] ?? null) ? (string) $document['storagePath'] : '';
+            $absolutePath = $this->privateDocumentStorage()->absolutePath($storagePath);
+            if ($absolutePath === null || !is_file($absolutePath) || !is_readable($absolutePath)) {
+                continue;
+            }
+
+            $attachments[] = [
+                'path' => $absolutePath,
+                'name' => $this->sanitizeDownloadFilename((string) ($document['originalName'] ?? 'document')),
+                'mime' => is_string($document['mimeType'] ?? null) ? (string) $document['mimeType'] : 'application/octet-stream',
+            ];
+        }
+
+        if ($attachments === []) {
+            return false;
+        }
+
+        $subject = $this->mailSubjectFromBody($body, 'rental_subject', 'Document locatif');
+        $html = $this->mailHtmlFromBody($body, 'rental_body');
+        $sent = $this->sendPrivateMail($to, $subject, $html, $attachments);
+        $this->logEvent($sent ? 'private.rental_document.email_sent' : 'private.rental_document.email_failed', [
+            'private_user_id' => $userId,
+            'recipient' => AppEventLogger::maskIdentifier($to),
+            'attachment_count' => count($attachments),
+        ]);
+
+        return $sent;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @param array<int, int> $propertyIds
+     */
+    private function sendRentalReceiptByEmail(array $body, array $propertyIds, int $userId): bool
+    {
+        $paymentId = $this->normalizeNumericId($body['payment_id'] ?? null);
+        $payment = $this->rentalLifecycleRepository()->findPaymentById($paymentId);
+        $propertyId = is_array($payment) && is_numeric($payment['rentalPropertyId'] ?? null)
+            ? (int) $payment['rentalPropertyId']
+            : 0;
+        if (!is_array($payment) || !in_array($propertyId, $propertyIds, true)) {
+            return false;
+        }
+
+        $leaseId = is_numeric($payment['rentalLeaseId'] ?? null) ? (int) $payment['rentalLeaseId'] : 0;
+        $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
+        $tenantId = is_array($lease) && is_numeric($lease['rentalTenantId'] ?? null) ? (int) $lease['rentalTenantId'] : 0;
+        $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
+        $property = $this->rentalPropertyRepository()->findById($propertyId);
+        $unitId = is_numeric($payment['rentalUnitId'] ?? null) ? (int) $payment['rentalUnitId'] : 0;
+        $unit = $this->rentalUnitRepository()->findById($unitId);
+        if (!is_array($lease) || !is_array($tenant) || $property === null) {
+            return false;
+        }
+
+        $to = $this->normalizeEmailInput($body['recipient_email'] ?? null);
+        if ($to === '') {
+            $to = $this->normalizeEmailInput($tenant['email'] ?? null);
+        }
+        if ($to === '') {
+            return false;
+        }
+
+        $subject = $this->mailSubjectFromBody($body, 'rental_subject', 'Quittance de loyer');
+        $html = $this->mailHtmlFromBody($body, 'rental_body');
+        $filename = sprintf(
+            'quittance-%04d-%02d.pdf',
+            (int) ($payment['periodYear'] ?? date('Y')),
+            (int) ($payment['periodMonth'] ?? date('n'))
+        );
+        $sent = $this->sendPrivateMail($to, $subject, $html, [[
+            'content' => $this->rentalReceiptPdf($payment, $lease, $tenant, $property->name, $unit?->label ?? ''),
+            'name' => $filename,
+            'mime' => 'application/pdf',
+        ]]);
+
+        $this->logEvent($sent ? 'private.rental_receipt.email_sent' : 'private.rental_receipt.email_failed', [
+            'private_user_id' => $userId,
+            'rental_property_id' => $propertyId,
+            'rental_payment_id' => $paymentId,
+            'recipient' => AppEventLogger::maskIdentifier($to),
+        ]);
+
+        return $sent;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function sendTaxPdfByEmail(array $body, int $userId, int $year): bool
+    {
+        $to = $this->normalizeEmailInput($body['recipient_email'] ?? null);
+        if ($to === '') {
+            return false;
+        }
+
+        $summary = $this->taxDeclarationSummaryService()->build($userId, $year, $this->authorizedPropertyIds($userId));
+        $subject = $this->mailSubjectFromBody($body, 'tax_subject', 'Aide impôts - document PDF');
+        $html = $this->mailHtmlFromBody($body, 'tax_body');
+        $sent = $this->sendPrivateMail($to, $subject, $html, [[
+            'content' => $this->taxDeclarationSummaryService()->pdf($summary),
+            'name' => sprintf('aide-impots-%d.pdf', $year),
+            'mime' => 'application/pdf',
+        ]]);
+
+        $this->logEvent($sent ? 'private.tax_pdf.email_sent' : 'private.tax_pdf.email_failed', [
+            'private_user_id' => $userId,
+            'recipient' => AppEventLogger::maskIdentifier($to),
+            'year' => $year,
+        ]);
+
+        return $sent;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function sendDiscussionInvitation(array $body, int $actorUserId): bool
+    {
+        $email = $this->normalizeEmailInput($body['recipient_email'] ?? null);
+        if ($email === '') {
+            return false;
+        }
+
+        $user = $this->privateUserRepository()->findByEmail($email);
+        $userId = is_array($user) && is_numeric($user['id'] ?? null) ? (int) $user['id'] : 0;
+        if ($userId <= 0) {
+            $hash = password_hash(bin2hex(random_bytes(24)), PASSWORD_ARGON2ID);
+            if (!is_string($hash)) {
+                return false;
+            }
+            $createdUserId = $this->privateUserRepository()->create($email, $hash, 'invited');
+            $userId = is_int($createdUserId) ? $createdUserId : 0;
+        }
+
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $this->modulePermissionRepository()->setUserModules($userId, ['discussions'], $this->auth->currentIdentifier());
+        $token = $this->privateUserRepository()->createInviteToken($userId, $email);
+        if ($token === null) {
+            return false;
+        }
+
+        $activationUrl = app_url(private_portal_url('activate') . '/' . rawurlencode($token));
+        $subject = $this->mailSubjectFromBody($body, 'discussion_invite_subject', 'Invitation à rejoindre les discussions famille');
+        $message = is_string($body['message'] ?? null) && trim((string) $body['message']) !== ''
+            ? (string) $body['message']
+            : $this->privateMailTemplate('discussion_invite_body');
+        $message = strtr($message, [
+            '{{activation_url}}' => $activationUrl,
+            '{{email}}' => $email,
+        ]);
+        $sent = $this->sendPrivateMail($email, $subject, $this->plainTextToHtml($message), []);
+        $this->logEvent($sent ? 'private.discussion.invite_email_sent' : 'private.discussion.invite_email_failed', [
+            'private_user_id' => $actorUserId,
+            'invited_private_user_id' => $userId,
+            'recipient' => AppEventLogger::maskIdentifier($email),
+        ]);
+
+        return $sent;
+    }
+
+    /**
+     * @param array<int, array{path?: string, content?: string, name?: string, mime?: string}> $attachments
+     */
+    private function sendPrivateMail(string $to, string $subject, string $html, array $attachments): bool
+    {
+        if (!function_exists('send_private_email')) {
+            $mailerPath = ROOT_PATH . '/core/mailer.php';
+            if (is_file($mailerPath)) {
+                require_once $mailerPath;
+            }
+        }
+
+        return function_exists('send_private_email')
+            ? send_private_email($to, $subject, $html, $attachments)
+            : false;
+    }
+
+    private function mailSubjectFromBody(array $body, string $templateKey, string $fallback): string
+    {
+        $subject = is_string($body['subject'] ?? null) ? trim((string) $body['subject']) : '';
+        if ($subject === '') {
+            $subject = $this->privateMailTemplate($templateKey, $fallback);
+        }
+
+        return sanitize_text_field($subject, 180);
+    }
+
+    private function mailHtmlFromBody(array $body, string $templateKey): string
+    {
+        $message = is_string($body['message'] ?? null) ? trim((string) $body['message']) : '';
+        if ($message === '') {
+            $message = $this->privateMailTemplate($templateKey);
+        }
+
+        return $this->plainTextToHtml($message);
+    }
+
+    private function privateMailTemplate(string $key, string $fallback = ''): string
+    {
+        $template = app_config('private.mail.templates.' . $key, $fallback);
+
+        return is_scalar($template) ? (string) $template : $fallback;
+    }
+
+    private function plainTextToHtml(string $message): string
+    {
+        $message = sanitize_text_field($message, 4000);
+
+        return '<p>' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), false) . '</p>';
+    }
+
+    private function normalizeEmailInput(mixed $value): string
+    {
+        $email = strtolower(trim((string) $value));
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false ? $email : '';
     }
 
     /**
@@ -2720,6 +3325,10 @@ final class PrivatePortalController
                 'summary' => private_portal_url('rental_summary'),
                 'exportCsv' => private_portal_url('rental_export_csv'),
                 'exportPdf' => private_portal_url('rental_export_pdf'),
+            ],
+            'rentalMailDefaults' => [
+                'subject' => $this->privateMailTemplate('rental_subject', 'Document locatif'),
+                'message' => $this->privateMailTemplate('rental_body'),
             ],
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
@@ -2825,6 +3434,20 @@ final class PrivatePortalController
             && (int) $tenant['rentalPropertyId'] === $propertyId;
     }
 
+    private function tenantBelongsToUnit(int $tenantId, int $unitId, int $propertyId): bool
+    {
+        if ($tenantId <= 0 || $unitId <= 0 || $propertyId <= 0) {
+            return false;
+        }
+
+        $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
+        return is_array($tenant)
+            && is_numeric($tenant['rentalPropertyId'] ?? null)
+            && is_numeric($tenant['rentalUnitId'] ?? null)
+            && (int) $tenant['rentalPropertyId'] === $propertyId
+            && (int) $tenant['rentalUnitId'] === $unitId;
+    }
+
     private function leaseBelongsToProperty(int $leaseId, int $propertyId): bool
     {
         if ($leaseId <= 0 || $propertyId <= 0) {
@@ -2916,6 +3539,32 @@ final class PrivatePortalController
         return "%PDF-1.4\n% Caramagnols private rental export\n" . $text . "\n%%EOF\n";
     }
 
+    /**
+     * @param array<string, mixed> $payment
+     * @param array<string, mixed> $lease
+     * @param array<string, mixed> $tenant
+     */
+    private function rentalReceiptPdf(array $payment, array $lease, array $tenant, string $propertyName, string $unitLabel): string
+    {
+        $period = sprintf(
+            '%04d-%02d',
+            (int) ($payment['periodYear'] ?? date('Y')),
+            (int) ($payment['periodMonth'] ?? date('n'))
+        );
+        $text = sprintf(
+            "Quittance de loyer\nPeriode: %s\nBien: %s\nLot: %s\nLocataire: %s\nDate de paiement: %s\nMontant encaisse: %.2f EUR\nBail du: %s",
+            $period,
+            $propertyName,
+            $unitLabel !== '' ? $unitLabel : 'non precise',
+            (string) ($tenant['fullName'] ?? 'Locataire'),
+            (string) ($payment['paymentDate'] ?? ''),
+            (float) ($payment['amountPaid'] ?? 0),
+            (string) ($lease['startDate'] ?? '')
+        );
+
+        return "%PDF-1.4\n% Caramagnols private rental receipt\n" . $text . "\n%%EOF\n";
+    }
+
     private function normalizeNumericId(mixed $value): int
     {
         if (!is_numeric($value)) {
@@ -2936,11 +3585,22 @@ final class PrivatePortalController
             'unit_updated' => 'Lot locatif mis à jour.',
             'unit_archived' => 'Lot locatif archivé.',
             'member_created' => 'Membre locatif ajouté.',
+            'member_updated' => 'Accès membre mis à jour.',
+            'member_deleted' => 'Accès membre supprimé.',
             'tenant_created' => 'Locataire créé.',
+            'tenant_updated' => 'Locataire mis à jour.',
+            'tenant_deleted' => 'Locataire supprimé.',
             'lease_created' => 'Bail créé.',
+            'lease_deleted' => 'Bail supprimé.',
             'payment_created' => 'Paiement locatif créé.',
+            'payment_deleted' => 'Paiement locatif supprimé.',
+            'receipt_emailed' => 'Quittance envoyée par email.',
             'expense_created' => 'Charge locative créée.',
+            'expense_deleted' => 'Charge locative supprimée.',
             'document_uploaded' => 'Document locatif envoyé.',
+            'document_deleted' => 'Document locatif supprimé.',
+            'document_emailed' => 'Email locatif envoyé.',
+            'rental_data_purged' => 'Données locatives supprimées.',
             'agency_imported' => 'Document agence importé et préparé pour revue.',
             'agency_import_ignored' => 'Fichier annexe ignoré.',
             'agency_statement_property_updated' => 'Rattachement du relevé mis à jour.',
@@ -2964,8 +3624,16 @@ final class PrivatePortalController
             'member_missing_email' => 'Adresse du membre obligatoire.',
             'member_unknown_user' => 'Compte privé introuvable.',
             'member_create_failed' => 'Ajout du membre locatif impossible.',
+            'member_update_failed' => 'Mise à jour de l’accès membre impossible.',
+            'member_delete_failed' => 'Suppression de l’accès membre impossible.',
+            'member_self_forbidden' => 'Le compte connecté ne peut pas modifier ni supprimer son propre accès.',
             'missing_file' => 'Aucun fichier reçu.',
             'upload_failed' => 'Envoi du document locatif impossible.',
+            'email_failed' => 'Envoi email impossible.',
+            'tenant_update_failed' => 'Mise à jour du locataire impossible.',
+            'tenant_required_for_unit' => 'Il faut créer un locataire pour ce lot avant de créer un bail.',
+            'rental_delete_failed' => 'Suppression locative impossible.',
+            'rental_purge_confirmation_required' => 'Confirmez la suppression avec SUPPRIMER.',
             'agency_import_failed' => 'Import agence impossible.',
             'agency_import_duplicate' => 'Document agence déjà importé.',
             'agency_review_failed' => 'Revue agence impossible.',
@@ -2981,6 +3649,7 @@ final class PrivatePortalController
             'year_locked' => 'Année fiscale verrouillée.',
             'year_unlocked' => 'Année fiscale déverrouillée.',
             'manual_created' => 'Revenu manuel ajouté.',
+            'tax_pdf_emailed' => 'PDF fiscal envoyé par email.',
             'source_enabled' => 'Liaison source activée pour cette année.',
             'source_disabled' => 'Liaison source désactivée pour cette année.',
             default => '',
@@ -2995,6 +3664,7 @@ final class PrivatePortalController
             'tax_write_failed' => 'Écriture fiscale impossible.',
             'tax_locked_or_invalid' => 'Revenu manuel refusé : année verrouillée ou données invalides.',
             'tax_source_link_failed' => 'Activation de la source refusée ou impossible.',
+            'email_failed' => 'Envoi email impossible.',
             default => '',
         };
     }
@@ -3032,7 +3702,7 @@ final class PrivatePortalController
     {
         $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), true);
         if ($required !== null) {
-            return null;
+            return $required;
         }
 
         $userId = $this->currentPrivateUserId();
@@ -3081,12 +3751,12 @@ final class PrivatePortalController
     {
         $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), true);
         if ($required !== null) {
-            return $this->handleModuleAccessDenied('private');
+            return $this->withPrivateHeaders($required);
         }
 
         $userId = $this->currentPrivateUserId();
         if ($userId === null) {
-            return $this->handleModuleAccessDenied('private');
+            return $this->redirect(private_portal_url('login'));
         }
 
         return $userId;
@@ -3099,7 +3769,7 @@ final class PrivatePortalController
             'identifier' => AppEventLogger::maskIdentifier((string) $this->auth->currentIdentifier()),
         ]);
 
-        return $this->withPrivateHeaders(new Response(403, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Forbidden'));
+        return $this->redirect(private_portal_url('login'));
     }
 
     private function forbiddenOrUnauthorized(string $location): Response
@@ -3508,7 +4178,7 @@ final class PrivatePortalController
             }
         }
 
-        $url = private_portal_url('password_reset') . '/' . rawurlencode($token);
+        $url = app_url(private_portal_url('password_reset') . '/' . rawurlencode($token));
         $sent = function_exists('send_notification_email')
             ? send_notification_email(
                 $email,

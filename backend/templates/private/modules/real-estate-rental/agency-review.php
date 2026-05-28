@@ -9,6 +9,7 @@ $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['ren
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
 $reviewUrl = (string) ($urls['agencyReview'] ?? private_portal_url('rental_agency_review'));
 $importsUrl = (string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports'));
+$propertiesUrl = (string) ($urls['properties'] ?? private_portal_url('rental_properties'));
 $summaryUrl = (string) ($urls['summary'] ?? private_portal_url('rental_summary'));
 $h = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $amount = static function (mixed $value) use ($h): string {
@@ -27,9 +28,14 @@ $labelForProperty = static function (array $property): string {
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo $h($error); ?></p><?php endif; ?>
 
   <section class="card">
-    <h2>Documents agence a classer</h2>
+    <h2>Documents agence à classer</h2>
+    <p class="muted">Avant de rattacher un relevé agence, le bien locatif doit exister dans Biens et locations.</p>
+    <p class="private-actions">
+      <a href="<?php echo $h($propertiesUrl); ?>">Créer ou modifier un bien</a>
+      <a href="<?php echo $h($importsUrl); ?>">Importer un document agence</a>
+    </p>
     <?php if ($documents === []): ?>
-      <p class="muted">Aucun document agence importe.</p>
+      <p class="muted">Aucun document agence importé.</p>
     <?php else: ?>
       <table>
         <thead>
@@ -102,6 +108,12 @@ $labelForProperty = static function (array $property): string {
             <?php endforeach; ?>
           </select>
         </label>
+        <?php if ($properties === []): ?>
+          <p class="notice notice-error">Aucun bien disponible pour ce compte. Créez d'abord un bien locatif, puis revenez classer ce document.</p>
+          <p class="private-actions"><a href="<?php echo $h($propertiesUrl); ?>">Créer un bien locatif</a></p>
+        <?php else: ?>
+          <p class="muted">La liste ci-dessus reprend les biens locatifs créés dans Biens et locations.</p>
+        <?php endif; ?>
         <button type="submit">Rattacher</button>
       </form>
 

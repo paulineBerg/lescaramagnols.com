@@ -1180,6 +1180,8 @@ return [
     'TXT_PRIVATE_LOGIN_INTRO' => 'Connectez-vous pour accéder à l’espace privé.',
     'TXT_PRIVATE_IDENTIFIER_LABEL' => 'Identifiant',
     'TXT_PRIVATE_PASSWORD_LABEL' => 'Mot de passe',
+    'TXT_PRIVATE_PASSWORD_SHOW' => 'Afficher',
+    'TXT_PRIVATE_PASSWORD_HIDE' => 'Masquer',
     'TXT_PRIVATE_MFA_CODE_LABEL' => 'Code de vérification',
     'TXT_PRIVATE_LOGIN_SUBMIT' => 'Se connecter',
     'TXT_PRIVATE_FORGOT_PASSWORD_LINK' => 'Mot de passe oublié',
@@ -1212,5 +1214,16 @@ return [
     'TXT_CONTACT_EMAIL' => 'Email',
     'TXT_CONTACT_MESSAGE' => 'Message',
     'TXT_CONTACT_SUBMIT' => 'Envoyer',
+
+    // Admin espace privé
+    'TXT_ADMIN_PRIVATE_MEMBERS_ACTION_REACTIVATE' => 'Réactiver le compte',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE' => 'Suppression du compte',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP' => 'Une sauvegarde est créée, les données sont purgées, puis le compte et la sauvegarde seront supprimés par cron après 30 jours.',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION' => 'Voulez-vous supprimer ce compte suspendu ?',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO' => 'Non',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_YES' => 'Oui, sauvegarder et purger les données',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DOWNLOAD' => 'Récupérer la sauvegarde ZIP',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DELETE_AFTER' => 'Suppression définitive du compte et de la sauvegarde prévue le %s.',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_NO_RESTORE' => 'La sauvegarde ZIP contient backup.json, manifest.json et les fichiers retrouvés. Elle ne réactive pas le compte et ne restaure pas automatiquement les données.',
 
 ];

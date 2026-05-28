@@ -227,11 +227,101 @@ final class DiscussionService
         return $this->repository->leaveConversation($conversationId, $userId);
     }
 
+    public function deleteMessage(int $actorId, int $messageId): bool
+    {
+        $message = $this->repository->findMessageForUser($messageId, $actorId);
+        if (!is_array($message)) {
+            return false;
+        }
+
+        $conversationId = (int) ($message['conversationId'] ?? 0);
+        $senderId = (int) ($message['senderPrivateUserId'] ?? 0);
+        if ($senderId !== $actorId && $this->repository->userRoleInConversation($conversationId, $actorId) !== 'owner') {
+            $this->logAccessDenied($actorId, $conversationId);
+            return false;
+        }
+
+        foreach ($this->repository->listActiveAttachmentsForMessage($messageId) as $attachment) {
+            $this->deleteAttachmentFiles($attachment);
+            $this->repository->purgeAttachment((int) ($attachment['id'] ?? 0));
+        }
+
+        $deleted = $this->repository->purgeMessageContent($messageId);
+        if ($deleted) {
+            $this->log('private.discussion.message.deleted', [
+                'conversation_id' => $conversationId,
+                'message_id' => $messageId,
+                'private_user_id' => $actorId,
+            ]);
+        }
+
+        return $deleted;
+    }
+
+    public function deleteAttachment(int $actorId, string $attachmentId): bool
+    {
+        $attachment = $this->repository->findAttachmentForUser($attachmentId, $actorId);
+        if (!is_array($attachment)) {
+            return false;
+        }
+
+        $conversationId = (int) ($attachment['conversationId'] ?? 0);
+        $senderId = (int) ($attachment['senderPrivateUserId'] ?? 0);
+        if ($senderId !== $actorId && $this->repository->userRoleInConversation($conversationId, $actorId) !== 'owner') {
+            $this->logAccessDenied($actorId, $conversationId);
+            return false;
+        }
+
+        $this->deleteAttachmentFiles($attachment);
+        $deleted = $this->repository->purgeAttachment((int) ($attachment['id'] ?? 0));
+        if ($deleted) {
+            $this->log('private.discussion.attachment.deleted', [
+                'conversation_id' => $conversationId,
+                'attachment_id' => $attachmentId,
+                'private_user_id' => $actorId,
+            ]);
+        }
+
+        return $deleted;
+    }
+
+    public function deleteOwnConversationData(int $actorId, int $conversationId): int
+    {
+        if (!$this->repository->isParticipant($conversationId, $actorId)) {
+            $this->logAccessDenied($actorId, $conversationId);
+            return 0;
+        }
+
+        $deleted = 0;
+        foreach ($this->repository->listActiveMessageIdsForSender($conversationId, $actorId) as $messageId) {
+            if ($this->deleteMessage($actorId, $messageId)) {
+                ++$deleted;
+            }
+        }
+
+        return $deleted;
+    }
+
     private function isActiveUser(int $userId): bool
     {
         $user = $this->userRepository->findById($userId);
 
         return is_array($user) && strtolower((string) ($user['status'] ?? '')) === 'active';
+    }
+
+    /**
+     * @param array<string, mixed> $attachment
+     */
+    private function deleteAttachmentFiles(array $attachment): void
+    {
+        $storagePath = is_string($attachment['storagePath'] ?? null) ? (string) $attachment['storagePath'] : '';
+        $previewStoragePath = is_string($attachment['previewStoragePath'] ?? null) ? (string) $attachment['previewStoragePath'] : '';
+        if ($storagePath !== '') {
+            $this->attachmentStorage->delete($storagePath);
+        }
+        if ($previewStoragePath !== '' && $previewStoragePath !== $storagePath) {
+            $this->attachmentStorage->delete($previewStoragePath);
+        }
     }
 
     /**

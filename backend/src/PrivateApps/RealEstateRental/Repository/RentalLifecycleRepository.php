@@ -54,6 +54,7 @@ final class RentalLifecycleRepository
      */
     public function createTenant(
         int $propertyId,
+        int $unitId,
         string $fullName,
         ?string $email,
         ?string $phone,
@@ -69,6 +70,7 @@ final class RentalLifecycleRepository
 
         if (
             $propertyId <= 0
+            || $unitId <= 0
             || $actorPrivateUserId <= 0
             || $fullName === ''
             || $status === ''
@@ -82,14 +84,15 @@ final class RentalLifecycleRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`rental_property_id`, `full_name`, `email`, `phone`, `status`, `notes`, `created_by_private_user_id`)
+                        (`rental_property_id`, `rental_unit_id`, `full_name`, `email`, `phone`, `status`, `notes`, `created_by_private_user_id`)
                      VALUES
-                        (:property_id, :full_name, :email, :phone, :status, :notes, :created_by)',
+                        (:property_id, :unit_id, :full_name, :email, :phone, :status, :notes, :created_by)',
                     $this->tenantsTable()
                 )
             );
             $statement->execute([
                 'property_id' => $propertyId,
+                'unit_id' => $unitId,
                 'full_name' => $fullName,
                 'email' => $email !== '' ? $email : null,
                 'phone' => $phone !== '' ? $phone : null,
@@ -128,18 +131,111 @@ final class RentalLifecycleRepository
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function updateTenant(
+        int $tenantId,
+        int $propertyId,
+        int $unitId,
+        string $fullName,
+        ?string $email,
+        ?string $phone,
+        string $status,
+        ?string $notes = null
+    ): ?array {
+        $fullName = $this->normalizeText($fullName, self::MAX_TEXT_LENGTH);
+        $email = $email !== null ? strtolower($this->normalizeText($email, 190)) : null;
+        $phone = $phone !== null ? $this->normalizeText($phone, 64) : null;
+        $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
+        $status = $this->normalizeStatus($status, self::VALID_STATUSES);
+
+        if (
+            $tenantId <= 0
+            || $propertyId <= 0
+            || $unitId <= 0
+            || $fullName === ''
+            || $status === ''
+            || ($email !== null && $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false)
+        ) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `rental_property_id` = :property_id,
+                         `rental_unit_id` = :unit_id,
+                         `full_name` = :full_name,
+                         `email` = :email,
+                         `phone` = :phone,
+                         `status` = :status,
+                         `notes` = :notes,
+                         `updated_at` = :updated_at
+                     WHERE `id` = :id
+                       AND `is_active` = 1',
+                    $this->tenantsTable()
+                )
+            );
+            $statement->execute([
+                'property_id' => $propertyId,
+                'unit_id' => $unitId,
+                'full_name' => $fullName,
+                'email' => $email !== '' ? $email : null,
+                'phone' => $phone !== '' ? $phone : null,
+                'status' => $status,
+                'notes' => $notes !== '' ? $notes : null,
+                'updated_at' => date('Y-m-d H:i:s'),
+                'id' => $tenantId,
+            ]);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $this->findTenantById($tenantId);
+    }
+
+    /**
      * @param array<int, int> $propertyIds
      * @return array<int, array<string, mixed>>
      */
     public function listTenants(array $propertyIds, int $limit = 200): array
     {
-        return $this->listByPropertyIds(
-            $this->tenantsTable(),
-            $propertyIds,
-            't.`rental_property_id` ASC, t.`full_name` ASC, t.`id` ASC',
-            $limit,
-            't.*, p.`name` AS `property_name`'
-        );
+        $propertyIds = $this->normalizeIds($propertyIds);
+        $limit = $this->normalizeLimit($limit);
+        if ($propertyIds === [] || $limit <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT t.*, p.`name` AS `property_name`, u.`label` AS `unit_label`
+                     FROM `%s` t
+                     INNER JOIN `%s` p ON p.`id` = t.`rental_property_id`
+                     LEFT JOIN `%s` u ON u.`id` = t.`rental_unit_id`
+                     WHERE t.`rental_property_id` IN (%s)
+                       AND t.`is_active` = 1
+                     ORDER BY t.`rental_property_id` ASC, u.`label` ASC, t.`full_name` ASC, t.`id` ASC
+                     LIMIT :limit',
+                    $this->tenantsTable(),
+                    $this->database->table('rental_properties'),
+                    $this->database->table('rental_units'),
+                    implode(',', $placeholders)
+                )
+            );
+            $this->bindIds($statement, 'property_id', $propertyIds);
+            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->normalizeRows($rows);
     }
 
     /**
@@ -690,6 +786,137 @@ final class RentalLifecycleRepository
 
     /**
      * @param array<int, int> $propertyIds
+     */
+    public function deactivateDocumentByDocumentId(string $documentId, array $propertyIds): bool
+    {
+        $documentId = $this->normalizeIdentifier($documentId);
+        $propertyIds = $this->normalizeIds($propertyIds);
+        if ($documentId === '' || $propertyIds === []) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `is_active` = 0
+                     WHERE `document_id` = :document_id
+                       AND `rental_property_id` IN (%s)
+                       AND `is_active` = 1',
+                    $this->documentsTable(),
+                    implode(',', $placeholders)
+                )
+            );
+            $statement->bindValue(':document_id', $documentId, PDO::PARAM_STR);
+            $this->bindIds($statement, 'property_id', $propertyIds);
+            $statement->execute();
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     */
+    public function deleteTenant(int $tenantId, array $propertyIds): bool
+    {
+        return $this->deleteByPropertyIds(
+            $this->tenantsTable(),
+            $tenantId,
+            $propertyIds,
+            '`full_name` = :label, `email` = NULL, `phone` = NULL, `notes` = NULL, `status` = "cancelled", `is_active` = 0',
+            ['label' => 'Locataire supprime #' . $tenantId]
+        );
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     */
+    public function deleteLease(int $leaseId, array $propertyIds): bool
+    {
+        if ($leaseId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $this->database->pdo()->prepare(
+                sprintf('UPDATE `%s` SET `rental_lease_id` = NULL WHERE `rental_lease_id` = :id', $this->documentsTable())
+            )->execute(['id' => $leaseId]);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return $this->deleteRowByPropertyIds($this->leasesTable(), $leaseId, $propertyIds);
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     */
+    public function deletePayment(int $paymentId, array $propertyIds): bool
+    {
+        return $this->deleteRowByPropertyIds($this->paymentsTable(), $paymentId, $propertyIds);
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     */
+    public function deleteExpense(int $expenseId, array $propertyIds): bool
+    {
+        return $this->deleteRowByPropertyIds($this->expensesTable(), $expenseId, $propertyIds);
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array{tenants:int, leases:int, payments:int, expenses:int, documents:int}
+     */
+    public function deleteLifecycleDataByPropertyIds(array $propertyIds): array
+    {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        $deleted = ['tenants' => 0, 'leases' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0];
+        if ($propertyIds === []) {
+            return $deleted;
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+
+            $deleteDefinitions = [
+                'documents' => ['table' => $this->documentsTable(), 'sql' => 'UPDATE `%s` SET `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
+                'payments' => ['table' => $this->paymentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
+                'expenses' => ['table' => $this->expensesTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
+                'leases' => ['table' => $this->leasesTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
+                'tenants' => ['table' => $this->tenantsTable(), 'sql' => 'UPDATE `%s` SET `full_name` = \'Locataire supprime\', `email` = NULL, `phone` = NULL, `notes` = NULL, `status` = \'cancelled\', `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
+            ];
+
+            foreach ($deleteDefinitions as $key => $definition) {
+                $statement = $pdo->prepare(sprintf($definition['sql'], $definition['table'], implode(',', $placeholders)));
+                $this->bindIds($statement, 'property_id', $propertyIds);
+                $statement->execute();
+                $deleted[$key] = $statement->rowCount();
+            }
+
+            $pdo->commit();
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return ['tenants' => 0, 'leases' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0];
+        }
+
+        return $deleted;
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
      * @return array<int, string>
      */
     public function draftIssues(array $propertyIds, int $year): array
@@ -832,6 +1059,7 @@ final class RentalLifecycleRepository
                 'CREATE TABLE IF NOT EXISTS `%s` (
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `rental_property_id` INT NOT NULL,
+                    `rental_unit_id` INT NULL,
                     `full_name` VARCHAR(160) NOT NULL,
                     `email` VARCHAR(190) NULL,
                     `phone` VARCHAR(64) NULL,
@@ -842,11 +1070,14 @@ final class RentalLifecycleRepository
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     KEY `idx_rental_tenants_property` (`rental_property_id`, `is_active`),
+                    KEY `idx_rental_tenants_unit` (`rental_unit_id`, `is_active`),
                     KEY `idx_rental_tenants_status` (`status`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->tenantsTable()
             )
         );
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'rental_unit_id', '`rental_unit_id` INT NULL AFTER `rental_property_id`');
+        $this->ensureIndex($pdo, $this->tenantsTable(), 'idx_rental_tenants_unit', '`rental_unit_id`, `is_active`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -959,19 +1190,13 @@ final class RentalLifecycleRepository
 
     /**
      * @param array<int, int> $propertyIds
-     * @return array<int, array<string, mixed>>
+     * @param array<string, mixed> $params
      */
-    private function listByPropertyIds(
-        string $table,
-        array $propertyIds,
-        string $orderBy,
-        int $limit,
-        string $select = 't.*'
-    ): array {
+    private function deleteByPropertyIds(string $table, int $id, array $propertyIds, string $setClause, array $params = []): bool
+    {
         $propertyIds = $this->normalizeIds($propertyIds);
-        $limit = $this->normalizeLimit($limit);
-        if ($propertyIds === [] || $limit <= 0) {
-            return [];
+        if ($id <= 0 || $propertyIds === []) {
+            return false;
         }
 
         try {
@@ -979,28 +1204,53 @@ final class RentalLifecycleRepository
             $placeholders = $this->placeholders('property_id', $propertyIds);
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT %s
-                     FROM `%s` t
-                     INNER JOIN `%s` p ON p.`id` = t.`rental_property_id`
-                     WHERE t.`rental_property_id` IN (%s)
-                     ORDER BY %s
-                     LIMIT :limit',
-                    $select,
+                    'UPDATE `%s` SET %s WHERE `id` = :id AND `rental_property_id` IN (%s)',
                     $table,
-                    $this->database->table('rental_properties'),
-                    implode(',', $placeholders),
-                    $orderBy
+                    $setClause,
+                    implode(',', $placeholders)
                 )
             );
+            $statement->bindValue(':id', $id, PDO::PARAM_INT);
+            foreach ($params as $name => $value) {
+                $statement->bindValue(':' . $name, $value);
+            }
             $this->bindIds($statement, 'property_id', $propertyIds);
-            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
             $statement->execute();
-            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+            return $statement->rowCount() > 0;
         } catch (\Throwable) {
-            return [];
+            return false;
+        }
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     */
+    private function deleteRowByPropertyIds(string $table, int $id, array $propertyIds): bool
+    {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        if ($id <= 0 || $propertyIds === []) {
+            return false;
         }
 
-        return $this->normalizeRows($rows);
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'DELETE FROM `%s` WHERE `id` = :id AND `rental_property_id` IN (%s)',
+                    $table,
+                    implode(',', $placeholders)
+                )
+            );
+            $statement->bindValue(':id', $id, PDO::PARAM_INT);
+            $this->bindIds($statement, 'property_id', $propertyIds);
+            $statement->execute();
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -1156,6 +1406,48 @@ final class RentalLifecycleRepository
         }
 
         return $normalized;
+    }
+
+    private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column'
+            );
+            $statement->execute(['table' => $table, 'column' => $column]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $table, $definition));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureIndex(PDO $pdo, string $table, string $index, string $columns): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND INDEX_NAME = :index_name'
+            );
+            $statement->execute(['table' => $table, 'index_name' => $index]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD KEY `%s` (%s)', $table, $index, $columns));
+        } catch (\Throwable) {
+            return;
+        }
     }
 
     private function camelKey(string $key): string

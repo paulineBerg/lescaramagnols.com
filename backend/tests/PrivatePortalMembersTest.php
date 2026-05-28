@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Caramagnols\Admin\AdminPrivateMembersService;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
@@ -111,63 +112,6 @@ final class PrivatePortalMembersTest extends TestCase
         $this->assertNull($repository->resetPasswordByToken($resetToken, $resetHash, '127.0.0.1'));
     }
 
-    public function testAnonymizedMemberCannotBeResetOrReceiveModulesOrSuspension(): void
-    {
-        $database = $this->editorialSqlDatabase();
-        $repository = new PrivateUserRepository($database);
-        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
-        $service = new AdminPrivateMembersService(
-            $repository,
-            $moduleRepository
-        );
-
-        $passwordHash = password_hash('ActivePassword1!', PASSWORD_ARGON2ID);
-        $this->assertIsString($passwordHash);
-        $userId = $repository->create('member@example.com', $passwordHash, 'active');
-        $this->assertIsInt($userId);
-        $this->assertTrue($repository->anonymize($userId));
-
-        $anonymizeResult = $service->handleAction(
-            [
-                'private_member_action' => 'anonymize',
-                'private_user_id' => $userId,
-            ],
-            'admin@example.com'
-        );
-        $this->assertTrue($anonymizeResult['success']);
-
-        $suspendResult = $service->handleAction(
-            [
-                'private_member_action' => 'suspend',
-                'private_user_id' => $userId,
-            ],
-            'admin@example.com'
-        );
-        $this->assertFalse($suspendResult['success']);
-        $this->assertSame('Un compte anonymisé ne peut pas être suspendu.', $suspendResult['error']);
-
-        $resetResult = $service->handleAction(
-            [
-                'private_member_action' => 'reset',
-                'private_user_id' => $userId,
-            ],
-            'admin@example.com'
-        );
-        $this->assertFalse($resetResult['success']);
-        $this->assertSame('Un compte anonymisé ne peut pas recevoir de reset.', $resetResult['error']);
-
-        $moduleResult = $service->handleAction(
-            [
-                'private_member_action' => 'modules',
-                'private_user_id' => $userId,
-                'modules' => ['documents'],
-            ],
-            'admin@example.com'
-        );
-        $this->assertFalse($moduleResult['success']);
-        $this->assertSame('Un compte anonymisé ne peut pas recevoir de modules.', $moduleResult['error']);
-    }
-
     public function testModuleAssignmentAndMfaBackupCodeAreServerSideOnly(): void
     {
         $database = $this->editorialSqlDatabase();
@@ -197,6 +141,41 @@ final class PrivatePortalMembersTest extends TestCase
 
         $this->assertTrue($userRepository->consumeMfaBackupCode($userId, 'BACKUP-1'));
         $this->assertFalse($userRepository->consumeMfaBackupCode($userId, 'BACKUP-1'));
+    }
+
+    public function testModuleCannotBeRevokedWhileUserDataExists(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $service = new AdminPrivateMembersService($userRepository, $moduleRepository);
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('with-documents@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
+        $documentRepository = new PrivateDocumentRepository($database);
+        $this->assertIsArray($documentRepository->create(
+            $userId,
+            'doc-' . bin2hex(random_bytes(8)),
+            'documents/test-file.pdf',
+            'test-file.pdf',
+            'pdf',
+            'application/pdf',
+            120,
+            $userId
+        ));
+
+        $result = $service->handleAction([
+            'private_member_action' => 'modules',
+            'private_user_id' => $userId,
+            'modules' => [],
+        ], 'admin@example.com');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('Impossible de retirer un module', (string) $result['error']);
+        $this->assertTrue($moduleRepository->userHasModuleAccess($userId, 'documents'));
     }
 
     public function testMfaTotpAcceptsCurrentCode(): void

@@ -9,36 +9,37 @@ $url = static function (string $key, string $fallback) use ($urls): string {
 
 $mainItems = [
     'dashboard' => ['Tableau de bord', $url('dashboard', 'rental_dashboard')],
-    'personal' => ['Gestion perso', $url('properties', 'rental_properties')],
-    'agency' => ['Gestion agence', $url('agencyImports', 'rental_agency_imports')],
+    'personal' => ['Biens et locations', $url('properties', 'rental_properties')],
+    'agency' => ['Documents agence', $url('agencyImports', 'rental_agency_imports')],
     'reports' => ['Rapports', $url('summary', 'rental_summary')],
 ];
 
 $subItems = match ($currentSection) {
     'agency' => [
-        'agencyImports' => ['Imports', $url('agencyImports', 'rental_agency_imports')],
-        'agencyReview' => ['Documents a classer', $url('agencyReview', 'rental_agency_review')],
+        'properties' => ['Biens locatifs', $url('properties', 'rental_properties')],
+        'agencyImports' => ['Importer agence', $url('agencyImports', 'rental_agency_imports')],
+        'agencyReview' => ['Classer les documents', $url('agencyReview', 'rental_agency_review')],
     ],
     'reports' => [
-        'summary' => ['Synthese', $url('summary', 'rental_summary')],
+        'summary' => ['Synthèse', $url('summary', 'rental_summary')],
         'exportCsv' => ['Export CSV', $url('exportCsv', 'rental_export_csv')],
         'exportPdf' => ['Export PDF', $url('exportPdf', 'rental_export_pdf')],
     ],
     'personal' => [
-        'properties' => ['Biens', $url('properties', 'rental_properties')],
+        'properties' => ['Biens locatifs', $url('properties', 'rental_properties')],
         'units' => ['Lots', $url('units', 'rental_units')],
-        'members' => ['Membres', $url('members', 'rental_property_members')],
+        'members' => ['Accès aux biens', $url('members', 'rental_property_members')],
         'tenants' => ['Locataires', $url('tenants', 'rental_tenants')],
         'leases' => ['Baux', $url('leases', 'rental_leases')],
         'payments' => ['Loyers', $url('payments', 'rental_payments')],
         'expenses' => ['Charges', $url('expenses', 'rental_expenses')],
-        'documents' => ['Documents', $url('documents', 'rental_documents')],
+        'documents' => ['Documents locatifs', $url('documents', 'rental_documents')],
     ],
     default => [
-        'properties' => ['Biens', $url('properties', 'rental_properties')],
+        'properties' => ['Biens locatifs', $url('properties', 'rental_properties')],
         'payments' => ['Loyers', $url('payments', 'rental_payments')],
-        'agencyImports' => ['Imports agence', $url('agencyImports', 'rental_agency_imports')],
-        'summary' => ['Synthese', $url('summary', 'rental_summary')],
+        'agencyImports' => ['Documents agence', $url('agencyImports', 'rental_agency_imports')],
+        'summary' => ['Synthèse', $url('summary', 'rental_summary')],
     ],
 };
 ?>

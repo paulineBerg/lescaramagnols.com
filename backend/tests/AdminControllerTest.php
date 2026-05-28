@@ -207,6 +207,54 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('Groupes de tuiles', $response->body);
     }
 
+    public function testPrivateMembersEmailTabSavesPrivateMailSettings(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'private_members',
+            $this->request(
+                'POST',
+                '/admin/parametres/espace-prive',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'private_member_action' => 'mail_settings',
+                    'private_members_tab' => 'email',
+                    'private_mail' => [
+                        'enabled' => '1',
+                        'smtp_host' => 'ssl0.ovh.net',
+                        'smtp_port' => '465',
+                        'smtp_encryption' => 'ssl',
+                        'smtp_user' => 'ne-pas-repondre@lescaramagnols.com',
+                        'smtp_password' => 'smtp-secret',
+                        'from_address' => 'ne-pas-repondre@lescaramagnols.com',
+                        'from_name' => 'Les Caramagnols',
+                        'reply_to' => 'private@lescaramagnols.com',
+                        'templates' => [
+                            'admin_invite_subject' => 'Accès privé',
+                        ],
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/parametres/espace-prive?tab=email', $response->headers['Location'] ?? null);
+        $this->assertFileExists($this->siteOverrideFile);
+        $this->assertFileDoesNotExist($this->databaseOverrideFile);
+        $this->assertFileDoesNotExist($this->adminOverrideFile);
+
+        $siteOverride = require $this->siteOverrideFile;
+        $this->assertSame('ssl0.ovh.net', $siteOverride['private']['mail']['smtp_host'] ?? null);
+        $this->assertSame(465, $siteOverride['private']['mail']['smtp_port'] ?? null);
+        $this->assertSame('smtp-secret', $siteOverride['private']['mail']['smtp_password'] ?? null);
+        $this->assertSame('private@lescaramagnols.com', $siteOverride['private']['mail']['reply_to'] ?? null);
+        $this->assertSame('Accès privé', $siteOverride['private']['mail']['templates']['admin_invite_subject'] ?? null);
+    }
+
     public function testTilesPageRendersDuplicateSuccessFlashMessage(): void
     {
         admin_login('admin@example.com', 'topsecret');

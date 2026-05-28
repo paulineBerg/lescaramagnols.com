@@ -259,6 +259,17 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('admin-main admin-main-wide', $response->body);
         $this->assertStringContainsString('Connexion à l’espace privé', $response->body);
         $this->assertStringContainsString('href="/private/login"', $response->body);
+        $this->assertStringContainsString('Email privé IMAP / SMTP', $response->body);
+
+        $emailResponse = $this->frontController()->handle(
+            $this->request('GET', '/admin/parametres/espace-prive?tab=email', ['tab' => 'email'])
+        );
+
+        $this->assertSame(200, $emailResponse->status);
+        $this->assertStringContainsString('Configuration email de l’espace privé', $emailResponse->body);
+        $this->assertStringContainsString('name="private_member_action" value="mail_settings"', $emailResponse->body);
+        $this->assertStringContainsString('Serveur SMTP', $emailResponse->body);
+        $this->assertStringContainsString('ssl0.ovh.net', $emailResponse->body);
     }
 
     public function testAuthenticatedPrivateMembersPostRejectsInvalidCsrf(): void

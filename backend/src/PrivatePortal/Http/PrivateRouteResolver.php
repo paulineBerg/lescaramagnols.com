@@ -253,7 +253,7 @@ final class PrivateRouteResolver
                 'handler' => ['type' => 'private', 'page' => 'tax_controls'],
             ],
             [
-                'methods' => ['GET'],
+                'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('tax_documents') . '/{year:[0-9]{4}}/documents',
                 'handler' => ['type' => 'private', 'page' => 'tax_documents'],
             ],

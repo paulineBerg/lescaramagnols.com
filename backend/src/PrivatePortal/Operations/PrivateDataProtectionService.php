@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Caramagnols\PrivatePortal\Operations;
 
 use Caramagnols\Database\EditorialDatabase;
+use Caramagnols\PrivateApps\FamilyDiscussion\Attachment\DiscussionAttachmentStorage;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use PDO;
 
 final class PrivateDataProtectionService
@@ -32,7 +34,7 @@ final class PrivateDataProtectionService
                 'private_user_module_permissions',
                 '`private_user_id` = :private_user_id',
                 ['private_user_id' => $privateUserId],
-                ['id', 'private_user_id', 'private_module_id', 'is_active', 'granted_by_identifier', 'created_at', 'updated_at']
+                ['id', 'private_user_id', 'private_module_id', 'is_active', 'granted_by_admin_email', 'granted_at', 'revoked_at', 'revoked_by_admin_email']
             ),
             'documents' => $this->rows(
                 'private_documents',
@@ -76,7 +78,7 @@ final class PrivateDataProtectionService
     public function anonymizeAccount(int $privateUserId, int $actorPrivateUserId, string $reason): bool
     {
         $reason = trim($reason);
-        if ($privateUserId <= 0 || $actorPrivateUserId <= 0 || $reason === '') {
+        if ($privateUserId <= 0 || $actorPrivateUserId < 0 || $reason === '') {
             return false;
         }
 
@@ -112,7 +114,7 @@ final class PrivateDataProtectionService
 
             $this->safeUpdate(
                 'private_user_module_permissions',
-                '`is_active` = 0, `updated_at` = :updated_at, `granted_by_identifier` = :actor',
+                '`is_active` = 0, `revoked_at` = :updated_at, `revoked_by_admin_email` = :actor',
                 '`private_user_id` = :private_user_id',
                 ['updated_at' => date('Y-m-d H:i:s'), 'actor' => 'gdpr-anonymized', 'private_user_id' => $privateUserId]
             );
@@ -134,11 +136,12 @@ final class PrivateDataProtectionService
                 '`private_user_id` = :private_user_id',
                 [
                     'disabled_at' => date('Y-m-d H:i:s'),
-                    'actor' => $actorPrivateUserId,
+                    'actor' => $actorPrivateUserId > 0 ? $actorPrivateUserId : null,
                     'updated_at' => date('Y-m-d H:i:s'),
                     'private_user_id' => $privateUserId,
                 ]
             );
+            $this->cascadePrivateData($privateUserId, $actorPrivateUserId);
 
             $pdo->commit();
 
@@ -150,6 +153,146 @@ final class PrivateDataProtectionService
 
             return false;
         }
+    }
+
+    public function purgeAnonymizedAccount(int $privateUserId, string $reason): bool
+    {
+        $reason = trim($reason);
+        if ($privateUserId <= 0 || $reason === '') {
+            return false;
+        }
+
+        $user = $this->privateUser($privateUserId);
+        if (($user['status'] ?? '') !== 'deleted') {
+            return false;
+        }
+
+        try {
+            $this->database->ensureReady();
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+            $this->cascadePrivateData($privateUserId, 0);
+            $pdo->commit();
+
+            return true;
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return false;
+        }
+    }
+
+    /**
+     * @return array{success: bool, backupPath: ?string, deleteAfter: ?string, error: ?string}
+     */
+    public function deleteSuspendedAccountWithBackup(
+        int $privateUserId,
+        string $actorIdentifier,
+        int $retentionDays = 30
+    ): array {
+        $actorIdentifier = trim($actorIdentifier);
+        $retentionDays = max(1, $retentionDays);
+        if ($privateUserId <= 0) {
+            return $this->deletionResult(false, null, null, 'Compte privé introuvable.');
+        }
+
+        $user = $this->privateUser($privateUserId);
+        if (($user['status'] ?? '') !== 'suspended') {
+            return $this->deletionResult(false, null, null, 'Seul un compte suspendu peut être supprimé.');
+        }
+
+        $this->cleanupExpiredDeletionBackups();
+        $existingBackup = $this->latestDeletionBackupForUser($privateUserId);
+        if (is_array($existingBackup) && is_string($existingBackup['deleteAfter'] ?? null)) {
+            return $this->deletionResult(true, (string) ($existingBackup['path'] ?? null), (string) $existingBackup['deleteAfter'], null);
+        }
+
+        $deleteAfter = date('c', time() + ($retentionDays * 86400));
+        $backupPath = $this->writeDeletionBackup($privateUserId, $actorIdentifier, $retentionDays, $deleteAfter);
+        if ($backupPath === null) {
+            return $this->deletionResult(false, null, null, 'Impossible de créer la sauvegarde de suppression.');
+        }
+
+        try {
+            $this->database->ensureReady();
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+            $this->purgeAccountRows($privateUserId);
+            $statement = $pdo->prepare(
+                sprintf(
+                    'UPDATE `%s` SET `updated_at` = :updated_at WHERE `id` = :id AND `status` = :status',
+                    $this->database->table('private_users')
+                )
+            );
+            $statement->execute([
+                'updated_at' => date('Y-m-d H:i:s'),
+                'id' => $privateUserId,
+                'status' => 'suspended',
+            ]);
+            $pdo->commit();
+            $this->purgeBackedUpFiles($backupPath);
+
+            return $this->deletionResult(true, $backupPath, $deleteAfter, null);
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return $this->deletionResult(false, $backupPath, $deleteAfter, 'La purge des données du compte suspendu a échoué.');
+        }
+    }
+
+    /**
+     * @return array{path: string, filename: string, generatedAt: ?string, deleteAfter: ?string, warningSentAt: ?string, archivePath: ?string, archiveFilename: ?string}|null
+     */
+    public function latestDeletionBackupForUser(int $privateUserId): ?array
+    {
+        $backups = $this->deletionBackupsForUser($privateUserId);
+        if ($backups === []) {
+            return null;
+        }
+
+        usort(
+            $backups,
+            static fn (array $left, array $right): int => strcmp((string) ($right['generatedAt'] ?? ''), (string) ($left['generatedAt'] ?? ''))
+        );
+
+        return $backups[0];
+    }
+
+    /**
+     * @return array{filename: string, content: string, contentType: string, deleteAfter: ?string}|null
+     */
+    public function deletionBackupDownloadForUser(int $privateUserId): ?array
+    {
+        $backup = $this->latestDeletionBackupForUser($privateUserId);
+        if (!is_array($backup)) {
+            return null;
+        }
+
+        $archivePath = is_string($backup['archivePath'] ?? null) ? (string) $backup['archivePath'] : '';
+        $path = $archivePath !== '' && is_file($archivePath)
+            ? $archivePath
+            : (is_string($backup['path'] ?? null) ? (string) $backup['path'] : '');
+        if ($path === '' || !is_file($path)) {
+            return null;
+        }
+
+        $content = file_get_contents($path);
+        if (!is_string($content)) {
+            return null;
+        }
+
+        return [
+            'filename' => $archivePath !== '' && is_string($backup['archiveFilename'] ?? null)
+                ? (string) $backup['archiveFilename']
+                : (is_string($backup['filename'] ?? null) ? (string) $backup['filename'] : basename($path)),
+            'content' => $content,
+            'contentType' => $archivePath !== '' ? 'application/zip' : 'application/json; charset=UTF-8',
+            'deleteAfter' => is_string($backup['deleteAfter'] ?? null) ? (string) $backup['deleteAfter'] : null,
+        ];
     }
 
     /**
@@ -212,6 +355,801 @@ final class PrivateDataProtectionService
         } catch (\Throwable) {
             return;
         }
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     */
+    private function safeDelete(string $table, string $where, array $params): void
+    {
+        try {
+            $statement = $this->database->pdo()->prepare(
+                sprintf('DELETE FROM `%s` WHERE %s', $this->database->table($table), $where)
+            );
+            $statement->execute($params);
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function cascadePrivateData(int $privateUserId, int $actorPrivateUserId): void
+    {
+        $now = date('Y-m-d H:i:s');
+        $actor = $actorPrivateUserId > 0 ? $actorPrivateUserId : null;
+
+        $this->safeUpdate(
+            'private_document_categories',
+            '`name` = :name, `slug` = :slug, `is_active` = 0, `updated_at` = :updated_at',
+            '`private_user_id` = :private_user_id',
+            ['name' => 'categorie-anonymisee', 'slug' => 'categorie-anonymisee-' . $privateUserId, 'updated_at' => $now, 'private_user_id' => $privateUserId]
+        );
+
+        $this->safeUpdate(
+            'discussion_messages',
+            '`body` = NULL, `encrypted_payload` = NULL, `encryption_metadata` = NULL, `deleted_at` = :deleted_at, `purge_status` = \'purged\'',
+            '`sender_private_user_id` = :private_user_id AND `purge_status` <> \'purged\'',
+            ['deleted_at' => $now, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
+            'discussion_message_attachments',
+            '`original_filename` = :filename, `purge_status` = \'purged\'',
+            '`message_id` IN (SELECT `id` FROM `' . $this->database->table('discussion_messages') . '` WHERE `sender_private_user_id` = :private_user_id)',
+            ['filename' => 'piece-jointe-anonymisee', 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
+            'discussion_conversation_members',
+            '`left_at` = COALESCE(`left_at`, :left_at)',
+            '`private_user_id` = :private_user_id',
+            ['left_at' => $now, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
+            'discussion_crypto_devices',
+            '`revoked_at` = COALESCE(`revoked_at`, :revoked_at)',
+            '`private_user_id` = :private_user_id',
+            ['revoked_at' => $now, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
+            'discussion_conversation_keys',
+            '`revoked_at` = COALESCE(`revoked_at`, :revoked_at)',
+            '`private_user_id` = :private_user_id OR `created_by_private_user_id` = :private_user_id',
+            ['revoked_at' => $now, 'private_user_id' => $privateUserId]
+        );
+
+        $this->safeUpdate(
+            'rental_property_members',
+            '`status` = :status, `is_active` = 0, `notes` = NULL, `removed_at` = COALESCE(`removed_at`, :removed_at), `removed_by_private_user_id` = :actor',
+            '`private_user_id` = :private_user_id',
+            ['status' => 'revoked', 'removed_at' => $now, 'actor' => $actor, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
+            'rental_properties',
+            '`name` = :name, `address` = :address, `status` = \'archived\', `is_active` = 0, `notes` = NULL, `archived_at` = COALESCE(`archived_at`, :archived_at), `archived_by_private_user_id` = :actor',
+            '`created_by_private_user_id` = :private_user_id',
+            ['name' => 'Bien anonymise ' . $privateUserId, 'address' => 'adresse-anonymisee', 'archived_at' => $now, 'actor' => $actor, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
+            'rental_units',
+            '`label` = :label, `status` = \'archived\', `is_active` = 0, `notes` = NULL, `archived_at` = COALESCE(`archived_at`, :archived_at), `archived_by_private_user_id` = :actor',
+            '`created_by_private_user_id` = :private_user_id',
+            ['label' => 'Lot anonymise', 'archived_at' => $now, 'actor' => $actor, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
+            'rental_tenants',
+            '`full_name` = :name, `email` = NULL, `phone` = NULL, `notes` = NULL, `status` = \'cancelled\', `is_active` = 0',
+            '`created_by_private_user_id` = :private_user_id',
+            ['name' => 'Locataire anonymise', 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
+            'rental_documents',
+            '`original_name` = :original_name, `is_active` = 0',
+            '`uploaded_by_private_user_id` = :private_user_id',
+            ['original_name' => 'document-locatif-anonymise', 'private_user_id' => $privateUserId]
+        );
+        $this->safeDelete('rental_payments', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('rental_expenses', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('rental_leases', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('rental_export_logs', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+
+        $this->safeDelete('tax_export_logs', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('tax_summary_lines', '`tax_annual_summary_id` IN (SELECT `id` FROM `' . $this->database->table('tax_annual_summaries') . '` WHERE `private_user_id` = :private_user_id)', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('tax_annual_summaries', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+    }
+
+    private function purgeAccountRows(int $privateUserId): void
+    {
+        $params = ['private_user_id' => $privateUserId];
+        foreach ($this->deletionPurgeScopes() as $scope) {
+            $this->safeDelete($scope['table'], $scope['where'], $params);
+        }
+    }
+
+    private function writeDeletionBackup(int $privateUserId, string $actorIdentifier, int $retentionDays, string $deleteAfter): ?string
+    {
+        $root = $this->deletionBackupRoot();
+        $directory = $root . '/' . date('Y/m');
+        if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
+            return null;
+        }
+
+        $path = $directory . '/private-user-' . $privateUserId . '-' . date('Ymd-His') . '.json';
+        $tables = $this->deletionBackupRows($privateUserId);
+        $files = $this->deletionBackupFileManifest($tables);
+        $publicFiles = $this->publicDeletionFileManifest($files);
+        $payload = [
+            'generatedAt' => date('c'),
+            'deleteAfter' => $deleteAfter,
+            'retentionDays' => $retentionDays,
+            'scope' => 'private_suspended_account_deletion',
+            'privateUserId' => $privateUserId,
+            'actorIdentifier' => $actorIdentifier,
+            'tables' => $tables,
+            'files' => $publicFiles,
+        ];
+        $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($json) || file_put_contents($path, $json, LOCK_EX) === false) {
+            return null;
+        }
+
+        @chmod($path, 0600);
+        $zipPath = $this->writeDeletionBackupZip($path, $json, $files);
+        if ($zipPath !== null) {
+            $payload['archive'] = [
+                'filename' => basename($zipPath),
+                'format' => 'zip',
+            ];
+            $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (is_string($json)) {
+                file_put_contents($path, $json, LOCK_EX);
+            }
+        }
+
+        return $path;
+    }
+
+    /**
+     * @return array<int, array{path: string, filename: string, generatedAt: ?string, deleteAfter: ?string, warningSentAt: ?string, archivePath: ?string, archiveFilename: ?string}>
+     */
+    private function deletionBackupsForUser(int $privateUserId): array
+    {
+        if ($privateUserId <= 0) {
+            return [];
+        }
+
+        $root = $this->deletionBackupRoot();
+        if (!is_dir($root)) {
+            return [];
+        }
+
+        $backups = [];
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($iterator as $file) {
+            if (!$file instanceof \SplFileInfo || !$file->isFile() || strtolower($file->getExtension()) !== 'json') {
+                continue;
+            }
+
+            $payload = $this->readDeletionBackupPayload($file->getPathname());
+            if (!is_array($payload) || (int) ($payload['privateUserId'] ?? 0) !== $privateUserId) {
+                continue;
+            }
+
+            $archivePath = preg_replace('/\.json\z/i', '.zip', $file->getPathname()) ?? '';
+            $archivePath = is_file($archivePath) ? $archivePath : null;
+            $backups[] = [
+                'path' => $file->getPathname(),
+                'filename' => $file->getBasename(),
+                'generatedAt' => is_string($payload['generatedAt'] ?? null) ? (string) $payload['generatedAt'] : null,
+                'deleteAfter' => is_string($payload['deleteAfter'] ?? null) ? (string) $payload['deleteAfter'] : null,
+                'warningSentAt' => is_string($payload['warningSentAt'] ?? null) ? (string) $payload['warningSentAt'] : null,
+                'archivePath' => $archivePath,
+                'archiveFilename' => is_string($archivePath) ? basename($archivePath) : null,
+            ];
+        }
+
+        return $backups;
+    }
+
+    /**
+     * @param array<string, array<int, array<string, mixed>>> $tables
+     * @return array<int, array<string, mixed>>
+     */
+    private function deletionBackupFileManifest(array $tables): array
+    {
+        $manifest = [];
+        $seen = [];
+        $privateDocumentStorage = PrivateDocumentStorage::fromAppConfig();
+        $discussionAttachmentStorage = DiscussionAttachmentStorage::fromAppConfig();
+
+        foreach ($this->deletionFileScopes($privateDocumentStorage, $discussionAttachmentStorage) as $table => $definition) {
+            $sourceTable = $table === 'discussion_message_attachment_previews'
+                ? 'discussion_message_attachments'
+                : $table;
+            $rows = is_array($tables[$sourceTable] ?? null) ? $tables[$sourceTable] : [];
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                $storagePathKey = (string) $definition['storagePath'];
+                $storagePath = is_string($row[$storagePathKey] ?? null) ? trim((string) $row[$storagePathKey]) : '';
+                if ($storagePath === '') {
+                    continue;
+                }
+
+                $seenKey = $sourceTable . ':' . $storagePath;
+                if (isset($seen[$seenKey])) {
+                    continue;
+                }
+                $seen[$seenKey] = true;
+
+                $resolver = $definition['resolver'];
+                $absolutePath = method_exists($resolver, 'absolutePath') ? $resolver->absolutePath($storagePath) : null;
+                $originalNameKey = (string) $definition['name'];
+                $originalName = is_string($row[$originalNameKey] ?? null) ? trim((string) $row[$originalNameKey]) : '';
+                $filename = $this->backupFilename($originalName !== '' ? $originalName : basename($storagePath));
+                $rowId = is_numeric($row['id'] ?? null) ? (int) $row['id'] : 0;
+                $archiveDirectory = 'files/' . $this->backupFilename($sourceTable) . '/' . ($rowId > 0 ? (string) $rowId : substr(hash('sha256', $storagePath), 0, 12));
+                $archivePath = $this->uniqueArchivePath($manifest, $archiveDirectory . '/' . $filename);
+                $exists = is_string($absolutePath) && is_file($absolutePath) && is_readable($absolutePath);
+
+                $manifest[] = [
+                    'table' => $sourceTable,
+                    'rowId' => $rowId > 0 ? $rowId : null,
+                    'storagePath' => $storagePath,
+                    'originalName' => $originalName !== '' ? $originalName : null,
+                    'archivePath' => $archivePath,
+                    'exists' => $exists,
+                    'sizeBytes' => $exists ? (int) filesize($absolutePath) : null,
+                    'sha256' => $exists ? hash_file('sha256', $absolutePath) : null,
+                    'absolutePath' => $exists ? $absolutePath : null,
+                ];
+            }
+        }
+
+        return $manifest;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $files
+     */
+    private function writeDeletionBackupZip(string $jsonPath, string $json, array $files): ?string
+    {
+        if (!class_exists(\ZipArchive::class)) {
+            return null;
+        }
+
+        $zipPath = preg_replace('/\.json\z/i', '.zip', $jsonPath) ?? '';
+        if ($zipPath === '') {
+            return null;
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return null;
+        }
+
+        $manifest = [];
+        foreach ($files as $file) {
+            $absolutePath = is_string($file['absolutePath'] ?? null) ? (string) $file['absolutePath'] : '';
+            $archivePath = is_string($file['archivePath'] ?? null) ? (string) $file['archivePath'] : '';
+            $manifestEntry = $file;
+            unset($manifestEntry['absolutePath']);
+            $manifest[] = $manifestEntry;
+
+            if ($absolutePath !== '' && $archivePath !== '' && is_file($absolutePath) && is_readable($absolutePath)) {
+                $zip->addFile($absolutePath, $archivePath);
+            }
+        }
+
+        $manifestJson = json_encode(
+            [
+                'generatedAt' => date('c'),
+                'fileCount' => count($manifest),
+                'storedFileCount' => count(array_filter($manifest, static fn (array $entry): bool => ($entry['exists'] ?? false) === true)),
+                'files' => $manifest,
+            ],
+            JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+
+        $zip->addFromString('backup.json', $json);
+        $zip->addFromString('manifest.json', is_string($manifestJson) ? $manifestJson : '{"files":[]}');
+        $zip->close();
+
+        @chmod($zipPath, 0600);
+
+        return is_file($zipPath) ? $zipPath : null;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $files
+     * @return array<int, array<string, mixed>>
+     */
+    private function publicDeletionFileManifest(array $files): array
+    {
+        return array_map(
+            static function (array $file): array {
+                unset($file['absolutePath']);
+
+                return $file;
+            },
+            $files
+        );
+    }
+
+    private function purgeBackedUpFiles(string $jsonPath): void
+    {
+        $payload = $this->readDeletionBackupPayload($jsonPath);
+        $files = is_array($payload) && is_array($payload['files'] ?? null) ? $payload['files'] : [];
+        $privateDocumentStorage = PrivateDocumentStorage::fromAppConfig();
+        $discussionAttachmentStorage = DiscussionAttachmentStorage::fromAppConfig();
+
+        foreach ($files as $file) {
+            if (!is_array($file)) {
+                continue;
+            }
+
+            $table = is_string($file['table'] ?? null) ? (string) $file['table'] : '';
+            $storagePath = is_string($file['storagePath'] ?? null) ? (string) $file['storagePath'] : '';
+            $resolver = in_array($table, ['private_documents', 'rental_documents'], true)
+                ? $privateDocumentStorage
+                : ($table === 'discussion_message_attachments' ? $discussionAttachmentStorage : null);
+            $absolutePath = $resolver !== null && $storagePath !== '' ? $resolver->absolutePath($storagePath) : '';
+            if ($absolutePath === '' || !is_file($absolutePath)) {
+                continue;
+            }
+
+            $this->deletePrivateFileIfSafe($absolutePath);
+        }
+    }
+
+    private function deletePrivateFileIfSafe(string $absolutePath): void
+    {
+        $absolutePath = str_replace('\\', '/', $absolutePath);
+        $rootPath = defined('ROOT_PATH') ? (string) ROOT_PATH : dirname(__DIR__, 3);
+        $privateRoot = str_replace('\\', '/', rtrim($rootPath, '/\\') . '/private/');
+        if (!str_starts_with($absolutePath, $privateRoot)) {
+            return;
+        }
+
+        @unlink($absolutePath);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $manifest
+     */
+    private function uniqueArchivePath(array $manifest, string $path): string
+    {
+        $normalized = trim(str_replace('\\', '/', $path), '/');
+        $used = [];
+        foreach ($manifest as $entry) {
+            if (is_string($entry['archivePath'] ?? null)) {
+                $used[(string) $entry['archivePath']] = true;
+            }
+        }
+
+        if (!isset($used[$normalized])) {
+            return $normalized;
+        }
+
+        $directory = trim((string) pathinfo($normalized, PATHINFO_DIRNAME), '.');
+        $filename = (string) pathinfo($normalized, PATHINFO_FILENAME);
+        $extension = (string) pathinfo($normalized, PATHINFO_EXTENSION);
+        for ($index = 2; $index < 1000; ++$index) {
+            $candidate = ($directory !== '' ? $directory . '/' : '')
+                . $filename . '-' . $index
+                . ($extension !== '' ? '.' . $extension : '');
+            if (!isset($used[$candidate])) {
+                return $candidate;
+            }
+        }
+
+        return ($directory !== '' ? $directory . '/' : '') . $filename . '-' . hash('sha256', $normalized) . ($extension !== '' ? '.' . $extension : '');
+    }
+
+    private function backupFilename(string $filename): string
+    {
+        $filename = trim(str_replace('\\', '/', $filename));
+        $filename = basename($filename);
+        $filename = preg_replace('/[^A-Za-z0-9._-]+/', '-', $filename) ?? '';
+        $filename = trim($filename, '.-');
+
+        return $filename !== '' ? substr($filename, 0, 120) : 'fichier';
+    }
+
+    /**
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    private function deletionBackupRows(int $privateUserId): array
+    {
+        $params = ['private_user_id' => $privateUserId];
+        $rows = [];
+        foreach ($this->deletionBackupScopes() as $table => $where) {
+            $rows[$table] = $this->rowsAll($table, $where, $params);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Registre central des lignes SQL a sauvegarder avant purge.
+     * Tout futur module prive contenant des donnees utilisateur doit ajouter ses tables ici.
+     *
+     * @return array<string, string>
+     */
+    private function deletionBackupScopes(): array
+    {
+        $messageIds = '`message_id` IN (SELECT `id` FROM `' . $this->database->table('discussion_messages') . '` WHERE `sender_private_user_id` = :private_user_id)';
+        $summaryIds = '`tax_annual_summary_id` IN (SELECT `id` FROM `' . $this->database->table('tax_annual_summaries') . '` WHERE `private_user_id` = :private_user_id OR `generated_by_private_user_id` = :private_user_id)';
+
+        return [
+            'private_users' => '`id` = :private_user_id',
+            'private_user_module_permissions' => '`private_user_id` = :private_user_id',
+            'private_user_invites' => '`private_user_id` = :private_user_id',
+            'private_password_resets' => '`private_user_id` = :private_user_id',
+            'private_mfa_backup_codes' => '`private_user_id` = :private_user_id',
+            'private_documents' => '`private_user_id` = :private_user_id OR `uploaded_by_private_user_id` = :private_user_id OR `deleted_by_private_user_id` = :private_user_id',
+            'private_document_categories' => '`private_user_id` = :private_user_id',
+            'discussion_messages' => '`sender_private_user_id` = :private_user_id',
+            'discussion_message_attachments' => $messageIds,
+            'discussion_conversation_members' => '`private_user_id` = :private_user_id',
+            'discussion_crypto_devices' => '`private_user_id` = :private_user_id',
+            'discussion_conversation_keys' => '`private_user_id` = :private_user_id OR `created_by_private_user_id` = :private_user_id',
+            'rental_properties' => '`created_by_private_user_id` = :private_user_id OR `archived_by_private_user_id` = :private_user_id',
+            'rental_units' => '`created_by_private_user_id` = :private_user_id OR `archived_by_private_user_id` = :private_user_id',
+            'rental_property_members' => '`private_user_id` = :private_user_id OR `added_by_private_user_id` = :private_user_id OR `removed_by_private_user_id` = :private_user_id',
+            'rental_tenants' => '`created_by_private_user_id` = :private_user_id',
+            'rental_leases' => '`created_by_private_user_id` = :private_user_id',
+            'rental_payments' => '`created_by_private_user_id` = :private_user_id',
+            'rental_expenses' => '`created_by_private_user_id` = :private_user_id',
+            'rental_documents' => '`uploaded_by_private_user_id` = :private_user_id',
+            'rental_export_logs' => '`private_user_id` = :private_user_id',
+            'tax_years' => '`private_user_id` = :private_user_id OR `locked_by_private_user_id` = :private_user_id OR `unlocked_by_private_user_id` = :private_user_id',
+            'tax_source_activations' => '`private_user_id` = :private_user_id OR `enabled_by_private_user_id` = :private_user_id OR `disabled_by_private_user_id` = :private_user_id',
+            'tax_manual_income_entries' => '`private_user_id` = :private_user_id OR `created_by_private_user_id` = :private_user_id',
+            'tax_annual_summaries' => '`private_user_id` = :private_user_id OR `generated_by_private_user_id` = :private_user_id',
+            'tax_summary_lines' => $summaryIds,
+            'tax_export_logs' => '`private_user_id` = :private_user_id OR `exported_by_private_user_id` = :private_user_id',
+        ];
+    }
+
+    /**
+     * Registre central des purges SQL. L'ordre est volontaire: enfants avant parents.
+     * Tout futur module prive contenant des donnees utilisateur doit ajouter ses purges ici.
+     *
+     * @return array<int, array{table: string, where: string}>
+     */
+    private function deletionPurgeScopes(): array
+    {
+        $backupScopes = $this->deletionBackupScopes();
+        $order = [
+            'discussion_message_attachments',
+            'discussion_messages',
+            'discussion_conversation_keys',
+            'discussion_crypto_devices',
+            'discussion_conversation_members',
+            'private_documents',
+            'private_document_categories',
+            'rental_export_logs',
+            'rental_documents',
+            'rental_payments',
+            'rental_expenses',
+            'rental_leases',
+            'rental_tenants',
+            'rental_units',
+            'rental_property_members',
+            'rental_properties',
+            'tax_summary_lines',
+            'tax_export_logs',
+            'tax_annual_summaries',
+            'tax_manual_income_entries',
+            'tax_source_activations',
+            'tax_years',
+            'private_user_module_permissions',
+            'private_mfa_backup_codes',
+            'private_password_resets',
+            'private_user_invites',
+        ];
+
+        $scopes = [];
+        foreach ($order as $table) {
+            if (isset($backupScopes[$table])) {
+                $scopes[] = ['table' => $table, 'where' => $backupScopes[$table]];
+            }
+        }
+
+        return $scopes;
+    }
+
+    /**
+     * Registre central des fichiers physiques a integrer dans le ZIP.
+     * Tout futur module prive stockant des fichiers doit ajouter son stockage ici.
+     *
+     * @return array<string, array{storagePath: string, name: string, resolver: object}>
+     */
+    private function deletionFileScopes(
+        PrivateDocumentStorage $privateDocumentStorage,
+        DiscussionAttachmentStorage $discussionAttachmentStorage
+    ): array {
+        return [
+            'private_documents' => ['storagePath' => 'storagePath', 'name' => 'originalName', 'resolver' => $privateDocumentStorage],
+            'rental_documents' => ['storagePath' => 'storagePath', 'name' => 'originalName', 'resolver' => $privateDocumentStorage],
+            'discussion_message_attachments' => ['storagePath' => 'storagePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],
+            'discussion_message_attachment_previews' => ['storagePath' => 'previewStoragePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @return array<int, array<string, mixed>>
+     */
+    private function rowsAll(string $table, string $where, array $params): array
+    {
+        try {
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT * FROM `%s` WHERE %s', $this->database->table($table), $where)
+            );
+            $statement->execute($params);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (!is_array($rows)) {
+            return [];
+        }
+
+        return array_values(array_map(fn (array $row): array => $this->camelRow($row), $rows));
+    }
+
+    public function cleanupExpiredDeletionBackups(bool $dryRun = false, ?int $now = null): array
+    {
+        $root = $this->deletionBackupRoot();
+        $result = [
+            'root' => $root,
+            'matched' => 0,
+            'deleted' => 0,
+            'purged' => 0,
+            'backup_deleted' => 0,
+            'errors' => 0,
+            'dry_run' => $dryRun,
+        ];
+
+        if (!is_dir($root)) {
+            return $result;
+        }
+
+        $now ??= time();
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($iterator as $file) {
+            if (!$file instanceof \SplFileInfo || !$file->isFile() || strtolower($file->getExtension()) !== 'json') {
+                continue;
+            }
+
+            $content = @file_get_contents($file->getPathname());
+            $payload = is_string($content) ? json_decode($content, true) : null;
+            $deleteAfter = is_array($payload) && is_string($payload['deleteAfter'] ?? null)
+                ? strtotime($payload['deleteAfter'])
+                : false;
+            if ($deleteAfter !== false && $deleteAfter <= $now) {
+                ++$result['matched'];
+
+                if ($dryRun) {
+                    continue;
+                }
+
+                $privateUserId = is_numeric($payload['privateUserId'] ?? null) ? (int) $payload['privateUserId'] : 0;
+                if ($privateUserId <= 0) {
+                    ++$result['errors'];
+
+                    continue;
+                }
+
+                try {
+                    $user = $this->privateUser($privateUserId);
+                    if (($user['status'] ?? '') !== 'suspended') {
+                        ++$result['errors'];
+
+                        continue;
+                    }
+
+                    $this->database->ensureReady();
+                    $pdo = $this->database->pdo();
+                    $pdo->beginTransaction();
+                    $this->purgeAccountRows($privateUserId);
+
+                    $statement = $pdo->prepare(
+                        sprintf('DELETE FROM `%s` WHERE `id` = :id AND `status` = :status', $this->database->table('private_users'))
+                    );
+                    $statement->execute([
+                        'id' => $privateUserId,
+                        'status' => 'suspended',
+                    ]);
+                    $pdo->commit();
+                    ++$result['purged'];
+                } catch (\Throwable) {
+                    if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+                    ++$result['errors'];
+
+                    continue;
+                }
+
+                $email = is_array($payload) ? $this->backupEmail($payload) : '';
+                if ($email !== '') {
+                    $this->sendPrivateAccountEmail(
+                        $email,
+                        'Suppression définitive de votre compte privé',
+                        "Bonjour,\n\nVotre compte privé Les Caramagnols et les données rattachées ont été supprimés définitivement.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com."
+                    );
+                }
+
+                $zipPath = preg_replace('/\.json\z/i', '.zip', $file->getPathname()) ?? '';
+                if ($zipPath !== '' && is_file($zipPath) && @unlink($zipPath)) {
+                    ++$result['deleted'];
+                    ++$result['backup_deleted'];
+                }
+
+                if (@unlink($file->getPathname())) {
+                    ++$result['deleted'];
+                    ++$result['backup_deleted'];
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array{root: string, matched: int, sent: int, errors: int, dry_run: bool}
+     */
+    public function sendPendingDeletionWarnings(bool $dryRun = false, ?int $now = null, int $warningAfterDays = 20): array
+    {
+        $root = $this->deletionBackupRoot();
+        $result = [
+            'root' => $root,
+            'matched' => 0,
+            'sent' => 0,
+            'errors' => 0,
+            'dry_run' => $dryRun,
+        ];
+
+        if (!is_dir($root)) {
+            return $result;
+        }
+
+        $now ??= time();
+        $warningAfterDays = max(1, $warningAfterDays);
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if (!$file instanceof \SplFileInfo || !$file->isFile() || strtolower($file->getExtension()) !== 'json') {
+                continue;
+            }
+
+            $payload = $this->readDeletionBackupPayload($file->getPathname());
+            if (!is_array($payload) || is_string($payload['warningSentAt'] ?? null)) {
+                continue;
+            }
+
+            $generatedAt = is_string($payload['generatedAt'] ?? null) ? strtotime((string) $payload['generatedAt']) : false;
+            $deleteAfter = is_string($payload['deleteAfter'] ?? null) ? strtotime((string) $payload['deleteAfter']) : false;
+            if ($generatedAt === false || $deleteAfter === false || $deleteAfter <= $now) {
+                continue;
+            }
+
+            if (($generatedAt + ($warningAfterDays * 86400)) > $now) {
+                continue;
+            }
+
+            ++$result['matched'];
+            if ($dryRun) {
+                continue;
+            }
+
+            $email = $this->backupEmail($payload);
+            if ($email === '') {
+                ++$result['errors'];
+
+                continue;
+            }
+
+            $sent = $this->sendPrivateAccountEmail(
+                $email,
+                'Suppression prochaine de votre compte privé',
+                "Bonjour,\n\nVotre compte privé Les Caramagnols est programmé pour suppression définitive le " . date('d/m/Y', $deleteAfter) . ".\n\nUne sauvegarde ZIP des données purgées peut encore être récupérée avant cette date par l’administration de l’espace privé. Elle contient les données SQL et les fichiers retrouvés au moment de la sauvegarde. Cette sauvegarde sert uniquement à conserver ou transmettre les données : elle ne permet pas de récupérer ni de réactiver le compte.\n\nPour toute question, vous pouvez écrire à private@lescaramagnols.com."
+            );
+            if (!$sent) {
+                ++$result['errors'];
+
+                continue;
+            }
+
+            $payload['warningSentAt'] = date('c', $now);
+            $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($json) || file_put_contents($file->getPathname(), $json, LOCK_EX) === false) {
+                ++$result['errors'];
+
+                continue;
+            }
+
+            ++$result['sent'];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function readDeletionBackupPayload(string $path): ?array
+    {
+        $content = @file_get_contents($path);
+        $payload = is_string($content) ? json_decode($content, true) : null;
+
+        return is_array($payload) ? $payload : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function backupEmail(array $payload): string
+    {
+        $tables = is_array($payload['tables'] ?? null) ? $payload['tables'] : [];
+        $users = is_array($tables['private_users'] ?? null) ? $tables['private_users'] : [];
+        $user = is_array($users[0] ?? null) ? $users[0] : [];
+        $email = is_string($user['email'] ?? null) ? trim((string) $user['email']) : '';
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? strtolower($email) : '';
+    }
+
+    private function sendPrivateAccountEmail(string $email, string $subject, string $message): bool
+    {
+        $mailConfig = app_config('private.mail', []);
+        if (!is_array($mailConfig) || !($mailConfig['enabled'] ?? false)) {
+            return false;
+        }
+
+        if (!function_exists('send_private_email')) {
+            $mailerPath = ROOT_PATH . '/core/mailer.php';
+            if (is_file($mailerPath)) {
+                require_once $mailerPath;
+            }
+        }
+
+        if (!function_exists('send_private_email')) {
+            return false;
+        }
+
+        $html = '<p>' . nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), false) . '</p>';
+
+        return send_private_email($email, sanitize_text_field($subject, 180), $html);
+    }
+
+    private function deletionBackupRoot(): string
+    {
+        $backendRoot = defined('ROOT_PATH') ? (string) ROOT_PATH : dirname(__DIR__, 3);
+
+        return rtrim($backendRoot, '/\\') . '/var/private-account-deletion-backups';
+    }
+
+    /**
+     * @return array{success: bool, backupPath: ?string, deleteAfter: ?string, error: ?string}
+     */
+    private function deletionResult(bool $success, ?string $backupPath, ?string $deleteAfter, ?string $error): array
+    {
+        return [
+            'success' => $success,
+            'backupPath' => $backupPath,
+            'deleteAfter' => $deleteAfter,
+            'error' => $error,
+        ];
     }
 
     /**

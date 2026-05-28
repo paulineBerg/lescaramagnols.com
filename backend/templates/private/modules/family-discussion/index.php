@@ -5,6 +5,8 @@ $csrfToken = is_string($viewModel['discussionCsrfToken'] ?? null) ? (string) $vi
 $urls = is_array($viewModel['discussionUrls'] ?? null) ? $viewModel['discussionUrls'] : [];
 $indexUrl = (string) ($urls['index'] ?? private_portal_url('discussion_index'));
 $error = is_string($viewModel['error'] ?? null) ? (string) $viewModel['error'] : '';
+$notice = is_string($viewModel['notice'] ?? null) ? (string) $viewModel['notice'] : '';
+$inviteDefaults = is_array($viewModel['discussionInviteDefaults'] ?? null) ? $viewModel['discussionInviteDefaults'] : [];
 
 $formatDate = static function (mixed $value): string {
     $raw = is_string($value) ? trim($value) : '';
@@ -42,12 +44,25 @@ $shortText = static function (string $value, int $maxLength = 90): string {
     · conservation automatique des messages et fichiers pendant 60 jours
   </p>
 
+  <?php if ($notice !== ''): ?>
+    <p class="notice notice-success">
+      <?php
+      $noticeMessage = match ($notice) {
+          'invite_sent' => 'Invitation envoyee.',
+          default => $notice,
+      };
+      echo htmlspecialchars($noticeMessage, ENT_QUOTES, 'UTF-8');
+      ?>
+    </p>
+  <?php endif; ?>
+
   <?php if ($error !== ''): ?>
     <p class="notice notice-error">
       <?php
       $errorMessage = match ($error) {
           'csrf' => 'Session expiree, veuillez recommencer.',
           'rate_limited' => 'Trop de creations successives, veuillez patienter.',
+          'invite' => 'Invitation impossible.',
           default => 'La conversation n\'a pas pu etre creee.',
       };
       echo htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8');
@@ -104,6 +119,22 @@ $shortText = static function (string $value, int $maxLength = 90): string {
           <button type="submit">Creer le groupe</button>
         </form>
       <?php endif; ?>
+    </section>
+
+    <section class="card">
+      <span class="tag">Invitation</span>
+      <h2>Inviter par email</h2>
+      <form method="post" action="<?php echo htmlspecialchars($indexUrl, ENT_QUOTES, 'UTF-8'); ?>">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+        <input type="hidden" name="action" value="invite_member" />
+        <label for="discussion-invite-email">Email</label>
+        <input id="discussion-invite-email" type="email" name="recipient_email" maxlength="190" required />
+        <label for="discussion-invite-subject">Objet</label>
+        <input id="discussion-invite-subject" type="text" name="subject" maxlength="180" value="<?php echo htmlspecialchars((string) ($inviteDefaults['subject'] ?? 'Invitation à rejoindre les discussions famille'), ENT_QUOTES, 'UTF-8'); ?>" />
+        <label for="discussion-invite-message">Message</label>
+        <textarea id="discussion-invite-message" name="message" maxlength="4000"><?php echo htmlspecialchars((string) ($inviteDefaults['message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+        <button type="submit">Envoyer l'invitation</button>
+      </form>
     </section>
 
     <section class="card private-card-wide">

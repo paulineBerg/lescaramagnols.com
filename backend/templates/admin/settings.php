@@ -7,6 +7,7 @@ $head = is_array($view['head'] ?? null) ? $view['head'] : [];
 $tarteaucitron = is_array($view['tarteaucitron'] ?? null) ? $view['tarteaucitron'] : [];
 $discussions = is_array($view['discussions'] ?? null) ? $view['discussions'] : [];
 $instagram = is_array($view['instagram'] ?? null) ? $view['instagram'] : [];
+$privateMail = is_array($view['privateMail'] ?? null) ? $view['privateMail'] : [];
 $logAlerts = is_array($view['logAlerts'] ?? null) ? $view['logAlerts'] : [];
 $backup = is_array($view['backup'] ?? null) ? $view['backup'] : [];
 $cronCenter = is_array($view['cronCenter'] ?? null) ? $view['cronCenter'] : [];
@@ -94,6 +95,10 @@ $discussionSecretKeySummary = !empty($discussions['recaptchaSecretKeyConfigured'
 $instagramSummary = !empty($instagram['enabled'])
     ? $translate('TXT_ADMIN_SETTINGS_STATUS_ACTIVE', 'Actif')
     : $translate('TXT_ADMIN_SETTINGS_STATUS_INACTIVE', 'Inactif');
+$privateMailSummary = !empty($privateMail['enabled'])
+    ? $translate('TXT_ADMIN_SETTINGS_STATUS_ACTIVE', 'Actif')
+    : $translate('TXT_ADMIN_SETTINGS_STATUS_INACTIVE', 'Inactif');
+$privateMailTemplates = is_array($privateMail['templates'] ?? null) ? $privateMail['templates'] : [];
 $logAlertsNotifyOn = strtolower(trim((string) ($logAlerts['notifyOn'] ?? 'alerts')));
 if (!in_array($logAlertsNotifyOn, ['alerts', 'always'], true)) {
     $logAlertsNotifyOn = 'alerts';

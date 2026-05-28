@@ -30,7 +30,7 @@ $actionUrl = (string) ($urls['agencyImports'] ?? private_portal_url('rental_agen
   <section class="card">
     <h2>Documents a revoir</h2>
     <?php if ($documents === []): ?>
-      <p class="muted">Aucun document agence importe.</p>
+      <p class="muted">Aucun document agence importé.</p>
     <?php else: ?>
       <table>
         <thead>

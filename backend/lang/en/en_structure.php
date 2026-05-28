@@ -1180,6 +1180,8 @@ return [
     'TXT_PRIVATE_LOGIN_INTRO' => 'Sign in to access the private area.',
     'TXT_PRIVATE_IDENTIFIER_LABEL' => 'Identifier',
     'TXT_PRIVATE_PASSWORD_LABEL' => 'Password',
+    'TXT_PRIVATE_PASSWORD_SHOW' => 'Show',
+    'TXT_PRIVATE_PASSWORD_HIDE' => 'Hide',
     'TXT_PRIVATE_MFA_CODE_LABEL' => 'Verification code',
     'TXT_PRIVATE_LOGIN_SUBMIT' => 'Sign in',
     'TXT_PRIVATE_FORGOT_PASSWORD_LINK' => 'Forgot password',
@@ -1212,5 +1214,16 @@ return [
     'TXT_CONTACT_EMAIL' => 'Email',
     'TXT_CONTACT_MESSAGE' => 'Message',
     'TXT_CONTACT_SUBMIT' => 'Send',
+
+    // Private area admin
+    'TXT_ADMIN_PRIVATE_MEMBERS_ACTION_REACTIVATE' => 'Reactivate account',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE' => 'Account deletion',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP' => 'A backup is created, the data is purged, then the account and backup are deleted by cron after 30 days.',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION' => 'Do you want to delete this suspended account?',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO' => 'No',
+    'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_YES' => 'Yes, back up and purge data',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DOWNLOAD' => 'Download ZIP backup',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_DELETE_AFTER' => 'Final deletion of the account and backup scheduled for %s.',
+    'TXT_ADMIN_PRIVATE_MEMBERS_BACKUP_NO_RESTORE' => 'The ZIP backup contains backup.json, manifest.json and recovered files. It does not reactivate the account and does not automatically restore data.',
 
 ];

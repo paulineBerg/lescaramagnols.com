@@ -806,6 +806,97 @@ final class DiscussionRepository
         }
     }
 
+    public function findMessageForUser(int $messageId, int $userId): ?array
+    {
+        if ($messageId <= 0 || $userId <= 0) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT m.*
+                 FROM `%s` m
+                 INNER JOIN `%s` cm ON cm.`conversation_id` = m.`conversation_id`
+                 WHERE m.`id` = :message_id
+                   AND cm.`private_user_id` = :user_id
+                   AND cm.`left_at` IS NULL
+                   AND m.`purge_status` = 'active'
+                   AND m.`deleted_at` IS NULL
+                 LIMIT 1",
+                $this->messageTable(),
+                $this->memberTable()
+            ));
+            $statement->execute(['message_id' => $messageId, 'user_id' => $userId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->hydrateMessage($row) : null;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listActiveAttachmentsForMessage(int $messageId): array
+    {
+        if ($messageId <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT * FROM `%s`
+                 WHERE `message_id` = :message_id
+                   AND `purge_status` = 'active'",
+                $this->attachmentTable()
+            ));
+            $statement->execute(['message_id' => $messageId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn (array $row): ?array => $this->hydrateAttachment($row),
+            is_array($rows) ? $rows : []
+        )));
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function listActiveMessageIdsForSender(int $conversationId, int $userId): array
+    {
+        if ($conversationId <= 0 || $userId <= 0 || !$this->isParticipant($conversationId, $userId)) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT `id`
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `sender_private_user_id` = :user_id
+                   AND `purge_status` = 'active'
+                   AND `deleted_at` IS NULL",
+                $this->messageTable()
+            ));
+            $statement->execute(['conversation_id' => $conversationId, 'user_id' => $userId]);
+            $ids = $statement->fetchAll(PDO::FETCH_COLUMN);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0, is_array($ids) ? $ids : []),
+            static fn (int $id): bool => $id > 0
+        ));
+    }
+
     public function createRetentionRun(?int $userId, string $scope): int
     {
         $scope = preg_match('/\A[a-z0-9_-]{1,32}\z/', $scope) === 1 ? $scope : 'scheduled';

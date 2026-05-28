@@ -9,6 +9,8 @@ $indexUrl = (string) ($urls['index'] ?? private_portal_url('discussion_index'));
 $filesUrl = rtrim((string) ($urls['files'] ?? private_portal_url('discussion_files')), '/');
 $conversationId = is_numeric($conversation['id'] ?? null) ? (int) $conversation['id'] : 0;
 $conversationUrl = $conversationId > 0 ? rtrim($indexUrl, '/') . '/' . $conversationId : $indexUrl;
+$isConversationOwner = is_numeric($conversation['createdByPrivateUserId'] ?? null)
+    && (int) $conversation['createdByPrivateUserId'] === $currentUserId;
 $apiMessagesUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/messages';
 $apiReadUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/read';
 $apiKeysUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/keys';
@@ -60,7 +62,16 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
   </p>
 
   <?php if ($notice !== ''): ?>
-    <p class="notice notice-success"><?php echo htmlspecialchars($notice === 'sent' ? 'Message envoye.' : $notice, ENT_QUOTES, 'UTF-8'); ?></p>
+    <p class="notice notice-success">
+      <?php
+      $noticeMessage = match ($notice) {
+          'sent' => 'Message envoye.',
+          'deleted' => 'Suppression effectuee.',
+          default => $notice,
+      };
+      echo htmlspecialchars($noticeMessage, ENT_QUOTES, 'UTF-8');
+      ?>
+    </p>
   <?php endif; ?>
   <?php if ($error !== ''): ?>
     <p class="notice notice-error">
@@ -68,6 +79,8 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
       $errorMessage = match ($error) {
           'csrf' => 'Session expiree, veuillez recommencer.',
           'rate_limited' => 'Trop de messages successifs, veuillez patienter.',
+          'delete' => 'Suppression impossible.',
+          'delete_confirmation' => 'Confirmez la suppression avec SUPPRIMER.',
           default => 'Le message n\'a pas pu etre envoye.',
       };
       echo htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8');
@@ -90,10 +103,12 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
           $encryptedPayload = is_string($message['encryptedPayload'] ?? null) ? (string) $message['encryptedPayload'] : '';
           $encryptionMetadata = is_string($message['encryptionMetadata'] ?? null) ? (string) $message['encryptionMetadata'] : '';
           $attachments = is_array($message['attachments'] ?? null) ? $message['attachments'] : [];
+          $messageId = (int) $message['id'];
+          $canDeleteMessage = $senderId === $currentUserId || $isConversationOwner;
           ?>
           <article
             class="notice"
-            data-message-id="<?php echo htmlspecialchars((string) (int) $message['id'], ENT_QUOTES, 'UTF-8'); ?>"
+            data-message-id="<?php echo htmlspecialchars((string) $messageId, ENT_QUOTES, 'UTF-8'); ?>"
             data-encryption-mode="<?php echo htmlspecialchars($encryptionMode, ENT_QUOTES, 'UTF-8'); ?>"
             data-encrypted-payload="<?php echo htmlspecialchars($encryptedPayload, ENT_QUOTES, 'UTF-8'); ?>"
             data-encryption-metadata="<?php echo htmlspecialchars($encryptionMetadata, ENT_QUOTES, 'UTF-8'); ?>"
@@ -102,6 +117,14 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
               <strong><?php echo htmlspecialchars($messageAuthor($senderId), ENT_QUOTES, 'UTF-8'); ?></strong>
               · <?php echo htmlspecialchars($formatDate($message['createdAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
             </p>
+            <?php if ($canDeleteMessage): ?>
+              <form method="post" action="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                <input type="hidden" name="action" value="delete_message" />
+                <input type="hidden" name="message_id" value="<?php echo htmlspecialchars((string) $messageId, ENT_QUOTES, 'UTF-8'); ?>" />
+                <button class="button-small button-danger" type="submit">Supprimer le message</button>
+              </form>
+            <?php endif; ?>
             <?php if ($encryptionMode !== 'none'): ?>
               <p data-encrypted-body>Message chiffre sur cet appareil.</p>
             <?php elseif ($body !== ''): ?>
@@ -130,6 +153,14 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
                     <a href="<?php echo htmlspecialchars($fileHref, ENT_QUOTES, 'UTF-8'); ?>">
                       <?php echo htmlspecialchars($filename, ENT_QUOTES, 'UTF-8'); ?>
                     </a>
+                    <?php if ($canDeleteMessage): ?>
+                      <form method="post" action="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                        <input type="hidden" name="action" value="delete_attachment" />
+                        <input type="hidden" name="attachment_id" value="<?php echo htmlspecialchars($attachmentId, ENT_QUOTES, 'UTF-8'); ?>" />
+                        <button class="button-small button-danger" type="submit">Supprimer la pièce jointe</button>
+                      </form>
+                    <?php endif; ?>
                   </li>
                 <?php endforeach; ?>
               </ul>
@@ -145,6 +176,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
     <p class="notice" id="discussion-crypto-status">Initialisation du chiffrement local...</p>
     <form id="discussion-message-form" method="post" action="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+      <input type="hidden" name="action" value="send_message" />
       <input type="hidden" name="encryption_mode" value="" />
       <input type="hidden" name="encrypted_payload" value="" />
       <input type="hidden" name="encryption_metadata" value="" />
@@ -154,6 +186,16 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
       <input id="discussion-message-files" type="file" name="discussion_files[]" multiple />
       <p class="muted">Les messages texte sont chiffres dans le navigateur. Les fichiers joints restent stockes hors webroot avec controle d'acces serveur.</p>
       <button type="submit">Envoyer</button>
+    </form>
+  </section>
+
+  <section class="card private-card-wide">
+    <h2>Supprimer mes messages</h2>
+    <form method="post" action="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>">
+      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+      <input type="hidden" name="action" value="delete_my_conversation_data" />
+      <label>Confirmer avec SUPPRIMER <input type="text" name="confirm_delete" autocomplete="off" /></label>
+      <button class="button-danger" type="submit">Supprimer mes messages et fichiers de cette discussion</button>
     </form>
   </section>
 

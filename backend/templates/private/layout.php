@@ -331,6 +331,10 @@ if ($privateHasModule('Aide impôts')) {
         color: var(--private-danger);
       }
 
+      .private-feedback {
+        scroll-margin-top: 7rem;
+      }
+
       form {
         display: grid;
         gap: 0.85rem;
@@ -363,6 +367,34 @@ if ($privateHasModule('Aide impôts')) {
         outline: none;
         border-color: var(--private-primary);
         box-shadow: 0 0 0 3px rgba(29, 111, 141, 0.2);
+      }
+
+      .private-password-field {
+        position: relative;
+      }
+
+      .private-password-field input {
+        padding-right: 7rem;
+      }
+
+      .private-password-toggle {
+        position: absolute;
+        top: 50%;
+        right: 0.45rem;
+        min-height: 2.15rem;
+        padding: 0.4rem 0.65rem;
+        border-radius: 8px;
+        background: rgba(19, 41, 75, 0.08);
+        color: var(--private-primary-dark);
+        font-size: 0.82rem;
+        transform: translateY(-50%);
+      }
+
+      .private-password-toggle:hover,
+      .private-password-toggle:focus-visible {
+        background: rgba(29, 111, 141, 0.16);
+        box-shadow: none;
+        transform: translateY(-50%);
       }
 
       button {
@@ -573,6 +605,108 @@ if ($privateHasModule('Aide impôts')) {
         display: block;
       }
 
+      .private-click-table {
+        margin-top: 0.3rem;
+      }
+
+      .private-click-row {
+        cursor: pointer;
+      }
+
+      .private-click-row:hover,
+      .private-click-row:focus-visible {
+        background: rgba(29, 111, 141, 0.08);
+        outline: none;
+      }
+
+      .private-row-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.2rem;
+        padding: 0.45rem 0.7rem;
+        border: 0;
+        border-radius: 8px;
+        background: rgba(19, 41, 75, 0.08);
+        color: var(--private-primary-dark);
+        font: inherit;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .private-dialog {
+        width: min(760px, calc(100vw - 2rem));
+        max-height: calc(100vh - 2rem);
+        overflow: auto;
+        border: 0;
+        border-radius: 18px;
+        padding: 0;
+        color: var(--private-text);
+        box-shadow: var(--private-shadow);
+      }
+
+      .private-dialog::backdrop {
+        background: rgba(19, 41, 75, 0.45);
+      }
+
+      .private-dialog-panel {
+        display: grid;
+        gap: 1rem;
+        padding: 1.4rem;
+        background: #fff;
+      }
+
+      .private-dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .private-dialog-header h3 {
+        margin: 0;
+        color: var(--private-primary-dark);
+        font-size: 1.1rem;
+      }
+
+      .private-dialog-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.4rem;
+        height: 2.4rem;
+        padding: 0;
+        border-radius: 999px;
+        background: rgba(19, 41, 75, 0.08);
+        color: var(--private-primary-dark);
+        font-size: 1.3rem;
+        line-height: 1;
+      }
+
+      .private-dialog-close:hover {
+        box-shadow: none;
+      }
+
+      .private-button-danger {
+        background: linear-gradient(135deg, #8f1f2d, #c43a4b);
+      }
+
+      .private-checkbox-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        width: fit-content;
+        margin: 0.25rem 0;
+      }
+
+      .private-checkbox-inline input[type="checkbox"] {
+        flex: 0 0 auto;
+        width: 1rem;
+        height: 1rem;
+        min-height: auto;
+        margin: 0;
+      }
+
       @media (max-width: 900px) {
         .private-app-shell {
           display: block;
@@ -707,5 +841,77 @@ if ($privateHasModule('Aide impôts')) {
         <?php echo $privateContent; ?>
       </main>
     <?php endif; ?>
+    <?php $privateCspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
+    <script<?php echo $privateCspNonce !== '' ? ' nonce="' . htmlspecialchars($privateCspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+      (() => {
+        document.addEventListener('click', (event) => {
+          const button = event.target instanceof Element
+            ? event.target.closest('[data-private-password-toggle]')
+            : null;
+          if (!(button instanceof HTMLButtonElement)) {
+            return;
+          }
+
+          const inputId = button.getAttribute('aria-controls') || '';
+          const input = document.getElementById(inputId);
+          if (!(input instanceof HTMLInputElement)) {
+            return;
+          }
+
+          event.preventDefault();
+          const showLabel = button.dataset.privatePasswordShow || 'Afficher';
+          const hideLabel = button.dataset.privatePasswordHide || 'Masquer';
+          const isVisible = input.type === 'text';
+          input.type = isVisible ? 'password' : 'text';
+          button.textContent = isVisible ? showLabel : hideLabel;
+          button.setAttribute('aria-pressed', isVisible ? 'false' : 'true');
+        });
+
+        const openDialog = (dialog) => {
+          if (!dialog) {
+            return;
+          }
+
+          if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+            return;
+          }
+
+          dialog.setAttribute('open', 'open');
+        };
+
+        document.querySelectorAll('[data-private-dialog-open]').forEach((trigger) => {
+          const dialog = document.getElementById(trigger.getAttribute('data-private-dialog-open') || '');
+          trigger.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openDialog(dialog);
+          });
+          trigger.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            openDialog(dialog);
+          });
+        });
+
+        document.querySelectorAll('[data-private-dialog-close]').forEach((button) => {
+          button.addEventListener('click', () => {
+            button.closest('dialog')?.close();
+          });
+        });
+
+        document.querySelectorAll('.private-dialog').forEach((dialog) => {
+          dialog.addEventListener('click', (event) => {
+            if (event.target === dialog) {
+              dialog.close();
+            }
+          });
+        });
+      })();
+    </script>
   </body>
 </html>

@@ -26,11 +26,37 @@ $privateFormError = is_string($privateFormError ?? null) ? (string) $privateForm
   <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($privateFormCsrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
   <div>
     <label for="private-password"><?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_NEW', 'Nouveau mot de passe'), ENT_QUOTES, 'UTF-8'); ?></label>
-    <input id="private-password" name="password" type="password" autocomplete="new-password" required />
+    <div class="private-password-field">
+      <input id="private-password" name="password" type="password" autocomplete="new-password" required />
+      <button
+        class="private-password-toggle"
+        type="button"
+        data-private-password-toggle
+        data-private-password-show="<?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>"
+        data-private-password-hide="<?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_HIDE', 'Masquer'), ENT_QUOTES, 'UTF-8'); ?>"
+        aria-controls="private-password"
+        aria-pressed="false"
+      >
+        <?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>
+      </button>
+    </div>
   </div>
   <div>
     <label for="private-password-confirm"><?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_CONFIRM', 'Confirmation'), ENT_QUOTES, 'UTF-8'); ?></label>
-    <input id="private-password-confirm" name="password_confirm" type="password" autocomplete="new-password" required />
+    <div class="private-password-field">
+      <input id="private-password-confirm" name="password_confirm" type="password" autocomplete="new-password" required />
+      <button
+        class="private-password-toggle"
+        type="button"
+        data-private-password-toggle
+        data-private-password-show="<?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>"
+        data-private-password-hide="<?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_HIDE', 'Masquer'), ENT_QUOTES, 'UTF-8'); ?>"
+        aria-controls="private-password-confirm"
+        aria-pressed="false"
+      >
+        <?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>
+      </button>
+    </div>
   </div>
   <button type="submit"><?php echo htmlspecialchars($privateFormSubmitLabel, ENT_QUOTES, 'UTF-8'); ?></button>
 </form>

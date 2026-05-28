@@ -212,6 +212,8 @@ final class RentalPropertyMemberRepository
                      INNER JOIN `%s` p ON p.`id` = m.`rental_property_id`
                      INNER JOIN `%s` u ON u.`id` = m.`private_user_id`
                      WHERE m.`rental_property_id` IN (%s)
+                       AND m.`is_active` = 1
+                       AND m.`status` = :status
                      ORDER BY p.`name` ASC, m.`private_user_id` ASC, m.`created_at` DESC
                      LIMIT :limit',
                     $this->table(),
@@ -224,6 +226,7 @@ final class RentalPropertyMemberRepository
             foreach ($propertyIds as $index => $propertyId) {
                 $statement->bindValue(':property_id' . $index, $propertyId, PDO::PARAM_INT);
             }
+            $statement->bindValue(':status', 'active', PDO::PARAM_STR);
             $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
             $statement->execute();
             $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -328,6 +331,50 @@ final class RentalPropertyMemberRepository
         }
 
         return $this->findById($id);
+    }
+
+    public function update(int $memberId, string $role, ?string $notes = null): bool
+    {
+        if ($memberId <= 0) {
+            return false;
+        }
+
+        $normalizedRole = strtolower(trim($role));
+        if (!in_array($normalizedRole, self::ALLOWED_ROLES, true)) {
+            return false;
+        }
+
+        $notes = is_string($notes) ? trim((string) $notes) : null;
+        if ($notes !== null && strlen($notes) > 2000) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `role` = :role,
+                         `notes` = :notes,
+                         `updated_at` = :updated_at
+                     WHERE `id` = :id
+                       AND `is_active` = 1
+                       AND `status` = :status',
+                    $this->table()
+                )
+            );
+            $statement->execute([
+                'role' => $normalizedRole,
+                'notes' => $notes,
+                'updated_at' => date('Y-m-d H:i:s'),
+                'id' => $memberId,
+                'status' => 'active',
+            ]);
+
+            return (bool) $statement->rowCount();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function deactivate(int $propertyId, int $privateUserId, int $removedByPrivateUserId): bool

@@ -46,7 +46,20 @@ $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null)
       <label for="password">
         <?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_LABEL', 'Mot de passe'), ENT_QUOTES, 'UTF-8'); ?>
       </label>
-      <input id="password" name="password" type="password" required autocomplete="current-password" />
+      <div class="private-password-field">
+        <input id="password" name="password" type="password" required autocomplete="current-password" />
+        <button
+          class="private-password-toggle"
+          type="button"
+          data-private-password-toggle
+          data-private-password-show="<?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>"
+          data-private-password-hide="<?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_HIDE', 'Masquer'), ENT_QUOTES, 'UTF-8'); ?>"
+          aria-controls="password"
+          aria-pressed="false"
+        >
+          <?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>
+        </button>
+      </div>
     </div>
 
     <div>

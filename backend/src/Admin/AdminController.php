@@ -537,12 +537,40 @@ final class AdminController
                 return $this->redirect($this->privateMembersRedirectLocation($body));
             }
 
-            $result = $this->privateMembersService->handleAction(
-                $body,
-                admin_current_identifier(),
-                $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)),
-                (string) ($request->server('HTTP_USER_AGENT', '') ?? '')
-            );
+            $action = is_string($body['private_member_action'] ?? null)
+                ? trim((string) $body['private_member_action'])
+                : '';
+            if ($action === 'mail_settings') {
+                $result = $this->settingsService->savePrivateMail(
+                    $body,
+                    admin_current_identifier()
+                );
+            } elseif ($action === 'download_backup') {
+                $result = $this->privateMembersService->downloadDeletionBackup($body, admin_current_identifier());
+                if (($result['success'] ?? false) === true) {
+                    $filename = is_string($result['filename'] ?? null) ? (string) $result['filename'] : 'private-account-backup.json';
+                    $content = is_string($result['content'] ?? null) ? (string) $result['content'] : '';
+                    $contentType = is_string($result['contentType'] ?? null) ? (string) $result['contentType'] : 'application/octet-stream';
+
+                    return new Response(
+                        200,
+                        [
+                            'Content-Type' => $contentType,
+                            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+                            'Content-Length' => (string) strlen($content),
+                            'Cache-Control' => 'no-store',
+                        ],
+                        $content
+                    );
+                }
+            } else {
+                $result = $this->privateMembersService->handleAction(
+                    $body,
+                    admin_current_identifier(),
+                    $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)),
+                    (string) ($request->server('HTTP_USER_AGENT', '') ?? '')
+                );
+            }
             admin_set_flash_message(
                 ($result['success'] ?? false) ? 'success' : 'error',
                 (string) (($result['success'] ?? false) ? ($result['message'] ?? '') : ($result['error'] ?? ''))
@@ -552,11 +580,14 @@ final class AdminController
         }
 
         $viewModel = $this->privateMembersService->listMembersViewModel($statusFilter, $search);
+        $privateMembersActiveTab = $this->privateMembersTab($query['tab'] ?? null);
 
         return $this->renderPage(
             'private_members_list.php',
             [
-                'pageTitle' => $this->adminText('TXT_ADMIN_PAGE_TITLE_PRIVATE_MEMBERS', 'Membres de l’espace privé'),
+                'pageTitle' => $privateMembersActiveTab === 'email'
+                    ? $this->adminText('TXT_ADMIN_PAGE_TITLE_PRIVATE_MAIL', 'Configuration email de l’espace privé')
+                    : $this->adminText('TXT_ADMIN_PAGE_TITLE_PRIVATE_MEMBERS', 'Membres de l’espace privé'),
                 'activeMenu' => 'private_members',
                 'adminPrivateMembersUrl' => $this->routeResolver->canonicalPath('private_members'),
                 'adminPrivatePortalLoginUrl' => private_route_resolver()->canonicalPath('login'),
@@ -564,7 +595,10 @@ final class AdminController
                 'searchQuery' => is_string($viewModel['searchQuery'] ?? null) ? $viewModel['searchQuery'] : '',
                 'privateMembers' => is_array($viewModel['members'] ?? null) ? $viewModel['members'] : [],
                 'privateMembersStats' => is_array($viewModel['stats'] ?? null) ? $viewModel['stats'] : [],
+                'privateMemberEmailChoices' => is_array($viewModel['memberEmailChoices'] ?? null) ? $viewModel['memberEmailChoices'] : [],
                 'privateModuleRegistry' => is_array($viewModel['moduleRegistry'] ?? null) ? $viewModel['moduleRegistry'] : [],
+                'privateMembersActiveTab' => $privateMembersActiveTab,
+                'privateMail' => $this->settingsService->privateMailViewModel(),
                 'message' => $message,
                 'error' => $error,
                 'csrfToken' => admin_csrf_token(),
@@ -578,9 +612,25 @@ final class AdminController
     private function privateMembersRedirectLocation(array $body): string
     {
         $location = $this->routeResolver->canonicalPath('private_members');
+        $tab = $this->privateMembersTab($body['private_members_tab'] ?? null);
+        if ($tab !== 'members') {
+            $location .= '?tab=' . rawurlencode($tab);
+        }
+
         $fragment = $this->privateMembersReturnFragment($body['private_member_return_fragment'] ?? null);
 
         return $fragment !== '' ? $location . '#' . $fragment : $location;
+    }
+
+    private function privateMembersTab(mixed $tab): string
+    {
+        if (!is_string($tab)) {
+            return 'members';
+        }
+
+        $normalized = strtolower(trim($tab));
+
+        return in_array($normalized, ['members', 'email'], true) ? $normalized : 'members';
     }
 
     private function privateMembersReturnFragment(mixed $fragment): string

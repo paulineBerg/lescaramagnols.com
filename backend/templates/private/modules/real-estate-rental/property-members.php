@@ -2,6 +2,7 @@
 $properties = is_array($viewModel['rentalProperties'] ?? null) ? $viewModel['rentalProperties'] : [];
 $members = is_array($viewModel['rentalMembers'] ?? null) ? $viewModel['rentalMembers'] : [];
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
+$currentPrivateUserId = is_numeric($viewModel['rentalCurrentPrivateUserId'] ?? null) ? (int) $viewModel['rentalCurrentPrivateUserId'] : 0;
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
@@ -65,22 +66,86 @@ foreach ($properties as $property) {
             <th>Compte</th>
             <th>Rôle</th>
             <th>Statut</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($members as $member): ?>
-            <?php if (!is_array($member)) {
+            <?php
+            if (!is_array($member)) {
                 continue;
-            } ?>
+            }
+            $memberId = is_numeric($member['id'] ?? null) ? (int) $member['id'] : 0;
+            $memberPrivateUserId = is_numeric($member['privateUserId'] ?? null) ? (int) $member['privateUserId'] : 0;
+            $role = is_string($member['role'] ?? null) ? (string) $member['role'] : '';
+            $isCurrentUser = $memberPrivateUserId > 0 && $memberPrivateUserId === $currentPrivateUserId;
+            $dialogId = 'rental-member-dialog-' . $memberId;
+            ?>
             <tr>
               <td><?php echo htmlspecialchars((string) ($member['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($member['privateUserEmail'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars($roles[(string) ($member['role'] ?? '')] ?? (string) ($member['role'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars($roles[$role] ?? $role, ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($member['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td>
+                <?php if ($isCurrentUser): ?>
+                  <span class="muted">Compte connecté - protégé</span>
+                <?php elseif ($memberId > 0): ?>
+                  <button type="button" class="private-row-action" data-private-dialog-open="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>">Modifier</button>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>
       </table>
+
+      <?php foreach ($members as $member): ?>
+        <?php
+        if (!is_array($member)) {
+            continue;
+        }
+        $memberId = is_numeric($member['id'] ?? null) ? (int) $member['id'] : 0;
+        $memberPrivateUserId = is_numeric($member['privateUserId'] ?? null) ? (int) $member['privateUserId'] : 0;
+        if ($memberId <= 0 || ($memberPrivateUserId > 0 && $memberPrivateUserId === $currentPrivateUserId)) {
+            continue;
+        }
+        $role = is_string($member['role'] ?? null) ? (string) $member['role'] : '';
+        $dialogId = 'rental-member-dialog-' . $memberId;
+        ?>
+        <dialog class="private-dialog" id="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
+          <div class="private-dialog-panel">
+            <header class="private-dialog-header">
+              <h3 id="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Modifier l’accès</h3>
+              <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+            </header>
+            <p class="muted">
+              <?php echo htmlspecialchars((string) ($member['privateUserEmail'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+              · <?php echo htmlspecialchars((string) ($member['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+            </p>
+            <form method="post" action="<?php echo htmlspecialchars($membersUrl, ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="update_member" />
+              <input type="hidden" name="member_id" value="<?php echo htmlspecialchars((string) $memberId, ENT_QUOTES, 'UTF-8'); ?>" />
+              <label>Rôle
+                <select name="role">
+                  <?php foreach ($roles as $value => $label): ?>
+                    <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $role === $value ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Notes <textarea name="notes" maxlength="2000"><?php echo htmlspecialchars((string) ($member['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+              <button type="submit">Mettre à jour</button>
+            </form>
+            <form method="post" action="<?php echo htmlspecialchars($membersUrl, ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="delete_member" />
+              <input type="hidden" name="member_id" value="<?php echo htmlspecialchars((string) $memberId, ENT_QUOTES, 'UTF-8'); ?>" />
+              <button type="submit" class="private-button-danger">Supprimer l’accès</button>
+            </form>
+          </div>
+        </dialog>
+      <?php endforeach; ?>
     <?php endif; ?>
   </section>
 </section>

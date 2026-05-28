@@ -22,9 +22,11 @@ npm install
 Terminal backend:
 
 ```bash
-cd backend/public
-php -S 127.0.0.1:8000
+cd backend
+php -S 127.0.0.1:8000 -t public public/dev-router.php
 ```
+
+Le routeur `public/dev-router.php` doit etre conserve en developpement local: sans lui, le serveur interne PHP cherche un fichier physique et renvoie un `404` sur les routes dynamiques comme `/auto-retro/.../*.php`.
 
 Terminal frontend:
 

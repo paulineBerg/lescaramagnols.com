@@ -52,6 +52,8 @@ $siteDiscussionsOverride = is_array($siteOverride['discussions'] ?? null) ? $sit
 $siteInstagramOverride = is_array($siteOverride['instagram'] ?? null) ? $siteOverride['instagram'] : [];
 $siteLogAlertsOverride = is_array($siteOverride['log_alerts'] ?? null) ? $siteOverride['log_alerts'] : [];
 $siteBackupOverride = is_array($siteOverride['backup'] ?? null) ? $siteOverride['backup'] : [];
+$sitePrivateOverride = is_array($siteOverride['private'] ?? null) ? $siteOverride['private'] : [];
+$sitePrivateMailOverride = is_array($sitePrivateOverride['mail'] ?? null) ? $sitePrivateOverride['mail'] : [];
 $normalizeI18nOverrides = static function (mixed $overrides): array {
     if (!is_array($overrides)) {
         return [];
@@ -650,6 +652,26 @@ $appConfig = [
             'conversation_rate_limit_window' => $privateDiscussionConversationRateLimitWindow,
             'allowed_extensions' => $privateDiscussionAllowedExtensions,
             'allowed_mime_types' => $privateDiscussionAllowedMimeTypes,
+        ],
+        'mail' => [
+            'enabled' => filter_var(
+                $sitePrivateMailOverride['enabled'] ?? env('PRIVATE_MAIL_ENABLED', true),
+                FILTER_VALIDATE_BOOLEAN,
+                FILTER_NULL_ON_FAILURE
+            ) ?? true,
+            'smtp_host' => trim((string) ($sitePrivateMailOverride['smtp_host'] ?? env('PRIVATE_MAIL_SMTP_HOST', 'ssl0.ovh.net'))),
+            'smtp_port' => max(1, min(65535, (int) ($sitePrivateMailOverride['smtp_port'] ?? env('PRIVATE_MAIL_SMTP_PORT', 465)))),
+            'smtp_user' => trim((string) ($sitePrivateMailOverride['smtp_user'] ?? env('PRIVATE_MAIL_SMTP_USER', 'ne-pas-repondre@lescaramagnols.com'))),
+            'smtp_password' => (string) ($sitePrivateMailOverride['smtp_password'] ?? env('PRIVATE_MAIL_SMTP_PASSWORD', '')),
+            'smtp_encryption' => in_array(
+                strtolower(trim((string) ($sitePrivateMailOverride['smtp_encryption'] ?? env('PRIVATE_MAIL_SMTP_ENCRYPTION', 'ssl')))),
+                ['', 'ssl', 'tls', 'starttls'],
+                true
+            ) ? strtolower(trim((string) ($sitePrivateMailOverride['smtp_encryption'] ?? env('PRIVATE_MAIL_SMTP_ENCRYPTION', 'ssl')))) : 'ssl',
+            'from_address' => trim((string) ($sitePrivateMailOverride['from_address'] ?? env('PRIVATE_MAIL_FROM_ADDRESS', 'ne-pas-repondre@lescaramagnols.com'))),
+            'from_name' => trim((string) ($sitePrivateMailOverride['from_name'] ?? env('PRIVATE_MAIL_FROM_NAME', 'Les Caramagnols'))),
+            'reply_to' => trim((string) ($sitePrivateMailOverride['reply_to'] ?? env('PRIVATE_MAIL_REPLY_TO', 'private@lescaramagnols.com'))),
+            'templates' => is_array($sitePrivateMailOverride['templates'] ?? null) ? $sitePrivateMailOverride['templates'] : [],
         ],
         'trust_proxy_headers' => filter_var(
             env('PRIVATE_TRUST_PROXY_HEADERS', env('TRUST_PROXY_HEADERS', env('ADMIN_TRUST_PROXY_HEADERS', false))),
