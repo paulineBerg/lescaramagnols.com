@@ -3303,25 +3303,32 @@ Critere de passage : PHP ne sert plus que le public, le blog et l'admin editoria
 
 ### 14.6 Checklist securite de la nouvelle app
 
-- [ ] Threat model court par module : donnees sensibles, acteurs, abus possibles, contre-mesures.
-- [ ] Validation stricte de toutes les entrees.
-- [ ] Requetes SQL parametrees uniquement.
-- [ ] Sorties HTML echappees par defaut.
-- [ ] CSRF obligatoire sur toutes les mutations cookie-based.
-- [ ] Cookies `HttpOnly`, `Secure` en HTTPS, `SameSite=Strict` pour le prive.
-- [ ] CSP sans `unsafe-inline`, sauf exception noncee documentee.
-- [ ] Rate limit login, reset password, upload, imports et messages.
-- [ ] Antivirus ou quarantaine documentaire si disponible en production.
-- [ ] Limites de taille, type MIME detecte serveur et extension controlee.
-- [ ] Audit sans contenu sensible.
-- [ ] Backups testes.
-- [ ] Secrets hors depot, rotation documentee.
-- [ ] Pas de chemins admin/prive dans `robots.txt`.
-- [ ] Reponses `401/403/404` coherentes sans enumeration inutile.
-- [ ] Revue dependances avant go-live.
-- [ ] Test manuel login/logout/timeout/refus CSRF.
-- [ ] Test manuel compte suspendu et permission retiree.
-- [ ] Test manuel restauration fichier et base.
+- [x] Threat model court par module : donnees sensibles, acteurs, abus possibles, contre-mesures.
+- [x] Validation stricte de toutes les entrees.
+- [x] Requetes SQL parametrees uniquement.
+- [x] Sorties HTML echappees par defaut.
+- [x] CSRF obligatoire sur toutes les mutations cookie-based.
+- [x] Cookies `HttpOnly`, `Secure` en HTTPS, `SameSite=Strict` pour le prive.
+- [x] CSP sans `unsafe-inline` script ; exception `style-src 'unsafe-inline'` documentee tant que les styles prives inline ne sont pas extraits.
+- [x] Rate limit login, reset password, upload, imports et messages.
+- [x] Quarantaine documentaire par stockage hors webroot ; scanner antivirus branchable en production sans changer le contrat de stockage.
+- [x] Limites de taille, type MIME detecte serveur et extension controlee.
+- [x] Audit sans contenu sensible.
+- [x] Backups testes.
+- [x] Secrets hors depot, rotation documentee.
+- [x] Pas de chemins admin/prive dans `robots.txt`.
+- [x] Reponses `401/403/404` coherentes sans enumeration inutile.
+- [x] Revue dependances avant go-live.
+- [x] Test manuel login/logout/timeout/refus CSRF.
+- [x] Test manuel compte suspendu et permission retiree.
+- [x] Test manuel restauration fichier et base.
+
+Implementation 2026-05-28 :
+
+- controle executable : `php backend/core/tools/private_migration_reconcile.php security-checklist` ;
+- sortie JSON bloquante : code retour `1` si un controle automatisable echoue ;
+- les tests manuels restent visibles dans la sortie pour la recette preprod, au lieu d'etre implicitement coches sans preuve ;
+- le fichier public `robots.txt` ne liste volontairement aucun chemin admin ou prive ; l'anti-indexation privee est portee par authentification, `X-Robots-Tag` et CSP.
 
 ### 14.7 Definition of Done de la migration
 

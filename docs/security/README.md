@@ -151,6 +151,23 @@ La session creee reste une session admin normale: CSRF, timeout, re-authentifica
 10. `composer check-security-headers -- --url=https://preprod.votredomaine.tld` est vert avant go-live.
 11. Si `local_passwordless_localhost` est active en local, verifier qu'un `APP_ENV=production` ou une adresse non-loopback refuse toujours la connexion sans mot de passe.
 
+## Checklist Securite Espace Prive
+
+La checklist de la nouvelle app privee est executable :
+
+```bash
+php backend/core/tools/private_migration_reconcile.php security-checklist
+```
+
+Elle couvre les controles automatisables de la section `docs/private/README.md` 14.6 :
+
+- threat model court par module ;
+- validation, CSRF, cookies, CSP et erreurs non enumerantes ;
+- rate limits, uploads, quarantaine documentaire hors webroot ;
+- audit sans contenu sensible, backups, secrets et `robots.txt`.
+
+La commande retourne un JSON et echoue si un point bloquant est detecte. Les tests manuels de recette restent obligatoires en preprod : login/logout/timeout/CSRF, compte suspendu/permission retiree, restauration fichier et base.
+
 ## Execution Ticket W1-03 (2026-03-20)
 
 Resultat :

@@ -7,6 +7,7 @@ use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateLegacyRetirementService;
 use Caramagnols\PrivatePortal\Operations\PrivateModuleMigrationPlanService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
+use Caramagnols\PrivatePortal\Operations\PrivateSecurityChecklistService;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 
@@ -31,6 +32,7 @@ Usage:
   php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json
   php backend/core/tools/private_migration_reconcile.php m5-plan [module] [--output=/path/plan.json]
   php backend/core/tools/private_migration_reconcile.php m6-retirement [--output=/path/inventory.json]
+  php backend/core/tools/private_migration_reconcile.php security-checklist [--output=/path/security.json]
 
 Par defaut, l'import est un dry-run. L'option --apply est refusee si le module n'est pas au statut migrating.
 
@@ -127,6 +129,29 @@ try {
         $inventory = $retirementService->inventory();
         writeJsonResult($inventory, optionValue($args, '--output'));
         exit(($inventory['success'] ?? false) === true && ($inventory['ready'] ?? false) === true ? 0 : 1);
+    }
+
+    if ($command === 'security-checklist') {
+        $privateConfig = (array) app_config('private', []);
+        $basePath = is_string($privateConfig['base_path'] ?? null) ? (string) $privateConfig['base_path'] : 'private';
+        $routeResolver = new PrivateRouteResolver($basePath);
+        $planService = new PrivateModuleMigrationPlanService(
+            $moduleRegistry,
+            $routeResolver,
+            $migrationService
+        );
+        $retirementService = new PrivateLegacyRetirementService(
+            $routeResolver,
+            $moduleRegistry
+        );
+        $checklist = (new PrivateSecurityChecklistService(
+            $moduleRegistry,
+            $routeResolver,
+            $planService,
+            $retirementService
+        ))->checklist();
+        writeJsonResult($checklist, optionValue($args, '--output'));
+        exit(($checklist['success'] ?? false) === true && ($checklist['ready'] ?? false) === true ? 0 : 1);
     }
 
     throw new RuntimeException(sprintf('Commande inconnue: %s', $command));
