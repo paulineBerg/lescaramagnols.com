@@ -27,12 +27,12 @@ if ($command === 'help' || in_array('--help', $args, true)) {
     fwrite(STDOUT, <<<TXT
 Usage:
   php backend/core/tools/private_migration_reconcile.php snapshot [--files-root=/path] [--output=/path/snapshot.json]
-  php backend/core/tools/private_migration_reconcile.php backup [--target-dir=/path] [--files-root=/path] [--output=/path/result.json]
+  php backend/core/tools/private_migration_reconcile.php backup [--target-dir=/path] [--files-root=/path] [--recommended-max-bytes=536870912] [--output=/path/result.json]
   php backend/core/tools/private_migration_reconcile.php compare /path/left.json /path/right.json
   php backend/core/tools/private_migration_reconcile.php status [module] [status] [--actor=email] [--notes=texte]
   php backend/core/tools/private_migration_reconcile.php read-legacy module [--output=/path/model.json]
   php backend/core/tools/private_migration_reconcile.php import module /path/private-backup.json [--apply]
-  php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json|zip [--output=/path/verify.json]
+  php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json|zip [--recommended-max-bytes=536870912] [--output=/path/verify.json]
   php backend/core/tools/private_migration_reconcile.php m5-plan [module] [--output=/path/plan.json]
   php backend/core/tools/private_migration_reconcile.php m6-retirement [--output=/path/inventory.json]
   php backend/core/tools/private_migration_reconcile.php security-checklist [--output=/path/security.json]
@@ -45,7 +45,7 @@ TXT);
 }
 
 try {
-    $backupService = new PrivateBackupService(editorial_database());
+    $backupService = new PrivateBackupService(editorial_database(), positiveIntegerOption($args, '--recommended-max-bytes'));
     $moduleRegistry = new PrivateModuleRegistry();
     $migrationService = new PrivateMigrationService(editorial_database(), $moduleRegistry);
 
@@ -215,6 +215,24 @@ function optionValue(array $args, string $name): ?string
     }
 
     return null;
+}
+
+/**
+ * @param array<int, string> $args
+ */
+function positiveIntegerOption(array $args, string $name): ?int
+{
+    $value = optionValue($args, $name);
+    if ($value === null) {
+        return null;
+    }
+
+    $value = trim($value);
+    if ($value === '' || !ctype_digit($value) || (int) $value <= 0) {
+        throw new RuntimeException(sprintf('Option %s invalide: entier positif attendu.', $name));
+    }
+
+    return (int) $value;
 }
 
 /**

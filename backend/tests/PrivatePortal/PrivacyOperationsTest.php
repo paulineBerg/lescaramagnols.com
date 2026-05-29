@@ -84,10 +84,17 @@ final class PrivacyOperationsTest extends TestCase
         mkdir($this->tempDir, 0700, true);
         file_put_contents($this->tempDir . '/private-note.txt', 'backup test');
 
-        $service = new PrivateBackupService($database);
+        $service = new PrivateBackupService($database, 1);
         $backup = $service->createBackup($this->tempDir . '/exports', $this->tempDir);
         $this->assertTrue((bool) ($backup['success'] ?? false));
         $this->assertIsString($backup['path'] ?? null);
+        $this->assertTrue((bool) ($backup['size']['thresholdExceeded'] ?? false));
+        $this->assertSame('backup_recommended_size_exceeded', $backup['warnings'][0]['code'] ?? null);
+        $this->assertTrue((bool) ($backup['permissions']['ok'] ?? false));
+        $this->assertSame('0700', $backup['permissions']['directories'][0]['mode'] ?? null);
+        foreach (($backup['permissions']['files'] ?? []) as $filePermissions) {
+            $this->assertSame('0600', $filePermissions['mode'] ?? null);
+        }
         if (class_exists(ZipArchive::class)) {
             $this->assertIsString($backup['archivePath'] ?? null);
             $this->assertFileExists((string) $backup['archivePath']);
@@ -95,6 +102,9 @@ final class PrivacyOperationsTest extends TestCase
 
         $verification = $service->verifyBackup((string) $backup['path']);
         $this->assertTrue((bool) ($verification['valid'] ?? false));
+        $this->assertTrue((bool) ($verification['size']['thresholdExceeded'] ?? false));
+        $this->assertSame('backup_recommended_size_exceeded', $verification['warnings'][0]['code'] ?? null);
+        $this->assertTrue((bool) ($verification['permissions']['ok'] ?? false));
         $this->assertGreaterThanOrEqual(1, (int) ($verification['tableCount'] ?? 0));
         $this->assertGreaterThanOrEqual(1, (int) ($verification['fileCount'] ?? 0));
         if (class_exists(ZipArchive::class)) {
@@ -201,6 +211,8 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertTrue((bool) ($deletion['success'] ?? false));
         $backupPath = (string) ($deletion['backupPath'] ?? '');
         $this->assertFileExists($backupPath);
+        $this->assertSame('0600', $this->permissionMode($backupPath));
+        $this->assertSame('0700', $this->permissionMode(dirname($backupPath)));
         $this->trackDeletionBackup($backupPath);
 
         $payload = $this->deletionBackupPayload($backupPath);
@@ -216,6 +228,7 @@ final class PrivacyOperationsTest extends TestCase
             $zipPath = preg_replace('/\.json\z/i', '.zip', $backupPath);
             $this->assertIsString($zipPath);
             $this->assertFileExists($zipPath);
+            $this->assertSame('0600', $this->permissionMode($zipPath));
             $zip = new ZipArchive();
             $this->assertTrue($zip->open($zipPath));
             $this->assertNotFalse($zip->locateName('backup.json'));
@@ -275,8 +288,12 @@ final class PrivacyOperationsTest extends TestCase
         $purge = $service->cleanupExpiredDeletionBackups(false, (int) $deleteAfter, $fixture['userId']);
         $this->assertSame(1, (int) ($purge['matched'] ?? 0));
         $this->assertSame(1, (int) ($purge['purged'] ?? 0));
-        $this->assertGreaterThanOrEqual(1, (int) ($purge['backup_deleted'] ?? 0));
+        $this->assertGreaterThanOrEqual(class_exists(ZipArchive::class) ? 2 : 1, (int) ($purge['backup_deleted'] ?? 0));
         $this->assertFileDoesNotExist($backupPath);
+        $zipPath = preg_replace('/\.json\z/i', '.zip', $backupPath);
+        if (is_string($zipPath)) {
+            $this->assertFileDoesNotExist($zipPath);
+        }
 
         $userRepository = new PrivateUserRepository($database);
         $this->assertNull($userRepository->findById($fixture['userId']));
@@ -394,6 +411,16 @@ final class PrivacyOperationsTest extends TestCase
         if (is_string($zipPath)) {
             $this->deletionBackupPaths[] = $zipPath;
         }
+    }
+
+    private function permissionMode(string $path): ?string
+    {
+        $permissions = @fileperms($path);
+        if (!is_int($permissions)) {
+            return null;
+        }
+
+        return substr(sprintf('%04o', $permissions & 0777), -4);
     }
 
     private function removeDeletionBackupArtifacts(): void

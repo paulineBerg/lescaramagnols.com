@@ -2422,6 +2422,50 @@ Contrôles de clôture phase 4 (backup/restauration) :
 - Importer une restauration de test dans un environnement de pré-production dédié.
 - Exécuter un cycle document minimal : activation + upload + accès + suppression + lecture refusée sans permission.
 
+### 4.5 Sauvegardes volumineuses et retention
+
+Les sauvegardes privees applicatives sont generees par `PrivateBackupService` via :
+
+```bash
+php backend/core/tools/private_migration_reconcile.php backup \
+  --target-dir=/chemin/hors-webroot/exports \
+  --files-root=/chemin/hors-webroot/uploads \
+  --recommended-max-bytes=536870912
+```
+
+Regles d'exploitation :
+
+1. le seuil recommande par defaut est `536870912` octets (`512 MiB`) pour l'archive ZIP ;
+2. le seuil peut etre surcharge par `private.backup.recommended_max_bytes` ou par l'option CLI `--recommended-max-bytes=...` ;
+3. un depassement emet le warning `backup_recommended_size_exceeded`, sans bloquer la generation ZIP ;
+4. chaque resultat `backup` et `verify-backup` expose `size`, `warnings` et `permissions` ;
+5. les fichiers JSON/ZIP doivent rester en `0600`, les dossiers de sortie en `0700` ;
+6. les chemins de sauvegarde et fichiers sources doivent rester hors `backend/public`.
+
+Verification recommandee apres generation :
+
+```bash
+php backend/core/tools/private_migration_reconcile.php verify-backup /chemin/private-backup.json \
+  --recommended-max-bytes=536870912 \
+  --output=/chemin/private-backup-verify.json
+```
+
+Retention des sauvegardes de suppression compte :
+
+1. les sauvegardes avant suppression de compte suspendu sont stockees sous `backend/var/private-account-deletion-backups/**` ;
+2. chaque sauvegarde contient `generatedAt`, `deleteAfter`, `retentionDays`, tables privees concernees et manifest fichiers ;
+3. la retention operationnelle est `30` jours par defaut ;
+4. un avertissement est envoye a partir de J+20 par `purge_private_account_deletion_backups.php` ;
+5. a J+30, le CRON supprime le compte suspendu restant, les lignes rattachees et les fichiers JSON/ZIP de sauvegarde ;
+6. une recette ciblee peut etre rejouee sans modifier l'horloge serveur avec `--now=DATE|TIMESTAMP --user-id=ID`.
+
+Commande de recette retention :
+
+```bash
+php backend/core/tools/purge_private_account_deletion_backups.php --dry-run --json --now='+20 days' --user-id=123
+php backend/core/tools/purge_private_account_deletion_backups.php --json --now='+30 days' --user-id=123
+```
+
 Definition of Done :
 
 - [x] Aucun fichier prive n'est present dans `backend/public`.

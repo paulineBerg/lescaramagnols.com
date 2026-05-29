@@ -10,6 +10,7 @@ use PDO;
 final class PrivateBackupService
 {
     private const JSON_FLAGS = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
+    private const DEFAULT_RECOMMENDED_MAX_BYTES = 536870912;
 
     /** @var array<int, string> */
     private const DEFAULT_TABLES = [
@@ -57,8 +58,11 @@ final class PrivateBackupService
         'tax_export_logs',
     ];
 
-    public function __construct(private readonly EditorialDatabase $database)
+    private int $recommendedMaxBytes;
+
+    public function __construct(private readonly EditorialDatabase $database, ?int $recommendedMaxBytes = null)
     {
+        $this->recommendedMaxBytes = $this->resolveRecommendedMaxBytes($recommendedMaxBytes);
     }
 
     /**
@@ -73,6 +77,7 @@ final class PrivateBackupService
         if (!is_dir($targetDirectory) && !@mkdir($targetDirectory, 0700, true) && !is_dir($targetDirectory)) {
             return ['success' => false, 'error' => 'target_unavailable'];
         }
+        $this->enforceDirectoryPermissions($targetDirectory);
 
         $files = $this->fileManifest($privateFilesRoot, true);
         $payload = [
@@ -96,12 +101,16 @@ final class PrivateBackupService
         @chmod($path, 0600);
 
         $archivePath = $this->writeBackupZip($path, $encoded, $files);
+        $size = $this->backupSizeSummary($path, $archivePath);
         $result = [
             'success' => true,
             'path' => $path,
             'checksum' => $checksum,
             'tableCount' => count($payload['tables']),
             'fileCount' => count($payload['files']),
+            'size' => $size,
+            'warnings' => $this->backupWarnings($size),
+            'permissions' => $this->permissionsReport($targetDirectory, [$path, $archivePath]),
         ];
         if ($archivePath !== null) {
             $result['archivePath'] = $archivePath;
@@ -135,10 +144,14 @@ final class PrivateBackupService
             return ['valid' => false, 'error' => $archive['error'] ?? 'backup_archive_invalid'];
         }
 
+        $resolvedPath = is_string($loaded['path'] ?? null) ? (string) $loaded['path'] : $path;
+        $archivePath = is_string($archive['archivePath'] ?? null) ? (string) $archive['archivePath'] : null;
+        $size = $this->backupSizeSummary($resolvedPath, $archivePath);
+
         return [
             'valid' => true,
             'format' => $loaded['format'] ?? 'json',
-            'path' => $loaded['path'] ?? $path,
+            'path' => $resolvedPath,
             'checksum' => hash('sha256', (string) ($loaded['content'] ?? '')),
             'payloadChecksum' => hash('sha256', (string) ($loaded['payloadContent'] ?? '')),
             'tableCount' => $structure['tableCount'],
@@ -150,6 +163,9 @@ final class PrivateBackupService
             'storedFileCount' => $archive['storedFileCount'],
             'missingArchiveFiles' => $archive['missingArchiveFiles'],
             'hashMismatchFiles' => $archive['hashMismatchFiles'],
+            'size' => $size,
+            'warnings' => $this->backupWarnings($size),
+            'permissions' => $this->permissionsReport(dirname($resolvedPath), [$resolvedPath, $archivePath]),
         ];
     }
 
@@ -416,6 +432,120 @@ final class PrivateBackupService
             },
             $files
         );
+    }
+
+    private function resolveRecommendedMaxBytes(?int $configured): int
+    {
+        if ($configured !== null && $configured > 0) {
+            return $configured;
+        }
+
+        $appConfigured = function_exists('app_config') ? app_config('private.backup.recommended_max_bytes', null) : null;
+        if (is_numeric($appConfigured) && (int) $appConfigured > 0) {
+            return (int) $appConfigured;
+        }
+
+        return self::DEFAULT_RECOMMENDED_MAX_BYTES;
+    }
+
+    private function enforceDirectoryPermissions(string $directory): void
+    {
+        if ($directory !== '' && is_dir($directory)) {
+            @chmod($directory, 0700);
+        }
+    }
+
+    /**
+     * @return array{jsonBytes: int, archiveBytes: int, actualBytes: int, recommendedMaxBytes: int, thresholdExceeded: bool}
+     */
+    private function backupSizeSummary(string $path, ?string $archivePath): array
+    {
+        $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
+        $jsonBytes = $extension === 'json' && is_file($path) ? (int) filesize($path) : 0;
+        $archiveBytes = is_string($archivePath) && $archivePath !== '' && is_file($archivePath)
+            ? (int) filesize($archivePath)
+            : ($extension === 'zip' && is_file($path) ? (int) filesize($path) : 0);
+        $actualBytes = $archiveBytes > 0 ? $archiveBytes : $jsonBytes;
+
+        return [
+            'jsonBytes' => $jsonBytes,
+            'archiveBytes' => $archiveBytes,
+            'actualBytes' => $actualBytes,
+            'recommendedMaxBytes' => $this->recommendedMaxBytes,
+            'thresholdExceeded' => $actualBytes > $this->recommendedMaxBytes,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $size
+     * @return array<int, array<string, mixed>>
+     */
+    private function backupWarnings(array $size): array
+    {
+        if (($size['thresholdExceeded'] ?? false) !== true) {
+            return [];
+        }
+
+        return [[
+            'code' => 'backup_recommended_size_exceeded',
+            'level' => 'warning',
+            'message' => 'La sauvegarde depasse la taille maximale recommandee; verifier duree de generation, espace disque et retention avant exploitation.',
+            'actualBytes' => (int) ($size['actualBytes'] ?? 0),
+            'recommendedMaxBytes' => (int) ($size['recommendedMaxBytes'] ?? 0),
+        ]];
+    }
+
+    /**
+     * @param array<int, string|null> $files
+     * @return array<string, mixed>
+     */
+    private function permissionsReport(string $directory, array $files): array
+    {
+        $directoryMode = $this->permissionMode($directory);
+        $fileReports = [];
+        $filesOk = true;
+        foreach ($files as $file) {
+            if (!is_string($file) || $file === '' || !is_file($file)) {
+                continue;
+            }
+
+            $mode = $this->permissionMode($file);
+            $ok = $mode === '0600';
+            $filesOk = $filesOk && $ok;
+            $fileReports[] = [
+                'path' => $file,
+                'mode' => $mode,
+                'expected' => '0600',
+                'ok' => $ok,
+            ];
+        }
+
+        $directoryOk = $directoryMode === '0700';
+
+        return [
+            'ok' => $directoryOk && $filesOk,
+            'directories' => [[
+                'path' => $directory,
+                'mode' => $directoryMode,
+                'expected' => '0700',
+                'ok' => $directoryOk,
+            ]],
+            'files' => $fileReports,
+        ];
+    }
+
+    private function permissionMode(string $path): ?string
+    {
+        if ($path === '' || !file_exists($path)) {
+            return null;
+        }
+
+        $permissions = @fileperms($path);
+        if (!is_int($permissions)) {
+            return null;
+        }
+
+        return substr(sprintf('%04o', $permissions & 0777), -4);
     }
 
     private function backupArchivePath(string $path): string

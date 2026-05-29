@@ -1,0 +1,120 @@
+var/private-v1-preprod-m41Z7o/backup-result.json
+var/private-v1-preprod-m41Z7o/verify.json
+
+Backup result summary:
+{
+    "success": true,
+    "fileCount": 1,
+    "size": {
+        "jsonBytes": 14665,
+        "archiveBytes": 3452,
+        "actualBytes": 3452,
+        "recommendedMaxBytes": 1,
+        "thresholdExceeded": true
+    },
+    "warnings": [
+        {
+            "code": "backup_recommended_size_exceeded",
+            "level": "warning",
+            "message": "La sauvegarde depasse la taille maximale recommandee; verifier duree de generation, espace disque et retention avant exploitation.",
+            "actualBytes": 3452,
+            "recommendedMaxBytes": 1
+        }
+    ],
+    "permissions": {
+        "ok": true,
+        "directories": [
+            {
+                "path": "var/private-v1-preprod-m41Z7o/exports",
+                "mode": "0700",
+                "expected": "0700",
+                "ok": true
+            }
+        ],
+        "files": [
+            {
+                "path": "var/private-v1-preprod-m41Z7o/exports/private-backup-20260529-172012-48e8e3af8a18.json",
+                "mode": "0600",
+                "expected": "0600",
+                "ok": true
+            },
+            {
+                "path": "var/private-v1-preprod-m41Z7o/exports/private-backup-20260529-172012-48e8e3af8a18.zip",
+                "mode": "0600",
+                "expected": "0600",
+                "ok": true
+            }
+        ]
+    },
+    "archivePath": true
+}
+
+Verify summary:
+{
+    "verification": {
+        "valid": true,
+        "size": {
+            "jsonBytes": 14665,
+            "archiveBytes": 3452,
+            "actualBytes": 3452,
+            "recommendedMaxBytes": 1,
+            "thresholdExceeded": true
+        },
+        "warnings": [
+            {
+                "code": "backup_recommended_size_exceeded",
+                "level": "warning",
+                "message": "La sauvegarde depasse la taille maximale recommandee; verifier duree de generation, espace disque et retention avant exploitation.",
+                "actualBytes": 3452,
+                "recommendedMaxBytes": 1
+            }
+        ],
+        "permissions": {
+            "ok": true,
+            "directories": [
+                {
+                    "path": "var/private-v1-preprod-m41Z7o/exports",
+                    "mode": "0700",
+                    "expected": "0700",
+                    "ok": true
+                }
+            ],
+            "files": [
+                {
+                    "path": "var/private-v1-preprod-m41Z7o/exports/private-backup-20260529-172012-48e8e3af8a18.json",
+                    "mode": "0600",
+                    "expected": "0600",
+                    "ok": true
+                },
+                {
+                    "path": "var/private-v1-preprod-m41Z7o/exports/private-backup-20260529-172012-48e8e3af8a18.zip",
+                    "mode": "0600",
+                    "expected": "0600",
+                    "ok": true
+                }
+            ]
+        },
+        "archiveAvailable": true,
+        "storedFileCount": 1
+    },
+    "restoreDryRun": {
+        "success": true,
+        "files": {
+            "declaredFiles": 1,
+            "archiveAvailable": true,
+            "storedFiles": 1,
+            "missingArchiveFiles": [],
+            "hashMismatchFiles": [],
+            "restorable": true
+        }
+    }
+}
+
+Modes disque:
+700 var/private-v1-preprod-m41Z7o/exports
+600 var/private-v1-preprod-m41Z7o/exports/private-backup-20260529-172012-48e8e3af8a18.json
+600 var/private-v1-preprod-m41Z7o/exports/private-backup-20260529-172012-48e8e3af8a18.zip
+
+Hors webroot:
+outside_public=true
+cleanup_ok=true

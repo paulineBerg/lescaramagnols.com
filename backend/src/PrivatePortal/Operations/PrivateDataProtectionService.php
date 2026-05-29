@@ -517,6 +517,9 @@ final class PrivateDataProtectionService
         if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
             return null;
         }
+        $this->enforceDeletionBackupDirectoryPermissions($root);
+        $this->enforceDeletionBackupDirectoryPermissions(dirname($directory));
+        $this->enforceDeletionBackupDirectoryPermissions($directory);
 
         $path = $directory . '/private-user-' . $privateUserId . '-' . date('Ymd-His') . '.json';
         $tables = $this->deletionBackupRows($privateUserId);
@@ -547,6 +550,7 @@ final class PrivateDataProtectionService
             $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             if (is_string($json)) {
                 file_put_contents($path, $json, LOCK_EX);
+                @chmod($path, 0600);
             }
         }
 
@@ -1212,6 +1216,7 @@ final class PrivateDataProtectionService
 
                 continue;
             }
+            @chmod($file->getPathname(), 0600);
 
             ++$result['sent'];
         }
@@ -1331,6 +1336,13 @@ final class PrivateDataProtectionService
         $backendRoot = defined('ROOT_PATH') ? (string) ROOT_PATH : dirname(__DIR__, 3);
 
         return rtrim($backendRoot, '/\\') . '/var/private-account-deletion-backups';
+    }
+
+    private function enforceDeletionBackupDirectoryPermissions(string $directory): void
+    {
+        if ($directory !== '' && is_dir($directory)) {
+            @chmod($directory, 0700);
+        }
     }
 
     /**

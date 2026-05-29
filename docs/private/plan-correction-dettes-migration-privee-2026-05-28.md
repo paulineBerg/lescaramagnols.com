@@ -412,27 +412,48 @@ Objectif : garantir que les sauvegardes restent exploitables quand les documents
 
 Checklist de suivi :
 
-- [ ] Definir un seuil de taille maximale recommande.
-- [ ] Ajouter ou verifier une alerte de depassement de seuil.
-- [ ] Verifier les droits fichiers/dossiers sur preprod.
-- [ ] Documenter la retention des sauvegardes de suppression compte.
-- [ ] Prouver la suppression des sauvegardes a J+30.
-- [ ] Tester une sauvegarde volumineuse ou un jeu de test representatif.
+- [x] Definir un seuil de taille maximale recommande.
+- [x] Ajouter ou verifier une alerte de depassement de seuil.
+- [x] Verifier les droits fichiers/dossiers sur preprod.
+- [x] Documenter la retention des sauvegardes de suppression compte.
+- [x] Prouver la suppression des sauvegardes a J+30.
+- [x] Tester une sauvegarde volumineuse ou un jeu de test representatif.
 
 Travaux :
 
-- [ ] definir une taille maximale de sauvegarde recommandee ;
-- [ ] ajouter une alerte si une sauvegarde depasse un seuil configurable ;
-- [ ] verifier les droits `0600` sur fichiers et `0700` sur dossiers ;
-- [ ] documenter la retention des sauvegardes liees aux suppressions compte ;
-- [ ] verifier que les sauvegardes J+30 sont bien supprimees avec le compte.
+- [x] definir une taille maximale de sauvegarde recommandee ;
+- [x] ajouter une alerte si une sauvegarde depasse un seuil configurable ;
+- [x] verifier les droits `0600` sur fichiers et `0700` sur dossiers ;
+- [x] documenter la retention des sauvegardes liees aux suppressions compte ;
+- [x] verifier que les sauvegardes J+30 sont bien supprimees avec le compte.
+
+Decision :
+
+- seuil recommande par defaut : `536870912` octets (`512 MiB`) pour une archive privee ZIP ;
+- seuil surchargeable par configuration applicative `private.backup.recommended_max_bytes` ou par CLI `--recommended-max-bytes=...` ;
+- `PrivateBackupService::createBackup()` et `verifyBackup()` retournent `size`, `warnings` et `permissions` ;
+- le warning `backup_recommended_size_exceeded` est emis sans bloquer la generation ZIP quand le seuil est depasse ;
+- les fichiers de sauvegarde JSON/ZIP sont forces en `0600`, les dossiers cibles en `0700` ;
+- les sauvegardes de suppression compte restent sous `backend/var/private-account-deletion-backups/**`, avec retention `30` jours et purge par `purge_private_account_deletion_backups.php`.
 
 Critere d'acceptation :
 
-- [ ] une sauvegarde volumineuse ne casse pas la generation ZIP ;
-- [ ] le chemin de sauvegarde reste hors webroot ;
-- [ ] les droits fichiers sont controles ;
-- [ ] la retention est explicite et testable.
+- [x] une sauvegarde volumineuse ne casse pas la generation ZIP ;
+- [x] le chemin de sauvegarde reste hors webroot ;
+- [x] les droits fichiers sont controles ;
+- [x] la retention est explicite et testable.
+
+Preuves :
+
+- sauvegarde representative locale, alerte seuil, ZIP et droits : `docs/private/recette-preprod-migration-privee/60-v1-local-representative-backup-2026-05-29.txt` ;
+- validations locales : `docs/private/recette-preprod-migration-privee/61-v1-local-validation-2026-05-29.txt` ;
+- `migration-dod` locale : `docs/private/recette-preprod-migration-privee/62-v1-migration-dod-local-2026-05-29.json` ;
+- checklist securite locale : `docs/private/recette-preprod-migration-privee/63-v1-security-checklist-local-2026-05-29.json` ;
+- deploiement preprod : `docs/private/recette-preprod-migration-privee/64-v1-deploy-preprod-2026-05-29.txt` ;
+- sauvegarde representative preprod, alerte seuil, ZIP, droits et nettoyage : `docs/private/recette-preprod-migration-privee/65-v1-preprod-representative-backup-2026-05-29.txt` ;
+- `migration-dod` preprod : `docs/private/recette-preprod-migration-privee/66-v1-migration-dod-preprod-2026-05-29.json` ;
+- checklist securite preprod : `docs/private/recette-preprod-migration-privee/67-v1-security-checklist-preprod-2026-05-29.json` ;
+- headers preprod : `docs/private/recette-preprod-migration-privee/68-v1-check-security-headers-preprod-2026-05-29.txt`.
 
 ### Phase V2 - Emails transactionnels
 

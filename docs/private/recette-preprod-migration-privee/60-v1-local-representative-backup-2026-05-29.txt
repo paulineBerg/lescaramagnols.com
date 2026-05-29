@@ -1,0 +1,116 @@
+backend/var/private-v1-local-c0kkKF/backup-result.json
+backend/var/private-v1-local-c0kkKF/verify.json
+
+Backup result summary:
+{
+    "success": true,
+    "fileCount": 1,
+    "size": {
+        "jsonBytes": 63451,
+        "archiveBytes": 8513,
+        "actualBytes": 8513,
+        "recommendedMaxBytes": 1,
+        "thresholdExceeded": true
+    },
+    "warnings": [
+        {
+            "code": "backup_recommended_size_exceeded",
+            "level": "warning",
+            "message": "La sauvegarde depasse la taille maximale recommandee; verifier duree de generation, espace disque et retention avant exploitation.",
+            "actualBytes": 8513,
+            "recommendedMaxBytes": 1
+        }
+    ],
+    "permissions": {
+        "ok": true,
+        "directories": [
+            {
+                "path": "backend/var/private-v1-local-c0kkKF/exports",
+                "mode": "0700",
+                "expected": "0700",
+                "ok": true
+            }
+        ],
+        "files": [
+            {
+                "path": "backend/var/private-v1-local-c0kkKF/exports/private-backup-20260529-151611-7f8572a6b4ec.json",
+                "mode": "0600",
+                "expected": "0600",
+                "ok": true
+            },
+            {
+                "path": "backend/var/private-v1-local-c0kkKF/exports/private-backup-20260529-151611-7f8572a6b4ec.zip",
+                "mode": "0600",
+                "expected": "0600",
+                "ok": true
+            }
+        ]
+    },
+    "archivePath": true
+}
+
+Verify summary:
+{
+    "verification": {
+        "valid": true,
+        "size": {
+            "jsonBytes": 63451,
+            "archiveBytes": 8513,
+            "actualBytes": 8513,
+            "recommendedMaxBytes": 1,
+            "thresholdExceeded": true
+        },
+        "warnings": [
+            {
+                "code": "backup_recommended_size_exceeded",
+                "level": "warning",
+                "message": "La sauvegarde depasse la taille maximale recommandee; verifier duree de generation, espace disque et retention avant exploitation.",
+                "actualBytes": 8513,
+                "recommendedMaxBytes": 1
+            }
+        ],
+        "permissions": {
+            "ok": true,
+            "directories": [
+                {
+                    "path": "backend/var/private-v1-local-c0kkKF/exports",
+                    "mode": "0700",
+                    "expected": "0700",
+                    "ok": true
+                }
+            ],
+            "files": [
+                {
+                    "path": "backend/var/private-v1-local-c0kkKF/exports/private-backup-20260529-151611-7f8572a6b4ec.json",
+                    "mode": "0600",
+                    "expected": "0600",
+                    "ok": true
+                },
+                {
+                    "path": "backend/var/private-v1-local-c0kkKF/exports/private-backup-20260529-151611-7f8572a6b4ec.zip",
+                    "mode": "0600",
+                    "expected": "0600",
+                    "ok": true
+                }
+            ]
+        },
+        "archiveAvailable": true,
+        "storedFileCount": 1
+    },
+    "restoreDryRun": {
+        "success": true,
+        "files": {
+            "declaredFiles": 1,
+            "archiveAvailable": true,
+            "storedFiles": 1,
+            "missingArchiveFiles": [],
+            "hashMismatchFiles": [],
+            "restorable": true
+        }
+    }
+}
+
+Modes disque:
+700 backend/var/private-v1-local-c0kkKF/exports
+600 backend/var/private-v1-local-c0kkKF/exports/private-backup-20260529-151611-7f8572a6b4ec.json
+600 backend/var/private-v1-local-c0kkKF/exports/private-backup-20260529-151611-7f8572a6b4ec.zip
