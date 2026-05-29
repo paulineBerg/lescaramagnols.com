@@ -1931,6 +1931,19 @@ final class FrontControllerHttpTest extends TestCase
         $this->assertStringContainsString('Sitemap: http://127.0.0.1:8000/sitemap.xml', $response->body);
     }
 
+    public function testRobotsRouteDisallowsAllOnPreproductionHost(): void
+    {
+        $response = $this->frontController()->handle(
+            $this->request('GET', '/robots.txt', headers: ['Host' => 'preprod.lescaramagnols.com'])
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame('text/plain; charset=UTF-8', $response->headers['Content-Type'] ?? null);
+        $this->assertStringContainsString('User-agent: *', $response->body);
+        $this->assertStringContainsString('Disallow: /', $response->body);
+        $this->assertStringNotContainsString('Sitemap:', $response->body);
+    }
+
     public function testFrontVisitIsLoggedWithVisitorContext(): void
     {
         file_put_contents(

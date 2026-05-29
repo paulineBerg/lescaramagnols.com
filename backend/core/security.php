@@ -123,6 +123,20 @@ function request_is_localhost_host(): bool
     return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
 }
 
+function request_is_preproduction_host(): bool
+{
+    $host = request_host_without_port();
+
+    return in_array($host, ['preprod.lescaramagnols.com', 'www.preprod.lescaramagnols.com'], true);
+}
+
+function response_should_noindex_all(): bool
+{
+    return env_bool('PREPROD_NOINDEX', false)
+        || env_bool('NOINDEX_ALL', false)
+        || request_is_preproduction_host();
+}
+
 function env_bool(string $key, bool $default = false): bool
 {
     $value = env($key, $default ? '1' : '0');
@@ -245,6 +259,9 @@ function apply_security_headers(): void
     header('Cross-Origin-Opener-Policy: same-origin', false);
     header('Cross-Origin-Resource-Policy: same-site', false);
     header('Origin-Agent-Cluster: ?1', false);
+    if (response_should_noindex_all()) {
+        header('X-Robots-Tag: noindex, nofollow, noarchive, nosnippet', false);
+    }
 
     // CSP modernisée avec nonce : injecté dans $GLOBALS['csp_nonce'] côté layout
     $nonce = bin2hex(random_bytes(12));

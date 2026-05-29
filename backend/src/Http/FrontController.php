@@ -409,6 +409,14 @@ final class FrontController
 
     private function robotsTxtResponse(Request $request): Response
     {
+        if ($this->shouldNoindexAll($request)) {
+            return new Response(
+                200,
+                ['Content-Type' => 'text/plain; charset=UTF-8'],
+                implode(PHP_EOL, ['User-agent: *', 'Disallow: /']) . PHP_EOL
+            );
+        }
+
         $lines = [
             'User-agent: *',
             'Allow: /',
@@ -420,6 +428,26 @@ final class FrontController
             ['Content-Type' => 'text/plain; charset=UTF-8'],
             implode(PHP_EOL, $lines) . PHP_EOL
         );
+    }
+
+    private function shouldNoindexAll(Request $request): bool
+    {
+        $host = trim((string) ($request->header('Host') ?? $request->server('HTTP_HOST', '')));
+        if ($host !== '' && preg_match('/^\[(.+)\](?::\d+)?$/', $host, $matches) === 1) {
+            $host = (string) $matches[1];
+        } elseif (substr_count($host, ':') === 1) {
+            [$candidateHost, $candidatePort] = array_pad(explode(':', $host, 2), 2, '');
+            if ($candidateHost !== '' && ctype_digit($candidatePort)) {
+                $host = $candidateHost;
+            }
+        }
+
+        $host = strtolower(trim($host));
+        if (in_array($host, ['preprod.lescaramagnols.com', 'www.preprod.lescaramagnols.com'], true)) {
+            return true;
+        }
+
+        return (function_exists('env_bool') && (env_bool('PREPROD_NOINDEX', false) || env_bool('NOINDEX_ALL', false)));
     }
 
     private function languageApiResponse(Request $request): Response

@@ -30,6 +30,10 @@ RewriteRule "(^|/).+\.(?:sh|bash|zsh|ps1|bat|cmd)$" - [F,L,NC]
 # Force explicitement la racine vers le front-controller (évite un 403 sur certains Apache mutualisés).
 RewriteRule ^$ index.php [QSA,L]
 
+# En préproduction, robots.txt est généré par l'application pour bloquer l'indexation.
+RewriteCond %{HTTP_HOST} ^(?:www\.)?preprod\.lescaramagnols\.com(?::\d+)?$ [NC]
+RewriteRule ^robots\.txt$ index.php [QSA,L]
+
 # Laisse passer les fichiers et dossiers existants (assets, images, etc.).
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
@@ -63,6 +67,10 @@ Header always set Referrer-Policy "no-referrer"
 Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()"
 Header always set Cross-Origin-Opener-Policy "same-origin"
 Header always set Cross-Origin-Resource-Policy "same-site"
+<IfModule mod_setenvif.c>
+SetEnvIfNoCase Host "^(?:www\.)?preprod\.lescaramagnols\.com(?::\d+)?$" CARAMAGNOLS_NOINDEX=1
+</IfModule>
+Header always set X-Robots-Tag "noindex, nofollow, noarchive, nosnippet" env=CARAMAGNOLS_NOINDEX
 <IfModule mod_setenvif.c>
 # Assets fingerprintes Vite (hash dans le nom de fichier) => cache long.
 SetEnvIf Request_URI "\.[A-Za-z0-9_-]{8,}\.(?:css|js|mjs|png|jpe?g|gif|webp|svg|ico|woff2?)$" CARA_FP_ASSET=1

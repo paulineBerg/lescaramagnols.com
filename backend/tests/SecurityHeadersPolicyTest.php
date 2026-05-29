@@ -77,4 +77,20 @@ final class SecurityHeadersPolicyTest extends TestCase
         $this->assertContains('https://region1.google-analytics.com', $sources['connect']);
         $this->assertContains('https://www.googleadservices.com', $sources['connect']);
     }
+
+    public function testPreproductionHostRequiresNoindexRobotsHeader(): void
+    {
+        $previousHost = $_SERVER['HTTP_HOST'] ?? null;
+        $_SERVER['HTTP_HOST'] = 'preprod.lescaramagnols.com';
+
+        try {
+            $this->assertTrue(response_should_noindex_all());
+        } finally {
+            if ($previousHost === null) {
+                unset($_SERVER['HTTP_HOST']);
+            } else {
+                $_SERVER['HTTP_HOST'] = $previousHost;
+            }
+        }
+    }
 }
