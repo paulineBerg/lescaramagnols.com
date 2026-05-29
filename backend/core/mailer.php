@@ -50,11 +50,14 @@ function sanitize_mailer_error_message(string $message): string
  */
 function send_private_email(string $to, string $subject, string $message, array $attachments = []): bool
 {
+    private_mail_set_last_error(null);
     $privateMailConfig = app_config('private.mail', []);
     if (!is_array($privateMailConfig) || empty($privateMailConfig['enabled'])) {
+        private_mail_set_last_error('private mail disabled');
         return false;
     }
     if (trim((string) ($privateMailConfig['smtp_user'] ?? '')) !== '' && (string) ($privateMailConfig['smtp_password'] ?? '') === '') {
+        private_mail_set_last_error('private mail smtp password missing');
         return false;
     }
 
@@ -67,8 +70,10 @@ function send_private_email(string $to, string $subject, string $message, array 
 
         $result = send_notification_email_with_error($to, $subject, $message, $attachments, $mailConfig);
         if ($result['sent']) {
+            private_mail_set_last_error(null);
             return true;
         }
+        private_mail_set_last_error($result['error']);
 
         if ($isLocalTransport) {
             continue;
@@ -82,6 +87,16 @@ function send_private_email(string $to, string $subject, string $message, array 
     }
 
     return false;
+}
+
+function private_mail_set_last_error(?string $error): void
+{
+    $GLOBALS['private_mail_last_error'] = $error !== null && trim($error) !== '' ? trim($error) : null;
+}
+
+function private_mail_last_error(): ?string
+{
+    return is_string($GLOBALS['private_mail_last_error'] ?? null) ? $GLOBALS['private_mail_last_error'] : null;
 }
 
 /**

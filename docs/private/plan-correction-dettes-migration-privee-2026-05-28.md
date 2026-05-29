@@ -492,6 +492,7 @@ Decision V2 :
 - Les envois de reset utilisent la configuration SMTP privee et le helper `send_private_email()`.
 - Les erreurs SMTP restent neutres cote utilisateur ; le log technique redige les secrets, mots de passe, tokens et DSN sensibles avant journalisation.
 - En preproduction OVH, le SMTP prive garde la configuration admin `ssl0.ovh.net:465` en `ssl`. Si le reseau d'execution refuse les sockets SMTP sortantes OVH, le helper prive tente `587/tls`, puis les transports locaux `native mail()` et `sendmail` uniquement pour une erreur reseau ; une erreur d'authentification ne declenche pas ce fallback.
+- Si aucun transport ne peut envoyer le reset depuis la preproduction, l'action admin reste exploitable: le jeton est cree, l'echec mail est journalise avec une cause masquee, et le BO affiche un lien de reinitialisation unique a transmettre manuellement.
 
 Preuves V2 :
 

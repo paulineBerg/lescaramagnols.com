@@ -423,7 +423,20 @@ final class AdminPrivateMembersService
 
         $emailSent = $this->sendPasswordResetEmail($email, $token, $actorIdentifier, $userId);
         if (!$emailSent) {
-            return $this->result(false, null, 'La demande de réinitialisation a été créée, mais l’email n’a pas pu être envoyé.');
+            $this->logAction(
+                'admin.private.password_reset_manual_link_issued',
+                $actorIdentifier,
+                $userId,
+                $email,
+                'warning'
+            );
+
+            return $this->result(
+                true,
+                'La demande de réinitialisation a été créée, mais l’email n’a pas pu être envoyé. '
+                    . 'Lien de réinitialisation à usage unique : ' . $this->passwordResetUrl($token),
+                null
+            );
         }
 
         $this->logAction('admin.private.password_reset_requested', $actorIdentifier, $userId, $email);
@@ -609,7 +622,7 @@ final class AdminPrivateMembersService
 
     private function sendPasswordResetEmail(string $email, string $token, ?string $actorIdentifier, int $userId): bool
     {
-        $url = app_url(private_portal_url('password_reset') . '/' . rawurlencode($token));
+        $url = $this->passwordResetUrl($token);
         $message = $this->renderPrivateMailTemplate($this->privateMailTemplate(
             'password_reset_body',
             "Bonjour,\n\nRéinitialisez votre mot de passe avec ce lien sécurisé : {{reset_url}}"
@@ -654,16 +667,23 @@ final class AdminPrivateMembersService
         $sent = function_exists('send_private_email')
             ? send_private_email($email, $subject, $html)
             : false;
+        $mailError = !$sent && function_exists('private_mail_last_error') ? private_mail_last_error() : null;
 
         $this->logAction(
             $sent ? $event . '_sent' : $event . '_failed',
             $actorIdentifier,
             $userId,
             $email,
-            $sent ? 'info' : 'warning'
+            $sent ? 'info' : 'warning',
+            $mailError !== null ? ['mail_error' => $mailError] : []
         );
 
         return $sent;
+    }
+
+    private function passwordResetUrl(string $token): string
+    {
+        return app_url(private_portal_url('password_reset') . '/' . rawurlencode($token));
     }
 
     /**

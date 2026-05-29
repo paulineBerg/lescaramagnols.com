@@ -5,13 +5,20 @@ declare(strict_types=1);
 namespace Caramagnols\Tests\PrivatePortal;
 
 use Caramagnols\Admin\AdminSettingsService;
+use Caramagnols\Admin\AdminPrivateMembersService;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Logging\LoggerFactory;
 use Caramagnols\Mailer\Mailer;
+use Caramagnols\PrivatePortal\PrivateModuleRegistry;
+use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
+use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
+use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
 final class PrivateTransactionalEmailTest extends TestCase
 {
+    use EditorialSqlTestTrait;
+
     /** @var array<string, mixed> */
     private array $previousAppConfig = [];
     private string $tempDir = '';
@@ -54,6 +61,7 @@ final class PrivateTransactionalEmailTest extends TestCase
         global $appConfig;
 
         $appConfig = $this->previousAppConfig;
+        $this->cleanupEditorialSqlDatabase();
         $this->removeDirectory($this->tempDir);
     }
 
@@ -158,6 +166,35 @@ final class PrivateTransactionalEmailTest extends TestCase
         ]);
 
         self::assertInstanceOf(Mailer::class, $mailer);
+    }
+
+    public function testAdminResetReturnsManualLinkWhenPrivateMailCannotBeSent(): void
+    {
+        global $appConfig;
+
+        $appConfig['private']['mail']['smtp_password'] = '';
+
+        $database = $this->editorialSqlDatabase();
+        $repository = new PrivateUserRepository($database);
+        $passwordHash = password_hash('TempPassword1!', PASSWORD_ARGON2ID);
+        self::assertIsString($passwordHash);
+        $userId = $repository->create('family@example.com', $passwordHash, 'active');
+        self::assertIsInt($userId);
+
+        $service = new AdminPrivateMembersService(
+            $repository,
+            new PrivateModulePermissionRepository($database, new PrivateModuleRegistry())
+        );
+
+        $result = $service->handleAction([
+            'private_member_action' => 'reset',
+            'private_user_id' => (string) $userId,
+        ], 'admin@example.com', '127.0.0.1', 'phpunit');
+
+        self::assertTrue($result['success']);
+        self::assertIsString($result['message']);
+        self::assertStringContainsString('Lien de réinitialisation à usage unique', $result['message']);
+        self::assertStringContainsString('https://preprod.lescaramagnols.com/private/password/reset/', $result['message']);
     }
 
     public function testSecurityLoggerRedactsTokenAndPasswordFields(): void
