@@ -30,7 +30,7 @@ Derniere mise a jour : 2026-05-29.
 
 | Phase | Statut | Lecture rapide |
 |---|---|---|
-| C0 - Gate preproduction | En cours | Socle preprod deploye, headers OK, runbook cree, C1/C2/C3 signes. Reste a fermer la decision finale. |
+| C0 - Gate preproduction | Fait | Gate preprod validee: readiness OK, headers preprod OK, C1/C2/C3 signes, decision C0 fermee en GO. |
 | C1 - Recette manuelle securite privee | Fait | Recette manuelle executee sur la vraie preprod, preuve C1 archivee. |
 | C2 - Suppression compte suspendu et cron J+20/J+30 | Fait | Flux sensible joue bout en bout en preprod avec compte jetable, preuve C2 archivee. Livraison SMTP reelle non forcee, renvoyee a V2. |
 | C3 - Restauration fichier et base | Fait | Backup ZIP + verify + restore dry-run rejoues sur preprod, preuve archivee, artefacts jetables nettoyes. |
@@ -63,9 +63,9 @@ Checklist de suivi :
 - [x] Relancer `m5-plan` avec `ready=true`.
 - [x] Relancer `m6-retirement` avec `ready=true`.
 - [x] Relancer `check-security-headers` sur la vraie preprod avec `Headers requis: OK`.
-- [ ] Archiver la derniere sortie preprod OK dans le runbook.
+- [x] Archiver la derniere sortie preprod OK dans le runbook.
 - [x] Signer les scenarios manuels C1, C2 et C3 dans le runbook.
-- [ ] Fermer la decision finale en `GO` uniquement apres C1/C2/C3.
+- [x] Fermer la decision finale en `GO` uniquement apres C1/C2/C3.
 
 Travaux :
 
@@ -88,7 +88,7 @@ Critere d'acceptation :
 
 - [x] toutes les commandes retournent `ready=true` ou OK ;
 - [x] les tests manuels C1, C2 et C3 sont signes dans le runbook ;
-- [ ] aucune dette critique ouverte ne reste sans decision explicite.
+- [x] aucune dette critique ouverte ne reste sans decision explicite.
 
 ## 4. Phase C1 - Recette manuelle securite privee
 

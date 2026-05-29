@@ -37,6 +37,11 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (PHPUnit) | Suite privée C1/C2/C3 après correction C2 | `59 tests`, `581 assertions`, OK | [19-c2-phpunit-private-suite-2026-05-29.txt](./recette-preprod-migration-privee/19-c2-phpunit-private-suite-2026-05-29.txt) |
 | 2026-05-29 | Auto (CLI local) | C3 implémentation backup ZIP + `verify-backup` + dry-run | `PHP lint OK`, `51 tests`, `527 assertions`, CLI C3 OK | [20-c3-local-backup-restore-cli-2026-05-29.txt](./recette-preprod-migration-privee/20-c3-local-backup-restore-cli-2026-05-29.txt) |
 | 2026-05-29 | Auto (CLI preprod) | C3 restauration fichier + base après déploiement `d971b72` | `C3 OK`, ZIP structuré, `verify-backup` OK, dry-run OK, nettoyage fixture + artefacts OK | [21-c3-preprod-backup-restore-2026-05-29.txt](./recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | C0 final `security-checklist` | `success=true`, `ready=true`, `19/19 checks` | [22-c0-security-checklist-final-2026-05-29.json](./recette-preprod-migration-privee/22-c0-security-checklist-final-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI) | C0 final `migration-dod` | `success=true`, `ready=true`, `11/11 checks` | [23-c0-migration-dod-final-2026-05-29.json](./recette-preprod-migration-privee/23-c0-migration-dod-final-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI) | C0 final `m5-plan` | `success=true`, `ready=true` | [24-c0-m5-plan-final-2026-05-29.json](./recette-preprod-migration-privee/24-c0-m5-plan-final-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI) | C0 final `m6-retirement` | `success=true`, `ready=true` | [25-c0-m6-retirement-final-2026-05-29.json](./recette-preprod-migration-privee/25-c0-m6-retirement-final-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI HTTP preprod) | C0 final `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [26-c0-check-security-headers-preprod-final-2026-05-29.txt](./recette-preprod-migration-privee/26-c0-check-security-headers-preprod-final-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -66,6 +71,11 @@ export PREPROD_CHECK_URL='https://preprod.lescaramagnols.com'
 composer check-security-headers --working-dir=backend -- --url=$PREPROD_CHECK_URL > docs/private/recette-preprod-migration-privee/12-check-security-headers-preprod-rerun.txt 2>&1
 php backend/vendor/bin/phpunit tests/PrivatePortalSecurityTest.php tests/PrivatePortalStorageTest.php tests/PrivatePortalFrontControllerTest.php tests/PrivatePortal/PrivacyOperationsTest.php tests/PrivatePortalPhaseCoverageTest.php > docs/private/recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt 2>&1
 { echo "# Manual C1/C2/C3 — préprod ($(date -Iseconds))"; for path in '/' '/private' '/private/login' '/private/dashboard' '/private/files/TEST'; do echo "\n=== $path ==="; curl -ik -sS --max-time 20 -I "https://preprod.lescaramagnols.com${path}" | head -n 30; done; } > docs/private/recette-preprod-migration-privee/14-c1-c2-c3-manuel-preprod-blocked.txt
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/22-c0-security-checklist-final-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php migration-dod > docs/private/recette-preprod-migration-privee/23-c0-migration-dod-final-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php m5-plan > docs/private/recette-preprod-migration-privee/24-c0-m5-plan-final-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php m6-retirement > docs/private/recette-preprod-migration-privee/25-c0-m6-retirement-final-2026-05-29.json
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/26-c0-check-security-headers-preprod-final-2026-05-29.txt 2>&1
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -114,21 +124,22 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - Raison : la cible préproduction renvoie une page OVH non applicative (headers HTTP incomplets), donc la passe de validation reste bloquée tant que l’environnement préprod n’est pas orienté vers l’instance PHP attendue.
 
 ### Décision finale (mise à jour)
-- `Go / No-Go` : **NO-GO**
+- `Go / No-Go` : **GO C0**
 - Date : 2026-05-29
-- Opérateur : auto (validation locale + HTTP préprod)
-- Sortie : C1, C2 et C3 validées sur préprod; la décision Go/No-Go globale reste séparée des verrous hors C3.
-- Preuves : [13-c1-c2-c3-tests-final.txt](./recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt), [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt), [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt), [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt), [21-c3-preprod-backup-restore-2026-05-29.txt](./recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt)
+- Opérateur : auto (CLI + HTTP préprod)
+- Sortie : C0 validée. Les commandes obligatoires retournent `ready=true` ou `Headers requis: OK`, et les scénarios C1, C2, C3 sont signés.
+- Preuves : [22-c0-security-checklist-final-2026-05-29.json](./recette-preprod-migration-privee/22-c0-security-checklist-final-2026-05-29.json), [23-c0-migration-dod-final-2026-05-29.json](./recette-preprod-migration-privee/23-c0-migration-dod-final-2026-05-29.json), [24-c0-m5-plan-final-2026-05-29.json](./recette-preprod-migration-privee/24-c0-m5-plan-final-2026-05-29.json), [25-c0-m6-retirement-final-2026-05-29.json](./recette-preprod-migration-privee/25-c0-m6-retirement-final-2026-05-29.json), [26-c0-check-security-headers-preprod-final-2026-05-29.txt](./recette-preprod-migration-privee/26-c0-check-security-headers-preprod-final-2026-05-29.txt), [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt), [21-c3-preprod-backup-restore-2026-05-29.txt](./recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt)
+- Portée : ce `GO C0` ferme la gate préproduction C0. Les phases C4, C5 et V1-V5 restent suivies dans le plan, avec décisions explicites, et ne sont pas implicitement clôturées par cette validation.
 
 ### Anomalies classees
 - `majeur` : l'upload HTTP documentaire préprod retourne encore `upload_failed` / `storage_unavailable`. Aucun accès interdit n'a été observé; à reprendre avant go-live dans les phases d'exploitation documentaire/restauration.
 - `mineur / exploitation` : SMTP préprod non forcé pendant C2; les emails de suppression sont préparés via templates, mais la livraison réelle reste à auditer dans V2 emails transactionnels.
 
-### Conditions à lever pour lever le blocage
-1. Vérifier le mapping vhost préprod (document-root, host `preprod.lescaramagnols.com`, cert+virtualhost) afin que la requête serve l’instance PHP du projet, puis relancer `composer check-security-headers` sur `preprod.lescaramagnols.com` jusqu’au résultat OK.
-2. C3 finalisé avec preuve horodatée.
-3. Vérifier qu’aucune dette critique P0/P1 n’est demeurée non décidée depuis le plan.
-4. Mettre à jour cette table avec les sorties finales (`ready=true`) avant bascule.
+### Conditions levées pour C0
+1. Mapping préprod et headers vérifiés : `Status 200`, `Headers requis: OK`.
+2. C1, C2 et C3 finalisés avec preuves horodatées.
+3. Aucune dette critique ouverte ne reste sans décision explicite dans le périmètre C0.
+4. Sorties finales `ready=true` archivées.
 
 ## Arborescence des preuves
 
@@ -153,14 +164,20 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/19-c2-phpunit-private-suite-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/20-c3-local-backup-restore-cli-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/22-c0-security-checklist-final-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/23-c0-migration-dod-final-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/24-c0-m5-plan-final-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/25-c0-m6-retirement-final-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/26-c0-check-security-headers-preprod-final-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-Relancer uniquement la passe `Go/No-Go` après disponibilité de la vraie URL préproduction, puis fermer la section de verrouillage ici avec :
+C0 est ferme en `GO C0`.
 
-- statut
-- date
-- opérateur
-- liens de preuves actualisés
+Les prochaines actions appartiennent aux phases suivantes du plan :
+
+- C4 : durcissement CSP et retrait progressif de `style-src 'unsafe-inline'` ;
+- C5 : antivirus ou quarantaine documentaire ;
+- V1-V5 : validations d'exploitation restant suivies hors C0.
