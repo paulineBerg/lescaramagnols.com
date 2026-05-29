@@ -259,7 +259,19 @@ final class PrivacyOperationsTest extends TestCase
     {
         $database = $this->editorialSqlDatabase();
         $fixture = $this->createSuspendedDeletionFixture($database, 'privacy-c2-cron@example.com');
-        $service = new PrivateDataProtectionService($database);
+        $sentEmails = [];
+        $service = new PrivateDataProtectionService(
+            $database,
+            static function (string $email, string $subject, string $message) use (&$sentEmails): bool {
+                $sentEmails[] = [
+                    'email' => $email,
+                    'subject' => $subject,
+                    'message' => $message,
+                ];
+
+                return true;
+            }
+        );
 
         $deletion = $service->deleteSuspendedAccountWithBackup($fixture['userId'], 'phpunit-c2', 30);
         $this->assertTrue((bool) ($deletion['success'] ?? false));
@@ -279,6 +291,20 @@ final class PrivacyOperationsTest extends TestCase
         $warningSecondDryRun = $service->sendPendingDeletionWarnings(true, ((int) $generatedAt) + (20 * 86400), 20, $fixture['userId']);
         $this->assertSame(1, (int) ($warningSecondDryRun['matched'] ?? 0));
         $this->assertSame(0, (int) ($warningSecondDryRun['sent'] ?? 0));
+
+        $warning = $service->sendPendingDeletionWarnings(false, ((int) $generatedAt) + (20 * 86400), 20, $fixture['userId']);
+        $this->assertSame(1, (int) ($warning['matched'] ?? 0));
+        $this->assertSame(1, (int) ($warning['sent'] ?? 0));
+        $this->assertSame(0, (int) ($warning['errors'] ?? 0));
+        $this->assertCount(1, $sentEmails);
+        $warnedPayload = $this->deletionBackupPayload($backupPath);
+        $this->assertNotEmpty($warnedPayload['warningSentAt'] ?? null);
+
+        $warningAgain = $service->sendPendingDeletionWarnings(false, ((int) $generatedAt) + (20 * 86400), 20, $fixture['userId']);
+        $this->assertSame(0, (int) ($warningAgain['matched'] ?? 0));
+        $this->assertSame(0, (int) ($warningAgain['sent'] ?? 0));
+        $this->assertSame(0, (int) ($warningAgain['errors'] ?? 0));
+        $this->assertCount(1, $sentEmails);
 
         $purgeDryRun = $service->cleanupExpiredDeletionBackups(true, (int) $deleteAfter, $fixture['userId']);
         $this->assertSame(1, (int) ($purgeDryRun['matched'] ?? 0));

@@ -65,6 +65,7 @@ final class CronScheduler
     private function runWithLock(DateTimeImmutable $now, bool $dryRun, ?string $onlyJobCode): array
     {
         $startedAt = new DateTimeImmutable();
+        $startedMicrotime = microtime(true);
         if (!$dryRun) {
             $this->repository->ensureDefaults();
             $this->repository->saveSchedulerState([
@@ -92,6 +93,7 @@ final class CronScheduler
         $checked = 0;
         $due = 0;
         $executed = 0;
+        $failed = 0;
 
         foreach ($jobs as $job) {
             $checked++;
@@ -135,7 +137,12 @@ final class CronScheduler
                 }
 
                 $executed++;
-                $level = in_array((string) ($run['status'] ?? ''), ['success', 'dry_run'], true) ? 'info' : 'warning';
+                $status = (string) ($run['status'] ?? '');
+                if (in_array($status, ['failed', 'timeout'], true)) {
+                    ++$failed;
+                }
+
+                $level = in_array($status, ['success', 'dry_run'], true) ? 'info' : 'warning';
                 $this->logger->content('cron.job.' . (string) ($run['status'] ?? 'completed'), [
                     'job_code' => $code,
                     'job_name' => (string) ($job['name'] ?? ''),
@@ -159,6 +166,7 @@ final class CronScheduler
                     'message' => $exception->getMessage(),
                 ];
                 $runs[] = $run;
+                ++$failed;
                 if (!$dryRun && $code !== '') {
                     $this->repository->recordRun($run);
                     $this->repository->updateJobExecution($code, 'failed', null, 0, $now, null);
@@ -173,36 +181,53 @@ final class CronScheduler
         }
 
         $finishedAt = new DateTimeImmutable();
+        $durationMs = (int) round((microtime(true) - $startedMicrotime) * 1000);
         $result = [
             'success' => true,
             'locked' => false,
             'dry_run' => $dryRun,
             'started_at' => $startedAt->format('Y-m-d H:i:s'),
             'finished_at' => $finishedAt->format('Y-m-d H:i:s'),
+            'duration_ms' => $durationMs,
             'jobs_checked' => $checked,
             'jobs_due' => $due,
             'jobs_executed' => $executed,
+            'jobs_failed' => $failed,
             'runs' => $runs,
         ];
 
         if (!$dryRun) {
             $this->repository->saveSchedulerState([
-                'status' => 'idle',
+                'status' => $failed > 0 ? 'failed' : 'idle',
                 'started_at' => $startedAt->format('Y-m-d H:i:s'),
                 'finished_at' => $finishedAt->format('Y-m-d H:i:s'),
+                'duration_ms' => $durationMs,
                 'jobs_checked' => $checked,
                 'jobs_due' => $due,
                 'jobs_executed' => $executed,
-                'last_error' => null,
+                'jobs_failed' => $failed,
+                'last_error' => $failed > 0 ? sprintf('%d job(s) cron en échec.', $failed) : null,
             ]);
         }
 
         $this->logger->content('cron.scheduler.completed', [
             'dry_run' => $dryRun,
+            'duration_ms' => $durationMs,
             'jobs_checked' => $checked,
             'jobs_due' => $due,
             'jobs_executed' => $executed,
+            'jobs_failed' => $failed,
         ]);
+        if ($failed > 0) {
+            $this->logger->content('cron.scheduler.failed', [
+                'dry_run' => $dryRun,
+                'duration_ms' => $durationMs,
+                'jobs_checked' => $checked,
+                'jobs_due' => $due,
+                'jobs_executed' => $executed,
+                'jobs_failed' => $failed,
+            ], 'error');
+        }
 
         return $result;
     }

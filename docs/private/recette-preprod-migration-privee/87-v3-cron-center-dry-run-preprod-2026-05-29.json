@@ -1,0 +1,122 @@
+{
+    "success": true,
+    "locked": false,
+    "dry_run": true,
+    "started_at": "2026-05-29 17:53:04",
+    "finished_at": "2026-05-29 17:53:04",
+    "duration_ms": 137,
+    "jobs_checked": 6,
+    "jobs_due": 6,
+    "jobs_executed": 6,
+    "jobs_failed": 0,
+    "runs": [
+        {
+            "job_code": "backup_production",
+            "job_name": "Backup production",
+            "status": "dry_run",
+            "scheduled_at": "2026-05-29 02:25:00",
+            "started_at": "2026-05-29 17:53:04",
+            "finished_at": "2026-05-29 17:53:04",
+            "duration_ms": 0,
+            "exit_code": 0,
+            "stdout_text": "",
+            "stderr_text": "",
+            "message": "Dry-run: job non exécuté.",
+            "command": [
+                "/usr/local/php8.2/bin/php",
+                "/home/lescaramgl-ssh/caramagnols-preprod/backend/core/tools/backup_production.php",
+                "--quiet"
+            ]
+        },
+        {
+            "job_code": "check_log_alerts",
+            "job_name": "Alertes logs",
+            "status": "dry_run",
+            "scheduled_at": "2026-05-29 17:45:00",
+            "started_at": "2026-05-29 17:53:04",
+            "finished_at": "2026-05-29 17:53:04",
+            "duration_ms": 0,
+            "exit_code": 0,
+            "stdout_text": "",
+            "stderr_text": "",
+            "message": "Dry-run: job non exécuté.",
+            "command": [
+                "/usr/local/php8.2/bin/php",
+                "/home/lescaramgl-ssh/caramagnols-preprod/backend/core/tools/check_log_alerts.php",
+                "--strict"
+            ]
+        },
+        {
+            "job_code": "publish_scheduled_blog_articles",
+            "job_name": "Publication articles planifiés",
+            "status": "dry_run",
+            "scheduled_at": "2026-05-29 17:50:00",
+            "started_at": "2026-05-29 17:53:04",
+            "finished_at": "2026-05-29 17:53:04",
+            "duration_ms": 0,
+            "exit_code": 0,
+            "stdout_text": "",
+            "stderr_text": "",
+            "message": "Dry-run: job non exécuté.",
+            "command": [
+                "/usr/local/php8.2/bin/php",
+                "/home/lescaramgl-ssh/caramagnols-preprod/backend/core/tools/publish_scheduled_blog_articles.php"
+            ]
+        },
+        {
+            "job_code": "purge_private_account_deletion_backups",
+            "job_name": "Suppressions comptes privés",
+            "status": "dry_run",
+            "scheduled_at": "2026-05-29 03:55:00",
+            "started_at": "2026-05-29 17:53:04",
+            "finished_at": "2026-05-29 17:53:04",
+            "duration_ms": 0,
+            "exit_code": 0,
+            "stdout_text": "",
+            "stderr_text": "",
+            "message": "Dry-run: job non exécuté.",
+            "command": [
+                "/usr/local/php8.2/bin/php",
+                "/home/lescaramgl-ssh/caramagnols-preprod/backend/core/tools/purge_private_account_deletion_backups.php",
+                "--quiet"
+            ]
+        },
+        {
+            "job_code": "purge_private_discussions",
+            "job_name": "Purge discussions privées",
+            "status": "dry_run",
+            "scheduled_at": "2026-05-29 03:45:00",
+            "started_at": "2026-05-29 17:53:04",
+            "finished_at": "2026-05-29 17:53:04",
+            "duration_ms": 0,
+            "exit_code": 0,
+            "stdout_text": "",
+            "stderr_text": "",
+            "message": "Dry-run: job non exécuté.",
+            "command": [
+                "/usr/local/php8.2/bin/php",
+                "/home/lescaramgl-ssh/caramagnols-preprod/backend/core/tools/purge_private_discussions.php",
+                "--quiet"
+            ]
+        },
+        {
+            "job_code": "purge_sql_logs",
+            "job_name": "Purge logs SQL",
+            "status": "dry_run",
+            "scheduled_at": "2026-05-29 03:40:00",
+            "started_at": "2026-05-29 17:53:04",
+            "finished_at": "2026-05-29 17:53:04",
+            "duration_ms": 0,
+            "exit_code": 0,
+            "stdout_text": "",
+            "stderr_text": "",
+            "message": "Dry-run: job non exécuté.",
+            "command": [
+                "/usr/local/php8.2/bin/php",
+                "/home/lescaramgl-ssh/caramagnols-preprod/backend/core/tools/purge_sql_logs.php",
+                "--days=90",
+                "--keep-sensitive-days=365"
+            ]
+        }
+    ]
+}

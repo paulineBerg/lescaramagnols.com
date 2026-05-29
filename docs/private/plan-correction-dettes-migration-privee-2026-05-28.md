@@ -510,29 +510,61 @@ Objectif : garantir que les traitements planifies ne doublonnent pas et ne raten
 
 Checklist de suivi :
 
-- [ ] Lister les actions de la cron privee.
-- [ ] Confirmer les commandes dry-run sensibles.
-- [ ] Verifier la journalisation debut/fin/duree/compteurs.
-- [ ] Rejouer J+20 deux fois pour verifier l'absence de doublon email.
-- [ ] Rejouer J+30 deux fois pour verifier l'idempotence suppression.
-- [ ] Ajouter ou verifier l'alerte d'echec cron.
-- [ ] Documenter la commande OVH exacte.
+- [x] Lister les actions de la cron privee.
+- [x] Confirmer les commandes dry-run sensibles.
+- [x] Verifier la journalisation debut/fin/duree/compteurs.
+- [x] Rejouer J+20 deux fois pour verifier l'absence de doublon email.
+- [x] Rejouer J+30 deux fois pour verifier l'idempotence suppression.
+- [x] Ajouter ou verifier l'alerte d'echec cron.
+- [x] Documenter la commande OVH exacte.
 
 Travaux :
 
-- [ ] lister toutes les actions rattachees a la cron privee ;
-- [ ] ajouter un mode dry-run pour les actions destructrices ou sensibles ;
-- [ ] journaliser debut, fin, duree, compteurs et erreurs ;
-- [ ] verifier l'idempotence des traitements J+20 et J+30 ;
-- [ ] ajouter une alerte si une execution cron echoue ;
-- [ ] documenter la commande OVH exacte et sa frequence.
+- [x] lister toutes les actions rattachees a la cron privee ;
+- [x] ajouter un mode dry-run pour les actions destructrices ou sensibles ;
+- [x] journaliser debut, fin, duree, compteurs et erreurs ;
+- [x] verifier l'idempotence des traitements J+20 et J+30 ;
+- [x] ajouter une alerte si une execution cron echoue ;
+- [x] documenter la commande OVH exacte et sa frequence.
 
 Critere d'acceptation :
 
-- [ ] relancer la cron ne renvoie pas deux fois le meme email J+20 ;
-- [ ] relancer la cron ne tente pas deux suppressions definitives concurrentes ;
-- [ ] une erreur est visible dans les logs d'exploitation ;
-- [ ] la commande cron est documentee pour OVH.
+- [x] relancer la cron ne renvoie pas deux fois le meme email J+20 ;
+- [x] relancer la cron ne tente pas deux suppressions definitives concurrentes ;
+- [x] une erreur est visible dans les logs d'exploitation ;
+- [x] la commande cron est documentee pour OVH.
+
+Decision V3 :
+
+- Le Cron Center reste le point d'entree unique de l'hebergement OVH ; les jobs prives sont executes comme jobs PHP locaux autorises.
+- Les actions privees planifiees sont `purge_private_discussions` a `03:45` et `purge_private_account_deletion_backups` a `03:55`.
+- Les purges destructrices disposent d'un mode `--dry-run --json`; la purge de suppression de comptes garde en plus un verrou CLI direct pour eviter deux executions concurrentes hors Cron Center.
+- Les executions journalisent debut, fin, duree, compteurs, erreurs et statut ; un job cron en echec produit `cron.job.failed` et `cron.scheduler.failed`, detectes par `check_log_alerts`.
+- L'idempotence J+20 est prouvee par un test avec transport email simule : deux relances ne produisent qu'un email ; l'idempotence J+30 est prouvee par une seconde purge sans nouveau compte ni nouvelle sauvegarde supprimee.
+
+Commande OVH documentee :
+
+```bash
+* * * * * /usr/bin/php8.2 /home/lescaramgl-ssh/caramagnols/backend/core/tools/run_cron_center.php --quiet >/dev/null 2>&1
+```
+
+Preuves V3 :
+
+- `docs/private/recette-preprod-migration-privee/78-v3-cron-inventory-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/79-v3-private-account-cron-idempotence-local-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/80-v3-discussion-cron-dry-run-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/81-v3-cron-center-dry-run-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/82-v3-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/83-v3-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/84-v3-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/85-v3-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/86-v3-cron-inventory-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/87-v3-cron-center-dry-run-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/88-v3-discussion-cron-dry-run-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt`
 
 ### Phase V4 - UX BO et espace prive
 

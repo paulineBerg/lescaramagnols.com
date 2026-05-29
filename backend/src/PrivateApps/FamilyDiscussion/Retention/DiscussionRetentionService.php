@@ -18,43 +18,45 @@ final class DiscussionRetentionService
     }
 
     /**
-     * @return array{messages:int,attachments:int}
+     * @return array{messages:int,attachments:int,dryRun:bool}
      */
-    public function purgeExpiredForUser(int $userId, int $limit = 200): array
+    public function purgeExpiredForUser(int $userId, int $limit = 200, bool $dryRun = false): array
     {
         if ($userId <= 0) {
-            return ['messages' => 0, 'attachments' => 0];
+            return ['messages' => 0, 'attachments' => 0, 'dryRun' => $dryRun];
+        }
+
+        $attachments = $this->repository->listExpiredAttachmentsForUser($userId, $limit);
+        $messageIds = $this->repository->listExpiredMessageIdsForUser($userId, $limit);
+        if ($dryRun) {
+            return ['messages' => count($messageIds), 'attachments' => count($attachments), 'dryRun' => true];
         }
 
         $runId = $this->repository->createRetentionRun($userId, 'user_open');
 
-        return $this->runPurge(
-            $runId,
-            $this->repository->listExpiredAttachmentsForUser($userId, $limit),
-            $this->repository->listExpiredMessageIdsForUser($userId, $limit),
-            $userId
-        );
+        return $this->runPurge($runId, $attachments, $messageIds, $userId);
     }
 
     /**
-     * @return array{messages:int,attachments:int}
+     * @return array{messages:int,attachments:int,dryRun:bool}
      */
-    public function purgeExpiredScheduled(int $limit = 1000): array
+    public function purgeExpiredScheduled(int $limit = 1000, bool $dryRun = false): array
     {
+        $attachments = $this->repository->listExpiredAttachmentsAll($limit);
+        $messageIds = $this->repository->listExpiredMessageIdsAll($limit);
+        if ($dryRun) {
+            return ['messages' => count($messageIds), 'attachments' => count($attachments), 'dryRun' => true];
+        }
+
         $runId = $this->repository->createRetentionRun(null, 'scheduled');
 
-        return $this->runPurge(
-            $runId,
-            $this->repository->listExpiredAttachmentsAll($limit),
-            $this->repository->listExpiredMessageIdsAll($limit),
-            null
-        );
+        return $this->runPurge($runId, $attachments, $messageIds, null);
     }
 
     /**
      * @param array<int, array<string, mixed>> $attachments
      * @param array<int, int> $messageIds
-     * @return array{messages:int,attachments:int}
+     * @return array{messages:int,attachments:int,dryRun:bool}
      */
     private function runPurge(int $runId, array $attachments, array $messageIds, ?int $userId): array
     {
@@ -86,7 +88,7 @@ final class DiscussionRetentionService
         $this->repository->finishRetentionRun($runId, $purgedMessages, $purgedAttachments);
         $this->logPurge($userId, $purgedMessages, $purgedAttachments);
 
-        return ['messages' => $purgedMessages, 'attachments' => $purgedAttachments];
+        return ['messages' => $purgedMessages, 'attachments' => $purgedAttachments, 'dryRun' => false];
     }
 
     private function logPurge(?int $userId, int $messages, int $attachments): void

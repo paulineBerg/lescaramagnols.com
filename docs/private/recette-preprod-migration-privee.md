@@ -65,6 +65,19 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (CLI preprod) | V1 `migration-dod` preprod | `success=true`, `ready=true`, `11/11 checks` | [66-v1-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/66-v1-migration-dod-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI preprod) | V1 `security-checklist` preprod | `success=true`, `19/19 checks` | [67-v1-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/67-v1-security-checklist-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI HTTP preprod) | V1 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [68-v1-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/68-v1-check-security-headers-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | V3 inventaire Cron Center local | jobs prives presents, scripts autorises, commandes dry-run listees | [78-v3-cron-inventory-local-2026-05-29.json](./recette-preprod-migration-privee/78-v3-cron-inventory-local-2026-05-29.json) |
+| 2026-05-29 | Auto (PHPUnit) | V3 idempotence J+20/J+30 | pas de doublon email J+20, seconde purge J+30 sans effet | [79-v3-private-account-cron-idempotence-local-2026-05-29.txt](./recette-preprod-migration-privee/79-v3-private-account-cron-idempotence-local-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | V3 dry-run purge discussions local | `success=true`, `dry_run=true`, aucune mutation | [80-v3-discussion-cron-dry-run-local-2026-05-29.json](./recette-preprod-migration-privee/80-v3-discussion-cron-dry-run-local-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI) | V3 dry-run Cron Center local | `success=true`, `jobs_failed=0` | [81-v3-cron-center-dry-run-local-2026-05-29.json](./recette-preprod-migration-privee/81-v3-cron-center-dry-run-local-2026-05-29.json) |
+| 2026-05-29 | Auto (PHPUnit/PHPCS) | V3 validation locale | syntaxe, PHPCS, tests cron/retention OK | [82-v3-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/82-v3-local-validation-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | V3 `migration-dod` local | `success=true`, `ready=true` | [83-v3-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/83-v3-migration-dod-local-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI) | V3 `security-checklist` local | `success=true`, `ready=true` | [84-v3-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/84-v3-security-checklist-local-2026-05-29.json) |
+| 2026-05-29 | Auto (deploiement) | V3 deploy preprod `deploy-fast --all-changes` + sync README DoD | deploiement OK | [85-v3-deploy-preprod-2026-05-29.txt](./recette-preprod-migration-privee/85-v3-deploy-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI preprod) | V3 inventaire Cron Center preprod | jobs prives presents, scripts autorises | [86-v3-cron-inventory-preprod-2026-05-29.json](./recette-preprod-migration-privee/86-v3-cron-inventory-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI preprod) | V3 dry-run Cron Center preprod | `success=true`, `jobs_failed=0` | [87-v3-cron-center-dry-run-preprod-2026-05-29.json](./recette-preprod-migration-privee/87-v3-cron-center-dry-run-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI preprod) | V3 dry-run discussions et suppressions comptes | dry-runs JSON OK | [88-v3-discussion-cron-dry-run-preprod-2026-05-29.json](./recette-preprod-migration-privee/88-v3-discussion-cron-dry-run-preprod-2026-05-29.json), [89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json](./recette-preprod-migration-privee/89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI preprod) | V3 `migration-dod` et `security-checklist` preprod | `success=true`, `ready=true` | [90-v3-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json), [91-v3-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI HTTP preprod) | V3 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [92-v3-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -151,6 +164,17 @@ REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/75-v2-migration-dod-preprod-2026-05-29.json
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/76-v2-security-checklist-preprod-2026-05-29.json
 composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/77-v2-check-security-headers-preprod-2026-05-29.txt 2>&1
+php backend/core/tools/purge_private_discussions.php --dry-run --json > docs/private/recette-preprod-migration-privee/80-v3-discussion-cron-dry-run-local-2026-05-29.json
+php backend/core/tools/run_cron_center.php --dry-run --json > docs/private/recette-preprod-migration-privee/81-v3-cron-center-dry-run-local-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php migration-dod > docs/private/recette-preprod-migration-privee/83-v3-migration-dod-local-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/84-v3-security-checklist-local-2026-05-29.json
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/85-v3-deploy-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/run_cron_center.php --dry-run --json" > docs/private/recette-preprod-migration-privee/87-v3-cron-center-dry-run-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/purge_private_discussions.php --dry-run --json" > docs/private/recette-preprod-migration-privee/88-v3-discussion-cron-dry-run-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/purge_private_account_deletion_backups.php --dry-run --json" > docs/private/recette-preprod-migration-privee/89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt 2>&1
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -203,6 +227,15 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - [x] V2 — Apercu admin sans envoi reel pour invitation et reset avec URL absolues preprod — **OK TEST + PREPROD CLI**, preuves: [70-v2-mail-template-catalog-local-2026-05-29.json](./recette-preprod-migration-privee/70-v2-mail-template-catalog-local-2026-05-29.json), [74-v2-mail-template-catalog-preprod-2026-05-29.json](./recette-preprod-migration-privee/74-v2-mail-template-catalog-preprod-2026-05-29.json)
 - [x] V2 — Erreurs SMTP et logs securite sans fuite de token, mot de passe ou secret — **OK TEST**, preuve: [69-v2-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/69-v2-local-validation-2026-05-29.txt)
 - [x] V2 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [71-v2-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/71-v2-migration-dod-local-2026-05-29.json), [75-v2-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/75-v2-migration-dod-preprod-2026-05-29.json), [76-v2-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/76-v2-security-checklist-preprod-2026-05-29.json), [77-v2-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/77-v2-check-security-headers-preprod-2026-05-29.txt)
+
+## Tests manuels requis (phase V3)
+
+- [x] V3 — Inventaire des actions Cron Center privees et scripts autorises — **OK LOCAL + PREPROD CLI**, preuves: [78-v3-cron-inventory-local-2026-05-29.json](./recette-preprod-migration-privee/78-v3-cron-inventory-local-2026-05-29.json), [86-v3-cron-inventory-preprod-2026-05-29.json](./recette-preprod-migration-privee/86-v3-cron-inventory-preprod-2026-05-29.json)
+- [x] V3 — Dry-run des actions sensibles : Cron Center, suppression comptes, purge discussions — **OK LOCAL + PREPROD CLI**, preuves: [80-v3-discussion-cron-dry-run-local-2026-05-29.json](./recette-preprod-migration-privee/80-v3-discussion-cron-dry-run-local-2026-05-29.json), [81-v3-cron-center-dry-run-local-2026-05-29.json](./recette-preprod-migration-privee/81-v3-cron-center-dry-run-local-2026-05-29.json), [87-v3-cron-center-dry-run-preprod-2026-05-29.json](./recette-preprod-migration-privee/87-v3-cron-center-dry-run-preprod-2026-05-29.json), [88-v3-discussion-cron-dry-run-preprod-2026-05-29.json](./recette-preprod-migration-privee/88-v3-discussion-cron-dry-run-preprod-2026-05-29.json), [89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json](./recette-preprod-migration-privee/89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json)
+- [x] V3 — J+20 rejoue deux fois sans doublon email et J+30 rejoue sans seconde suppression — **OK TEST**, preuve: [79-v3-private-account-cron-idempotence-local-2026-05-29.txt](./recette-preprod-migration-privee/79-v3-private-account-cron-idempotence-local-2026-05-29.txt)
+- [x] V3 — Echec cron visible dans les logs et detecte par le compteur `cron_failed` — **OK TEST**, preuve: [82-v3-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/82-v3-local-validation-2026-05-29.txt)
+- [x] V3 — Commande OVH exacte documentee : `* * * * * /usr/bin/php8.2 /home/lescaramgl-ssh/caramagnols/backend/core/tools/run_cron_center.php --quiet >/dev/null 2>&1` — **OK DOC**, preuve: [78-v3-cron-inventory-local-2026-05-29.json](./recette-preprod-migration-privee/78-v3-cron-inventory-local-2026-05-29.json)
+- [x] V3 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [83-v3-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/83-v3-migration-dod-local-2026-05-29.json), [90-v3-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json), [91-v3-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json), [92-v3-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt)
 
 ## Procédure C3 — restauration fichier + base
 
@@ -339,15 +372,30 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/75-v2-migration-dod-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/76-v2-security-checklist-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/77-v2-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/78-v3-cron-inventory-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/79-v3-private-account-cron-idempotence-local-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/80-v3-discussion-cron-dry-run-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/81-v3-cron-center-dry-run-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/82-v3-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/83-v3-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/84-v3-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/85-v3-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/86-v3-cron-inventory-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/87-v3-cron-center-dry-run-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/88-v3-discussion-cron-dry-run-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-V2 est ferme cote code applicatif et validations locales/preprod CLI/HTTP.
+V3 est ferme cote code applicatif et validations locales/preprod CLI/HTTP.
 
 Les prochaines actions appartiennent aux phases suivantes du plan :
 
-- V3-V5 : validations d'exploitation restant suivies hors C0.
+- V4-V5 : validations d'exploitation restant suivies hors C0.
 
 Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.

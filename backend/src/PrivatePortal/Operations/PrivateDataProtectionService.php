@@ -11,8 +11,10 @@ use PDO;
 
 final class PrivateDataProtectionService
 {
-    public function __construct(private readonly EditorialDatabase $database)
-    {
+    public function __construct(
+        private readonly EditorialDatabase $database,
+        private readonly mixed $mailSender = null
+    ) {
     }
 
     /**
@@ -1272,6 +1274,10 @@ final class PrivateDataProtectionService
 
     private function sendPrivateAccountEmail(string $email, string $subject, string $message): bool
     {
+        if (is_callable($this->mailSender)) {
+            return (bool) call_user_func($this->mailSender, $email, $subject, $message);
+        }
+
         $mailConfig = app_config('private.mail', []);
         if (!is_array($mailConfig) || !($mailConfig['enabled'] ?? false)) {
             return false;

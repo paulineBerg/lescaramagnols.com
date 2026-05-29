@@ -361,6 +361,15 @@ final class CronJobRepository
                 'timeout_seconds' => 300,
             ],
             [
+                'code' => 'purge_private_discussions',
+                'name' => 'Purge discussions privées',
+                'description' => 'Purge les messages et fichiers FamilyDiscussion arrivés au terme de la rétention 60 jours.',
+                'script_path' => 'core/tools/purge_private_discussions.php',
+                'arguments' => ['args' => ['--quiet']],
+                'schedule_expression' => '45 3 * * *',
+                'timeout_seconds' => 300,
+            ],
+            [
                 'code' => 'purge_private_account_deletion_backups',
                 'name' => 'Suppressions comptes privés',
                 'description' => 'Avertit à J+20 puis supprime les données, le compte et la sauvegarde après 30 jours de rétention.',

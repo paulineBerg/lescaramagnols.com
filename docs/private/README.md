@@ -41,6 +41,13 @@ Mise a jour 2026-05-29 (emails transactionnels V2) :
 - les erreurs SMTP restent neutres cote utilisateur, tandis que le log technique redige mots de passe, tokens, secrets et DSN sensibles avant journalisation;
 - les tokens d'activation/reset ne doivent jamais etre journalises en clair, y compris dans les evenements securite.
 
+Mise a jour 2026-05-29 (cron et idempotence V3) :
+- le Cron Center reste l'unique point d'entree OVH et orchestre les jobs prives autorises;
+- `purge_private_discussions.php` est inscrit au catalogue des scripts autorises et dispose maintenant de `--dry-run`, `--json`, `--quiet` et `--limit`;
+- `purge_private_account_deletion_backups.php` journalise debut, fin, duree, compteurs et erreurs, et ajoute un verrou CLI direct en plus du verrou Cron Center;
+- les erreurs de job cron produisent `cron.job.failed` et `cron.scheduler.failed`, visibles dans les logs d'exploitation et detectees par `check_log_alerts.php`;
+- l'idempotence J+20/J+30 est couverte par tests : pas de doublon email J+20 apres relance, pas de seconde suppression definitive apres J+30.
+
 Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
 - cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
@@ -106,6 +113,44 @@ Regles d'exploitation :
 3. les liens `activation_url` et `reset_url` doivent rester absolus, bases sur `BASE_URL`, et ne doivent jamais etre reconstruits dans un template;
 4. le message affiche a l'utilisateur en cas d'echec SMTP reste neutre;
 5. les logs techniques doivent masquer mots de passe, tokens, secrets, clefs API et identifiants presents dans une URL ou une chaine d'erreur.
+
+## 0.2 Cron prive, dry-run et idempotence
+
+Le point d'entree unique cote hebergement reste le Cron Center :
+
+```bash
+* * * * * /usr/bin/php8.2 /home/lescaramgl-ssh/caramagnols/backend/core/tools/run_cron_center.php --quiet >/dev/null 2>&1
+```
+
+Sur preproduction, remplacer le chemin backend par :
+
+```bash
+/home/lescaramgl-ssh/caramagnols-preprod/backend/core/tools/run_cron_center.php
+```
+
+Jobs prives actifs :
+
+| Code | Script | Frequence | Role | Dry-run |
+|---|---|---|---|---|
+| `purge_private_discussions` | `core/tools/purge_private_discussions.php` | `45 3 * * *` | purge des messages et fichiers FamilyDiscussion expires | `--dry-run --json` |
+| `purge_private_account_deletion_backups` | `core/tools/purge_private_account_deletion_backups.php` | `55 3 * * *` | avertissement J+20 puis suppression compte+sauvegarde a J+30 | `--dry-run --json` |
+
+Commandes de controle :
+
+```bash
+php backend/core/tools/run_cron_center.php --dry-run --json
+php backend/core/tools/purge_private_discussions.php --dry-run --json
+php backend/core/tools/purge_private_account_deletion_backups.php --dry-run --json
+php backend/core/tools/check_log_alerts.php --strict --json --cron-failed-threshold=1
+```
+
+Regles d'exploitation :
+
+1. une tache destructrice doit avoir un dry-run JSON avant tout rejeu cible en preproduction;
+2. le Cron Center et les scripts prives journalisent debut, fin, duree, compteurs et erreurs;
+3. les traitements J+20 et J+30 doivent rester rejouables : `warningSentAt` empeche le double email J+20, et la disparition de la sauvegarde apres J+30 empeche une seconde suppression;
+4. `purge_private_account_deletion_backups.php` prend un verrou `var/locks/private-account-deletion-backups.lock`, y compris hors Cron Center;
+5. un echec de job cree `cron.job.failed` puis `cron.scheduler.failed`; `check_log_alerts.php` declenche le compteur `cron_failed`.
 
 ## 1. Decision produit
 

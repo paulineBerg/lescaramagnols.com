@@ -1,0 +1,31 @@
+No syntax errors detected in backend/core/tools/purge_private_account_deletion_backups.php
+No syntax errors detected in backend/core/tools/purge_private_discussions.php
+No syntax errors detected in backend/core/tools/check_log_alerts.php
+No syntax errors detected in backend/src/Cron/CronJobRepository.php
+No syntax errors detected in backend/src/Cron/CronScheduler.php
+No syntax errors detected in backend/src/Cron/CronScriptPolicy.php
+No syntax errors detected in backend/src/PrivateApps/FamilyDiscussion/Retention/DiscussionRetentionService.php
+No syntax errors detected in backend/src/PrivatePortal/Operations/PrivateDataProtectionService.php
+No syntax errors detected in backend/tests/AdminCronCenterServiceTest.php
+No syntax errors detected in backend/tests/PrivatePortal/PrivacyOperationsTest.php
+No syntax errors detected in backend/tests/PrivateApps/FamilyDiscussion/FamilyDiscussionModuleTest.php
+PHPUnit 10.5.63 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.29
+Configuration: /home/surfacepro8/www/caramagnols/backend/phpunit.xml
+
+.....                                                               5 / 5 (100%)
+
+Time: 00:08.245, Memory: 10.00 MB
+
+OK (5 tests, 65 assertions)
+PHPUnit 10.5.63 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.29
+Configuration: /home/surfacepro8/www/caramagnols/backend/phpunit.xml
+
+...............                                                   15 / 15 (100%)
+
+Time: 00:35.931, Memory: 14.00 MB
+
+OK (15 tests, 322 assertions)

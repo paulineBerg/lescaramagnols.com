@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace LesCaramagnols\Tests\PrivateApps\FamilyDiscussion;
+
 use Caramagnols\PrivateApps\FamilyDiscussion\Attachment\DiscussionAttachmentStorage;
 use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
 use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionService;
@@ -15,9 +17,8 @@ use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
 use Caramagnols\PrivatePortal\Security\PrivateSession;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
+use PDO;
 use PHPUnit\Framework\TestCase;
-
-require_once __DIR__ . '/../../../core/bootstrap.php';
 
 final class FamilyDiscussionModuleTest extends TestCase
 {
@@ -26,6 +27,11 @@ final class FamilyDiscussionModuleTest extends TestCase
     private array $previousPrivateConfig = [];
     private string $storageRoot = '';
     private string $sessionName = '';
+
+    public static function setUpBeforeClass(): void
+    {
+        require_once dirname(__DIR__, 3) . '/core/bootstrap.php';
+    }
 
     protected function setUp(): void
     {
@@ -204,10 +210,22 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertIsString($expiredPath);
         $this->assertFileExists($expiredPath);
 
-        $result = (new DiscussionRetentionService($repository, $storage))->purgeExpiredForUser($bobId);
+        $retention = new DiscussionRetentionService($repository, $storage);
+        $dryRun = $retention->purgeExpiredForUser($bobId, 200, true);
+
+        $this->assertSame(1, $dryRun['messages']);
+        $this->assertSame(1, $dryRun['attachments']);
+        $this->assertTrue($dryRun['dryRun']);
+        $this->assertFileExists($expiredPath);
+        $messageBeforePurge = $repository->findMessageById((int) $expiredMessage['id']);
+        $this->assertIsArray($messageBeforePurge);
+        $this->assertSame('active', $messageBeforePurge['purgeStatus']);
+
+        $result = $retention->purgeExpiredForUser($bobId);
 
         $this->assertSame(1, $result['messages']);
         $this->assertSame(1, $result['attachments']);
+        $this->assertFalse($result['dryRun']);
         $purgedMessage = $repository->findMessageById((int) $expiredMessage['id']);
         $this->assertIsArray($purgedMessage);
         $this->assertSame('', $purgedMessage['body']);

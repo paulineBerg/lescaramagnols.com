@@ -27,6 +27,7 @@ $thresholds = [
     'rate_limited' => max(1, (int) ($options['rate-limit-threshold'] ?? 6)),
     'http_403' => max(1, (int) ($options['http-403-threshold'] ?? 30)),
     'http_429' => max(1, (int) ($options['http-429-threshold'] ?? 10)),
+    'cron_failed' => max(1, (int) ($options['cron-failed-threshold'] ?? 1)),
 ];
 
 $logDir = ROOT_PATH . '/data/logs';
@@ -37,6 +38,7 @@ $counts = [
     'rate_limited' => 0,
     'http_403' => 0,
     'http_429' => 0,
+    'cron_failed' => 0,
 ];
 
 read_log_file($logDir . '/security.log', $sinceTimestamp, static function (string $line) use (&$counts): void {
@@ -56,6 +58,12 @@ read_log_file($logDir . '/access.log', $sinceTimestamp, static function (string 
 
     if (preg_match('/"status":\s*429\b/', $line) === 1) {
         $counts['http_429']++;
+    }
+});
+
+read_log_file($logDir . '/content.log', $sinceTimestamp, static function (string $line) use (&$counts): void {
+    if (str_contains($line, 'cron.job.failed') || str_contains($line, 'cron.scheduler.failed')) {
+        $counts['cron_failed']++;
     }
 });
 
@@ -112,6 +120,7 @@ if ($jsonOutput) {
     fwrite(STDOUT, sprintf("- rate_limited: %d (seuil=%d)\n", $counts['rate_limited'], $thresholds['rate_limited']));
     fwrite(STDOUT, sprintf("- http 403: %d (seuil=%d)\n", $counts['http_403'], $thresholds['http_403']));
     fwrite(STDOUT, sprintf("- http 429: %d (seuil=%d)\n", $counts['http_429'], $thresholds['http_429']));
+    fwrite(STDOUT, sprintf("- cron failed: %d (seuil=%d)\n", $counts['cron_failed'], $thresholds['cron_failed']));
 
     if ($alerts === []) {
         fwrite(STDOUT, "Aucune alerte déclenchée.\n");
