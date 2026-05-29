@@ -36,6 +36,7 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (CLI preprod) | C2 suppression compte suspendu + cron J+20/J+30 ciblé | `C2 OK`, sauvegarde JSON/ZIP, purge immédiate, J+20 dry-run, J+30 purge, relance idempotente | [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt) |
 | 2026-05-29 | Auto (PHPUnit) | Suite privée C1/C2/C3 après correction C2 | `59 tests`, `581 assertions`, OK | [19-c2-phpunit-private-suite-2026-05-29.txt](./recette-preprod-migration-privee/19-c2-phpunit-private-suite-2026-05-29.txt) |
 | 2026-05-29 | Auto (CLI local) | C3 implémentation backup ZIP + `verify-backup` + dry-run | `PHP lint OK`, `51 tests`, `527 assertions`, CLI C3 OK | [20-c3-local-backup-restore-cli-2026-05-29.txt](./recette-preprod-migration-privee/20-c3-local-backup-restore-cli-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI preprod) | C3 restauration fichier + base après déploiement `d971b72` | `C3 OK`, ZIP structuré, `verify-backup` OK, dry-run OK, nettoyage fixture + artefacts OK | [21-c3-preprod-backup-restore-2026-05-29.txt](./recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -71,7 +72,7 @@ php backend/vendor/bin/phpunit tests/PrivatePortalSecurityTest.php tests/Private
 
 - [x] C1 — Recette sécurité privée (login, logout, expiration, CSRF refusé, compte suspendu, permission retirée, reset password, fichier sans session/sans permission) — **OK PREPROD**, preuves: [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt)
 - [x] C2 — Suppression compte suspendu et cron J+20/J+30 — **OK PREPROD**, preuve: [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt)
-- [ ] C3 — Restauration privée fichier+base en préprod (scénario complet de backup/snapshot/restore dry-run) — à exécuter sur préprod.
+- [x] C3 — Restauration privée fichier+base en préprod (backup ZIP, structure ZIP, `verify-backup`, dry-run, nettoyage fixture et artefacts) — **OK PREPROD**, preuve: [21-c3-preprod-backup-restore-2026-05-29.txt](./recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt)
 
 Chaque cas doit être signé dans cette section : date, opérateur, preuve (captures / logs), résultat attendu.
 
@@ -116,8 +117,8 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `Go / No-Go` : **NO-GO**
 - Date : 2026-05-29
 - Opérateur : auto (validation locale + HTTP préprod)
-- Sortie : C1 et C2 validées sur préprod; C3 reste à signer avant GO.
-- Preuves : [13-c1-c2-c3-tests-final.txt](./recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt), [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt), [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt), [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt)
+- Sortie : C1, C2 et C3 validées sur préprod; la décision Go/No-Go globale reste séparée des verrous hors C3.
+- Preuves : [13-c1-c2-c3-tests-final.txt](./recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt), [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt), [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt), [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt), [21-c3-preprod-backup-restore-2026-05-29.txt](./recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt)
 
 ### Anomalies classees
 - `majeur` : l'upload HTTP documentaire préprod retourne encore `upload_failed` / `storage_unavailable`. Aucun accès interdit n'a été observé; à reprendre avant go-live dans les phases d'exploitation documentaire/restauration.
@@ -125,7 +126,7 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 
 ### Conditions à lever pour lever le blocage
 1. Vérifier le mapping vhost préprod (document-root, host `preprod.lescaramagnols.com`, cert+virtualhost) afin que la requête serve l’instance PHP du projet, puis relancer `composer check-security-headers` sur `preprod.lescaramagnols.com` jusqu’au résultat OK.
-2. Finaliser C3 avec preuve horodatée.
+2. C3 finalisé avec preuve horodatée.
 3. Vérifier qu’aucune dette critique P0/P1 n’est demeurée non décidée depuis le plan.
 4. Mettre à jour cette table avec les sorties finales (`ready=true`) avant bascule.
 
@@ -151,6 +152,7 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/19-c2-phpunit-private-suite-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/20-c3-local-backup-restore-cli-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 

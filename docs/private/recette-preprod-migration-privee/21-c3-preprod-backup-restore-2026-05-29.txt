@@ -1,0 +1,306 @@
+# C3 preprod - backup ZIP + verify + restauration dry-run
+startedAt=2026-05-29T10:44:15+00:00
+remote=/home/lescaramgl-ssh/caramagnols-preprod/backend
+php=/usr/local/php8.2/bin/php
+
+## Deploy sanity
+No syntax errors detected in core/tools/private_migration_reconcile.php
+No syntax errors detected in src/PrivatePortal/Operations/PrivateBackupService.php
+No syntax errors detected in src/PrivatePortal/Operations/PrivateMigrationDefinitionOfDoneService.php
+
+## Fixture
+{
+    "createdAt": "2026-05-29T12:44:16+02:00",
+    "userId": 5,
+    "email": "preprod-c3-restore-20260529-124416-f2a871e5@example.invalid",
+    "categoryId": 4,
+    "documentId": "preprod-c3-1dfe5d0061c73fae0e6dc642",
+    "storagePath": "uploads/7a/cd/preprod-c3-1dfe5d0061c73fae0e6dc642.txt",
+    "documentPath": "/home/lescaramgl-ssh/caramagnols-preprod/private/storage/uploads/7a/cd/preprod-c3-1dfe5d0061c73fae0e6dc642.txt",
+    "documentFileExists": true
+}
+
+## Backup command
+var/private-c3-backup-result-20260529-104415.json
+backupResult=var/private-c3-backup-result-20260529-104415.json
+{
+    "success": true,
+    "path": "/home/lescaramgl-ssh/caramagnols-preprod/private/storage/exports/private-backup-20260529-124417-db6115f9e6ff.json",
+    "checksum": "db6115f9e6ff39a817bab9d2467636458210a09df6ab748c4e34467d14cb6c7b",
+    "tableCount": 42,
+    "fileCount": 3,
+    "archivePath": "/home/lescaramgl-ssh/caramagnols-preprod/private/storage/exports/private-backup-20260529-124417-db6115f9e6ff.zip",
+    "archiveChecksum": "8fef07503b922d339e3f54c70f6176c9c1fce8dc27f358a1d4eb32aa86efa48b"
+}
+
+## ZIP structure
+backupJson=/home/lescaramgl-ssh/caramagnols-preprod/private/storage/exports/private-backup-20260529-124417-db6115f9e6ff.json
+backupZip=/home/lescaramgl-ssh/caramagnols-preprod/private/storage/exports/private-backup-20260529-124417-db6115f9e6ff.zip
+entries=5
+files/0c/09/005f9e056140499d91ececa7700439b4.txt
+files/7a/cd/preprod-c3-1dfe5d0061c73fae0e6dc642.txt
+files/b1/b0/2963b495317759a3600f76ad98325d53.txt
+backup.json
+manifest.json
+
+## Verify command
+var/private-c3-verify-20260529-104415.json
+verifyResult=var/private-c3-verify-20260529-104415.json
+{
+    "verification": {
+        "valid": true,
+        "format": "json",
+        "path": "/home/lescaramgl-ssh/caramagnols-preprod/private/storage/exports/private-backup-20260529-124417-db6115f9e6ff.json",
+        "checksum": "db6115f9e6ff39a817bab9d2467636458210a09df6ab748c4e34467d14cb6c7b",
+        "payloadChecksum": "db6115f9e6ff39a817bab9d2467636458210a09df6ab748c4e34467d14cb6c7b",
+        "tableCount": 42,
+        "rowCount": 28,
+        "fileCount": 3,
+        "archiveAvailable": true,
+        "archivePath": "/home/lescaramgl-ssh/caramagnols-preprod/private/storage/exports/private-backup-20260529-124417-db6115f9e6ff.zip",
+        "archiveChecksum": "8fef07503b922d339e3f54c70f6176c9c1fce8dc27f358a1d4eb32aa86efa48b",
+        "storedFileCount": 3,
+        "missingArchiveFiles": [],
+        "hashMismatchFiles": []
+    },
+    "restoreDryRun": {
+        "success": true,
+        "dryRun": true,
+        "verified": true,
+        "tableCount": 42,
+        "fileCount": 3,
+        "sql": {
+            "rowCount": 28,
+            "checkedRows": 28,
+            "missingTables": [],
+            "unknownColumns": [],
+            "conflictCount": 28,
+            "conflicts": [
+                {
+                    "table": "private_users",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_users",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_password_resets",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_modules",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_modules",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_modules",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_modules",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_modules",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                },
+                {
+                    "table": "private_modules",
+                    "index": "PRIMARY",
+                    "columns": [
+                        "id"
+                    ]
+                }
+            ],
+            "canApplyCleanly": false
+        },
+        "files": {
+            "declaredFiles": 3,
+            "archiveAvailable": true,
+            "storedFiles": 3,
+            "missingArchiveFiles": [],
+            "hashMismatchFiles": [],
+            "restorable": true
+        },
+        "requiredConditions": [
+            "Restaurer uniquement depuis une sauvegarde ZIP/JSON verifiee et conservee hors webroot.",
+            "Prendre un snapshot SQL et fichiers de la cible avant toute ecriture.",
+            "Executer le dry-run et traiter explicitement les tables manquantes, colonnes inconnues et conflits d index.",
+            "Restaurer les fichiers prives dans leur stockage hors webroot avant de rouvrir les acces utilisateur.",
+            "Journaliser l operateur, le chemin de sauvegarde, le checksum et le resultat de restauration."
+        ]
+    }
+}
+
+## Summary
+verification.valid=true
+archiveAvailable=true
+storedFileCount=3
+restore.success=true
+files.restorable=true
+sql.conflictCount=28
+
+## Cleanup fixture
+{
+    "createdAt": "2026-05-29T12:44:16+02:00",
+    "userId": 5,
+    "email": "preprod-c3-restore-20260529-124416-f2a871e5@example.invalid",
+    "categoryId": 4,
+    "documentId": "preprod-c3-1dfe5d0061c73fae0e6dc642",
+    "storagePath": "uploads/7a/cd/preprod-c3-1dfe5d0061c73fae0e6dc642.txt",
+    "documentPath": "/home/lescaramgl-ssh/caramagnols-preprod/private/storage/uploads/7a/cd/preprod-c3-1dfe5d0061c73fae0e6dc642.txt",
+    "documentFileExists": true
+}
+
+finishedAt=2026-05-29T10:44:17+00:00
+
+## Cleanup correction rerun
+{
+    "cleanupCorrectionAt": "2026-05-29T12:46:43+02:00",
+    "userId": 5,
+    "deletedRows": {
+        "private_documents": 1,
+        "private_document_categories": 1,
+        "private_user_module_permissions": 2,
+        "private_users": 1
+    },
+    "fileDeleted": true,
+    "userRows": 0,
+    "documentFileExists": false
+}
+
+## Remote artifact cleanup
+{
+    "cleanupAt": "2026-05-29T12:47:20+02:00",
+    "artifacts": [
+        {
+            "path": "var/private-c3-backup-result-20260529-104415.json",
+            "existed": true,
+            "deleted": true,
+            "existsAfter": false
+        },
+        {
+            "path": "var/private-c3-verify-20260529-104415.json",
+            "existed": true,
+            "deleted": true,
+            "existsAfter": false
+        },
+        {
+            "path": "/home/lescaramgl-ssh/caramagnols-preprod/private/storage/exports/private-backup-20260529-124417-db6115f9e6ff.json",
+            "existed": true,
+            "deleted": true,
+            "existsAfter": false
+        },
+        {
+            "path": "/home/lescaramgl-ssh/caramagnols-preprod/private/storage/exports/private-backup-20260529-124417-db6115f9e6ff.zip",
+            "existed": true,
+            "deleted": true,
+            "existsAfter": false
+        }
+    ]
+}

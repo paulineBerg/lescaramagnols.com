@@ -30,10 +30,10 @@ Derniere mise a jour : 2026-05-29.
 
 | Phase | Statut | Lecture rapide |
 |---|---|---|
-| C0 - Gate preproduction | En cours | Socle preprod deploye, headers OK, runbook cree. Reste a signer le scenario C3. |
+| C0 - Gate preproduction | En cours | Socle preprod deploye, headers OK, runbook cree, C1/C2/C3 signes. Reste a fermer la decision finale. |
 | C1 - Recette manuelle securite privee | Fait | Recette manuelle executee sur la vraie preprod, preuve C1 archivee. |
 | C2 - Suppression compte suspendu et cron J+20/J+30 | Fait | Flux sensible joue bout en bout en preprod avec compte jetable, preuve C2 archivee. Livraison SMTP reelle non forcee, renvoyee a V2. |
-| C3 - Restauration fichier et base | En cours | Implementation ZIP + verify + restore dry-run validee localement; preuve preprod a signer. |
+| C3 - Restauration fichier et base | Fait | Backup ZIP + verify + restore dry-run rejoues sur preprod, preuve archivee, artefacts jetables nettoyes. |
 | C4 - Durcissement CSP | A faire | Headers renforces, mais `style-src 'unsafe-inline'` reste a retirer. |
 | C5 - Antivirus ou quarantaine documentaire | A faire | Decision retenue, implementation non lancee. |
 | C6 - Nettoyage des traces anonymisation | A faire | Inventaire et nettoyage restant a planifier. |
@@ -64,7 +64,7 @@ Checklist de suivi :
 - [x] Relancer `m6-retirement` avec `ready=true`.
 - [x] Relancer `check-security-headers` sur la vraie preprod avec `Headers requis: OK`.
 - [ ] Archiver la derniere sortie preprod OK dans le runbook.
-- [ ] Signer les scenarios manuels C1, C2 et C3 dans le runbook.
+- [x] Signer les scenarios manuels C1, C2 et C3 dans le runbook.
 - [ ] Fermer la decision finale en `GO` uniquement apres C1/C2/C3.
 
 Travaux :
@@ -87,7 +87,7 @@ composer check-security-headers -- --url=https://preprod.lescaramagnols.com
 Critere d'acceptation :
 
 - [x] toutes les commandes retournent `ready=true` ou OK ;
-- [ ] les tests manuels C1, C2 et C3 sont signes dans le runbook ;
+- [x] les tests manuels C1, C2 et C3 sont signes dans le runbook ;
 - [ ] aucune dette critique ouverte ne reste sans decision explicite.
 
 ## 4. Phase C1 - Recette manuelle securite privee
@@ -182,29 +182,29 @@ Note implementation 2026-05-29 : `PrivateBackupService` cree maintenant un ZIP a
 
 Checklist de suivi :
 
-- [ ] Creer un jeu de test preprod avec donnees SQL et fichiers.
-- [ ] Generer une sauvegarde complete.
-- [ ] Verifier la structure ZIP.
-- [ ] Lancer `verify-backup`.
-- [ ] Lancer la restauration dry-run.
-- [ ] Documenter les conditions d'une restauration reelle.
-- [ ] Archiver les preuves dans le runbook.
+- [x] Creer un jeu de test preprod avec donnees SQL et fichiers.
+- [x] Generer une sauvegarde complete.
+- [x] Verifier la structure ZIP.
+- [x] Lancer `verify-backup`.
+- [x] Lancer la restauration dry-run.
+- [x] Documenter les conditions d'une restauration reelle.
+- [x] Archiver les preuves dans le runbook.
 
 Travaux :
 
-- [ ] creer une sauvegarde contenant donnees SQL et fichiers ;
-- [ ] verifier le ZIP structure ;
-- [ ] lancer `verify-backup` ;
-- [ ] lancer restauration dry-run ;
-- [ ] definir les conditions d'une restauration reelle admin ;
-- [ ] documenter ce qui est restaure et ce qui ne l'est pas.
+- [x] creer une sauvegarde contenant donnees SQL et fichiers ;
+- [x] verifier le ZIP structure ;
+- [x] lancer `verify-backup` ;
+- [x] lancer restauration dry-run ;
+- [x] definir les conditions d'une restauration reelle admin ;
+- [x] documenter ce qui est restaure et ce qui ne l'est pas.
 
 Critere d'acceptation :
 
-- [ ] la sauvegarde JSON/ZIP est valide ;
-- [ ] les fichiers sont presents dans des chemins non publics ;
-- [ ] les donnees SQL sont reinsertables sans conflit silencieux ;
-- [ ] la restauration reelle reste une action admin consciente, auditee et non automatique.
+- [x] la sauvegarde JSON/ZIP est valide ;
+- [x] les fichiers sont presents dans des chemins non publics ;
+- [x] les donnees SQL sont reinsertables sans conflit silencieux ;
+- [x] la restauration reelle reste une action admin consciente, auditee et non automatique.
 
 ## 7. Phase C4 - Durcissement CSP
 
