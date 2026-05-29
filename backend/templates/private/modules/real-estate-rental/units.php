@@ -85,7 +85,7 @@ foreach ($properties as $property) {
             $status = is_string($unit['status'] ?? null) ? (string) $unit['status'] : 'available';
             $dialogId = 'rental-unit-dialog-' . $id;
             ?>
-            <tr class="private-click-row" role="button" tabindex="0" aria-controls="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" data-private-dialog-open="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>">
+            <tr>
               <td><strong><?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
               <td><?php echo htmlspecialchars((string) ($propertyNames[$propertyId] ?? ('Immeuble #' . $propertyId)), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($unit['surface'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> m²</td>

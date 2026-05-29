@@ -152,6 +152,17 @@ Regles d'architecture :
 7. les textes visibles doivent passer par le systeme de traduction adapte au contexte ;
 8. les changements HTTP touchant le front-controller exigent tests et verification manuelle ciblee.
 
+Checklist de revue des templates prives :
+
+1. un template prive reste une couche de presentation : il lit uniquement un `viewModel` deja prepare et ne cree ni service, ni repository, ni acces base ;
+2. toute mutation, recherche SQL, sauvegarde, purge, restauration, calcul fiscal ou calcul locatif reste dans `backend/src/PrivatePortal/**` ou `backend/src/PrivateApps/**` ;
+3. tout contenu provenant d'un utilisateur ou d'une base est echappe avec `htmlspecialchars(..., ENT_QUOTES, 'UTF-8')` avant sortie HTML ;
+4. tout declencheur JavaScript visible est un vrai `<button type="button">` ; ne pas detourner `<tr>`, `<a>`, `<div>`, `<span>` ou `<summary>` en bouton ;
+5. aucun `onclick`, `style=`, `<style>` inline ou script tiers n'est ajoute dans un template prive ;
+6. tout nouveau module prive ajoute au moins un test de service/repository et reste couvert par `PrivateTemplateGuardTest`.
+
+Controle executable : `php backend/vendor/bin/phpunit tests/PrivatePortal/PrivateTemplateGuardTest.php`.
+
 ## 3. Arborescence recommandee
 
 ```text

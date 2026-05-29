@@ -366,9 +366,9 @@ Checklist de suivi :
 - [x] Regle projet deja presente : nouveaux modules prives avec services/repositories/tests.
 - [x] Regle projet deja presente : vrai `<button>` pour action JavaScript.
 - [x] `migration-dod` relance avec `ready=true`.
-- [ ] Ajouter une checklist de revue dediee aux templates prives.
-- [ ] Verifier les templates prives existants contre cette checklist.
-- [ ] Corriger les ecarts trouves dans les templates existants.
+- [x] Ajouter une checklist de revue dediee aux templates prives.
+- [x] Verifier les templates prives existants contre cette checklist.
+- [x] Corriger les ecarts trouves dans les templates existants.
 
 Regles :
 
@@ -380,9 +380,27 @@ Regles :
 
 Critere d'acceptation :
 
-- [ ] les nouveaux ecrans prives suivent ces regles ;
-- [ ] les revues de code bloquent les calculs metier dans templates ;
+- [x] les nouveaux ecrans prives suivent ces regles ;
+- [x] les revues de code bloquent les calculs metier dans templates ;
 - [x] `migration-dod` reste vert.
+
+Decision :
+
+- la checklist de revue des templates prives est documentee dans `docs/private/README.md` ;
+- `PrivateTemplateGuardTest` bloque les nouveaux ecarts sur `backend/templates/private/**` : style inline, event handler inline, pseudo-boutons, acces SQL/base, instanciation service/repository et operations d'ecriture ;
+- les lignes cliquables des templates locatifs `properties.php` et `units.php` ont ete remplacees par de vrais boutons `type="button"` ;
+- le bouton de fermeture du dialogue biens utilise l'attribut generique `data-private-dialog-close`.
+
+Preuves :
+
+- inventaire templates prives : `docs/private/recette-preprod-migration-privee/52-c7-private-template-inventory-2026-05-29.txt` ;
+- validations locales : `docs/private/recette-preprod-migration-privee/53-c7-local-validation-2026-05-29.txt` ;
+- `migration-dod` locale : `docs/private/recette-preprod-migration-privee/54-c7-migration-dod-local-2026-05-29.json` ;
+- checklist securite locale : `docs/private/recette-preprod-migration-privee/55-c7-security-checklist-local-2026-05-29.json` ;
+- deploiement templates et README DoD preprod : `docs/private/recette-preprod-migration-privee/56-c7-deploy-preprod-2026-05-29.txt` ;
+- `migration-dod` preprod : `docs/private/recette-preprod-migration-privee/57-c7-migration-dod-preprod-2026-05-29.json` ;
+- checklist securite preprod : `docs/private/recette-preprod-migration-privee/58-c7-security-checklist-preprod-2026-05-29.json` ;
+- headers preprod : `docs/private/recette-preprod-migration-privee/59-c7-check-security-headers-preprod-2026-05-29.txt`.
 
 ## 11. Points de vigilance complementaires
 

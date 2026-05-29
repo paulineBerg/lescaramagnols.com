@@ -48,6 +48,14 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (deploiement) | C6 deploy preprod `deploy-fast --all-changes` | deploiement OK, `deploy-fast completed` | [49-c6-deploy-preprod-2026-05-29.txt](./recette-preprod-migration-privee/49-c6-deploy-preprod-2026-05-29.txt) |
 | 2026-05-29 | Auto (CLI preprod) | C6 `security-checklist` preprod | `success=true`, `19/19 checks` | [50-c6-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI HTTP preprod) | C6 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [51-c6-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | C7 inventaire templates prives | `29` templates controles, aucune occurrence interdite | [52-c7-private-template-inventory-2026-05-29.txt](./recette-preprod-migration-privee/52-c7-private-template-inventory-2026-05-29.txt) |
+| 2026-05-29 | Auto (PHPUnit) | C7 syntaxe, PHPCS, `PrivateTemplateGuardTest`, tests locatifs | `52 tests`, `556 assertions`, OK | [53-c7-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/53-c7-local-validation-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | C7 `migration-dod` local | `success=true`, `ready=true`, `11/11 checks` | [54-c7-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/54-c7-migration-dod-local-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI) | C7 `security-checklist` local | `success=true`, `19/19 checks` | [55-c7-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/55-c7-security-checklist-local-2026-05-29.json) |
+| 2026-05-29 | Auto (deploiement) | C7 deploy preprod `deploy-fast --all-changes` + sync README DoD | templates locatifs et README de controle synchronises, `deploy-fast completed` | [56-c7-deploy-preprod-2026-05-29.txt](./recette-preprod-migration-privee/56-c7-deploy-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI preprod) | C7 `migration-dod` preprod | `success=true`, `ready=true`, `11/11 checks` | [57-c7-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/57-c7-migration-dod-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI preprod) | C7 `security-checklist` preprod | `success=true`, `19/19 checks` | [58-c7-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/58-c7-security-checklist-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI HTTP preprod) | C7 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [59-c7-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/59-c7-check-security-headers-preprod-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -101,6 +109,17 @@ php backend/core/tools/private_migration_reconcile.php security-checklist > docs
 REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/49-c6-deploy-preprod-2026-05-29.txt 2>&1
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json
 composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt 2>&1
+{ printf 'Phase C7 - inventaire templates prives apres encadrement\n\n'; printf 'Templates controles:\n'; find backend/templates/private -type f -name '*.php' | sort; printf '\nOccurrences interdites restantes:\n'; rg -n "(<(?:a|div|span|tr|td|summary)[^>]*(?:role=\"button\"|data-private-dialog-open|tabindex=\"0\")|onclick=|onchange=|oninput=|onkeydown=|onkeyup=|<style\b|\sstyle=|->(?:create|update|delete|save|insert|ensure|purge|restore|backup|execute|query|prepare)\s*\(|\b(?:SELECT|INSERT|UPDATE|DELETE)\s+|\bnew\s+[A-Za-z0-9_\\\\]*(?:Repository|Service)\b)" backend/templates/private -g '*.php' || printf 'Aucune occurrence interdite.\n'; } > docs/private/recette-preprod-migration-privee/52-c7-private-template-inventory-2026-05-29.txt
+cd backend && { php -l templates/private/modules/real-estate-rental/properties.php; php -l templates/private/modules/real-estate-rental/units.php; php -l tests/PrivatePortal/PrivateTemplateGuardTest.php; php vendor/bin/phpcs tests/PrivatePortal/PrivateTemplateGuardTest.php; php vendor/bin/phpunit tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivateApps/RealEstateRental; } > ../docs/private/recette-preprod-migration-privee/53-c7-local-validation-2026-05-29.txt 2>&1
+php backend/core/tools/private_migration_reconcile.php migration-dod > docs/private/recette-preprod-migration-privee/54-c7-migration-dod-local-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/55-c7-security-checklist-local-2026-05-29.json
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/56-c7-deploy-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "mkdir -p /home/lescaramgl-ssh/caramagnols-preprod/docs/private /home/lescaramgl-ssh/caramagnols-preprod/docs/security"
+rsync -av docs/private/README.md ovh-boutique:/home/lescaramgl-ssh/caramagnols-preprod/docs/private/README.md >> docs/private/recette-preprod-migration-privee/56-c7-deploy-preprod-2026-05-29.txt 2>&1
+rsync -av docs/security/README.md ovh-boutique:/home/lescaramgl-ssh/caramagnols-preprod/docs/security/README.md >> docs/private/recette-preprod-migration-privee/56-c7-deploy-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/57-c7-migration-dod-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/58-c7-security-checklist-preprod-2026-05-29.json
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/59-c7-check-security-headers-preprod-2026-05-29.txt 2>&1
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -131,6 +150,13 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - [x] C6 — Actions visibles et textes applicatifs sans anonymisation ; alias internes documentes pour compatibilite — **OK LOCAL**, preuves: [46-c6-inventory-after-cleanup-2026-05-29.txt](./recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt), [47-c6-phpunit-privacy-legacy-2026-05-29.txt](./recette-preprod-migration-privee/47-c6-phpunit-privacy-legacy-2026-05-29.txt)
 - [x] C6 — Routes legacy d'anonymisation bloquees et suppression/sauvegarde toujours vertes — **OK TEST**, preuve: [47-c6-phpunit-privacy-legacy-2026-05-29.txt](./recette-preprod-migration-privee/47-c6-phpunit-privacy-legacy-2026-05-29.txt)
 - [x] C6 — Checklist securite locale et preprod apres deploiement — **OK LOCAL + PREPROD CLI**, preuves: [48-c6-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/48-c6-security-checklist-local-2026-05-29.json), [50-c6-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json), [51-c6-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt)
+
+## Tests manuels requis (phase C7)
+
+- [x] C7 — Checklist de revue templates prives documentee dans `docs/private/README.md` — **OK DOC**, preuve: [53-c7-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/53-c7-local-validation-2026-05-29.txt)
+- [x] C7 — Inventaire `backend/templates/private/**` sans style inline, handler inline, pseudo-bouton, acces SQL/base, instanciation service/repository ni operation d'ecriture — **OK LOCAL**, preuve: [52-c7-private-template-inventory-2026-05-29.txt](./recette-preprod-migration-privee/52-c7-private-template-inventory-2026-05-29.txt)
+- [x] C7 — Ecarts corriges dans les templates locatifs : ouverture de dialogue par vrais boutons `type="button"` et fermeture `data-private-dialog-close` — **OK TEST**, preuve: [53-c7-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/53-c7-local-validation-2026-05-29.txt)
+- [x] C7 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [54-c7-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/54-c7-migration-dod-local-2026-05-29.json), [57-c7-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/57-c7-migration-dod-preprod-2026-05-29.json), [58-c7-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/58-c7-security-checklist-preprod-2026-05-29.json), [59-c7-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/59-c7-check-security-headers-preprod-2026-05-29.txt)
 
 ## Procédure C3 — restauration fichier + base
 
@@ -241,15 +267,23 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/49-c6-deploy-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/52-c7-private-template-inventory-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/53-c7-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/54-c7-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/55-c7-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/56-c7-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/57-c7-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/58-c7-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/59-c7-check-security-headers-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-C6 est ferme cote code applicatif et validations locales/preprod CLI/HTTP.
+C7 est ferme cote code applicatif et validations locales/preprod CLI/HTTP.
 
 Les prochaines actions appartiennent aux phases suivantes du plan :
 
-- C7 puis V1-V5 : validations d'exploitation restant suivies hors C0.
+- Points de vigilance complementaires puis V1-V5 : validations d'exploitation restant suivies hors C0.
 
 Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.

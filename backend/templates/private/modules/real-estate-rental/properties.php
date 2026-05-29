@@ -99,7 +99,7 @@ $ownershipModes = [
             $ownershipMode = is_string($property['ownershipMode'] ?? null) ? (string) $property['ownershipMode'] : '';
             $dialogId = 'rental-property-dialog-' . $id;
             ?>
-            <tr class="private-click-row" role="button" tabindex="0" aria-controls="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" data-private-dialog-open="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>">
+            <tr>
               <td><strong><?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
               <td><?php echo htmlspecialchars((string) ($property['address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($propertyType, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -131,7 +131,7 @@ $ownershipModes = [
           <div class="private-dialog-panel">
             <header class="private-dialog-header">
               <h3 id="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Modifier le bien <?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></h3>
-              <button type="button" class="private-dialog-close" data-private-property-dialog-close aria-label="Fermer">×</button>
+              <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
             </header>
             <form method="post" action="<?php echo htmlspecialchars($propertiesUrl, ENT_QUOTES, 'UTF-8'); ?>">
               <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
