@@ -1,0 +1,85 @@
+{
+    "generated_at": "2026-05-29T18:39:49+02:00",
+    "since_minutes": 60,
+    "overall_severity": "ok",
+    "counts": {
+        "login_failed": 0,
+        "private_login_failed": 3,
+        "rate_limited": 0,
+        "private_rate_limited": 0,
+        "private_csrf_rejected": 0,
+        "private_email_failed": 0,
+        "private_backup_failed": 0,
+        "private_backup_warning": 0,
+        "private_purge_failed": 0,
+        "http_403": 0,
+        "http_429": 0,
+        "cron_failed": 0
+    },
+    "thresholds": {
+        "login_failed": 10,
+        "private_login_failed": 5,
+        "rate_limited": 6,
+        "private_rate_limited": 3,
+        "private_csrf_rejected": 3,
+        "private_email_failed": 1,
+        "private_backup_failed": 1,
+        "private_backup_warning": 1,
+        "private_purge_failed": 1,
+        "http_403": 30,
+        "http_429": 10,
+        "cron_failed": 1
+    },
+    "severities": {
+        "login_failed": "warning",
+        "private_login_failed": "warning",
+        "rate_limited": "warning",
+        "private_rate_limited": "error",
+        "private_csrf_rejected": "warning",
+        "private_email_failed": "error",
+        "private_backup_failed": "critical",
+        "private_backup_warning": "warning",
+        "private_purge_failed": "critical",
+        "http_403": "warning",
+        "http_429": "warning",
+        "cron_failed": "error"
+    },
+    "alerts": [],
+    "summary": {
+        "private": {
+            "login_failed": 3,
+            "csrf_rejected": 0,
+            "rate_limited": 0,
+            "email_failed": 0,
+            "backup_failed": 0,
+            "backup_warning": 0,
+            "purge_failed": 0
+        },
+        "cron": {
+            "failed": 0
+        }
+    },
+    "notification": {
+        "enabled": false,
+        "notify_on": "alerts",
+        "triggered": false,
+        "has_error": false,
+        "channels": {
+            "webhook": {
+                "configured": false,
+                "attempted": false,
+                "success": false,
+                "status": 0,
+                "error": null
+            },
+            "email": {
+                "configured": false,
+                "attempted": false,
+                "success": false,
+                "sent": [],
+                "failed": []
+            }
+        }
+    },
+    "cli_exit_code": 0
+}

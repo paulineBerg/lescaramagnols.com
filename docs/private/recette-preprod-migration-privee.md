@@ -97,6 +97,12 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (CLI HTTP/ops preprod) | Go-live headers + observabilite logs reels 60 min | headers OK, `check_log_alerts` exit `0`, `overall_severity=ok`, aucune alerte | [116-go-live-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/116-go-live-check-security-headers-preprod-2026-05-29.txt), [117-go-live-log-alerts-preprod-2026-05-29.json](./recette-preprod-migration-privee/117-go-live-log-alerts-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (decision) | Decision go-live exploitation privee | `NO-GO` tant que `/private/login` externe retourne `403` | [118-go-live-decision-exploitation-2026-05-29.txt](./recette-preprod-migration-privee/118-go-live-decision-exploitation-2026-05-29.txt) |
 | 2026-05-29 | Auto (sync docs) | Synchronisation runbook preprod apres decision No-Go | runbook preprod mis a jour | [119-go-live-doc-sync-preprod-2026-05-29.txt](./recette-preprod-migration-privee/119-go-live-doc-sync-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (HTTP externe preprod) | Recontrole go-live `/private/login` avec en-tetes navigateur | `GO`, `status=200`, formulaire prive present | [120-go-live-private-login-http-preprod-rerun-2026-05-29.txt](./recette-preprod-migration-privee/120-go-live-private-login-http-preprod-rerun-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI preprod) | Recontrole go-live gates `security-checklist`, `migration-dod`, `m5-plan`, `m6-retirement` | `success=true`, `ready=true` | [121-go-live-security-checklist-preprod-rerun-2026-05-29.json](./recette-preprod-migration-privee/121-go-live-security-checklist-preprod-rerun-2026-05-29.json), [122-go-live-migration-dod-preprod-rerun-2026-05-29.json](./recette-preprod-migration-privee/122-go-live-migration-dod-preprod-rerun-2026-05-29.json), [123-go-live-m5-plan-preprod-rerun-2026-05-29.json](./recette-preprod-migration-privee/123-go-live-m5-plan-preprod-rerun-2026-05-29.json), [124-go-live-m6-retirement-preprod-rerun-2026-05-29.json](./recette-preprod-migration-privee/124-go-live-m6-retirement-preprod-rerun-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI HTTP/ops preprod) | Recontrole go-live headers + observabilite logs reels 60 min | headers OK, `check_log_alerts` exit `0`, `overall_severity=ok`, aucune alerte | [125-go-live-check-security-headers-preprod-rerun-2026-05-29.txt](./recette-preprod-migration-privee/125-go-live-check-security-headers-preprod-rerun-2026-05-29.txt), [126-go-live-log-alerts-preprod-rerun-2026-05-29.json](./recette-preprod-migration-privee/126-go-live-log-alerts-preprod-rerun-2026-05-29.json) |
+| 2026-05-29 | Auto (HTTP externe preprod) | Recontrole admin hors session | `OK_EXPECTED_DENY`, acces admin interdit hors session | [127-go-live-admin-deny-preprod-rerun-2026-05-29.txt](./recette-preprod-migration-privee/127-go-live-admin-deny-preprod-rerun-2026-05-29.txt) |
+| 2026-05-29 | Auto (decision) | Decision go-live exploitation privee apres correction mapping | `GO` | [128-go-live-decision-exploitation-rerun-2026-05-29.txt](./recette-preprod-migration-privee/128-go-live-decision-exploitation-rerun-2026-05-29.txt) |
+| 2026-05-29 | Auto (HTTP / htaccess) | Controle `.htaccess` et blocage indexation preprod | pas de bloc User-Agent versionne, `robots.txt` + `X-Robots-Tag` bloquent l'indexation | [129-go-live-htaccess-robots-preprod-2026-05-29.txt](./recette-preprod-migration-privee/129-go-live-htaccess-robots-preprod-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -474,8 +480,12 @@ V5 est ferme cote code applicatif, alertes privees locales/preprod, validations 
 
 Le plan de correction des dettes migration privee est ferme pour les phases C0 a C7 et V1 a V5.
 
-Decision go-live exploitation 2026-05-29 : **NO-GO**.
+Decision go-live exploitation initiale 2026-05-29 : **NO-GO**.
 
 Raison : le controle HTTP externe preprod `/private/login` retourne `403` OVH avant execution PHP, sans formulaire prive.
 
 Condition de levee : corriger le mapping Apache/OVH pour router `/private/*` vers `backend/public/index.php`, puis rejouer les preuves `111` a `117`.
+
+Decision go-live exploitation apres correction mapping 2026-05-29 : **GO**.
+
+Preuves de levee : `/private/login` retourne `200` avec le formulaire prive quand le controle utilise des en-tetes navigateur, les gates preprod restent `ready=true`, les headers sont OK, `check_log_alerts` retourne `overall_severity=ok`, et l'admin hors session reste interdit. Le `.htaccess` versionne et deploye ne bloque pas explicitement les User-Agent; le blocage d'indexation preprod est assure par `robots.txt` et `X-Robots-Tag`.
