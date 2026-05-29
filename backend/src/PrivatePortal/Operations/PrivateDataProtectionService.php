@@ -87,7 +87,7 @@ final class PrivateDataProtectionService
         ];
     }
 
-    public function anonymizeAccount(int $privateUserId, int $actorPrivateUserId, string $reason): bool
+    public function redactAccountForDeletion(int $privateUserId, int $actorPrivateUserId, string $reason): bool
     {
         $reason = trim($reason);
         if ($privateUserId <= 0 || $actorPrivateUserId < 0 || $reason === '') {
@@ -98,7 +98,7 @@ final class PrivateDataProtectionService
             $this->database->ensureReady();
             $pdo = $this->database->pdo();
             $pdo->beginTransaction();
-            $anonymousEmail = sprintf('deleted+%d@anonymous.invalid', $privateUserId);
+            $deletedEmail = sprintf('deleted+%d@deleted.invalid', $privateUserId);
             $hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_ARGON2ID);
             if (!is_string($hash)) {
                 $pdo->rollBack();
@@ -120,7 +120,7 @@ final class PrivateDataProtectionService
                 )
             );
             $statement->execute([
-                'email' => $anonymousEmail,
+                'email' => $deletedEmail,
                 'password_hash' => $hash,
                 'status' => 'deleted',
                 'updated_at' => date('Y-m-d H:i:s'),
@@ -131,19 +131,19 @@ final class PrivateDataProtectionService
                 'private_user_module_permissions',
                 '`is_active` = 0, `revoked_at` = :updated_at, `revoked_by_admin_email` = :actor',
                 '`private_user_id` = :private_user_id',
-                ['updated_at' => date('Y-m-d H:i:s'), 'actor' => 'gdpr-anonymized', 'private_user_id' => $privateUserId]
+                ['updated_at' => date('Y-m-d H:i:s'), 'actor' => 'gdpr-deleted', 'private_user_id' => $privateUserId]
             );
             $this->safeUpdate(
                 'private_documents',
                 '`original_name` = :original_name, `scan_error` = \'\', `is_active` = 0',
                 '`private_user_id` = :private_user_id',
-                ['original_name' => 'document-anonymized', 'private_user_id' => $privateUserId]
+                ['original_name' => 'document-deleted', 'private_user_id' => $privateUserId]
             );
             $this->safeUpdate(
                 'tax_manual_income_entries',
                 '`label` = :label, `notes` = NULL, `updated_at` = :updated_at',
                 '`private_user_id` = :private_user_id',
-                ['label' => 'Ligne anonymisee', 'updated_at' => date('Y-m-d H:i:s'), 'private_user_id' => $privateUserId]
+                ['label' => 'Ligne supprimee', 'updated_at' => date('Y-m-d H:i:s'), 'private_user_id' => $privateUserId]
             );
             $this->safeUpdate(
                 'tax_source_activations',
@@ -170,7 +170,12 @@ final class PrivateDataProtectionService
         }
     }
 
-    public function purgeAnonymizedAccount(int $privateUserId, string $reason): bool
+    public function anonymizeAccount(int $privateUserId, int $actorPrivateUserId, string $reason): bool
+    {
+        return $this->redactAccountForDeletion($privateUserId, $actorPrivateUserId, $reason);
+    }
+
+    public function purgeDeletedAccount(int $privateUserId, string $reason): bool
     {
         $reason = trim($reason);
         if ($privateUserId <= 0 || $reason === '') {
@@ -198,6 +203,11 @@ final class PrivateDataProtectionService
 
             return false;
         }
+    }
+
+    public function purgeAnonymizedAccount(int $privateUserId, string $reason): bool
+    {
+        return $this->purgeDeletedAccount($privateUserId, $reason);
     }
 
     /**
@@ -418,7 +428,7 @@ final class PrivateDataProtectionService
             'private_document_categories',
             '`name` = :name, `slug` = :slug, `is_active` = 0, `updated_at` = :updated_at',
             '`private_user_id` = :private_user_id',
-            ['name' => 'categorie-anonymisee', 'slug' => 'categorie-anonymisee-' . $privateUserId, 'updated_at' => $now, 'private_user_id' => $privateUserId]
+            ['name' => 'categorie-supprimee', 'slug' => 'categorie-supprimee-' . $privateUserId, 'updated_at' => $now, 'private_user_id' => $privateUserId]
         );
 
         $this->safeUpdate(
@@ -431,7 +441,7 @@ final class PrivateDataProtectionService
             'discussion_message_attachments',
             '`original_filename` = :filename, `purge_status` = \'purged\'',
             '`message_id` IN (SELECT `id` FROM `' . $this->database->table('discussion_messages') . '` WHERE `sender_private_user_id` = :private_user_id)',
-            ['filename' => 'piece-jointe-anonymisee', 'private_user_id' => $privateUserId]
+            ['filename' => 'piece-jointe-supprimee', 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
             'discussion_conversation_members',
@@ -462,25 +472,25 @@ final class PrivateDataProtectionService
             'rental_properties',
             '`name` = :name, `address` = :address, `status` = \'archived\', `is_active` = 0, `notes` = NULL, `archived_at` = COALESCE(`archived_at`, :archived_at), `archived_by_private_user_id` = :actor',
             '`created_by_private_user_id` = :private_user_id',
-            ['name' => 'Bien anonymise ' . $privateUserId, 'address' => 'adresse-anonymisee', 'archived_at' => $now, 'actor' => $actor, 'private_user_id' => $privateUserId]
+            ['name' => 'Bien supprime ' . $privateUserId, 'address' => 'adresse-supprimee', 'archived_at' => $now, 'actor' => $actor, 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
             'rental_units',
             '`label` = :label, `status` = \'archived\', `is_active` = 0, `notes` = NULL, `archived_at` = COALESCE(`archived_at`, :archived_at), `archived_by_private_user_id` = :actor',
             '`created_by_private_user_id` = :private_user_id',
-            ['label' => 'Lot anonymise', 'archived_at' => $now, 'actor' => $actor, 'private_user_id' => $privateUserId]
+            ['label' => 'Lot supprime', 'archived_at' => $now, 'actor' => $actor, 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
             'rental_tenants',
             '`full_name` = :name, `email` = NULL, `phone` = NULL, `notes` = NULL, `status` = \'cancelled\', `is_active` = 0',
             '`created_by_private_user_id` = :private_user_id',
-            ['name' => 'Locataire anonymise', 'private_user_id' => $privateUserId]
+            ['name' => 'Locataire supprime', 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
             'rental_documents',
             '`original_name` = :original_name, `is_active` = 0',
             '`uploaded_by_private_user_id` = :private_user_id',
-            ['original_name' => 'document-locatif-anonymise', 'private_user_id' => $privateUserId]
+            ['original_name' => 'document-locatif-supprime', 'private_user_id' => $privateUserId]
         );
         $this->safeDelete('rental_payments', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_expenses', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);

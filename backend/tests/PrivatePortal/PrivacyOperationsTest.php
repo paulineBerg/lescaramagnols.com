@@ -2,19 +2,23 @@
 
 declare(strict_types=1);
 
+namespace LesCaramagnols\Tests;
+
+use Caramagnols\Database\EditorialDatabase;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
-use Caramagnols\Database\EditorialDatabase;
+use FilesystemIterator;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
-
-require_once __DIR__ . '/../../core/bootstrap.php';
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use ZipArchive;
 
 final class PrivacyOperationsTest extends TestCase
 {
@@ -26,6 +30,11 @@ final class PrivacyOperationsTest extends TestCase
     /** @var array<int, string> */
     private array $privateFilePaths = [];
 
+    public static function setUpBeforeClass(): void
+    {
+        require_once ROOT_PATH . '/core/bootstrap.php';
+    }
+
     protected function tearDown(): void
     {
         $this->cleanupEditorialSqlDatabase();
@@ -34,7 +43,7 @@ final class PrivacyOperationsTest extends TestCase
         $this->removeTempDir();
     }
 
-    public function testGdprExportDoesNotExposePasswordHashAndAnonymizeDisablesAccount(): void
+    public function testGdprExportDoesNotExposePasswordHashAndDeletionRedactsAccount(): void
     {
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
@@ -52,11 +61,11 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertArrayNotHasKey('passwordHash', $privateUser);
         $this->assertArrayNotHasKey('password_hash', $privateUser);
 
-        $this->assertTrue($service->anonymizeAccount($userId, $userId, 'rgpd test'));
+        $this->assertTrue($service->redactAccountForDeletion($userId, $userId, 'rgpd test'));
         $user = $userRepository->findById($userId);
         $this->assertIsArray($user);
         $this->assertSame('deleted', $user['status'] ?? null);
-        $this->assertSame('deleted+' . $userId . '@anonymous.invalid', $user['email'] ?? null);
+        $this->assertSame('deleted+' . $userId . '@deleted.invalid', $user['email'] ?? null);
         $this->assertNull($user['full_name'] ?? null);
         $this->assertNull($user['postal_address'] ?? null);
         $this->assertNull($user['phone'] ?? null);

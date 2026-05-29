@@ -24,7 +24,7 @@ References projet a garder alignees :
 Mise a jour 2026-05-28 (parametres membre) :
 - ajout d'une page privee `/private/parametres` permettant au membre connecte de renseigner facultativement son nom, son adresse et son telephone;
 - l'email de connexion reste affiche en lecture seule et ne peut pas etre modifie depuis l'espace prive; toute demande de changement doit passer exclusivement par `private@lescaramagnols.com`;
-- les champs de profil sont stockes dans `private_users`, exportes dans le ZIP/JSON de compte, anonymises ou purges avec les operations RGPD existantes.
+- les champs de profil sont stockes dans `private_users`, exportes dans le ZIP/JSON de compte, neutralises ou purges avec les operations RGPD existantes.
 - dans le module `FamilyDiscussion`, la creation d'une discussion directe liste les membres actifs qui ont acces au module, donc les invitations acceptees et autorisees, sous forme de cases a cocher; le serveur exige exactement un membre coche pour une discussion privee.
 - dans le module `RealEstateRental`, les baux portent maintenant un type de bail (`habitation vide`, `habitation meublee`, `meuble etudiant`, `bail mobilite`, `autre`) qui propose une date de fin par defaut et stocke une categorie fiscale indicative (`revenus fonciers`, `BIC location meublee`, `a qualifier`) pour les syntheses et ponts fiscaux.
 
@@ -40,7 +40,7 @@ Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - les modules prives peuvent envoyer des emails via cette configuration : documents locatifs en pieces jointes, quittance de loyer PDF depuis un paiement, PDF fiscal annuel et invitations FamilyDiscussion;
 - RealEstateRental permet maintenant la suppression individuelle des locataires, baux, paiements, charges et documents, ainsi que la suppression globale des documents ou des donnees locatives avec confirmation explicite `SUPPRIMER`;
 - FamilyDiscussion permet l'invitation email d'un membre, la suppression d'un message, d'une piece jointe ou de tous les messages/fichiers envoyes par l'utilisateur dans une conversation;
-- dans le BO membres prives, un module deja affecte ne peut pas etre decoche tant que des informations rattachees existent; les comptes anonymises peuvent etre reinvites sur une nouvelle adresse ou purges cote donnees, sans restaurer de donnees anonymisees;
+- dans le BO membres prives, un module deja affecte ne peut pas etre decoche tant que des informations rattachees existent; les comptes supprimes et neutralises peuvent etre reinvites sur une nouvelle adresse ou purges cote donnees, sans restaurer de donnees neutralisees;
 - aucune recuperation serveur des messages chiffres client n'est ajoutee : sans cle locale d'un appareil participant, le contenu chiffre reste illisible par conception.
 
 Validations lancees pour ce jalon :
@@ -69,7 +69,7 @@ L'objectif n'est pas d'ajouter une simple page "client". Le besoin reel est de c
 Le portail doit permettre :
 
 1. de gerer des comptes famille separes des comptes admin ;
-2. d'inviter, activer, suspendre, anonymiser ou supprimer ces comptes depuis le BO ;
+2. d'inviter, activer, suspendre ou supprimer ces comptes depuis le BO ;
 3. d'activer les webapps privees utilisateur par utilisateur ;
 4. de journaliser les actions sensibles ;
 5. de stocker les fichiers prives hors `backend/public` ;
@@ -488,13 +488,13 @@ Fonctions attendues :
 
 1. inviter un membre par email ;
 2. renvoyer une invitation ;
-3. voir le statut du compte : invite, actif, suspendu, verrouille, supprime/anonymise ;
+3. voir le statut du compte : invite, actif, suspendu, verrouille, supprime ;
 4. suspendre un compte ;
 5. reinitialiser l'acces ;
 6. affecter les modules autorises ;
 7. consulter les derniers evenements d'audit utiles ;
 8. lancer un export RGPD ;
-9. supprimer ou anonymiser un compte selon la politique retenue.
+9. supprimer un compte selon la politique retenue.
 
 Contraintes :
 
@@ -1963,7 +1963,7 @@ Regles de purge :
 2. a l'ouverture de `/private/discussions`, lancer `DiscussionRetentionService::purgeExpiredForUser($userId)` avant la liste des conversations ;
 3. la purge utilisateur traite seulement les conversations auxquelles le membre a acces ;
 4. la purge se fait par lots courts pour ne pas ralentir l'ouverture du module ;
-5. le contenu du message, le chemin fichier et la miniature sont effaces ou anonymises quand la ligne passe a `purged` ;
+5. le contenu du message, le chemin fichier et la miniature sont effaces ou neutralises quand la ligne passe a `purged` ;
 6. les fichiers physiques sont supprimes hors webroot ; en cas d'erreur disque, marquer l'attachement `pending` et journaliser sans exposer le chemin ;
 7. une commande planifiee quotidienne purge aussi les contenus expires des membres inactifs, afin de ne pas conserver indefiniment les donnees d'un compte qui ne se reconnecte plus ;
 8. les evenements d'audit ne contiennent jamais le texte du message, le nom original complet si sensible, ni le chemin disque.
@@ -2252,7 +2252,7 @@ Clôture phase 2 / démarrage phase 3 :
 Checklist :
 
 - [x] Ajouter `Parametres > Espace prive > Membres` (route BO + vue liste + gestion statut/liste filtrée).
-- [x] Brancher le `POST /admin/parametres/espace-prive` avec actions explicites `invite`, `resend`, `suspend`, `reset`, `anonymize`, `modules`.
+- [x] Brancher le `POST /admin/parametres/espace-prive` avec actions explicites `invite`, `resend`, `suspend`, `reset`, `delete`, `modules`; l'ancien identifiant interne `anonymize` reste un alias technique non visible.
 - [x] Ajouter invitation, renvoi, suspension, reset, suppression/anonymisation côté BO (jetons hashés, emails applicatifs si configuration mail présente, écrans activation/reset).
 - [x] Creer `car_private_modules` et `car_private_user_module_permissions`.
 - [x] Creer `PrivateModuleRegistry` (registre de modules applicatifs).
@@ -2273,7 +2273,7 @@ Protocoles de la passe ciblée du 2026-05-26 :
 - BO : toute action sensible passe par `POST /admin/parametres/espace-prive`, `admin_is_authenticated()`, CSRF admin et allowlist stricte `private_member_action`.
 - Invitations : `invite` et `resend` créent un jeton hashé dans `car_private_user_invites`; aucun jeton brut n'est affiché dans le BO ni journalisé.
 - Reset : `reset` invalide les resets ouverts du compte puis crée un nouveau jeton hashé dans `car_private_password_resets`; l'email est envoyé si la configuration mail existe, sinon l'échec est journalisé sans exposer le jeton.
-- Anonymisation : `anonymize` remplace l'email par une adresse technique `@private.invalid`, remplace le hash de mot de passe, supprime les traces de dernière connexion et passe le compte en `deleted`.
+- Suppression : l'action visible neutralise les donnees personnelles, remplace l'email par une adresse technique `@private.invalid`, remplace le hash de mot de passe, supprime les traces de derniere connexion et passe le compte en `deleted`. L'ancien identifiant technique `anonymize` reste un alias interne de compatibilite, sans route active visible.
 - Modules : `modules` écrit uniquement via `PrivateModulePermissionRepository`, en s'appuyant sur `PrivateModuleRegistry`; les modules inconnus sont refusés.
 - Côté privé : `/private/files/{documentId}` vérifie session privée, utilisateur actif en repository et permission active `documents`; sans droit, réponse `403` + événement `private.files.access_denied`.
 - Email : les jetons bruts ne sont jamais affichés dans le BO ni journalisés; ils ne transitent que par le flux email applicatif lorsque `app_config('mail')` est disponible.
@@ -2957,7 +2957,7 @@ Objectif : ne pas demarrer une deuxieme stack sans capacite de production claire
 - [x] Confirmer explicitement si un runtime Node supervise est disponible sur l'offre active. Decision : aucun runtime Node supervise n'est retenu sur l'offre OVH Performance active.
 - [x] Confirmer TLS, reverse proxy, logs, redemarrage automatique et backups.
 - [x] Confirmer la strategie DB : meme base MySQL avec tables privees prefixees `private_*`; pas de base privee separee tant que le volume et les droits ne l'imposent pas.
-- [x] Confirmer un environnement preproduction proche production : meme stack PHP 8.2/MySQL, meme front-controller, donnees anonymisees ou jeu de test, pas de secrets production.
+- [x] Confirmer un environnement preproduction proche production : meme stack PHP 8.2/MySQL, meme front-controller, jeu de test ou donnees neutralisees, pas de secrets production.
 - [x] Confirmer la procedure de restauration base + fichiers prives : backup SQL + fichiers prives hors webroot avant migration, restauration testee sur environnement de preproduction avant toute operation destructive.
 - [x] Definir le proprietaire du runtime : PHP-FPM/HTTP et CRON OVH, scripts applicatifs sous `backend/core/tools/`, surveillance via logs OVH et logs applicatifs.
 - [x] Documenter la decision finale : PHP moderne/Symfony-compatible sur OVH Performance ; upgrade hebergement uniquement si une API TypeScript/Fastify persistante devient indispensable.
@@ -3315,7 +3315,7 @@ Objectif : reduire la surface d'attaque.
 - [x] Mettre a jour `docs/private/README.md`, `docs/security/README.md` et runbooks.
 
 Implementation M6 figee le 2026-05-28 :
-- `/{private}/privacy/anonymize` est retire du routeur prive : l'anonymisation self-service n'est plus une voie de suppression, la politique retenue reste sauvegarde, purge des donnees, avertissement J+20 puis suppression compte + sauvegarde a J+30.
+- `/{private}/privacy/anonymize` est retire du routeur prive : cette ancienne route self-service reste bloquee, la politique retenue reste sauvegarde, purge des donnees, avertissement J+20 puis suppression compte + sauvegarde a J+30.
 - `/{private}/login/index.php` est maintenant une redirection explicite vers `/{private}/login`, comme `/{private}/dashboard.php` vers `/{private}/dashboard`.
 - `PrivateLegacyRetirementService` inventorie les routes privees restantes avec statut `kept`, `redirected`, `blocked` ou `retired`, les templates actifs, les permissions actives et les endpoints fichiers encore controles.
 - La commande `php backend/core/tools/private_migration_reconcile.php m6-retirement` expose cet inventaire en JSON et echoue si une route bloquee reste active.

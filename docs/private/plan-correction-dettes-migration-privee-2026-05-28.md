@@ -309,27 +309,50 @@ Objectif : eviter la confusion fonctionnelle.
 
 Checklist de suivi :
 
-- [ ] Faire l'inventaire des occurrences `anonymize`, `anonymized`, `anonymous`.
-- [ ] Classer les traces historiques sans effet.
-- [ ] Classer les traces encore appelees.
-- [ ] Renommer les elements sans risque migration.
-- [ ] Documenter les alias conserves.
-- [ ] Verifier l'absence de texte visible lie a l'anonymisation.
+- [x] Faire l'inventaire des occurrences `anonymize`, `anonymized`, `anonymous`.
+- [x] Classer les traces historiques sans effet.
+- [x] Classer les traces encore appelees.
+- [x] Renommer les elements sans risque migration.
+- [x] Documenter les alias conserves.
+- [x] Verifier l'absence de texte visible lie a l'anonymisation.
 
 Travaux :
 
-- [ ] rechercher les noms internes encore lies a `anonymize`, `anonymized`, `anonymous` ;
-- [ ] distinguer les traces historiques sans effet et les traces encore appelees ;
-- [ ] renommer uniquement ce qui peut l'etre sans casser les migrations ;
-- [ ] garder si besoin un alias technique documente pour compatibilite ;
-- [ ] supprimer les textes visibles qui parlent encore d'anonymisation.
+- [x] rechercher les noms internes encore lies a `anonymize`, `anonymized`, `anonymous` ;
+- [x] distinguer les traces historiques sans effet et les traces encore appelees ;
+- [x] renommer uniquement ce qui peut l'etre sans casser les migrations ;
+- [x] garder si besoin un alias technique documente pour compatibilite ;
+- [x] supprimer les textes visibles qui parlent encore d'anonymisation.
+
+Alias techniques conserves :
+
+- `PrivateDataProtectionService::anonymizeAccount()` delegue vers `redactAccountForDeletion()` ;
+- `PrivateDataProtectionService::purgeAnonymizedAccount()` delegue vers `purgeDeletedAccount()` ;
+- `PrivateUserRepository::anonymize()` delegue vers `redactForDeletion()` ;
+- `PrivateUserRepository::restoreAnonymized()` delegue vers `restoreDeletedInvite()` ;
+- la route legacy `/private/privacy/anonymize` reste retraitee et bloque l'ancien flux self-service.
+
+Decision :
+
+- les actions visibles et les libelles applicatifs utilisent la terminologie suppression / neutralisation ;
+- les nouvelles valeurs techniques generees utilisent `@deleted.invalid` et des slugs `*-supprime*` ;
+- les alias `anonymize*` restants sont strictement internes et conserves pour compatibilite, sans migration destructive des donnees historiques.
 
 Critere d'acceptation :
 
-- [ ] aucune action visible ne parle d'anonymisation ;
-- [ ] les routes legacy d'anonymisation restent bloquees ;
-- [ ] les tests suppression/sauvegarde restent verts ;
-- [ ] aucune donnee historique n'est perdue par renommage.
+- [x] aucune action visible ne parle d'anonymisation ;
+- [x] les routes legacy d'anonymisation restent bloquees ;
+- [x] les tests suppression/sauvegarde restent verts ;
+- [x] aucune donnee historique n'est perdue par renommage.
+
+Preuves :
+
+- inventaire apres nettoyage : `docs/private/recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt` ;
+- tests suppression / route legacy / membres : `docs/private/recette-preprod-migration-privee/47-c6-phpunit-privacy-legacy-2026-05-29.txt` ;
+- checklist locale : `docs/private/recette-preprod-migration-privee/48-c6-security-checklist-local-2026-05-29.json` ;
+- deploiement preprod : `docs/private/recette-preprod-migration-privee/49-c6-deploy-preprod-2026-05-29.txt` ;
+- checklist preprod : `docs/private/recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json` ;
+- headers preprod : `docs/private/recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt`.
 
 ## 10. Phase C7 - Encadrement des templates PHP prives
 

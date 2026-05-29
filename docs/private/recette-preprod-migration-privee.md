@@ -42,6 +42,12 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (CLI) | C0 final `m5-plan` | `success=true`, `ready=true` | [24-c0-m5-plan-final-2026-05-29.json](./recette-preprod-migration-privee/24-c0-m5-plan-final-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI) | C0 final `m6-retirement` | `success=true`, `ready=true` | [25-c0-m6-retirement-final-2026-05-29.json](./recette-preprod-migration-privee/25-c0-m6-retirement-final-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI HTTP preprod) | C0 final `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [26-c0-check-security-headers-preprod-final-2026-05-29.txt](./recette-preprod-migration-privee/26-c0-check-security-headers-preprod-final-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | C6 inventaire `anonymize`, `anonymized`, `anonymous` apres nettoyage | traces restantes classees alias internes ou route legacy bloquee, aucun texte visible applicatif | [46-c6-inventory-after-cleanup-2026-05-29.txt](./recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt) |
+| 2026-05-29 | Auto (PHPUnit) | `php vendor/bin/phpunit tests/PrivatePortal/PrivacyOperationsTest.php tests/PrivatePortal/PrivateLegacyRetirementTest.php tests/PrivatePortalMembersTest.php` | `16 tests`, `405 assertions`, OK | [47-c6-phpunit-privacy-legacy-2026-05-29.txt](./recette-preprod-migration-privee/47-c6-phpunit-privacy-legacy-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | C6 `security-checklist` local | `success=true`, `19/19 checks` | [48-c6-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/48-c6-security-checklist-local-2026-05-29.json) |
+| 2026-05-29 | Auto (deploiement) | C6 deploy preprod `deploy-fast --all-changes` | deploiement OK, `deploy-fast completed` | [49-c6-deploy-preprod-2026-05-29.txt](./recette-preprod-migration-privee/49-c6-deploy-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI preprod) | C6 `security-checklist` preprod | `success=true`, `19/19 checks` | [50-c6-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI HTTP preprod) | C6 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [51-c6-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -89,6 +95,12 @@ ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php cor
 composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/43-c5-check-security-headers-preprod-2026-05-29.txt 2>&1
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php -r 'require \"core/bootstrap.php\"; (new Caramagnols\\PrivatePortal\\Documents\\PrivateDocumentRepository(editorial_database()))->ensureSchema(); echo \"private_document_schema_ok\n\";'" > docs/private/recette-preprod-migration-privee/44-c5-schema-preprod-2026-05-29.txt
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/45-c5-security-checklist-preprod-final-2026-05-29.json
+{ printf 'Phase C6 - inventaire apres nettoyage\n\n'; printf 'Occurrences restantes compatibles:\n'; rg -n "anonymize|anonymized|anonymous|anonymise|anonymisee|anonymisé|anonymisée" backend/src backend/templates backend/core backend/tests docs/private/README.md docs/private/recette-preprod-migration-privee.md || true; printf '\nTextes visibles applicatifs:\n'; rg -n "anonymize|anonymized|anonymous|anonymise|anonymisee|anonymisé|anonymisée" backend/templates backend/lang backend/public || printf 'Aucune occurrence visible applicative.\n'; } | tee docs/private/recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt
+php backend/vendor/bin/phpunit tests/PrivatePortal/PrivacyOperationsTest.php tests/PrivatePortal/PrivateLegacyRetirementTest.php tests/PrivatePortalMembersTest.php > docs/private/recette-preprod-migration-privee/47-c6-phpunit-privacy-legacy-2026-05-29.txt 2>&1
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/48-c6-security-checklist-local-2026-05-29.json
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/49-c6-deploy-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt 2>&1
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -112,6 +124,13 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - [x] C5 — Mode scanner configure avec fichier refuse : statut `infected`, notice quarantaine, telechargement bloque en `403`, erreur technique non exposee a l'utilisateur — **OK TEST**, preuve: [39-c5-phpunit-storage-checklist-2026-05-29.txt](./recette-preprod-migration-privee/39-c5-phpunit-storage-checklist-2026-05-29.txt)
 - [x] C5 — Checklist securite locale et preprod apres deploiement — **OK LOCAL + PREPROD CLI**, preuves: [38-c5-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/38-c5-security-checklist-local-2026-05-29.json), [45-c5-security-checklist-preprod-final-2026-05-29.json](./recette-preprod-migration-privee/45-c5-security-checklist-preprod-final-2026-05-29.json)
 - [x] C5 — Migration schema preprod `private_documents` pour statuts de scan — **OK PREPROD**, preuve: [44-c5-schema-preprod-2026-05-29.txt](./recette-preprod-migration-privee/44-c5-schema-preprod-2026-05-29.txt)
+
+## Tests manuels requis (phase C6)
+
+- [x] C6 — Inventaire des traces `anonymize`, `anonymized`, `anonymous` et classement des occurrences restantes — **OK LOCAL**, preuve: [46-c6-inventory-after-cleanup-2026-05-29.txt](./recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt)
+- [x] C6 — Actions visibles et textes applicatifs sans anonymisation ; alias internes documentes pour compatibilite — **OK LOCAL**, preuves: [46-c6-inventory-after-cleanup-2026-05-29.txt](./recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt), [47-c6-phpunit-privacy-legacy-2026-05-29.txt](./recette-preprod-migration-privee/47-c6-phpunit-privacy-legacy-2026-05-29.txt)
+- [x] C6 — Routes legacy d'anonymisation bloquees et suppression/sauvegarde toujours vertes — **OK TEST**, preuve: [47-c6-phpunit-privacy-legacy-2026-05-29.txt](./recette-preprod-migration-privee/47-c6-phpunit-privacy-legacy-2026-05-29.txt)
+- [x] C6 — Checklist securite locale et preprod apres deploiement — **OK LOCAL + PREPROD CLI**, preuves: [48-c6-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/48-c6-security-checklist-local-2026-05-29.json), [50-c6-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json), [51-c6-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt)
 
 ## Procédure C3 — restauration fichier + base
 
@@ -216,15 +235,21 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/43-c5-check-security-headers-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/44-c5-schema-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/45-c5-security-checklist-preprod-final-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/47-c6-phpunit-privacy-legacy-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/48-c6-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/49-c6-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/50-c6-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/51-c6-check-security-headers-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-C5 est ferme cote code applicatif et validations locales/preprod CLI.
+C6 est ferme cote code applicatif et validations locales/preprod CLI/HTTP.
 
 Les prochaines actions appartiennent aux phases suivantes du plan :
 
-- V1-V5 : validations d'exploitation restant suivies hors C0.
+- C7 puis V1-V5 : validations d'exploitation restant suivies hors C0.
 
 Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.

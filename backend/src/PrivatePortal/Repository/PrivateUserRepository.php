@@ -665,7 +665,7 @@ final class PrivateUserRepository
         }
     }
 
-    public function anonymize(int $userId): bool
+    public function redactForDeletion(int $userId): bool
     {
         if ($userId <= 0) {
             return false;
@@ -710,7 +710,12 @@ final class PrivateUserRepository
         }
     }
 
-    public function restoreAnonymized(int $userId, string $email, string $passwordHash): bool
+    public function anonymize(int $userId): bool
+    {
+        return $this->redactForDeletion($userId);
+    }
+
+    public function restoreDeletedInvite(int $userId, string $email, string $passwordHash): bool
     {
         $email = $this->normalizeEmail($email);
         if ($userId <= 0 || $email === '' || $passwordHash === '') {
@@ -750,6 +755,11 @@ final class PrivateUserRepository
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    public function restoreAnonymized(int $userId, string $email, string $passwordHash): bool
+    {
+        return $this->restoreDeletedInvite($userId, $email, $passwordHash);
     }
 
     public function recordLogin(int $userId, string $ip): void
