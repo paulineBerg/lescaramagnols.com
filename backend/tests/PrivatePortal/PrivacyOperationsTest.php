@@ -5,8 +5,12 @@ declare(strict_types=1);
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
+use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
+use Caramagnols\Database\EditorialDatabase;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
@@ -17,10 +21,16 @@ final class PrivacyOperationsTest extends TestCase
     use EditorialSqlTestTrait;
 
     private string $tempDir = '';
+    /** @var array<int, string> */
+    private array $deletionBackupPaths = [];
+    /** @var array<int, string> */
+    private array $privateFilePaths = [];
 
     protected function tearDown(): void
     {
         $this->cleanupEditorialSqlDatabase();
+        $this->removeDeletionBackupArtifacts();
+        $this->removePrivateFileArtifacts();
         $this->removeTempDir();
     }
 
@@ -137,6 +147,90 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertFalse((bool) ($invalidStatus['success'] ?? true));
     }
 
+    public function testSuspendedAccountDeletionCreatesBackupAndPurgesPrivateData(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $fixture = $this->createSuspendedDeletionFixture($database, 'privacy-c2-delete@example.com');
+        $service = new PrivateDataProtectionService($database);
+
+        $deletion = $service->deleteSuspendedAccountWithBackup($fixture['userId'], 'phpunit-c2', 30);
+        $this->assertTrue((bool) ($deletion['success'] ?? false));
+        $backupPath = (string) ($deletion['backupPath'] ?? '');
+        $this->assertFileExists($backupPath);
+        $this->trackDeletionBackup($backupPath);
+
+        $payload = $this->deletionBackupPayload($backupPath);
+        $this->assertSame($fixture['userId'], (int) ($payload['privateUserId'] ?? 0));
+        $this->assertSame(30, (int) ($payload['retentionDays'] ?? 0));
+        $this->assertNotEmpty($payload['deleteAfter'] ?? null);
+        $this->assertSame('privacy-c2-delete@example.com', $payload['tables']['private_users'][0]['email'] ?? null);
+        $this->assertSame('Compte C2', $payload['tables']['private_users'][0]['fullName'] ?? null);
+        $this->assertCount(1, $payload['tables']['private_documents'] ?? []);
+        $this->assertCount(1, $payload['files'] ?? []);
+        $this->assertTrue((bool) ($payload['files'][0]['exists'] ?? false));
+
+        $this->assertSame(0, $this->countRows($database, 'private_documents', '`private_user_id` = :user_id', ['user_id' => $fixture['userId']]));
+        $this->assertSame(0, $this->countRows($database, 'private_document_categories', '`private_user_id` = :user_id', ['user_id' => $fixture['userId']]));
+        $this->assertSame(0, $this->countRows($database, 'private_user_module_permissions', '`private_user_id` = :user_id', ['user_id' => $fixture['userId']]));
+        $this->assertFileDoesNotExist($fixture['documentPath']);
+
+        $userRepository = new PrivateUserRepository($database);
+        $user = $userRepository->findById($fixture['userId']);
+        $this->assertIsArray($user);
+        $this->assertSame('suspended', $user['status'] ?? null);
+        $this->assertNull($user['full_name'] ?? null);
+        $this->assertNull($user['postal_address'] ?? null);
+        $this->assertNull($user['phone'] ?? null);
+
+        $secondDeletion = $service->deleteSuspendedAccountWithBackup($fixture['userId'], 'phpunit-c2', 30);
+        $this->assertTrue((bool) ($secondDeletion['success'] ?? false));
+        $this->assertSame($backupPath, (string) ($secondDeletion['backupPath'] ?? ''));
+    }
+
+    public function testDeletionCronDryRunsAndFinalPurgeAreScopedAndIdempotent(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $fixture = $this->createSuspendedDeletionFixture($database, 'privacy-c2-cron@example.com');
+        $service = new PrivateDataProtectionService($database);
+
+        $deletion = $service->deleteSuspendedAccountWithBackup($fixture['userId'], 'phpunit-c2', 30);
+        $this->assertTrue((bool) ($deletion['success'] ?? false));
+        $backupPath = (string) ($deletion['backupPath'] ?? '');
+        $this->trackDeletionBackup($backupPath);
+        $payload = $this->deletionBackupPayload($backupPath);
+        $generatedAt = strtotime((string) ($payload['generatedAt'] ?? ''));
+        $deleteAfter = strtotime((string) ($payload['deleteAfter'] ?? ''));
+        $this->assertNotFalse($generatedAt);
+        $this->assertNotFalse($deleteAfter);
+
+        $warningDryRun = $service->sendPendingDeletionWarnings(true, ((int) $generatedAt) + (20 * 86400), 20, $fixture['userId']);
+        $this->assertSame(1, (int) ($warningDryRun['matched'] ?? 0));
+        $this->assertSame(0, (int) ($warningDryRun['sent'] ?? 0));
+        $this->assertTrue((bool) ($warningDryRun['dry_run'] ?? false));
+
+        $warningSecondDryRun = $service->sendPendingDeletionWarnings(true, ((int) $generatedAt) + (20 * 86400), 20, $fixture['userId']);
+        $this->assertSame(1, (int) ($warningSecondDryRun['matched'] ?? 0));
+        $this->assertSame(0, (int) ($warningSecondDryRun['sent'] ?? 0));
+
+        $purgeDryRun = $service->cleanupExpiredDeletionBackups(true, (int) $deleteAfter, $fixture['userId']);
+        $this->assertSame(1, (int) ($purgeDryRun['matched'] ?? 0));
+        $this->assertSame(0, (int) ($purgeDryRun['purged'] ?? 0));
+        $this->assertFileExists($backupPath);
+
+        $purge = $service->cleanupExpiredDeletionBackups(false, (int) $deleteAfter, $fixture['userId']);
+        $this->assertSame(1, (int) ($purge['matched'] ?? 0));
+        $this->assertSame(1, (int) ($purge['purged'] ?? 0));
+        $this->assertGreaterThanOrEqual(1, (int) ($purge['backup_deleted'] ?? 0));
+        $this->assertFileDoesNotExist($backupPath);
+
+        $userRepository = new PrivateUserRepository($database);
+        $this->assertNull($userRepository->findById($fixture['userId']));
+
+        $secondPurge = $service->cleanupExpiredDeletionBackups(false, (int) $deleteAfter, $fixture['userId']);
+        $this->assertSame(0, (int) ($secondPurge['matched'] ?? 0));
+        $this->assertSame(0, (int) ($secondPurge['purged'] ?? 0));
+    }
+
     private function createPrivateUser(PrivateUserRepository $repository, string $email): int
     {
         $hash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
@@ -145,6 +239,126 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertIsInt($userId);
 
         return $userId;
+    }
+
+    /**
+     * @return array{userId: int, documentPath: string}
+     */
+    private function createSuspendedDeletionFixture(EditorialDatabase $database, string $email): array
+    {
+        $userRepository = new PrivateUserRepository($database);
+        $userId = $this->createPrivateUser($userRepository, $email);
+        $this->assertTrue($userRepository->updateMemberProfile($userId, 'Compte C2', 'Adresse C2', '+33 6 00 00 00 00'));
+
+        $permissionRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $this->assertTrue($permissionRepository->setUserModules($userId, ['dashboard', 'documents'], 'phpunit'));
+
+        $storage = PrivateDocumentStorage::fromAppConfig();
+        $documentRepository = new PrivateDocumentRepository($database);
+        $category = $documentRepository->createCategory($userId, 'Documents C2');
+        $this->assertIsArray($category);
+
+        if ($this->tempDir === '') {
+            $this->tempDir = sys_get_temp_dir() . '/caramagnols-c2-deletion-' . bin2hex(random_bytes(6));
+            mkdir($this->tempDir, 0700, true);
+        }
+        $tmpPath = $this->tempDir . '/preuve-c2.txt';
+        file_put_contents($tmpPath, 'preuve suppression compte suspendu C2');
+
+        $documentId = 'phpunit-c2-' . bin2hex(random_bytes(6));
+        $stored = $storage->storeUploadedFile(
+            [
+                'tmpPath' => $tmpPath,
+                'originalName' => 'preuve-c2.txt',
+                'extension' => 'txt',
+                'mimeType' => 'text/plain',
+                'sizeBytes' => (int) filesize($tmpPath),
+            ],
+            $documentId
+        );
+        $this->assertIsArray($stored, 'Stockage document impossible: ' . (string) $storage->uploadError());
+
+        $documentPath = $storage->absolutePath((string) $stored['storagePath']);
+        $this->assertIsString($documentPath);
+        $this->assertFileExists($documentPath);
+        $this->privateFilePaths[] = $documentPath;
+
+        $document = $documentRepository->create(
+            $userId,
+            (string) $stored['documentId'],
+            (string) $stored['storagePath'],
+            (string) $stored['originalName'],
+            (string) $stored['extension'],
+            (string) $stored['mimeType'],
+            (int) $stored['sizeBytes'],
+            $userId,
+            (int) ($category['id'] ?? 0)
+        );
+        $this->assertIsArray($document);
+
+        $this->assertTrue($userRepository->updateStatus($userId, 'suspended'));
+
+        return [
+            'userId' => $userId,
+            'documentPath' => $documentPath,
+        ];
+    }
+
+    /**
+     * @param array<string, int|string|null> $params
+     */
+    private function countRows(EditorialDatabase $database, string $table, string $where, array $params): int
+    {
+        $statement = $database->pdo()->prepare(
+            sprintf('SELECT COUNT(*) FROM `%s` WHERE %s', $database->table($table), $where)
+        );
+        $statement->execute($params);
+
+        return (int) $statement->fetchColumn();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function deletionBackupPayload(string $path): array
+    {
+        $payload = json_decode((string) file_get_contents($path), true);
+        $this->assertIsArray($payload);
+
+        return $payload;
+    }
+
+    private function trackDeletionBackup(string $path): void
+    {
+        if ($path === '') {
+            return;
+        }
+
+        $this->deletionBackupPaths[] = $path;
+        $zipPath = preg_replace('/\.json\z/i', '.zip', $path);
+        if (is_string($zipPath)) {
+            $this->deletionBackupPaths[] = $zipPath;
+        }
+    }
+
+    private function removeDeletionBackupArtifacts(): void
+    {
+        foreach (array_unique($this->deletionBackupPaths) as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+        $this->deletionBackupPaths = [];
+    }
+
+    private function removePrivateFileArtifacts(): void
+    {
+        foreach (array_unique($this->privateFilePaths) as $path) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+        $this->privateFilePaths = [];
     }
 
     private function removeTempDir(): void

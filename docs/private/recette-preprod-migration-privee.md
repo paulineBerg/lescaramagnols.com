@@ -33,6 +33,8 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (CLI + HTTP preprod) | C1 securite privee preprod : login, CSRF refuse, compte suspendu, permission `documents` retiree, reset password, fichier sans session/sans permission | `C1 OK sauf logout initial`, aucun acces interdit | [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt) |
 | 2026-05-29 | Auto (CLI + HTTP preprod) | C1 logout rerun apres correction | `logout OK`, `POST 302`, dashboard refuse apres logout | [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt) |
 | 2026-05-29 | Auto (synthèse) | C1 synthèse finale | `C1 OK`, anomalie upload classée hors C1 stricte | [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI preprod) | C2 suppression compte suspendu + cron J+20/J+30 ciblé | `C2 OK`, sauvegarde JSON/ZIP, purge immédiate, J+20 dry-run, J+30 purge, relance idempotente | [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (PHPUnit) | Suite privée C1/C2/C3 après correction C2 | `59 tests`, `581 assertions`, OK | [19-c2-phpunit-private-suite-2026-05-29.txt](./recette-preprod-migration-privee/19-c2-phpunit-private-suite-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -67,7 +69,7 @@ php backend/vendor/bin/phpunit tests/PrivatePortalSecurityTest.php tests/Private
 ## Tests manuels requis (phase C1/C2/C3)
 
 - [x] C1 — Recette sécurité privée (login, logout, expiration, CSRF refusé, compte suspendu, permission retirée, reset password, fichier sans session/sans permission) — **OK PREPROD**, preuves: [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt)
-- [ ] C2 — Suppression compte suspendu et cron J+20/J+30 — à exécuter sur préprod.
+- [x] C2 — Suppression compte suspendu et cron J+20/J+30 — **OK PREPROD**, preuve: [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt)
 - [ ] C3 — Restauration privée fichier+base en préprod (scénario complet de backup/snapshot/restore dry-run) — à exécuter sur préprod.
 
 Chaque cas doit être signé dans cette section : date, opérateur, preuve (captures / logs), résultat attendu.
@@ -82,15 +84,16 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - `Go / No-Go` : **NO-GO**
 - Date : 2026-05-29
 - Opérateur : auto (validation locale + HTTP préprod)
-- Sortie : C1 validée sur préprod; C2 et C3 restent à signer avant GO.
-- Preuves : [13-c1-c2-c3-tests-final.txt](./recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt), [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt), [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt)
+- Sortie : C1 et C2 validées sur préprod; C3 reste à signer avant GO.
+- Preuves : [13-c1-c2-c3-tests-final.txt](./recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt), [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt), [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt), [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt)
 
 ### Anomalies classees
 - `majeur` : l'upload HTTP documentaire préprod retourne encore `upload_failed` / `storage_unavailable`. Aucun accès interdit n'a été observé; à reprendre avant go-live dans les phases d'exploitation documentaire/restauration.
+- `mineur / exploitation` : SMTP préprod non forcé pendant C2; les emails de suppression sont préparés via templates, mais la livraison réelle reste à auditer dans V2 emails transactionnels.
 
 ### Conditions à lever pour lever le blocage
 1. Vérifier le mapping vhost préprod (document-root, host `preprod.lescaramagnols.com`, cert+virtualhost) afin que la requête serve l’instance PHP du projet, puis relancer `composer check-security-headers` sur `preprod.lescaramagnols.com` jusqu’au résultat OK.
-2. Finaliser C1/C2/C3 avec preuve horodatée.
+2. Finaliser C3 avec preuve horodatée.
 3. Vérifier qu’aucune dette critique P0/P1 n’est demeurée non décidée depuis le plan.
 4. Mettre à jour cette table avec les sorties finales (`ready=true`) avant bascule.
 
@@ -113,6 +116,8 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - `docs/private/recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/19-c2-phpunit-private-suite-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 

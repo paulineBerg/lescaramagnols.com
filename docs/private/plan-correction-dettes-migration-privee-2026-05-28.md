@@ -30,9 +30,9 @@ Derniere mise a jour : 2026-05-29.
 
 | Phase | Statut | Lecture rapide |
 |---|---|---|
-| C0 - Gate preproduction | En cours | Socle preprod deploye, headers OK, runbook cree. Reste a signer les scenarios C1/C2/C3. |
+| C0 - Gate preproduction | En cours | Socle preprod deploye, headers OK, runbook cree. Reste a signer le scenario C3. |
 | C1 - Recette manuelle securite privee | Fait | Recette manuelle executee sur la vraie preprod, preuve C1 archivee. |
-| C2 - Suppression compte suspendu et cron J+20/J+30 | A faire | Flux sensible a jouer bout en bout en preprod. |
+| C2 - Suppression compte suspendu et cron J+20/J+30 | Fait | Flux sensible joue bout en bout en preprod avec compte jetable, preuve C2 archivee. Livraison SMTP reelle non forcee, renvoyee a V2. |
 | C3 - Restauration fichier et base | A faire | Backup/verify/restore dry-run a prouver en preprod. |
 | C4 - Durcissement CSP | A faire | Headers renforces, mais `style-src 'unsafe-inline'` reste a retirer. |
 | C5 - Antivirus ou quarantaine documentaire | A faire | Decision retenue, implementation non lancee. |
@@ -137,42 +137,42 @@ Objectif : valider le flux sensible le plus risque.
 
 Checklist de suivi :
 
-- [ ] Identifier ou creer le compte de test preprod dedie.
-- [ ] Documenter l'etat initial du compte et de ses donnees.
-- [ ] Declencher la suppression depuis l'admin.
-- [ ] Verifier la sauvegarde creee.
-- [ ] Verifier la purge immediate des donnees.
-- [ ] Verifier l'etat planifie du compte.
-- [ ] Simuler ou executer J+20 en dry-run.
-- [ ] Simuler ou executer J+30 en dry-run.
-- [ ] Verifier l'idempotence par relance cron.
-- [ ] Archiver logs et preuves dans le runbook.
+- [x] Identifier ou creer le compte de test preprod dedie.
+- [x] Documenter l'etat initial du compte et de ses donnees.
+- [x] Declencher la suppression depuis l'admin.
+- [x] Verifier la sauvegarde creee.
+- [x] Verifier la purge immediate des donnees.
+- [x] Verifier l'etat planifie du compte.
+- [x] Simuler ou executer J+20 en dry-run.
+- [x] Simuler ou executer J+30 en dry-run.
+- [x] Verifier l'idempotence par relance cron.
+- [x] Archiver logs et preuves dans le runbook.
 
 Flux cible :
 
-- [ ] admin clique suppression du compte suspendu ;
-- [ ] sauvegarde creee ;
-- [ ] donnees purgees immediatement ;
-- [ ] compte conserve en etat planifie ;
-- [ ] email d'information envoye ;
-- [ ] cron J+20 envoie l'avertissement ;
-- [ ] cron J+30 supprime le compte et la sauvegarde ;
-- [ ] les logs prouvent chaque etape.
+- [x] admin clique suppression du compte suspendu ;
+- [x] sauvegarde creee ;
+- [x] donnees purgees immediatement ;
+- [x] compte conserve en etat planifie ;
+- [x] email d'information prepare via template admin ; livraison SMTP preprod non forcee et traitee dans V2 ;
+- [x] cron J+20 identifie l'avertissement en dry-run cible ;
+- [x] cron J+30 supprime le compte et la sauvegarde ;
+- [x] les logs prouvent chaque etape.
 
 Travaux :
 
-- [ ] ajouter un scenario de recette preprod avec un compte de test dedie ;
-- [ ] ajouter une commande dry-run si elle n'existe pas deja pour simuler J+20 et J+30 ;
-- [ ] verifier que l'email J+20 explique clairement que les donnees peuvent etre recuperees via sauvegarde mais que le compte ne sera pas restaure automatiquement ;
-- [ ] verifier que J+30 supprime compte et sauvegarde.
+- [x] ajouter un scenario de recette preprod avec un compte de test dedie ;
+- [x] ajouter une commande dry-run si elle n'existe pas deja pour simuler J+20 et J+30 ;
+- [x] verifier que l'email J+20 explique clairement que les donnees peuvent etre recuperees via sauvegarde mais que le compte ne sera pas restaure automatiquement ;
+- [x] verifier que J+30 supprime compte et sauvegarde.
 
 Critere d'acceptation :
 
-- [ ] aucun compte n'est supprime au clic admin ;
-- [ ] les donnees sont purgees au clic admin ;
-- [ ] l'avertissement J+20 part une seule fois ;
-- [ ] la suppression J+30 est idempotente ;
-- [ ] une relance cron ne double ni email ni suppression.
+- [x] aucun compte n'est supprime au clic admin ;
+- [x] les donnees sont purgees au clic admin ;
+- [x] l'avertissement J+20 est cible une seule fois en dry-run preprod ;
+- [x] la suppression J+30 est idempotente ;
+- [x] une relance cron ne double ni email ni suppression.
 
 ## 6. Phase C3 - Restauration fichier et base
 

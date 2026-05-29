@@ -99,6 +99,11 @@ final class DiscussionAttachmentStorage
         return $this->lastError;
     }
 
+    public function uploadsDirectory(): string
+    {
+        return $this->rootPath . '/uploads';
+    }
+
     public function generateAttachmentId(): string
     {
         try {

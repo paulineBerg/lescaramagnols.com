@@ -219,7 +219,7 @@ final class PrivateDataProtectionService
             return $this->deletionResult(false, null, null, 'Seul un compte suspendu peut être supprimé.');
         }
 
-        $this->cleanupExpiredDeletionBackups();
+        $this->cleanupExpiredDeletionBackups(false, null, $privateUserId);
         $existingBackup = $this->latestDeletionBackupForUser($privateUserId);
         if (is_array($existingBackup) && is_string($existingBackup['deleteAfter'] ?? null)) {
             return $this->deletionResult(true, (string) ($existingBackup['path'] ?? null), (string) $existingBackup['deleteAfter'], null);
@@ -343,10 +343,12 @@ final class PrivateDataProtectionService
     {
         try {
             $quotedColumns = implode(', ', array_map(static fn (string $column): string => '`' . $column . '`', $columns));
-            $statement = $this->database->pdo()->prepare(
-                sprintf('SELECT %s FROM `%s` WHERE %s', $quotedColumns, $this->database->table($table), $where)
+            [$query, $expandedParams] = $this->expandRepeatedNamedParameters(
+                sprintf('SELECT %s FROM `%s` WHERE %s', $quotedColumns, $this->database->table($table), $where),
+                $params
             );
-            $statement->execute($params);
+            $statement = $this->database->pdo()->prepare($query);
+            $statement->execute($expandedParams);
             $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Throwable) {
             return [];
@@ -365,10 +367,12 @@ final class PrivateDataProtectionService
     private function safeUpdate(string $table, string $set, string $where, array $params): void
     {
         try {
-            $statement = $this->database->pdo()->prepare(
-                sprintf('UPDATE `%s` SET %s WHERE %s', $this->database->table($table), $set, $where)
+            [$query, $expandedParams] = $this->expandRepeatedNamedParameters(
+                sprintf('UPDATE `%s` SET %s WHERE %s', $this->database->table($table), $set, $where),
+                $params
             );
-            $statement->execute($params);
+            $statement = $this->database->pdo()->prepare($query);
+            $statement->execute($expandedParams);
         } catch (\Throwable) {
             return;
         }
@@ -380,10 +384,12 @@ final class PrivateDataProtectionService
     private function safeDelete(string $table, string $where, array $params): void
     {
         try {
-            $statement = $this->database->pdo()->prepare(
-                sprintf('DELETE FROM `%s` WHERE %s', $this->database->table($table), $where)
+            [$query, $expandedParams] = $this->expandRepeatedNamedParameters(
+                sprintf('DELETE FROM `%s` WHERE %s', $this->database->table($table), $where),
+                $params
             );
-            $statement->execute($params);
+            $statement = $this->database->pdo()->prepare($query);
+            $statement->execute($expandedParams);
         } catch (\Throwable) {
             return;
         }
@@ -730,20 +736,44 @@ final class PrivateDataProtectionService
                 continue;
             }
 
-            $this->deletePrivateFileIfSafe($absolutePath);
+            $this->deletePrivateFileIfSafe($absolutePath, [
+                $privateDocumentStorage->uploadsDirectory(),
+                $discussionAttachmentStorage->uploadsDirectory(),
+            ]);
         }
     }
 
-    private function deletePrivateFileIfSafe(string $absolutePath): void
+    /**
+     * @param array<int, string> $allowedRoots
+     */
+    private function deletePrivateFileIfSafe(string $absolutePath, array $allowedRoots = []): void
     {
-        $absolutePath = str_replace('\\', '/', $absolutePath);
+        $absolutePath = $this->normalizeFilesystemPath($absolutePath);
         $rootPath = defined('ROOT_PATH') ? (string) ROOT_PATH : dirname(__DIR__, 3);
-        $privateRoot = str_replace('\\', '/', rtrim($rootPath, '/\\') . '/private/');
-        if (!str_starts_with($absolutePath, $privateRoot)) {
-            return;
+        $allowedRoots[] = rtrim($rootPath, '/\\') . '/private';
+
+        foreach ($allowedRoots as $allowedRoot) {
+            $allowedRoot = $this->normalizeFilesystemPath($allowedRoot);
+            if ($allowedRoot === '') {
+                continue;
+            }
+
+            if (str_starts_with($absolutePath, rtrim($allowedRoot, '/') . '/')) {
+                @unlink($absolutePath);
+
+                return;
+            }
+        }
+    }
+
+    private function normalizeFilesystemPath(string $path): string
+    {
+        $realPath = realpath($path);
+        if (is_string($realPath) && $realPath !== '') {
+            $path = $realPath;
         }
 
-        @unlink($absolutePath);
+        return rtrim(str_replace('\\', '/', $path), '/');
     }
 
     /**
@@ -921,10 +951,12 @@ final class PrivateDataProtectionService
     private function rowsAll(string $table, string $where, array $params): array
     {
         try {
-            $statement = $this->database->pdo()->prepare(
-                sprintf('SELECT * FROM `%s` WHERE %s', $this->database->table($table), $where)
+            [$query, $expandedParams] = $this->expandRepeatedNamedParameters(
+                sprintf('SELECT * FROM `%s` WHERE %s', $this->database->table($table), $where),
+                $params
             );
-            $statement->execute($params);
+            $statement = $this->database->pdo()->prepare($query);
+            $statement->execute($expandedParams);
             $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
         } catch (\Throwable) {
             return [];
@@ -937,7 +969,44 @@ final class PrivateDataProtectionService
         return array_values(array_map(fn (array $row): array => $this->camelRow($row), $rows));
     }
 
-    public function cleanupExpiredDeletionBackups(bool $dryRun = false, ?int $now = null): array
+    /**
+     * PDO/MySQL native prepares do not reliably support reusing the same named
+     * placeholder several times. C2 purge scopes intentionally reuse
+     * `:private_user_id` across nested predicates, so each occurrence must be
+     * expanded before prepare/execute.
+     *
+     * @param array<string, mixed> $params
+     * @return array{0: string, 1: array<string, mixed>}
+     */
+    private function expandRepeatedNamedParameters(string $query, array $params): array
+    {
+        $seen = [];
+        $expandedParams = [];
+        $expandedQuery = preg_replace_callback(
+            '/(?<!:):([A-Za-z_][A-Za-z0-9_]*)/',
+            static function (array $matches) use (&$seen, &$expandedParams, $params): string {
+                $name = (string) $matches[1];
+                if (!array_key_exists($name, $params)) {
+                    return (string) $matches[0];
+                }
+
+                $seen[$name] = (int) ($seen[$name] ?? 0) + 1;
+                $expandedName = $seen[$name] === 1 ? $name : $name . '__' . $seen[$name];
+                $expandedParams[$expandedName] = $params[$name];
+
+                return ':' . $expandedName;
+            },
+            $query
+        );
+
+        if (!is_string($expandedQuery)) {
+            return [$query, $params];
+        }
+
+        return [$expandedQuery, $expandedParams];
+    }
+
+    public function cleanupExpiredDeletionBackups(bool $dryRun = false, ?int $now = null, ?int $privateUserId = null): array
     {
         $root = $this->deletionBackupRoot();
         $result = [
@@ -948,6 +1017,7 @@ final class PrivateDataProtectionService
             'backup_deleted' => 0,
             'errors' => 0,
             'dry_run' => $dryRun,
+            'scope_private_user_id' => $privateUserId !== null && $privateUserId > 0 ? $privateUserId : null,
         ];
 
         if (!is_dir($root)) {
@@ -964,9 +1034,17 @@ final class PrivateDataProtectionService
                 continue;
             }
 
-            $content = @file_get_contents($file->getPathname());
-            $payload = is_string($content) ? json_decode($content, true) : null;
-            $deleteAfter = is_array($payload) && is_string($payload['deleteAfter'] ?? null)
+            $payload = $this->readDeletionBackupPayload($file->getPathname());
+            if (!is_array($payload)) {
+                continue;
+            }
+
+            $backupPrivateUserId = is_numeric($payload['privateUserId'] ?? null) ? (int) $payload['privateUserId'] : 0;
+            if ($privateUserId !== null && $privateUserId > 0 && $backupPrivateUserId !== $privateUserId) {
+                continue;
+            }
+
+            $deleteAfter = is_string($payload['deleteAfter'] ?? null)
                 ? strtotime($payload['deleteAfter'])
                 : false;
             if ($deleteAfter !== false && $deleteAfter <= $now) {
@@ -976,15 +1054,14 @@ final class PrivateDataProtectionService
                     continue;
                 }
 
-                $privateUserId = is_numeric($payload['privateUserId'] ?? null) ? (int) $payload['privateUserId'] : 0;
-                if ($privateUserId <= 0) {
+                if ($backupPrivateUserId <= 0) {
                     ++$result['errors'];
 
                     continue;
                 }
 
                 try {
-                    $user = $this->privateUser($privateUserId);
+                    $user = $this->privateUser($backupPrivateUserId);
                     if (($user['status'] ?? '') !== 'suspended') {
                         ++$result['errors'];
 
@@ -994,13 +1071,13 @@ final class PrivateDataProtectionService
                     $this->database->ensureReady();
                     $pdo = $this->database->pdo();
                     $pdo->beginTransaction();
-                    $this->purgeAccountRows($privateUserId);
+                    $this->purgeAccountRows($backupPrivateUserId);
 
                     $statement = $pdo->prepare(
                         sprintf('DELETE FROM `%s` WHERE `id` = :id AND `status` = :status', $this->database->table('private_users'))
                     );
                     $statement->execute([
-                        'id' => $privateUserId,
+                        'id' => $backupPrivateUserId,
                         'status' => 'suspended',
                     ]);
                     $pdo->commit();
@@ -1043,9 +1120,9 @@ final class PrivateDataProtectionService
     }
 
     /**
-     * @return array{root: string, matched: int, sent: int, errors: int, dry_run: bool}
+     * @return array{root: string, matched: int, sent: int, errors: int, dry_run: bool, scope_private_user_id: ?int}
      */
-    public function sendPendingDeletionWarnings(bool $dryRun = false, ?int $now = null, int $warningAfterDays = 20): array
+    public function sendPendingDeletionWarnings(bool $dryRun = false, ?int $now = null, int $warningAfterDays = 20, ?int $privateUserId = null): array
     {
         $root = $this->deletionBackupRoot();
         $result = [
@@ -1054,6 +1131,7 @@ final class PrivateDataProtectionService
             'sent' => 0,
             'errors' => 0,
             'dry_run' => $dryRun,
+            'scope_private_user_id' => $privateUserId !== null && $privateUserId > 0 ? $privateUserId : null,
         ];
 
         if (!is_dir($root)) {
@@ -1073,6 +1151,11 @@ final class PrivateDataProtectionService
 
             $payload = $this->readDeletionBackupPayload($file->getPathname());
             if (!is_array($payload) || is_string($payload['warningSentAt'] ?? null)) {
+                continue;
+            }
+
+            $backupPrivateUserId = is_numeric($payload['privateUserId'] ?? null) ? (int) $payload['privateUserId'] : 0;
+            if ($privateUserId !== null && $privateUserId > 0 && $backupPrivateUserId !== $privateUserId) {
                 continue;
             }
 
