@@ -92,6 +92,11 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (CLI fixture preprod) | V5 alerte privee backup/cron/email/CSRF/rate-limit sur logs factices isoles preprod | `overall_severity=critical`, secrets absents du rapport | [107-v5-log-alerts-private-fixture-preprod-2026-05-29.json](./recette-preprod-migration-privee/107-v5-log-alerts-private-fixture-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI preprod) | V5 `migration-dod` et `security-checklist` preprod | `success=true`, `ready=true` | [108-v5-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/108-v5-migration-dod-preprod-2026-05-29.json), [109-v5-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/109-v5-security-checklist-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI HTTP preprod) | V5 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [110-v5-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/110-v5-check-security-headers-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (HTTP externe preprod) | Go-live `/private/login` | `NO-GO`, `status=403`, page OVH avant PHP, formulaire prive absent | [111-go-live-private-login-http-preprod-2026-05-29.txt](./recette-preprod-migration-privee/111-go-live-private-login-http-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI preprod) | Go-live gates `security-checklist`, `migration-dod`, `m5-plan`, `m6-retirement` | `success=true`, `ready=true` | [112-go-live-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/112-go-live-security-checklist-preprod-2026-05-29.json), [113-go-live-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/113-go-live-migration-dod-preprod-2026-05-29.json), [114-go-live-m5-plan-preprod-2026-05-29.json](./recette-preprod-migration-privee/114-go-live-m5-plan-preprod-2026-05-29.json), [115-go-live-m6-retirement-preprod-2026-05-29.json](./recette-preprod-migration-privee/115-go-live-m6-retirement-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI HTTP/ops preprod) | Go-live headers + observabilite logs reels 60 min | headers OK, `check_log_alerts` exit `0`, `overall_severity=ok`, aucune alerte | [116-go-live-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/116-go-live-check-security-headers-preprod-2026-05-29.txt), [117-go-live-log-alerts-preprod-2026-05-29.json](./recette-preprod-migration-privee/117-go-live-log-alerts-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (decision) | Decision go-live exploitation privee | `NO-GO` tant que `/private/login` externe retourne `403` | [118-go-live-decision-exploitation-2026-05-29.txt](./recette-preprod-migration-privee/118-go-live-decision-exploitation-2026-05-29.txt) |
+| 2026-05-29 | Auto (sync docs) | Synchronisation runbook preprod apres decision No-Go | runbook preprod mis a jour | [119-go-live-doc-sync-preprod-2026-05-29.txt](./recette-preprod-migration-privee/119-go-live-doc-sync-preprod-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -451,6 +456,15 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/108-v5-migration-dod-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/109-v5-security-checklist-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/110-v5-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/111-go-live-private-login-http-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/112-go-live-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/113-go-live-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/114-go-live-m5-plan-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/115-go-live-m6-retirement-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/116-go-live-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/117-go-live-log-alerts-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/118-go-live-decision-exploitation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/119-go-live-doc-sync-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
@@ -460,6 +474,8 @@ V5 est ferme cote code applicatif, alertes privees locales/preprod, validations 
 
 Le plan de correction des dettes migration privee est ferme pour les phases C0 a C7 et V1 a V5.
 
-Prochaine action hors plan : decision go-live ou bascule exploitation selon le runbook de deploiement.
+Decision go-live exploitation 2026-05-29 : **NO-GO**.
 
-Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.
+Raison : le controle HTTP externe preprod `/private/login` retourne `403` OVH avant execution PHP, sans formulaire prive.
+
+Condition de levee : corriger le mapping Apache/OVH pour router `/private/*` vers `backend/public/index.php`, puis rejouer les preuves `111` a `117`.

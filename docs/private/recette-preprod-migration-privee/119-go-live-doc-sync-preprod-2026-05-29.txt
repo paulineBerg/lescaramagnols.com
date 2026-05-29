@@ -1,0 +1,15 @@
+sending incremental file list
+recette-preprod-migration-privee.md
+
+sent 3,900 bytes  received 707 bytes  9,214.00 bytes/sec
+total size is 79,613  speedup is 17.28
+sending incremental file list
+recette-preprod-migration-privee.md
+
+sent 1,545 bytes  received 719 bytes  1,509.33 bytes/sec
+total size is 79,859  speedup is 35.27
+sending incremental file list
+recette-preprod-migration-privee.md
+
+sent 1,508 bytes  received 725 bytes  1,488.67 bytes/sec
+total size is 80,760  speedup is 36.17

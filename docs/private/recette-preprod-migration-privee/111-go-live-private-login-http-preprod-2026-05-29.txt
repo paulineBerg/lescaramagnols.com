@@ -1,0 +1,25 @@
+# Controle HTTP externe preprod /private/login
+date=2026-05-29T18:27:57+02:00
+url=https://preprod.lescaramagnols.com/private/login
+status=403
+headers:
+HTTP/2 403 
+date: Fri, 29 May 2026 16:30:45 GMT
+content-type: text/html; charset=iso-8859-1
+content-length: 199
+server: OVHcloud
+x-frame-options: DENY
+x-content-type-options: nosniff
+content-security-policy: default-src 'self'; img-src 'self' data: https: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http:; font-src 'self' data:; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+referrer-policy: no-referrer
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-site
+x-robots-tag: noindex, nofollow, noarchive, nosnippet
+
+body_checks:
+has_html=yes
+has_login_form=no
+has_private_marker=no
+result=KO
