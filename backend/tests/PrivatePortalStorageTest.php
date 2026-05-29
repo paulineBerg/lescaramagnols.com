@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+namespace LesCaramagnols\Tests;
+
 use Caramagnols\Http\Request;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
@@ -14,8 +16,6 @@ use Caramagnols\PrivatePortal\Security\PrivateSession;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
-require_once __DIR__ . '/../core/bootstrap.php';
-
 final class PrivatePortalStorageTest extends TestCase
 {
     use EditorialSqlTestTrait;
@@ -23,6 +23,11 @@ final class PrivatePortalStorageTest extends TestCase
     private array $previousPrivateConfig = [];
     private string $storageRootPath = '';
     private string $sessionName = '';
+
+    public static function setUpBeforeClass(): void
+    {
+        require_once ROOT_PATH . '/core/bootstrap.php';
+    }
 
     protected function setUp(): void
     {
