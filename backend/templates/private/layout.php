@@ -151,6 +151,24 @@ if ($privateHasModule('Aide impôts')) {
             && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('tax_dashboard'))),
     ];
 }
+
+$privateDashboardNavLabel = is_string($privateNavItems[0]['label'] ?? null)
+    ? (string) $privateNavItems[0]['label']
+    : $translate('TXT_PRIVATE_DASHBOARD_LINK', 'Tableau de bord');
+$privateActiveNavItem = null;
+foreach ($privateNavItems as $privateNavItem) {
+    if ((bool) ($privateNavItem['active'] ?? false)) {
+        $privateActiveNavItem = $privateNavItem;
+        break;
+    }
+}
+if ($privateActiveNavItem === null && isset($privateNavItems[0])) {
+    $privateActiveNavItem = $privateNavItems[0];
+}
+$privateActiveNavLabel = is_array($privateActiveNavItem) && is_string($privateActiveNavItem['label'] ?? null)
+    ? (string) $privateActiveNavItem['label']
+    : $privateDashboardNavLabel;
+$privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel;
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($language, ENT_QUOTES, 'UTF-8'); ?>">
@@ -171,6 +189,39 @@ if ($privateHasModule('Aide impôts')) {
             <strong>Les Caramagnols</strong>
             <span><?php echo htmlspecialchars($translate('TXT_PRIVATE_LAYOUT_BRAND_SUBTITLE', 'Espace privé sécurisé'), ENT_QUOTES, 'UTF-8'); ?></span>
           </div>
+          <?php if ($privateActiveNavItem !== null) : ?>
+            <details class="private-mobile-breadcrumb">
+              <summary>
+                <?php if ($privateActiveIsDashboard) : ?>
+                  <strong><?php echo htmlspecialchars($privateDashboardNavLabel, ENT_QUOTES, 'UTF-8'); ?></strong>
+                <?php else : ?>
+                  <span><?php echo htmlspecialchars($privateDashboardNavLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                  <span class="private-mobile-breadcrumb-separator" aria-hidden="true">&gt;</span>
+                  <strong><?php echo htmlspecialchars($privateActiveNavLabel, ENT_QUOTES, 'UTF-8'); ?></strong>
+                <?php endif; ?>
+                <span class="private-mobile-breadcrumb-toggle" aria-hidden="true">☰</span>
+              </summary>
+              <ul>
+                <?php foreach ($privateNavItems as $privateNavItem) : ?>
+                    <?php
+                    $mobileNavLabel = is_string($privateNavItem['label'] ?? null) ? (string) $privateNavItem['label'] : '';
+                    $mobileNavHref = is_string($privateNavItem['href'] ?? null) ? (string) $privateNavItem['href'] : '#';
+                    $mobileNavIcon = is_string($privateNavItem['icon'] ?? null) ? (string) $privateNavItem['icon'] : '';
+                    $mobileNavIsActive = (bool) ($privateNavItem['active'] ?? false);
+                    if ($mobileNavLabel === '') {
+                        continue;
+                    }
+                    ?>
+                  <li>
+                    <a class="<?php echo $mobileNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($mobileNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $mobileNavIsActive ? ' aria-current="page"' : ''; ?>>
+                      <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($mobileNavIcon, ENT_QUOTES, 'UTF-8'); ?></span>
+                      <span><?php echo htmlspecialchars($mobileNavLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </a>
+                  </li>
+                <?php endforeach; ?>
+              </ul>
+            </details>
+          <?php endif; ?>
           <ul class="private-nav-menu">
             <?php foreach ($privateNavItems as $privateNavItem) : ?>
                 <?php
@@ -242,6 +293,23 @@ if ($privateHasModule('Aide impôts')) {
         <?php echo $privateContent; ?>
       </main>
     <?php endif; ?>
+    <?php if ($isAuthenticated) : ?>
+      <dialog class="private-dialog private-confirm-dialog" id="private-sensitive-action-dialog" aria-labelledby="private-sensitive-action-title" aria-describedby="private-sensitive-action-message">
+        <div class="private-dialog-panel">
+          <header class="private-dialog-header">
+            <h3 id="private-sensitive-action-title"><?php echo htmlspecialchars($translate('TXT_PRIVATE_SENSITIVE_ACTION_TITLE', 'Confirmer l’action'), ENT_QUOTES, 'UTF-8'); ?></h3>
+            <button type="button" class="private-dialog-close" data-private-sensitive-action-cancel aria-label="<?php echo htmlspecialchars($translate('TXT_PRIVATE_SENSITIVE_ACTION_NO', 'Non'), ENT_QUOTES, 'UTF-8'); ?>">×</button>
+          </header>
+          <p id="private-sensitive-action-message" data-private-sensitive-action-message>
+            <?php echo htmlspecialchars($translate('TXT_PRIVATE_SENSITIVE_ACTION_MESSAGE', 'Cette action peut supprimer ou archiver des données privées. Voulez-vous continuer ?'), ENT_QUOTES, 'UTF-8'); ?>
+          </p>
+          <div class="private-confirm-actions">
+            <button type="button" class="private-document-button-secondary" data-private-sensitive-action-cancel><?php echo htmlspecialchars($translate('TXT_PRIVATE_SENSITIVE_ACTION_NO', 'Non'), ENT_QUOTES, 'UTF-8'); ?></button>
+            <button type="button" class="private-button-danger" data-private-sensitive-action-confirm><?php echo htmlspecialchars($translate('TXT_PRIVATE_SENSITIVE_ACTION_YES', 'Oui'), ENT_QUOTES, 'UTF-8'); ?></button>
+          </div>
+        </div>
+      </dialog>
+    <?php endif; ?>
     <?php $privateCspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
     <script<?php echo $privateCspNonce !== '' ? ' nonce="' . htmlspecialchars($privateCspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
       (() => {
@@ -312,6 +380,166 @@ if ($privateHasModule('Aide impôts')) {
             }
           });
         });
+
+        const sensitiveDialog = document.getElementById('private-sensitive-action-dialog');
+        const sensitiveConfirmTemplate = <?php echo json_encode($translate('TXT_PRIVATE_SENSITIVE_ACTION_CONFIRM_TEMPLATE', 'Confirmer : %s ? Cette action peut supprimer ou archiver des données privées.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const sensitiveMessage = sensitiveDialog instanceof HTMLDialogElement
+          ? sensitiveDialog.querySelector('[data-private-sensitive-action-message]')
+          : null;
+        const sensitiveConfirmButton = sensitiveDialog instanceof HTMLDialogElement
+          ? sensitiveDialog.querySelector('[data-private-sensitive-action-confirm]')
+          : null;
+        let pendingSensitiveSubmission = null;
+        const allowedSensitiveSubmissions = new WeakSet();
+        const sensitivePattern = /(supprimer|suppression|delete|remove|retirer|archiver|archivage|archive|purge)/i;
+        const textOf = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+        const submitterLabel = (submitter) => {
+          if (submitter instanceof HTMLInputElement) {
+            return textOf(submitter.value || submitter.getAttribute('aria-label') || submitter.name);
+          }
+
+          if (submitter instanceof HTMLElement) {
+            return textOf(submitter.getAttribute('aria-label') || submitter.textContent);
+          }
+
+          return '';
+        };
+        const formSignals = (form, submitter) => {
+          const signals = [
+            form.getAttribute('action') || '',
+            form.dataset.privateSensitiveAction || '',
+            form.dataset.sensitiveAction || '',
+          ];
+
+          if (submitter instanceof HTMLElement) {
+            signals.push(
+              submitter.getAttribute('name') || '',
+              submitter.getAttribute('value') || '',
+              submitter.getAttribute('class') || '',
+              submitter.dataset.privateSensitiveAction || '',
+              submitter.dataset.sensitiveAction || '',
+              submitterLabel(submitter)
+            );
+          }
+
+          form.querySelectorAll('input[type="hidden"]').forEach((input) => {
+            if (input instanceof HTMLInputElement) {
+              signals.push(input.name, input.value);
+            }
+          });
+
+          return signals.join(' ');
+        };
+        const isSensitiveSubmission = (form, submitter) => {
+          if (!(form instanceof HTMLFormElement)) {
+            return false;
+          }
+
+          const method = (form.getAttribute('method') || 'get').toLowerCase();
+          if (method !== 'post') {
+            return false;
+          }
+
+          if (form.closest('#private-sensitive-action-dialog')) {
+            return false;
+          }
+
+          return sensitivePattern.test(formSignals(form, submitter));
+        };
+        const confirmSensitiveSubmission = (form, submitter) => {
+          if (!(sensitiveDialog instanceof HTMLDialogElement)) {
+            return window.confirm(sensitiveConfirmTemplate.replace('%s', submitterLabel(submitter) || 'cette action'));
+          }
+
+          const label = submitterLabel(submitter) || 'cette action';
+          if (sensitiveMessage instanceof HTMLElement) {
+            sensitiveMessage.textContent = sensitiveConfirmTemplate.replace('%s', label);
+          }
+          pendingSensitiveSubmission = { form, submitter };
+          openDialog(sensitiveDialog);
+          if (sensitiveConfirmButton instanceof HTMLElement) {
+            sensitiveConfirmButton.focus();
+          }
+
+          return false;
+        };
+
+        document.addEventListener('click', (event) => {
+          const submitter = event.target instanceof Element
+            ? event.target.closest('button[type="submit"], input[type="submit"], button:not([type])')
+            : null;
+          const form = submitter instanceof HTMLElement ? submitter.closest('form') : null;
+          if (!isSensitiveSubmission(form, submitter)) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          confirmSensitiveSubmission(form, submitter);
+        }, true);
+
+        document.addEventListener('submit', (event) => {
+          const form = event.target;
+          if (!(form instanceof HTMLFormElement)) {
+            return;
+          }
+
+          if (allowedSensitiveSubmissions.has(form)) {
+            allowedSensitiveSubmissions.delete(form);
+            event.stopImmediatePropagation();
+            return;
+          }
+
+          const submitter = event.submitter instanceof HTMLElement ? event.submitter : null;
+          if (!isSensitiveSubmission(form, submitter)) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          confirmSensitiveSubmission(form, submitter);
+        }, true);
+
+        document.querySelectorAll('[data-private-sensitive-action-cancel]').forEach((button) => {
+          button.addEventListener('click', () => {
+            pendingSensitiveSubmission = null;
+            if (sensitiveDialog instanceof HTMLDialogElement) {
+              sensitiveDialog.close();
+            }
+          });
+        });
+
+        if (sensitiveConfirmButton instanceof HTMLElement) {
+          sensitiveConfirmButton.addEventListener('click', () => {
+            const pending = pendingSensitiveSubmission;
+            pendingSensitiveSubmission = null;
+            if (sensitiveDialog instanceof HTMLDialogElement) {
+              sensitiveDialog.close();
+            }
+            if (!pending || !(pending.form instanceof HTMLFormElement)) {
+              return;
+            }
+
+            allowedSensitiveSubmissions.add(pending.form);
+            if (typeof pending.form.requestSubmit === 'function' && pending.submitter instanceof HTMLElement) {
+              pending.form.requestSubmit(pending.submitter);
+              return;
+            }
+
+            if (typeof pending.form.requestSubmit === 'function') {
+              pending.form.requestSubmit();
+              return;
+            }
+
+            pending.form.submit();
+          });
+        }
+
+        if (sensitiveDialog instanceof HTMLDialogElement) {
+          sensitiveDialog.addEventListener('close', () => {
+            pendingSensitiveSubmission = null;
+          });
+        }
       })();
     </script>
   </body>

@@ -162,6 +162,10 @@
     text-align: center;
   }
 
+  .private-mobile-breadcrumb {
+    display: none;
+  }
+
   .private-content {
     flex: 1 1 auto;
     display: flex;
@@ -648,6 +652,17 @@
     box-shadow: none;
   }
 
+  .private-confirm-dialog {
+    width: min(460px, calc(100vw - 2rem));
+  }
+
+  .private-confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+  }
+
   .private-button-danger {
     background: linear-gradient(135deg, #8f1f2d, #c43a4b);
   }
@@ -685,6 +700,7 @@
       width: 100%;
       min-height: auto;
       max-height: none;
+      gap: 1rem;
       padding: 1.2rem;
     }
 
@@ -695,7 +711,81 @@
     }
 
     .private-nav-menu {
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      display: none;
+    }
+
+    .private-mobile-breadcrumb {
+      display: block;
+      width: 100%;
+    }
+
+    .private-mobile-breadcrumb summary {
+      align-items: center;
+      background: rgb(255 255 255 / 15%);
+      border: 1px solid rgb(255 255 255 / 22%);
+      border-radius: 16px;
+      cursor: pointer;
+      display: flex;
+      gap: 0.5rem;
+      list-style: none;
+      min-height: 3.15rem;
+      padding: 0.75rem 0.9rem;
+    }
+
+    .private-mobile-breadcrumb summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .private-mobile-breadcrumb summary span,
+    .private-mobile-breadcrumb summary strong {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .private-mobile-breadcrumb summary strong {
+      font-weight: 800;
+    }
+
+    .private-mobile-breadcrumb-separator {
+      flex: 0 0 auto;
+      opacity: 0.75;
+    }
+
+    .private-mobile-breadcrumb-toggle {
+      flex: 0 0 auto;
+      margin-left: auto;
+      opacity: 0.9;
+    }
+
+    .private-mobile-breadcrumb ul {
+      background: rgb(255 255 255 / 13%);
+      border: 1px solid rgb(255 255 255 / 18%);
+      border-radius: 16px;
+      display: grid;
+      gap: 0.35rem;
+      list-style: none;
+      margin: 0.55rem 0 0;
+      padding: 0.55rem;
+    }
+
+    .private-mobile-breadcrumb a {
+      align-items: center;
+      border-radius: 12px;
+      color: inherit;
+      display: flex;
+      gap: 0.7rem;
+      min-height: 2.75rem;
+      padding: 0.7rem 0.75rem;
+      text-decoration: none;
+    }
+
+    .private-mobile-breadcrumb a.active,
+    .private-mobile-breadcrumb a:hover,
+    .private-mobile-breadcrumb a:focus-visible {
+      background: rgb(255 255 255 / 20%);
+      outline: none;
     }
 
     .private-header {

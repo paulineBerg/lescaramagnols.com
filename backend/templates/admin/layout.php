@@ -36,6 +36,24 @@ $adminMenu = [
     ],
     ['id' => 'settings', 'label' => $translate('TXT_ADMIN_NAV_SETTINGS', 'Paramètres'), 'href' => $adminSettingsUrl ?? admin_url('settings'), 'icon' => '⚙️'],
 ];
+$adminDashboardNavLabel = is_string($adminMenu[0]['label'] ?? null)
+    ? (string) $adminMenu[0]['label']
+    : $translate('TXT_ADMIN_NAV_DASHBOARD', 'Tableau de bord');
+$adminActiveMenuId = is_string($activeMenu ?? null) ? (string) $activeMenu : '';
+$adminActiveMenuItem = null;
+foreach ($adminMenu as $adminMenuItem) {
+    if (($adminMenuItem['id'] ?? '') === $adminActiveMenuId) {
+        $adminActiveMenuItem = $adminMenuItem;
+        break;
+    }
+}
+if ($adminActiveMenuItem === null && isset($adminMenu[0])) {
+    $adminActiveMenuItem = $adminMenu[0];
+}
+$adminActiveMenuLabel = is_array($adminActiveMenuItem) && is_string($adminActiveMenuItem['label'] ?? null)
+    ? (string) $adminActiveMenuItem['label']
+    : $adminDashboardNavLabel;
+$adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($adminInterfaceLanguage, ENT_QUOTES, 'UTF-8'); ?>">
@@ -174,6 +192,10 @@ $adminMenu = [
         border-color: rgba(255, 255, 255, 0.16);
         box-shadow: none;
         outline: none;
+      }
+
+      .admin-mobile-breadcrumb {
+        display: none;
       }
 
       .admin-content {
@@ -2976,6 +2998,52 @@ $adminMenu = [
         gap: 0.65rem;
       }
 
+      .admin-sensitive-dialog {
+        width: min(460px, calc(100vw - 2rem));
+        border: 0;
+        border-radius: 18px;
+        padding: 0;
+        color: var(--admin-text);
+        box-shadow: var(--admin-shadow);
+      }
+
+      .admin-sensitive-dialog::backdrop {
+        background: rgba(19, 41, 75, 0.45);
+      }
+
+      .admin-sensitive-dialog__surface {
+        display: grid;
+        gap: 1rem;
+        padding: 1.4rem;
+        background: #fff;
+      }
+
+      .admin-sensitive-dialog__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .admin-sensitive-dialog__header h2 {
+        margin: 0;
+        color: var(--admin-primary-dark);
+        font-size: 1.15rem;
+      }
+
+      .admin-sensitive-dialog__message {
+        margin: 0;
+        color: var(--admin-muted);
+        line-height: 1.45;
+      }
+
+      .admin-sensitive-dialog__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: flex-end;
+      }
+
       @media (max-width: 840px) {
         nav.admin-nav {
           flex: 0 0 210px;
@@ -3068,7 +3136,81 @@ $adminMenu = [
         }
 
         .nav-menu {
-          grid-auto-flow: row;
+          display: none;
+        }
+
+        .admin-mobile-breadcrumb {
+          display: block;
+          width: 100%;
+        }
+
+        .admin-mobile-breadcrumb summary {
+          align-items: center;
+          background: rgba(255, 255, 255, 0.15);
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          border-radius: 16px;
+          cursor: pointer;
+          display: flex;
+          gap: 0.5rem;
+          list-style: none;
+          min-height: 3.15rem;
+          padding: 0.75rem 0.9rem;
+        }
+
+        .admin-mobile-breadcrumb summary::-webkit-details-marker {
+          display: none;
+        }
+
+        .admin-mobile-breadcrumb summary span,
+        .admin-mobile-breadcrumb summary strong {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .admin-mobile-breadcrumb summary strong {
+          font-weight: 800;
+        }
+
+        .admin-mobile-breadcrumb-separator {
+          flex: 0 0 auto;
+          opacity: 0.75;
+        }
+
+        .admin-mobile-breadcrumb-toggle {
+          flex: 0 0 auto;
+          margin-left: auto;
+          opacity: 0.9;
+        }
+
+        .admin-mobile-breadcrumb ul {
+          background: rgba(255, 255, 255, 0.13);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          border-radius: 16px;
+          display: grid;
+          gap: 0.35rem;
+          list-style: none;
+          margin: 0.55rem 0 0;
+          padding: 0.55rem;
+        }
+
+        .admin-mobile-breadcrumb a {
+          align-items: center;
+          border-radius: 12px;
+          color: inherit;
+          display: flex;
+          gap: 0.7rem;
+          min-height: 2.75rem;
+          padding: 0.7rem 0.75rem;
+          text-decoration: none;
+        }
+
+        .admin-mobile-breadcrumb a.active,
+        .admin-mobile-breadcrumb a:hover,
+        .admin-mobile-breadcrumb a:focus-visible {
+          background: rgba(255, 255, 255, 0.2);
+          outline: none;
         }
 
         .admin-pages-filters-grid {
@@ -3359,6 +3501,40 @@ $adminMenu = [
           <strong>Les Caramagnols</strong>
           <span><?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_BRAND_SUBTITLE', 'Administration technique'), ENT_QUOTES, 'UTF-8'); ?></span>
         </div>
+        <?php if ($adminActiveMenuItem !== null) : ?>
+          <details class="admin-mobile-breadcrumb">
+            <summary>
+              <?php if ($adminActiveIsDashboard) : ?>
+                <strong><?php echo htmlspecialchars($adminDashboardNavLabel, ENT_QUOTES, 'UTF-8'); ?></strong>
+              <?php else : ?>
+                <span><?php echo htmlspecialchars($adminDashboardNavLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                <span class="admin-mobile-breadcrumb-separator" aria-hidden="true">&gt;</span>
+                <strong><?php echo htmlspecialchars($adminActiveMenuLabel, ENT_QUOTES, 'UTF-8'); ?></strong>
+              <?php endif; ?>
+              <span class="admin-mobile-breadcrumb-toggle" aria-hidden="true">☰</span>
+            </summary>
+            <ul>
+              <?php foreach ($adminMenu as $adminMobileMenuItem) : ?>
+                  <?php
+                  $adminMobileMenuId = is_string($adminMobileMenuItem['id'] ?? null) ? (string) $adminMobileMenuItem['id'] : '';
+                  $adminMobileMenuLabel = is_string($adminMobileMenuItem['label'] ?? null) ? (string) $adminMobileMenuItem['label'] : '';
+                  $adminMobileMenuHref = is_string($adminMobileMenuItem['href'] ?? null) ? (string) $adminMobileMenuItem['href'] : '#';
+                  $adminMobileMenuIcon = is_string($adminMobileMenuItem['icon'] ?? null) ? (string) $adminMobileMenuItem['icon'] : '';
+                  $adminMobileMenuIsActive = $adminMobileMenuId !== '' && $adminMobileMenuId === $adminActiveMenuId;
+                  if ($adminMobileMenuLabel === '') {
+                      continue;
+                  }
+                  ?>
+                <li>
+                  <a class="<?php echo $adminMobileMenuIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($adminMobileMenuHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $adminMobileMenuIsActive ? ' aria-current="page"' : ''; ?>>
+                    <span aria-hidden="true"><?php echo htmlspecialchars($adminMobileMenuIcon, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span><?php echo htmlspecialchars($adminMobileMenuLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                  </a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          </details>
+        <?php endif; ?>
         <ul class="nav-menu">
           <?php foreach ($adminMenu as $item): ?>
           <li>
@@ -3397,6 +3573,21 @@ $adminMenu = [
     </div>
     <?php endif; ?>
     <?php if (!$isLoginPage): ?>
+    <dialog class="admin-sensitive-dialog" id="admin-sensitive-action-dialog" aria-labelledby="admin-sensitive-action-title" aria-describedby="admin-sensitive-action-message">
+      <div class="admin-sensitive-dialog__surface">
+        <header class="admin-sensitive-dialog__header">
+          <h2 id="admin-sensitive-action-title"><?php echo htmlspecialchars($translate('TXT_ADMIN_SENSITIVE_ACTION_TITLE', 'Confirmer l’action'), ENT_QUOTES, 'UTF-8'); ?></h2>
+          <button class="button-small button-muted" type="button" data-admin-sensitive-action-cancel aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_NO', 'Non'), ENT_QUOTES, 'UTF-8'); ?>">×</button>
+        </header>
+        <p class="admin-sensitive-dialog__message" id="admin-sensitive-action-message" data-admin-sensitive-action-message>
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_SENSITIVE_ACTION_MESSAGE', 'Cette action peut supprimer ou archiver des données. Voulez-vous continuer ?'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+        <div class="admin-sensitive-dialog__actions">
+          <button class="button-muted button-small" type="button" data-admin-sensitive-action-cancel><?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_NO', 'Non'), ENT_QUOTES, 'UTF-8'); ?></button>
+          <button class="button-danger button-small" type="button" data-admin-sensitive-action-confirm><?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_YES', 'Oui'), ENT_QUOTES, 'UTF-8'); ?></button>
+        </div>
+      </div>
+    </dialog>
     <div class="admin-session-warning" id="admin-session-warning" role="dialog" aria-modal="true" aria-labelledby="admin-session-warning-title" aria-describedby="admin-session-warning-message" hidden>
       <div class="admin-session-warning__surface">
         <h2 class="admin-session-warning__title" id="admin-session-warning-title"><?php echo htmlspecialchars((string) ($adminSessionWarningTitle ?? $translate('TXT_ADMIN_LAYOUT_SESSION_TITLE', 'Session admin')), ENT_QUOTES, 'UTF-8'); ?></h2>
@@ -3430,6 +3621,182 @@ $adminMenu = [
 
         stackScreenNotices();
         window.addEventListener('resize', stackScreenNotices);
+
+        const sensitiveDialog = document.getElementById('admin-sensitive-action-dialog');
+        const sensitiveConfirmTemplate = <?php echo json_encode($translate('TXT_ADMIN_SENSITIVE_ACTION_CONFIRM_TEMPLATE', 'Confirmer : %s ? Cette action peut supprimer ou archiver des données.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const sensitiveMessage = sensitiveDialog instanceof HTMLDialogElement
+          ? sensitiveDialog.querySelector('[data-admin-sensitive-action-message]')
+          : null;
+        const sensitiveConfirmButton = sensitiveDialog instanceof HTMLDialogElement
+          ? sensitiveDialog.querySelector('[data-admin-sensitive-action-confirm]')
+          : null;
+        let pendingSensitiveSubmission = null;
+        const allowedSensitiveSubmissions = new WeakSet();
+        const sensitivePattern = /(supprimer|suppression|delete|remove|retirer|purge)/i;
+        const archivePattern = /(archiver|archivage|(^|[\s/?&])archive($|[\s/?&]))/i;
+        const textOf = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+        const submitterLabel = (submitter) => {
+          if (submitter instanceof HTMLInputElement) {
+            return textOf(submitter.value || submitter.getAttribute('aria-label') || submitter.name);
+          }
+
+          if (submitter instanceof HTMLElement) {
+            return textOf(submitter.getAttribute('aria-label') || submitter.textContent);
+          }
+
+          return '';
+        };
+        const formSignals = (form, submitter) => {
+          const signals = [
+            form.getAttribute('action') || '',
+            form.dataset.adminSensitiveAction || '',
+            form.dataset.sensitiveAction || '',
+          ];
+
+          if (submitter instanceof HTMLElement) {
+            signals.push(
+              submitter.getAttribute('name') || '',
+              submitter.getAttribute('value') || '',
+              submitter.getAttribute('class') || '',
+              submitter.dataset.adminSensitiveAction || '',
+              submitter.dataset.sensitiveAction || '',
+              submitterLabel(submitter)
+            );
+          }
+
+          form.querySelectorAll('input[type="hidden"]').forEach((input) => {
+            if (input instanceof HTMLInputElement) {
+              signals.push(input.name, input.value);
+            }
+          });
+
+          return signals.join(' ');
+        };
+        const isSensitiveSubmission = (form, submitter) => {
+          if (!(form instanceof HTMLFormElement)) {
+            return false;
+          }
+
+          const method = (form.getAttribute('method') || 'get').toLowerCase();
+          if (method !== 'post') {
+            return false;
+          }
+
+          if (form.closest('#admin-sensitive-action-dialog')) {
+            return false;
+          }
+
+          const signals = formSignals(form, submitter);
+
+          return sensitivePattern.test(signals) || archivePattern.test(signals);
+        };
+        const openSensitiveDialog = () => {
+          if (!(sensitiveDialog instanceof HTMLDialogElement)) {
+            return false;
+          }
+
+          if (typeof sensitiveDialog.showModal === 'function') {
+            sensitiveDialog.showModal();
+          } else {
+            sensitiveDialog.setAttribute('open', 'open');
+          }
+
+          return true;
+        };
+        const confirmSensitiveSubmission = (form, submitter) => {
+          if (!(sensitiveDialog instanceof HTMLDialogElement)) {
+            return window.confirm(sensitiveConfirmTemplate.replace('%s', submitterLabel(submitter) || 'cette action'));
+          }
+
+          const label = submitterLabel(submitter) || 'cette action';
+          if (sensitiveMessage instanceof HTMLElement) {
+            sensitiveMessage.textContent = sensitiveConfirmTemplate.replace('%s', label);
+          }
+          pendingSensitiveSubmission = { form, submitter };
+          openSensitiveDialog();
+          if (sensitiveConfirmButton instanceof HTMLElement) {
+            sensitiveConfirmButton.focus();
+          }
+
+          return false;
+        };
+
+        document.addEventListener('click', (event) => {
+          const submitter = event.target instanceof Element
+            ? event.target.closest('button[type="submit"], input[type="submit"], button:not([type])')
+            : null;
+          const form = submitter instanceof HTMLElement ? submitter.closest('form') : null;
+          if (!isSensitiveSubmission(form, submitter)) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          confirmSensitiveSubmission(form, submitter);
+        }, true);
+
+        document.addEventListener('submit', (event) => {
+          const form = event.target;
+          if (!(form instanceof HTMLFormElement)) {
+            return;
+          }
+
+          if (allowedSensitiveSubmissions.has(form)) {
+            allowedSensitiveSubmissions.delete(form);
+            event.stopImmediatePropagation();
+            return;
+          }
+
+          const submitter = event.submitter instanceof HTMLElement ? event.submitter : null;
+          if (!isSensitiveSubmission(form, submitter)) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          confirmSensitiveSubmission(form, submitter);
+        }, true);
+
+        document.querySelectorAll('[data-admin-sensitive-action-cancel]').forEach((button) => {
+          button.addEventListener('click', () => {
+            pendingSensitiveSubmission = null;
+            if (sensitiveDialog instanceof HTMLDialogElement && sensitiveDialog.open) {
+              sensitiveDialog.close();
+            }
+          });
+        });
+
+        if (sensitiveConfirmButton instanceof HTMLElement) {
+          sensitiveConfirmButton.addEventListener('click', () => {
+            const pending = pendingSensitiveSubmission;
+            pendingSensitiveSubmission = null;
+            if (sensitiveDialog instanceof HTMLDialogElement && sensitiveDialog.open) {
+              sensitiveDialog.close();
+            }
+            if (!pending || !(pending.form instanceof HTMLFormElement)) {
+              return;
+            }
+
+            allowedSensitiveSubmissions.add(pending.form);
+            if (typeof pending.form.requestSubmit === 'function') {
+              if (pending.submitter instanceof HTMLElement) {
+                pending.form.requestSubmit(pending.submitter);
+                return;
+              }
+
+              pending.form.requestSubmit();
+              return;
+            }
+
+            pending.form.submit();
+          });
+        }
+
+        if (sensitiveDialog instanceof HTMLDialogElement) {
+          sensitiveDialog.addEventListener('close', () => {
+            pendingSensitiveSubmission = null;
+          });
+        }
 
         const filterForms = () => Array.from(document.querySelectorAll('form')).filter((form) => {
           if (!(form instanceof HTMLFormElement)) {
