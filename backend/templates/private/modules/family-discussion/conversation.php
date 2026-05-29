@@ -170,7 +170,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
                   <li>
                     <?php if (str_starts_with($mimeType, 'image/')): ?>
                       <a href="<?php echo htmlspecialchars($fileHref, ENT_QUOTES, 'UTF-8'); ?>">
-                        <img src="<?php echo htmlspecialchars($previewHref, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($filename, ENT_QUOTES, 'UTF-8'); ?>" style="max-width: 220px; max-height: 160px; display: block; margin: 0.5rem 0;" loading="lazy" />
+                        <img class="discussion-attachment-preview" src="<?php echo htmlspecialchars($previewHref, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($filename, ENT_QUOTES, 'UTF-8'); ?>" loading="lazy" />
                       </a>
                     <?php endif; ?>
                     <a href="<?php echo htmlspecialchars($fileHref, ENT_QUOTES, 'UTF-8'); ?>">

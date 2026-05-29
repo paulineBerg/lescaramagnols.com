@@ -147,7 +147,7 @@ final class ViteAssetManager
         }
 
         $file = $manifestEntry['file'] ?? null;
-        if (is_string($file) && $file !== '') {
+        if (is_string($file) && $file !== '' && !str_ends_with($file, '.css')) {
             $tags .= sprintf(
                 '<script type="module"%s src="%s"></script>%s',
                 $nonceAttr,
@@ -180,17 +180,25 @@ final class ViteAssetManager
      */
     public function cssUrls(string $entry): array
     {
+        if ($this->devServerReachable()) {
+            return [$this->devServerUrl() . '/' . ltrim($entry, '/')];
+        }
+
         $manifestEntry = $this->entry($entry);
         if ($manifestEntry === null) {
             return [];
         }
 
-        $cssFiles = $manifestEntry['css'] ?? [];
-        if (!is_array($cssFiles)) {
-            return [];
+        $urls = [];
+        $file = $manifestEntry['file'] ?? null;
+        if (is_string($file) && $file !== '' && str_ends_with($file, '.css')) {
+            $urls[] = $this->publishedAssetUrl($file);
         }
 
-        $urls = [];
+        $cssFiles = $manifestEntry['css'] ?? [];
+        if (!is_array($cssFiles)) {
+            return $urls;
+        }
 
         foreach ($cssFiles as $cssFile) {
             if (!is_string($cssFile) || $cssFile === '') {
@@ -200,7 +208,7 @@ final class ViteAssetManager
             $urls[] = $this->publishedAssetUrl($cssFile);
         }
 
-        return $urls;
+        return array_values(array_unique($urls));
     }
 
     private function publishedAssetUrl(string $manifestFile): string

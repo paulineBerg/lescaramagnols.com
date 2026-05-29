@@ -17,7 +17,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'src/js/main.ts'),
-        style: path.resolve(__dirname, 'src/scss/style.scss')
+        style: path.resolve(__dirname, 'src/scss/style.scss'),
+        private: path.resolve(__dirname, 'src/scss/private.scss')
       },
       output: {
         assetFileNames: 'assets/[name].[hash][extname]',

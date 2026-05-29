@@ -1,0 +1,47 @@
+Deploy mode: fast
+Dry run: 0
+Scope: all changes
+Remote: ovh-boutique:/home/lescaramgl-ssh/caramagnols-preprod/backend
+Changed files: 7
+Deleted files: 0
+Sitemap base URL override: https://preprod.lescaramagnols.com
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+[editorial-media] OK: 609 perimetre(s), 1621 reference(s) controlee(s).
+building file list ... done
+src/Assets/ViteAssetManager.php
+            700   0%    0.00kB/s    0:00:00            6,332   5%    5.37MB/s    0:00:00 (xfr#1, to-chk=16/19)
+src/PrivatePortal/Http/
+src/PrivatePortal/Http/PrivateResponseHeaders.php
+          7,920   6%    6.89MB/s    0:00:00 (xfr#2, to-chk=13/19)
+src/PrivatePortal/Operations/
+src/PrivatePortal/Operations/PrivateSecurityChecklistService.php
+         28,453  24%    8.82MB/s    0:00:00 (xfr#3, to-chk=11/19)
+templates/private/layout.php
+         42,082  36%    9.87MB/s    0:00:00 (xfr#4, to-chk=7/19) 
+templates/private/modules/blocnote/index.php
+         70,120  61%    9.46MB/s    0:00:00 (xfr#5, to-chk=4/19)
+templates/private/modules/documents/index.php
+         85,666  74%    9.00MB/s    0:00:00 (xfr#6, to-chk=2/19)
+templates/private/modules/family-discussion/conversation.php
+        114,575 100%    9.05MB/s    0:00:00 (xfr#7, to-chk=0/19)        114,575 100%    9.05MB/s    0:00:00 (xfr#7, to-chk=0/19)        114,575 100%  882.59kB/s    0:00:00 (xfr#7, to-chk=0/19)        114,575 100%  882.59kB/s    0:00:00 (xfr#7, to-chk=0/19)
+
+sent 5,648 bytes  received 1,351 bytes  4,666.00 bytes/sec
+total size is 114,575  speedup is 16.37
+sync-published-frontend-tree completed.
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 85 bytes  received 12 bytes  194.00 bytes/sec
+total size is 6,372  speedup is 65.69
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 83 bytes  received 12 bytes  63.33 bytes/sec
+total size is 6,163  speedup is 64.87
+[prod-tree] OK: aucun fichier non-prod detecte.
+Sitemap genere: /home/lescaramgl-ssh/caramagnols-preprod/backend/public/sitemap.xml (64 urls)
+Sommaire mis a jour dans accueil-le-plan-du-site-des-caramagnols, region body, langues FR, EN, DE.
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+cache_cleared
+autoload_ok
+deploy-fast completed.

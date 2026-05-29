@@ -27,6 +27,18 @@ $privateDocumentCategoryColors = is_array($viewModel['privateDocumentCategoryCol
 $privateDocumentCategoryDefaultColor = is_string($viewModel['privateDocumentCategoryDefaultColor'] ?? null)
     ? (string) $viewModel['privateDocumentCategoryDefaultColor']
     : '#ffffff';
+$privateDocumentColorClass = static function (mixed $value, string $default = '#ffffff'): string {
+    $allowedColors = ['#ffffff', '#fff1d6', '#ffe0e0', '#e1f7d5', '#d6ecff', '#eadbff', '#ffdff3'];
+    $normalized = strtolower(trim((string) $value));
+    if (!in_array($normalized, $allowedColors, true)) {
+        $normalized = strtolower(trim($default));
+    }
+    if (!in_array($normalized, $allowedColors, true)) {
+        $normalized = '#ffffff';
+    }
+
+    return 'private-color-' . ltrim($normalized, '#');
+};
 $privateFilesBaseUrl = trim((string) ($privateFilesBaseUrl ?? ''));
 if ($privateFilesBaseUrl === '') {
     $privateFilesBaseUrl = private_portal_url('files');
@@ -54,129 +66,6 @@ $formatBytes = static function (int $size): string {
 };
 ?>
 <section class="private-dashboard private-documents-module" data-private-documents-root>
-  <style>
-    .private-documents-module,
-    .private-documents-module * {
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
-
-    .private-documents-grid {
-      display: grid;
-      gap: 1.1rem;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-      margin: 1rem 0 1.4rem;
-    }
-
-    .private-documents-panel {
-      background: #fff;
-      border: 1px solid rgba(19, 41, 75, 0.08);
-      border-radius: 18px;
-      box-shadow: 0 14px 34px rgba(19, 41, 75, 0.08);
-      padding: 1.2rem;
-    }
-
-    .private-documents-panel h3 {
-      color: var(--private-primary-dark);
-      margin: 0 0 0.85rem;
-    }
-
-    .private-document-category-list {
-      display: grid;
-      gap: 0.75rem;
-    }
-
-    .private-document-category-row {
-      background: #fff;
-      border: 1px solid rgba(19, 41, 75, 0.08);
-      border-left: 0.45rem solid var(--document-category-color, #ffffff);
-      border-radius: 14px;
-      padding: 0.85rem;
-    }
-
-    .private-document-category-row h4 {
-      color: var(--private-primary-dark);
-      margin: 0 0 0.25rem;
-    }
-
-    .private-document-category-actions,
-    .private-document-category-color-choices,
-    .private-document-upload-actions {
-      align-items: center;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.55rem;
-    }
-
-    .private-document-category-color-choice {
-      align-items: center;
-      border: 1px solid rgba(19, 41, 75, 0.16);
-      border-radius: 999px;
-      display: inline-flex;
-      gap: 0.4rem;
-      margin: 0;
-      padding: 0.35rem 0.55rem;
-    }
-
-    .private-document-category-color-choice input {
-      height: 1rem;
-      margin: 0;
-      min-height: auto;
-      width: 1rem;
-    }
-
-    .private-document-category-swatch,
-    .private-document-category-dot {
-      border: 1px solid rgba(19, 41, 75, 0.22);
-      border-radius: 999px;
-      display: inline-block;
-    }
-
-    .private-document-category-swatch {
-      height: 1.25rem;
-      width: 1.25rem;
-    }
-
-    .private-document-category-dot {
-      height: 0.95rem;
-      margin-right: 0.35rem;
-      vertical-align: -0.1rem;
-      width: 0.95rem;
-    }
-
-    .private-document-button-secondary {
-      background: rgba(19, 41, 75, 0.08);
-      color: var(--private-primary-dark);
-    }
-
-    .private-document-button-danger {
-      background: rgba(161, 26, 42, 0.14);
-      color: var(--private-danger);
-    }
-
-    .private-document-button-secondary:hover,
-    .private-document-button-danger:hover {
-      box-shadow: none;
-    }
-
-    .private-documents-table-wrap {
-      max-width: 100%;
-      overflow-x: auto;
-    }
-
-    @media (max-width: 720px) {
-      .private-document-category-actions,
-      .private-document-upload-actions {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .private-document-category-actions button,
-      .private-document-upload-actions button {
-        width: 100%;
-      }
-    }
-  </style>
 
   <section class="card private-card-wide" id="private-documents">
     <span class="tag"><?php echo $h($translate('TXT_PRIVATE_DASHBOARD_FILES_TAG', 'Fichiers')); ?></span>
@@ -200,7 +89,7 @@ $formatBytes = static function (int $size): string {
                 <?php $color = is_string($color) ? $color : $privateDocumentCategoryDefaultColor; ?>
                 <label class="private-document-category-color-choice">
                   <input type="radio" name="category_color" value="<?php echo $h($color); ?>" <?php echo $color === $privateDocumentCategoryDefaultColor ? 'checked' : ''; ?> />
-                  <span class="private-document-category-swatch" style="background: <?php echo $h($color); ?>;"></span>
+                  <span class="private-document-category-swatch <?php echo $h($privateDocumentColorClass($color, $privateDocumentCategoryDefaultColor)); ?>"></span>
                 </label>
               <?php endforeach; ?>
             </div>
@@ -234,7 +123,7 @@ $formatBytes = static function (int $size): string {
       </div>
 
       <?php if ($privateDocumentCategories !== []): ?>
-        <section class="private-documents-panel" style="margin-bottom: 1.4rem;">
+        <section class="private-documents-panel private-block-spaced">
           <h3><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_EXISTING_CATEGORIES', 'Catégories existantes')); ?></h3>
           <div class="private-document-category-list">
             <?php foreach ($privateDocumentCategories as $category): ?>
@@ -248,8 +137,8 @@ $formatBytes = static function (int $size): string {
                   continue;
               }
               ?>
-              <article class="private-document-category-row" style="--document-category-color: <?php echo $h($categoryColor); ?>;">
-                <h4><span class="private-document-category-dot" style="background: <?php echo $h($categoryColor); ?>;"></span><?php echo $h($categoryName); ?></h4>
+              <article class="private-document-category-row <?php echo $h($privateDocumentColorClass($categoryColor, $privateDocumentCategoryDefaultColor)); ?>">
+                <h4><span class="private-document-category-dot <?php echo $h($privateDocumentColorClass($categoryColor, $privateDocumentCategoryDefaultColor)); ?>"></span><?php echo $h($categoryName); ?></h4>
                 <p class="muted"><?php echo $documentsCount; ?> document(s)</p>
                 <div class="private-document-category-actions">
                   <button type="button"
@@ -324,7 +213,7 @@ $formatBytes = static function (int $size): string {
                 </td>
                 <td>
                   <?php if ($categoryName !== ''): ?>
-                    <span class="tag" <?php echo $categoryColor !== '' ? 'style="border-color:' . $h($categoryColor) . ';color:' . $h($categoryColor) . '"' : ''; ?>>
+                    <span class="tag<?php echo $categoryColor !== '' ? ' private-color-tag ' . $h($privateDocumentColorClass($categoryColor, $privateDocumentCategoryDefaultColor)) : ''; ?>">
                       <?php echo $h($categoryName); ?>
                     </span>
                   <?php else: ?>

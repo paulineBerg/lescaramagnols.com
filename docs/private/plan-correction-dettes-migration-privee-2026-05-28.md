@@ -216,27 +216,43 @@ Checklist de suivi :
 
 - [x] Headers de securite renforces sur preprod.
 - [x] Scripts applicatifs avec nonce conserves.
-- [ ] Inventorier les styles inline prives.
-- [ ] Extraire les styles vers un asset CSS prive.
-- [ ] Retirer `style-src 'unsafe-inline'`.
-- [ ] Valider le rendu private/admin desktop et mobile.
-- [ ] Relancer `security-checklist`.
+- [x] Inventorier les styles inline prives.
+- [x] Extraire les styles vers un asset CSS prive.
+- [x] Retirer `style-src 'unsafe-inline'`.
+- [x] Valider le rendu private/admin desktop et mobile.
+- [x] Relancer `security-checklist`.
 
 Travaux :
 
-- [ ] inventorier les `<style>` inline dans les templates prives ;
-- [ ] creer un asset CSS prive dedie ;
-- [ ] migrer les styles du layout prive ;
-- [ ] migrer les styles des modules `Documents`, `Bloc-note`, `Discussions`, `Locations`, `Aide impots` ;
-- [ ] modifier la CSP pour retirer `style-src 'unsafe-inline'` ;
+- [x] inventorier les `<style>` inline dans les templates prives ;
+- [x] creer un asset CSS prive dedie ;
+- [x] migrer les styles du layout prive ;
+- [x] migrer les styles des modules `Documents`, `Bloc-note`, `Discussions`, `Locations`, `Aide impots` ;
+- [x] modifier la CSP pour retirer `style-src 'unsafe-inline'` ;
 - [x] garder les scripts avec nonce.
 
 Critere d'acceptation :
 
-- [ ] aucune balise `<style>` inline non justifiee dans les templates prives ;
-- [ ] CSP privee sans `unsafe-inline` pour `script-src` et `style-src` ;
-- [ ] rendu BO/private identique sur desktop et mobile ;
-- [ ] `security-checklist` reste vert apres retrait effectif.
+- [x] aucune balise `<style>` inline non justifiee dans les templates prives ;
+- [x] CSP privee sans `unsafe-inline` pour `script-src` et `style-src` ;
+- [x] rendu BO/private identique sur desktop et mobile ;
+- [x] `security-checklist` reste vert apres retrait effectif.
+
+Preuves C4 :
+
+- `docs/private/recette-preprod-migration-privee/27-c4-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/28-c4-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/29-c4-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/30-c4-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/31-c4-private-login-http-local-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/32-c4-inline-style-inventory-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/33-c4-validations-locales-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/34-c4-rendu-local-headless-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/35-c4-reserve-http-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/36-c4-deploy-preprod-final-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/37-c4-security-checklist-preprod-final-2026-05-29.json`
+
+Reserve : la validation HTTP externe de la preproduction repond actuellement en `403` Apache/OVH avant execution PHP sur `/private/login`. La validation CSP applicative C4 a donc ete faite par tests locaux, `security-checklist` locale et preprod CLI, puis smoke HTTP local via front-controller.
 
 ## 8. Phase C5 - Antivirus ou quarantaine documentaire
 

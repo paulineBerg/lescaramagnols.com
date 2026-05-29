@@ -1,0 +1,22 @@
+Phase C4 - reserve validation HTTP preprod du 2026-05-29
+
+Deploy fast: voir 28-c4-deploy-preprod-2026-05-29.txt
+Checklist preprod CLI: voir 30-c4-security-checklist-preprod-2026-05-29.json
+
+Commande: curl -sI https://preprod.lescaramagnols.com/private/login
+HTTP/2 403 
+date: Fri, 29 May 2026 12:56:31 GMT
+content-type: text/html; charset=iso-8859-1
+server: OVHcloud
+x-frame-options: DENY
+x-content-type-options: nosniff
+content-security-policy: default-src 'self'; img-src 'self' data: https: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http:; font-src 'self' data:; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+referrer-policy: no-referrer
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-site
+x-robots-tag: noindex, nofollow, noarchive, nosnippet
+
+
+Constat: la reponse HTTP externe est un 403 Apache/OVH avant execution PHP. La validation CSP applicative C4 est donc faite via PHPUnit, security-checklist locale/preprod CLI et smoke HTTP local sur front-controller.

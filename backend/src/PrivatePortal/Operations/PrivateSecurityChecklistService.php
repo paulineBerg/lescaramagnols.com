@@ -333,15 +333,15 @@ final class PrivateSecurityChecklistService
 
         $nonceScript = str_contains($policy, "script-src 'self' 'nonce-security-check-nonce'");
         $scriptUnsafeInline = str_contains($policy, "script-src 'self' 'unsafe-inline'");
-        $documentedStyleException = str_contains($policy, "style-src 'self' 'unsafe-inline'");
+        $styleUnsafeInline = str_contains($policy, "style-src 'self' 'unsafe-inline'");
 
         return $this->result(
-            $nonceScript && !$scriptUnsafeInline && $documentedStyleException,
-            'CSP sans unsafe-inline script, exception style inline documentee',
+            $nonceScript && !$scriptUnsafeInline && !$styleUnsafeInline,
+            'CSP privee sans unsafe-inline script ni style',
             [
                 'scriptNonce' => $nonceScript,
                 'scriptUnsafeInline' => $scriptUnsafeInline,
-                'styleInlineException' => $documentedStyleException,
+                'styleUnsafeInline' => $styleUnsafeInline,
                 'policy' => $policy,
             ]
         );

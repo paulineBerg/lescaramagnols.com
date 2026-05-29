@@ -70,7 +70,8 @@ final class PrivateSecurityChecklistTest extends TestCase
 
         self::assertStringContainsString("script-src 'self' 'nonce-testnonce'", $policy);
         self::assertStringNotContainsString("script-src 'self' 'unsafe-inline'", $policy);
-        self::assertStringContainsString("style-src 'self' 'unsafe-inline'", $policy);
+        self::assertStringContainsString("style-src 'self'", $policy);
+        self::assertStringNotContainsString("'unsafe-inline'", $policy);
     }
 
     public function testRobotsDoesNotExposeAdminOrPrivatePaths(): void

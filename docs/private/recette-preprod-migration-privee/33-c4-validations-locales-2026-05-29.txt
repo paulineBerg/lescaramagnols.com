@@ -1,0 +1,15 @@
+Phase C4 - validations locales du 2026-05-29
+
+Commandes executees:
+- php -l backend/src/Assets/ViteAssetManager.php backend/src/PrivatePortal/Http/PrivateResponseHeaders.php backend/src/PrivatePortal/Operations/PrivateSecurityChecklistService.php backend/templates/private/layout.php backend/templates/private/modules/documents/index.php backend/templates/private/modules/blocnote/index.php backend/templates/private/modules/family-discussion/conversation.php backend/tests/PrivatePortal/PrivateSecurityChecklistTest.php
+  Resultat: OK, aucune erreur de syntaxe.
+- php vendor/bin/phpunit tests/PrivatePortal/PrivateSecurityChecklistTest.php tests/PrivatePortalSecurityTest.php tests/PrivatePortalStorageTest.php tests/PrivatePortalFrontControllerTest.php tests/PrivatePortal/PrivacyOperationsTest.php tests/PrivatePortalPhaseCoverageTest.php
+  Resultat: OK (54 tests, 540 assertions).
+- npm run lint:css
+  Resultat: OK apres correction automatique stylelint du nouvel asset private.scss.
+- npm run build
+  Resultat: OK, budgets respectes, publication terminee, nouvel asset private.DLuxVVr1.css genere et publie.
+- php backend/core/tools/private_migration_reconcile.php security-checklist
+  Resultat: success=true, ready=true, 19 checks passes, 0 failed.
+- Smoke HTTP local: GET /private-4h6F1c/login via front-controller PHP built-in.
+  Resultat: 200 OK, CSP "script-src 'self' 'nonce-*'; style-src 'self'", aucune balise <style> ni attribut style=, lien CSS /assets/private.DLuxVVr1.css present.

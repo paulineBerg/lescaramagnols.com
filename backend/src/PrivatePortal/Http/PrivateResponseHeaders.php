@@ -30,8 +30,8 @@ final class PrivateResponseHeaders
     public static function contentSecurityPolicy(): string
     {
         $nonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_nonce'] : '';
-        $scriptSrc = $nonce !== '' ? "'self' 'nonce-{$nonce}'" : "'self' 'unsafe-inline'";
+        $scriptSrc = $nonce !== '' ? "'self' 'nonce-{$nonce}'" : "'self'";
 
-        return "default-src 'self'; script-src {$scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';";
+        return "default-src 'self'; script-src {$scriptSrc}; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';";
     }
 }

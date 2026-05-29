@@ -1,0 +1,27 @@
+HTTP/1.1 200 OK
+Host: 127.0.0.1:8765
+Date: Fri, 29 May 2026 12:51:32 GMT
+Connection: close
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-site
+Origin-Agent-Cluster: ?1
+Set-Cookie: lang=fr; expires=Sat, 29 May 2027 12:51:32 GMT; Max-Age=31536000; path=/; HttpOnly; SameSite=Lax
+Set-Cookie: caramagnols_session=ev7iiv7edgd6qud6ob86bhb5p4; path=/; HttpOnly; SameSite=Strict
+Set-Cookie: caramagnols_private=vne6j27jjb4umjaubaev9gr18g; path=/; HttpOnly; SameSite=Strict
+Content-Type: text/html; charset=UTF-8
+X-Robots-Tag: noindex, nofollow, noarchive
+Cache-Control: private, no-store, no-cache, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: no-referrer
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-a0ca211d8cc27ce01db29ed3'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';
+X-Request-Id: e62e3ad29a732b2dc06d669e
+
+
+--- inline-style-scan ---
+
+--- private-css-link ---
+8:          <link rel="stylesheet" href="/assets/private.DLuxVVr1.css" />

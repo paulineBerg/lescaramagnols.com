@@ -76,6 +76,12 @@ php backend/core/tools/private_migration_reconcile.php migration-dod > docs/priv
 php backend/core/tools/private_migration_reconcile.php m5-plan > docs/private/recette-preprod-migration-privee/24-c0-m5-plan-final-2026-05-29.json
 php backend/core/tools/private_migration_reconcile.php m6-retirement > docs/private/recette-preprod-migration-privee/25-c0-m6-retirement-final-2026-05-29.json
 composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/26-c0-check-security-headers-preprod-final-2026-05-29.txt 2>&1
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/27-c4-security-checklist-local-2026-05-29.json
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/28-c4-deploy-preprod-2026-05-29.txt 2>&1
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/29-c4-check-security-headers-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/30-c4-security-checklist-preprod-2026-05-29.json
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/36-c4-deploy-preprod-final-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/37-c4-security-checklist-preprod-final-2026-05-29.json
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -85,6 +91,13 @@ composer check-security-headers --working-dir=backend -- --url=https://preprod.l
 - [x] C3 — Restauration privée fichier+base en préprod (backup ZIP, structure ZIP, `verify-backup`, dry-run, nettoyage fixture et artefacts) — **OK PREPROD**, preuve: [21-c3-preprod-backup-restore-2026-05-29.txt](./recette-preprod-migration-privee/21-c3-preprod-backup-restore-2026-05-29.txt)
 
 Chaque cas doit être signé dans cette section : date, opérateur, preuve (captures / logs), résultat attendu.
+
+## Tests manuels requis (phase C4)
+
+- [x] C4 — CSP privee durcie sans `unsafe-inline` pour `script-src` et `style-src` — **OK LOCAL + PREPROD CLI**, preuves: [27-c4-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/27-c4-security-checklist-local-2026-05-29.json), [37-c4-security-checklist-preprod-final-2026-05-29.json](./recette-preprod-migration-privee/37-c4-security-checklist-preprod-final-2026-05-29.json)
+- [x] C4 — Suppression des `<style>` et `style=` dans les templates prives — **OK LOCAL**, preuve: [32-c4-inline-style-inventory-2026-05-29.txt](./recette-preprod-migration-privee/32-c4-inline-style-inventory-2026-05-29.txt)
+- [x] C4 — Rendu prive desktop/mobile apres extraction CSS — **OK LOCAL HEADLESS**, preuve: [34-c4-rendu-local-headless-2026-05-29.txt](./recette-preprod-migration-privee/34-c4-rendu-local-headless-2026-05-29.txt)
+- [ ] C4 — Rendu HTTP externe preprod sur `/private/login` — **BLOQUE ENVIRONNEMENT**, preuve: [35-c4-reserve-http-preprod-2026-05-29.txt](./recette-preprod-migration-privee/35-c4-reserve-http-preprod-2026-05-29.txt)
 
 ## Procédure C3 — restauration fichier + base
 
@@ -133,6 +146,7 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 
 ### Anomalies classees
 - `majeur` : l'upload HTTP documentaire préprod retourne encore `upload_failed` / `storage_unavailable`. Aucun accès interdit n'a été observé; à reprendre avant go-live dans les phases d'exploitation documentaire/restauration.
+- `majeur / environnement` : l'accès HTTP externe préprod à `/private/login` retourne un `403` Apache/OVH avant exécution PHP pendant C4. Le déploiement applicatif, la checklist preprod CLI et les validations locales sont verts, mais le rendu privé externe préprod reste à rejouer après correction du mapping HTTP.
 - `mineur / exploitation` : SMTP préprod non forcé pendant C2; les emails de suppression sont préparés via templates, mais la livraison réelle reste à auditer dans V2 emails transactionnels.
 
 ### Conditions levées pour C0
@@ -169,15 +183,27 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/24-c0-m5-plan-final-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/25-c0-m6-retirement-final-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/26-c0-check-security-headers-preprod-final-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/27-c4-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/28-c4-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/29-c4-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/30-c4-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/31-c4-private-login-http-local-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/32-c4-inline-style-inventory-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/33-c4-validations-locales-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/34-c4-rendu-local-headless-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/35-c4-reserve-http-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/36-c4-deploy-preprod-final-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/37-c4-security-checklist-preprod-final-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-C0 est ferme en `GO C0`.
+C4 est ferme cote code applicatif et validations locales/preprod CLI.
 
 Les prochaines actions appartiennent aux phases suivantes du plan :
 
-- C4 : durcissement CSP et retrait progressif de `style-src 'unsafe-inline'` ;
 - C5 : antivirus ou quarantaine documentaire ;
 - V1-V5 : validations d'exploitation restant suivies hors C0.
+
+Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.

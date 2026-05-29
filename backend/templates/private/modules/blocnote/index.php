@@ -13,6 +13,18 @@ if ($blocNoteColors === []) {
 }
 $blocNoteDefaultColor = is_string($blocNote['categoryDefaultColor'] ?? null) ? (string) $blocNote['categoryDefaultColor'] : '#ffffff';
 $h = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+$blocNoteColorClass = static function (mixed $value, string $default = '#ffffff'): string {
+    $allowedColors = ['#ffffff', '#fff1d6', '#ffe0e0', '#e1f7d5', '#d6ecff', '#eadbff', '#ffdff3'];
+    $normalized = strtolower(trim((string) $value));
+    if (!in_array($normalized, $allowedColors, true)) {
+        $normalized = strtolower(trim($default));
+    }
+    if (!in_array($normalized, $allowedColors, true)) {
+        $normalized = '#ffffff';
+    }
+
+    return 'private-color-' . ltrim($normalized, '#');
+};
 $blocNoteUrl = static function (string $view, array $extra = []) use ($blocNoteBaseUrl): string {
     $params = array_merge(['view' => $view], $extra);
 
@@ -51,288 +63,6 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
 };
 ?>
 <section class="blocnote-module" data-blocnote-root>
-  <style>
-    .blocnote-module,
-    .blocnote-module * {
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
-
-    .blocnote-hero {
-      display: grid;
-      gap: 1rem;
-      margin-bottom: 1.2rem;
-    }
-
-    .blocnote-hero h2,
-    .blocnote-card h3,
-    .blocnote-card h4 {
-      color: var(--private-primary-dark);
-      margin-top: 0;
-    }
-
-    .blocnote-hero p,
-    .blocnote-card p {
-      line-height: 1.55;
-    }
-
-    .blocnote-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.55rem;
-      margin: 0 0 1.3rem;
-    }
-
-    .blocnote-tabs a,
-    .blocnote-link-button {
-      align-items: center;
-      background: rgba(19, 41, 75, 0.08);
-      border-radius: 12px;
-      color: var(--private-primary-dark);
-      display: inline-flex;
-      font-weight: 700;
-      justify-content: center;
-      min-height: 2.65rem;
-      padding: 0.65rem 0.9rem;
-      text-decoration: none;
-    }
-
-    .blocnote-tabs a.active,
-    .blocnote-tabs a:hover,
-    .blocnote-tabs a:focus-visible,
-    .blocnote-link-button:hover,
-    .blocnote-link-button:focus-visible {
-      background: var(--private-primary);
-      color: #fff;
-      outline: none;
-    }
-
-    .blocnote-grid {
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
-    }
-
-    .blocnote-grid-wide {
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-    }
-
-    .blocnote-card {
-      background: #fff;
-      border: 1px solid rgba(19, 41, 75, 0.08);
-      border-radius: 18px;
-      box-shadow: 0 14px 34px rgba(19, 41, 75, 0.08);
-      padding: 1.2rem;
-    }
-
-    .blocnote-kpi strong {
-      color: var(--private-primary-dark);
-      display: block;
-      font-size: 2rem;
-      line-height: 1.1;
-    }
-
-    .blocnote-kpi span,
-    .blocnote-meta,
-    .blocnote-small {
-      color: var(--private-muted);
-      font-size: 0.9rem;
-    }
-
-    .blocnote-status {
-      align-items: center;
-      background: rgba(29, 111, 141, 0.1);
-      border-radius: 999px;
-      color: var(--private-primary);
-      display: inline-flex;
-      font-weight: 700;
-      margin-bottom: 0.8rem;
-      padding: 0.35rem 0.75rem;
-      width: fit-content;
-    }
-
-    .blocnote-actions,
-    .blocnote-filter-row,
-    .blocnote-note-actions,
-    .blocnote-category-actions {
-      align-items: center;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.65rem;
-    }
-
-    .blocnote-filter-row {
-      align-items: end;
-      margin-bottom: 1rem;
-    }
-
-    .blocnote-filter-field {
-      flex: 1 1 180px;
-    }
-
-    .blocnote-filter-field input,
-    .blocnote-filter-field select,
-    .blocnote-form textarea,
-    .blocnote-form input,
-    .blocnote-form select {
-      max-width: 100%;
-    }
-
-    .blocnote-note-list,
-    .blocnote-category-list {
-      display: grid;
-      gap: 0.85rem;
-    }
-
-    .blocnote-note-card,
-    .blocnote-category-row {
-      background: #fff;
-      border: 1px solid rgba(19, 41, 75, 0.08);
-      border-left: 0.45rem solid var(--blocnote-color, #ffffff);
-      border-radius: 16px;
-      box-shadow: 0 10px 26px rgba(19, 41, 75, 0.06);
-      padding: 1rem;
-    }
-
-    .blocnote-note-card h3,
-    .blocnote-category-row h3 {
-      font-size: 1.05rem;
-      margin: 0 0 0.35rem;
-    }
-
-    .blocnote-note-excerpt {
-      color: var(--private-muted);
-      margin: 0.7rem 0 0;
-      white-space: pre-wrap;
-    }
-
-    .blocnote-color-dot {
-      border: 1px solid rgba(19, 41, 75, 0.18);
-      border-radius: 999px;
-      display: inline-block;
-      height: 0.95rem;
-      margin-right: 0.35rem;
-      vertical-align: -0.1rem;
-      width: 0.95rem;
-    }
-
-    .blocnote-form {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .blocnote-form textarea {
-      min-height: 260px;
-      resize: vertical;
-      white-space: pre-wrap;
-    }
-
-    .blocnote-button-secondary,
-    .blocnote-button-ghost {
-      background: rgba(19, 41, 75, 0.08);
-      color: var(--private-primary-dark);
-    }
-
-    .blocnote-button-danger {
-      background: rgba(161, 26, 42, 0.14);
-      color: var(--private-danger);
-    }
-
-    .blocnote-button-secondary:hover,
-    .blocnote-button-ghost:hover,
-    .blocnote-button-danger:hover {
-      box-shadow: none;
-    }
-
-    .blocnote-color-choices {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.55rem;
-    }
-
-    .blocnote-color-choice {
-      align-items: center;
-      border: 1px solid rgba(19, 41, 75, 0.16);
-      border-radius: 999px;
-      display: inline-flex;
-      gap: 0.4rem;
-      margin: 0;
-      padding: 0.35rem 0.55rem;
-    }
-
-    .blocnote-color-choice input {
-      height: 1rem;
-      margin: 0;
-      min-height: auto;
-      width: 1rem;
-    }
-
-    .blocnote-color-swatch {
-      border: 1px solid rgba(19, 41, 75, 0.22);
-      border-radius: 999px;
-      display: inline-block;
-      height: 1.25rem;
-      width: 1.25rem;
-    }
-
-    .blocnote-modal[hidden] {
-      display: none;
-    }
-
-    .blocnote-modal {
-      align-items: center;
-      background: rgba(19, 41, 75, 0.55);
-      display: flex;
-      inset: 0;
-      justify-content: center;
-      padding: 1rem;
-      position: fixed;
-      z-index: 1000;
-    }
-
-    .blocnote-modal-panel {
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: var(--private-shadow);
-      max-height: min(760px, calc(100vh - 2rem));
-      overflow: auto;
-      padding: 1.35rem;
-      width: min(760px, 100%);
-    }
-
-    .blocnote-modal-header {
-      align-items: flex-start;
-      display: flex;
-      gap: 1rem;
-      justify-content: space-between;
-      margin-bottom: 1rem;
-    }
-
-    .blocnote-modal-content {
-      border-top: 1px solid rgba(19, 41, 75, 0.08);
-      padding-top: 1rem;
-      white-space: pre-wrap;
-    }
-
-    @media (max-width: 720px) {
-      .blocnote-filter-row,
-      .blocnote-actions,
-      .blocnote-note-actions,
-      .blocnote-category-actions {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .blocnote-tabs a,
-      .blocnote-actions a,
-      .blocnote-actions button,
-      .blocnote-note-actions a,
-      .blocnote-note-actions button,
-      .blocnote-category-actions button {
-        width: 100%;
-      }
-    }
-  </style>
 
   <div class="blocnote-hero">
     <span class="tag">Notes privées</span>
@@ -360,14 +90,14 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
       </div>
     </section>
 
-    <div class="blocnote-grid" style="margin-top: 1rem;">
+    <div class="blocnote-grid private-stack-top">
       <section class="blocnote-card blocnote-kpi"><span>Notes totales</span><strong><?php echo (int) ($blocNoteDashboard['totalNotes'] ?? 0); ?></strong></section>
       <section class="blocnote-card blocnote-kpi"><span>Modifiées sur 7 jours</span><strong><?php echo (int) ($blocNoteDashboard['recentNotesCount'] ?? 0); ?></strong></section>
       <section class="blocnote-card blocnote-kpi"><span>Catégories personnalisées</span><strong><?php echo (int) ($blocNoteDashboard['customCategoriesTotal'] ?? 0); ?></strong></section>
       <section class="blocnote-card blocnote-kpi"><span>Notes sans titre</span><strong><?php echo (int) ($blocNoteDashboard['untitledNotesCount'] ?? 0); ?></strong></section>
     </div>
 
-    <div class="blocnote-grid blocnote-grid-wide" style="margin-top: 1rem;">
+    <div class="blocnote-grid blocnote-grid-wide private-stack-top">
       <section class="blocnote-card">
         <h3>Activité récente</h3>
         <?php $recentNotes = is_array($blocNoteDashboard['recentNotes'] ?? null) ? $blocNoteDashboard['recentNotes'] : []; ?>
@@ -377,7 +107,7 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
           <div class="blocnote-note-list">
             <?php foreach ($recentNotes as $note): ?>
               <?php if (!is_array($note)): continue; endif; ?>
-              <article class="blocnote-note-card" style="--blocnote-color: <?php echo $h($note['categoryColor'] ?? $note['color'] ?? '#ffffff'); ?>;">
+              <article class="blocnote-note-card <?php echo $h($blocNoteColorClass($note['categoryColor'] ?? $note['color'] ?? '#ffffff', $blocNoteDefaultColor)); ?>">
                 <h3><?php echo $h($note['displayTitle'] ?? $note['title'] ?? 'Sans titre'); ?></h3>
                 <p class="blocnote-meta"><?php echo $h($note['categoryName'] ?? 'Sans catégorie'); ?> · <?php echo $h($blocNoteDate($note['updatedAt'] ?? '')); ?></p>
                 <p class="blocnote-note-excerpt"><?php echo $h($note['excerpt'] ?? ''); ?></p>
@@ -396,8 +126,8 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
           <div class="blocnote-category-list">
             <?php foreach ($categoryUsage as $row): ?>
               <?php if (!is_array($row)): continue; endif; ?>
-              <div class="blocnote-category-row" style="--blocnote-color: <?php echo $h($row['color'] ?? '#ffffff'); ?>;">
-                <h3><span class="blocnote-color-dot" style="background: <?php echo $h($row['color'] ?? '#ffffff'); ?>;"></span><?php echo $h($row['name'] ?? 'Catégorie'); ?></h3>
+              <div class="blocnote-category-row <?php echo $h($blocNoteColorClass($row['color'] ?? '#ffffff', $blocNoteDefaultColor)); ?>">
+                <h3><span class="blocnote-color-dot <?php echo $h($blocNoteColorClass($row['color'] ?? '#ffffff', $blocNoteDefaultColor)); ?>"></span><?php echo $h($row['name'] ?? 'Catégorie'); ?></h3>
                 <p class="blocnote-meta"><?php echo (int) ($row['count'] ?? 0); ?> note(s)</p>
               </div>
             <?php endforeach; ?>
@@ -446,8 +176,7 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
           <?php foreach ($blocNoteNotes as $note): ?>
             <?php if (!is_array($note)): continue; endif; ?>
             <?php $noteId = is_numeric($note['id'] ?? null) ? (int) $note['id'] : 0; ?>
-            <article class="blocnote-note-card"
-                     style="--blocnote-color: <?php echo $h($note['categoryColor'] ?? $note['color'] ?? '#ffffff'); ?>;"
+            <article class="blocnote-note-card <?php echo $h($blocNoteColorClass($note['categoryColor'] ?? $note['color'] ?? '#ffffff', $blocNoteDefaultColor)); ?>"
                      data-note-id="<?php echo $noteId; ?>"
                      data-note-title="<?php echo $h(strtolower((string) ($note['displayTitle'] ?? $note['title'] ?? ''))); ?>"
                      data-note-content="<?php echo $h(strtolower((string) ($note['contentText'] ?? ''))); ?>"
@@ -456,7 +185,7 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
                      data-note-updated="<?php echo $h($note['updatedAt'] ?? ''); ?>">
               <h3><?php echo $h($note['displayTitle'] ?? $note['title'] ?? 'Sans titre'); ?></h3>
               <p class="blocnote-meta">
-                <span class="blocnote-color-dot" style="background: <?php echo $h($note['categoryColor'] ?? '#ffffff'); ?>;"></span>
+                <span class="blocnote-color-dot <?php echo $h($blocNoteColorClass($note['categoryColor'] ?? '#ffffff', $blocNoteDefaultColor)); ?>"></span>
                 <?php echo $h($note['categoryName'] ?? 'Sans catégorie'); ?> · <?php echo $h($blocNoteDate($note['updatedAt'] ?? '')); ?>
               </p>
               <p class="blocnote-note-excerpt"><?php echo $h($note['excerpt'] ?? ''); ?></p>
@@ -525,7 +254,7 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
                 <?php $color = is_string($color) ? $color : $blocNoteDefaultColor; ?>
                 <label class="blocnote-color-choice">
                   <input type="radio" name="category_color" value="<?php echo $h($color); ?>" <?php echo $color === $blocNoteDefaultColor ? 'checked' : ''; ?> />
-                  <span class="blocnote-color-swatch" style="background: <?php echo $h($color); ?>;"></span>
+                  <span class="blocnote-color-swatch <?php echo $h($blocNoteColorClass($color, $blocNoteDefaultColor)); ?>"></span>
                 </label>
               <?php endforeach; ?>
             </div>
@@ -544,8 +273,8 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
             <?php if (!is_array($category)): continue; endif; ?>
             <?php $categoryId = is_numeric($category['id'] ?? null) ? (int) $category['id'] : 0; ?>
             <?php $categoryIsDefault = !empty($category['isDefault']); ?>
-            <article class="blocnote-category-row" style="--blocnote-color: <?php echo $h($category['color'] ?? '#ffffff'); ?>;">
-              <h3><span class="blocnote-color-dot" style="background: <?php echo $h($category['color'] ?? '#ffffff'); ?>;"></span><?php echo $h($category['name'] ?? 'Catégorie'); ?></h3>
+            <article class="blocnote-category-row <?php echo $h($blocNoteColorClass($category['color'] ?? '#ffffff', $blocNoteDefaultColor)); ?>">
+              <h3><span class="blocnote-color-dot <?php echo $h($blocNoteColorClass($category['color'] ?? '#ffffff', $blocNoteDefaultColor)); ?>"></span><?php echo $h($category['name'] ?? 'Catégorie'); ?></h3>
               <p class="blocnote-meta"><?php echo (int) ($category['notesCount'] ?? 0); ?> note(s)<?php echo $categoryIsDefault ? ' · catégorie par défaut' : ''; ?></p>
               <div class="blocnote-category-actions">
                 <button type="button"
