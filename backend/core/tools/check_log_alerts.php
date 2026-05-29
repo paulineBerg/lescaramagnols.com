@@ -24,22 +24,38 @@ $failOnNotifyError = to_bool($options['fail-on-notify-error'] ?? env('LOG_ALERTS
 
 $thresholds = [
     'login_failed' => max(1, (int) ($options['login-fail-threshold'] ?? 10)),
+    'private_login_failed' => max(1, (int) ($options['private-login-fail-threshold'] ?? 5)),
     'rate_limited' => max(1, (int) ($options['rate-limit-threshold'] ?? 6)),
+    'private_rate_limited' => max(1, (int) ($options['private-rate-limit-threshold'] ?? 3)),
+    'private_csrf_rejected' => max(1, (int) ($options['private-csrf-threshold'] ?? 3)),
+    'private_email_failed' => max(1, (int) ($options['private-email-failed-threshold'] ?? 1)),
+    'private_backup_failed' => max(1, (int) ($options['private-backup-failed-threshold'] ?? 1)),
+    'private_backup_warning' => max(1, (int) ($options['private-backup-warning-threshold'] ?? 1)),
+    'private_purge_failed' => max(1, (int) ($options['private-purge-failed-threshold'] ?? 1)),
     'http_403' => max(1, (int) ($options['http-403-threshold'] ?? 30)),
     'http_429' => max(1, (int) ($options['http-429-threshold'] ?? 10)),
     'cron_failed' => max(1, (int) ($options['cron-failed-threshold'] ?? 1)),
 ];
 
-$logDir = ROOT_PATH . '/data/logs';
+$severities = [
+    'login_failed' => 'warning',
+    'private_login_failed' => 'warning',
+    'rate_limited' => 'warning',
+    'private_rate_limited' => 'error',
+    'private_csrf_rejected' => 'warning',
+    'private_email_failed' => 'error',
+    'private_backup_failed' => 'critical',
+    'private_backup_warning' => 'warning',
+    'private_purge_failed' => 'critical',
+    'http_403' => 'warning',
+    'http_429' => 'warning',
+    'cron_failed' => 'error',
+];
+
+$logDir = resolve_log_dir($options['log-dir'] ?? null);
 $sinceTimestamp = time() - ($sinceMinutes * 60);
 
-$counts = [
-    'login_failed' => 0,
-    'rate_limited' => 0,
-    'http_403' => 0,
-    'http_429' => 0,
-    'cron_failed' => 0,
-];
+$counts = array_fill_keys(array_keys($thresholds), 0);
 
 read_log_file($logDir . '/security.log', $sinceTimestamp, static function (string $line) use (&$counts): void {
     if (str_contains($line, 'admin.login.failed')) {
@@ -49,6 +65,8 @@ read_log_file($logDir . '/security.log', $sinceTimestamp, static function (strin
     if (str_contains($line, 'rate_limited')) {
         $counts['rate_limited']++;
     }
+
+    collect_private_observability_counts($line, $counts);
 });
 
 read_log_file($logDir . '/access.log', $sinceTimestamp, static function (string $line) use (&$counts): void {
@@ -65,6 +83,8 @@ read_log_file($logDir . '/content.log', $sinceTimestamp, static function (string
     if (str_contains($line, 'cron.job.failed') || str_contains($line, 'cron.scheduler.failed')) {
         $counts['cron_failed']++;
     }
+
+    collect_private_observability_counts($line, $counts);
 });
 
 $alerts = [];
@@ -74,16 +94,35 @@ foreach ($thresholds as $metric => $threshold) {
             'metric' => $metric,
             'count' => $counts[$metric],
             'threshold' => $threshold,
+            'severity' => $severities[$metric] ?? 'warning',
         ];
     }
 }
 
+$overallSeverity = highest_alert_severity($alerts);
+
 $payload = [
     'generated_at' => date('c'),
     'since_minutes' => $sinceMinutes,
+    'overall_severity' => $overallSeverity,
     'counts' => $counts,
     'thresholds' => $thresholds,
+    'severities' => $severities,
     'alerts' => $alerts,
+    'summary' => [
+        'private' => [
+            'login_failed' => $counts['private_login_failed'],
+            'csrf_rejected' => $counts['private_csrf_rejected'],
+            'rate_limited' => $counts['private_rate_limited'],
+            'email_failed' => $counts['private_email_failed'],
+            'backup_failed' => $counts['private_backup_failed'],
+            'backup_warning' => $counts['private_backup_warning'],
+            'purge_failed' => $counts['private_purge_failed'],
+        ],
+        'cron' => [
+            'failed' => $counts['cron_failed'],
+        ],
+    ],
 ];
 
 $notifier = new LogAlertsNotifier(
@@ -117,10 +156,67 @@ if ($jsonOutput) {
 } else {
     fwrite(STDOUT, sprintf("Alertes logs (fenêtre: %d min)\n", $sinceMinutes));
     fwrite(STDOUT, sprintf("- admin.login.failed: %d (seuil=%d)\n", $counts['login_failed'], $thresholds['login_failed']));
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.login.rejected: %d (seuil=%d)\n",
+            $counts['private_login_failed'],
+            $thresholds['private_login_failed']
+        )
+    );
     fwrite(STDOUT, sprintf("- rate_limited: %d (seuil=%d)\n", $counts['rate_limited'], $thresholds['rate_limited']));
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.rate_limited: %d (seuil=%d)\n",
+            $counts['private_rate_limited'],
+            $thresholds['private_rate_limited']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.csrf.rejected: %d (seuil=%d)\n",
+            $counts['private_csrf_rejected'],
+            $thresholds['private_csrf_rejected']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.email_failed: %d (seuil=%d)\n",
+            $counts['private_email_failed'],
+            $thresholds['private_email_failed']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.backup.failed: %d (seuil=%d)\n",
+            $counts['private_backup_failed'],
+            $thresholds['private_backup_failed']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.backup.warning: %d (seuil=%d)\n",
+            $counts['private_backup_warning'],
+            $thresholds['private_backup_warning']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.purge.failed: %d (seuil=%d)\n",
+            $counts['private_purge_failed'],
+            $thresholds['private_purge_failed']
+        )
+    );
     fwrite(STDOUT, sprintf("- http 403: %d (seuil=%d)\n", $counts['http_403'], $thresholds['http_403']));
     fwrite(STDOUT, sprintf("- http 429: %d (seuil=%d)\n", $counts['http_429'], $thresholds['http_429']));
     fwrite(STDOUT, sprintf("- cron failed: %d (seuil=%d)\n", $counts['cron_failed'], $thresholds['cron_failed']));
+    fwrite(STDOUT, sprintf("- severite globale: %s\n", $overallSeverity));
 
     if ($alerts === []) {
         fwrite(STDOUT, "Aucune alerte déclenchée.\n");
@@ -130,8 +226,9 @@ if ($jsonOutput) {
             fwrite(
                 STDOUT,
                 sprintf(
-                    "  - %s: %d >= %d\n",
+                    "  - %s [%s]: %d >= %d\n",
                     (string) $alert['metric'],
+                    (string) ($alert['severity'] ?? 'warning'),
                     (int) $alert['count'],
                     (int) $alert['threshold']
                 )
@@ -194,6 +291,84 @@ function parse_log_timestamp(string $line): ?int
     $timestamp = strtotime((string) $matches[1]);
 
     return is_int($timestamp) ? $timestamp : null;
+}
+
+/**
+ * @param array<string, int> $counts
+ */
+function collect_private_observability_counts(string $line, array &$counts): void
+{
+    if (str_contains($line, 'private.login.rejected')) {
+        $counts['private_login_failed']++;
+    }
+
+    if (str_contains($line, 'private.csrf.rejected')) {
+        $counts['private_csrf_rejected']++;
+    }
+
+    if (str_contains($line, 'private.discussion.rate_limited') || str_contains($line, 'private.rate_limited')) {
+        $counts['private_rate_limited']++;
+    }
+
+    if (preg_match('/private\.[a-z0-9_\.]+(?:\.|_)email_failed\b/', $line) === 1) {
+        $counts['private_email_failed']++;
+    }
+
+    if (str_contains($line, 'private.backup.failed') || str_contains($line, 'ops.backup.failed')) {
+        $counts['private_backup_failed']++;
+    }
+
+    if (str_contains($line, 'backup_recommended_size_exceeded')) {
+        $counts['private_backup_warning']++;
+    }
+
+    if (str_contains($line, 'private.account_deletion_backups_purge.failed')) {
+        $counts['private_purge_failed']++;
+    }
+}
+
+/**
+ * @param array<int, array<string, mixed>> $alerts
+ */
+function highest_alert_severity(array $alerts): string
+{
+    $rank = [
+        'ok' => 0,
+        'info' => 1,
+        'warning' => 2,
+        'error' => 3,
+        'critical' => 4,
+    ];
+    $highest = 'ok';
+
+    foreach ($alerts as $alert) {
+        $severity = strtolower(trim((string) ($alert['severity'] ?? 'warning')));
+        if (!isset($rank[$severity])) {
+            $severity = 'warning';
+        }
+
+        if ($rank[$severity] > $rank[$highest]) {
+            $highest = $severity;
+        }
+    }
+
+    return $highest;
+}
+
+function resolve_log_dir(mixed $rawPath): string
+{
+    if (!is_string($rawPath) || trim($rawPath) === '') {
+        return ROOT_PATH . '/data/logs';
+    }
+
+    $path = trim($rawPath);
+    $realPath = realpath($path);
+    if ($realPath === false || !is_dir($realPath)) {
+        fwrite(STDERR, "Dossier de logs invalide.\n");
+        exit(1);
+    }
+
+    return $realPath;
 }
 
 /**

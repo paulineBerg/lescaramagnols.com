@@ -85,6 +85,13 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (recette responsive preprod) | V4 contrat UI preprod sur CSS compile et templates deployes | `success=true`, asset prive resolve, invariants responsive OK | [98-v4-responsive-ui-contract-preprod-2026-05-29.json](./recette-preprod-migration-privee/98-v4-responsive-ui-contract-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI preprod) | V4 `migration-dod` et `security-checklist` preprod | `success=true`, `ready=true` | [99-v4-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json), [100-v4-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI HTTP preprod) | V4 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [101-v4-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI fixture locale) | V5 alerte privee backup/cron/email/CSRF/rate-limit sur logs factices isoles | `overall_severity=critical`, secrets absents du rapport | [102-v5-log-alerts-private-fixture-local-2026-05-29.json](./recette-preprod-migration-privee/102-v5-log-alerts-private-fixture-local-2026-05-29.json) |
+| 2026-05-29 | Auto (PHPUnit/PHPCS) | V5 validation locale | syntaxe, PHPCS, `7 tests`, `42 assertions`, OK | [103-v5-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/103-v5-local-validation-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | V5 `migration-dod` et `security-checklist` local | `success=true`, `ready=true` | [104-v5-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/104-v5-migration-dod-local-2026-05-29.json), [105-v5-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/105-v5-security-checklist-local-2026-05-29.json) |
+| 2026-05-29 | Auto (deploiement) | V5 deploy preprod `deploy-fast --all-changes` + sync docs | deploiement OK, `deploy-fast completed` | [106-v5-deploy-preprod-2026-05-29.txt](./recette-preprod-migration-privee/106-v5-deploy-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI fixture preprod) | V5 alerte privee backup/cron/email/CSRF/rate-limit sur logs factices isoles preprod | `overall_severity=critical`, secrets absents du rapport | [107-v5-log-alerts-private-fixture-preprod-2026-05-29.json](./recette-preprod-migration-privee/107-v5-log-alerts-private-fixture-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI preprod) | V5 `migration-dod` et `security-checklist` preprod | `success=true`, `ready=true` | [108-v5-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/108-v5-migration-dod-preprod-2026-05-29.json), [109-v5-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/109-v5-security-checklist-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI HTTP preprod) | V5 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [110-v5-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/110-v5-check-security-headers-preprod-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -188,6 +195,14 @@ REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json
 composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt 2>&1
+php backend/core/tools/check_log_alerts.php --json --strict --log-dir="$TMP_DIR" --private-email-failed-threshold=1 --private-backup-failed-threshold=1 --private-purge-failed-threshold=1 --cron-failed-threshold=1 > docs/private/recette-preprod-migration-privee/102-v5-log-alerts-private-fixture-local-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php migration-dod > docs/private/recette-preprod-migration-privee/104-v5-migration-dod-local-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/105-v5-security-checklist-local-2026-05-29.json
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/106-v5-deploy-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/check_log_alerts.php --json --strict --log-dir=\\$TMP_DIR --private-email-failed-threshold=1 --private-backup-failed-threshold=1 --private-purge-failed-threshold=1 --cron-failed-threshold=1" > docs/private/recette-preprod-migration-privee/107-v5-log-alerts-private-fixture-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/108-v5-migration-dod-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/109-v5-security-checklist-preprod-2026-05-29.json
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/110-v5-check-security-headers-preprod-2026-05-29.txt 2>&1
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -258,6 +273,15 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - [x] V4 — Messages visibles en haut du viewport avec roles accessibles `status`/`alert` — **OK TEST**, preuve: [94-v4-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/94-v4-local-validation-2026-05-29.txt)
 - [x] V4 — Confirmation destructive BO compte suspendu lisible, annulable, sans `onclick` inline et avec boutons accessibles — **OK TEST**, preuve: [94-v4-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/94-v4-local-validation-2026-05-29.txt)
 - [x] V4 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [95-v4-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/95-v4-migration-dod-local-2026-05-29.json), [99-v4-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json), [100-v4-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json), [101-v4-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt)
+
+## Tests manuels requis (phase V5)
+
+- [x] V5 — Evenements critiques prives listes et rattaches a une metrique : login, CSRF, rate limit, email, backup, backup warning, purge, cron — **OK DOC + TEST**, preuves: [102-v5-log-alerts-private-fixture-local-2026-05-29.json](./recette-preprod-migration-privee/102-v5-log-alerts-private-fixture-local-2026-05-29.json), [103-v5-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/103-v5-local-validation-2026-05-29.txt)
+- [x] V5 — Severite claire `warning` / `error` / `critical` et `overall_severity` dans le rapport JSON et les notifications — **OK TEST**, preuve: [103-v5-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/103-v5-local-validation-2026-05-29.txt)
+- [x] V5 — Synthese periodique des erreurs cron conservee dans `cron_failed`, avec seuil strict configurable — **OK LOCAL + PREPROD CLI**, preuves: [102-v5-log-alerts-private-fixture-local-2026-05-29.json](./recette-preprod-migration-privee/102-v5-log-alerts-private-fixture-local-2026-05-29.json), [107-v5-log-alerts-private-fixture-preprod-2026-05-29.json](./recette-preprod-migration-privee/107-v5-log-alerts-private-fixture-preprod-2026-05-29.json)
+- [x] V5 — Alerte backup/cron/email testee sur logs factices isoles via `--log-dir`, sans polluer les logs reels — **OK LOCAL + PREPROD CLI**, preuves: [102-v5-log-alerts-private-fixture-local-2026-05-29.json](./recette-preprod-migration-privee/102-v5-log-alerts-private-fixture-local-2026-05-29.json), [107-v5-log-alerts-private-fixture-preprod-2026-05-29.json](./recette-preprod-migration-privee/107-v5-log-alerts-private-fixture-preprod-2026-05-29.json)
+- [x] V5 — Absence de contenu sensible dans les alertes : tokens et mots de passe de fixture absents du rapport — **OK TEST**, preuve: [103-v5-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/103-v5-local-validation-2026-05-29.txt)
+- [x] V5 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [104-v5-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/104-v5-migration-dod-local-2026-05-29.json), [108-v5-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/108-v5-migration-dod-preprod-2026-05-29.json), [109-v5-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/109-v5-security-checklist-preprod-2026-05-29.json), [110-v5-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/110-v5-check-security-headers-preprod-2026-05-29.txt)
 
 ## Procédure C3 — restauration fichier + base
 
@@ -418,15 +442,24 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/102-v5-log-alerts-private-fixture-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/103-v5-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/104-v5-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/105-v5-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/106-v5-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/107-v5-log-alerts-private-fixture-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/108-v5-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/109-v5-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/110-v5-check-security-headers-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-V4 est ferme cote code applicatif, recette responsive locale/preprod, validations locales, deploiement preprod et controles preprod CLI/HTTP.
+V5 est ferme cote code applicatif, alertes privees locales/preprod, validations locales, deploiement preprod et controles preprod CLI/HTTP.
 
-La prochaine action appartient a la phase suivante du plan :
+Le plan de correction des dettes migration privee est ferme pour les phases C0 a C7 et V1 a V5.
 
-- V5 : observabilite exploitation.
+Prochaine action hors plan : decision go-live ou bascule exploitation selon le runbook de deploiement.
 
 Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.

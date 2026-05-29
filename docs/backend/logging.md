@@ -18,6 +18,12 @@ Disposer d'un logging uniforme, exploitable et non bloquant :
 Mise a jour 2026-04-16 :
 - le bloc `backend/src/Logging/*` et ses tests associes sont identifies comme un sous-lot D autonome, a consolider a part du blog, de l'admin et du frontend tooling
 
+Mise a jour 2026-05-29 :
+- `check_log_alerts.php` couvre aussi les evenements critiques de l'espace prive : login refuse, CSRF refuse, rate limit prive, email prive echoue, backup echoue, alerte taille backup, purge de suppression compte echouee et cron echouee;
+- chaque alerte expose une severite normalisee `warning`, `error` ou `critical`, plus une `overall_severity`;
+- l'option CLI `--log-dir` permet de tester une alerte sur un dossier de logs isole sans injecter de donnees factices dans les logs de production;
+- les rapports et notifications ops restent des compteurs et des noms de metriques, sans recopier les lignes de log brutes.
+
 ## Couche De Reference
 
 - factory : `backend/src/Logging/LoggerFactory.php`
@@ -104,9 +110,34 @@ Les logs SQL visibles dans `Admin > Logs` sont purges par le job Cron Center `pu
 
 Seuils par defaut :
 - `admin.login.failed >= 10`
+- `private.login.rejected >= 5`
 - `rate_limited >= 6`
+- `private.rate_limited >= 3`
+- `private.csrf.rejected >= 3`
+- `private.*email_failed >= 1`
+- `ops.backup.failed` ou `private.backup.failed >= 1`
+- `backup_recommended_size_exceeded >= 1`
+- `private.account_deletion_backups_purge.failed >= 1`
 - `http 403 >= 30`
 - `http 429 >= 10`
+- `cron.job.failed` ou `cron.scheduler.failed >= 1`
+
+Severites par defaut :
+
+| Metrique | Severite |
+|---|---|
+| `login_failed`, `private_login_failed`, `rate_limited`, `private_csrf_rejected`, `http_403`, `http_429`, `private_backup_warning` | `warning` |
+| `private_rate_limited`, `private_email_failed`, `cron_failed` | `error` |
+| `private_backup_failed`, `private_purge_failed` | `critical` |
+
+Options privees utiles :
+
+```bash
+composer check-log-alerts -- --json --strict --private-email-failed-threshold=1
+composer check-log-alerts -- --json --strict --private-backup-failed-threshold=1
+composer check-log-alerts -- --json --strict --private-purge-failed-threshold=1
+composer check-log-alerts -- --json --strict --private-csrf-threshold=3 --private-rate-limit-threshold=3
+```
 
 ## Regles D Evolution
 

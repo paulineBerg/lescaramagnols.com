@@ -1,0 +1,235 @@
+{
+    "success": true,
+    "ready": true,
+    "summary": {
+        "checks": 11,
+        "passed": 11,
+        "failed": 0,
+        "moduleReadiness": true,
+        "legacyRetirementReady": true,
+        "securityReady": true
+    },
+    "checks": {
+        "public_php_stable": {
+            "ok": true,
+            "status": "pass",
+            "label": "Le public PHP reste stable, rapide et indexable",
+            "evidence": {
+                "frontController": "/home/lescaramgl-ssh/caramagnols-preprod/backend/public/index.php",
+                "rssEntrypoint": "/home/lescaramgl-ssh/caramagnols-preprod/backend/public/rss.php",
+                "privateNoIndexing": true,
+                "publicSeoInvariant": "routes publiques conservees dans FrontController/LegacyRouteResolver"
+            }
+        },
+        "private_context_separated": {
+            "ok": true,
+            "status": "pass",
+            "label": "Le prive est servi par une application ou un contexte separe",
+            "evidence": {
+                "routeCount": 54,
+                "routeBasePath": "/private",
+                "guard": "Caramagnols\\PrivatePortal\\Security\\PrivatePortalSecurityGuard",
+                "headers": "Caramagnols\\PrivatePortal\\Http\\PrivateResponseHeaders",
+                "decision": "contexte HTTP prive separe, Symfony-compatible, sans runtime Node en production"
+            }
+        },
+        "no_critical_legacy_template_dependency": {
+            "ok": true,
+            "status": "pass",
+            "label": "Aucun module prive critique ne depend de templates PHP legacy",
+            "evidence": {
+                "criticalModules": [
+                    "documents",
+                    "family_discussion",
+                    "real_estate_rental",
+                    "agency_imports",
+                    "tax_declaration_helper",
+                    "blocnote"
+                ],
+                "coveredModules": [
+                    "private_core",
+                    "documents",
+                    "family_discussion",
+                    "real_estate_rental",
+                    "agency_imports",
+                    "tax_declaration_helper",
+                    "blocnote"
+                ],
+                "missingModules": [],
+                "obsoleteTemplates": [],
+                "activeTemplates": [
+                    {
+                        "file": "dashboard.php",
+                        "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/dashboard.php",
+                        "status": "kept",
+                        "exists": true,
+                        "reason": "Template prive encore utilise par le front-controller prive."
+                    },
+                    {
+                        "file": "layout.php",
+                        "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/layout.php",
+                        "status": "kept",
+                        "exists": true,
+                        "reason": "Template prive encore utilise par le front-controller prive."
+                    },
+                    {
+                        "file": "login.php",
+                        "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/login.php",
+                        "status": "kept",
+                        "exists": true,
+                        "reason": "Template prive encore utilise par le front-controller prive."
+                    },
+                    {
+                        "file": "notice.php",
+                        "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/notice.php",
+                        "status": "kept",
+                        "exists": true,
+                        "reason": "Template prive encore utilise par le front-controller prive."
+                    },
+                    {
+                        "file": "password_forgot.php",
+                        "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/password_forgot.php",
+                        "status": "kept",
+                        "exists": true,
+                        "reason": "Template prive encore utilise par le front-controller prive."
+                    },
+                    {
+                        "file": "password_form.php",
+                        "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/password_form.php",
+                        "status": "kept",
+                        "exists": true,
+                        "reason": "Template prive encore utilise par le front-controller prive."
+                    }
+                ]
+            }
+        },
+        "rental_tax_single_source": {
+            "ok": true,
+            "status": "pass",
+            "label": "Les donnees locatives et fiscales ont une source de verite unique",
+            "evidence": {
+                "rentalSourceTables": [
+                    "rental_properties",
+                    "rental_units",
+                    "rental_property_members",
+                    "rental_tenants",
+                    "rental_leases",
+                    "rental_payments",
+                    "rental_expenses",
+                    "rental_documents",
+                    "rental_export_logs"
+                ],
+                "taxSourceTables": [
+                    "tax_years",
+                    "tax_income_sources",
+                    "tax_source_activations",
+                    "tax_manual_income_entries",
+                    "tax_annual_summaries",
+                    "tax_summary_lines",
+                    "tax_export_logs"
+                ],
+                "taxBridge": "RentalTaxDataProvider -> TaxDeclarationHelper sources",
+                "exportsPolicy": "exports regenerables depuis tables sources et logs dedies"
+            }
+        },
+        "agency_imports_reconcilable": {
+            "ok": true,
+            "status": "pass",
+            "label": "Les imports agence sont reconciliables et auditables",
+            "evidence": {
+                "tables": [
+                    "rental_agency_import_batches",
+                    "rental_agency_imported_documents",
+                    "rental_agency_statements",
+                    "rental_agency_statement_lines",
+                    "rental_agency_import_issues",
+                    "rental_agency_line_mappings"
+                ],
+                "auditEvents": [
+                    "private.rental.agency_imported",
+                    "private.rental.agency_reviewed",
+                    "private.rental.agency_issue_created"
+                ],
+                "reconciliation": "batch, document source, issues, mappings et statements restent tracables"
+            }
+        },
+        "discussion_retention_60_days": {
+            "ok": true,
+            "status": "pass",
+            "label": "Les messages de discussion respectent la retention 60 jours",
+            "evidence": {
+                "retentionDays": 60,
+                "service": "DiscussionRetentionService"
+            }
+        },
+        "private_files_outside_webroot": {
+            "ok": true,
+            "status": "pass",
+            "label": "Les fichiers prives restent hors webroot",
+            "evidence": {
+                "storageRoot": "/home/lescaramgl-ssh/caramagnols-preprod/private",
+                "publicRoot": "/home/lescaramgl-ssh/caramagnols-preprod/backend/public",
+                "servingPolicy": "download controle par route privee, jamais par fichier public direct"
+            }
+        },
+        "logs_exports_no_sensitive_leak": {
+            "ok": true,
+            "status": "pass",
+            "label": "Les logs et exports ne fuitent pas de contenu sensible",
+            "evidence": {
+                "securityChecklistReady": true,
+                "auditRedaction": "pass",
+                "exportsPolicy": "logs metadata uniquement; exports telecharges via session privee"
+            }
+        },
+        "restore_plan_tested": {
+            "ok": true,
+            "status": "pass",
+            "label": "Le plan de restauration est teste",
+            "evidence": {
+                "backupCommand": "php backend/core/tools/private_migration_reconcile.php backup --target-dir=/path/exports --files-root=/path/uploads",
+                "verifyCommand": "php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json|zip",
+                "dryRunRestore": "PrivateBackupService::restoreBackup($path, true)",
+                "manualRestore": "restauration reelle volontairement separee du dry-run"
+            }
+        },
+        "legacy_private_routes_explicit": {
+            "ok": true,
+            "status": "pass",
+            "label": "Les anciennes routes privees PHP sont supprimees, bloquees ou redirigees explicitement",
+            "evidence": {
+                "ready": true,
+                "routes": 54,
+                "blockedLegacyRoutes": [
+                    {
+                        "methods": [
+                            "POST"
+                        ],
+                        "path": "/private/privacy/anonymize",
+                        "handler": "privacy_anonymize",
+                        "status": "blocked",
+                        "reason": "Endpoint retire: la suppression de compte passe par sauvegarde, purge donnees, avertissement J+20 et suppression compte J+30."
+                    }
+                ],
+                "runbook": {
+                    "backupBeforeDelete": true,
+                    "tagBeforeDelete": true,
+                    "noDirectPrivateFileEndpoint": true,
+                    "legacyRouteResolutionBlocked": true
+                }
+            }
+        },
+        "docs_runbooks_current": {
+            "ok": true,
+            "status": "pass",
+            "label": "Les README et runbooks refletent architecture reelle",
+            "evidence": {
+                "privateReadme": "/home/lescaramgl-ssh/caramagnols-preprod/backend/../docs/private/README.md",
+                "securityReadme": "/home/lescaramgl-ssh/caramagnols-preprod/docs/security/README.md",
+                "privateReadmeMentionsMigrationDod": true,
+                "privateReadmeMentionsSecurityChecklist": true,
+                "securityReadmeMentionsSecurityChecklist": true
+            }
+        }
+    }
+}

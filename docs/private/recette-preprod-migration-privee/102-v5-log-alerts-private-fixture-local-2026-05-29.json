@@ -1,0 +1,133 @@
+{
+    "generated_at": "2026-05-29T16:21:01+00:00",
+    "since_minutes": 60,
+    "overall_severity": "critical",
+    "counts": {
+        "login_failed": 0,
+        "private_login_failed": 1,
+        "rate_limited": 1,
+        "private_rate_limited": 1,
+        "private_csrf_rejected": 1,
+        "private_email_failed": 1,
+        "private_backup_failed": 1,
+        "private_backup_warning": 1,
+        "private_purge_failed": 1,
+        "http_403": 0,
+        "http_429": 0,
+        "cron_failed": 1
+    },
+    "thresholds": {
+        "login_failed": 10,
+        "private_login_failed": 1,
+        "rate_limited": 6,
+        "private_rate_limited": 1,
+        "private_csrf_rejected": 1,
+        "private_email_failed": 1,
+        "private_backup_failed": 1,
+        "private_backup_warning": 1,
+        "private_purge_failed": 1,
+        "http_403": 30,
+        "http_429": 10,
+        "cron_failed": 1
+    },
+    "severities": {
+        "login_failed": "warning",
+        "private_login_failed": "warning",
+        "rate_limited": "warning",
+        "private_rate_limited": "error",
+        "private_csrf_rejected": "warning",
+        "private_email_failed": "error",
+        "private_backup_failed": "critical",
+        "private_backup_warning": "warning",
+        "private_purge_failed": "critical",
+        "http_403": "warning",
+        "http_429": "warning",
+        "cron_failed": "error"
+    },
+    "alerts": [
+        {
+            "metric": "private_login_failed",
+            "count": 1,
+            "threshold": 1,
+            "severity": "warning"
+        },
+        {
+            "metric": "private_rate_limited",
+            "count": 1,
+            "threshold": 1,
+            "severity": "error"
+        },
+        {
+            "metric": "private_csrf_rejected",
+            "count": 1,
+            "threshold": 1,
+            "severity": "warning"
+        },
+        {
+            "metric": "private_email_failed",
+            "count": 1,
+            "threshold": 1,
+            "severity": "error"
+        },
+        {
+            "metric": "private_backup_failed",
+            "count": 1,
+            "threshold": 1,
+            "severity": "critical"
+        },
+        {
+            "metric": "private_backup_warning",
+            "count": 1,
+            "threshold": 1,
+            "severity": "warning"
+        },
+        {
+            "metric": "private_purge_failed",
+            "count": 1,
+            "threshold": 1,
+            "severity": "critical"
+        },
+        {
+            "metric": "cron_failed",
+            "count": 1,
+            "threshold": 1,
+            "severity": "error"
+        }
+    ],
+    "summary": {
+        "private": {
+            "login_failed": 1,
+            "csrf_rejected": 1,
+            "rate_limited": 1,
+            "email_failed": 1,
+            "backup_failed": 1,
+            "backup_warning": 1,
+            "purge_failed": 1
+        },
+        "cron": {
+            "failed": 1
+        }
+    },
+    "notification": {
+        "enabled": false,
+        "notify_on": "alerts",
+        "triggered": true,
+        "has_error": false,
+        "channels": {
+            "webhook": {
+                "configured": false,
+                "attempted": false,
+                "success": false,
+                "status": 0,
+                "error": null
+            },
+            "email": {
+                "configured": false,
+                "attempted": false,
+                "success": false,
+                "sent": [],
+                "failed": []
+            }
+        }
+    }
+}

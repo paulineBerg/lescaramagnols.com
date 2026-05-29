@@ -85,14 +85,46 @@ final class LogAlertsNotifierTest extends TestCase
         $this->assertFalse((bool) $result['channels']['email']['success']);
     }
 
+    public function testNotificationIncludesHighestAlertSeverity(): void
+    {
+        $webhookPayload = [];
+        $emailSubject = '';
+        $emailHtml = '';
+
+        $notifier = new LogAlertsNotifier(
+            static function (string $to, string $subject, string $html) use (&$emailSubject, &$emailHtml): bool {
+                $emailSubject = $subject;
+                $emailHtml = $html;
+                return true;
+            },
+            static function (string $url, array $payload, int $timeout) use (&$webhookPayload): array {
+                $webhookPayload = $payload;
+                return ['success' => true, 'status' => 202, 'error' => null];
+            }
+        );
+
+        $report = $this->baseReport([
+            ['metric' => 'private_backup_failed', 'count' => 1, 'threshold' => 1, 'severity' => 'critical'],
+        ]);
+        $report['overall_severity'] = 'critical';
+
+        $result = $notifier->notify($report, $this->baseConfig('alerts'));
+
+        $this->assertTrue((bool) $result['triggered']);
+        $this->assertSame('critical', $webhookPayload['severity'] ?? null);
+        $this->assertStringContainsString('ALERT/CRITICAL', $emailSubject);
+        $this->assertStringContainsString('[critical]', $emailHtml);
+    }
+
     /**
-     * @param array<int, array{metric: string, count: int, threshold: int}> $alerts
+     * @param array<int, array{metric: string, count: int, threshold: int, severity?: string}> $alerts
      * @return array{
      *   generated_at: string,
      *   since_minutes: int,
+     *   overall_severity: string,
      *   counts: array<string, int>,
      *   thresholds: array<string, int>,
-     *   alerts: array<int, array{metric: string, count: int, threshold: int}>
+     *   alerts: array<int, array{metric: string, count: int, threshold: int, severity?: string}>
      * }
      */
     private function baseReport(array $alerts): array
@@ -100,17 +132,34 @@ final class LogAlertsNotifierTest extends TestCase
         return [
             'generated_at' => '2026-03-21T12:00:00+01:00',
             'since_minutes' => 60,
+            'overall_severity' => $alerts === [] ? 'ok' : 'warning',
             'counts' => [
                 'login_failed' => 0,
+                'private_login_failed' => 0,
                 'rate_limited' => 0,
+                'private_rate_limited' => 0,
+                'private_csrf_rejected' => 0,
+                'private_email_failed' => 0,
+                'private_backup_failed' => 0,
+                'private_backup_warning' => 0,
+                'private_purge_failed' => 0,
                 'http_403' => 0,
                 'http_429' => 0,
+                'cron_failed' => 0,
             ],
             'thresholds' => [
                 'login_failed' => 10,
+                'private_login_failed' => 5,
                 'rate_limited' => 6,
+                'private_rate_limited' => 3,
+                'private_csrf_rejected' => 3,
+                'private_email_failed' => 1,
+                'private_backup_failed' => 1,
+                'private_backup_warning' => 1,
+                'private_purge_failed' => 1,
                 'http_403' => 30,
                 'http_429' => 10,
+                'cron_failed' => 1,
             ],
             'alerts' => $alerts,
         ];

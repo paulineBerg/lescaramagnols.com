@@ -55,6 +55,13 @@ Mise a jour 2026-05-29 (UX BO et espace prive V4) :
 - la suppression d'un compte prive suspendu en BO n'utilise plus de handler `onclick` inline et reste pilotee par de vrais boutons `type="button"` ou `type="submit"`;
 - `PrivateUiGuardTest` verrouille les invariants UI critiques : overflow horizontal, menu fixe, messages visibles, confirmation destructrice et recette responsive.
 
+Mise a jour 2026-05-29 (observabilite exploitation V5) :
+- `check_log_alerts.php` devient le point de synthese des incidents prives : login refuse, CSRF refuse, rate limit prive, email prive echoue, backup echoue, backup trop volumineux, purge de suppression compte echouee et cron echouee;
+- chaque alerte porte une severite exploitable : `warning`, `error` ou `critical`, et le rapport expose aussi `overall_severity`;
+- les seuils prives sont configurables en CLI : `--private-login-fail-threshold`, `--private-csrf-threshold`, `--private-rate-limit-threshold`, `--private-email-failed-threshold`, `--private-backup-failed-threshold`, `--private-backup-warning-threshold`, `--private-purge-failed-threshold`;
+- le rapport ne recopie pas les lignes de logs brutes : il publie uniquement compteurs, seuils, severites et resume, afin de ne pas diffuser de token, mot de passe ou secret;
+- `--log-dir` permet une recette d'alerte backup/cron/email sur logs factices isoles, sans polluer les logs d'exploitation reels.
+
 Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
 - cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
@@ -170,6 +177,35 @@ Cette checklist s'applique a tout nouvel ecran admin ou prive et a toute modific
 5. Une action destructive doit rester lisible, explicite et annulable : libelle de danger, etape de confirmation ou dialogue dedie, bouton d'annulation accessible clavier/souris.
 6. Les cartes, grilles, tableaux, boutons, liens d'action, medias et dialogues doivent supporter les largeurs `390px`, `768px` et desktop sans sortir de l'ecran.
 7. Les tests de garde `PrivateTemplateGuardTest` et `PrivateUiGuardTest` doivent etre lances quand un template prive, le layout admin, le layout prive ou `frontend/src/scss/private.scss` change.
+
+## 0.4 Observabilite exploitation privee
+
+Evenements critiques suivis par `composer check-log-alerts` :
+
+| Evenement log | Metrique | Severite | Seuil defaut |
+|---|---|---|---|
+| `private.login.rejected` | `private_login_failed` | `warning` | `5` |
+| `private.csrf.rejected` | `private_csrf_rejected` | `warning` | `3` |
+| `private.discussion.rate_limited` ou `private.rate_limited` | `private_rate_limited` | `error` | `3` |
+| `private.*email_failed` | `private_email_failed` | `error` | `1` |
+| `ops.backup.failed` ou `private.backup.failed` | `private_backup_failed` | `critical` | `1` |
+| `backup_recommended_size_exceeded` | `private_backup_warning` | `warning` | `1` |
+| `private.account_deletion_backups_purge.failed` | `private_purge_failed` | `critical` | `1` |
+| `cron.job.failed` ou `cron.scheduler.failed` | `cron_failed` | `error` | `1` |
+
+Commande de controle periodique recommandee :
+
+```bash
+composer check-log-alerts -- --json --strict --since-minutes=30 --private-email-failed-threshold=1 --private-backup-failed-threshold=1 --private-purge-failed-threshold=1 --cron-failed-threshold=1
+```
+
+Regles d'exploitation :
+
+1. `warning` signale une degradation a surveiller ou une attaque possible sans incident prouve.
+2. `error` signale une action privee echouee qui peut toucher un utilisateur ou une tache planifiee.
+3. `critical` signale un risque d'exploitation : sauvegarde impossible ou purge de suppression compte en echec.
+4. Les notifications ops ne doivent contenir aucun log brut; seulement metrique, compteur, seuil, severite et fenetre temporelle.
+5. Les tests d'alerte doivent utiliser `--log-dir` avec un dossier temporaire et supprimer ce dossier apres execution.
 
 ## 1. Decision produit
 

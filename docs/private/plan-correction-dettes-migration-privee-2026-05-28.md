@@ -624,26 +624,47 @@ Objectif : rendre les problemes visibles avant qu'ils deviennent des incidents.
 
 Checklist de suivi :
 
-- [ ] Lister les evenements critiques prives.
-- [ ] Verifier ou ajouter une severite claire.
-- [ ] Ajouter une synthese periodique des erreurs cron.
-- [ ] Verifier l'absence de contenu sensible dans les logs.
-- [ ] Definir les seuils d'alerte prives.
-- [ ] Tester une alerte backup/cron/email.
+- [x] Lister les evenements critiques prives.
+- [x] Verifier ou ajouter une severite claire.
+- [x] Ajouter une synthese periodique des erreurs cron.
+- [x] Verifier l'absence de contenu sensible dans les logs.
+- [x] Definir les seuils d'alerte prives.
+- [x] Tester une alerte backup/cron/email.
 
 Travaux :
 
-- [ ] lister les evenements critiques prives ;
-- [ ] ajouter une severite claire : info, warning, error, critical ;
-- [ ] ajouter une synthese periodique des erreurs cron ;
-- [ ] verifier que les logs ne contiennent pas de contenu sensible ;
-- [ ] definir les seuils d'alerte : echec SMTP, echec backup, echec purge, CSRF repetes, login rate limit.
+- [x] lister les evenements critiques prives ;
+- [x] ajouter une severite claire : info, warning, error, critical ;
+- [x] ajouter une synthese periodique des erreurs cron ;
+- [x] verifier que les logs ne contiennent pas de contenu sensible ;
+- [x] definir les seuils d'alerte : echec SMTP, echec backup, echec purge, CSRF repetes, login rate limit.
 
 Critere d'acceptation :
 
-- [ ] un incident backup/cron/email laisse une trace exploitable ;
-- [ ] les alertes ne contiennent pas de secret ;
-- [ ] les logs permettent de reconstituer une action sensible.
+- [x] un incident backup/cron/email laisse une trace exploitable ;
+- [x] les alertes ne contiennent pas de secret ;
+- [x] les logs permettent de reconstituer une action sensible.
+
+Decision V5 :
+
+- `check_log_alerts.php` reste le point d'entree unique de synthese ops et integre les signaux prives au lieu d'ajouter une commande separee;
+- les metriques privees suivies sont `private_login_failed`, `private_csrf_rejected`, `private_rate_limited`, `private_email_failed`, `private_backup_failed`, `private_backup_warning`, `private_purge_failed` et `cron_failed`;
+- les severites normalisees sont `warning`, `error` et `critical`, avec `overall_severity` dans le rapport JSON et les notifications;
+- les seuils prives sont configurables par options CLI et documentes dans `docs/private/README.md` et `docs/backend/logging.md`;
+- le rapport ne recopie pas les lignes brutes de log, ce qui evite la propagation de tokens, mots de passe, secrets ou DSN presents dans une erreur source;
+- l'option `--log-dir` permet de rejouer une alerte backup/cron/email avec logs factices isoles localement ou en preproduction.
+
+Preuves V5 :
+
+- `docs/private/recette-preprod-migration-privee/102-v5-log-alerts-private-fixture-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/103-v5-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/104-v5-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/105-v5-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/106-v5-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/107-v5-log-alerts-private-fixture-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/108-v5-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/109-v5-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/110-v5-check-security-headers-preprod-2026-05-29.txt`
 
 ## 12. Ordre recommande
 
@@ -681,7 +702,7 @@ Les dettes de la section 3 seront considerees corrigees quand :
 - [x] les emails transactionnels ont preview, variables documentees et liens absolus ;
 - [x] la cron est idempotente, journalisee et documentee ;
 - [x] les pages BO/private ne debordent pas de l'ecran ;
-- [ ] les evenements critiques sont observables sans fuite de secret.
+- [x] les evenements critiques sont observables sans fuite de secret.
 
 ## 14. Decision
 

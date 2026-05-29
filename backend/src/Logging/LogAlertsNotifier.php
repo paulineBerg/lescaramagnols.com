@@ -28,7 +28,8 @@ final class LogAlertsNotifier
      *   since_minutes: int,
      *   counts: array<string, int>,
      *   thresholds: array<string, int>,
-     *   alerts: array<int, array{metric: string, count: int, threshold: int}>
+     *   overall_severity?: string,
+     *   alerts: array<int, array{metric: string, count: int, threshold: int, severity?: string}>
      * } $report
      * @param array{
      *   notify_on: string,
@@ -133,10 +134,11 @@ final class LogAlertsNotifier
     private function buildWebhookPayload(array $report, array $config): array
     {
         $alerts = is_array($report['alerts'] ?? null) ? $report['alerts'] : [];
+        $severity = $alerts === [] ? 'ok' : $this->normalizeSeverity((string) ($report['overall_severity'] ?? ''));
 
         return [
             'source' => 'caramagnols.check_log_alerts',
-            'severity' => $alerts === [] ? 'ok' : 'warning',
+            'severity' => $alerts === [] ? 'ok' : $severity,
             'generated_at' => (string) ($report['generated_at'] ?? date('c')),
             'app_env' => (string) ($config['app_env'] ?? ''),
             'base_url' => (string) ($config['base_url'] ?? ''),
@@ -156,10 +158,11 @@ final class LogAlertsNotifier
         }
 
         $alerts = is_array($report['alerts'] ?? null) ? $report['alerts'] : [];
+        $severity = $this->normalizeSeverity((string) ($report['overall_severity'] ?? ''));
         $status = $alerts === [] ? 'OK' : 'ALERT';
         $sinceMinutes = (int) ($report['since_minutes'] ?? 0);
 
-        return sprintf('%s check-log-alerts %s (%d min)', $prefix, $status, $sinceMinutes);
+        return sprintf('%s check-log-alerts %s/%s (%d min)', $prefix, $status, strtoupper($severity), $sinceMinutes);
     }
 
     /**
@@ -175,11 +178,16 @@ final class LogAlertsNotifier
         $alerts = is_array($report['alerts'] ?? null) ? $report['alerts'] : [];
         $counts = is_array($report['counts'] ?? null) ? $report['counts'] : [];
         $thresholds = is_array($report['thresholds'] ?? null) ? $report['thresholds'] : [];
+        $overallSeverityValue = $alerts === []
+            ? 'ok'
+            : $this->normalizeSeverity((string) ($report['overall_severity'] ?? ''));
+        $overallSeverity = htmlspecialchars($overallSeverityValue, ENT_QUOTES, 'UTF-8');
 
         $html = '<h2>Rapport check-log-alerts</h2>';
         $html .= '<p><strong>Site:</strong> ' . $baseUrl . '<br>';
         $html .= '<strong>Environnement:</strong> ' . $appEnv . '<br>';
         $html .= '<strong>Fenetre:</strong> ' . $sinceMinutes . ' min<br>';
+        $html .= '<strong>Severite:</strong> ' . $overallSeverity . '<br>';
         $html .= '<strong>Genere le:</strong> ' . $generatedAt . '</p>';
 
         $html .= '<h3>Compteurs</h3><ul>';
@@ -201,13 +209,34 @@ final class LogAlertsNotifier
             $html .= '<h3>Alertes declenchees</h3><ul>';
             foreach ($alerts as $alert) {
                 $metric = htmlspecialchars((string) ($alert['metric'] ?? ''), ENT_QUOTES, 'UTF-8');
+                $severity = htmlspecialchars(
+                    $this->normalizeSeverity((string) ($alert['severity'] ?? 'warning')),
+                    ENT_QUOTES,
+                    'UTF-8'
+                );
                 $count = (int) ($alert['count'] ?? 0);
                 $threshold = (int) ($alert['threshold'] ?? 0);
-                $html .= sprintf('<li><code>%s</code>: %d >= %d</li>', $metric, $count, $threshold);
+                $html .= sprintf(
+                    '<li><code>%s</code> [%s]: %d >= %d</li>',
+                    $metric,
+                    $severity,
+                    $count,
+                    $threshold
+                );
             }
             $html .= '</ul>';
         }
 
         return $html;
+    }
+
+    private function normalizeSeverity(string $severity): string
+    {
+        $normalized = strtolower(trim($severity));
+        if (in_array($normalized, ['ok', 'info', 'warning', 'error', 'critical'], true)) {
+            return $normalized;
+        }
+
+        return 'warning';
     }
 }
