@@ -13,15 +13,17 @@ fi
 tmp_files="$(mktemp)"
 tmp_diff="$(mktemp)"
 tmp_hits="$(mktemp)"
-trap 'rm -f "${tmp_files}" "${tmp_diff}" "${tmp_hits}"' EXIT
+tmp_sensitive="$(mktemp)"
+trap 'rm -f "${tmp_files}" "${tmp_diff}" "${tmp_hits}" "${tmp_sensitive}"' EXIT
 
 printf '%s\n' "${staged_files}" > "${tmp_files}"
 
 # 1) Blocage par noms de fichiers sensibles.
 filename_pattern='(^|/)\.env($|\.)|(^|/)\.env\.|(^|/).*\.pem$|(^|/).*\.p12$|(^|/).*\.pfx$|(^|/).*\.key$|(^|/)id_rsa($|[._-])|(^|/)admin\.override\.php$|(^|/)database\.override\.php$'
-if grep -nE "${filename_pattern}" "${tmp_files}" > "${tmp_hits}"; then
+grep -vE '(^|/)\.env\.example$' "${tmp_files}" > "${tmp_hits}" || true
+if grep -nE "${filename_pattern}" "${tmp_hits}" > "${tmp_sensitive}"; then
   echo "[pre-commit] Commit bloqué: fichier potentiellement sensible détecté."
-  sed -n '1,80p' "${tmp_hits}"
+  sed -n '1,80p' "${tmp_sensitive}"
   echo "[pre-commit] Retire ces fichiers du stage: git restore --staged <fichier>"
   exit 1
 fi

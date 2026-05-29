@@ -1,7 +1,7 @@
 # Portail prive famille, locations et aide impots
 
-Date de mise a jour : 2026-05-27
-Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
+Date de mise a jour : 2026-05-29
+Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, chiffrement serveur au repos des fichiers joints, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis trois modules metier prioritaires :
@@ -20,6 +20,19 @@ References projet a garder alignees :
 - `docs/security/README.md`
 - `docs/private/backlog-pvt01.md`
 - `docs/deployment/README.md`
+
+Mise a jour 2026-05-28 (parametres membre) :
+- ajout d'une page privee `/private/parametres` permettant au membre connecte de renseigner facultativement son nom, son adresse et son telephone;
+- l'email de connexion reste affiche en lecture seule et ne peut pas etre modifie depuis l'espace prive; toute demande de changement doit passer exclusivement par `private@lescaramagnols.com`;
+- les champs de profil sont stockes dans `private_users`, exportes dans le ZIP/JSON de compte, anonymises ou purges avec les operations RGPD existantes.
+- dans le module `FamilyDiscussion`, la creation d'une discussion directe liste les membres actifs qui ont acces au module, donc les invitations acceptees et autorisees, sous forme de cases a cocher; le serveur exige exactement un membre coche pour une discussion privee.
+- dans le module `RealEstateRental`, les baux portent maintenant un type de bail (`habitation vide`, `habitation meublee`, `meuble etudiant`, `bail mobilite`, `autre`) qui propose une date de fin par defaut et stocke une categorie fiscale indicative (`revenus fonciers`, `BIC location meublee`, `a qualifier`) pour les syntheses et ponts fiscaux.
+
+Mise a jour 2026-05-29 (chiffrement FamilyDiscussion) :
+- l'envoi d'un nouveau message texte via `DiscussionService` est refuse si le payload chiffre navigateur `client_aes_gcm_v1` est absent ou invalide;
+- les fichiers joints FamilyDiscussion sont chiffres a l'ecriture sur disque avec AES-256-GCM, restent stockes hors webroot, puis sont dechiffres uniquement par le controleur prive apres verification session, module et appartenance a la conversation;
+- l'interface du module affiche en haut des ecrans Discussion un encadre permanent qui decrit le chiffrement texte, le chiffrement des fichiers, les metadonnees encore visibles et la retention 60 jours;
+- `PRIVATE_DISCUSSION_ATTACHMENT_ENCRYPTION_KEY` doit etre renseignee hors depot en production avec une cle dediee, par exemple `base64:` suivi de 32 octets aleatoires encodes.
 
 Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
@@ -1638,7 +1651,8 @@ Principes produit :
 7. compteur de messages non lus par conversation ;
 8. purge glissante des contenus de plus de `60` jours ;
 9. chiffrement local du texte des messages quand Web Crypto est disponible ;
-10. audit minimal sans contenu de message.
+10. chiffrement serveur au repos des fichiers joints avant ecriture disque ;
+11. audit minimal sans contenu de message.
 
 ### 8.2 Fonctions V1
 
@@ -1857,7 +1871,7 @@ Contraintes et index :
 6. unicite de la cle enveloppee par `(conversation_id, private_user_id, device_id)` ;
 7. aucune donnee de message dans les logs SQL ou applicatifs.
 
-### 8.5.1 Chiffrement local texte V1
+### 8.5.1 Chiffrement local texte V1 et fichiers chiffres au repos
 
 Objectif : eviter que le serveur stocke le corps des messages texte en clair, tout en restant compatible avec le rendu PHP existant.
 
@@ -1869,14 +1883,22 @@ Choix retenus :
 4. la cle publique d'appareil est stockee cote serveur au format JWK ;
 5. la cle AES de conversation est enveloppee pour chaque appareil autorise et stockee dans `discussion_conversation_keys` ;
 6. le serveur stocke seulement `encrypted_payload` et `encryption_metadata` pour le corps texte chiffre ;
-7. les anciens messages `plain` restent lisibles pour compatibilite, mais l'interface bloque l'envoi d'un texte si Web Crypto est indisponible ;
+7. les nouveaux messages texte envoyes via `DiscussionService` sont refuses si le payload chiffre est absent ou invalide ;
 8. un appareil sans cle ne cree pas de cle concurrente si la conversation possede deja des cles enveloppees.
+
+Choix retenus pour les fichiers :
+
+1. les fichiers joints valides sont chiffres avant ecriture disque avec `AES-256-GCM` ;
+2. la cle vient de `PRIVATE_DISCUSSION_ATTACHMENT_ENCRYPTION_KEY`, a definir hors depot; un format `base64:` avec 32 octets aleatoires est recommande ;
+3. les fichiers restent hors webroot et ne sont jamais servis directement par Apache/PHP statique ;
+4. le controleur prive verifie session, module `discussions`, appartenance a la conversation, expiration et statut actif avant de dechiffrer le contenu en memoire pour la reponse HTTP ;
+5. les anciens fichiers non chiffres restent lisibles par compatibilite, mais tout nouveau stockage passe par le format chiffre.
 
 Limites assumees V1 :
 
-1. les fichiers joints ne sont pas encore chiffres bout en bout ;
+1. les fichiers joints sont chiffres au repos, mais pas encore chiffres bout en bout cote navigateur ;
 2. les noms de fichiers, dates, participants, titres de groupe, tailles et compteurs restent visibles au serveur ;
-3. un nouvel appareil ne peut dechiffrer l'historique que si une cle de conversation lui est partagee par un appareil deja autorise ;
+3. un nouvel appareil ne peut dechiffrer l'historique texte que si une cle de conversation lui est partagee par un appareil deja autorise ;
 4. la rotation de cle et la revocation forte d'un appareil restent une evolution V2 ;
 5. la perte de l'IndexedDB local ou du profil navigateur peut rendre les anciens messages indechiffrables sur cet appareil.
 
@@ -1978,7 +2000,7 @@ Controles obligatoires :
 13. validation stricte des modes de chiffrement, JWK publics, identifiants d'appareil, IV et payloads chiffrés ;
 14. aucun acces administrateur au contenu des messages par defaut, hors procedure d'exploitation exceptionnelle documentee.
 
-Le module peut annoncer le chiffrement local du texte des messages lorsque Web Crypto est actif. Il ne doit pas annoncer un chiffrement de bout en bout complet tant que les fichiers joints, metadonnees, rotation de cle et revocation d'appareil ne sont pas couverts.
+Le module peut annoncer le chiffrement local du texte des messages lorsque Web Crypto est actif et le chiffrement au repos des fichiers joints. Il ne doit pas annoncer un chiffrement de bout en bout complet tant que les fichiers joints cote navigateur, metadonnees, rotation de cle et revocation d'appareil ne sont pas couverts.
 
 ### 8.9 Ordre d'implementation recommande
 
@@ -2003,7 +2025,7 @@ Critere de sortie V1 :
 2. un membre peut creer un groupe et y ajouter des membres actifs ;
 3. un non participant ne peut ni lire ni telecharger ;
 4. une image envoyee affiche une miniature ;
-5. un fichier joint est telechargeable par les seuls participants ;
+5. un fichier joint est chiffre au repos et telechargeable par les seuls participants ;
 6. un message texte chiffre n'a pas de corps clair en base ;
 7. les messages de plus de `60` jours sont purges a l'ouverture du module ;
 8. les tests de purge prouvent la suppression du contenu et des fichiers ;
@@ -2666,6 +2688,7 @@ Checklist :
 - [x] Ajouter endpoints JSON pour liste, creation conversation, messages, membres, lecture.
 - [x] Ajouter envoi de message texte avec CSRF, validation et rate limit.
 - [x] Ajouter upload image/fichier avec stockage hors webroot.
+- [x] Ajouter chiffrement serveur au repos des fichiers joints FamilyDiscussion.
 - [x] Ajouter apercu image ou fallback inline quand la generation dediee est indisponible.
 - [x] Ajouter telechargement controle des fichiers et apercus.
 - [x] Ajouter compteur non lu et marquage lu.
@@ -2681,7 +2704,7 @@ Definition of Done :
 - [x] Seuls les participants lisent une conversation.
 - [x] Un membre peut envoyer un message texte a un membre ou un groupe.
 - [x] Les images ont un apercu ou un fallback propre si la generation est indisponible.
-- [x] Les fichiers joints sont stockes hors webroot et servis par endpoint controle.
+- [x] Les fichiers joints sont stockes hors webroot, chiffres au repos et servis par endpoint controle.
 - [x] Les contenus de plus de `60` jours sont purges a l'ouverture du module et par commande planifiee.
 - [x] Les logs n'incluent jamais le contenu des messages.
 - [x] Les nouveaux messages texte chiffrés ne stockent pas de corps clair en base.
@@ -2743,7 +2766,7 @@ Points a verifier manuellement :
 14. conversation directe entre deux membres ;
 15. groupe de discussion avec ajout/retrait de membre ;
 16. image envoyee avec apercu ;
-17. fichier joint telechargeable par participant ;
+17. fichier joint chiffre au repos et telechargeable par participant ;
 18. refus d'acces discussion pour non-participant ;
 19. purge des messages et fichiers de plus de `60` jours.
 
@@ -2758,7 +2781,7 @@ Points a verifier manuellement :
 7. Ne pas promettre une declaration fiscale officielle.
 8. Ne pas creer une nouvelle webapp pour un revenu rare qui peut rester manuel.
 9. Ne pas logger de mots de passe, tokens, chemins sensibles ou documents.
-10. Ne pas promettre un chiffrement de bout en bout complet pour les discussions tant que les fichiers joints, metadonnees, rotations de cle et revocations d'appareil ne sont pas couverts.
+10. Ne pas promettre un chiffrement de bout en bout complet pour les discussions tant que les fichiers joints cote navigateur, metadonnees, rotations de cle et revocations d'appareil ne sont pas couverts.
 11. Ne pas conserver les messages et fichiers de discussion au-dela de la retention `60` jours.
 12. Ne pas servir d'image ou de fichier de discussion directement depuis `backend/public`.
 13. Ne pas modifier le front-office public en meme temps que le coeur prive sans tests de non-regression.
@@ -2837,7 +2860,7 @@ Choix principal pour OVH Performance :
 | Sessions | Cookies HttpOnly Secure SameSite + sessions serveur SQL/PHP | Pas de token dans `localStorage`, invalidation serveur, audit possible. |
 | Temps reel | Polling court ou SSE si supporte proprement | Plus realiste sur hebergement web que WebSocket permanent. |
 | Fichiers | Stockage hors webroot + streaming PHP controle | Compatible avec l'existant et les permissions serveur. |
-| Chiffrement discussion | WebCrypto client + enveloppes par appareil | Continuer le chiffrement local texte V1 sans exposer les cles serveur. |
+| Chiffrement discussion | WebCrypto client + enveloppes par appareil + AES-256-GCM au repos pour les fichiers | Continuer le chiffrement local texte V1 sans exposer les cles serveur, et garder les fichiers joints chiffres sur disque. |
 | Observabilite | Logs applicatifs + CRON de purge/controle | Exploitable sur OVH Performance sans service supplementaire. |
 
 Choix secondaire si un hebergement applicatif est ajoute :

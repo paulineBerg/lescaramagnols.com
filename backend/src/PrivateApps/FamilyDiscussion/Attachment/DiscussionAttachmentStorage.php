@@ -6,6 +6,10 @@ namespace Caramagnols\PrivateApps\FamilyDiscussion\Attachment;
 
 final class DiscussionAttachmentStorage
 {
+    private const ENCRYPTED_FILE_PREFIX = "CARADISCFILEv1\n";
+    private const ENCRYPTION_CIPHER = 'aes-256-gcm';
+    private const ENCRYPTION_IV_BYTES = 12;
+    private const ENCRYPTION_TAG_BYTES = 16;
     private const DIRECTORY_PERMISSIONS = 0700;
     private const DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
     private const DEFAULT_ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
@@ -28,6 +32,7 @@ final class DiscussionAttachmentStorage
     private array $allowedExtensions;
     /** @var array<int, string> */
     private array $allowedMimeTypes;
+    private ?string $encryptionKey;
     private ?string $lastError = null;
 
     /**
@@ -38,7 +43,8 @@ final class DiscussionAttachmentStorage
         string $storageRootPath,
         int $maxUploadBytes = self::DEFAULT_MAX_UPLOAD_BYTES,
         array $allowedExtensions = self::DEFAULT_ALLOWED_EXTENSIONS,
-        array $allowedMimeTypes = self::DEFAULT_ALLOWED_MIME_TYPES
+        array $allowedMimeTypes = self::DEFAULT_ALLOWED_MIME_TYPES,
+        ?string $encryptionSecret = null
     ) {
         $storageRootPath = trim(str_replace('\\', '/', $storageRootPath));
         if ($storageRootPath === '') {
@@ -55,6 +61,7 @@ final class DiscussionAttachmentStorage
         if ($this->allowedMimeTypes === []) {
             $this->allowedMimeTypes = self::DEFAULT_ALLOWED_MIME_TYPES;
         }
+        $this->encryptionKey = $this->deriveEncryptionKey($this->resolveEncryptionSecret($encryptionSecret));
 
         $this->ensureRoot();
     }
@@ -74,12 +81,16 @@ final class DiscussionAttachmentStorage
         $maxUploadBytes = is_numeric($discussionConfig['max_attachment_bytes'] ?? null)
             ? (int) $discussionConfig['max_attachment_bytes']
             : self::DEFAULT_MAX_UPLOAD_BYTES;
+        $encryptionSecret = is_string($discussionConfig['attachment_encryption_key'] ?? null)
+            ? (string) $discussionConfig['attachment_encryption_key']
+            : null;
 
         return new self(
             $rootPath,
             $maxUploadBytes,
             is_array($discussionConfig['allowed_extensions'] ?? null) ? $discussionConfig['allowed_extensions'] : [],
-            is_array($discussionConfig['allowed_mime_types'] ?? null) ? $discussionConfig['allowed_mime_types'] : []
+            is_array($discussionConfig['allowed_mime_types'] ?? null) ? $discussionConfig['allowed_mime_types'] : [],
+            $encryptionSecret
         );
     }
 
@@ -211,8 +222,20 @@ final class DiscussionAttachmentStorage
             return null;
         }
 
-        $stored = is_uploaded_file($tmpPath) ? @move_uploaded_file($tmpPath, $absolutePath) : @copy($tmpPath, $absolutePath);
-        if (!$stored || !is_file($absolutePath)) {
+        $plainContent = file_get_contents($tmpPath);
+        if (!is_string($plainContent)) {
+            $this->lastError = 'read_failed';
+            return null;
+        }
+
+        $storedContent = $this->encryptContent($plainContent, $storagePath);
+        if ($storedContent === null) {
+            $this->lastError = 'encryption_failed';
+            return null;
+        }
+
+        $stored = file_put_contents($absolutePath, $storedContent, LOCK_EX);
+        if ($stored === false || !is_file($absolutePath)) {
             $this->lastError = 'write_failed';
             return null;
         }
@@ -247,6 +270,39 @@ final class DiscussionAttachmentStorage
         return $this->rootPath . '/' . substr($storagePath, strlen('family-discussion/'));
     }
 
+    public function read(string $storagePath): ?string
+    {
+        $absolutePath = $this->absolutePath($storagePath);
+        if ($absolutePath === null || !is_file($absolutePath) || !is_readable($absolutePath)) {
+            return null;
+        }
+
+        $content = file_get_contents($absolutePath);
+        if (!is_string($content)) {
+            return null;
+        }
+
+        return $this->decryptContent($content, $storagePath);
+    }
+
+    public function isEncryptedStoredFile(string $storagePath): bool
+    {
+        $absolutePath = $this->absolutePath($storagePath);
+        if ($absolutePath === null || !is_file($absolutePath) || !is_readable($absolutePath)) {
+            return false;
+        }
+
+        $handle = fopen($absolutePath, 'rb');
+        if (!is_resource($handle)) {
+            return false;
+        }
+
+        $prefix = fread($handle, strlen(self::ENCRYPTED_FILE_PREFIX));
+        fclose($handle);
+
+        return $prefix === self::ENCRYPTED_FILE_PREFIX;
+    }
+
     public function delete(string $storagePath): bool
     {
         $absolutePath = $this->absolutePath($storagePath);
@@ -262,6 +318,119 @@ final class DiscussionAttachmentStorage
         $hash = hash('sha256', $attachmentId . '|' . time());
 
         return sprintf('family-discussion/uploads/%s/%s/%s.%s', substr($hash, 0, 2), substr($hash, 2, 2), $attachmentId, $extension);
+    }
+
+    private function encryptContent(string $plainContent, string $storagePath): ?string
+    {
+        if ($this->encryptionKey === null || !function_exists('openssl_encrypt')) {
+            return null;
+        }
+
+        try {
+            $iv = random_bytes(self::ENCRYPTION_IV_BYTES);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $tag = '';
+        $ciphertext = openssl_encrypt(
+            $plainContent,
+            self::ENCRYPTION_CIPHER,
+            $this->encryptionKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag,
+            $storagePath,
+            self::ENCRYPTION_TAG_BYTES
+        );
+        if (!is_string($ciphertext) || strlen($tag) !== self::ENCRYPTION_TAG_BYTES) {
+            return null;
+        }
+
+        return self::ENCRYPTED_FILE_PREFIX . $iv . $tag . $ciphertext;
+    }
+
+    private function decryptContent(string $storedContent, string $storagePath): ?string
+    {
+        if (!str_starts_with($storedContent, self::ENCRYPTED_FILE_PREFIX)) {
+            return $storedContent;
+        }
+
+        if ($this->encryptionKey === null || !function_exists('openssl_decrypt')) {
+            return null;
+        }
+
+        $offset = strlen(self::ENCRYPTED_FILE_PREFIX);
+        $minimumLength = $offset + self::ENCRYPTION_IV_BYTES + self::ENCRYPTION_TAG_BYTES;
+        if (strlen($storedContent) < $minimumLength) {
+            return null;
+        }
+
+        $iv = substr($storedContent, $offset, self::ENCRYPTION_IV_BYTES);
+        $tag = substr($storedContent, $offset + self::ENCRYPTION_IV_BYTES, self::ENCRYPTION_TAG_BYTES);
+        $ciphertext = substr($storedContent, $minimumLength);
+        $plain = openssl_decrypt(
+            $ciphertext,
+            self::ENCRYPTION_CIPHER,
+            $this->encryptionKey,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag,
+            $storagePath
+        );
+
+        return is_string($plain) ? $plain : null;
+    }
+
+    private function resolveEncryptionSecret(?string $explicitSecret): string
+    {
+        $secret = trim((string) ($explicitSecret ?? ''));
+        if ($secret === '' && function_exists('app_config')) {
+            $configured = app_config('private.discussions.attachment_encryption_key', '');
+            $secret = is_scalar($configured) ? trim((string) $configured) : '';
+        }
+        if ($secret === '' && function_exists('env')) {
+            $secret = trim((string) env('PRIVATE_DISCUSSION_ATTACHMENT_ENCRYPTION_KEY', ''));
+        }
+
+        $normalizedEnv = function_exists('app_config') ? strtolower((string) app_config('env', 'development')) : 'development';
+        if ($secret === '' && !in_array($normalizedEnv, ['production', 'prod', 'live'], true) && function_exists('app_config')) {
+            $configured = app_config('admin.session_key', '');
+            $secret = is_scalar($configured) ? trim((string) $configured) : '';
+        }
+
+        if ($secret === '' || in_array($secret, ['caramagnols_admin', 'change-this-admin-session-key'], true)) {
+            if (in_array($normalizedEnv, ['production', 'prod', 'live'], true)) {
+                return '';
+            }
+
+            return 'local-development-discussion-attachment-key|' . ROOT_PATH;
+        }
+
+        return $secret;
+    }
+
+    private function deriveEncryptionKey(string $secret): ?string
+    {
+        if ($secret === '') {
+            return null;
+        }
+
+        if (str_starts_with($secret, 'base64:')) {
+            $decoded = base64_decode(substr($secret, 7), true);
+            if (is_string($decoded) && strlen($decoded) >= 32) {
+                return substr($decoded, 0, 32);
+            }
+        }
+
+        if (preg_match('/\A[a-f0-9]{64}\z/i', $secret) === 1) {
+            $decoded = hex2bin($secret);
+            if (is_string($decoded) && strlen($decoded) === 32) {
+                return $decoded;
+            }
+        }
+
+        return hash('sha256', $secret, true);
     }
 
     private function ensureRoot(): void

@@ -57,6 +57,8 @@ Les entrées publiques de référence sont désormais :
   - authentification privée (GET/POST, CSRF, session dédiée)
 - `/private/dashboard`
   - tableau de bord après authentification privée
+- `/private/parametres`
+  - paramètres membre privés (nom, adresse, téléphone; email de connexion en lecture seule)
 - `/private/logout`
   - déconnexion privée
 - `/private/password/forgot`

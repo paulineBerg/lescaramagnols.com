@@ -1,4 +1,17 @@
 <?php
+$translate = static function (string $key, string $fallback): string {
+    if (!function_exists('t')) {
+        return $fallback;
+    }
+
+    $translated = t($key);
+    if (!is_string($translated) || $translated === '' || $translated === $key || $translated === '[[' . $key . ']]') {
+        return $fallback;
+    }
+
+    return $translated;
+};
+
 $conversation = is_array($viewModel['conversation'] ?? null) ? $viewModel['conversation'] : [];
 $messages = is_array($viewModel['messages'] ?? null) ? $viewModel['messages'] : [];
 $members = is_array($viewModel['members'] ?? null) ? $viewModel['members'] : [];
@@ -56,6 +69,16 @@ foreach ($messages as $message) {
 $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_nonce'] : '';
 ?>
 <section>
+  <aside class="notice private-discussion-security" aria-label="<?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions'), ENT_QUOTES, 'UTF-8'); ?>">
+    <strong><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions'), ENT_QUOTES, 'UTF-8'); ?></strong>
+    <ul>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TEXT', 'Les nouveaux messages texte sont chiffrés dans le navigateur avant envoi: le serveur ne stocke pas leur corps en clair.'), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_FILES', 'Les images et fichiers joints sont chiffrés sur disque côté serveur, stockés hors webroot, puis déchiffrés seulement lors d’un téléchargement autorisé.'), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_METADATA', 'Les métadonnées techniques restent nécessaires au fonctionnement: participants, dates, titres de groupes, noms de fichiers, types et tailles.'), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par conversation.'), ENT_QUOTES, 'UTF-8'); ?></li>
+    </ul>
+  </aside>
+
   <p class="muted">
     <a href="<?php echo htmlspecialchars($indexUrl, ENT_QUOTES, 'UTF-8'); ?>">Discussions</a>
     · <?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>
@@ -184,7 +207,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
       <textarea id="discussion-message-body" name="body" rows="4" maxlength="4000"></textarea>
       <label for="discussion-message-files">Images ou fichiers</label>
       <input id="discussion-message-files" type="file" name="discussion_files[]" multiple />
-      <p class="muted">Les messages texte sont chiffres dans le navigateur. Les fichiers joints restent stockes hors webroot avec controle d'acces serveur.</p>
+      <p class="muted"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP', 'Les messages texte sont chiffrés dans le navigateur. Les fichiers joints sont chiffrés sur disque et restent servis uniquement par contrôle d’accès serveur.'), ENT_QUOTES, 'UTF-8'); ?></p>
       <button type="submit">Envoyer</button>
     </form>
   </section>

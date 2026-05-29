@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Caramagnols\PrivateApps\RealEstateRental\Service;
 
+use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
 
 final class RentalAnnualSummaryService
@@ -40,6 +41,7 @@ final class RentalAnnualSummaryService
                 'validatedLeases' => 0,
                 'endedLeases' => 0,
             ],
+            'leaseTaxCategories' => [],
             'payments' => [],
             'expenses' => [],
             'leases' => [],
@@ -97,6 +99,19 @@ final class RentalAnnualSummaryService
             if ($status === 'ended') {
                 ++$summary['totals']['endedLeases'];
             }
+            $taxCategory = is_string($lease['taxCategory'] ?? null)
+                ? (string) $lease['taxCategory']
+                : 'manual_review';
+            $leaseType = is_string($lease['leaseType'] ?? null)
+                ? (string) $lease['leaseType']
+                : RentalLeaseTypeCatalog::DEFAULT;
+            if (!isset($summary['leaseTaxCategories'][$taxCategory])) {
+                $summary['leaseTaxCategories'][$taxCategory] = [
+                    'label' => RentalLeaseTypeCatalog::taxLabel($leaseType),
+                    'count' => 0,
+                ];
+            }
+            ++$summary['leaseTaxCategories'][$taxCategory]['count'];
             $summary['leases'][] = $lease;
         }
 

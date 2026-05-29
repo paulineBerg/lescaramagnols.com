@@ -1,4 +1,17 @@
 <?php
+$translate = static function (string $key, string $fallback): string {
+    if (!function_exists('t')) {
+        return $fallback;
+    }
+
+    $translated = t($key);
+    if (!is_string($translated) || $translated === '' || $translated === $key || $translated === '[[' . $key . ']]') {
+        return $fallback;
+    }
+
+    return $translated;
+};
+
 $conversations = is_array($viewModel['conversations'] ?? null) ? $viewModel['conversations'] : [];
 $members = is_array($viewModel['members'] ?? null) ? $viewModel['members'] : [];
 $csrfToken = is_string($viewModel['discussionCsrfToken'] ?? null) ? (string) $viewModel['discussionCsrfToken'] : '';
@@ -37,8 +50,31 @@ $shortText = static function (string $value, int $maxLength = 90): string {
 
     return strlen($value) > $maxLength ? substr($value, 0, $maxLength) . '...' : $value;
 };
+
+$memberLabel = static function (array $member): string {
+    $name = is_string($member['fullName'] ?? null) ? trim((string) $member['fullName']) : '';
+    $email = is_string($member['email'] ?? null) ? trim((string) $member['email']) : '';
+    if ($name !== '' && $email !== '') {
+        return $name . ' - ' . $email;
+    }
+    if ($email !== '') {
+        return $email;
+    }
+
+    return 'Membre #' . (int) ($member['id'] ?? 0);
+};
 ?>
 <section>
+  <aside class="notice private-discussion-security" aria-label="<?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions'), ENT_QUOTES, 'UTF-8'); ?>">
+    <strong><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions'), ENT_QUOTES, 'UTF-8'); ?></strong>
+    <ul>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TEXT', 'Les nouveaux messages texte sont chiffrés dans le navigateur avant envoi: le serveur ne stocke pas leur corps en clair.'), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_FILES', 'Les images et fichiers joints sont chiffrés sur disque côté serveur, stockés hors webroot, puis déchiffrés seulement lors d’un téléchargement autorisé.'), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_METADATA', 'Les métadonnées techniques restent nécessaires au fonctionnement: participants, dates, titres de groupes, noms de fichiers, types et tailles.'), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par conversation.'), ENT_QUOTES, 'UTF-8'); ?></li>
+    </ul>
+  </aside>
+
   <p class="muted">
     <a href="<?php echo htmlspecialchars($indexUrl, ENT_QUOTES, 'UTF-8'); ?>">Discussions</a>
     · conservation automatique des messages et fichiers pendant 60 jours
@@ -80,16 +116,19 @@ $shortText = static function (string $value, int $maxLength = 90): string {
         <form method="post" action="<?php echo htmlspecialchars($indexUrl, ENT_QUOTES, 'UTF-8'); ?>">
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
           <input type="hidden" name="type" value="direct" />
-          <label for="discussion-recipient">Membre</label>
-          <select id="discussion-recipient" name="recipient_id" required>
-            <option value="">Choisir un membre</option>
+          <fieldset>
+            <legend><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_ACCEPTED_MEMBERS_LEGEND', 'Membres ayant accepté l’invitation'), ENT_QUOTES, 'UTF-8'); ?></legend>
             <?php foreach ($members as $member): ?>
               <?php if (!is_array($member) || !is_numeric($member['id'] ?? null)) { continue; } ?>
-              <option value="<?php echo htmlspecialchars((string) (int) $member['id'], ENT_QUOTES, 'UTF-8'); ?>">
-                <?php echo htmlspecialchars((string) ($member['email'] ?? ('Membre #' . (int) $member['id'])), ENT_QUOTES, 'UTF-8'); ?>
-              </option>
+              <label class="private-checkbox-inline">
+                <input type="checkbox" name="recipient_ids[]" value="<?php echo htmlspecialchars((string) (int) $member['id'], ENT_QUOTES, 'UTF-8'); ?>" />
+                <span><?php echo htmlspecialchars($memberLabel($member), ENT_QUOTES, 'UTF-8'); ?></span>
+              </label>
             <?php endforeach; ?>
-          </select>
+          </fieldset>
+          <p class="muted">
+            <?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_DIRECT_CHECKBOX_HELP', 'Cochez un seul membre pour ouvrir une discussion privée.'), ENT_QUOTES, 'UTF-8'); ?>
+          </p>
           <button type="submit">Creer</button>
         </form>
       <?php endif; ?>
@@ -110,9 +149,9 @@ $shortText = static function (string $value, int $maxLength = 90): string {
             <legend>Membres</legend>
             <?php foreach ($members as $member): ?>
               <?php if (!is_array($member) || !is_numeric($member['id'] ?? null)) { continue; } ?>
-              <label>
+              <label class="private-checkbox-inline">
                 <input type="checkbox" name="member_ids[]" value="<?php echo htmlspecialchars((string) (int) $member['id'], ENT_QUOTES, 'UTF-8'); ?>" />
-                <?php echo htmlspecialchars((string) ($member['email'] ?? ('Membre #' . (int) $member['id'])), ENT_QUOTES, 'UTF-8'); ?>
+                <span><?php echo htmlspecialchars($memberLabel($member), ENT_QUOTES, 'UTF-8'); ?></span>
               </label>
             <?php endforeach; ?>
           </fieldset>

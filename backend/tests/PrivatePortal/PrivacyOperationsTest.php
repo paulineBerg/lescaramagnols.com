@@ -30,11 +30,15 @@ final class PrivacyOperationsTest extends TestCase
         $userRepository = new PrivateUserRepository($database);
         $service = new PrivateDataProtectionService($database);
         $userId = $this->createPrivateUser($userRepository, 'privacy-export@example.com');
+        $this->assertTrue($userRepository->updateMemberProfile($userId, 'Pauline Bergon', 'Cogolin', '+33 6 12 34 56 78'));
 
         $export = $service->exportAccount($userId);
         $privateUser = is_array($export['privateUser'] ?? null) ? $export['privateUser'] : [];
 
         $this->assertSame('privacy-export@example.com', $privateUser['email'] ?? null);
+        $this->assertSame('Pauline Bergon', $privateUser['fullName'] ?? null);
+        $this->assertSame('Cogolin', $privateUser['postalAddress'] ?? null);
+        $this->assertSame('+33 6 12 34 56 78', $privateUser['phone'] ?? null);
         $this->assertArrayNotHasKey('passwordHash', $privateUser);
         $this->assertArrayNotHasKey('password_hash', $privateUser);
 
@@ -43,6 +47,9 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertIsArray($user);
         $this->assertSame('deleted', $user['status'] ?? null);
         $this->assertSame('deleted+' . $userId . '@anonymous.invalid', $user['email'] ?? null);
+        $this->assertNull($user['full_name'] ?? null);
+        $this->assertNull($user['postal_address'] ?? null);
+        $this->assertNull($user['phone'] ?? null);
     }
 
     public function testPrivateBackupCanBeCreatedVerifiedAndDryRunRestored(): void

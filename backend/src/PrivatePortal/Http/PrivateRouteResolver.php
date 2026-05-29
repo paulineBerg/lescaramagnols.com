@@ -17,6 +17,7 @@ final class PrivateRouteResolver
         return match ($page) {
             'login' => $basePath . '/login',
             'dashboard' => $basePath . '/dashboard',
+            'member_settings' => $basePath . '/parametres',
             'documents' => $basePath . '/documents',
             'blocnote' => $basePath . '/blocnote',
             'logout' => $basePath . '/logout',
@@ -97,6 +98,11 @@ final class PrivateRouteResolver
                 'methods' => ['GET'],
                 'path' => $dashboardPath,
                 'handler' => ['type' => 'private', 'page' => 'dashboard'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('member_settings'),
+                'handler' => ['type' => 'private', 'page' => 'member_settings'],
             ],
             [
                 'methods' => ['GET'],

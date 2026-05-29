@@ -1,4 +1,4 @@
--- FamilyDiscussion attachments stored outside webroot.
+-- FamilyDiscussion attachments stored encrypted outside webroot.
 
 CREATE TABLE IF NOT EXISTS car_discussion_message_attachments (
     id INT AUTO_INCREMENT PRIMARY KEY,

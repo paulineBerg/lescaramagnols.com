@@ -296,7 +296,7 @@ final class PrivateSecurityChecklistService
      */
     private function privateCookieCheck(): array
     {
-        $config = (array) app_config('private', $this->defaultPrivateConfig());
+        $config = $this->privateConfig();
         $sessionName = is_string($config['session_name'] ?? null) ? trim((string) $config['session_name']) : '';
         $baseUrl = is_string(app_config('base_url', '')) ? (string) app_config('base_url', '') : '';
         $httpsExpected = str_starts_with(strtolower($baseUrl), 'https://')
@@ -352,7 +352,7 @@ final class PrivateSecurityChecklistService
      */
     private function rateLimitCheck(): array
     {
-        $private = (array) app_config('private', $this->defaultPrivateConfig());
+        $private = $this->privateConfig();
         $discussion = is_array($private['discussions'] ?? null) ? (array) $private['discussions'] : [];
 
         $checks = [
@@ -379,7 +379,7 @@ final class PrivateSecurityChecklistService
      */
     private function uploadLimitCheck(): array
     {
-        $documents = (array) app_config('private.documents', $this->defaultPrivateConfig()['documents']);
+        $documents = (array) ($this->privateConfig()['documents'] ?? []);
         $allowedExtensions = array_values(array_filter(
             array_map('strval', (array) ($documents['allowed_extensions'] ?? [])),
             static fn (string $extension): bool => trim($extension) !== ''
@@ -400,6 +400,19 @@ final class PrivateSecurityChecklistService
                 'serverDetection' => 'finfo/private storage validation',
             ]
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function privateConfig(): array
+    {
+        $configured = app_config('private', []);
+        if (!is_array($configured)) {
+            $configured = [];
+        }
+
+        return array_replace_recursive($this->defaultPrivateConfig(), $configured);
     }
 
     /**

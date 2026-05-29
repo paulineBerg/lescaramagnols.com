@@ -12,6 +12,7 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
 use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
+use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
@@ -50,6 +51,7 @@ final class PrivatePortalController
     private const CSRF_TAX = 'private_tax_declaration';
     private const CSRF_DISCUSSIONS = 'private_discussions';
     private const CSRF_BLOCNOTE = 'private_blocnote';
+    private const CSRF_MEMBER_SETTINGS = 'private_member_settings';
 
     public function __construct(
         private readonly PrivateAuth $auth,
@@ -80,6 +82,7 @@ final class PrivatePortalController
         $response = match ($page) {
             'login' => $this->handleLogin($request),
             'dashboard' => $this->handleDashboard($request),
+            'member_settings' => $this->handleMemberSettings($request),
             'documents' => $this->handleDocuments($request),
             'blocnote' => $this->handleBlocNote($request),
             'logout' => $this->handleLogout($request),
@@ -271,6 +274,64 @@ final class PrivatePortalController
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
             'privatePasswordForgotUrl' => private_portal_url('password_forgot'),
         ]);
+    }
+
+    private function handleMemberSettings(Request $request): Response
+    {
+        $userId = $this->requireAuthenticatedUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $repository = $this->privateUserRepository();
+        $profile = $repository->profileForUser($userId);
+        if (!is_array($profile)) {
+            return $this->redirect(private_portal_url('login'));
+        }
+
+        $query = $request->query();
+        $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
+        $formValues = [
+            'email' => (string) $profile['email'],
+            'fullName' => (string) $profile['fullName'],
+            'postalAddress' => (string) $profile['postalAddress'],
+            'phone' => (string) $profile['phone'],
+        ];
+
+        if ($request->method() !== self::METHOD_POST) {
+            return $this->renderMemberSettings($userId, $formValues, $notice, '');
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_MEMBER_SETTINGS)) {
+            return $this->renderMemberSettings($userId, $formValues, '', 'invalid_request');
+        }
+
+        $body = $request->body();
+        $normalized = $repository->normalizeProfile(
+            is_string($body['full_name'] ?? null) ? (string) $body['full_name'] : '',
+            is_string($body['postal_address'] ?? null) ? (string) $body['postal_address'] : '',
+            is_string($body['phone'] ?? null) ? (string) $body['phone'] : ''
+        );
+        $formValues = [
+            'email' => (string) $profile['email'],
+            'fullName' => $normalized['fullName'],
+            'postalAddress' => $normalized['postalAddress'],
+            'phone' => $normalized['phone'],
+        ];
+
+        if ($normalized['errors'] !== []) {
+            $error = in_array('phone_invalid', $normalized['errors'], true) ? 'phone_invalid' : 'invalid_request';
+
+            return $this->renderMemberSettings($userId, $formValues, '', $error);
+        }
+
+        if (!$repository->updateMemberProfile($userId, $formValues['fullName'], $formValues['postalAddress'], $formValues['phone'])) {
+            return $this->renderMemberSettings($userId, $formValues, '', 'save_failed');
+        }
+
+        $this->logEvent('private.member_settings.saved', ['private_user_id' => $userId]);
+
+        return $this->redirect(private_portal_url('member_settings') . '?notice=profile_saved');
     }
 
     private function handleDocuments(Request $request): Response
@@ -955,7 +1016,8 @@ final class PrivatePortalController
             is_numeric($body['charges_provision'] ?? null) ? (float) $body['charges_provision'] : 0.0,
             is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
             $userId,
-            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
+            is_string($body['lease_type'] ?? null) ? (string) $body['lease_type'] : RentalLeaseTypeCatalog::DEFAULT
         );
         if (!is_array($created)) {
             return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_write_failed');
@@ -1775,7 +1837,8 @@ final class PrivatePortalController
                     $this->discussionMemberIdsFromPayload($body['member_ids'] ?? [])
                 );
             } else {
-                $recipientId = is_numeric($body['recipient_id'] ?? null) ? (int) $body['recipient_id'] : 0;
+                $recipientIds = $this->discussionMemberIdsFromPayload($body['recipient_ids'] ?? $body['recipient_id'] ?? []);
+                $recipientId = count($recipientIds) === 1 ? $recipientIds[0] : 0;
                 $conversation = $this->discussionService()->createDirectConversation($userId, $recipientId);
             }
 
@@ -1892,9 +1955,17 @@ final class PrivatePortalController
 
         $body = $request->body();
         $type = is_string($body['type'] ?? null) ? strtolower(trim((string) $body['type'])) : 'direct';
-        $conversation = $type === 'group'
-            ? $this->discussionService()->createGroupConversation($userId, (string) ($body['title'] ?? ''), $this->discussionMemberIdsFromPayload($body['member_ids'] ?? []))
-            : $this->discussionService()->createDirectConversation($userId, is_numeric($body['recipient_id'] ?? null) ? (int) $body['recipient_id'] : 0);
+        if ($type === 'group') {
+            $conversation = $this->discussionService()->createGroupConversation(
+                $userId,
+                (string) ($body['title'] ?? ''),
+                $this->discussionMemberIdsFromPayload($body['member_ids'] ?? [])
+            );
+        } else {
+            $recipientIds = $this->discussionMemberIdsFromPayload($body['recipient_ids'] ?? $body['recipient_id'] ?? []);
+            $recipientId = count($recipientIds) === 1 ? $recipientIds[0] : 0;
+            $conversation = $this->discussionService()->createDirectConversation($userId, $recipientId);
+        }
 
         return is_array($conversation)
             ? $this->jsonPrivateResponse(['conversation' => $conversation], 201)
@@ -2096,6 +2167,10 @@ final class PrivatePortalController
         if ($absolutePath === null || !is_file($absolutePath) || !is_readable($absolutePath)) {
             return $this->handleNotFound();
         }
+        $fileContent = $this->discussionAttachmentStorage()->read($storagePath);
+        if ($fileContent === null) {
+            return $this->handleNotFound();
+        }
 
         $mimeType = is_string($attachment['mimeType'] ?? null) ? (string) $attachment['mimeType'] : 'application/octet-stream';
         $filename = $this->sanitizeDownloadFilename((string) ($attachment['originalFilename'] ?? 'piece-jointe'));
@@ -2110,7 +2185,7 @@ final class PrivatePortalController
             'Content-Disposition' => sprintf('%s; filename="%s"', $disposition, addslashes($filename)),
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, no-store',
-        ], (string) file_get_contents($absolutePath)));
+        ], $fileContent));
     }
 
     private function handlePrivacyExport(Request $request): Response
@@ -2853,6 +2928,7 @@ final class PrivatePortalController
                 'rentalUnits' => $this->objectsToArrays($units),
                 'rentalTenants' => $tenants,
                 'rentalLeases' => $leases,
+                'rentalLeaseTypes' => RentalLeaseTypeCatalog::options(),
             ]
         ));
     }
@@ -3984,6 +4060,33 @@ final class PrivatePortalController
     }
 
     /**
+     * @param array{email: string, fullName: string, postalAddress: string, phone: string} $formValues
+     */
+    private function renderMemberSettings(int $userId, array $formValues, string $notice, string $error): Response
+    {
+        return $this->render('settings', [
+            'privatePageTitle' => $this->translate('TXT_PRIVATE_SETTINGS_PAGE_TITLE', 'Paramètres membre'),
+            'privateUserIdentifier' => is_string($this->auth->currentIdentifier()) ? (string) $this->auth->currentIdentifier() : '',
+            'privateModules' => $this->privateModuleNamesForUser($userId),
+            'privateMemberProfile' => $formValues,
+            'privateSettingsFormAction' => private_portal_url('member_settings'),
+            'privateSettingsCsrfToken' => csrf_token(self::CSRF_MEMBER_SETTINGS),
+            'notice' => match ($notice) {
+                'profile_saved' => $this->translate('TXT_PRIVATE_SETTINGS_SAVED', 'Paramètres enregistrés.'),
+                default => null,
+            },
+            'errorMessage' => match ($error) {
+                'phone_invalid' => $this->translate('TXT_PRIVATE_SETTINGS_ERROR_PHONE', 'Le téléphone contient des caractères non autorisés.'),
+                'save_failed' => $this->translate('TXT_PRIVATE_SETTINGS_ERROR_SAVE', 'Les paramètres n’ont pas pu être enregistrés.'),
+                'invalid_request' => $this->translate('TXT_PRIVATE_ERROR_CSRF', 'Requête invalide.'),
+                default => null,
+            },
+            'privateDashboardLogoutUrl' => private_portal_url('logout'),
+            'privateLogoutCsrfToken' => csrf_token('private_logout'),
+        ]);
+    }
+
+    /**
      * @param array<string, mixed> $formValues
      */
     private function renderBlocNote(
@@ -4255,6 +4358,7 @@ final class PrivatePortalController
         ob_start();
         $privateIsAuthenticated = $this->auth->isAuthenticated();
         $privateNavigationModules = $privateModules;
+        $privateMemberSettingsEnabled = false;
         if ($privateIsAuthenticated) {
             if ($privateLogoutCsrfToken === '') {
                 $privateLogoutCsrfToken = csrf_token('private_logout');
@@ -4267,6 +4371,7 @@ final class PrivatePortalController
 
             $currentUserId = $this->currentPrivateUserId();
             if ($currentUserId !== null) {
+                $privateMemberSettingsEnabled = true;
                 $privateNavigationModules = array_map(
                     static fn (array $module): string => (string) $module['name'],
                     $this->modulePermissionRepository()->activeModulesForUser($currentUserId)
@@ -4419,7 +4524,8 @@ final class PrivatePortalController
             $this->discussionRepository(),
             $this->privateUserRepository(),
             $this->discussionAttachmentStorage(),
-            $this->eventLogger
+            $this->eventLogger,
+            $this->modulePermissionRepository()
         );
     }
 

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Caramagnols\Http\Request;
+use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyMemberRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalUnitRepository;
@@ -122,6 +123,45 @@ final class RealEstateRentalModuleTest extends TestCase
 
         $valid = $unitRepository->create($property->id, 'Lot principal', 42.0, false, 'available', null, $ownerId);
         $this->assertNotNull($valid);
+    }
+
+    public function testLeaseFormDisplaysLeaseTypeChoices(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'lease-form@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
+        $property = $propertyRepository->create($ownerId, 'Maison bail', '8 rue du Bail', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Lot bail', 33.0, true, 'available', null, $ownerId);
+        $this->assertNotNull($unit);
+        $tenant = $lifecycleRepository->createTenant($property->id, $unit->id, 'Locataire bail', null, null, 'validated', $ownerId, null);
+        $this->assertIsArray($tenant);
+
+        $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'lease-form@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            rentalPropertyRepository: $propertyRepository,
+            rentalPropertyMemberRepository: $memberRepository,
+            rentalUnitRepository: $unitRepository,
+            rentalLifecycleRepository: $lifecycleRepository
+        );
+
+        $response = $controller->handle('rental_leases', $this->request('GET', '/private/leases'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('name="lease_type"', $response->body);
+        $this->assertStringContainsString('Habitation vide', $response->body);
+        $this->assertStringContainsString('BIC location meublee', $response->body);
+        $this->assertStringContainsString('data-rental-lease-start-date', $response->body);
     }
 
     public function testArchivingPropertyKeepsHistoricalRowsInactive(): void

@@ -143,6 +143,35 @@ final class PrivatePortalMembersTest extends TestCase
         $this->assertFalse($userRepository->consumeMfaBackupCode($userId, 'BACKUP-1'));
     }
 
+    public function testMemberProfileCanBeSavedWithoutChangingLoginEmail(): void
+    {
+        $repository = new PrivateUserRepository($this->editorialSqlDatabase());
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $repository->create('member@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $this->assertTrue($repository->updateMemberProfile(
+            $userId,
+            '<strong>Pauline Bergon</strong>',
+            "2738 route de la Mole\n83310 Cogolin",
+            '+33 6 12 34 56 78'
+        ));
+
+        $profile = $repository->profileForUser($userId);
+        $this->assertIsArray($profile);
+        $this->assertSame('member@example.com', $profile['email']);
+        $this->assertSame('Pauline Bergon', $profile['fullName']);
+        $this->assertSame("2738 route de la Mole\n83310 Cogolin", $profile['postalAddress']);
+        $this->assertSame('+33 6 12 34 56 78', $profile['phone']);
+
+        $this->assertFalse($repository->updateMemberProfile($userId, 'Pauline', '', 'standard'));
+        $unchanged = $repository->profileForUser($userId);
+        $this->assertIsArray($unchanged);
+        $this->assertSame('member@example.com', $unchanged['email']);
+        $this->assertSame('+33 6 12 34 56 78', $unchanged['phone']);
+    }
+
     public function testModuleCannotBeRevokedWhileUserDataExists(): void
     {
         $database = $this->editorialSqlDatabase();

@@ -4,6 +4,9 @@
 CREATE TABLE IF NOT EXISTS car_private_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(254) NOT NULL,
+    full_name VARCHAR(160) NULL,
+    postal_address VARCHAR(500) NULL,
+    phone VARCHAR(64) NULL,
     password_hash VARCHAR(255) NOT NULL,
     status ENUM('invited', 'active', 'suspended', 'disabled', 'deleted') NOT NULL DEFAULT 'invited',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -16,4 +19,3 @@ CREATE TABLE IF NOT EXISTS car_private_users (
     KEY idx_private_users_status (status),
     KEY idx_private_users_updated_at (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-

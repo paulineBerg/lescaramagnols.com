@@ -10,6 +10,10 @@ use PDO;
 final class PrivateUserRepository
 {
     private const ALLOWED_STATUSES = ['invited', 'active', 'suspended', 'disabled', 'deleted'];
+    private const MAX_FULL_NAME_LENGTH = 160;
+    private const MAX_POSTAL_ADDRESS_LENGTH = 500;
+    private const MAX_PHONE_LENGTH = 64;
+    private const PHONE_PATTERN = '/\A[0-9+().\s-]*\z/u';
 
     private bool $privateSchemaReady = false;
 
@@ -77,7 +81,10 @@ final class PrivateUserRepository
         $statusFilter = is_string($statusFilter) ? $this->normalizeOptionalStatus($statusFilter) : '';
         $search = trim((string) $search);
         $limit = max(1, min(500, $limit));
-        $query = sprintf('SELECT `id`, `email`, `status`, `created_at`, `updated_at`, `last_login_at` FROM `%s`', $this->table());
+        $query = sprintf(
+            'SELECT `id`, `email`, `full_name`, `postal_address`, `phone`, `status`, `created_at`, `updated_at`, `last_login_at` FROM `%s`',
+            $this->table()
+        );
         $conditions = [];
         $params = [];
 
@@ -125,6 +132,9 @@ final class PrivateUserRepository
             $members[] = [
                 'id' => $id,
                 'email' => $email,
+                'fullName' => is_string($row['full_name'] ?? null) ? $row['full_name'] : '',
+                'postalAddress' => is_string($row['postal_address'] ?? null) ? $row['postal_address'] : '',
+                'phone' => is_string($row['phone'] ?? null) ? $row['phone'] : '',
                 'status' => $status,
                 'createdAt' => is_string($row['created_at'] ?? null) ? $row['created_at'] : '',
                 'updatedAt' => is_string($row['updated_at'] ?? null) ? $row['updated_at'] : '',
@@ -143,6 +153,97 @@ final class PrivateUserRepository
         }
 
         return $user;
+    }
+
+    /**
+     * @return array{id: int, email: string, fullName: string, postalAddress: string, phone: string}|null
+     */
+    public function profileForUser(int $userId): ?array
+    {
+        $user = $this->findById($userId);
+        if (!is_array($user)) {
+            return null;
+        }
+
+        $id = $this->toIntId($user['id'] ?? null);
+        $email = is_string($user['email'] ?? null) ? $this->normalizeEmail((string) $user['email']) : '';
+        if ($id === null || $email === '') {
+            return null;
+        }
+
+        return [
+            'id' => $id,
+            'email' => $email,
+            'fullName' => is_string($user['full_name'] ?? null) ? (string) $user['full_name'] : '',
+            'postalAddress' => is_string($user['postal_address'] ?? null) ? (string) $user['postal_address'] : '',
+            'phone' => is_string($user['phone'] ?? null) ? (string) $user['phone'] : '',
+        ];
+    }
+
+    public function updateMemberProfile(int $userId, string $fullName, string $postalAddress, string $phone): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $profile = $this->normalizeProfile($fullName, $postalAddress, $phone);
+        if ($profile['errors'] !== []) {
+            return false;
+        }
+
+        $user = $this->findById($userId);
+        if (!is_array($user) || strtolower((string) ($user['status'] ?? '')) !== 'active') {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `full_name` = :full_name,
+                         `postal_address` = :postal_address,
+                         `phone` = :phone,
+                         `updated_at` = :updated_at
+                     WHERE `id` = :id AND `status` = :active',
+                    $this->table()
+                )
+            );
+            $statement->execute([
+                'full_name' => $profile['fullName'] !== '' ? $profile['fullName'] : null,
+                'postal_address' => $profile['postalAddress'] !== '' ? $profile['postalAddress'] : null,
+                'phone' => $profile['phone'] !== '' ? $profile['phone'] : null,
+                'updated_at' => $this->currentDateTime(),
+                'id' => $userId,
+                'active' => 'active',
+            ]);
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @return array{fullName: string, postalAddress: string, phone: string, errors: array<int, string>}
+     */
+    public function normalizeProfile(string $fullName, string $postalAddress, string $phone): array
+    {
+        $fullName = $this->sanitizeProfileText($fullName, self::MAX_FULL_NAME_LENGTH);
+        $postalAddress = $this->sanitizeProfileText($postalAddress, self::MAX_POSTAL_ADDRESS_LENGTH);
+        $phone = $this->sanitizeProfileText($phone, self::MAX_PHONE_LENGTH);
+        $errors = [];
+
+        if ($phone !== '' && (preg_match(self::PHONE_PATTERN, $phone) !== 1 || preg_match('/[0-9]/', $phone) !== 1)) {
+            $errors[] = 'phone_invalid';
+        }
+
+        return [
+            'fullName' => $fullName,
+            'postalAddress' => $postalAddress,
+            'phone' => $phone,
+            'errors' => $errors,
+        ];
     }
 
     public function create(string $email, string $passwordHash, string $status = 'invited'): ?int
@@ -570,6 +671,9 @@ final class PrivateUserRepository
                 sprintf(
                     'UPDATE `%s`
                      SET `email` = :email,
+                         `full_name` = NULL,
+                         `postal_address` = NULL,
+                         `phone` = NULL,
                          `password_hash` = :password_hash,
                          `status` = :status,
                          `updated_at` = :updated_at,
@@ -608,6 +712,9 @@ final class PrivateUserRepository
                 sprintf(
                     'UPDATE `%s`
                      SET `email` = :email,
+                         `full_name` = NULL,
+                         `postal_address` = NULL,
+                         `phone` = NULL,
                          `password_hash` = :password_hash,
                          `status` = :status,
                          `updated_at` = :updated_at,
@@ -755,6 +862,9 @@ final class PrivateUserRepository
                 'CREATE TABLE IF NOT EXISTS `%s` (
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `email` VARCHAR(254) NOT NULL,
+                    `full_name` VARCHAR(160) NULL,
+                    `postal_address` VARCHAR(500) NULL,
+                    `phone` VARCHAR(64) NULL,
                     `password_hash` VARCHAR(255) NOT NULL,
                     `status` ENUM(\'invited\', \'active\', \'suspended\', \'disabled\', \'deleted\') NOT NULL DEFAULT \'invited\',
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -770,6 +880,9 @@ final class PrivateUserRepository
                 $this->table()
             )
         );
+        $this->ensureColumn($pdo, $this->table(), 'full_name', '`full_name` VARCHAR(160) NULL AFTER `email`');
+        $this->ensureColumn($pdo, $this->table(), 'postal_address', '`postal_address` VARCHAR(500) NULL AFTER `full_name`');
+        $this->ensureColumn($pdo, $this->table(), 'phone', '`phone` VARCHAR(64) NULL AFTER `postal_address`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -958,6 +1071,40 @@ final class PrivateUserRepository
         }
 
         return $normalized;
+    }
+
+    private function sanitizeProfileText(string $value, int $maxLength): string
+    {
+        if (function_exists('sanitize_text_field')) {
+            return sanitize_text_field($value, $maxLength);
+        }
+
+        $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? $value;
+        $value = trim((string) preg_replace('/\s+/', ' ', $value));
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+    }
+
+    private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column'
+            );
+            $statement->execute(['table' => $table, 'column' => $column]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $table, $definition));
+        } catch (\Throwable) {
+            return;
+        }
     }
 
     private function normalizeIpHash(string $ip): string

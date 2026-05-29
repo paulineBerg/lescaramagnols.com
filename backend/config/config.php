@@ -543,6 +543,10 @@ $privateDiscussionMessageRateLimitAttempts = max(1, (int) env('PRIVATE_DISCUSSIO
 $privateDiscussionMessageRateLimitWindow = max(30, (int) env('PRIVATE_DISCUSSION_MESSAGE_RATE_LIMIT_WINDOW', 60));
 $privateDiscussionConversationRateLimitAttempts = max(1, (int) env('PRIVATE_DISCUSSION_CONVERSATION_RATE_LIMIT_ATTEMPTS', 10));
 $privateDiscussionConversationRateLimitWindow = max(60, (int) env('PRIVATE_DISCUSSION_CONVERSATION_RATE_LIMIT_WINDOW', 300));
+$privateDiscussionAttachmentEncryptionKey = trim((string) env(
+    'PRIVATE_DISCUSSION_ATTACHMENT_ENCRYPTION_KEY',
+    env('PRIVATE_DOCUMENT_ENCRYPTION_KEY', '')
+));
 $privateDiscussionAllowedExtensions = $normalizePrivateDocumentExtensions(
     env(
         'PRIVATE_DISCUSSION_ALLOWED_EXTENSIONS',
@@ -650,6 +654,7 @@ $appConfig = [
             'message_rate_limit_window' => $privateDiscussionMessageRateLimitWindow,
             'conversation_rate_limit_attempts' => $privateDiscussionConversationRateLimitAttempts,
             'conversation_rate_limit_window' => $privateDiscussionConversationRateLimitWindow,
+            'attachment_encryption_key' => $privateDiscussionAttachmentEncryptionKey,
             'allowed_extensions' => $privateDiscussionAllowedExtensions,
             'allowed_mime_types' => $privateDiscussionAllowedMimeTypes,
         ],

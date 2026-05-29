@@ -5,6 +5,7 @@ $year = is_numeric($summary['year'] ?? null) ? (int) $summary['year'] : (int) da
 $blocked = !empty($summary['blocked']);
 $issues = is_array($summary['issues'] ?? null) ? $summary['issues'] : [];
 $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
+$leaseTaxCategories = is_array($summary['leaseTaxCategories'] ?? null) ? $summary['leaseTaxCategories'] : [];
 $summaryUrl = (string) ($urls['summary'] ?? private_portal_url('rental_summary'));
 ?>
 <section>
@@ -32,6 +33,11 @@ $summaryUrl = (string) ($urls['summary'] ?? private_portal_url('rental_summary')
         <dt>Charges recuperables</dt><dd><?php echo htmlspecialchars(number_format((float) ($totals['recoverableExpenses'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</dd>
         <dt>Charges potentiellement deductibles</dt><dd><?php echo htmlspecialchars(number_format((float) ($totals['deductibleCandidateExpenses'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</dd>
         <dt>Charges non deductibles</dt><dd><?php echo htmlspecialchars(number_format((float) ($totals['nonDeductibleExpenses'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</dd>
+        <?php foreach ($leaseTaxCategories as $category): ?>
+          <?php if (!is_array($category)) { continue; } ?>
+          <dt><?php echo htmlspecialchars((string) ($category['label'] ?? 'Imposition'), ENT_QUOTES, 'UTF-8'); ?></dt>
+          <dd><?php echo htmlspecialchars((string) (int) ($category['count'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> bail(aux)</dd>
+        <?php endforeach; ?>
       </dl>
       <p class="private-actions">
         <a href="<?php echo htmlspecialchars((string) ($urls['exportCsv'] ?? private_portal_url('rental_export_csv')) . '?year=' . $year, ENT_QUOTES, 'UTF-8'); ?>">Export CSV</a>

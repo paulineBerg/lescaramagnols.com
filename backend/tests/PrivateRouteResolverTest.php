@@ -16,6 +16,7 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c', $resolver->basePath());
         $this->assertSame('/private-4h6F1c/login', $resolver->canonicalPath('login'));
         $this->assertSame('/private-4h6F1c/dashboard', $resolver->canonicalPath('dashboard'));
+        $this->assertSame('/private-4h6F1c/parametres', $resolver->canonicalPath('member_settings'));
         $this->assertSame('/private-4h6F1c/documents', $resolver->canonicalPath('documents'));
         $this->assertSame('/private-4h6F1c/blocnote', $resolver->canonicalPath('blocnote'));
         $this->assertSame('/private-4h6F1c/files/categories', $resolver->canonicalPath('files_categories'));
@@ -53,6 +54,7 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/login' => ['methods' => ['GET', 'POST'], 'handler' => 'private:login'],
             '/private/login/index.php' => ['methods' => ['GET'], 'handler' => 'redirect:/private/login'],
             '/private/dashboard' => ['methods' => ['GET'], 'handler' => 'private:dashboard'],
+            '/private/parametres' => ['methods' => ['GET', 'POST'], 'handler' => 'private:member_settings'],
             '/private/documents' => ['methods' => ['GET'], 'handler' => 'private:documents'],
             '/private/blocnote' => ['methods' => ['GET', 'POST'], 'handler' => 'private:blocnote'],
             '/private/dashboard.php' => ['methods' => ['GET'], 'handler' => 'redirect:/private/dashboard'],

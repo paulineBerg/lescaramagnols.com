@@ -7,6 +7,7 @@ namespace Caramagnols\PrivateApps\FamilyDiscussion\Service;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\PrivateApps\FamilyDiscussion\Attachment\DiscussionAttachmentStorage;
 use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
+use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 
 final class DiscussionService
@@ -19,7 +20,8 @@ final class DiscussionService
         private readonly DiscussionRepository $repository,
         private readonly PrivateUserRepository $userRepository,
         private readonly DiscussionAttachmentStorage $attachmentStorage,
-        private readonly ?AppEventLogger $eventLogger = null
+        private readonly ?AppEventLogger $eventLogger = null,
+        private readonly ?PrivateModulePermissionRepository $modulePermissionRepository = null
     ) {
         $config = is_array(app_config('private.discussions', [])) ? (array) app_config('private.discussions') : [];
         $this->retentionDays = max(1, (int) ($config['retention_days'] ?? 60));
@@ -44,13 +46,21 @@ final class DiscussionService
 
         return array_values(array_filter(
             $members,
-            static fn (array $member): bool => (int) ($member['id'] ?? 0) !== $currentUserId
+            fn (array $member): bool => (int) ($member['id'] ?? 0) !== $currentUserId
+                && $this->hasDiscussionAccess((int) ($member['id'] ?? 0))
         ));
     }
 
     public function createDirectConversation(int $actorId, int $recipientId): ?array
     {
-        if ($actorId <= 0 || $recipientId <= 0 || $actorId === $recipientId || !$this->isActiveUser($recipientId)) {
+        if (
+            $actorId <= 0
+            || $recipientId <= 0
+            || $actorId === $recipientId
+            || !$this->hasDiscussionAccess($actorId)
+            || !$this->isActiveUser($recipientId)
+            || !$this->hasDiscussionAccess($recipientId)
+        ) {
             return null;
         }
 
@@ -70,13 +80,16 @@ final class DiscussionService
      */
     public function createGroupConversation(int $actorId, string $title, array $memberIds): ?array
     {
-        if ($actorId <= 0) {
+        if ($actorId <= 0 || !$this->hasDiscussionAccess($actorId)) {
             return null;
         }
 
         $memberIds = array_values(array_filter(
             array_map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0, $memberIds),
-            fn (int $id): bool => $id > 0 && $id !== $actorId && $this->isActiveUser($id)
+            fn (int $id): bool => $id > 0
+                && $id !== $actorId
+                && $this->isActiveUser($id)
+                && $this->hasDiscussionAccess($id)
         ));
         if ($memberIds === []) {
             return null;
@@ -98,14 +111,16 @@ final class DiscussionService
      */
     public function addMembers(int $actorId, int $conversationId, array $memberIds, DiscussionAccessPolicy $policy): bool
     {
-        if (!$policy->canManageMembers($conversationId, $actorId)) {
+        if (!$this->hasDiscussionAccess($actorId) || !$policy->canManageMembers($conversationId, $actorId)) {
             $this->logAccessDenied($actorId, $conversationId);
             return false;
         }
 
         $memberIds = array_values(array_filter(
             array_map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0, $memberIds),
-            fn (int $id): bool => $id > 0 && $this->isActiveUser($id)
+            fn (int $id): bool => $id > 0
+                && $this->isActiveUser($id)
+                && $this->hasDiscussionAccess($id)
         ));
 
         $added = $this->repository->addMembers($conversationId, $memberIds);
@@ -138,6 +153,9 @@ final class DiscussionService
         $body = $this->normalizeBody($body);
         $encryptionPayload = $this->normalizeEncryptionPayload($encryption);
         $uploadedFiles = array_slice($this->normalizeUploadedFiles($uploadedFiles), 0, $this->maxAttachmentsPerMessage);
+        if ($body !== '' && $encryptionPayload === null) {
+            return null;
+        }
         if ($body === '' && $uploadedFiles === [] && $encryptionPayload === null) {
             return null;
         }
@@ -191,6 +209,11 @@ final class DiscussionService
                     'size_bytes' => (int) $attachment['sizeBytes'],
                 ]);
             }
+        }
+
+        if ($body === '' && $encryptionPayload === null && $attachments === []) {
+            $this->repository->purgeMessageContent((int) $message['id']);
+            return null;
         }
 
         $message['attachments'] = $attachments;
@@ -307,6 +330,12 @@ final class DiscussionService
         $user = $this->userRepository->findById($userId);
 
         return is_array($user) && strtolower((string) ($user['status'] ?? '')) === 'active';
+    }
+
+    private function hasDiscussionAccess(int $userId): bool
+    {
+        return $this->modulePermissionRepository === null
+            || $this->modulePermissionRepository->userHasModuleAccess($userId, 'discussions');
     }
 
     /**

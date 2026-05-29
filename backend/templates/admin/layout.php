@@ -185,21 +185,21 @@ $adminMenu = [
       header.admin-header {
         background: #fff;
         border-bottom: 1px solid var(--admin-border);
-        padding: 1.6rem clamp(1.5rem, 4vw, 3rem);
+        padding: 0.65rem clamp(1rem, 2.6vw, 1.75rem);
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1rem;
+        gap: 0.65rem;
       }
 
       header.admin-header h1 {
         margin: 0;
-        font-size: clamp(1.4rem, 3vw, 2rem);
+        font-size: clamp(1.1rem, 2vw, 1.4rem);
         color: var(--admin-primary-dark);
       }
 
       .header-meta {
-        font-size: 0.9rem;
+        font-size: 0.84rem;
         color: var(--admin-muted);
       }
 
@@ -222,32 +222,37 @@ $adminMenu = [
       }
 
       main.admin-main {
-        padding: clamp(1.5rem, 4vw, 3rem);
+        padding: clamp(0.55rem, 1.8vw, 1.25rem);
         flex: 1;
       }
 
       main.admin-main-wide {
-        padding: clamp(0.8rem, 1.4vw, 1.35rem);
+        padding: clamp(0.55rem, 1.2vw, 1.1rem);
       }
 
       .cards-grid {
         display: grid;
-        gap: 1.5rem;
+        gap: 0.8rem;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       }
 
       .card {
         background: #fff;
-        border-radius: 18px;
-        padding: 1.6rem;
-        box-shadow: 0 16px 40px rgba(19, 41, 75, 0.08);
+        border-radius: 12px;
+        padding: 0.95rem;
+        box-shadow: 0 10px 24px rgba(19, 41, 75, 0.06);
         border: 1px solid rgba(19, 41, 75, 0.05);
       }
 
       .card h2 {
-        margin: 0 0 1rem;
-        font-size: 1.1rem;
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        line-height: 1.2;
         color: var(--admin-primary-dark);
+      }
+
+      .card > :first-child {
+        margin-top: 0;
       }
 
       .dashboard-kpis {
@@ -278,7 +283,7 @@ $adminMenu = [
       }
 
       .dashboard-card-actions {
-        margin-top: 1.2rem;
+        margin-top: 0.85rem;
       }
 
       .card ul {
@@ -313,12 +318,12 @@ $adminMenu = [
       .field {
         display: flex;
         flex-direction: column;
-        gap: 0.4rem;
-        margin-bottom: 1.4rem;
+        gap: 0.25rem;
+        margin-bottom: 0.8rem;
       }
 
       label {
-        font-size: 0.9rem;
+        font-size: 0.84rem;
         font-weight: 600;
         color: #274b6d;
       }
@@ -331,7 +336,8 @@ $adminMenu = [
       textarea {
         border: 1px solid rgba(39, 75, 109, 0.25);
         border-radius: 10px;
-        padding: 0.75rem 0.9rem;
+        min-height: 2.3rem;
+        padding: 0.45rem 0.65rem;
         font-size: 1rem;
         font-family: inherit;
         transition: border 0.2s ease, box-shadow 0.2s ease;
@@ -349,15 +355,15 @@ $adminMenu = [
       }
 
       .actions {
-        margin-top: 2rem;
+        margin-top: 0.85rem;
       }
 
       button {
         background: linear-gradient(135deg, var(--admin-primary), #24a0b5);
         color: #fff;
         border: none;
-        border-radius: 12px;
-        padding: 0.85rem 1.1rem;
+        border-radius: 10px;
+        padding: 0.65rem 0.95rem;
         font-size: 1rem;
         font-weight: 600;
         cursor: pointer;

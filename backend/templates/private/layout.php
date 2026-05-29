@@ -30,6 +30,7 @@ $privateUserIdentifier = is_string($privateUserIdentifier ?? null) ? trim((strin
 $privateNavigationModules = is_array($privateNavigationModules ?? null)
     ? $privateNavigationModules
     : (is_array($privateModules ?? null) ? $privateModules : []);
+$privateMemberSettingsEnabled = (bool) ($privateMemberSettingsEnabled ?? false);
 $privateNavigationModuleNames = [];
 foreach ($privateNavigationModules as $moduleName) {
     if (!is_string($moduleName) || trim($moduleName) === '') {
@@ -80,6 +81,15 @@ $privateNavItems = [
         'active' => $privatePathIs($privateDashboardUrl) || $privateCurrentPath === '',
     ],
 ];
+
+if ($privateMemberSettingsEnabled) {
+    $privateNavItems[] = [
+        'label' => $translate('TXT_PRIVATE_SETTINGS_NAV', 'Paramètres'),
+        'href' => private_portal_url('member_settings'),
+        'icon' => '⚙',
+        'active' => $privatePathIs(private_portal_url('member_settings')),
+    ];
+}
 
 if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)) {
     $privateNavItems[] = [
@@ -296,28 +306,28 @@ if ($privateHasModule('Aide impôts')) {
       .private-header {
         background: #fff;
         border-bottom: 1px solid var(--private-border);
-        padding: 1.6rem clamp(1.5rem, 4vw, 3rem);
+        padding: 0.65rem clamp(1rem, 2.6vw, 1.75rem);
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1rem;
+        gap: 0.65rem;
       }
 
       .private-header h1 {
         margin: 0;
         color: var(--private-primary-dark);
-        font-size: clamp(1.4rem, 3vw, 2rem);
+        font-size: clamp(1.1rem, 2vw, 1.4rem);
       }
 
       .private-header-meta {
-        margin: 0.35rem 0 0;
+        margin: 0.1rem 0 0;
         color: var(--private-muted);
-        font-size: 0.95rem;
+        font-size: 0.84rem;
       }
 
       .private-main {
         flex: 1;
-        padding: clamp(1.5rem, 4vw, 3rem);
+        padding: clamp(0.55rem, 1.8vw, 1.25rem);
       }
 
       .notice {
@@ -346,15 +356,15 @@ if ($privateHasModule('Aide impôts')) {
 
       form {
         display: grid;
-        gap: 0.85rem;
+        gap: 0.5rem;
         margin: 0;
       }
 
       label {
         display: inline-block;
-        margin-bottom: 0.3rem;
+        margin-bottom: 0.1rem;
         color: #274b6d;
-        font-size: 0.9rem;
+        font-size: 0.84rem;
         font-weight: 600;
       }
 
@@ -367,7 +377,21 @@ if ($privateHasModule('Aide impôts')) {
         background: #fff;
         color: var(--private-text);
         font: inherit;
-        padding: 0.75rem 0.9rem;
+        min-height: 2.3rem;
+        padding: 0.45rem 0.65rem;
+      }
+
+      textarea {
+        min-height: 4.8rem;
+      }
+
+      input[type="checkbox"],
+      input[type="radio"] {
+        width: 1rem;
+        height: 1rem;
+        min-height: auto;
+        margin: 0;
+        padding: 0;
       }
 
       input:focus,
@@ -410,8 +434,8 @@ if ($privateHasModule('Aide impôts')) {
         border: 0;
         background: linear-gradient(135deg, var(--private-primary), #24a0b5);
         color: #fff;
-        padding: 0.85rem 1.1rem;
-        border-radius: 12px;
+        padding: 0.65rem 0.95rem;
+        border-radius: 10px;
         font: inherit;
         font-weight: 600;
         cursor: pointer;
@@ -433,7 +457,7 @@ if ($privateHasModule('Aide impôts')) {
         flex-wrap: wrap;
         gap: 0.8rem;
         align-items: center;
-        margin: 1.2rem 0 0;
+        margin: 0.85rem 0 0;
       }
 
       .private-actions form {
@@ -460,21 +484,21 @@ if ($privateHasModule('Aide impôts')) {
         background: rgba(246, 249, 252, 0.96);
         border: 1px solid rgba(19, 41, 75, 0.08);
         border-radius: 8px;
-        padding: 0.75rem;
-        margin: 0 0 1.2rem;
+        padding: 0.4rem;
+        margin: 0 0 0.45rem;
         backdrop-filter: blur(12px);
       }
 
       .private-module-nav-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.3rem;
         align-items: center;
       }
 
       .private-module-nav-row + .private-module-nav-row {
-        margin-top: 0.55rem;
-        padding-top: 0.55rem;
+        margin-top: 0.32rem;
+        padding-top: 0.32rem;
         border-top: 1px solid rgba(19, 41, 75, 0.08);
       }
 
@@ -482,13 +506,13 @@ if ($privateHasModule('Aide impôts')) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 2.35rem;
-        padding: 0.55rem 0.8rem;
+        min-height: 1.85rem;
+        padding: 0.32rem 0.55rem;
         border-radius: 8px;
         background: rgba(19, 41, 75, 0.06);
         color: var(--private-primary-dark);
         text-decoration: none;
-        font-size: 0.92rem;
+        font-size: 0.82rem;
         font-weight: 600;
       }
 
@@ -534,10 +558,10 @@ if ($privateHasModule('Aide impôts')) {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 2.9rem;
+        min-height: 2.35rem;
         background: var(--private-primary);
         color: #fff;
-        padding: 0.75rem 1.1rem;
+        padding: 0.55rem 0.9rem;
       }
 
       .private-logout:hover {
@@ -547,15 +571,45 @@ if ($privateHasModule('Aide impôts')) {
       .card {
         background: #fff;
         border: 1px solid rgba(19, 41, 75, 0.05);
-        border-radius: 18px;
-        box-shadow: 0 16px 40px rgba(19, 41, 75, 0.08);
-        padding: 1.6rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 24px rgba(19, 41, 75, 0.06);
+        padding: 0.95rem;
       }
 
       .card h2 {
-        margin: 0 0 1rem;
+        margin: 0 0 0.5rem;
         color: var(--private-primary-dark);
-        font-size: 1.1rem;
+        font-size: 1rem;
+        line-height: 1.2;
+      }
+
+      .card > :first-child {
+        margin-top: 0;
+      }
+
+      .card > form {
+        align-items: end;
+      }
+
+      .card > form > label:has(> textarea),
+      .card > form > .notice,
+      .card > form > .muted,
+      .card > form > button {
+        grid-column: 1 / -1;
+      }
+
+      label:has(> input[type="checkbox"]),
+      label:has(> input[type="radio"]) {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        width: fit-content;
+        margin: 0.1rem 0;
+      }
+
+      label:has(> input[type="checkbox"]) > input,
+      label:has(> input[type="radio"]) > input {
+        flex: 0 0 auto;
       }
 
       .card ul {
@@ -567,7 +621,7 @@ if ($privateHasModule('Aide impôts')) {
 
       .cards-grid {
         display: grid;
-        gap: 1.5rem;
+        gap: 0.8rem;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       }
 
@@ -716,6 +770,14 @@ if ($privateHasModule('Aide impôts')) {
         margin: 0;
       }
 
+      @media (min-width: 900px) {
+        .card > form {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          column-gap: 0.75rem;
+          row-gap: 0.5rem;
+        }
+      }
+
       @media (max-width: 900px) {
         .private-app-shell {
           display: block;
@@ -739,7 +801,7 @@ if ($privateHasModule('Aide impôts')) {
         }
 
         .private-main {
-          padding: 1.2rem;
+          padding: 0.9rem;
         }
       }
 

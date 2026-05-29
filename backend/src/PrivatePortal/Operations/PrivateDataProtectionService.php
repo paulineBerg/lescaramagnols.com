@@ -109,6 +109,9 @@ final class PrivateDataProtectionService
                 sprintf(
                     'UPDATE `%s`
                      SET `email` = :email,
+                         `full_name` = NULL,
+                         `postal_address` = NULL,
+                         `phone` = NULL,
                          `password_hash` = :password_hash,
                          `status` = :status,
                          `updated_at` = :updated_at
@@ -184,6 +187,7 @@ final class PrivateDataProtectionService
             $pdo = $this->database->pdo();
             $pdo->beginTransaction();
             $this->cascadePrivateData($privateUserId, 0);
+            $this->clearPrivateUserProfile($privateUserId);
             $pdo->commit();
 
             return true;
@@ -232,6 +236,7 @@ final class PrivateDataProtectionService
             $pdo = $this->database->pdo();
             $pdo->beginTransaction();
             $this->purgeAccountRows($privateUserId);
+            $this->clearPrivateUserProfile($privateUserId);
             $statement = $pdo->prepare(
                 sprintf(
                     'UPDATE `%s` SET `updated_at` = :updated_at WHERE `id` = :id AND `status` = :status',
@@ -315,7 +320,7 @@ final class PrivateDataProtectionService
         try {
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT `id`, `email`, `status`, `created_at`, `updated_at`, `last_login_at`
+                    'SELECT `id`, `email`, `full_name`, `postal_address`, `phone`, `status`, `created_at`, `updated_at`, `last_login_at`
                      FROM `%s` WHERE `id` = :id LIMIT 1',
                     $this->database->table('private_users')
                 )
@@ -382,6 +387,20 @@ final class PrivateDataProtectionService
         } catch (\Throwable) {
             return;
         }
+    }
+
+    private function clearPrivateUserProfile(int $privateUserId): void
+    {
+        if ($privateUserId <= 0) {
+            return;
+        }
+
+        $this->safeUpdate(
+            'private_users',
+            '`full_name` = NULL, `postal_address` = NULL, `phone` = NULL, `updated_at` = :updated_at',
+            '`id` = :private_user_id',
+            ['updated_at' => date('Y-m-d H:i:s'), 'private_user_id' => $privateUserId]
+        );
     }
 
     private function cascadePrivateData(int $privateUserId, int $actorPrivateUserId): void

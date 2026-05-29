@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
+use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyMemberRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalUnitRepository;
@@ -172,6 +173,48 @@ final class RentalLifecycleTest extends TestCase
 
         $this->assertTrue((bool) ($summary['blocked'] ?? false));
         $this->assertGreaterThanOrEqual(3, count($issues));
+    }
+
+    public function testLeaseTypeComputesDefaultEndDateAndTaxCategory(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+        $ownerId = $this->createPrivateUser($userRepository, 'owner-lease-type@example.com');
+
+        $property = $propertyRepository->create($ownerId, 'Maison type bail', '5 rue du Bail', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Lot type bail', 36.0, true, 'available', null, $ownerId);
+        $this->assertNotNull($unit);
+        $tenant = $lifecycleRepository->createTenant($property->id, $unit->id, 'Locataire type bail', null, null, 'validated', $ownerId, null);
+        $this->assertIsArray($tenant);
+
+        $lease = $lifecycleRepository->createLease(
+            $property->id,
+            $unit->id,
+            (int) $tenant['id'],
+            '2026-03-05',
+            null,
+            850.0,
+            70.0,
+            'validated',
+            $ownerId,
+            null,
+            'residential_furnished'
+        );
+        $this->assertIsArray($lease);
+        $this->assertSame('residential_furnished', $lease['leaseType'] ?? null);
+        $this->assertSame('bic_furnished', $lease['taxCategory'] ?? null);
+        $this->assertSame('2027-03-04', $lease['endDate'] ?? null);
+
+        $summary = (new RentalAnnualSummaryService($lifecycleRepository))->build(2026, [$property->id]);
+        $taxCategories = is_array($summary['leaseTaxCategories'] ?? null) ? $summary['leaseTaxCategories'] : [];
+        $this->assertSame(1, $taxCategories['bic_furnished']['count'] ?? null);
+        $this->assertSame('2026-12-04', RentalLeaseTypeCatalog::defaultEndDate('student_furnished', '2026-03-05'));
     }
 
     public function testDocumentsStayOutsideWebrootAndExportsAreLogged(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\PrivateApps\RealEstateRental\Repository;
 
 use Caramagnols\Database\EditorialDatabase;
+use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use PDO;
 
 final class RentalLifecycleRepository
@@ -251,11 +252,15 @@ final class RentalLifecycleRepository
         float $chargesProvision,
         string $status,
         int $actorPrivateUserId,
-        ?string $notes = null
+        ?string $notes = null,
+        string $leaseType = RentalLeaseTypeCatalog::DEFAULT
     ): ?array {
+        $leaseType = RentalLeaseTypeCatalog::normalize($leaseType);
+        $taxCategory = RentalLeaseTypeCatalog::taxCategory($leaseType);
         $status = $this->normalizeStatus($status, self::LEASE_STATUSES);
         $startDate = $this->normalizeDate($startDate);
         $endDate = $endDate !== null && trim($endDate) !== '' ? $this->normalizeDate($endDate) : null;
+        $endDate ??= RentalLeaseTypeCatalog::defaultEndDate($leaseType, $startDate);
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
         $monthlyRent = round($monthlyRent, 2);
         $chargesProvision = round($chargesProvision, 2);
@@ -279,10 +284,12 @@ final class RentalLifecycleRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`rental_property_id`, `rental_unit_id`, `rental_tenant_id`, `start_date`, `end_date`,
+                        (`rental_property_id`, `rental_unit_id`, `rental_tenant_id`, `lease_type`, `tax_category`,
+                         `start_date`, `end_date`,
                          `monthly_rent`, `charges_provision`, `status`, `notes`, `created_by_private_user_id`)
                      VALUES
-                        (:property_id, :unit_id, :tenant_id, :start_date, :end_date,
+                        (:property_id, :unit_id, :tenant_id, :lease_type, :tax_category,
+                         :start_date, :end_date,
                          :monthly_rent, :charges_provision, :status, :notes, :created_by)',
                     $this->leasesTable()
                 )
@@ -291,6 +298,8 @@ final class RentalLifecycleRepository
                 'property_id' => $propertyId,
                 'unit_id' => $unitId,
                 'tenant_id' => $tenantId,
+                'lease_type' => $leaseType,
+                'tax_category' => $taxCategory,
                 'start_date' => $startDate,
                 'end_date' => $endDate,
                 'monthly_rent' => $monthlyRent,
@@ -484,7 +493,10 @@ final class RentalLifecycleRepository
             $this->ensureSchema();
             $placeholders = $this->placeholders('property_id', $propertyIds);
             $sql = sprintf(
-                'SELECT pmt.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`, l.`start_date` AS `lease_start_date`
+                'SELECT pmt.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`,
+                        l.`start_date` AS `lease_start_date`,
+                        l.`lease_type` AS `lease_type`,
+                        l.`tax_category` AS `tax_category`
                  FROM `%s` pmt
                  INNER JOIN `%s` prop ON prop.`id` = pmt.`rental_property_id`
                  INNER JOIN `%s` u ON u.`id` = pmt.`rental_unit_id`
@@ -1085,6 +1097,8 @@ final class RentalLifecycleRepository
                     `rental_property_id` INT NOT NULL,
                     `rental_unit_id` INT NOT NULL,
                     `rental_tenant_id` INT NOT NULL,
+                    `lease_type` VARCHAR(64) NOT NULL DEFAULT "residential_unfurnished",
+                    `tax_category` VARCHAR(64) NOT NULL DEFAULT "property_income",
                     `start_date` DATE NOT NULL,
                     `end_date` DATE NULL,
                     `monthly_rent` DECIMAL(10,2) NOT NULL,
@@ -1095,6 +1109,7 @@ final class RentalLifecycleRepository
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     KEY `idx_rental_leases_property` (`rental_property_id`, `status`),
+                    KEY `idx_rental_leases_type` (`lease_type`, `tax_category`),
                     KEY `idx_rental_leases_unit` (`rental_unit_id`),
                     KEY `idx_rental_leases_tenant` (`rental_tenant_id`),
                     KEY `idx_rental_leases_period` (`start_date`, `end_date`)
@@ -1102,6 +1117,19 @@ final class RentalLifecycleRepository
                 $this->leasesTable()
             )
         );
+        $this->ensureColumn(
+            $pdo,
+            $this->leasesTable(),
+            'lease_type',
+            '`lease_type` VARCHAR(64) NOT NULL DEFAULT "residential_unfurnished" AFTER `rental_tenant_id`'
+        );
+        $this->ensureColumn(
+            $pdo,
+            $this->leasesTable(),
+            'tax_category',
+            '`tax_category` VARCHAR(64) NOT NULL DEFAULT "property_income" AFTER `lease_type`'
+        );
+        $this->ensureIndex($pdo, $this->leasesTable(), 'idx_rental_leases_type', '`lease_type`, `tax_category`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (

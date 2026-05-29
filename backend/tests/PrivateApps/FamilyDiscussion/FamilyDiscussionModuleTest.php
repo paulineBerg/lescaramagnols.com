@@ -47,6 +47,7 @@ final class FamilyDiscussionModuleTest extends TestCase
             'max_message_length' => 4000,
             'max_attachments_per_message' => 5,
             'max_attachment_bytes' => 1024 * 1024,
+            'attachment_encryption_key' => 'base64:' . base64_encode(str_repeat('d', 32)),
             'allowed_extensions' => ['txt', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'pdf'],
             'allowed_mime_types' => ['text/plain', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf'],
         ];
@@ -86,12 +87,15 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertIsArray($duplicate);
         $this->assertSame($conversationId, (int) $duplicate['id']);
 
-        $message = $service->sendMessage($aliceId, $conversationId, 'Bonjour Bob');
+        $this->assertNull($service->sendMessage($aliceId, $conversationId, 'Bonjour Bob'));
+
+        $message = $service->sendMessage($aliceId, $conversationId, 'Bonjour Bob', [], $this->encryptedPayload());
         $this->assertIsArray($message);
 
         $bobMessages = $service->listMessages($conversationId, $bobId);
         $this->assertCount(1, $bobMessages);
-        $this->assertSame('Bonjour Bob', $bobMessages[0]['body']);
+        $this->assertSame('', $bobMessages[0]['body']);
+        $this->assertSame('client_aes_gcm_v1', $bobMessages[0]['encryptionMode']);
 
         $this->assertSame([], $service->listMessages($conversationId, $outsiderId));
         $this->assertNull($repository->findConversationForUser($conversationId, $outsiderId));
@@ -137,15 +141,21 @@ final class FamilyDiscussionModuleTest extends TestCase
         $conversationId = (int) $conversation['id'];
 
         $activeUpload = $this->createUpload('note-active.txt', 'piece jointe active');
-        $message = $service->sendMessage($aliceId, $conversationId, 'Voir le fichier', [
-            'discussion_files' => [
-                'name' => [$activeUpload['name']],
-                'tmp_name' => [$activeUpload['tmp_name']],
-                'size' => [$activeUpload['size']],
-                'error' => [UPLOAD_ERR_OK],
-                'type' => ['text/plain'],
+        $message = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Voir le fichier',
+            [
+                'discussion_files' => [
+                    'name' => [$activeUpload['name']],
+                    'tmp_name' => [$activeUpload['tmp_name']],
+                    'size' => [$activeUpload['size']],
+                    'error' => [UPLOAD_ERR_OK],
+                    'type' => ['text/plain'],
+                ],
             ],
-        ]);
+            $this->encryptedPayload()
+        );
         $this->assertIsArray($message);
         $this->assertCount(1, $message['attachments']);
 
@@ -156,6 +166,11 @@ final class FamilyDiscussionModuleTest extends TestCase
         $activePath = $storage->absolutePath((string) $attachment['storagePath']);
         $this->assertIsString($activePath);
         $this->assertFileExists($activePath);
+        $this->assertTrue($storage->isEncryptedStoredFile((string) $attachment['storagePath']));
+        $storedActiveContent = file_get_contents($activePath);
+        $this->assertIsString($storedActiveContent);
+        $this->assertStringNotContainsString('piece jointe active', $storedActiveContent);
+        $this->assertSame('piece jointe active', $storage->read((string) $attachment['storagePath']));
 
         $expiredAt = date('Y-m-d H:i:s', time() - 60);
         $expiredMessage = $repository->createMessage($conversationId, $aliceId, 'ancien message', $expiredAt);
@@ -339,15 +354,21 @@ final class FamilyDiscussionModuleTest extends TestCase
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
         $discussionRepository = new DiscussionRepository($database);
         $storage = $this->storage();
-        $service = new DiscussionService($discussionRepository, $userRepository, $storage);
+        $service = new DiscussionService($discussionRepository, $userRepository, $storage, null, $moduleRepository);
 
         $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
         $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $outsiderId = $this->createPrivateUser($userRepository, 'outsider@example.com');
+        $inviteHash = password_hash('PendingPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($inviteHash);
+        $this->assertIsInt($userRepository->create('pending@example.com', $inviteHash, 'invited'));
         $this->assertTrue($moduleRepository->setUserModules($aliceId, ['discussions'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($bobId, ['discussions'], 'admin@example.com'));
 
         $conversation = $service->createDirectConversation($aliceId, $bobId);
         $this->assertIsArray($conversation);
-        $this->assertIsArray($service->sendMessage($aliceId, (int) $conversation['id'], 'Bonjour'));
+        $this->assertNull($service->createDirectConversation($aliceId, $outsiderId));
+        $this->assertIsArray($service->sendMessage($aliceId, (int) $conversation['id'], 'Bonjour', [], $this->encryptedPayload()));
 
         $controller = new PrivatePortalController(
             auth: $this->privateAuth($userRepository, 'alice@example.com'),
@@ -361,8 +382,24 @@ final class FamilyDiscussionModuleTest extends TestCase
 
         $index = $controller->handle('discussion_index', $this->request('GET', '/private/discussions'));
         $this->assertSame(200, $index->status);
+        $this->assertStringContainsString('Chiffrement des discussions', $index->body);
         $this->assertStringContainsString('Nouvelle discussion', $index->body);
+        $this->assertStringContainsString('name="recipient_ids[]"', $index->body);
+        $this->assertStringContainsString('bob@example.com', $index->body);
+        $this->assertStringNotContainsString('outsider@example.com', $index->body);
+        $this->assertStringNotContainsString('pending@example.com', $index->body);
         $this->assertStringContainsString('Conversations', $index->body);
+
+        $post = $controller->handle(
+            'discussion_index',
+            $this->request('POST', '/private/discussions', [
+                'csrf_token' => csrf_token('private_discussions'),
+                'type' => 'direct',
+                'recipient_ids' => [$bobId],
+            ])
+        );
+        $this->assertSame(302, $post->status);
+        $this->assertSame('/private/discussions/' . (int) $conversation['id'], $post->headers['Location'] ?? null);
 
         $GLOBALS['csp_nonce'] = 'testnonce';
         $detail = $controller->handle(
@@ -372,9 +409,28 @@ final class FamilyDiscussionModuleTest extends TestCase
         );
 
         $this->assertSame(200, $detail->status);
+        $this->assertStringContainsString('Chiffrement des discussions', $detail->body);
         $this->assertStringContainsString('Envoyer un message', $detail->body);
-        $this->assertStringContainsString('Bonjour', $detail->body);
+        $this->assertStringContainsString('data-encrypted-body', $detail->body);
         $this->assertStringContainsString('nonce="testnonce"', $detail->body);
+    }
+
+    /**
+     * @return array{mode:string,payload:string,metadata:string}
+     */
+    private function encryptedPayload(): array
+    {
+        $metadata = json_encode([
+            'algorithm' => 'AES-GCM',
+            'iv' => base64_encode(random_bytes(12)),
+            'version' => 1,
+        ], JSON_THROW_ON_ERROR);
+
+        return [
+            'mode' => 'client_aes_gcm_v1',
+            'payload' => base64_encode(random_bytes(48)),
+            'metadata' => $metadata,
+        ];
     }
 
     private function createPrivateUser(PrivateUserRepository $repository, string $email): int
@@ -435,7 +491,10 @@ final class FamilyDiscussionModuleTest extends TestCase
         return $auth;
     }
 
-    private function request(string $method, string $uri): Request
+    /**
+     * @param array<string, mixed> $post
+     */
+    private function request(string $method, string $uri, array $post = []): Request
     {
         return new Request(
             [
@@ -444,7 +503,7 @@ final class FamilyDiscussionModuleTest extends TestCase
                 'REMOTE_ADDR' => '127.0.0.1',
             ],
             [],
-            [],
+            $post,
             [],
             ['Host' => '127.0.0.1:8000']
         );
