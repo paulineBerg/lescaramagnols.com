@@ -1,0 +1,26 @@
+{
+    "url": "https://preprod.lescaramagnols.com",
+    "final_url": "https://preprod.lescaramagnols.com",
+    "status": 200,
+    "missing_headers": [
+        "content-security-policy",
+        "x-frame-options",
+        "x-content-type-options",
+        "referrer-policy",
+        "permissions-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "strict-transport-security"
+    ],
+    "present_headers": {
+        "date": "Fri, 29 May 2026 06:56:27 GMT",
+        "content-type": "text/html;charset=ISO-8859-1",
+        "content-length": "370",
+        "connection": "close",
+        "server": "OVHcloud",
+        "vary": "Accept-Encoding"
+    },
+    "redirect_chain": [
+        200
+    ]
+}

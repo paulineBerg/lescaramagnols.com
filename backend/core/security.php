@@ -238,10 +238,10 @@ function apply_security_headers(): void
 
     header_remove('X-Powered-By');
 
-    header('X-Frame-Options: SAMEORIGIN', false);
+    header('X-Frame-Options: DENY', false);
     header('X-Content-Type-Options: nosniff', false);
-    header('Referrer-Policy: strict-origin-when-cross-origin', false);
-    header('Permissions-Policy: camera=(), microphone=(), geolocation=()', false);
+    header('Referrer-Policy: no-referrer', false);
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()', false);
     header('Cross-Origin-Opener-Policy: same-origin', false);
     header('Cross-Origin-Resource-Policy: same-site', false);
     header('Origin-Agent-Cluster: ?1', false);

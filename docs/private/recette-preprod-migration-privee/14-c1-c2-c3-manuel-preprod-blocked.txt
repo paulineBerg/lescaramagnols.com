@@ -1,0 +1,36 @@
+# Manual C1/C2/C3 — préprod (2026-05-29T08:56:15+02:00)
+
+=== / ===
+HTTP/2 403 
+date: Fri, 29 May 2026 06:56:15 GMT
+content-type: text/html; charset=iso-8859-1
+server: OVHcloud
+
+
+=== /private ===
+HTTP/2 403 
+date: Fri, 29 May 2026 06:56:16 GMT
+content-type: text/html; charset=iso-8859-1
+server: OVHcloud
+
+
+=== /private/login ===
+HTTP/2 403 
+date: Fri, 29 May 2026 06:58:24 GMT
+content-type: text/html; charset=iso-8859-1
+server: OVHcloud
+
+
+=== /private/dashboard ===
+HTTP/2 403 
+date: Fri, 29 May 2026 06:58:24 GMT
+content-type: text/html; charset=iso-8859-1
+server: OVHcloud
+
+
+=== /private/files/TEST ===
+HTTP/2 403 
+date: Fri, 29 May 2026 06:58:27 GMT
+content-type: text/html; charset=iso-8859-1
+server: OVHcloud
+
