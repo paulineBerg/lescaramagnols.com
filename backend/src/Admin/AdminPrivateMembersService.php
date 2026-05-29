@@ -587,7 +587,7 @@ final class AdminPrivateMembersService
 
     private function sendActivationEmail(string $email, string $token, ?string $actorIdentifier, int $userId): void
     {
-        $url = app_url(private_portal_url('activate') . '/' . rawurlencode($token));
+        $url = app_url(private_route_resolver()->canonicalPath('activate') . '/' . rawurlencode($token));
         $message = $this->renderPrivateMailTemplate($this->privateMailTemplate(
             'admin_invite_body',
             "Bonjour,\n\nVotre espace privé est prêt.\n\nIdentifiant de connexion : {{email}}\nLien d'activation : {{activation_url}}\n\nChoisissez votre mot de passe depuis ce lien sécurisé."

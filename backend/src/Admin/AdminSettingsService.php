@@ -105,6 +105,14 @@ final class AdminSettingsService
             'fromName' => (string) ($privateMail['fromName'] ?? 'Les Caramagnols'),
             'replyTo' => (string) ($privateMail['replyTo'] ?? 'private@lescaramagnols.com'),
             'templates' => array_merge($this->defaultPrivateMailTemplates(), $this->normalizePrivateMailTemplates($privateMail['templates'] ?? [])),
+            'templateCatalog' => $this->privateMailTemplateCatalog(),
+            'commonVariables' => $this->privateMailCommonVariables(),
+            'previews' => $this->privateMailPreviews(
+                array_merge(
+                    $this->defaultPrivateMailTemplates(),
+                    $this->normalizePrivateMailTemplates($privateMail['templates'] ?? [])
+                )
+            ),
         ];
     }
 
@@ -588,6 +596,110 @@ final class AdminSettingsService
             'member_deletion_final_subject' => 'Suppression définitive de votre compte privé',
             'member_deletion_final_body' => "Bonjour,\n\nVotre compte privé {{site_name}} et les données rattachées ont été supprimés définitivement le {{today}}.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.",
         ];
+    }
+
+    /**
+     * @return array<int, array{
+     *   subject_key: string,
+     *   subject_label: string,
+     *   body_key: string,
+     *   body_label: string,
+     *   variables: array<int, string>,
+     *   fallback_subject: string,
+     *   fallback_body: string
+     * }>
+     */
+    private function privateMailTemplateCatalog(): array
+    {
+        $templates = $this->defaultPrivateMailTemplates();
+        $definitions = [
+            ['rental_subject', 'Sujet document locatif', 'rental_body', 'Message document locatif', ['email', 'today', 'reply_to', 'site_name']],
+            ['tax_subject', 'Sujet PDF fiscal', 'tax_body', 'Message PDF fiscal', ['email', 'today', 'reply_to', 'site_name']],
+            ['discussion_invite_subject', 'Sujet invitation discussion', 'discussion_invite_body', 'Message invitation discussion', ['email', 'today', 'activation_url', 'login_url', 'private_url', 'reply_to', 'site_name']],
+            ['admin_invite_subject', 'Sujet invitation membre', 'admin_invite_body', 'Message invitation membre', ['email', 'today', 'activation_url', 'login_url', 'private_url', 'reply_to', 'site_name']],
+            ['password_reset_subject', 'Sujet reset membre', 'password_reset_body', 'Message reset membre', ['email', 'today', 'reset_url', 'login_url', 'private_url', 'reply_to', 'site_name']],
+            ['member_suspended_subject', 'Sujet compte suspendu', 'member_suspended_body', 'Message compte suspendu', ['email', 'today', 'login_url', 'private_url', 'reply_to', 'site_name']],
+            ['member_reactivated_subject', 'Sujet compte réactivé', 'member_reactivated_body', 'Message compte réactivé', ['email', 'today', 'login_url', 'private_url', 'reply_to', 'site_name']],
+            ['member_deletion_scheduled_subject', 'Sujet suppression programmée', 'member_deletion_scheduled_body', 'Message suppression programmée', ['email', 'today', 'delete_after', 'login_url', 'private_url', 'reply_to', 'site_name']],
+            ['member_deletion_warning_subject', 'Sujet rappel J+20', 'member_deletion_warning_body', 'Message rappel J+20', ['email', 'today', 'delete_after', 'login_url', 'private_url', 'reply_to', 'site_name']],
+            ['member_deletion_final_subject', 'Sujet suppression définitive', 'member_deletion_final_body', 'Message suppression définitive', ['email', 'today', 'reply_to', 'site_name']],
+        ];
+
+        return array_map(
+            static fn (array $definition): array => [
+                'subject_key' => $definition[0],
+                'subject_label' => $definition[1],
+                'body_key' => $definition[2],
+                'body_label' => $definition[3],
+                'variables' => $definition[4],
+                'fallback_subject' => $templates[$definition[0]] ?? '',
+                'fallback_body' => $templates[$definition[2]] ?? '',
+            ],
+            $definitions
+        );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function privateMailCommonVariables(): array
+    {
+        return ['email', 'today', 'login_url', 'private_url', 'reply_to', 'site_name'];
+    }
+
+    /**
+     * @param array<string, string> $templates
+     * @return array<string, array{subject: string, body: string}>
+     */
+    private function privateMailPreviews(array $templates): array
+    {
+        $variables = $this->privateMailPreviewVariables();
+        $previews = [];
+        foreach ($this->privateMailTemplateCatalog() as $template) {
+            $subjectKey = $template['subject_key'];
+            $bodyKey = $template['body_key'];
+            $previews[$bodyKey] = [
+                'subject' => $this->renderPrivateMailTemplatePreview((string) ($templates[$subjectKey] ?? $template['fallback_subject']), $variables),
+                'body' => $this->renderPrivateMailTemplatePreview((string) ($templates[$bodyKey] ?? $template['fallback_body']), $variables),
+            ];
+        }
+
+        return $previews;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function privateMailPreviewVariables(): array
+    {
+        $activationUrl = app_url(private_route_resolver()->canonicalPath('activate') . '/preview-token');
+        $resetUrl = app_url(private_route_resolver()->canonicalPath('password_reset') . '/preview-token');
+        $loginUrl = app_url(private_portal_url('login'));
+
+        return [
+            'email' => 'membre@example.com',
+            'today' => date('d/m/Y'),
+            'login_url' => $loginUrl,
+            'private_url' => $loginUrl,
+            'reply_to' => (string) app_config('private.mail.reply_to', 'private@lescaramagnols.com'),
+            'site_name' => (string) app_config('site.name', 'Les Caramagnols'),
+            'activation_url' => $activationUrl,
+            'reset_url' => $resetUrl,
+            'delete_after' => date('d/m/Y', time() + 30 * 86400),
+        ];
+    }
+
+    /**
+     * @param array<string, string> $variables
+     */
+    private function renderPrivateMailTemplatePreview(string $template, array $variables): string
+    {
+        $replacements = [];
+        foreach ($variables as $key => $value) {
+            $replacements['{{' . $key . '}}'] = $value;
+        }
+
+        return strtr($template, $replacements);
     }
 
     /**

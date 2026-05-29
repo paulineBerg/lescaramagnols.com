@@ -1,0 +1,161 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Caramagnols\Tests\PrivatePortal;
+
+use Caramagnols\Admin\AdminSettingsService;
+use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\Logging\LoggerFactory;
+use PHPUnit\Framework\TestCase;
+
+final class PrivateTransactionalEmailTest extends TestCase
+{
+    /** @var array<string, mixed> */
+    private array $previousAppConfig = [];
+    private string $tempDir = '';
+
+    public static function setUpBeforeClass(): void
+    {
+        require_once ROOT_PATH . '/core/bootstrap.php';
+        require_once ROOT_PATH . '/core/mailer.php';
+    }
+
+    protected function setUp(): void
+    {
+        global $appConfig;
+
+        $this->previousAppConfig = is_array($appConfig) ? $appConfig : [];
+        $this->tempDir = sys_get_temp_dir() . '/caramagnols-private-mail-' . bin2hex(random_bytes(6));
+        mkdir($this->tempDir, 0700, true);
+
+        $appConfig['base_url'] = 'https://preprod.lescaramagnols.com';
+        $appConfig['site']['url'] = [];
+        $appConfig['site']['name'] = 'Les Caramagnols';
+        $appConfig['private']['enabled'] = true;
+        $appConfig['private']['base_path'] = 'private';
+        $appConfig['private']['mail'] = [
+            'enabled' => true,
+            'smtp_host' => 'ssl0.ovh.net',
+            'smtp_port' => 465,
+            'smtp_user' => 'ne-pas-repondre@lescaramagnols.com',
+            'smtp_password' => 'configured-secret',
+            'smtp_encryption' => 'ssl',
+            'from_address' => 'ne-pas-repondre@lescaramagnols.com',
+            'from_name' => 'Les Caramagnols',
+            'reply_to' => 'private@lescaramagnols.com',
+            'templates' => [],
+        ];
+    }
+
+    protected function tearDown(): void
+    {
+        global $appConfig;
+
+        $appConfig = $this->previousAppConfig;
+        $this->removeDirectory($this->tempDir);
+    }
+
+    public function testPrivateMailViewModelDocumentsTemplatesVariablesAndPreviewUrls(): void
+    {
+        $service = new AdminSettingsService(
+            $this->tempDir . '/database.override.php',
+            $this->tempDir . '/admin.override.php',
+            new AppEventLogger(new LoggerFactory($this->tempDir . '/logs')),
+            $this->tempDir . '/site.override.php'
+        );
+
+        $viewModel = $service->privateMailViewModel();
+        $catalog = is_array($viewModel['templateCatalog'] ?? null) ? $viewModel['templateCatalog'] : [];
+        $previews = is_array($viewModel['previews'] ?? null) ? $viewModel['previews'] : [];
+
+        self::assertCount(10, $catalog);
+        self::assertSame(['email', 'today', 'login_url', 'private_url', 'reply_to', 'site_name'], $viewModel['commonVariables']);
+
+        $variablesByBodyKey = [];
+        foreach ($catalog as $template) {
+            self::assertIsArray($template);
+            self::assertNotSame('', $template['subject_key'] ?? '');
+            self::assertNotSame('', $template['body_key'] ?? '');
+            self::assertNotSame('', $template['fallback_subject'] ?? '');
+            self::assertNotSame('', $template['fallback_body'] ?? '');
+            $variablesByBodyKey[(string) ($template['body_key'] ?? '')] = $template['variables'] ?? [];
+        }
+
+        self::assertContains('activation_url', $variablesByBodyKey['admin_invite_body'] ?? []);
+        self::assertContains('activation_url', $variablesByBodyKey['discussion_invite_body'] ?? []);
+        self::assertContains('reset_url', $variablesByBodyKey['password_reset_body'] ?? []);
+        self::assertContains('delete_after', $variablesByBodyKey['member_deletion_scheduled_body'] ?? []);
+        self::assertStringContainsString(
+            'https://preprod.lescaramagnols.com/private/activate/preview-token',
+            (string) ($previews['admin_invite_body']['body'] ?? '')
+        );
+        self::assertStringContainsString(
+            'https://preprod.lescaramagnols.com/private/password/reset/preview-token',
+            (string) ($previews['password_reset_body']['body'] ?? '')
+        );
+    }
+
+    public function testMailerErrorSanitizerRedactsSecretsAndTokens(): void
+    {
+        self::assertTrue(function_exists('sanitize_mailer_error_message'));
+
+        $message = sanitize_mailer_error_message(
+            'SMTP failed for smtps://smtp-user:clear-secret@smtp.example.test:465?password=raw-password token=reset-token'
+        );
+
+        self::assertStringNotContainsString('clear-secret', $message);
+        self::assertStringNotContainsString('raw-password', $message);
+        self::assertStringNotContainsString('reset-token', $message);
+        self::assertStringContainsString('[redacted]', $message);
+    }
+
+    public function testSecurityLoggerRedactsTokenAndPasswordFields(): void
+    {
+        $logger = new AppEventLogger(new LoggerFactory($this->tempDir . '/security-logs'));
+        $logger->security('private.password_reset.email_failed', [
+            'reset_token' => 'clear-reset-token',
+            'smtp_password' => 'clear-smtp-password',
+            'identifier' => 'membre@example.com',
+        ], 'warning');
+
+        $logPath = $this->tempDir . '/security-logs/security.log';
+        self::assertFileExists($logPath);
+        $log = (string) file_get_contents($logPath);
+
+        self::assertStringNotContainsString('clear-reset-token', $log);
+        self::assertStringNotContainsString('clear-smtp-password', $log);
+        self::assertStringContainsString('[redacted]', $log);
+    }
+
+    private function removeDirectory(string $path): void
+    {
+        if ($path === '' || !is_dir($path)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($path, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($iterator as $file) {
+            if ($file->isDir()) {
+                @rmdir($file->getPathname());
+            } else {
+                @unlink($file->getPathname());
+            }
+        }
+        @rmdir($path);
+    }
+
+    public function testAppUrlKeepsConfiguredHttpsSchemeWithSiteBasePathInCli(): void
+    {
+        $GLOBALS['appConfig']['base_url'] = 'https://preprod.lescaramagnols.com';
+        $GLOBALS['appConfig']['site']['url'] = ['base_path' => '/'];
+
+        self::assertSame(
+            'https://preprod.lescaramagnols.com/private/activate/preview-token',
+            app_url(private_route_resolver()->canonicalPath('activate') . '/preview-token')
+        );
+    }
+}

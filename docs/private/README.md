@@ -34,6 +34,13 @@ Mise a jour 2026-05-29 (chiffrement FamilyDiscussion) :
 - l'interface du module affiche en haut des ecrans Discussion un encadre permanent qui decrit le chiffrement texte, le chiffrement des fichiers, les metadonnees encore visibles et la retention 60 jours;
 - `PRIVATE_DISCUSSION_ATTACHMENT_ENCRYPTION_KEY` doit etre renseignee hors depot en production avec une cle dediee, par exemple `base64:` suivi de 32 octets aleatoires encodes.
 
+Mise a jour 2026-05-29 (emails transactionnels V2) :
+- les emails critiques de l'espace prive sont declares dans un catalogue admin unique avec sujet, corps, variables, fallback et apercu sans envoi reel;
+- les liens d'activation et de reset sont construits avec `app_url()` et les chemins canoniques du routeur prive afin de respecter `BASE_URL`, y compris en preproduction;
+- les emails de reset utilisent la configuration SMTP dediee a l'espace prive et le helper `send_private_email()`;
+- les erreurs SMTP restent neutres cote utilisateur, tandis que le log technique redige mots de passe, tokens, secrets et DSN sensibles avant journalisation;
+- les tokens d'activation/reset ne doivent jamais etre journalises en clair, y compris dans les evenements securite.
+
 Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
 - cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
@@ -61,6 +68,44 @@ Cette section s'applique à toute la suite des phases privées.
    - les décisions prises,
    - les tests automatisés réellement lancés, le cas échéant,
    - les tests manuels demandés, le cas échéant.
+
+## 0.1 Emails transactionnels prives
+
+Le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`, reste la source de configuration des emails transactionnels prives.
+
+Catalogue modifiable :
+
+| Cle | Usage | Variables specifiques |
+|---|---|---|
+| `rental` | Envoi de documents locatifs | `subject`, `body`, `attachment_name` |
+| `tax` | Envoi de syntheses fiscales | `subject`, `body`, `attachment_name` |
+| `discussion_invite` | Invitation FamilyDiscussion | `recipient_name`, `discussion_title`, `activation_url` |
+| `admin_invite` | Invitation ou reactivation de compte prive depuis le BO | `activation_url` |
+| `password_reset` | Reset de mot de passe prive | `reset_url` |
+| `suspended` | Notification de suspension | aucune variable specifique |
+| `reactivated` | Notification de reactivation | aucune variable specifique |
+| `deletion_scheduled` | Planification de suppression differee | `scheduled_deletion_at` |
+| `deletion_warning` | Rappel avant suppression definitive | `scheduled_deletion_at` |
+| `deletion_final` | Confirmation de suppression definitive | aucune variable specifique |
+
+Variables communes a tous les modeles :
+
+| Variable | Description |
+|---|---|
+| `{{email}}` | adresse du membre concerne |
+| `{{today}}` | date courante serveur |
+| `{{login_url}}` | URL absolue de connexion privee |
+| `{{private_url}}` | URL absolue de l'accueil prive |
+| `{{reply_to}}` | adresse de reponse configuree |
+| `{{site_name}}` | nom public du site |
+
+Regles d'exploitation :
+
+1. l'apercu admin ne declenche aucun envoi SMTP et utilise des valeurs de demonstration;
+2. tout nouveau template email prive doit etre ajoute au catalogue avec variables et fallback explicites;
+3. les liens `activation_url` et `reset_url` doivent rester absolus, bases sur `BASE_URL`, et ne doivent jamais etre reconstruits dans un template;
+4. le message affiche a l'utilisateur en cas d'echec SMTP reste neutre;
+5. les logs techniques doivent masquer mots de passe, tokens, secrets, clefs API et identifiants presents dans une URL ou une chaine d'erreur.
 
 ## 1. Decision produit
 

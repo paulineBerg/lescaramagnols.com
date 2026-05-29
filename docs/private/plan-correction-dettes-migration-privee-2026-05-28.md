@@ -462,28 +462,47 @@ Objectif : fiabiliser les emails critiques du prive.
 Checklist de suivi :
 
 - [x] `BASE_URL` preprod configure sur `https://preprod.lescaramagnols.com`.
-- [ ] Auditer les liens absolus activation/reset.
-- [ ] Lister les templates emails modifiables en BO.
-- [ ] Documenter les variables disponibles par template.
-- [ ] Ajouter un mode preview admin sans envoi.
-- [ ] Tester les erreurs SMTP sans fuite sensible.
-- [ ] Verifier que les tokens ne sont jamais logges en clair.
+- [x] Auditer les liens absolus activation/reset.
+- [x] Lister les templates emails modifiables en BO.
+- [x] Documenter les variables disponibles par template.
+- [x] Ajouter un mode preview admin sans envoi.
+- [x] Tester les erreurs SMTP sans fuite sensible.
+- [x] Verifier que les tokens ne sont jamais logges en clair.
 
 Travaux :
 
-- [ ] verifier tous les liens absolus construits avec `BASE_URL` ;
-- [ ] lister les templates emails modifiables en BO ;
-- [ ] documenter les variables disponibles par email ;
-- [ ] ajouter un mode preview admin sans envoi reel ;
-- [ ] verifier que les tokens ne sont jamais journalises en clair ;
-- [ ] verifier les cas d'erreur SMTP avec message utilisateur neutre et log technique.
+- [x] verifier tous les liens absolus construits avec `BASE_URL` ;
+- [x] lister les templates emails modifiables en BO ;
+- [x] documenter les variables disponibles par email ;
+- [x] ajouter un mode preview admin sans envoi reel ;
+- [x] verifier que les tokens ne sont jamais journalises en clair ;
+- [x] verifier les cas d'erreur SMTP avec message utilisateur neutre et log technique.
 
 Critere d'acceptation :
 
-- [ ] les liens activation/reset sont complets ;
-- [ ] chaque email critique a un sujet, un corps, une liste de variables et un fallback ;
-- [ ] le BO permet de comprendre les variables disponibles ;
-- [ ] un echec SMTP ne divulgue pas d'information sensible.
+- [x] les liens activation/reset sont complets ;
+- [x] chaque email critique a un sujet, un corps, une liste de variables et un fallback ;
+- [x] le BO permet de comprendre les variables disponibles ;
+- [x] un echec SMTP ne divulgue pas d'information sensible.
+
+Decision V2 :
+
+- Les liens critiques d'activation et de reset passent par `app_url()` et les chemins canoniques du routeur prive, avec encodage explicite du token.
+- Le BO admin `Espace prive > Email prive IMAP / SMTP` affiche le catalogue des modeles critiques, les variables communes, les variables propres a chaque email et un apercu sans envoi.
+- Les envois de reset utilisent la configuration SMTP privee et le helper `send_private_email()`.
+- Les erreurs SMTP restent neutres cote utilisateur ; le log technique redige les secrets, mots de passe, tokens et DSN sensibles avant journalisation.
+
+Preuves V2 :
+
+- `docs/private/recette-preprod-migration-privee/69-v2-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/70-v2-mail-template-catalog-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/71-v2-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/72-v2-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/73-v2-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/74-v2-mail-template-catalog-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/75-v2-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/76-v2-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/77-v2-check-security-headers-preprod-2026-05-29.txt`
 
 ### Phase V3 - Cron et idempotence
 

@@ -103,12 +103,24 @@ function app_base_url(?Request $request = null): string
     $configuredSiteUrl = app_config('site.url', []);
     $siteUrl = is_array($configuredSiteUrl) ? $configuredSiteUrl : [];
     $configuredBasePath = normalize_public_route((string) ($siteUrl['base_path'] ?? ''));
+    $configuredUrlParts = [];
 
-    if ($configuredBasePath === null && is_string($configured) && preg_match('#^https?://#i', $configured) === 1) {
+    if (is_string($configured) && preg_match('#^https?://#i', $configured) === 1) {
+        $parsedConfiguredUrl = parse_url($configured);
+        $configuredUrlParts = is_array($parsedConfiguredUrl) ? $parsedConfiguredUrl : [];
+    }
+
+    $configuredScheme = strtolower((string) ($configuredUrlParts['scheme'] ?? ''));
+    $configuredHost = trim((string) ($configuredUrlParts['host'] ?? ''));
+    if ($configuredHost !== '' && isset($configuredUrlParts['port'])) {
+        $configuredHost .= ':' . (string) $configuredUrlParts['port'];
+    }
+
+    if ($configuredBasePath === null && $configuredHost !== '' && in_array($configuredScheme, ['http', 'https'], true)) {
         return rtrim($configured, '/');
     }
 
-    $scheme = 'http';
+    $scheme = in_array($configuredScheme, ['http', 'https'], true) ? $configuredScheme : 'http';
 
     if ($request !== null) {
         $forwardedProto = $request->header('X-Forwarded-Proto', '') ?? '';
@@ -130,9 +142,11 @@ function app_base_url(?Request $request = null): string
         $basePath = $basePath === '' ? '/' : '/' . trim($basePath, '/');
     }
 
-    $preferredHost = trim((string) ($scheme === 'https'
-        ? ($siteUrl['ssl_domain'] ?? $siteUrl['domain'] ?? '')
-        : ($siteUrl['domain'] ?? $siteUrl['ssl_domain'] ?? '')));
+    $preferredHost = trim((string) ($configuredHost !== ''
+        ? $configuredHost
+        : ($scheme === 'https'
+            ? ($siteUrl['ssl_domain'] ?? $siteUrl['domain'] ?? '')
+            : ($siteUrl['domain'] ?? $siteUrl['ssl_domain'] ?? ''))));
     $requestHost = $request?->header('Host', '') ?? '';
     if (!is_string($requestHost) || $requestHost === '') {
         $requestHost = (string) ($_SERVER['HTTP_HOST'] ?? '');

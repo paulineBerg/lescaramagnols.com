@@ -144,6 +144,13 @@ rsync -av docs/security/README.md ovh-boutique:/home/lescaramgl-ssh/caramagnols-
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/66-v1-migration-dod-preprod-2026-05-29.json
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/67-v1-security-checklist-preprod-2026-05-29.json
 composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/68-v1-check-security-headers-preprod-2026-05-29.txt 2>&1
+php backend/vendor/bin/phpunit tests/PrivatePortal/PrivateTransactionalEmailTest.php tests/PrivatePortalMembersTest.php tests/AdminControllerTest.php --filter 'PrivateMembersEmailTab|PrivateTransactionalEmail|InviteCreates|InviteActivation|TokensAreSingleUse' > docs/private/recette-preprod-migration-privee/69-v2-local-validation-2026-05-29.txt 2>&1
+php backend/core/tools/private_migration_reconcile.php migration-dod > docs/private/recette-preprod-migration-privee/71-v2-migration-dod-local-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/72-v2-security-checklist-local-2026-05-29.json
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/73-v2-deploy-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/75-v2-migration-dod-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/76-v2-security-checklist-preprod-2026-05-29.json
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/77-v2-check-security-headers-preprod-2026-05-29.txt 2>&1
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -189,6 +196,13 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - [x] V1 — Droits fichiers/dossiers `0600/0700` controles et chemin hors webroot conserve — **OK LOCAL + PREPROD CLI**, preuves: [60-v1-local-representative-backup-2026-05-29.txt](./recette-preprod-migration-privee/60-v1-local-representative-backup-2026-05-29.txt), [65-v1-preprod-representative-backup-2026-05-29.txt](./recette-preprod-migration-privee/65-v1-preprod-representative-backup-2026-05-29.txt)
 - [x] V1 — Retention suppression compte documentee et suppression J+30 prouvee par test unitaire — **OK TEST**, preuve: [61-v1-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/61-v1-local-validation-2026-05-29.txt)
 - [x] V1 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [62-v1-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/62-v1-migration-dod-local-2026-05-29.json), [66-v1-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/66-v1-migration-dod-preprod-2026-05-29.json), [67-v1-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/67-v1-security-checklist-preprod-2026-05-29.json), [68-v1-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/68-v1-check-security-headers-preprod-2026-05-29.txt)
+
+## Tests manuels requis (phase V2)
+
+- [x] V2 — Catalogue des emails transactionnels affiche en BO avec variables communes, variables par modele et fallback sujet/corps — **OK TEST + PREPROD CLI**, preuves: [69-v2-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/69-v2-local-validation-2026-05-29.txt), [74-v2-mail-template-catalog-preprod-2026-05-29.json](./recette-preprod-migration-privee/74-v2-mail-template-catalog-preprod-2026-05-29.json)
+- [x] V2 — Apercu admin sans envoi reel pour invitation et reset avec URL absolues preprod — **OK TEST + PREPROD CLI**, preuves: [70-v2-mail-template-catalog-local-2026-05-29.json](./recette-preprod-migration-privee/70-v2-mail-template-catalog-local-2026-05-29.json), [74-v2-mail-template-catalog-preprod-2026-05-29.json](./recette-preprod-migration-privee/74-v2-mail-template-catalog-preprod-2026-05-29.json)
+- [x] V2 — Erreurs SMTP et logs securite sans fuite de token, mot de passe ou secret — **OK TEST**, preuve: [69-v2-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/69-v2-local-validation-2026-05-29.txt)
+- [x] V2 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [71-v2-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/71-v2-migration-dod-local-2026-05-29.json), [75-v2-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/75-v2-migration-dod-preprod-2026-05-29.json), [76-v2-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/76-v2-security-checklist-preprod-2026-05-29.json), [77-v2-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/77-v2-check-security-headers-preprod-2026-05-29.txt)
 
 ## Procédure C3 — restauration fichier + base
 
@@ -238,7 +252,7 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 ### Anomalies classees
 - `majeur` : l'upload HTTP documentaire préprod retourne encore `upload_failed` / `storage_unavailable`. Aucun accès interdit n'a été observé; à reprendre avant go-live dans les phases d'exploitation documentaire/restauration.
 - `majeur / environnement` : l'accès HTTP externe préprod à `/private/login` retourne un `403` Apache/OVH avant exécution PHP pendant C4. Le déploiement applicatif, la checklist preprod CLI et les validations locales sont verts, mais le rendu privé externe préprod reste à rejouer après correction du mapping HTTP.
-- `mineur / exploitation` : SMTP préprod non forcé pendant C2; les emails de suppression sont préparés via templates, mais la livraison réelle reste à auditer dans V2 emails transactionnels.
+- `mineur / exploitation` : SMTP préprod non forcé pendant C2; point repris en V2 par audit des templates critiques, configuration SMTP privee pour le reset, apercu sans envoi et tests de non-fuite des erreurs.
 
 ### Conditions levées pour C0
 1. Mapping préprod et headers vérifiés : `Status 200`, `Headers requis: OK`.
@@ -316,15 +330,24 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/66-v1-migration-dod-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/67-v1-security-checklist-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/68-v1-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/69-v2-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/70-v2-mail-template-catalog-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/71-v2-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/72-v2-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/73-v2-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/74-v2-mail-template-catalog-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/75-v2-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/76-v2-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/77-v2-check-security-headers-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-V1 est ferme cote code applicatif et validations locales/preprod CLI/HTTP.
+V2 est ferme cote code applicatif et validations locales/preprod CLI/HTTP.
 
 Les prochaines actions appartiennent aux phases suivantes du plan :
 
-- V2-V5 : validations d'exploitation restant suivies hors C0.
+- V3-V5 : validations d'exploitation restant suivies hors C0.
 
 Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.

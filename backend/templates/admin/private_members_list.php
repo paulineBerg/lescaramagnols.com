@@ -5,6 +5,9 @@ $stats = is_array($privateMembersStats ?? null) ? $privateMembersStats : [];
 $moduleRegistry = is_array($privateModuleRegistry ?? null) ? $privateModuleRegistry : [];
 $privateMail = is_array($privateMail ?? null) ? $privateMail : [];
 $privateMailTemplates = is_array($privateMail['templates'] ?? null) ? $privateMail['templates'] : [];
+$privateMailTemplateCatalog = is_array($privateMail['templateCatalog'] ?? null) ? $privateMail['templateCatalog'] : [];
+$privateMailCommonVariables = is_array($privateMail['commonVariables'] ?? null) ? array_values(array_filter($privateMail['commonVariables'], 'is_string')) : [];
+$privateMailPreviews = is_array($privateMail['previews'] ?? null) ? $privateMail['previews'] : [];
 $statusFilter = is_string($statusFilter ?? null) ? $statusFilter : '';
 $searchQuery = is_string($searchQuery ?? null) ? $searchQuery : '';
 $activeTab = is_string($privateMembersActiveTab ?? null) ? (string) $privateMembersActiveTab : 'members';
@@ -149,91 +152,51 @@ $statusLabels = [
       <div class="admin-private-mail-template-help">
         <strong><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_VARIABLES_TITLE', 'Variables utilisables')); ?></strong>
         <p>
-          <code>{{email}}</code>
-          <code>{{today}}</code>
-          <code>{{login_url}}</code>
-          <code>{{private_url}}</code>
-          <code>{{reply_to}}</code>
-          <code>{{site_name}}</code>
-          <code>{{activation_url}}</code>
-          <code>{{reset_url}}</code>
-          <code>{{delete_after}}</code>
+          <?php foreach ($privateMailCommonVariables as $variable): ?>
+            <code>{{<?php echo $escape($variable); ?>}}</code>
+          <?php endforeach; ?>
         </p>
         <small>
           <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_VARIABLES_HELP', 'Les variables non disponibles pour un message restent inchangées. Exemples : {{activation_url}} sert aux invitations, {{reset_url}} aux réinitialisations, {{delete_after}} aux suppressions programmées.')); ?>
         </small>
       </div>
       <div class="admin-private-mail-template-list">
-        <?php foreach ([
-            [
-                'subject_key' => 'rental_subject',
-                'subject_label' => 'Sujet document locatif',
-                'body_key' => 'rental_body',
-                'body_label' => 'Message document locatif',
-            ],
-            [
-                'subject_key' => 'tax_subject',
-                'subject_label' => 'Sujet PDF fiscal',
-                'body_key' => 'tax_body',
-                'body_label' => 'Message PDF fiscal',
-            ],
-            [
-                'subject_key' => 'discussion_invite_subject',
-                'subject_label' => 'Sujet invitation discussion',
-                'body_key' => 'discussion_invite_body',
-                'body_label' => 'Message invitation discussion',
-            ],
-            [
-                'subject_key' => 'admin_invite_subject',
-                'subject_label' => 'Sujet invitation membre',
-                'body_key' => 'admin_invite_body',
-                'body_label' => 'Message invitation membre',
-            ],
-            [
-                'subject_key' => 'password_reset_subject',
-                'subject_label' => 'Sujet reset membre',
-                'body_key' => 'password_reset_body',
-                'body_label' => 'Message reset membre',
-            ],
-            [
-                'subject_key' => 'member_suspended_subject',
-                'subject_label' => 'Sujet compte suspendu',
-                'body_key' => 'member_suspended_body',
-                'body_label' => 'Message compte suspendu',
-            ],
-            [
-                'subject_key' => 'member_reactivated_subject',
-                'subject_label' => 'Sujet compte réactivé',
-                'body_key' => 'member_reactivated_body',
-                'body_label' => 'Message compte réactivé',
-            ],
-            [
-                'subject_key' => 'member_deletion_scheduled_subject',
-                'subject_label' => 'Sujet suppression programmée',
-                'body_key' => 'member_deletion_scheduled_body',
-                'body_label' => 'Message suppression programmée',
-            ],
-            [
-                'subject_key' => 'member_deletion_warning_subject',
-                'subject_label' => 'Sujet rappel J+20',
-                'body_key' => 'member_deletion_warning_body',
-                'body_label' => 'Message rappel J+20',
-            ],
-            [
-                'subject_key' => 'member_deletion_final_subject',
-                'subject_label' => 'Sujet suppression définitive',
-                'body_key' => 'member_deletion_final_body',
-                'body_label' => 'Message suppression définitive',
-            ],
-        ] as $template): ?>
+        <?php foreach ($privateMailTemplateCatalog as $template): ?>
+          <?php
+          if (!is_array($template)) {
+              continue;
+          }
+          $subjectKey = is_string($template['subject_key'] ?? null) ? (string) $template['subject_key'] : '';
+          $bodyKey = is_string($template['body_key'] ?? null) ? (string) $template['body_key'] : '';
+          if ($subjectKey === '' || $bodyKey === '') {
+              continue;
+          }
+          $subjectLabel = is_string($template['subject_label'] ?? null) ? (string) $template['subject_label'] : $subjectKey;
+          $bodyLabel = is_string($template['body_label'] ?? null) ? (string) $template['body_label'] : $bodyKey;
+          $variables = is_array($template['variables'] ?? null) ? array_values(array_filter($template['variables'], 'is_string')) : [];
+          $preview = is_array($privateMailPreviews[$bodyKey] ?? null) ? $privateMailPreviews[$bodyKey] : [];
+          ?>
         <div class="admin-private-mail-template-pair">
           <div class="field">
-            <label for="private_mail_template_<?php echo $escape($template['subject_key']); ?>"><?php echo $escape($template['subject_label']); ?></label>
-            <input id="private_mail_template_<?php echo $escape($template['subject_key']); ?>" name="private_mail[templates][<?php echo $escape($template['subject_key']); ?>]" type="text" value="<?php echo $escape((string) ($privateMailTemplates[$template['subject_key']] ?? '')); ?>" />
+            <label for="private_mail_template_<?php echo $escape($subjectKey); ?>"><?php echo $escape($subjectLabel); ?></label>
+            <input id="private_mail_template_<?php echo $escape($subjectKey); ?>" name="private_mail[templates][<?php echo $escape($subjectKey); ?>]" type="text" value="<?php echo $escape((string) ($privateMailTemplates[$subjectKey] ?? '')); ?>" />
           </div>
           <div class="field">
-            <label for="private_mail_template_<?php echo $escape($template['body_key']); ?>"><?php echo $escape($template['body_label']); ?></label>
-            <textarea id="private_mail_template_<?php echo $escape($template['body_key']); ?>" name="private_mail[templates][<?php echo $escape($template['body_key']); ?>]" rows="4"><?php echo $escape((string) ($privateMailTemplates[$template['body_key']] ?? '')); ?></textarea>
+            <label for="private_mail_template_<?php echo $escape($bodyKey); ?>"><?php echo $escape($bodyLabel); ?></label>
+            <textarea id="private_mail_template_<?php echo $escape($bodyKey); ?>" name="private_mail[templates][<?php echo $escape($bodyKey); ?>]" rows="4"><?php echo $escape((string) ($privateMailTemplates[$bodyKey] ?? '')); ?></textarea>
+            <?php if ($variables !== []): ?>
+              <small>
+                <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_TEMPLATE_VARIABLES', 'Variables de ce message :')); ?>
+                <?php foreach ($variables as $variable): ?>
+                  <code>{{<?php echo $escape($variable); ?>}}</code>
+                <?php endforeach; ?>
+              </small>
+            <?php endif; ?>
+            <details class="admin-private-mail-preview">
+              <summary><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_PREVIEW_TITLE', 'Aperçu sans envoi')); ?></summary>
+              <p><strong><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_PREVIEW_SUBJECT', 'Sujet')); ?> :</strong> <?php echo $escape((string) ($preview['subject'] ?? '')); ?></p>
+              <pre><?php echo $escape((string) ($preview['body'] ?? '')); ?></pre>
+            </details>
           </div>
         </div>
       <?php endforeach; ?>

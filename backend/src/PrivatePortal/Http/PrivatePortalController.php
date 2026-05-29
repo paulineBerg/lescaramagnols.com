@@ -3421,7 +3421,7 @@ final class PrivatePortalController
             return false;
         }
 
-        $activationUrl = app_url(private_portal_url('activate') . '/' . rawurlencode($token));
+        $activationUrl = app_url(private_route_resolver()->canonicalPath('activate') . '/' . rawurlencode($token));
         $variables = [
             'activation_url' => $activationUrl,
             'email' => $email,
@@ -4631,7 +4631,7 @@ final class PrivatePortalController
 
     private function sendPasswordResetEmail(string $email, string $token): void
     {
-        $mailConfig = app_config('mail', []);
+        $mailConfig = app_config('private.mail', []);
         if (!is_array($mailConfig) || $mailConfig === []) {
             $this->logEvent('private.password_reset.email_failed', [
                 'identifier' => AppEventLogger::maskIdentifier($email),
@@ -4640,7 +4640,7 @@ final class PrivatePortalController
             return;
         }
 
-        if (!function_exists('send_notification_email')) {
+        if (!function_exists('send_private_email')) {
             $mailerPath = ROOT_PATH . '/core/mailer.php';
             if (is_file($mailerPath)) {
                 require_once $mailerPath;
@@ -4663,8 +4663,8 @@ final class PrivatePortalController
             ),
             $variables
         );
-        $sent = function_exists('send_notification_email')
-            ? send_notification_email(
+        $sent = function_exists('send_private_email')
+            ? send_private_email(
                 $email,
                 sanitize_text_field($subject, 180),
                 $this->plainTextToHtml($message)

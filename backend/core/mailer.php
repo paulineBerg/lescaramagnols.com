@@ -16,9 +16,18 @@ function send_notification_email(string $to, string $subject, string $message, a
         $mailer->send($to, $subject, $message, $attachments);
         return true;
     } catch (Throwable $e) {
-        error_log('[mailer] ' . $e->getMessage());
+        error_log('[mailer] ' . sanitize_mailer_error_message($e->getMessage()));
         return false;
     }
+}
+
+function sanitize_mailer_error_message(string $message): string
+{
+    $message = preg_replace('#(smtps?://)([^/@\\s:]+):([^/@\\s]+)@#i', '$1[redacted]:[redacted]@', $message) ?? $message;
+    $message = preg_replace('/([?&](?:password|passwd|token|secret|apikey|api_key)=)[^\\s&]+/i', '$1[redacted]', $message) ?? $message;
+    $message = preg_replace('/\\b(?:password|passwd|token|secret|apikey|api_key)\\s*[:=]\\s*[^\\s,;]+/i', '[redacted]', $message) ?? $message;
+
+    return trim($message) !== '' ? $message : '[redacted]';
 }
 
 /**
