@@ -491,6 +491,7 @@ Decision V2 :
 - Le BO admin `Espace prive > Email prive IMAP / SMTP` affiche le catalogue des modeles critiques, les variables communes, les variables propres a chaque email et un apercu sans envoi.
 - Les envois de reset utilisent la configuration SMTP privee et le helper `send_private_email()`.
 - Les erreurs SMTP restent neutres cote utilisateur ; le log technique redige les secrets, mots de passe, tokens et DSN sensibles avant journalisation.
+- En preproduction OVH, le SMTP prive garde la configuration admin `ssl0.ovh.net:465` en `ssl`. Si le reseau d'execution refuse les sockets SMTP sortantes OVH, le helper prive tente `587/tls`, puis les transports locaux `native mail()` et `sendmail` uniquement pour une erreur reseau ; une erreur d'authentification ne declenche pas ce fallback.
 
 Preuves V2 :
 

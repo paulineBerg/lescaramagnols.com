@@ -7,6 +7,7 @@ namespace Caramagnols\Tests\PrivatePortal;
 use Caramagnols\Admin\AdminSettingsService;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Logging\LoggerFactory;
+use Caramagnols\Mailer\Mailer;
 use PHPUnit\Framework\TestCase;
 
 final class PrivateTransactionalEmailTest extends TestCase
@@ -101,13 +102,62 @@ final class PrivateTransactionalEmailTest extends TestCase
         self::assertTrue(function_exists('sanitize_mailer_error_message'));
 
         $message = sanitize_mailer_error_message(
-            'SMTP failed for smtps://smtp-user:clear-secret@smtp.example.test:465?password=raw-password token=reset-token'
+            'SMTP failed for smtps://smtp-user:clear-secret@smtp.example.test:465?password=raw-password token=reset-token username member@example.com'
         );
 
         self::assertStringNotContainsString('clear-secret', $message);
         self::assertStringNotContainsString('raw-password', $message);
         self::assertStringNotContainsString('reset-token', $message);
+        self::assertStringNotContainsString('member@example.com', $message);
         self::assertStringContainsString('[redacted]', $message);
+        self::assertStringContainsString('[email redacted]', $message);
+    }
+
+    public function testPrivateMailDeliveryConfigsAddOvhNetworkFallbacks(): void
+    {
+        self::assertTrue(function_exists('private_mail_delivery_configs'));
+
+        $configs = private_mail_delivery_configs([
+            'smtp_host' => 'ssl0.ovh.net',
+            'smtp_port' => 465,
+            'smtp_encryption' => 'ssl',
+            'smtp_user' => 'ne-pas-repondre@lescaramagnols.com',
+            'smtp_password' => 'configured-secret',
+            'from_address' => 'ne-pas-repondre@lescaramagnols.com',
+            'from_name' => 'Les Caramagnols',
+            'reply_to' => 'private@lescaramagnols.com',
+        ]);
+
+        self::assertCount(4, $configs);
+        self::assertSame(465, $configs[0]['smtp_port']);
+        self::assertSame('ssl', $configs[0]['smtp_encryption']);
+        self::assertSame(587, $configs[1]['smtp_port']);
+        self::assertSame('tls', $configs[1]['smtp_encryption']);
+        self::assertSame('native', $configs[2]['transport'] ?? null);
+        self::assertSame('', $configs[2]['smtp_user'] ?? null);
+        self::assertSame('', $configs[2]['smtp_password'] ?? null);
+        self::assertSame('sendmail', $configs[3]['transport'] ?? null);
+        self::assertSame('', $configs[3]['smtp_user'] ?? null);
+        self::assertSame('', $configs[3]['smtp_password'] ?? null);
+    }
+
+    public function testPrivateMailFallbackIsLimitedToNetworkErrors(): void
+    {
+        self::assertTrue(private_mail_error_allows_transport_fallback('Connection refused'));
+        self::assertTrue(private_mail_error_allows_transport_fallback('Unable to connect to ssl0.ovh.net'));
+        self::assertFalse(private_mail_error_allows_transport_fallback('Failed to authenticate on SMTP server'));
+    }
+
+    public function testMailerAcceptsLocalSendmailTransport(): void
+    {
+        $mailer = new Mailer([
+            'transport' => 'sendmail',
+            'sendmail_command' => '/usr/sbin/sendmail -t -i',
+            'from_address' => 'no-reply@example.test',
+            'from_name' => 'Les Caramagnols',
+        ]);
+
+        self::assertInstanceOf(Mailer::class, $mailer);
     }
 
     public function testSecurityLoggerRedactsTokenAndPasswordFields(): void

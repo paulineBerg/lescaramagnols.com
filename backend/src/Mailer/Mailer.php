@@ -63,6 +63,20 @@ class Mailer
 
     private function buildDsn(array $config): string
     {
+        $transport = strtolower(trim((string) ($config['transport'] ?? 'smtp')));
+        if ($transport === 'sendmail') {
+            $command = trim((string) ($config['sendmail_command'] ?? ini_get('sendmail_path') ?: '/usr/sbin/sendmail -t -i'));
+            if ($command === '') {
+                $command = '/usr/sbin/sendmail -t -i';
+            }
+
+            return 'sendmail://default?command=' . rawurlencode($command);
+        }
+
+        if ($transport === 'native') {
+            return 'native://default';
+        }
+
         $host = $config['smtp_host'] ?? 'localhost';
         $port = $config['smtp_port'] ?? 25;
         $user = $config['smtp_user'] ?? '';
