@@ -13,6 +13,7 @@ final class PrivateDocumentStorage
     private const MAX_EXTENSION_LENGTH = 16;
     private const MAX_NAME_LENGTH = 255;
     private const DIRECTORY_PERMISSIONS = 0700;
+    private const FILE_PERMISSIONS = 0600;
     private const DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
     private const DEFAULT_ALLOWED_EXTENSIONS = [
@@ -45,6 +46,8 @@ final class PrivateDocumentStorage
     private readonly string $storageDirectoryPath;
     private readonly string $uploadsDirectoryPath;
     private readonly string $exportsDirectoryPath;
+    private readonly int $directoryPermissions;
+    private readonly int $filePermissions;
 
     /** @var array<int, string> */
     private array $allowedExtensions;
@@ -61,7 +64,9 @@ final class PrivateDocumentStorage
         int $maxUploadBytes = self::DEFAULT_MAX_UPLOAD_BYTES,
         array $allowedExtensions = self::DEFAULT_ALLOWED_EXTENSIONS,
         array $allowedMimeTypes = self::DEFAULT_ALLOWED_MIME_TYPES,
-        private readonly ?AppEventLogger $eventLogger = null
+        private readonly ?AppEventLogger $eventLogger = null,
+        int $directoryPermissions = self::DIRECTORY_PERMISSIONS,
+        int $filePermissions = self::FILE_PERMISSIONS
     ) {
         $storageRootPath = trim($storageRootPath);
         if ($storageRootPath === '') {
@@ -76,6 +81,16 @@ final class PrivateDocumentStorage
         $this->uploadsDirectoryPath = $this->normalizeDirectoryPath($this->storageDirectoryPath . '/' . $uploadsDirectory);
         $this->exportsDirectoryPath = $this->normalizeDirectoryPath($this->storageDirectoryPath . '/' . $exportsDirectory);
         $this->maxUploadBytes = max(1, $maxUploadBytes);
+        $this->directoryPermissions = $this->normalizePermissions(
+            $directoryPermissions,
+            self::DIRECTORY_PERMISSIONS,
+            0700
+        );
+        $this->filePermissions = $this->normalizePermissions(
+            $filePermissions,
+            self::FILE_PERMISSIONS,
+            0600
+        );
         $this->allowedExtensions = $this->normalizeExtensions($allowedExtensions);
         $this->allowedMimeTypes = $this->normalizeMimeTypes($allowedMimeTypes);
 
@@ -108,6 +123,12 @@ final class PrivateDocumentStorage
         $maxUploadBytes = is_numeric($documentConfig['max_upload_bytes'] ?? null)
             ? (int) $documentConfig['max_upload_bytes']
             : self::DEFAULT_MAX_UPLOAD_BYTES;
+        $directoryPermissions = is_numeric($documentConfig['directory_permissions'] ?? null)
+            ? (int) $documentConfig['directory_permissions']
+            : self::DIRECTORY_PERMISSIONS;
+        $filePermissions = is_numeric($documentConfig['file_permissions'] ?? null)
+            ? (int) $documentConfig['file_permissions']
+            : self::FILE_PERMISSIONS;
 
         return new self(
             $storageRootPath,
@@ -117,7 +138,9 @@ final class PrivateDocumentStorage
             $maxUploadBytes,
             is_array($documentConfig['allowed_extensions'] ?? null) ? $documentConfig['allowed_extensions'] : [],
             is_array($documentConfig['allowed_mime_types'] ?? null) ? $documentConfig['allowed_mime_types'] : [],
-            $eventLogger
+            $eventLogger,
+            $directoryPermissions,
+            $filePermissions
         );
     }
 
@@ -296,10 +319,15 @@ final class PrivateDocumentStorage
         }
 
         $targetDir = dirname($absolutePath);
-        if (!is_dir($targetDir) && !@mkdir($targetDir, self::DIRECTORY_PERMISSIONS, true) && !is_dir($targetDir)) {
+        if (!is_dir($targetDir) && !@mkdir($targetDir, $this->directoryPermissions, true) && !is_dir($targetDir)) {
             $this->uploadError = 'storage_unavailable';
             return null;
         }
+        $targetParentDir = dirname($targetDir);
+        if (str_starts_with($targetParentDir, $this->uploadsDirectoryPath)) {
+            @chmod($targetParentDir, $this->directoryPermissions);
+        }
+        @chmod($targetDir, $this->directoryPermissions);
 
         $moved = false;
         if (is_uploaded_file($tmpPath)) {
@@ -315,7 +343,7 @@ final class PrivateDocumentStorage
             return null;
         }
 
-        @chmod($absolutePath, 0600);
+        @chmod($absolutePath, $this->filePermissions);
         $this->uploadError = null;
         $this->logEvent('private.documents.uploaded', ['document_id' => $documentId, 'size_bytes' => $sizeBytes]);
 
@@ -374,21 +402,26 @@ final class PrivateDocumentStorage
 
     private function ensureStorageDirectories(): void
     {
-        if (!is_dir($this->storageDirectoryPath) && !@mkdir($this->storageDirectoryPath, self::DIRECTORY_PERMISSIONS, true) && !is_dir($this->storageDirectoryPath)) {
+        if (!is_dir($this->storageDirectoryPath) && !@mkdir($this->storageDirectoryPath, $this->directoryPermissions, true) && !is_dir($this->storageDirectoryPath)) {
             return;
         }
 
-        if (!is_dir($this->uploadsDirectoryPath) && !@mkdir($this->uploadsDirectoryPath, self::DIRECTORY_PERMISSIONS, true) && !is_dir($this->uploadsDirectoryPath)) {
+        if (!is_dir($this->uploadsDirectoryPath) && !@mkdir($this->uploadsDirectoryPath, $this->directoryPermissions, true) && !is_dir($this->uploadsDirectoryPath)) {
             return;
         }
 
-        if (!is_dir($this->exportsDirectoryPath) && !@mkdir($this->exportsDirectoryPath, self::DIRECTORY_PERMISSIONS, true) && !is_dir($this->exportsDirectoryPath)) {
+        if (!is_dir($this->exportsDirectoryPath) && !@mkdir($this->exportsDirectoryPath, $this->directoryPermissions, true) && !is_dir($this->exportsDirectoryPath)) {
             return;
         }
 
-        @chmod($this->storageDirectoryPath, self::DIRECTORY_PERMISSIONS);
-        @chmod($this->uploadsDirectoryPath, self::DIRECTORY_PERMISSIONS);
-        @chmod($this->exportsDirectoryPath, self::DIRECTORY_PERMISSIONS);
+        @chmod($this->storageDirectoryPath, $this->directoryPermissions);
+        @chmod($this->uploadsDirectoryPath, $this->directoryPermissions);
+        @chmod($this->exportsDirectoryPath, $this->directoryPermissions);
+    }
+
+    private function normalizePermissions(int $permissions, int $default, int $required): int
+    {
+        return ($permissions & $required) === $required ? $permissions : $default;
     }
 
     private function normalizeDirectoryPath(string $path): string

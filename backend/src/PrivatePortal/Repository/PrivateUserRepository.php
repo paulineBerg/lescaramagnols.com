@@ -622,7 +622,11 @@ final class PrivateUserRepository
                 'id' => $userId,
             ]);
 
-            return $statement->rowCount() > 0;
+            if ($statement->rowCount() > 0) {
+                return true;
+            }
+
+            return $this->findById($userId) !== null;
         } catch (\Throwable) {
             return false;
         }
@@ -648,7 +652,14 @@ final class PrivateUserRepository
                 'id' => $userId,
             ]);
 
-            return $statement->rowCount() > 0;
+            if ($statement->rowCount() > 0) {
+                return true;
+            }
+
+            $current = $this->findById($userId);
+
+            return is_array($current)
+                && $this->normalizeStatus((string) ($current['status'] ?? '')) === $this->normalizeStatus($status);
         } catch (\Throwable) {
             return false;
         }

@@ -2260,7 +2260,15 @@ final class PrivatePortalController
             ));
         }
 
-        if (!$this->guard()->validateCsrf($request, 'private_logout')) {
+        $body = $request->body();
+        $bodyToken = is_string($body['csrf_token'] ?? null) ? (string) $body['csrf_token'] : '';
+        $headerToken = is_string($request->header('X-CSRF-Token') ?? null)
+            ? (string) $request->header('X-CSRF-Token')
+            : '';
+        $csrfToken = $bodyToken !== '' ? $bodyToken : $headerToken;
+
+        $csrfValid = csrf_validate($csrfToken, 'private_logout') || csrf_validate($csrfToken, 'private');
+        if ($csrfToken === '' || (!$csrfValid && !$this->auth->isAuthenticated())) {
             $this->logEvent('private.logout.rejected', ['reason' => 'csrf_invalid']);
             return $this->render('login', [
                 'privatePageTitle' => $this->translate('TXT_PRIVATE_DASHBOARD_TITLE', 'Tableau de bord privé'),

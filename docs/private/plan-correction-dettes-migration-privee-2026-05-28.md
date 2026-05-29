@@ -31,7 +31,7 @@ Derniere mise a jour : 2026-05-29.
 | Phase | Statut | Lecture rapide |
 |---|---|---|
 | C0 - Gate preproduction | En cours | Socle preprod deploye, headers OK, runbook cree. Reste a signer les scenarios C1/C2/C3. |
-| C1 - Recette manuelle securite privee | A faire | Tests automatises verts, recette manuelle a executer sur la vraie preprod. |
+| C1 - Recette manuelle securite privee | Fait | Recette manuelle executee sur la vraie preprod, preuve C1 archivee. |
 | C2 - Suppression compte suspendu et cron J+20/J+30 | A faire | Flux sensible a jouer bout en bout en preprod. |
 | C3 - Restauration fichier et base | A faire | Backup/verify/restore dry-run a prouver en preprod. |
 | C4 - Durcissement CSP | A faire | Headers renforces, mais `style-src 'unsafe-inline'` reste a retirer. |
@@ -98,36 +98,38 @@ Checklist de suivi :
 
 - [x] Couverture automatisee C1/C2/C3 relancee localement (`48 tests`, `432 assertions`).
 - [x] Preprod joignable en HTTP 200 apres correction du routage OVH.
-- [ ] Creer un compte prive de test dedie sur preprod.
-- [ ] Executer la recette login/logout/expiration.
-- [ ] Executer le refus CSRF.
-- [ ] Executer le cas compte suspendu.
-- [ ] Executer le cas permission module retiree.
-- [ ] Executer les cas reset password.
-- [ ] Executer les cas fichier prive sans session et sans permission.
-- [ ] Ajouter captures/logs horodates au runbook.
+- [x] Creer un compte prive de test dedie sur preprod.
+- [x] Executer la recette login/logout/expiration.
+- [x] Executer le refus CSRF.
+- [x] Executer le cas compte suspendu.
+- [x] Executer le cas permission module retiree.
+- [x] Executer les cas reset password.
+- [x] Executer les cas fichier prive sans session et sans permission.
+- [x] Ajouter captures/logs horodates au runbook.
 
 Scenarios :
 
-- [ ] login, logout, expiration de session ;
-- [ ] refus CSRF sur formulaire prive ;
-- [ ] compte suspendu ;
-- [ ] permission module retiree ;
-- [ ] reset password avec lien valide, lien expire et lien deja consomme ;
-- [ ] acces direct fichier prive sans session ;
-- [ ] acces fichier prive avec session mais sans permission `documents`.
+- [x] login, logout, expiration de session ;
+- [x] refus CSRF sur formulaire prive ;
+- [x] compte suspendu ;
+- [x] permission module retiree ;
+- [x] reset password avec lien valide, lien expire et lien deja consomme ;
+- [x] acces direct fichier prive sans session ;
+- [x] acces fichier prive avec session mais sans permission `documents`.
 
 Livrables :
 
-- [ ] runbook rempli ;
-- [ ] captures ou logs d'evenements sensibles ;
-- [ ] anomalies classees en `bloquant`, `majeur`, `mineur`.
+- [x] runbook rempli ;
+- [x] captures ou logs d'evenements sensibles ;
+- [x] anomalies classees en `bloquant`, `majeur`, `mineur`.
 
 Critere d'acceptation :
 
-- [ ] aucun scenario critique ne donne acces a une ressource interdite ;
-- [ ] les refus retournent `401`, `403` ou redirection login selon le contexte ;
-- [ ] les logs ne contiennent ni mot de passe, ni token, ni contenu de document.
+- [x] aucun scenario critique ne donne acces a une ressource interdite ;
+- [x] les refus retournent `401`, `403` ou redirection login selon le contexte ;
+- [x] les logs ne contiennent ni mot de passe, ni token, ni contenu de document.
+
+Note de recette : une anomalie d'exploitation preprod distincte a ete observee sur l'upload HTTP documentaire (`storage_unavailable`). Elle ne valide pas un acces interdit et ne bloque pas C1, mais elle doit etre reprise dans les phases d'exploitation documentaire/restauration avant go-live.
 
 ## 5. Phase C2 - Suppression compte suspendu et cron J+20/J+30
 

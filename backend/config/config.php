@@ -509,6 +509,28 @@ if ($privateDocumentMaxUploadBytes < 1) {
     $privateDocumentMaxUploadBytes = 20 * 1024 * 1024;
 }
 
+$parsePrivateDocumentPermission = static function (mixed $value, int $default, int $required): int {
+    $rawValue = trim((string) $value);
+    if ($rawValue === '' || preg_match('/\A0?[0-7]{3,4}\z/', $rawValue) !== 1) {
+        return $default;
+    }
+
+    $permission = octdec($rawValue);
+
+    return ($permission & $required) === $required ? $permission : $default;
+};
+
+$privateDocumentDirectoryPermissions = $parsePrivateDocumentPermission(
+    env('PRIVATE_DOCUMENT_DIRECTORY_PERMISSIONS', '0700'),
+    0700,
+    0700
+);
+$privateDocumentFilePermissions = $parsePrivateDocumentPermission(
+    env('PRIVATE_DOCUMENT_FILE_PERMISSIONS', '0600'),
+    0600,
+    0600
+);
+
 $privateDocumentAllowedExtensions = $normalizePrivateDocumentExtensions(
     env(
         'PRIVATE_DOCUMENT_ALLOWED_EXTENSIONS',
@@ -640,6 +662,8 @@ $appConfig = [
             'uploads_directory' => $privateDocumentUploadsDirectory,
             'exports_directory' => $privateDocumentExportsDirectory,
             'max_upload_bytes' => $privateDocumentMaxUploadBytes,
+            'directory_permissions' => $privateDocumentDirectoryPermissions,
+            'file_permissions' => $privateDocumentFilePermissions,
             'allowed_extensions' => $privateDocumentAllowedExtensions,
             'allowed_mime_types' => $privateDocumentAllowedMimeTypes,
         ],

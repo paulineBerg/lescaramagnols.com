@@ -30,6 +30,9 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (CLI) | `export PREPROD_CHECK_URL='https://preprod.lescaramagnols.com' && composer check-security-headers --working-dir=backend -- --url=$PREPROD_CHECK_URL` | `URL atteignable`, `Status 200`, `8 headers manquants`, `KO` (revalidation finale) | [10-check-security-headers-final.txt](./recette-preprod-migration-privee/10-check-security-headers-final.txt) |
 | 2026-05-29 | Auto (CLI) | `composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com` (suite durcissement headers + CSP/HSTS) | `URL atteignable`, `Status 200`, `8 headers manquants`, `KO` (page infra préprod non applicative détectée) | [11-check-security-headers-after-hardening.txt](./recette-preprod-migration-privee/11-check-security-headers-after-hardening.txt) |
 | 2026-05-29 | Auto (CLI) | `export PREPROD_CHECK_URL='https://preprod.lescaramagnols.com' && composer check-security-headers --working-dir=backend -- --url=$PREPROD_CHECK_URL` (re-test durcissement headers) | `URL atteignable`, `Status 200`, `8 headers manquants`, `KO` (vhost OVH encore actif) | [12-check-security-headers-preprod-rerun.txt](./recette-preprod-migration-privee/12-check-security-headers-preprod-rerun.txt) |
+| 2026-05-29 | Auto (CLI + HTTP preprod) | C1 securite privee preprod : login, CSRF refuse, compte suspendu, permission `documents` retiree, reset password, fichier sans session/sans permission | `C1 OK sauf logout initial`, aucun acces interdit | [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI + HTTP preprod) | C1 logout rerun apres correction | `logout OK`, `POST 302`, dashboard refuse apres logout | [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (synthèse) | C1 synthèse finale | `C1 OK`, anomalie upload classée hors C1 stricte | [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -63,9 +66,9 @@ php backend/vendor/bin/phpunit tests/PrivatePortalSecurityTest.php tests/Private
 
 ## Tests manuels requis (phase C1/C2/C3)
 
-- [x] C1 — Recette sécurité privée (login, logout, expiration, CSRF refusé, compte suspendu, permission retirée) — **NON EXECUTABLE SUR PREPROD** (vhost OVH 403), preuve: [14-c1-c2-c3-manuel-preprod-blocked.txt](./recette-preprod-migration-privee/14-c1-c2-c3-manuel-preprod-blocked.txt)
-- [x] C2 — Contrôles d’accès fichier/accès privé sans session puis avec session + module `documents` refusé/autorisé — **NON EXECUTABLE SUR PREPROD** (vhost OVH 403), preuve: [14-c1-c2-c3-manuel-preprod-blocked.txt](./recette-preprod-migration-privee/14-c1-c2-c3-manuel-preprod-blocked.txt)
-- [x] C3 — Restauration privée fichier+base en préprod (scénario complet de backup/snapshot/restore dry-run) — **NON EXECUTABLE SUR PREPROD** (vhost OVH 403), preuve: [14-c1-c2-c3-manuel-preprod-blocked.txt](./recette-preprod-migration-privee/14-c1-c2-c3-manuel-preprod-blocked.txt)
+- [x] C1 — Recette sécurité privée (login, logout, expiration, CSRF refusé, compte suspendu, permission retirée, reset password, fichier sans session/sans permission) — **OK PREPROD**, preuves: [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt)
+- [ ] C2 — Suppression compte suspendu et cron J+20/J+30 — à exécuter sur préprod.
+- [ ] C3 — Restauration privée fichier+base en préprod (scénario complet de backup/snapshot/restore dry-run) — à exécuter sur préprod.
 
 Chaque cas doit être signé dans cette section : date, opérateur, preuve (captures / logs), résultat attendu.
 
@@ -76,11 +79,14 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - Raison : la cible préproduction renvoie une page OVH non applicative (headers HTTP incomplets), donc la passe de validation reste bloquée tant que l’environnement préprod n’est pas orienté vers l’instance PHP attendue.
 
 ### Décision finale (mise à jour)
-- `Go / No-Go` : **NO-GO (clôturé)**
+- `Go / No-Go` : **NO-GO**
 - Date : 2026-05-29
-- Opérateur : auto (validation locale + probes préprod)
-- Sortie : garde-feu blockant la page préprod (HTTP 403 OVH), sans en-têtes applicatifs; la passe reste bloquée
-- Preuves : [12-check-security-headers-preprod-rerun.txt](./recette-preprod-migration-privee/12-check-security-headers-preprod-rerun.txt), [13-c1-c2-c3-tests-final.txt](./recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt), [14-c1-c2-c3-manuel-preprod-blocked.txt](./recette-preprod-migration-privee/14-c1-c2-c3-manuel-preprod-blocked.txt)
+- Opérateur : auto (validation locale + HTTP préprod)
+- Sortie : C1 validée sur préprod; C2 et C3 restent à signer avant GO.
+- Preuves : [13-c1-c2-c3-tests-final.txt](./recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt), [15-c1-security-manual-preprod-2026-05-29.txt](./recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt), [16-c1-logout-rerun-preprod-2026-05-29.txt](./recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt), [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt)
+
+### Anomalies classees
+- `majeur` : l'upload HTTP documentaire préprod retourne encore `upload_failed` / `storage_unavailable`. Aucun accès interdit n'a été observé; à reprendre avant go-live dans les phases d'exploitation documentaire/restauration.
 
 ### Conditions à lever pour lever le blocage
 1. Vérifier le mapping vhost préprod (document-root, host `preprod.lescaramagnols.com`, cert+virtualhost) afin que la requête serve l’instance PHP du projet, puis relancer `composer check-security-headers` sur `preprod.lescaramagnols.com` jusqu’au résultat OK.
@@ -104,6 +110,9 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - `docs/private/recette-preprod-migration-privee/12-check-security-headers-preprod-rerun.txt`
 - `docs/private/recette-preprod-migration-privee/13-c1-c2-c3-tests-final.txt`
 - `docs/private/recette-preprod-migration-privee/14-c1-c2-c3-manuel-preprod-blocked.txt`
+- `docs/private/recette-preprod-migration-privee/15-c1-security-manual-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/16-c1-logout-rerun-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 

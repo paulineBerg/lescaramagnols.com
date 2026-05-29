@@ -70,6 +70,36 @@ final class PrivatePortalStorageTest extends TestCase
         }
     }
 
+    public function testDocumentStorageHonorsConfiguredPermissions(): void
+    {
+        global $appConfig;
+        $appConfig['private']['documents']['directory_permissions'] = 0775;
+        $appConfig['private']['documents']['file_permissions'] = 0664;
+
+        $storage = PrivateDocumentStorage::fromAppConfig();
+        $tmpPath = tempnam(sys_get_temp_dir(), 'private-permissions-');
+        $this->assertIsString($tmpPath);
+        file_put_contents($tmpPath, 'permission-check');
+
+        $metadata = $storage->validateUploadedFile([
+            'name' => 'permission-check.txt',
+            'tmp_name' => $tmpPath,
+            'size' => 16,
+            'error' => UPLOAD_ERR_OK,
+            'type' => 'text/plain',
+        ]);
+        $this->assertIsArray($metadata);
+
+        $stored = $storage->storeUploadedFile($metadata, 'permission-check');
+        $this->assertIsArray($stored);
+
+        $absolutePath = $storage->absolutePath((string) $stored['storagePath']);
+        $this->assertIsString($absolutePath);
+        $this->assertFileExists($absolutePath);
+        $this->assertSame('0775', substr(sprintf('%o', fileperms(dirname($absolutePath))), -4));
+        $this->assertSame('0664', substr(sprintf('%o', fileperms($absolutePath)), -4));
+    }
+
     public function testFilesEndpointReturnsDocumentWhenUserHasDocumentsModule(): void
     {
         $database = $this->editorialSqlDatabase();

@@ -1,0 +1,16 @@
+# C1 logout rerun preprod
+
+Date: 2026-05-29T10:24:20+02:00
+Compte: preprod-c1-security@lescaramagnols.com
+User ID: 1
+Secrets: masques
+
+| Scenario | Attendu | Observe | Resultat |
+|---|---|---|---|
+| Login valide | 302 | 302 | OK |
+| Dashboard authentifie | 200 | 200 | OK |
+| CSRF logout present | present | present | OK |
+| POST logout | 302 | 302 | OK |
+| Redirection logout | /private/login | /private/login | OK |
+| Dashboard apres logout | 302 | 302 | OK |
+| Redirection apres logout | /private/login | /private/login | OK |

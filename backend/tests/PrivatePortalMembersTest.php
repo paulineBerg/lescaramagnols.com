@@ -82,6 +82,20 @@ final class PrivatePortalMembersTest extends TestCase
         $this->assertTrue(password_verify('ResetPassword1!', (string) ($reset['password_hash'] ?? '')));
     }
 
+    public function testPasswordAndStatusNoopUpdatesRemainSuccessful(): void
+    {
+        $repository = new PrivateUserRepository($this->editorialSqlDatabase());
+        $passwordHash = password_hash('TempPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $repository->create('noop@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $this->assertTrue($repository->setPasswordHash($userId, $passwordHash));
+        $this->assertTrue($repository->setPasswordHash($userId, $passwordHash));
+        $this->assertTrue($repository->updateStatus($userId, 'active'));
+        $this->assertTrue($repository->updateStatus($userId, 'active'));
+    }
+
     public function testInviteAndPasswordResetTokensAreSingleUse(): void
     {
         $database = $this->editorialSqlDatabase();
