@@ -9,6 +9,8 @@ use PDO;
 
 final class PrivateBackupService
 {
+    private const JSON_FLAGS = JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
+
     /** @var array<int, string> */
     private const DEFAULT_TABLES = [
         'private_users',
@@ -72,14 +74,15 @@ final class PrivateBackupService
             return ['success' => false, 'error' => 'target_unavailable'];
         }
 
+        $files = $this->fileManifest($privateFilesRoot, true);
         $payload = [
             'version' => 1,
             'generatedAt' => date('c'),
             'tables' => $this->tableDump(),
-            'files' => $this->fileManifest($privateFilesRoot),
+            'files' => $this->publicFileManifest($files),
         ];
         $payload['summary'] = $this->summaryFromPayload($payload);
-        $encoded = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $encoded = json_encode($payload, self::JSON_FLAGS);
         if (!is_string($encoded)) {
             return ['success' => false, 'error' => 'json_failed'];
         }
@@ -92,13 +95,20 @@ final class PrivateBackupService
         }
         @chmod($path, 0600);
 
-        return [
+        $archivePath = $this->writeBackupZip($path, $encoded, $files);
+        $result = [
             'success' => true,
             'path' => $path,
             'checksum' => $checksum,
             'tableCount' => count($payload['tables']),
             'fileCount' => count($payload['files']),
         ];
+        if ($archivePath !== null) {
+            $result['archivePath'] = $archivePath;
+            $result['archiveChecksum'] = hash_file('sha256', $archivePath) ?: '';
+        }
+
+        return $result;
     }
 
     /**
@@ -106,26 +116,40 @@ final class PrivateBackupService
      */
     public function verifyBackup(string $path): array
     {
-        $path = trim($path);
-        if ($path === '' || !is_file($path) || !is_readable($path)) {
-            return ['valid' => false, 'error' => 'backup_not_readable'];
+        $loaded = $this->loadBackupPayload($path);
+        if (empty($loaded['success'])) {
+            return ['valid' => false, 'error' => $loaded['error'] ?? 'backup_invalid'];
         }
 
-        $content = file_get_contents($path);
-        if (!is_string($content) || trim($content) === '') {
-            return ['valid' => false, 'error' => 'backup_empty'];
+        $payload = is_array($loaded['payload'] ?? null) ? $loaded['payload'] : [];
+        $structure = $this->validateBackupPayload($payload);
+        if (empty($structure['valid'])) {
+            return ['valid' => false, 'error' => $structure['error'] ?? 'backup_invalid'];
         }
 
-        $decoded = json_decode($content, true);
-        if (!is_array($decoded) || !is_array($decoded['tables'] ?? null) || !is_array($decoded['files'] ?? null)) {
-            return ['valid' => false, 'error' => 'backup_invalid'];
+        $archive = $this->verifyBackupArchive(
+            is_string($loaded['archivePath'] ?? null) ? (string) $loaded['archivePath'] : null,
+            $payload
+        );
+        if (empty($archive['valid'])) {
+            return ['valid' => false, 'error' => $archive['error'] ?? 'backup_archive_invalid'];
         }
 
         return [
             'valid' => true,
-            'checksum' => hash('sha256', $content),
-            'tableCount' => count($decoded['tables']),
-            'fileCount' => count($decoded['files']),
+            'format' => $loaded['format'] ?? 'json',
+            'path' => $loaded['path'] ?? $path,
+            'checksum' => hash('sha256', (string) ($loaded['content'] ?? '')),
+            'payloadChecksum' => hash('sha256', (string) ($loaded['payloadContent'] ?? '')),
+            'tableCount' => $structure['tableCount'],
+            'rowCount' => $structure['rowCount'],
+            'fileCount' => $structure['fileCount'],
+            'archiveAvailable' => $archive['archiveAvailable'],
+            'archivePath' => $archive['archivePath'],
+            'archiveChecksum' => $archive['archiveChecksum'],
+            'storedFileCount' => $archive['storedFileCount'],
+            'missingArchiveFiles' => $archive['missingArchiveFiles'],
+            'hashMismatchFiles' => $archive['hashMismatchFiles'],
         ];
     }
 
@@ -140,16 +164,30 @@ final class PrivateBackupService
         }
 
         if (!$dryRun) {
-            return ['success' => false, 'dryRun' => false, 'error' => 'unsafe_restore_requires_manual_runbook'];
+            return [
+                'success' => false,
+                'dryRun' => false,
+                'error' => 'unsafe_restore_requires_manual_runbook',
+                'requiredConditions' => $this->realRestoreConditions(),
+            ];
         }
 
-        return [
-            'success' => true,
+        $loaded = $this->loadBackupPayload($path);
+        $payload = is_array($loaded['payload'] ?? null) ? $loaded['payload'] : [];
+        $analysis = $this->dryRunRestoreAnalysis($payload, $verification);
+        $sql = is_array($analysis['sql'] ?? null) ? $analysis['sql'] : [];
+        $files = is_array($analysis['files'] ?? null) ? $analysis['files'] : [];
+        $canDryRunRestore = ($sql['missingTables'] ?? []) === []
+            && ($sql['unknownColumns'] ?? []) === []
+            && (bool) ($files['restorable'] ?? false);
+
+        return array_merge([
+            'success' => $canDryRunRestore,
             'dryRun' => true,
             'verified' => true,
             'tableCount' => $verification['tableCount'] ?? 0,
             'fileCount' => $verification['fileCount'] ?? 0,
-        ];
+        ], $analysis);
     }
 
     /**
@@ -270,7 +308,7 @@ final class PrivateBackupService
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function fileManifest(string $root): array
+    private function fileManifest(string $root, bool $includeAbsolutePath = false): array
     {
         $root = rtrim(str_replace('\\', '/', trim($root)), '/');
         if ($root === '' || !is_dir($root)) {
@@ -288,8 +326,9 @@ final class PrivateBackupService
             $path = str_replace('\\', '/', $file->getPathname());
             $relative = ltrim(substr($path, strlen($root)), '/');
             $mtime = $file->getMTime();
-            $manifest[] = [
+            $entry = [
                 'path' => $relative,
+                'archivePath' => 'files/' . $this->backupArchivePath($relative),
                 'size' => $file->getSize(),
                 'mtime' => $mtime,
                 'mtimeIso' => date('c', $mtime),
@@ -297,6 +336,10 @@ final class PrivateBackupService
                 'group' => (string) $file->getGroup(),
                 'sha256' => hash_file('sha256', $path) ?: '',
             ];
+            if ($includeAbsolutePath) {
+                $entry['absolutePath'] = $path;
+            }
+            $manifest[] = $entry;
         }
 
         usort(
@@ -305,6 +348,510 @@ final class PrivateBackupService
         );
 
         return $manifest;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $files
+     */
+    private function writeBackupZip(string $jsonPath, string $json, array $files): ?string
+    {
+        if (!class_exists(\ZipArchive::class)) {
+            return null;
+        }
+
+        $zipPath = preg_replace('/\.json\z/i', '.zip', $jsonPath) ?? '';
+        if ($zipPath === '') {
+            return null;
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
+            return null;
+        }
+
+        $publicFiles = $this->publicFileManifest($files);
+        $storedFileCount = 0;
+        foreach ($files as $file) {
+            $absolutePath = is_string($file['absolutePath'] ?? null) ? (string) $file['absolutePath'] : '';
+            $archivePath = is_string($file['archivePath'] ?? null) ? (string) $file['archivePath'] : '';
+            if ($absolutePath === '' || $archivePath === '' || !is_file($absolutePath) || !is_readable($absolutePath)) {
+                continue;
+            }
+
+            if ($zip->addFile($absolutePath, $archivePath)) {
+                ++$storedFileCount;
+            }
+        }
+
+        $manifestJson = json_encode(
+            [
+                'generatedAt' => date('c'),
+                'fileCount' => count($publicFiles),
+                'storedFileCount' => $storedFileCount,
+                'files' => $publicFiles,
+            ],
+            self::JSON_FLAGS
+        );
+
+        $zip->addFromString('backup.json', $json);
+        $zip->addFromString('manifest.json', is_string($manifestJson) ? $manifestJson : '{"files":[]}');
+        $zip->close();
+
+        @chmod($zipPath, 0600);
+
+        return is_file($zipPath) ? $zipPath : null;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $files
+     * @return array<int, array<string, mixed>>
+     */
+    private function publicFileManifest(array $files): array
+    {
+        return array_map(
+            static function (array $file): array {
+                unset($file['absolutePath']);
+
+                return $file;
+            },
+            $files
+        );
+    }
+
+    private function backupArchivePath(string $path): string
+    {
+        $parts = array_filter(explode('/', str_replace('\\', '/', $path)), static fn (string $part): bool => $part !== '');
+        $safeParts = array_map(
+            static function (string $part): string {
+                $part = preg_replace('/[^A-Za-z0-9._-]+/', '-', $part) ?? '';
+                $part = trim($part, '.-');
+
+                return $part !== '' ? substr($part, 0, 120) : 'fichier';
+            },
+            $parts
+        );
+
+        return implode('/', $safeParts !== [] ? $safeParts : ['fichier']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function loadBackupPayload(string $path): array
+    {
+        $path = trim($path);
+        if ($path === '' || !is_file($path) || !is_readable($path)) {
+            return ['success' => false, 'error' => 'backup_not_readable'];
+        }
+
+        $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
+        if ($extension === 'zip') {
+            if (!class_exists(\ZipArchive::class)) {
+                return ['success' => false, 'error' => 'zip_extension_unavailable'];
+            }
+
+            $zip = new \ZipArchive();
+            if ($zip->open($path) !== true) {
+                return ['success' => false, 'error' => 'zip_unreadable'];
+            }
+            $content = $zip->getFromName('backup.json');
+            $zip->close();
+            if (!is_string($content) || trim($content) === '') {
+                return ['success' => false, 'error' => 'zip_backup_json_missing'];
+            }
+
+            $payload = json_decode($content, true);
+
+            return [
+                'success' => is_array($payload),
+                'error' => is_array($payload) ? null : 'backup_invalid',
+                'format' => 'zip',
+                'path' => $path,
+                'archivePath' => $path,
+                'content' => (string) file_get_contents($path),
+                'payloadContent' => $content,
+                'payload' => is_array($payload) ? $payload : [],
+            ];
+        }
+
+        $content = file_get_contents($path);
+        if (!is_string($content) || trim($content) === '') {
+            return ['success' => false, 'error' => 'backup_empty'];
+        }
+
+        $payload = json_decode($content, true);
+        $zipPath = preg_replace('/\.json\z/i', '.zip', $path) ?? '';
+
+        return [
+            'success' => is_array($payload),
+            'error' => is_array($payload) ? null : 'backup_invalid',
+            'format' => 'json',
+            'path' => $path,
+            'archivePath' => $zipPath !== '' && is_file($zipPath) && is_readable($zipPath) ? $zipPath : null,
+            'content' => $content,
+            'payloadContent' => $content,
+            'payload' => is_array($payload) ? $payload : [],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function validateBackupPayload(array $payload): array
+    {
+        $tables = is_array($payload['tables'] ?? null) ? $payload['tables'] : null;
+        $files = is_array($payload['files'] ?? null) ? $payload['files'] : null;
+        if ($tables === null || $files === null) {
+            return ['valid' => false, 'error' => 'backup_invalid'];
+        }
+
+        $rowCount = 0;
+        foreach ($tables as $table => $rows) {
+            if (!is_string($table) || !is_array($rows)) {
+                return ['valid' => false, 'error' => 'backup_tables_invalid'];
+            }
+            $rowCount += count($rows);
+        }
+
+        foreach ($files as $file) {
+            if (!is_array($file)) {
+                return ['valid' => false, 'error' => 'backup_files_invalid'];
+            }
+        }
+
+        return [
+            'valid' => true,
+            'tableCount' => count($tables),
+            'rowCount' => $rowCount,
+            'fileCount' => count($files),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function verifyBackupArchive(?string $archivePath, array $payload): array
+    {
+        $result = [
+            'valid' => true,
+            'archiveAvailable' => false,
+            'archivePath' => null,
+            'archiveChecksum' => null,
+            'storedFileCount' => 0,
+            'missingArchiveFiles' => [],
+            'hashMismatchFiles' => [],
+        ];
+
+        if ($archivePath === null || $archivePath === '' || !is_file($archivePath)) {
+            return $result;
+        }
+
+        if (!class_exists(\ZipArchive::class)) {
+            return ['valid' => false, 'error' => 'zip_extension_unavailable'] + $result;
+        }
+
+        $zip = new \ZipArchive();
+        if ($zip->open($archivePath) !== true) {
+            return ['valid' => false, 'error' => 'zip_unreadable'] + $result;
+        }
+
+        if ($zip->locateName('backup.json') === false || $zip->locateName('manifest.json') === false) {
+            $zip->close();
+
+            return ['valid' => false, 'error' => 'zip_structure_invalid'] + $result;
+        }
+
+        $backupJson = $zip->getFromName('backup.json');
+        $backupPayload = is_string($backupJson) ? json_decode($backupJson, true) : null;
+        $payloadForComparison = $payload;
+        if (isset($payloadForComparison['archive'])) {
+            unset($payloadForComparison['archive']);
+        }
+        if (is_array($backupPayload) && isset($backupPayload['archive'])) {
+            unset($backupPayload['archive']);
+        }
+        $payloadJson = json_encode($payloadForComparison, self::JSON_FLAGS);
+        $backupPayloadJson = json_encode($backupPayload, self::JSON_FLAGS);
+        if (!is_string($backupPayloadJson) || !is_string($payloadJson) || hash('sha256', $backupPayloadJson) !== hash('sha256', $payloadJson)) {
+            $zip->close();
+
+            return ['valid' => false, 'error' => 'zip_backup_json_mismatch'] + $result;
+        }
+
+        $files = is_array($payload['files'] ?? null) ? $payload['files'] : [];
+        $missing = [];
+        $mismatches = [];
+        $stored = 0;
+        foreach ($files as $file) {
+            if (!is_array($file)) {
+                continue;
+            }
+
+            $archiveFilePath = is_string($file['archivePath'] ?? null) ? (string) $file['archivePath'] : '';
+            if ($archiveFilePath === '') {
+                continue;
+            }
+
+            if ($zip->locateName($archiveFilePath) === false) {
+                $missing[] = $archiveFilePath;
+                continue;
+            }
+
+            ++$stored;
+            $expectedHash = is_string($file['sha256'] ?? null) ? (string) $file['sha256'] : '';
+            if ($expectedHash === '') {
+                continue;
+            }
+
+            $content = $zip->getFromName($archiveFilePath);
+            if (!is_string($content) || hash('sha256', $content) !== $expectedHash) {
+                $mismatches[] = $archiveFilePath;
+            }
+        }
+        $zip->close();
+
+        return [
+            'valid' => $missing === [] && $mismatches === [],
+            'error' => $missing !== [] ? 'zip_file_missing' : ($mismatches !== [] ? 'zip_file_hash_mismatch' : null),
+            'archiveAvailable' => true,
+            'archivePath' => $archivePath,
+            'archiveChecksum' => hash_file('sha256', $archivePath) ?: '',
+            'storedFileCount' => $stored,
+            'missingArchiveFiles' => array_slice($missing, 0, 20),
+            'hashMismatchFiles' => array_slice($mismatches, 0, 20),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param array<string, mixed> $verification
+     * @return array<string, mixed>
+     */
+    private function dryRunRestoreAnalysis(array $payload, array $verification): array
+    {
+        $tables = is_array($payload['tables'] ?? null) ? $payload['tables'] : [];
+        $missingTables = [];
+        $unknownColumns = [];
+        $conflicts = [];
+        $rowCount = 0;
+        $checkedRows = 0;
+
+        $this->database->ensureReady();
+        foreach ($tables as $table => $rows) {
+            if (!is_string($table) || !is_array($rows)) {
+                continue;
+            }
+            $rowCount += count($rows);
+            $columns = $this->tableColumns($table);
+            if ($columns === []) {
+                if ($rows !== []) {
+                    $missingTables[] = $table;
+                }
+                continue;
+            }
+
+            $uniqueIndexes = $this->uniqueIndexes($table);
+            foreach ($rows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                ++$checkedRows;
+                $normalizedRow = $this->normalizeRowForTable($row, $columns);
+                foreach (array_keys($normalizedRow['unknown']) as $column) {
+                    $unknownColumns[$table][$column] = true;
+                }
+
+                foreach ($uniqueIndexes as $indexName => $indexColumns) {
+                    if (!$this->rowHasIndexValues($normalizedRow['row'], $indexColumns)) {
+                        continue;
+                    }
+                    if (!$this->rowConflictExists($table, $indexColumns, $normalizedRow['row'])) {
+                        continue;
+                    }
+
+                    $conflicts[] = [
+                        'table' => $table,
+                        'index' => $indexName,
+                        'columns' => $indexColumns,
+                    ];
+                    break;
+                }
+            }
+        }
+
+        $unknownColumnSummary = [];
+        foreach ($unknownColumns as $table => $columns) {
+            $unknownColumnSummary[$table] = array_keys($columns);
+        }
+
+        $fileCount = (int) ($verification['fileCount'] ?? 0);
+        $archiveAvailable = (bool) ($verification['archiveAvailable'] ?? false);
+        $missingArchiveFiles = is_array($verification['missingArchiveFiles'] ?? null) ? $verification['missingArchiveFiles'] : [];
+        $hashMismatchFiles = is_array($verification['hashMismatchFiles'] ?? null) ? $verification['hashMismatchFiles'] : [];
+
+        return [
+            'sql' => [
+                'rowCount' => $rowCount,
+                'checkedRows' => $checkedRows,
+                'missingTables' => $missingTables,
+                'unknownColumns' => $unknownColumnSummary,
+                'conflictCount' => count($conflicts),
+                'conflicts' => array_slice($conflicts, 0, 20),
+                'canApplyCleanly' => $missingTables === [] && $conflicts === [] && $unknownColumnSummary === [],
+            ],
+            'files' => [
+                'declaredFiles' => $fileCount,
+                'archiveAvailable' => $archiveAvailable,
+                'storedFiles' => (int) ($verification['storedFileCount'] ?? 0),
+                'missingArchiveFiles' => $missingArchiveFiles,
+                'hashMismatchFiles' => $hashMismatchFiles,
+                'restorable' => $fileCount === 0 || ($archiveAvailable && $missingArchiveFiles === [] && $hashMismatchFiles === []),
+            ],
+            'requiredConditions' => $this->realRestoreConditions(),
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function tableColumns(string $table): array
+    {
+        try {
+            $statement = $this->database->pdo()->query(sprintf('DESCRIBE `%s`', $this->database->table($table)));
+            $rows = $statement instanceof \PDOStatement ? $statement->fetchAll(PDO::FETCH_ASSOC) : [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $columns = [];
+        foreach ($rows as $row) {
+            if (is_string($row['Field'] ?? null)) {
+                $columns[] = (string) $row['Field'];
+            }
+        }
+
+        return $columns;
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function uniqueIndexes(string $table): array
+    {
+        try {
+            $statement = $this->database->pdo()->query(sprintf('SHOW INDEX FROM `%s` WHERE `Non_unique` = 0', $this->database->table($table)));
+            $rows = $statement instanceof \PDOStatement ? $statement->fetchAll(PDO::FETCH_ASSOC) : [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $indexes = [];
+        foreach ($rows as $row) {
+            $keyName = is_string($row['Key_name'] ?? null) ? (string) $row['Key_name'] : '';
+            $columnName = is_string($row['Column_name'] ?? null) ? (string) $row['Column_name'] : '';
+            $sequence = is_numeric($row['Seq_in_index'] ?? null) ? (int) $row['Seq_in_index'] : 0;
+            if ($keyName === '' || $columnName === '') {
+                continue;
+            }
+            $indexes[$keyName][$sequence] = $columnName;
+        }
+
+        foreach ($indexes as $keyName => $columns) {
+            ksort($columns);
+            $indexes[$keyName] = array_values($columns);
+        }
+
+        return $indexes;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array<int, string> $columns
+     * @return array{row: array<string, mixed>, unknown: array<string, mixed>}
+     */
+    private function normalizeRowForTable(array $row, array $columns): array
+    {
+        $columnMap = array_fill_keys($columns, true);
+        $normalized = [];
+        $unknown = [];
+        foreach ($row as $key => $value) {
+            if (!is_string($key)) {
+                continue;
+            }
+            $column = isset($columnMap[$key]) ? $key : $this->snakeKey($key);
+            if (isset($columnMap[$column])) {
+                $normalized[$column] = $value;
+                continue;
+            }
+            $unknown[$column] = $value;
+        }
+
+        return ['row' => $normalized, 'unknown' => $unknown];
+    }
+
+    private function snakeKey(string $key): string
+    {
+        $snake = preg_replace('/(?<!^)[A-Z]/', '_$0', $key) ?? $key;
+
+        return strtolower($snake);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param array<int, string> $indexColumns
+     */
+    private function rowHasIndexValues(array $row, array $indexColumns): bool
+    {
+        foreach ($indexColumns as $column) {
+            if (!array_key_exists($column, $row) || $row[$column] === null) {
+                return false;
+            }
+        }
+
+        return $indexColumns !== [];
+    }
+
+    /**
+     * @param array<int, string> $indexColumns
+     * @param array<string, mixed> $row
+     */
+    private function rowConflictExists(string $table, array $indexColumns, array $row): bool
+    {
+        $where = [];
+        $params = [];
+        foreach ($indexColumns as $index => $column) {
+            $parameter = 'value_' . $index;
+            $where[] = '`' . $column . '` = :' . $parameter;
+            $params[$parameter] = $row[$column];
+        }
+
+        try {
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT 1 FROM `%s` WHERE %s LIMIT 1', $this->database->table($table), implode(' AND ', $where))
+            );
+            $statement->execute($params);
+
+            return (bool) $statement->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function realRestoreConditions(): array
+    {
+        return [
+            'Restaurer uniquement depuis une sauvegarde ZIP/JSON verifiee et conservee hors webroot.',
+            'Prendre un snapshot SQL et fichiers de la cible avant toute ecriture.',
+            'Executer le dry-run et traiter explicitement les tables manquantes, colonnes inconnues et conflits d index.',
+            'Restaurer les fichiers prives dans leur stockage hors webroot avant de rouvrir les acces utilisateur.',
+            'Journaliser l operateur, le chemin de sauvegarde, le checksum et le resultat de restauration.',
+        ];
     }
 
     /**
@@ -344,7 +891,7 @@ final class PrivateBackupService
     private function hashRows(array $rows): string
     {
         $normalized = $this->normalizeValue($rows);
-        $encoded = json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $encoded = json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
 
         return hash('sha256', is_string($encoded) ? $encoded : '');
     }

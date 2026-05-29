@@ -1,0 +1,45 @@
+# C3 local - backup ZIP + verify + restauration dry-run
+
+Date : 2026-05-29
+Environnement : local WSL, validation implementation avant preuve preprod.
+Operateur : Auto CLI
+
+Perimetre valide :
+- `PrivateBackupService::createBackup()` genere un JSON et un ZIP voisin.
+- Le ZIP contient `backup.json`, `manifest.json` et les fichiers prives sous `files/**`.
+- `private_migration_reconcile.php backup` cree une sauvegarde depuis la CLI.
+- `private_migration_reconcile.php verify-backup` accepte le JSON, verifie le ZIP voisin et lance `restoreBackup($path, true)`.
+- Le dry-run signale les conflits SQL explicitement et bloque toujours la restauration reelle sans runbook admin.
+
+Validations syntaxe :
+- `php -l backend/src/PrivatePortal/Operations/PrivateBackupService.php` : OK
+- `php -l backend/core/tools/private_migration_reconcile.php` : OK
+- `php -l backend/src/PrivatePortal/Operations/PrivateMigrationDefinitionOfDoneService.php` : OK
+- `php -l backend/tests/PrivatePortal/PrivacyOperationsTest.php` : OK
+
+PHPUnit cible :
+
+```text
+php vendor/bin/phpunit tests/PrivatePortal/PrivacyOperationsTest.php tests/PrivatePortalPhaseCoverageTest.php
+OK (11 tests, 253 assertions)
+```
+
+PHPUnit suite privee :
+
+```text
+php vendor/bin/phpunit tests/PrivatePortalSecurityTest.php tests/PrivatePortalStorageTest.php tests/PrivatePortalFrontControllerTest.php tests/PrivatePortal/PrivacyOperationsTest.php tests/PrivatePortalPhaseCoverageTest.php
+OK (51 tests, 527 assertions)
+```
+
+Validation CLI C3 avec dossier temporaire nettoye :
+
+```text
+verification.valid=true
+archiveAvailable=true
+storedFileCount=1
+restore.success=true
+files.restorable=true
+```
+
+Limite restante :
+- cette preuve est locale ; la case C3 du runbook reste a signer sur la vraie preprod avec un compte et un document de test preprod.

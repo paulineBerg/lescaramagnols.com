@@ -9,6 +9,7 @@ use Caramagnols\PrivatePortal\Operations\PrivateMigrationDefinitionOfDoneService
 use Caramagnols\PrivatePortal\Operations\PrivateModuleMigrationPlanService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
 use Caramagnols\PrivatePortal\Operations\PrivateSecurityChecklistService;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 
@@ -26,11 +27,12 @@ if ($command === 'help' || in_array('--help', $args, true)) {
     fwrite(STDOUT, <<<TXT
 Usage:
   php backend/core/tools/private_migration_reconcile.php snapshot [--files-root=/path] [--output=/path/snapshot.json]
+  php backend/core/tools/private_migration_reconcile.php backup [--target-dir=/path] [--files-root=/path] [--output=/path/result.json]
   php backend/core/tools/private_migration_reconcile.php compare /path/left.json /path/right.json
   php backend/core/tools/private_migration_reconcile.php status [module] [status] [--actor=email] [--notes=texte]
   php backend/core/tools/private_migration_reconcile.php read-legacy module [--output=/path/model.json]
   php backend/core/tools/private_migration_reconcile.php import module /path/private-backup.json [--apply]
-  php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json
+  php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json|zip [--output=/path/verify.json]
   php backend/core/tools/private_migration_reconcile.php m5-plan [module] [--output=/path/plan.json]
   php backend/core/tools/private_migration_reconcile.php m6-retirement [--output=/path/inventory.json]
   php backend/core/tools/private_migration_reconcile.php security-checklist [--output=/path/security.json]
@@ -51,6 +53,15 @@ try {
         $snapshot = $backupService->reconciliationSnapshot(optionValue($args, '--files-root') ?? '');
         writeJsonResult($snapshot, optionValue($args, '--output'));
         exit(0);
+    }
+
+    if ($command === 'backup') {
+        $storage = PrivateDocumentStorage::fromAppConfig();
+        $targetDirectory = optionValue($args, '--target-dir') ?? $storage->exportsDirectory();
+        $filesRoot = optionValue($args, '--files-root') ?? $storage->uploadsDirectory();
+        $backup = $backupService->createBackup($targetDirectory, $filesRoot);
+        writeJsonResult($backup, optionValue($args, '--output'));
+        exit(($backup['success'] ?? false) === true ? 0 : 1);
     }
 
     if ($command === 'compare') {
@@ -104,7 +115,7 @@ try {
         writeJsonResult([
             'verification' => $verification,
             'restoreDryRun' => $restore,
-        ], null);
+        ], optionValue($args, '--output'));
         exit(empty($verification['valid']) || empty($restore['success']) ? 1 : 0);
     }
 

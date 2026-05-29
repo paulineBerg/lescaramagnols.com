@@ -299,7 +299,8 @@ final class PrivateMigrationDefinitionOfDoneService
                 && method_exists(PrivateBackupService::class, 'restoreBackup'),
             'Le plan de restauration est teste',
             [
-                'verifyCommand' => 'php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json',
+                'backupCommand' => 'php backend/core/tools/private_migration_reconcile.php backup --target-dir=/path/exports --files-root=/path/uploads',
+                'verifyCommand' => 'php backend/core/tools/private_migration_reconcile.php verify-backup /path/private-backup.json|zip',
                 'dryRunRestore' => 'PrivateBackupService::restoreBackup($path, true)',
                 'manualRestore' => 'restauration reelle volontairement separee du dry-run',
             ]

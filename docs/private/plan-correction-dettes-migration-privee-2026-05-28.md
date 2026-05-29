@@ -33,7 +33,7 @@ Derniere mise a jour : 2026-05-29.
 | C0 - Gate preproduction | En cours | Socle preprod deploye, headers OK, runbook cree. Reste a signer le scenario C3. |
 | C1 - Recette manuelle securite privee | Fait | Recette manuelle executee sur la vraie preprod, preuve C1 archivee. |
 | C2 - Suppression compte suspendu et cron J+20/J+30 | Fait | Flux sensible joue bout en bout en preprod avec compte jetable, preuve C2 archivee. Livraison SMTP reelle non forcee, renvoyee a V2. |
-| C3 - Restauration fichier et base | A faire | Backup/verify/restore dry-run a prouver en preprod. |
+| C3 - Restauration fichier et base | En cours | Implementation ZIP + verify + restore dry-run validee localement; preuve preprod a signer. |
 | C4 - Durcissement CSP | A faire | Headers renforces, mais `style-src 'unsafe-inline'` reste a retirer. |
 | C5 - Antivirus ou quarantaine documentaire | A faire | Decision retenue, implementation non lancee. |
 | C6 - Nettoyage des traces anonymisation | A faire | Inventaire et nettoyage restant a planifier. |
@@ -177,6 +177,8 @@ Critere d'acceptation :
 ## 6. Phase C3 - Restauration fichier et base
 
 Objectif : prouver que la sauvegarde sert reellement.
+
+Note implementation 2026-05-29 : `PrivateBackupService` cree maintenant un ZIP a cote du JSON, avec `backup.json`, `manifest.json` et les fichiers prives sous `files/**`. La commande `private_migration_reconcile.php backup` genere la sauvegarde privee, et `verify-backup` accepte un JSON ou un ZIP, verifie la structure ZIP, lance le dry-run et remonte les conflits SQL explicitement. La restauration reelle reste bloquee sans runbook admin signe.
 
 Checklist de suivi :
 

@@ -64,6 +64,10 @@ final class PrivacyOperationsTest extends TestCase
 
     public function testPrivateBackupCanBeCreatedVerifiedAndDryRunRestored(): void
     {
+        if (!class_exists(ZipArchive::class)) {
+            $this->markTestSkipped('Extension ZipArchive requise pour valider C3 fichier + base.');
+        }
+
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
         $this->createPrivateUser($userRepository, 'backup-phase9@example.com');
@@ -75,11 +79,30 @@ final class PrivacyOperationsTest extends TestCase
         $backup = $service->createBackup($this->tempDir . '/exports', $this->tempDir);
         $this->assertTrue((bool) ($backup['success'] ?? false));
         $this->assertIsString($backup['path'] ?? null);
+        if (class_exists(ZipArchive::class)) {
+            $this->assertIsString($backup['archivePath'] ?? null);
+            $this->assertFileExists((string) $backup['archivePath']);
+        }
 
         $verification = $service->verifyBackup((string) $backup['path']);
         $this->assertTrue((bool) ($verification['valid'] ?? false));
         $this->assertGreaterThanOrEqual(1, (int) ($verification['tableCount'] ?? 0));
         $this->assertGreaterThanOrEqual(1, (int) ($verification['fileCount'] ?? 0));
+        if (class_exists(ZipArchive::class)) {
+            $this->assertTrue((bool) ($verification['archiveAvailable'] ?? false));
+            $this->assertGreaterThanOrEqual(1, (int) ($verification['storedFileCount'] ?? 0));
+
+            $zip = new ZipArchive();
+            $this->assertTrue($zip->open((string) $backup['archivePath']));
+            $this->assertNotFalse($zip->locateName('backup.json'));
+            $this->assertNotFalse($zip->locateName('manifest.json'));
+            $this->assertNotFalse($zip->locateName('files/private-note.txt'));
+            $zip->close();
+
+            $zipVerification = $service->verifyBackup((string) $backup['archivePath']);
+            $this->assertTrue((bool) ($zipVerification['valid'] ?? false));
+            $this->assertSame('zip', $zipVerification['format'] ?? null);
+        }
 
         $payload = json_decode((string) file_get_contents((string) $backup['path']), true);
         $this->assertIsArray($payload);
@@ -91,6 +114,7 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertArrayHasKey('mtimeIso', $files[0]);
         $this->assertArrayHasKey('owner', $files[0]);
         $this->assertArrayHasKey('sha256', $files[0]);
+        $this->assertArrayHasKey('archivePath', $files[0]);
 
         $snapshot = $service->reconciliationSnapshot($this->tempDir);
         $comparison = $service->compareSnapshots($snapshot, $snapshot);
@@ -99,6 +123,17 @@ final class PrivacyOperationsTest extends TestCase
         $restore = $service->restoreBackup((string) $backup['path'], true);
         $this->assertTrue((bool) ($restore['success'] ?? false));
         $this->assertTrue((bool) ($restore['dryRun'] ?? false));
+        $this->assertIsArray($restore['sql'] ?? null);
+        $this->assertIsArray($restore['files'] ?? null);
+        $this->assertGreaterThanOrEqual(1, (int) ($restore['sql']['conflictCount'] ?? 0));
+        $this->assertFalse((bool) ($restore['sql']['canApplyCleanly'] ?? true));
+        if (class_exists(ZipArchive::class)) {
+            $this->assertTrue((bool) ($restore['files']['restorable'] ?? false));
+        }
+
+        $actualRestore = $service->restoreBackup((string) $backup['path'], false);
+        $this->assertFalse((bool) ($actualRestore['success'] ?? true));
+        $this->assertSame('unsafe_restore_requires_manual_runbook', $actualRestore['error'] ?? null);
     }
 
     public function testPrivateModuleMigrationStatusAndIdempotentBackupImport(): void
@@ -168,6 +203,17 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertCount(1, $payload['tables']['private_documents'] ?? []);
         $this->assertCount(1, $payload['files'] ?? []);
         $this->assertTrue((bool) ($payload['files'][0]['exists'] ?? false));
+        if (class_exists(ZipArchive::class)) {
+            $zipPath = preg_replace('/\.json\z/i', '.zip', $backupPath);
+            $this->assertIsString($zipPath);
+            $this->assertFileExists($zipPath);
+            $zip = new ZipArchive();
+            $this->assertTrue($zip->open($zipPath));
+            $this->assertNotFalse($zip->locateName('backup.json'));
+            $this->assertNotFalse($zip->locateName('manifest.json'));
+            $this->assertNotFalse($zip->locateName((string) ($payload['files'][0]['archivePath'] ?? '')));
+            $zip->close();
+        }
 
         $this->assertSame(0, $this->countRows($database, 'private_documents', '`private_user_id` = :user_id', ['user_id' => $fixture['userId']]));
         $this->assertSame(0, $this->countRows($database, 'private_document_categories', '`private_user_id` = :user_id', ['user_id' => $fixture['userId']]));

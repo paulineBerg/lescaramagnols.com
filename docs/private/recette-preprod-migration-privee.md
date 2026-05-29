@@ -35,6 +35,7 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (synthèse) | C1 synthèse finale | `C1 OK`, anomalie upload classée hors C1 stricte | [17-c1-synthese-finale-preprod-2026-05-29.txt](./recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt) |
 | 2026-05-29 | Auto (CLI preprod) | C2 suppression compte suspendu + cron J+20/J+30 ciblé | `C2 OK`, sauvegarde JSON/ZIP, purge immédiate, J+20 dry-run, J+30 purge, relance idempotente | [18-c2-deletion-cron-preprod-2026-05-29.txt](./recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt) |
 | 2026-05-29 | Auto (PHPUnit) | Suite privée C1/C2/C3 après correction C2 | `59 tests`, `581 assertions`, OK | [19-c2-phpunit-private-suite-2026-05-29.txt](./recette-preprod-migration-privee/19-c2-phpunit-private-suite-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI local) | C3 implémentation backup ZIP + `verify-backup` + dry-run | `PHP lint OK`, `51 tests`, `527 assertions`, CLI C3 OK | [20-c3-local-backup-restore-cli-2026-05-29.txt](./recette-preprod-migration-privee/20-c3-local-backup-restore-cli-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -73,6 +74,37 @@ php backend/vendor/bin/phpunit tests/PrivatePortalSecurityTest.php tests/Private
 - [ ] C3 — Restauration privée fichier+base en préprod (scénario complet de backup/snapshot/restore dry-run) — à exécuter sur préprod.
 
 Chaque cas doit être signé dans cette section : date, opérateur, preuve (captures / logs), résultat attendu.
+
+## Procédure C3 — restauration fichier + base
+
+Objectif : prouver que la sauvegarde privée contient à la fois les lignes SQL et les fichiers privés, que le ZIP est structuré, et que la restauration dry-run détecte explicitement les conflits au lieu de les masquer.
+
+Préparation :
+
+- créer ou réutiliser un compte privé jetable en préprod ;
+- rattacher au moins un document privé réel au compte ;
+- conserver le stockage fichiers hors webroot ;
+- ne jamais lancer de restauration réelle depuis cette procédure.
+
+Commandes recommandées sur préprod :
+
+```bash
+php core/tools/private_migration_reconcile.php backup --output=var/private-c3-backup-result.json
+BACKUP_JSON="$(php -r '$r=json_decode(file_get_contents("var/private-c3-backup-result.json"), true); echo $r["path"] ?? "";')"
+php core/tools/private_migration_reconcile.php verify-backup "$BACKUP_JSON" --output=var/private-c3-verify.json
+```
+
+Contrôles attendus dans `var/private-c3-verify.json` :
+
+- `verification.valid=true` ;
+- `verification.archiveAvailable=true` ;
+- `verification.storedFileCount >= 1` quand le jeu de test contient un document ;
+- `restoreDryRun.success=true` ;
+- `restoreDryRun.files.restorable=true` ;
+- `restoreDryRun.sql.conflictCount` explicite si la sauvegarde est rejouée sur la même base ;
+- `restoreDryRun.requiredConditions` liste les conditions d'une restauration réelle.
+
+Restauration réelle : elle reste volontairement bloquée par `PrivateBackupService::restoreBackup($path, false)` tant qu'un runbook d'exploitation séparé n'a pas été signé. Avant toute écriture réelle, prendre un snapshot SQL et fichiers de la cible, traiter les conflits d'index, restaurer les fichiers hors webroot, puis journaliser opérateur, checksum et résultat.
 
 ## Section bloquante Go / No-Go
 
@@ -118,6 +150,7 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - `docs/private/recette-preprod-migration-privee/17-c1-synthese-finale-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/18-c2-deletion-cron-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/19-c2-phpunit-private-suite-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/20-c3-local-backup-restore-cli-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
