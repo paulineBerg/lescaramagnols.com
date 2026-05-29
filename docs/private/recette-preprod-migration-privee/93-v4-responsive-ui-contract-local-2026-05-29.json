@@ -1,0 +1,23 @@
+{
+    "phase": "V4",
+    "scope": "local",
+    "date": "2026-05-29",
+    "viewports": [
+        "390x844",
+        "768x1024",
+        "1366x768"
+    ],
+    "success": true,
+    "checks": {
+        "private_global_overflow_hidden": true,
+        "private_desktop_nav_fixed": true,
+        "private_mobile_nav_static": true,
+        "private_content_offsets_nav_desktop": true,
+        "private_content_full_width_mobile": true,
+        "private_messages_sticky": true,
+        "private_tables_scroll_locally": true,
+        "admin_desktop_nav_fixed": true,
+        "admin_mobile_nav_static": true,
+        "admin_content_no_horizontal_overflow": true
+    }
+}

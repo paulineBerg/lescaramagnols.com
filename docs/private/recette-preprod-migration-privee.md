@@ -78,6 +78,13 @@ Objectif : bloquer le go-live si la gate automatisée + recette manuelle minimal
 | 2026-05-29 | Auto (CLI preprod) | V3 dry-run discussions et suppressions comptes | dry-runs JSON OK | [88-v3-discussion-cron-dry-run-preprod-2026-05-29.json](./recette-preprod-migration-privee/88-v3-discussion-cron-dry-run-preprod-2026-05-29.json), [89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json](./recette-preprod-migration-privee/89-v3-account-deletion-cron-dry-run-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI preprod) | V3 `migration-dod` et `security-checklist` preprod | `success=true`, `ready=true` | [90-v3-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json), [91-v3-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json) |
 | 2026-05-29 | Auto (CLI HTTP preprod) | V3 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [92-v3-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (recette responsive) | V4 contrat UI local desktop/mobile | overflow global bloque, menu fixe desktop, retour mobile, messages visibles, tables scroll local | [93-v4-responsive-ui-contract-local-2026-05-29.json](./recette-preprod-migration-privee/93-v4-responsive-ui-contract-local-2026-05-29.json) |
+| 2026-05-29 | Auto (PHPUnit/PHPCS/build) | V4 validation locale | syntaxe, PHPCS, `35 tests`, `341 assertions`, Stylelint et build Vite OK | [94-v4-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/94-v4-local-validation-2026-05-29.txt) |
+| 2026-05-29 | Auto (CLI) | V4 `migration-dod` et `security-checklist` local | `success=true`, `ready=true` | [95-v4-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/95-v4-migration-dod-local-2026-05-29.json), [96-v4-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/96-v4-security-checklist-local-2026-05-29.json) |
+| 2026-05-29 | Auto (deploiement) | V4 deploy preprod `deploy-fast --all-changes` | templates BO/private et arbre frontend publie, `deploy-fast completed` | [97-v4-deploy-preprod-2026-05-29.txt](./recette-preprod-migration-privee/97-v4-deploy-preprod-2026-05-29.txt) |
+| 2026-05-29 | Auto (recette responsive preprod) | V4 contrat UI preprod sur CSS compile et templates deployes | `success=true`, asset prive resolve, invariants responsive OK | [98-v4-responsive-ui-contract-preprod-2026-05-29.json](./recette-preprod-migration-privee/98-v4-responsive-ui-contract-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI preprod) | V4 `migration-dod` et `security-checklist` preprod | `success=true`, `ready=true` | [99-v4-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json), [100-v4-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json) |
+| 2026-05-29 | Auto (CLI HTTP preprod) | V4 `check-security-headers` sur `https://preprod.lescaramagnols.com` | `Status 200`, `Headers requis: OK` | [101-v4-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt) |
 
 > `PREPROD_CHECK_URL` doit être défini avec l’URL réelle de préproduction (`https://preprod.lescaramagnols.com`) avant la vraie passe.
 
@@ -175,6 +182,12 @@ ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php cor
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json
 composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt 2>&1
+php backend/core/tools/private_migration_reconcile.php migration-dod > docs/private/recette-preprod-migration-privee/95-v4-migration-dod-local-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/96-v4-security-checklist-local-2026-05-29.json
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/97-v4-deploy-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php migration-dod" > docs/private/recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt 2>&1
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -236,6 +249,15 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - [x] V3 — Echec cron visible dans les logs et detecte par le compteur `cron_failed` — **OK TEST**, preuve: [82-v3-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/82-v3-local-validation-2026-05-29.txt)
 - [x] V3 — Commande OVH exacte documentee : `* * * * * /usr/bin/php8.2 /home/lescaramgl-ssh/caramagnols/backend/core/tools/run_cron_center.php --quiet >/dev/null 2>&1` — **OK DOC**, preuve: [78-v3-cron-inventory-local-2026-05-29.json](./recette-preprod-migration-privee/78-v3-cron-inventory-local-2026-05-29.json)
 - [x] V3 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [83-v3-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/83-v3-migration-dod-local-2026-05-29.json), [90-v3-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json), [91-v3-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json), [92-v3-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt)
+
+## Tests manuels requis (phase V4)
+
+- [x] V4 — Checklist UI commune documentee pour BO et modules prives : overflow, navigation, messages, boutons, actions destructrices et responsive — **OK DOC**, preuve: [93-v4-responsive-ui-contract-local-2026-05-29.json](./recette-preprod-migration-privee/93-v4-responsive-ui-contract-local-2026-05-29.json)
+- [x] V4 — Absence de debordement horizontal desktop/mobile et scroll local des tables sous `900px` — **OK LOCAL + PREPROD RECETTE**, preuves: [93-v4-responsive-ui-contract-local-2026-05-29.json](./recette-preprod-migration-privee/93-v4-responsive-ui-contract-local-2026-05-29.json), [98-v4-responsive-ui-contract-preprod-2026-05-29.json](./recette-preprod-migration-privee/98-v4-responsive-ui-contract-preprod-2026-05-29.json)
+- [x] V4 — Menu gauche fixe sur BO et espace prive desktop, puis retour en flux normal mobile — **OK LOCAL + PREPROD RECETTE**, preuves: [93-v4-responsive-ui-contract-local-2026-05-29.json](./recette-preprod-migration-privee/93-v4-responsive-ui-contract-local-2026-05-29.json), [98-v4-responsive-ui-contract-preprod-2026-05-29.json](./recette-preprod-migration-privee/98-v4-responsive-ui-contract-preprod-2026-05-29.json)
+- [x] V4 — Messages visibles en haut du viewport avec roles accessibles `status`/`alert` — **OK TEST**, preuve: [94-v4-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/94-v4-local-validation-2026-05-29.txt)
+- [x] V4 — Confirmation destructive BO compte suspendu lisible, annulable, sans `onclick` inline et avec boutons accessibles — **OK TEST**, preuve: [94-v4-local-validation-2026-05-29.txt](./recette-preprod-migration-privee/94-v4-local-validation-2026-05-29.txt)
+- [x] V4 — `migration-dod`, checklist securite et headers preprod apres deploiement — **OK LOCAL + PREPROD CLI/HTTP**, preuves: [95-v4-migration-dod-local-2026-05-29.json](./recette-preprod-migration-privee/95-v4-migration-dod-local-2026-05-29.json), [99-v4-migration-dod-preprod-2026-05-29.json](./recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json), [100-v4-security-checklist-preprod-2026-05-29.json](./recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json), [101-v4-check-security-headers-preprod-2026-05-29.txt](./recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt)
 
 ## Procédure C3 — restauration fichier + base
 
@@ -387,15 +409,24 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/90-v3-migration-dod-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/91-v3-security-checklist-preprod-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/92-v3-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/93-v4-responsive-ui-contract-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/94-v4-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/95-v4-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/96-v4-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/97-v4-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/98-v4-responsive-ui-contract-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-V3 est ferme cote code applicatif et validations locales/preprod CLI/HTTP.
+V4 est ferme cote code applicatif, recette responsive locale/preprod, validations locales, deploiement preprod et controles preprod CLI/HTTP.
 
-Les prochaines actions appartiennent aux phases suivantes du plan :
+La prochaine action appartient a la phase suivante du plan :
 
-- V4-V5 : validations d'exploitation restant suivies hors C0.
+- V5 : observabilite exploitation.
 
 Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.

@@ -1,0 +1,44 @@
+Deploy mode: fast
+Dry run: 0
+Scope: all changes
+Remote: ovh-boutique:/home/lescaramgl-ssh/caramagnols-preprod/backend
+Changed files: 3
+Deleted files: 0
+Sitemap base URL override: https://preprod.lescaramagnols.com
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+[editorial-media] OK: 609 perimetre(s), 1621 reference(s) controlee(s).
+building file list ... done
+templates/admin/layout.php
+            700   0%    0.00kB/s    0:00:00          100,325  65%   11.88MB/s    0:00:00 (xfr#1, to-chk=3/6)
+templates/admin/private_members_list.php
+        138,244  90%   10.93MB/s    0:00:00 (xfr#2, to-chk=2/6)
+templates/private/layout.php
+        152,015 100%   11.10MB/s    0:00:00 (xfr#3, to-chk=0/6)        152,015 100%   11.10MB/s    0:00:00 (xfr#3, to-chk=0/6)        152,015 100%    2.95MB/s    0:00:00 (xfr#3, to-chk=0/6)        152,015 100%    2.95MB/s    0:00:00 (xfr#3, to-chk=0/6)
+
+sent 1,838 bytes  received 1,377 bytes  6,430.00 bytes/sec
+total size is 152,015  speedup is 47.28
+sync-published-frontend-tree completed.
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 85 bytes  received 12 bytes  64.67 bytes/sec
+total size is 6,372  speedup is 65.69
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 83 bytes  received 12 bytes  63.33 bytes/sec
+total size is 6,163  speedup is 64.87
+[prod-tree] OK: aucun fichier non-prod detecte.
+Sitemap genere: /home/lescaramgl-ssh/caramagnols-preprod/backend/public/sitemap.xml (64 urls)
+Sommaire mis a jour dans accueil-le-plan-du-site-des-caramagnols, region body, langues FR, EN, DE.
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+cache_cleared
+autoload_ok
+deploy-fast completed.
+sending incremental file list
+README.md
+plan-correction-dettes-migration-privee-2026-05-28.md
+recette-preprod-migration-privee.md
+
+sent 112,152 bytes  received 1,729 bytes  227,762.00 bytes/sec
+total size is 302,480  speedup is 2.66

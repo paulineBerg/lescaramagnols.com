@@ -67,6 +67,8 @@ $adminMenu = [
       body {
         margin: 0;
         min-height: 100vh;
+        max-width: 100%;
+        overflow-x: hidden;
         font-family: "Segoe UI", Tahoma, Arial, sans-serif;
         color: var(--admin-text);
         background: var(--admin-bg);
@@ -96,6 +98,8 @@ $adminMenu = [
         display: flex;
         min-height: 100vh;
         align-items: flex-start;
+        max-width: 100%;
+        overflow-x: hidden;
         width: 100%;
       }
 
@@ -178,6 +182,7 @@ $adminMenu = [
         flex-direction: column;
         width: calc(100% - var(--admin-nav-width));
         margin-left: var(--admin-nav-width);
+        max-width: calc(100% - var(--admin-nav-width));
         min-width: 0;
         min-height: 100vh;
       }
@@ -190,6 +195,9 @@ $adminMenu = [
         align-items: center;
         justify-content: space-between;
         gap: 0.65rem;
+        position: sticky;
+        top: 0;
+        z-index: 30;
       }
 
       header.admin-header h1 {
@@ -3052,6 +3060,11 @@ $adminMenu = [
         .admin-content {
           width: 100%;
           margin-left: 0;
+          max-width: 100%;
+        }
+
+        header.admin-header {
+          position: static;
         }
 
         .nav-menu {

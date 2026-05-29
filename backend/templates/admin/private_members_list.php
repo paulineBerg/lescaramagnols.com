@@ -445,7 +445,6 @@ $statusLabels = [
                         type="button"
                         aria-controls="<?php echo $escape($deleteDialogId); ?>"
                         data-admin-private-delete-open="<?php echo $escape($deleteDialogId); ?>"
-                        onclick="var panel=document.getElementById('<?php echo $escape($deleteDialogId); ?>'); if(panel){ panel.hidden=false; var firstButton=panel.querySelector('button'); if(firstButton){ firstButton.focus(); } }"
                       >
                         <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE', 'Suppression du compte')); ?>
                       </button>
@@ -453,7 +452,7 @@ $statusLabels = [
                         <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="admin-private-members-delete-form">
                           <div class="admin-private-members-delete-dialog-header">
                             <h3><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE', 'Suppression du compte')); ?></h3>
-                            <button class="button-small button-muted" type="button" data-admin-close-dialog onclick="var panel=this.closest('.admin-private-members-delete-dialog'); if(panel){ panel.hidden=true; }" aria-label="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO', 'Non')); ?>">×</button>
+                            <button class="button-small button-muted" type="button" data-admin-close-dialog aria-label="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO', 'Non')); ?>">×</button>
                           </div>
                           <p class="admin-private-members-delete-dialog-email">
                             <?php echo $escape((string) ($member['email'] ?? '-')); ?>
@@ -472,7 +471,7 @@ $statusLabels = [
                             <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION', 'Voulez-vous supprimer ce compte suspendu ?')); ?>
                           </p>
                           <div class="admin-private-members-confirm-actions">
-                            <button class="button-small button-muted" type="button" data-admin-close-dialog onclick="var panel=this.closest('.admin-private-members-delete-dialog'); if(panel){ panel.hidden=true; }">
+                            <button class="button-small button-muted" type="button" data-admin-close-dialog>
                               <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_NO', 'Non')); ?>
                             </button>
                             <button class="button-small button-danger" type="submit">

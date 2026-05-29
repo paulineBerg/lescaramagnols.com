@@ -48,6 +48,13 @@ Mise a jour 2026-05-29 (cron et idempotence V3) :
 - les erreurs de job cron produisent `cron.job.failed` et `cron.scheduler.failed`, visibles dans les logs d'exploitation et detectees par `check_log_alerts.php`;
 - l'idempotence J+20/J+30 est couverte par tests : pas de doublon email J+20 apres relance, pas de seconde suppression definitive apres J+30.
 
+Mise a jour 2026-05-29 (UX BO et espace prive V4) :
+- l'espace prive utilise une navigation gauche fixe sur desktop, redevient en flux normal sur mobile, et compense la largeur de navigation pour eviter les debordements horizontaux;
+- les messages de succes et d'erreur du layout prive portent maintenant `role="status"` ou `role="alert"` et restent visibles en haut du viewport dans les pages applicatives;
+- le BO conserve sa navigation fixe desktop, son retour mobile sans marge laterale et ses notices visibles;
+- la suppression d'un compte prive suspendu en BO n'utilise plus de handler `onclick` inline et reste pilotee par de vrais boutons `type="button"` ou `type="submit"`;
+- `PrivateUiGuardTest` verrouille les invariants UI critiques : overflow horizontal, menu fixe, messages visibles, confirmation destructrice et recette responsive.
+
 Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
 - cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
@@ -151,6 +158,18 @@ Regles d'exploitation :
 3. les traitements J+20 et J+30 doivent rester rejouables : `warningSentAt` empeche le double email J+20, et la disparition de la sauvegarde apres J+30 empeche une seconde suppression;
 4. `purge_private_account_deletion_backups.php` prend un verrou `var/locks/private-account-deletion-backups.lock`, y compris hors Cron Center;
 5. un echec de job cree `cron.job.failed` puis `cron.scheduler.failed`; `check_log_alerts.php` declenche le compteur `cron_failed`.
+
+## 0.3 Checklist UI commune BO et modules prives
+
+Cette checklist s'applique a tout nouvel ecran admin ou prive et a toute modification de formulaire, action sensible, navigation ou liste responsive.
+
+1. Le conteneur principal doit rester dans la largeur du viewport : `max-width: 100%`, `min-width: 0`, aucun overflow horizontal global, et scroll horizontal uniquement dans le bloc local quand une table l'exige.
+2. La navigation gauche desktop doit rester fixe et lisible; sur mobile, elle revient en flux normal, sans marge gauche residuelle ni largeur calculee.
+3. Les messages applicatifs doivent rester visibles en haut du viewport, utiliser `role="status"` pour les succes et `role="alert"` pour les erreurs.
+4. Toute action JavaScript visible doit etre un vrai `<button type="button">`; toute action de formulaire doit etre un `<button type="submit">`.
+5. Une action destructive doit rester lisible, explicite et annulable : libelle de danger, etape de confirmation ou dialogue dedie, bouton d'annulation accessible clavier/souris.
+6. Les cartes, grilles, tableaux, boutons, liens d'action, medias et dialogues doivent supporter les largeurs `390px`, `768px` et desktop sans sortir de l'ecran.
+7. Les tests de garde `PrivateTemplateGuardTest` et `PrivateUiGuardTest` doivent etre lances quand un template prive, le layout admin, le layout prive ou `frontend/src/scss/private.scss` change.
 
 ## 1. Decision produit
 

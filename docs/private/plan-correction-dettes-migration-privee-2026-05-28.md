@@ -573,29 +573,50 @@ Objectif : eviter les regressions d'interface qui rendent les actions sensibles 
 Checklist de suivi :
 
 - [x] Regle projet deja presente : actions JS sous vrais boutons.
-- [ ] Ajouter une checklist UI commune aux modules prives.
-- [ ] Verifier le debordement horizontal desktop/mobile.
-- [ ] Verifier le menu gauche fixe sur pages BO concernees.
-- [ ] Verifier la visibilite des messages.
-- [ ] Verifier les confirmations des actions destructrices.
-- [ ] Ajouter un test navigateur ou une recette responsive.
+- [x] Ajouter une checklist UI commune aux modules prives.
+- [x] Verifier le debordement horizontal desktop/mobile.
+- [x] Verifier le menu gauche fixe sur pages BO concernees.
+- [x] Verifier la visibilite des messages.
+- [x] Verifier les confirmations des actions destructrices.
+- [x] Ajouter un test navigateur ou une recette responsive.
 
 Travaux :
 
-- [ ] ajouter une checklist UI commune aux modules prives ;
-- [ ] verifier absence de debordement horizontal sur desktop et mobile ;
-- [ ] rendre le menu gauche fixe sur les pages BO concernees ;
-- [ ] garantir que les messages restent visibles en haut de viewport ;
+- [x] ajouter une checklist UI commune aux modules prives ;
+- [x] verifier absence de debordement horizontal sur desktop et mobile ;
+- [x] rendre le menu gauche fixe sur les pages BO concernees ;
+- [x] garantir que les messages restent visibles en haut de viewport ;
 - [x] imposer les vrais boutons `<button type="button">` pour les actions JS ;
-- [ ] verifier les confirmations sur actions destructrices ;
-- [ ] ajouter un test navigateur ou une recette manuelle responsive.
+- [x] verifier les confirmations sur actions destructrices ;
+- [x] ajouter un test navigateur ou une recette manuelle responsive.
 
 Critere d'acceptation :
 
-- [ ] aucun bloc d'action ne sort de l'ecran ;
-- [ ] les actions destructrices restent lisibles et annulables ;
-- [ ] les messages ne disparaissent pas en haut de page lors d'un scroll ;
-- [ ] les boutons JS fonctionnent au clavier et a la souris.
+- [x] aucun bloc d'action ne sort de l'ecran ;
+- [x] les actions destructrices restent lisibles et annulables ;
+- [x] les messages ne disparaissent pas en haut de page lors d'un scroll ;
+- [x] les boutons JS fonctionnent au clavier et a la souris.
+
+Decision V4 :
+
+- la checklist UI commune est ajoutee a `docs/private/README.md` et couvre overflow, navigation, messages, vrais boutons, actions destructrices et largeurs responsive;
+- l'espace prive utilise une navigation gauche fixe sur desktop avec compensation de largeur, puis revient en flux normal sous `900px`;
+- les messages du layout prive portent `role="status"` ou `role="alert"` et restent sticky en haut de viewport dans `main.private-main`;
+- le BO conserve le menu gauche fixe desktop, le retour mobile sans marge laterale et des notices visibles;
+- la confirmation de suppression d'un compte prive suspendu en BO n'utilise plus de `onclick` inline et reste ouvrable/fermable via handlers centraux et boutons accessibles;
+- `PrivateUiGuardTest` et la recette responsive locale/preprod verrouillent les invariants critiques.
+
+Preuves V4 :
+
+- `docs/private/recette-preprod-migration-privee/93-v4-responsive-ui-contract-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/94-v4-local-validation-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/95-v4-migration-dod-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/96-v4-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/97-v4-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/98-v4-responsive-ui-contract-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/99-v4-migration-dod-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/100-v4-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/101-v4-check-security-headers-preprod-2026-05-29.txt`
 
 ### Phase V5 - Observabilite exploitation
 
@@ -650,16 +671,16 @@ Les dettes de la section 3 seront considerees corrigees quand :
 
 - [x] `security-checklist` est vert ;
 - [x] `migration-dod` est vert ;
-- [ ] le runbook preprod est rempli avec la derniere sortie OK ;
-- [ ] les scenarios C1, C2 et C3 ont une preuve ;
-- [ ] la CSP n'a plus d'exception inline non documentee ;
-- [ ] la strategie scan/quarantaine documentaire est decidee et implementee ;
-- [ ] aucune trace visible d'anonymisation ne subsiste ;
+- [x] le runbook preprod est rempli avec la derniere sortie OK ;
+- [x] les scenarios C1, C2 et C3 ont une preuve ;
+- [x] la CSP n'a plus d'exception inline non documentee ;
+- [x] la strategie scan/quarantaine documentaire est decidee et implementee ;
+- [x] aucune trace visible d'anonymisation ne subsiste ;
 - [x] les regles templates sont ajoutees au processus de developpement ;
-- [ ] les sauvegardes volumineuses sont gerees ou alertees ;
-- [ ] les emails transactionnels ont preview, variables documentees et liens absolus ;
-- [ ] la cron est idempotente, journalisee et documentee ;
-- [ ] les pages BO/private ne debordent pas de l'ecran ;
+- [x] les sauvegardes volumineuses sont gerees ou alertees ;
+- [x] les emails transactionnels ont preview, variables documentees et liens absolus ;
+- [x] la cron est idempotente, journalisee et documentee ;
+- [x] les pages BO/private ne debordent pas de l'ecran ;
 - [ ] les evenements critiques sont observables sans fuite de secret.
 
 ## 14. Decision

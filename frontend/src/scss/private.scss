@@ -19,7 +19,15 @@
     --private-nav-width: 250px;
   }
 
-  * {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
   }
 
@@ -33,6 +41,15 @@
 
   a {
     color: inherit;
+  }
+
+  img,
+  svg,
+  canvas,
+  video,
+  iframe {
+    height: auto;
+    max-width: 100%;
   }
 
   .private-auth-page {
@@ -71,6 +88,9 @@
     display: flex;
     min-height: 100vh;
     align-items: flex-start;
+    max-width: 100%;
+    overflow-x: hidden;
+    width: 100%;
   }
 
   .private-nav {
@@ -83,10 +103,13 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    left: 0;
+    overscroll-behavior: contain;
     overflow-y: auto;
     padding: 2.5rem 1.8rem;
-    position: sticky;
+    position: fixed;
     top: 0;
+    z-index: 20;
   }
 
   .private-nav-brand {
@@ -143,8 +166,11 @@
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
+    margin-left: var(--private-nav-width);
+    max-width: calc(100% - var(--private-nav-width));
     min-width: 0;
     min-height: 100vh;
+    width: calc(100% - var(--private-nav-width));
   }
 
   .private-header {
@@ -155,6 +181,9 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.65rem;
+    position: sticky;
+    top: 0;
+    z-index: 40;
   }
 
   .private-header h1 {
@@ -171,6 +200,8 @@
 
   .private-main {
     flex: 1;
+    max-width: 100%;
+    min-width: 0;
     padding: clamp(0.55rem, 1.8vw, 1.25rem);
   }
 
@@ -181,6 +212,13 @@
     font-size: 0.92rem;
     line-height: 1.4;
     background: rgb(29 111 141 / 10%);
+  }
+
+  .private-main > .private-screen-notice {
+    position: sticky;
+    top: 4.35rem;
+    z-index: 35;
+    box-shadow: 0 12px 24px rgb(19 41 75 / 12%);
   }
 
   .notice-success {
@@ -216,6 +254,7 @@
   select,
   textarea {
     width: 100%;
+    max-width: 100%;
     border: 1px solid rgb(39 75 109 / 25%);
     border-radius: 10px;
     background: #fff;
@@ -283,6 +322,9 @@
     font: inherit;
     font-weight: 600;
     cursor: pointer;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
     transition: transform 0.15s ease, box-shadow 0.2s ease;
   }
 
@@ -302,6 +344,8 @@
     gap: 0.8rem;
     align-items: center;
     margin: 0.85rem 0 0;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .private-actions form {
@@ -319,11 +363,14 @@
     color: var(--private-primary-dark);
     text-decoration: none;
     font-weight: 600;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: center;
   }
 
   .private-module-nav {
     position: sticky;
-    top: 0;
+    top: 4.35rem;
     z-index: 30;
     background: rgb(246 249 252 / 96%);
     border: 1px solid rgb(19 41 75 / 8%);
@@ -418,6 +465,8 @@
     border-radius: 12px;
     box-shadow: 0 10px 24px rgb(19 41 75 / 6%);
     padding: 0.95rem;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .card h2 {
@@ -466,7 +515,9 @@
   .cards-grid {
     display: grid;
     gap: 0.8rem;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    max-width: 100%;
+    min-width: 0;
   }
 
   .private-card-wide {
@@ -492,6 +543,7 @@
 
   table {
     width: 100%;
+    max-width: 100%;
     border-collapse: collapse;
   }
 
@@ -561,6 +613,8 @@
     gap: 1rem;
     padding: 1.4rem;
     background: #fff;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .private-dialog-header {
@@ -634,6 +688,12 @@
       padding: 1.2rem;
     }
 
+    .private-content {
+      margin-left: 0;
+      max-width: 100%;
+      width: 100%;
+    }
+
     .private-nav-menu {
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     }
@@ -641,10 +701,22 @@
     .private-header {
       align-items: flex-start;
       flex-direction: column;
+      position: static;
     }
 
     .private-main {
       padding: 0.9rem;
+    }
+
+    .private-main > .private-screen-notice,
+    .private-module-nav {
+      top: 0.5rem;
+    }
+
+    table {
+      display: block;
+      overflow-x: auto;
+      white-space: nowrap;
     }
   }
 
@@ -668,11 +740,6 @@
       width: 100%;
     }
 
-    table {
-      display: block;
-      overflow-x: auto;
-      white-space: nowrap;
-    }
   }
 
 /* Documents module. */
