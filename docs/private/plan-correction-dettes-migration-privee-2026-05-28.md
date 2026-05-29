@@ -42,7 +42,7 @@ php backend/core/tools/private_migration_reconcile.php security-checklist
 php backend/core/tools/private_migration_reconcile.php migration-dod
 php backend/core/tools/private_migration_reconcile.php m5-plan
 php backend/core/tools/private_migration_reconcile.php m6-retirement
-composer check-security-headers -- --url=https://preprod.example.tld
+composer check-security-headers -- --url=https://preprod.lescaramagnols.com
 ```
 
 Critere d'acceptation :

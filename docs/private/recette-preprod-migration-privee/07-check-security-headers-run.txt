@@ -1,0 +1,5 @@
+> php core/tools/check_security_headers.php '--url=https://www.lescaramagnols.com'
+Verification headers securite: https://www.lescaramagnols.com
+- URL finale: https://www.lescaramagnols.com
+- Status final: 200
+- Headers requis: OK
