@@ -64,6 +64,22 @@ $formatBytes = static function (int $size): string {
 
     return number_format($value, 1, '.', ' ') . ' ' . $units[$unitIndex];
 };
+$privateDocumentScanLabel = static function (string $status) use ($translate): string {
+    return match ($status) {
+        'pending_scan' => $translate('TXT_PRIVATE_DOCUMENT_SCAN_PENDING', 'En attente de scan'),
+        'infected' => $translate('TXT_PRIVATE_DOCUMENT_SCAN_INFECTED', 'Refusé par antivirus'),
+        'scan_unavailable' => $translate('TXT_PRIVATE_DOCUMENT_SCAN_UNAVAILABLE_SHORT', 'Scan indisponible'),
+        default => $translate('TXT_PRIVATE_DOCUMENT_SCAN_CLEAN', 'Validé'),
+    };
+};
+$privateDocumentScanClass = static function (string $status): string {
+    return match ($status) {
+        'pending_scan' => 'private-document-scan-status--pending',
+        'infected' => 'private-document-scan-status--infected',
+        'scan_unavailable' => 'private-document-scan-status--unavailable',
+        default => 'private-document-scan-status--clean',
+    };
+};
 ?>
 <section class="private-dashboard private-documents-module" data-private-documents-root>
 
@@ -176,6 +192,7 @@ $formatBytes = static function (int $size): string {
             <tr>
               <th><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_TABLE_NAME', 'Nom')); ?></th>
               <th><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_TABLE_CATEGORY', 'Catégorie')); ?></th>
+              <th><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_TABLE_SCAN_STATUS', 'État')); ?></th>
               <th><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_TABLE_SIZE', 'Poids')); ?></th>
               <th><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_TABLE_DATE', 'Ajouté le')); ?></th>
               <th><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_TABLE_ACTIONS', 'Actions')); ?></th>
@@ -193,6 +210,8 @@ $formatBytes = static function (int $size): string {
               $categoryColor = is_string($document['categoryColor'] ?? null) ? trim((string) $document['categoryColor']) : '';
               $sizeBytes = is_scalar($document['sizeBytes'] ?? null) ? (int) $document['sizeBytes'] : 0;
               $uploadedAtRaw = is_string($document['uploadedAt'] ?? null) ? trim((string) $document['uploadedAt']) : '';
+              $scanStatus = is_string($document['scanStatus'] ?? null) ? trim((string) $document['scanStatus']) : 'clean';
+              $scanDownloadable = $scanStatus === 'clean';
 
               if ($documentId === '') {
                   continue;
@@ -207,9 +226,14 @@ $formatBytes = static function (int $size): string {
               ?>
               <tr>
                 <td>
-                  <a href="<?php echo $h($downloadUrl); ?>">
-                    <?php echo $h($originalName !== '' ? $originalName : $documentId); ?>
-                  </a>
+                  <?php if ($scanDownloadable): ?>
+                    <a href="<?php echo $h($downloadUrl); ?>">
+                      <?php echo $h($originalName !== '' ? $originalName : $documentId); ?>
+                    </a>
+                  <?php else: ?>
+                    <span><?php echo $h($originalName !== '' ? $originalName : $documentId); ?></span>
+                    <small class="muted"><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_SCAN_BLOCKED_HELP', 'Téléchargement bloqué.')); ?></small>
+                  <?php endif; ?>
                 </td>
                 <td>
                   <?php if ($categoryName !== ''): ?>
@@ -219,6 +243,11 @@ $formatBytes = static function (int $size): string {
                   <?php else: ?>
                     <span class="muted"><?php echo $h($translate('TXT_PRIVATE_DOCUMENT_CATEGORY_NONE_SHORT', 'Sans catégorie')); ?></span>
                   <?php endif; ?>
+                </td>
+                <td>
+                  <span class="private-document-scan-status <?php echo $h($privateDocumentScanClass($scanStatus)); ?>">
+                    <?php echo $h($privateDocumentScanLabel($scanStatus)); ?>
+                  </span>
                 </td>
                 <td><?php echo $h($formatBytes(max(0, $sizeBytes))); ?></td>
                 <td><?php echo $h($uploadedAt); ?></td>

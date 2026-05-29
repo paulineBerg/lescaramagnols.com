@@ -1149,3 +1149,33 @@
   border-color: var(--private-item-color, currentColor);
   color: var(--private-item-color, currentColor);
 }
+
+.private-document-scan-status {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgb(19 41 75 / 12%);
+  border-radius: 999px;
+  padding: 0.22rem 0.58rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.private-document-scan-status--clean {
+  background: rgb(13 108 48 / 10%);
+  border-color: rgb(13 108 48 / 22%);
+  color: #0d6c30;
+}
+
+.private-document-scan-status--pending,
+.private-document-scan-status--unavailable {
+  background: rgb(176 112 0 / 10%);
+  border-color: rgb(176 112 0 / 24%);
+  color: #7a4d00;
+}
+
+.private-document-scan-status--infected {
+  background: rgb(161 26 42 / 10%);
+  border-color: rgb(161 26 42 / 24%);
+  color: #a11a2a;
+}

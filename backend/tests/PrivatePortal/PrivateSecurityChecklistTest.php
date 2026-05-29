@@ -52,6 +52,12 @@ final class PrivateSecurityChecklistTest extends TestCase
             'manual_restore_flow',
         ];
         self::assertSame($expectedKeys, array_keys($checklist['checks']));
+        self::assertSame('pass', $checklist['checks']['document_quarantine']['status'] ?? null);
+        self::assertFalse($checklist['checks']['document_quarantine']['evidence']['scannerConfigured'] ?? true);
+        self::assertSame(
+            ['pending_scan', 'infected', 'scan_unavailable'],
+            $checklist['checks']['document_quarantine']['evidence']['blockedStatuses'] ?? []
+        );
     }
 
     public function testPrivateCspUsesNonceForScriptsAndDocumentsInlineStyleException(): void

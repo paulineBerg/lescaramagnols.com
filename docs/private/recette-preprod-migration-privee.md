@@ -82,6 +82,13 @@ composer check-security-headers --working-dir=backend -- --url=https://preprod.l
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/30-c4-security-checklist-preprod-2026-05-29.json
 REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/36-c4-deploy-preprod-final-2026-05-29.txt 2>&1
 ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/37-c4-security-checklist-preprod-final-2026-05-29.json
+php backend/core/tools/private_migration_reconcile.php security-checklist > docs/private/recette-preprod-migration-privee/38-c5-security-checklist-local-2026-05-29.json
+php backend/vendor/bin/phpunit tests/PrivatePortalStorageTest.php tests/PrivatePortal/PrivateSecurityChecklistTest.php > docs/private/recette-preprod-migration-privee/39-c5-phpunit-storage-checklist-2026-05-29.txt 2>&1
+REMOTE_HOST=ovh-boutique REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend SITEMAP_BASE_URL=https://preprod.lescaramagnols.com bash backend/tools/deploy-fast.sh --all-changes > docs/private/recette-preprod-migration-privee/41-c5-deploy-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/42-c5-security-checklist-preprod-2026-05-29.json
+composer check-security-headers --working-dir=backend -- --url=https://preprod.lescaramagnols.com > docs/private/recette-preprod-migration-privee/43-c5-check-security-headers-preprod-2026-05-29.txt 2>&1
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php -r 'require \"core/bootstrap.php\"; (new Caramagnols\\PrivatePortal\\Documents\\PrivateDocumentRepository(editorial_database()))->ensureSchema(); echo \"private_document_schema_ok\n\";'" > docs/private/recette-preprod-migration-privee/44-c5-schema-preprod-2026-05-29.txt
+ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php security-checklist" > docs/private/recette-preprod-migration-privee/45-c5-security-checklist-preprod-final-2026-05-29.json
 ```
 
 ## Tests manuels requis (phase C1/C2/C3)
@@ -98,6 +105,13 @@ Chaque cas doit être signé dans cette section : date, opérateur, preuve (capt
 - [x] C4 — Suppression des `<style>` et `style=` dans les templates prives — **OK LOCAL**, preuve: [32-c4-inline-style-inventory-2026-05-29.txt](./recette-preprod-migration-privee/32-c4-inline-style-inventory-2026-05-29.txt)
 - [x] C4 — Rendu prive desktop/mobile apres extraction CSS — **OK LOCAL HEADLESS**, preuve: [34-c4-rendu-local-headless-2026-05-29.txt](./recette-preprod-migration-privee/34-c4-rendu-local-headless-2026-05-29.txt)
 - [ ] C4 — Rendu HTTP externe preprod sur `/private/login` — **BLOQUE ENVIRONNEMENT**, preuve: [35-c4-reserve-http-preprod-2026-05-29.txt](./recette-preprod-migration-privee/35-c4-reserve-http-preprod-2026-05-29.txt)
+
+## Tests manuels requis (phase C5)
+
+- [x] C5 — Mode sans scanner configure : comportement historique stable, statut `clean`, telechargement autorise — **OK TEST**, preuve: [39-c5-phpunit-storage-checklist-2026-05-29.txt](./recette-preprod-migration-privee/39-c5-phpunit-storage-checklist-2026-05-29.txt)
+- [x] C5 — Mode scanner configure avec fichier refuse : statut `infected`, notice quarantaine, telechargement bloque en `403`, erreur technique non exposee a l'utilisateur — **OK TEST**, preuve: [39-c5-phpunit-storage-checklist-2026-05-29.txt](./recette-preprod-migration-privee/39-c5-phpunit-storage-checklist-2026-05-29.txt)
+- [x] C5 — Checklist securite locale et preprod apres deploiement — **OK LOCAL + PREPROD CLI**, preuves: [38-c5-security-checklist-local-2026-05-29.json](./recette-preprod-migration-privee/38-c5-security-checklist-local-2026-05-29.json), [45-c5-security-checklist-preprod-final-2026-05-29.json](./recette-preprod-migration-privee/45-c5-security-checklist-preprod-final-2026-05-29.json)
+- [x] C5 — Migration schema preprod `private_documents` pour statuts de scan — **OK PREPROD**, preuve: [44-c5-schema-preprod-2026-05-29.txt](./recette-preprod-migration-privee/44-c5-schema-preprod-2026-05-29.txt)
 
 ## Procédure C3 — restauration fichier + base
 
@@ -194,16 +208,23 @@ Restauration réelle : elle reste volontairement bloquée par `PrivateBackupServ
 - `docs/private/recette-preprod-migration-privee/35-c4-reserve-http-preprod-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/36-c4-deploy-preprod-final-2026-05-29.txt`
 - `docs/private/recette-preprod-migration-privee/37-c4-security-checklist-preprod-final-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/38-c5-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/39-c5-phpunit-storage-checklist-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/40-c5-frontend-build-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/41-c5-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/42-c5-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/43-c5-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/44-c5-schema-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/45-c5-security-checklist-preprod-final-2026-05-29.json`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-tests-refresh.txt`
 - `docs/private/recette-preprod-migration-privee/12-c1-c2-c3-manuel-preprod-unavailable.txt`
 
 ## Prochaine action
 
-C4 est ferme cote code applicatif et validations locales/preprod CLI.
+C5 est ferme cote code applicatif et validations locales/preprod CLI.
 
 Les prochaines actions appartiennent aux phases suivantes du plan :
 
-- C5 : antivirus ou quarantaine documentaire ;
 - V1-V5 : validations d'exploitation restant suivies hors C0.
 
 Reserve a rejouer avant go-live : controle HTTP externe preprod `/private/login` apres correction du mapping Apache/OVH.

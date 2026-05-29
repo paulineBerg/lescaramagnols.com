@@ -40,7 +40,7 @@ final class PrivateDataProtectionService
                 'private_documents',
                 '`private_user_id` = :private_user_id',
                 ['private_user_id' => $privateUserId],
-                ['document_id', 'category_id', 'original_name', 'extension', 'mime_type', 'size_bytes', 'is_active', 'uploaded_at']
+                ['document_id', 'category_id', 'original_name', 'extension', 'mime_type', 'size_bytes', 'scan_status', 'scanned_at', 'is_active', 'uploaded_at']
             ),
             'documentCategories' => $this->rows(
                 'private_document_categories',
@@ -135,7 +135,7 @@ final class PrivateDataProtectionService
             );
             $this->safeUpdate(
                 'private_documents',
-                '`original_name` = :original_name, `is_active` = 0',
+                '`original_name` = :original_name, `scan_error` = \'\', `is_active` = 0',
                 '`private_user_id` = :private_user_id',
                 ['original_name' => 'document-anonymized', 'private_user_id' => $privateUserId]
             );

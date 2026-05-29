@@ -53,6 +53,8 @@ final class PrivatePortalStorageTest extends TestCase
             'allowed_extensions' => ['txt', 'pdf'],
             'allowed_mime_types' => ['text/plain', 'application/pdf'],
             'max_upload_bytes' => 1024,
+            'scan_command' => '',
+            'scan_timeout_seconds' => 5,
         ];
     }
 
@@ -308,10 +310,72 @@ final class PrivatePortalStorageTest extends TestCase
         $this->assertCount(1, $documents);
         $storedDocument = is_array($documents[0] ?? null) ? $documents[0] : null;
         $this->assertIsArray($storedDocument);
+        $this->assertSame(PrivateDocumentRepository::SCAN_STATUS_CLEAN, $storedDocument['scanStatus'] ?? null);
         $storagePath = is_string($storedDocument['storagePath'] ?? null) ? (string) $storedDocument['storagePath'] : '';
         $absolutePath = $storage->absolutePath($storagePath);
         $this->assertNotNull($absolutePath);
         $this->assertTrue(is_file($absolutePath));
+    }
+
+    public function testConfiguredScannerQuarantinesRefusedUploadAndBlocksDownload(): void
+    {
+        global $appConfig;
+        $scannerScript = $this->createScannerFixture();
+        $appConfig['private']['documents']['scan_command'] = PHP_BINARY . ' ' . $scannerScript . ' {file}';
+
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $documentRepository = new PrivateDocumentRepository($database);
+        $passwordHash = password_hash('SecretPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+
+        $userId = $userRepository->create('family@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
+
+        $storage = PrivateDocumentStorage::fromAppConfig();
+        $controller = new PrivatePortalController(
+            $this->privateAuth($userRepository, $userId),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository,
+            $documentRepository,
+            $storage
+        );
+
+        $upload = $this->createUploadFixture('eicar.txt', 'text/plain', 'EICAR test signature');
+        $uploadResponse = $controller->handle(
+            'files_upload',
+            $this->request(
+                'POST',
+                '/private/files/upload',
+                ['csrf_token' => csrf_token('private_documents')],
+                ['document_file' => $upload]
+            )
+        );
+        $this->cleanupUploadFixture($upload['tmp_name']);
+
+        $this->assertSame(302, $uploadResponse->status);
+        $location = is_string($uploadResponse->headers['Location'] ?? null) ? $uploadResponse->headers['Location'] : '';
+        $this->assertStringContainsString('notice=document_quarantined', $location);
+
+        $documents = $documentRepository->listActiveByUser($userId, 10);
+        $this->assertCount(1, $documents);
+        $document = $documents[0];
+        $this->assertSame(PrivateDocumentRepository::SCAN_STATUS_INFECTED, $document['scanStatus'] ?? null);
+        $this->assertSame(1, $document['scanExitCode'] ?? null);
+        $this->assertIsInt($document['scanDurationMs'] ?? null);
+        $this->assertStringNotContainsString($this->storageRootPath, (string) ($document['scanError'] ?? ''));
+
+        $downloadResponse = $controller->handle(
+            'files',
+            $this->request('GET', '/private/files/' . (string) $document['documentId']),
+            ['documentId' => (string) $document['documentId']]
+        );
+        $this->assertSame(403, $downloadResponse->status);
+        $this->assertSame('Forbidden', $downloadResponse->body);
     }
 
     public function testFilesCategoriesCanBeCreatedAndAssignedOnUpload(): void
@@ -737,6 +801,28 @@ final class PrivatePortalStorageTest extends TestCase
             'error' => UPLOAD_ERR_OK,
             'type' => $mimeType,
         ];
+    }
+
+    private function createScannerFixture(): string
+    {
+        $path = tempnam($this->storageRootPath, 'scanner-');
+        $this->assertIsString($path);
+        $script = <<<'PHP'
+<?php
+declare(strict_types=1);
+
+$path = (string) ($argv[1] ?? '');
+$content = is_file($path) ? file_get_contents($path) : '';
+if (is_string($content) && str_contains($content, 'EICAR')) {
+    fwrite(STDERR, 'Eicar-Test-Signature FOUND in ' . $path);
+    exit(1);
+}
+
+exit(0);
+PHP;
+        $this->assertTrue(file_put_contents($path, $script) !== false);
+
+        return $path;
     }
 
     private function cleanupUploadFixture(?string $tmpName): void

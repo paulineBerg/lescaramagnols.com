@@ -1,0 +1,54 @@
+Deploy mode: fast
+Dry run: 0
+Scope: all changes
+Remote: ovh-boutique:/home/lescaramgl-ssh/caramagnols-preprod/backend
+Changed files: 10
+Deleted files: 0
+Sitemap base URL override: https://preprod.lescaramagnols.com
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+[editorial-media] OK: 609 perimetre(s), 1621 reference(s) controlee(s).
+building file list ... done
+config/
+config/config.php
+            700   0%    0.00kB/s    0:00:00           38,323   9%   35.88MB/s    0:00:00 (xfr#1, to-chk=20/22)
+sql/private/private_documents.sql
+         41,137  10%   38.56MB/s    0:00:00 (xfr#2, to-chk=17/22)
+src/PrivatePortal/Documents/
+src/PrivatePortal/Documents/PrivateDocumentRepository.php
+         71,643  17%   22.55MB/s    0:00:00 (xfr#3, to-chk=13/22)
+src/PrivatePortal/Documents/PrivateDocumentScanResult.php
+         74,497  18%   23.46MB/s    0:00:00 (xfr#4, to-chk=12/22)
+src/PrivatePortal/Documents/PrivateDocumentScanner.php
+         81,132  19%   19.18MB/s    0:00:00 (xfr#5, to-chk=11/22)
+src/PrivatePortal/Documents/PrivateDocumentStorage.php
+        102,954  25%   24.38MB/s    0:00:00 (xfr#6, to-chk=10/22)
+src/PrivatePortal/Http/PrivatePortalController.php
+        315,246  76%   25.00MB/s    0:00:00 (xfr#7, to-chk=8/22)
+
+src/PrivatePortal/Operations/PrivateDataProtectionService.php
+        372,091  90%   25.30MB/s    0:00:00 (xfr#8, to-chk=6/22)
+src/PrivatePortal/Operations/PrivateSecurityChecklistService.php
+        393,562  95%   24.98MB/s    0:00:00 (xfr#9, to-chk=5/22)
+templates/private/modules/documents/index.php
+        410,954 100%   23.01MB/s    0:00:00 (xfr#10, to-chk=0/22)        410,954 100%   23.01MB/s    0:00:00 (xfr#10, to-chk=0/22)        410,954 100%    2.90MB/s    0:00:00 (xfr#10, to-chk=0/22)        410,954 100%    2.90MB/s    0:00:00 (xfr#10, to-chk=0/22)
+
+sent 11,337 bytes  received 3,584 bytes  29,842.00 bytes/sec
+total size is 410,954  speedup is 27.54
+sync-published-frontend-tree completed.
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 85 bytes  received 12 bytes  64.67 bytes/sec
+total size is 6,372  speedup is 65.69
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 83 bytes  received 12 bytes  63.33 bytes/sec
+total size is 6,163  speedup is 64.87
+[prod-tree] OK: aucun fichier non-prod detecte.
+Sitemap genere: /home/lescaramgl-ssh/caramagnols-preprod/backend/public/sitemap.xml (64 urls)
+Sommaire mis a jour dans accueil-le-plan-du-site-des-caramagnols, region body, langues FR, EN, DE.
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+cache_cleared
+autoload_ok
+deploy-fast completed.

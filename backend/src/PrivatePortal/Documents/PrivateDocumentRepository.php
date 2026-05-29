@@ -10,6 +10,10 @@ use PDO;
 final class PrivateDocumentRepository
 {
     private const DOCUMENT_ID_MAX_LENGTH = 64;
+    public const SCAN_STATUS_PENDING_SCAN = PrivateDocumentScanResult::STATUS_PENDING_SCAN;
+    public const SCAN_STATUS_CLEAN = PrivateDocumentScanResult::STATUS_CLEAN;
+    public const SCAN_STATUS_INFECTED = PrivateDocumentScanResult::STATUS_INFECTED;
+    public const SCAN_STATUS_UNAVAILABLE = PrivateDocumentScanResult::STATUS_SCAN_UNAVAILABLE;
     public const DEFAULT_CATEGORY_COLOR = '#ffffff';
     public const CATEGORY_COLORS = [
         '#ffffff',
@@ -373,7 +377,12 @@ final class PrivateDocumentRepository
         string $mimeType,
         int $sizeBytes,
         int $uploadedBy,
-        ?int $categoryId = null
+        ?int $categoryId = null,
+        string $scanStatus = self::SCAN_STATUS_CLEAN,
+        ?int $scanExitCode = null,
+        ?int $scanDurationMs = null,
+        string $scanError = '',
+        ?string $scannedAt = null
     ): ?array {
         $documentId = $this->normalizeDocumentId($documentId);
         $storagePath = trim($storagePath);
@@ -381,6 +390,11 @@ final class PrivateDocumentRepository
         $extension = trim($extension);
         $mimeType = trim($mimeType);
         $categoryId = $categoryId !== null && $categoryId > 0 ? $categoryId : null;
+        $scanStatus = $this->normalizeScanStatus($scanStatus);
+        $scanExitCode = $scanExitCode !== null ? max(-1, min(255, $scanExitCode)) : null;
+        $scanDurationMs = $scanDurationMs !== null ? max(0, $scanDurationMs) : null;
+        $scanError = $this->normalizeScanError($scanError);
+        $scannedAt = is_string($scannedAt) && trim($scannedAt) !== '' ? trim($scannedAt) : null;
 
         if (
             $documentId === ''
@@ -407,9 +421,9 @@ final class PrivateDocumentRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`private_user_id`, `category_id`, `document_id`, `storage_path`, `original_name`, `extension`, `mime_type`, `size_bytes`, `uploaded_by_private_user_id`)
+                        (`private_user_id`, `category_id`, `document_id`, `storage_path`, `original_name`, `extension`, `mime_type`, `size_bytes`, `scan_status`, `scan_exit_code`, `scan_duration_ms`, `scan_error`, `scanned_at`, `uploaded_by_private_user_id`)
                      VALUES
-                        (:user_id, :category_id, :document_id, :storage_path, :original_name, :extension, :mime_type, :size_bytes, :uploaded_by)',
+                        (:user_id, :category_id, :document_id, :storage_path, :original_name, :extension, :mime_type, :size_bytes, :scan_status, :scan_exit_code, :scan_duration_ms, :scan_error, :scanned_at, :uploaded_by)',
                     $this->table()
                 )
             );
@@ -422,6 +436,11 @@ final class PrivateDocumentRepository
                 'extension' => $extension,
                 'mime_type' => $mimeType,
                 'size_bytes' => $sizeBytes,
+                'scan_status' => $scanStatus,
+                'scan_exit_code' => $scanExitCode,
+                'scan_duration_ms' => $scanDurationMs,
+                'scan_error' => $scanError,
+                'scanned_at' => $scannedAt,
                 'uploaded_by' => $uploadedBy,
             ]);
         } catch (\Throwable) {
@@ -511,6 +530,11 @@ final class PrivateDocumentRepository
                     `extension` VARCHAR(32) NOT NULL,
                     `mime_type` VARCHAR(128) NOT NULL,
                     `size_bytes` BIGINT UNSIGNED NOT NULL,
+                    `scan_status` VARCHAR(32) NOT NULL DEFAULT \'clean\',
+                    `scan_exit_code` INT NULL,
+                    `scan_duration_ms` INT UNSIGNED NULL,
+                    `scan_error` VARCHAR(255) NOT NULL DEFAULT \'\',
+                    `scanned_at` DATETIME NULL,
                     `uploaded_by_private_user_id` INT NOT NULL,
                     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
                     `uploaded_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -520,6 +544,7 @@ final class PrivateDocumentRepository
                     UNIQUE KEY `uq_private_documents_storage_path` (`storage_path`),
                     KEY `idx_private_documents_user_active` (`private_user_id`, `is_active`),
                     KEY `idx_private_documents_category` (`category_id`, `is_active`),
+                    KEY `idx_private_documents_scan_status` (`scan_status`, `is_active`),
                     KEY `idx_private_documents_active` (`is_active`),
                     KEY `idx_private_documents_uploaded` (`uploaded_at`),
                     CONSTRAINT `%s`
@@ -552,7 +577,13 @@ final class PrivateDocumentRepository
             )
         );
         $this->ensureColumn($pdo, $this->table(), 'category_id', '`category_id` INT NULL');
+        $this->ensureColumn($pdo, $this->table(), 'scan_status', '`scan_status` VARCHAR(32) NOT NULL DEFAULT \'clean\'');
+        $this->ensureColumn($pdo, $this->table(), 'scan_exit_code', '`scan_exit_code` INT NULL');
+        $this->ensureColumn($pdo, $this->table(), 'scan_duration_ms', '`scan_duration_ms` INT UNSIGNED NULL');
+        $this->ensureColumn($pdo, $this->table(), 'scan_error', '`scan_error` VARCHAR(255) NOT NULL DEFAULT \'\'');
+        $this->ensureColumn($pdo, $this->table(), 'scanned_at', '`scanned_at` DATETIME NULL');
         $this->ensureIndex($pdo, $this->table(), 'idx_private_documents_category', '`category_id`, `is_active`');
+        $this->ensureIndex($pdo, $this->table(), 'idx_private_documents_scan_status', '`scan_status`, `is_active`');
 
         $this->privateSchemaReady = true;
     }
@@ -582,6 +613,11 @@ final class PrivateDocumentRepository
             'extension' => is_string($row['extension'] ?? null) ? (string) $row['extension'] : '',
             'mimeType' => is_string($row['mime_type'] ?? null) ? (string) $row['mime_type'] : '',
             'sizeBytes' => max(0, $sizeBytes),
+            'scanStatus' => $this->normalizeScanStatus(is_string($row['scan_status'] ?? null) ? (string) $row['scan_status'] : ''),
+            'scanExitCode' => is_scalar($row['scan_exit_code'] ?? null) ? (int) $row['scan_exit_code'] : null,
+            'scanDurationMs' => is_scalar($row['scan_duration_ms'] ?? null) ? max(0, (int) $row['scan_duration_ms']) : null,
+            'scanError' => is_string($row['scan_error'] ?? null) ? (string) $row['scan_error'] : '',
+            'scannedAt' => is_string($row['scanned_at'] ?? null) ? (string) $row['scanned_at'] : '',
             'uploadedBy' => $uploadedBy,
             'isActive' => (int) ($row['is_active'] ?? 0) === 1,
             'uploadedAt' => is_string($row['uploaded_at'] ?? null) ? (string) $row['uploaded_at'] : '',
@@ -680,6 +716,24 @@ final class PrivateDocumentRepository
         $color = trim($color);
 
         return preg_match('/\A#[0-9A-Fa-f]{6}\z/', $color) === 1 ? strtolower($color) : self::DEFAULT_CATEGORY_COLOR;
+    }
+
+    public static function isDownloadableScanStatus(string $status): bool
+    {
+        return PrivateDocumentScanResult::isDownloadable($status);
+    }
+
+    private function normalizeScanStatus(string $status): string
+    {
+        return PrivateDocumentScanResult::normalizeStatus($status);
+    }
+
+    private function normalizeScanError(string $error): string
+    {
+        $normalized = preg_replace('/[\x00-\x1F\x7F]+/', ' ', $error);
+        $normalized = is_string($normalized) ? trim($normalized) : '';
+
+        return substr($normalized, 0, 255);
     }
 
     private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void

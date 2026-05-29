@@ -6,6 +6,7 @@ namespace Caramagnols\PrivatePortal\Operations;
 
 use Caramagnols\PrivatePortal\Http\PrivateResponseHeaders;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentScanResult;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 
 final class PrivateSecurityChecklistService
@@ -82,14 +83,7 @@ final class PrivateSecurityChecklistService
             'private_cookie_policy' => $this->privateCookieCheck(),
             'csp_policy' => $this->cspCheck(),
             'rate_limits' => $this->rateLimitCheck(),
-            'document_quarantine' => $this->pass(
-                'Antivirus ou quarantaine documentaire si disponible en production',
-                [
-                    'Les documents sont stockes hors webroot et servis seulement via session privee.',
-                    'Les exports/sauvegardes restent dans un espace controle et ne deviennent pas des URLs publiques.',
-                    'La mise en production peut brancher un scanner antivirus sans changer le contrat de stockage.',
-                ]
-            ),
+            'document_quarantine' => $this->documentQuarantineCheck(),
             'upload_limits' => $this->uploadLimitCheck(),
             'sensitive_audit_redaction' => $this->pass(
                 'Audit sans contenu sensible',
@@ -377,6 +371,35 @@ final class PrivateSecurityChecklistService
     /**
      * @return array<string, mixed>
      */
+    private function documentQuarantineCheck(): array
+    {
+        $documents = (array) ($this->privateConfig()['documents'] ?? []);
+        $scanCommandConfigured = trim((string) ($documents['scan_command'] ?? '')) !== '';
+        $scanTimeoutSeconds = (int) ($documents['scan_timeout_seconds'] ?? 0);
+
+        return $this->result(
+            $scanTimeoutSeconds > 0,
+            'Antivirus optionnel avec quarantaine documentaire',
+            [
+                'scannerConfigured' => $scanCommandConfigured,
+                'commandStoredInConfig' => $scanCommandConfigured,
+                'timeoutSeconds' => $scanTimeoutSeconds,
+                'statuses' => PrivateDocumentScanResult::STATUSES,
+                'defaultWithoutScanner' => PrivateDocumentScanResult::STATUS_CLEAN,
+                'blockedStatuses' => [
+                    PrivateDocumentScanResult::STATUS_PENDING_SCAN,
+                    PrivateDocumentScanResult::STATUS_INFECTED,
+                    PrivateDocumentScanResult::STATUS_SCAN_UNAVAILABLE,
+                ],
+                'userDisclosure' => 'generic_status_only',
+                'storage' => 'outside_webroot',
+            ]
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function uploadLimitCheck(): array
     {
         $documents = (array) ($this->privateConfig()['documents'] ?? []);
@@ -426,6 +449,8 @@ final class PrivateSecurityChecklistService
             'login_rate_limit_window' => 900,
             'documents' => [
                 'max_upload_bytes' => 20971520,
+                'scan_command' => '',
+                'scan_timeout_seconds' => 30,
                 'allowed_extensions' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'],
                 'allowed_mime_types' => [
                     'application/pdf',

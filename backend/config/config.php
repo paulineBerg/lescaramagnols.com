@@ -555,6 +555,8 @@ $privateDocumentAllowedMimeTypes = $normalizePrivateDocumentMimeTypes(
         ])
     )
 );
+$privateDocumentScanCommand = trim((string) env('PRIVATE_DOCUMENT_SCAN_COMMAND', ''));
+$privateDocumentScanTimeoutSeconds = max(1, min(120, (int) env('PRIVATE_DOCUMENT_SCAN_TIMEOUT_SECONDS', 30)));
 
 $privateDiscussionRetentionDays = max(1, (int) env('PRIVATE_DISCUSSION_RETENTION_DAYS', 60));
 $privateDiscussionMaxMessageLength = max(1, min(10000, (int) env('PRIVATE_DISCUSSION_MAX_MESSAGE_LENGTH', 4000)));
@@ -666,6 +668,8 @@ $appConfig = [
             'file_permissions' => $privateDocumentFilePermissions,
             'allowed_extensions' => $privateDocumentAllowedExtensions,
             'allowed_mime_types' => $privateDocumentAllowedMimeTypes,
+            'scan_command' => $privateDocumentScanCommand,
+            'scan_timeout_seconds' => $privateDocumentScanTimeoutSeconds,
         ],
         'discussions' => [
             'storage_root_path' => $privateDocumentStorageRootPath,

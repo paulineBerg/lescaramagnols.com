@@ -256,6 +256,8 @@ final class PrivatePortalController
             'privateModuleDataCounts' => $privateModuleDataCounts,
             'notice' => match ($notice) {
                 'document_uploaded' => $this->translate('TXT_PRIVATE_DOCUMENT_UPLOAD_SUCCESS', 'Document envoyé.'),
+                'document_quarantined' => $this->translate('TXT_PRIVATE_DOCUMENT_QUARANTINED', 'Document reçu, mais bloqué par le contrôle antivirus.'),
+                'document_scan_unavailable' => $this->translate('TXT_PRIVATE_DOCUMENT_SCAN_UNAVAILABLE', 'Document reçu, mais indisponible tant que le contrôle antivirus n’est pas disponible.'),
                 'document_deleted' => $this->translate('TXT_PRIVATE_DOCUMENT_DELETE_SUCCESS', 'Document supprimé.'),
                 'document_category_created' => $this->translate('TXT_PRIVATE_DOCUMENT_CATEGORY_CREATE_SUCCESS', 'Catégorie créée.'),
                 default => null,
@@ -360,6 +362,8 @@ final class PrivatePortalController
             'privateFilesBaseUrl' => private_portal_url('files'),
             'notice' => match ($notice) {
                 'document_uploaded' => $this->translate('TXT_PRIVATE_DOCUMENT_UPLOAD_SUCCESS', 'Document envoyé.'),
+                'document_quarantined' => $this->translate('TXT_PRIVATE_DOCUMENT_QUARANTINED', 'Document reçu, mais bloqué par le contrôle antivirus.'),
+                'document_scan_unavailable' => $this->translate('TXT_PRIVATE_DOCUMENT_SCAN_UNAVAILABLE', 'Document reçu, mais indisponible tant que le contrôle antivirus n’est pas disponible.'),
                 'document_deleted' => $this->translate('TXT_PRIVATE_DOCUMENT_DELETE_SUCCESS', 'Document supprimé.'),
                 'document_category_created' => $this->translate('TXT_PRIVATE_DOCUMENT_CATEGORY_CREATE_SUCCESS', 'Catégorie créée.'),
                 'document_category_saved' => 'Catégorie enregistrée.',
@@ -2473,6 +2477,19 @@ final class PrivatePortalController
             return $this->withPrivateHeaders(new Response(404, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Not Found'));
         }
 
+        $scanStatus = is_string($document['scanStatus'] ?? null)
+            ? (string) $document['scanStatus']
+            : PrivateDocumentRepository::SCAN_STATUS_CLEAN;
+        if (!PrivateDocumentRepository::isDownloadableScanStatus($scanStatus)) {
+            $this->logEvent('private.files.download_blocked_scan', [
+                'document_id' => $documentId,
+                'private_user_id' => $userId,
+                'scan_status' => $scanStatus,
+            ]);
+
+            return $this->withPrivateHeaders(new Response(403, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Forbidden'));
+        }
+
         $storagePath = is_string($document['storagePath'] ?? null) ? trim((string) $document['storagePath']) : '';
         $absolutePath = $this->privateDocumentStorage()->absolutePath($storagePath);
         if ($absolutePath === null || !is_file($absolutePath) || !is_readable($absolutePath)) {
@@ -2605,7 +2622,12 @@ final class PrivatePortalController
             (string) $stored['mimeType'],
             (int) $stored['sizeBytes'],
             $userId,
-            $categoryId
+            $categoryId,
+            is_string($stored['scanStatus'] ?? null) ? (string) $stored['scanStatus'] : PrivateDocumentRepository::SCAN_STATUS_CLEAN,
+            is_int($stored['scanExitCode'] ?? null) ? (int) $stored['scanExitCode'] : null,
+            is_int($stored['scanDurationMs'] ?? null) ? (int) $stored['scanDurationMs'] : null,
+            is_string($stored['scanError'] ?? null) ? (string) $stored['scanError'] : '',
+            is_string($stored['scannedAt'] ?? null) ? (string) $stored['scannedAt'] : null
         );
         if (!is_array($created)) {
             $storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
@@ -2623,9 +2645,14 @@ final class PrivatePortalController
             'private_user_id' => $userId,
             'size_bytes' => (int) $stored['sizeBytes'],
             'storage_path' => (string) $stored['storagePath'],
+            'scan_status' => is_string($stored['scanStatus'] ?? null) ? (string) $stored['scanStatus'] : PrivateDocumentRepository::SCAN_STATUS_CLEAN,
         ]);
 
-        return $this->redirect($this->documentsUrlWithNotice('document_uploaded'));
+        return $this->redirect($this->documentsUrlWithNotice(
+            $this->documentUploadNoticeForScanStatus(
+                is_string($stored['scanStatus'] ?? null) ? (string) $stored['scanStatus'] : PrivateDocumentRepository::SCAN_STATUS_CLEAN
+            )
+        ));
     }
 
     private function handleFilesCategoryCreate(Request $request): Response
@@ -4433,6 +4460,16 @@ final class PrivatePortalController
     private function privateUserRepository(): PrivateUserRepository
     {
         return $this->privateUserRepository ?? new PrivateUserRepository(editorial_database());
+    }
+
+    private function documentUploadNoticeForScanStatus(string $scanStatus): string
+    {
+        return match ($scanStatus) {
+            PrivateDocumentRepository::SCAN_STATUS_INFECTED => 'document_quarantined',
+            PrivateDocumentRepository::SCAN_STATUS_PENDING_SCAN,
+            PrivateDocumentRepository::SCAN_STATUS_UNAVAILABLE => 'document_scan_unavailable',
+            default => 'document_uploaded',
+        };
     }
 
     private function privateDocumentRepository(): PrivateDocumentRepository

@@ -262,27 +262,46 @@ Choix retenu : contrat de scan optionnel, avec quarantaine par defaut si scanner
 
 Checklist de suivi :
 
-- [ ] Choisir le contrat de configuration du scanner.
-- [ ] Ajouter les statuts documentaires si necessaire.
-- [ ] Bloquer le telechargement des fichiers non propres.
-- [ ] Journaliser les resultats de scan.
-- [ ] Tester le mode sans scanner configure.
-- [ ] Tester le mode scanner configure avec fichier refuse.
+- [x] Choisir le contrat de configuration du scanner.
+- [x] Ajouter les statuts documentaires si necessaire.
+- [x] Bloquer le telechargement des fichiers non propres.
+- [x] Journaliser les resultats de scan.
+- [x] Tester le mode sans scanner configure.
+- [x] Tester le mode scanner configure avec fichier refuse.
 
 Travaux :
 
-- [ ] ajouter une configuration `PRIVATE_DOCUMENT_SCAN_COMMAND` ou equivalente ;
-- [ ] ajouter un statut documentaire `pending_scan`, `clean`, `infected`, `scan_unavailable` si necessaire ;
-- [ ] empecher le telechargement utilisateur d'un fichier `pending_scan` ou `infected` ;
-- [ ] journaliser resultat, code retour, duree et erreur technique ;
+- [x] ajouter une configuration `PRIVATE_DOCUMENT_SCAN_COMMAND` ou equivalente ;
+- [x] ajouter un statut documentaire `pending_scan`, `clean`, `infected`, `scan_unavailable` si necessaire ;
+- [x] empecher le telechargement utilisateur d'un fichier `pending_scan` ou `infected` ;
+- [x] journaliser resultat, code retour, duree et erreur technique ;
 - [x] conserver le stockage hors webroot.
 
 Critere d'acceptation :
 
-- [ ] si aucun scanner n'est configure, le comportement actuel reste stable et documente ;
-- [ ] si un scanner est configure, un fichier non valide est bloque ;
-- [ ] aucune erreur scanner ne divulgue de chemin systeme sensible a l'utilisateur ;
-- [ ] l'admin voit un etat simple et comprehensible.
+- [x] si aucun scanner n'est configure, le comportement actuel reste stable et documente ;
+- [x] si un scanner est configure, un fichier non valide est bloque ;
+- [x] aucune erreur scanner ne divulgue de chemin systeme sensible a l'utilisateur ;
+- [x] l'admin voit un etat simple et comprehensible.
+
+Contrat C5 retenu :
+
+- `PRIVATE_DOCUMENT_SCAN_COMMAND` vide : aucun scanner n'est lance, les documents conservent le statut `clean` et le comportement historique reste stable.
+- `PRIVATE_DOCUMENT_SCAN_COMMAND` renseigne une commande sans shell avec placeholders optionnels `{file}`, `{name}`, `{mime}` ; si `{file}` est absent, le chemin du fichier est ajoute en dernier argument.
+- Code retour `0` : `clean`; code retour `1` : `infected`; tout autre code, timeout ou erreur d'execution : `scan_unavailable`.
+- Les statuts `pending_scan`, `infected` et `scan_unavailable` sont visibles dans la liste Documents mais bloques au telechargement.
+- Les erreurs techniques sont journalisees et tronquees, sans affichage de chemin systeme a l'utilisateur.
+
+Preuves C5 :
+
+- `docs/private/recette-preprod-migration-privee/38-c5-security-checklist-local-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/39-c5-phpunit-storage-checklist-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/40-c5-frontend-build-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/41-c5-deploy-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/42-c5-security-checklist-preprod-2026-05-29.json`
+- `docs/private/recette-preprod-migration-privee/43-c5-check-security-headers-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/44-c5-schema-preprod-2026-05-29.txt`
+- `docs/private/recette-preprod-migration-privee/45-c5-security-checklist-preprod-final-2026-05-29.json`
 
 ## 9. Phase C6 - Nettoyage des traces anonymisation
 

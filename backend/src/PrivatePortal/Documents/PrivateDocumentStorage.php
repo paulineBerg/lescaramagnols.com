@@ -66,7 +66,8 @@ final class PrivateDocumentStorage
         array $allowedMimeTypes = self::DEFAULT_ALLOWED_MIME_TYPES,
         private readonly ?AppEventLogger $eventLogger = null,
         int $directoryPermissions = self::DIRECTORY_PERMISSIONS,
-        int $filePermissions = self::FILE_PERMISSIONS
+        int $filePermissions = self::FILE_PERMISSIONS,
+        private readonly ?PrivateDocumentScanner $scanner = null
     ) {
         $storageRootPath = trim($storageRootPath);
         if ($storageRootPath === '') {
@@ -129,6 +130,12 @@ final class PrivateDocumentStorage
         $filePermissions = is_numeric($documentConfig['file_permissions'] ?? null)
             ? (int) $documentConfig['file_permissions']
             : self::FILE_PERMISSIONS;
+        $scanCommand = is_string($documentConfig['scan_command'] ?? null)
+            ? trim((string) $documentConfig['scan_command'])
+            : '';
+        $scanTimeoutSeconds = is_numeric($documentConfig['scan_timeout_seconds'] ?? null)
+            ? (int) $documentConfig['scan_timeout_seconds']
+            : 30;
 
         return new self(
             $storageRootPath,
@@ -140,7 +147,8 @@ final class PrivateDocumentStorage
             is_array($documentConfig['allowed_mime_types'] ?? null) ? $documentConfig['allowed_mime_types'] : [],
             $eventLogger,
             $directoryPermissions,
-            $filePermissions
+            $filePermissions,
+            $scanCommand !== '' ? new PrivateDocumentScanner($scanCommand, $scanTimeoutSeconds) : null
         );
     }
 
@@ -261,7 +269,7 @@ final class PrivateDocumentStorage
 
     /**
      * @param array{tmpPath:string,originalName:string,extension:string,mimeType:string,sizeBytes:int} $metadata
-     * @return array{documentId:string,storagePath:string,originalName:string,extension:string,mimeType:string,sizeBytes:int}|null
+     * @return array{documentId:string,storagePath:string,originalName:string,extension:string,mimeType:string,sizeBytes:int,scanStatus:string,scanExitCode:int|null,scanDurationMs:int|null,scanError:string,scannedAt:string|null}|null
      */
     public function storeUploadedFile(array $metadata, string $documentId): ?array
     {
@@ -344,8 +352,13 @@ final class PrivateDocumentStorage
         }
 
         @chmod($absolutePath, $this->filePermissions);
+        $scanResult = $this->scanStoredFile($absolutePath, $originalName, $mimeType);
         $this->uploadError = null;
-        $this->logEvent('private.documents.uploaded', ['document_id' => $documentId, 'size_bytes' => $sizeBytes]);
+        $this->logEvent('private.documents.uploaded', [
+            'document_id' => $documentId,
+            'size_bytes' => $sizeBytes,
+            'scan_status' => $scanResult->status(),
+        ]);
 
         return [
             'documentId' => $documentId,
@@ -354,6 +367,11 @@ final class PrivateDocumentStorage
             'extension' => $extension,
             'mimeType' => $mimeType,
             'sizeBytes' => $sizeBytes,
+            'scanStatus' => $scanResult->status(),
+            'scanExitCode' => $scanResult->exitCode(),
+            'scanDurationMs' => $scanResult->durationMs(),
+            'scanError' => $scanResult->error(),
+            'scannedAt' => $scanResult->scannedAt(),
         ];
     }
 
@@ -559,12 +577,33 @@ final class PrivateDocumentStorage
         return $documentId;
     }
 
-    private function logEvent(string $event, array $context): void
+    private function scanStoredFile(string $absolutePath, string $originalName, string $mimeType): PrivateDocumentScanResult
+    {
+        if (!$this->scanner instanceof PrivateDocumentScanner || !$this->scanner->configured()) {
+            return PrivateDocumentScanResult::cleanNoScanner();
+        }
+
+        $result = $this->scanner->scan($absolutePath, $originalName, $mimeType);
+        $this->logEvent(
+            'private.documents.scan.completed',
+            [
+                'scan_status' => $result->status(),
+                'scan_exit_code' => $result->exitCode(),
+                'scan_duration_ms' => $result->durationMs(),
+                'scan_error' => $result->error(),
+            ],
+            $result->status() === PrivateDocumentScanResult::STATUS_CLEAN ? 'info' : 'warning'
+        );
+
+        return $result;
+    }
+
+    private function logEvent(string $event, array $context, string $level = 'info'): void
     {
         if (!($this->eventLogger instanceof AppEventLogger)) {
             return;
         }
 
-        $this->eventLogger->security($event, $context, 'info');
+        $this->eventLogger->security($event, $context, $level);
     }
 }
