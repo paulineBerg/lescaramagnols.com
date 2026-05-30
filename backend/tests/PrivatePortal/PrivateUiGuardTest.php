@@ -85,6 +85,17 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('scroll-margin-top: 6rem;', $stylesheet);
     }
 
+    public function testAgencyImportsExposeAgencyAndMappingControls(): void
+    {
+        $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/agency-imports.php');
+
+        self::assertStringContainsString('Créer une agence', $template);
+        self::assertStringContainsString('Correspondances par agence', $template);
+        self::assertStringContainsString('create_agency_unit_mapping', $template);
+        self::assertStringContainsString('delete_agency_unit_mapping', $template);
+        self::assertStringContainsString('Texte détecté dans le document', $template);
+    }
+
     public function testRentalDashboardNavigationDoesNotExposeSubmenu(): void
     {
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');

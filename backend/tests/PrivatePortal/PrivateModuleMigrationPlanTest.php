@@ -78,5 +78,6 @@ final class PrivateModuleMigrationPlanTest extends TestCase
         $this->assertSame('real_estate_rental', $agency['migrationStatusModule'] ?? null);
         $this->assertContains('/private/locations/agence/imports', $agency['routes'] ?? []);
         $this->assertContains('rental_agency_imported_documents', $agency['tables'] ?? []);
+        $this->assertContains('rental_agency_unit_mappings', $agency['tables'] ?? []);
     }
 }

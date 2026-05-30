@@ -26,6 +26,98 @@ final class AgencyImportRepositoryTest extends TestCase
         $this->cleanupEditorialSqlDatabase();
     }
 
+    public function testCreatesAndListsAgenciesWithoutImportedDocument(): void
+    {
+        $repository = new AgencyImportRepository($this->editorialSqlDatabase());
+
+        $this->assertTrue($repository->createAgency(1, 'ASG IMMOBILIER'));
+        $this->assertTrue($repository->createAgency(1, 'ASG IMMOBILIER'));
+        $this->assertTrue($repository->createAgency(2, 'Autre agence'));
+
+        $agencies = $repository->listAgencies(1);
+        $this->assertCount(1, $agencies);
+        $this->assertSame('ASG IMMOBILIER', $agencies[0]['name'] ?? null);
+        $this->assertSame(1, $agencies[0]['batchCount'] ?? null);
+        $this->assertSame(0, $agencies[0]['fileCount'] ?? null);
+
+        $batch = $repository->createBatch(1, 'ASG IMMOBILIER', '/tmp/agence', 1, 0, 0, 'review');
+        $this->assertNotNull($batch);
+
+        $agencies = $repository->listAgencies(1);
+        $this->assertCount(1, $agencies);
+        $this->assertSame(2, $agencies[0]['batchCount'] ?? null);
+        $this->assertSame(1, $agencies[0]['fileCount'] ?? null);
+        $this->assertSame(0, $agencies[0]['ignoredFileCount'] ?? null);
+        $this->assertSame(0, $agencies[0]['duplicateFileCount'] ?? null);
+    }
+
+    public function testAgencyUnitMappingAutoAssignsImportedLinesPerAgency(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $repository = new AgencyImportRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'agency-unit-map@example.com');
+        $property = $propertyRepository->create(
+            $ownerId,
+            'Les Caramagnols P',
+            '2738 route de la Mole',
+            'immeuble',
+            'pleine propriete',
+            'active'
+        );
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Arbousier', 34.0, true, 'available', null, $ownerId, 'apartment');
+        $this->assertNotNull($unit);
+
+        $this->assertTrue($repository->createAgency($ownerId, 'ASG IMMOBILIER'));
+        $this->assertTrue($repository->createUnitMapping($ownerId, 'ASG IMMOBILIER', 'EVE Hervé', $property->id, $unit->id));
+        $mappings = $repository->listUnitMappings($ownerId);
+        $this->assertCount(1, $mappings);
+        $this->assertSame('ASG IMMOBILIER', $mappings[0]['agencyName'] ?? null);
+        $this->assertSame('EVE Hervé', $mappings[0]['matchText'] ?? null);
+        $this->assertSame('Arbousier', $mappings[0]['unitLabel'] ?? null);
+
+        $batch = $repository->createBatch($ownerId, 'ASG IMMOBILIER', '/tmp/agence', 1);
+        $this->assertNotNull($batch);
+        $sourcePath = tempnam(sys_get_temp_dir(), 'agency-unit-map-');
+        $this->assertIsString($sourcePath);
+        file_put_contents($sourcePath, 'unit mapping pdf bytes');
+
+        try {
+            $preview = (new AgencyImportPreviewService($this->textExtractorReturning($this->asgMultiLotText())))->preview(
+                $sourcePath,
+                'releve-gerance-multi-lot.pdf',
+                'text/plain'
+            );
+            $document = $repository->persistPreview($batch->id, $preview, 'private-doc-unit-map', 'ASG IMMOBILIER');
+            $this->assertNotNull($document);
+            $statement = $repository->findStatementByImportedDocumentId($document->id);
+            $this->assertNotNull($statement);
+
+            $lines = $repository->listStatementLines($statement->id);
+            $unitsByAmount = [];
+            foreach ($lines as $line) {
+                $amount = $line->amount !== null ? sprintf('%.2f', $line->amount) : '';
+                $unitsByAmount[$amount] = $line->rentalUnitId;
+            }
+
+            $this->assertSame($unit->id, $unitsByAmount['7.41'] ?? null);
+            $this->assertSame($unit->id, $unitsByAmount['842.59'] ?? null);
+            $this->assertNull($unitsByAmount['900.00'] ?? null);
+        } finally {
+            @unlink($sourcePath);
+        }
+
+        $mappingId = is_numeric($mappings[0]['id'] ?? null) ? (int) $mappings[0]['id'] : 0;
+        $this->assertTrue($repository->deleteUnitMappingForUser($ownerId, $mappingId));
+        $this->assertSame([], $repository->listUnitMappings($ownerId));
+    }
+
     public function testPersistsAgencyImportPreviewWithStatementLinesAndBlocksDuplicateSha(): void
     {
         $repository = new AgencyImportRepository($this->editorialSqlDatabase());

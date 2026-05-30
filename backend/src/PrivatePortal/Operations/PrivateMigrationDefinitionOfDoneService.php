@@ -210,6 +210,7 @@ final class PrivateMigrationDefinitionOfDoneService
             in_array('rental_agency_import_batches', $tables, true)
                 && in_array('rental_agency_imported_documents', $tables, true)
                 && in_array('rental_agency_import_issues', $tables, true)
+                && in_array('rental_agency_unit_mappings', $tables, true)
                 && $auditEvents !== [],
             'Les imports agence sont reconciliables et auditables',
             [

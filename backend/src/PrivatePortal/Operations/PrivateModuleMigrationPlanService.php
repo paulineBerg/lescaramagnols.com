@@ -202,7 +202,7 @@ final class PrivateModuleMigrationPlanService
                     'private.rental.export_created',
                 ],
                 'uiStates' => ['empty', 'error', 'success'],
-                'legacyRoutes' => [],
+                'legacyRoutes' => ['rental PHP routes stay behind PrivateRouteResolver'],
                 'notes' => 'Les exports restent regenerables depuis les tables locatives source.',
             ],
             'agency_imports' => [
@@ -221,6 +221,7 @@ final class PrivateModuleMigrationPlanService
                     'rental_agency_statements',
                     'rental_agency_statement_lines',
                     'rental_agency_import_issues',
+                    'rental_agency_unit_mappings',
                     'rental_agency_line_mappings',
                 ],
                 'contractClasses' => [
@@ -245,6 +246,9 @@ final class PrivateModuleMigrationPlanService
                     'private.rental.agency_imported',
                     'private.rental.agency_reviewed',
                     'private.rental.agency_issue_created',
+                    'private.rental_agency_import.agency_created',
+                    'private.rental_agency_import.unit_mapping_created',
+                    'private.rental_agency_import.unit_mapping_deleted',
                 ],
                 'uiStates' => ['empty', 'error', 'success'],
                 'legacyRoutes' => ['agency imports inherit real_estate_rental permission'],

@@ -94,6 +94,7 @@ trait EditorialSqlTestTrait
                     'rental_agency_statements',
                     'rental_agency_imported_documents',
                     'rental_agency_import_batches',
+                    'rental_agency_unit_mappings',
                     'rental_agency_line_mappings',
                     'rental_export_logs',
                     'rental_documents',

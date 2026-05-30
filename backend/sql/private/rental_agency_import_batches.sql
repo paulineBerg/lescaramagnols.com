@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS car_rental_agency_import_batches (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_rental_agency_import_batches_user (created_by_private_user_id, created_at),
+    KEY idx_rental_agency_import_batches_agency (created_by_private_user_id, agency_name),
     KEY idx_rental_agency_import_batches_status (status, created_at),
     CONSTRAINT fk_rental_agency_import_batches_user
         FOREIGN KEY (created_by_private_user_id)

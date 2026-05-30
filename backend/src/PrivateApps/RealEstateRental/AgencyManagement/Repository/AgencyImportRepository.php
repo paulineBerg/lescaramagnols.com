@@ -50,6 +50,11 @@ final class AgencyImportRepository
         return $this->database->table('rental_agency_import_issues');
     }
 
+    public function unitMappingsTable(): string
+    {
+        return $this->database->table('rental_agency_unit_mappings');
+    }
+
     public function createBatch(
         int $createdByPrivateUserId,
         ?string $agencyName = null,
@@ -92,6 +97,238 @@ final class AgencyImportRepository
             return $this->findBatchById((int) $this->database->pdo()->lastInsertId());
         } catch (\Throwable) {
             return null;
+        }
+    }
+
+    public function createAgency(int $createdByPrivateUserId, string $agencyName, ?string $notes = null): bool
+    {
+        $agencyName = $this->requiredText($agencyName, 120);
+        if ($createdByPrivateUserId <= 0 || $agencyName === '') {
+            return false;
+        }
+
+        if ($this->agencyNameExists($createdByPrivateUserId, $agencyName)) {
+            return true;
+        }
+
+        return $this->createBatch(
+            $createdByPrivateUserId,
+            $agencyName,
+            null,
+            0,
+            0,
+            0,
+            'draft',
+            $notes ?? 'Agence creee manuellement.'
+        ) instanceof AgencyImportBatch;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listAgencies(int $createdByPrivateUserId, int $limit = 100): array
+    {
+        if ($createdByPrivateUserId <= 0 || $limit <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT `agency_name`,
+                            COUNT(*) AS `batch_count`,
+                            COALESCE(SUM(`file_count`), 0) AS `file_count`,
+                            COALESCE(SUM(`ignored_file_count`), 0) AS `ignored_file_count`,
+                            COALESCE(SUM(`duplicate_file_count`), 0) AS `duplicate_file_count`,
+                            MIN(`created_at`) AS `created_at`,
+                            MAX(`created_at`) AS `last_activity_at`
+                     FROM `%s`
+                     WHERE `created_by_private_user_id` = :created_by
+                       AND `agency_name` IS NOT NULL
+                       AND TRIM(`agency_name`) <> ""
+                     GROUP BY `agency_name`
+                     ORDER BY `agency_name` ASC
+                     LIMIT :limit',
+                    $this->batchesTable()
+                )
+            );
+            $statement->bindValue(':created_by', $createdByPrivateUserId, PDO::PARAM_INT);
+            $statement->bindValue(':limit', max(1, min(300, $limit)), PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $agencies = [];
+        foreach ($this->normalizeRows($rows) as $row) {
+            $name = $this->nullableText($row['agency_name'] ?? null, 120);
+            if ($name === null) {
+                continue;
+            }
+
+            $agencies[] = [
+                'name' => $name,
+                'batchCount' => is_numeric($row['batch_count'] ?? null) ? (int) $row['batch_count'] : 0,
+                'fileCount' => is_numeric($row['file_count'] ?? null) ? (int) $row['file_count'] : 0,
+                'ignoredFileCount' => is_numeric($row['ignored_file_count'] ?? null)
+                    ? (int) $row['ignored_file_count']
+                    : 0,
+                'duplicateFileCount' => is_numeric($row['duplicate_file_count'] ?? null)
+                    ? (int) $row['duplicate_file_count']
+                    : 0,
+                'createdAt' => $this->nullableStringFromRow($row['created_at'] ?? null),
+                'lastActivityAt' => $this->nullableStringFromRow($row['last_activity_at'] ?? null),
+            ];
+        }
+
+        return $agencies;
+    }
+
+    public function createUnitMapping(
+        int $createdByPrivateUserId,
+        string $agencyName,
+        string $matchText,
+        int $rentalPropertyId,
+        int $rentalUnitId
+    ): bool {
+        $agencyName = $this->requiredText($agencyName, 120);
+        $matchText = $this->requiredText($matchText, 160);
+        if (
+            $createdByPrivateUserId <= 0
+            || $agencyName === ''
+            || $matchText === ''
+            || !$this->canMapUnit($createdByPrivateUserId, $rentalPropertyId, $rentalUnitId)
+        ) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'INSERT INTO `%s`
+                        (`created_by_private_user_id`, `agency_name`, `match_text`, `rental_property_id`,
+                         `rental_unit_id`, `is_active`)
+                     VALUES
+                        (:created_by, :agency_name, :match_text, :property_id, :unit_id, 1)
+                     ON DUPLICATE KEY UPDATE
+                        `rental_property_id` = VALUES(`rental_property_id`),
+                        `rental_unit_id` = VALUES(`rental_unit_id`),
+                        `is_active` = 1',
+                    $this->unitMappingsTable()
+                )
+            );
+
+            return $statement->execute([
+                'created_by' => $createdByPrivateUserId,
+                'agency_name' => $agencyName,
+                'match_text' => $matchText,
+                'property_id' => $rentalPropertyId,
+                'unit_id' => $rentalUnitId,
+            ]);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function deleteUnitMappingForUser(int $createdByPrivateUserId, int $mappingId): bool
+    {
+        if ($createdByPrivateUserId <= 0 || $mappingId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'DELETE FROM `%s`
+                     WHERE `id` = :id
+                       AND `created_by_private_user_id` = :created_by',
+                    $this->unitMappingsTable()
+                )
+            );
+            $statement->execute([
+                'id' => $mappingId,
+                'created_by' => $createdByPrivateUserId,
+            ]);
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listUnitMappings(int $createdByPrivateUserId, int $limit = 200): array
+    {
+        if ($createdByPrivateUserId <= 0 || $limit <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT m.*,
+                            p.`name` AS `property_name`,
+                            p.`address` AS `property_address`,
+                            u.`label` AS `unit_label`,
+                            u.`unit_type`
+                     FROM `%s` m
+                     INNER JOIN `%s` p ON p.`id` = m.`rental_property_id`
+                     INNER JOIN `%s` u ON u.`id` = m.`rental_unit_id`
+                     WHERE m.`created_by_private_user_id` = :created_by
+                       AND m.`is_active` = 1
+                     ORDER BY m.`agency_name` ASC, m.`match_text` ASC, m.`id` ASC
+                     LIMIT :limit',
+                    $this->unitMappingsTable(),
+                    $this->database->table('rental_properties'),
+                    $this->database->table('rental_units')
+                )
+            );
+            $statement->bindValue(':created_by', $createdByPrivateUserId, PDO::PARAM_INT);
+            $statement->bindValue(':limit', max(1, min(500, $limit)), PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return array_map(
+            fn (array $row): array => $this->unitMappingFromRow($row),
+            $this->normalizeRows($rows)
+        );
+    }
+
+    private function agencyNameExists(int $createdByPrivateUserId, string $agencyName): bool
+    {
+        if ($createdByPrivateUserId <= 0 || trim($agencyName) === '') {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT 1 FROM `%s`
+                     WHERE `created_by_private_user_id` = :created_by
+                       AND LOWER(TRIM(`agency_name`)) = LOWER(:agency_name)
+                     LIMIT 1',
+                    $this->batchesTable()
+                )
+            );
+            $statement->execute([
+                'created_by' => $createdByPrivateUserId,
+                'agency_name' => $agencyName,
+            ]);
+
+            return $statement->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
         }
     }
 
@@ -287,7 +524,11 @@ final class AgencyImportRepository
                 $statement = $this->insertStatement($importedDocument->id, $preview->parserResult, $detectedAgency);
                 if ($statement instanceof AgencyStatement) {
                     $this->insertStatementLines($statement->id, $importedDocument->id, $preview->parserResult->statementLines);
-                    $this->autoAssignStatementLinesFromLeases($statement->id, $batch->createdByPrivateUserId);
+                    $this->autoAssignStatementLinesFromLeases(
+                        $statement->id,
+                        $batch->createdByPrivateUserId,
+                        $detectedAgency ?? $batch->agencyName
+                    );
                 }
             }
 
@@ -837,6 +1078,12 @@ final class AgencyImportRepository
                 $this->batchesTable()
             )
         );
+        $this->ensureIndex(
+            $pdo,
+            $this->batchesTable(),
+            'idx_rental_agency_import_batches_agency',
+            '`created_by_private_user_id`, `agency_name`'
+        );
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -968,6 +1215,25 @@ final class AgencyImportRepository
                     KEY `idx_rental_agency_import_issues_document` (`imported_document_id`, `severity`, `resolved_at`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->issuesTable()
+            )
+        );
+        $pdo->exec(
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS `%s` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `created_by_private_user_id` INT NOT NULL,
+                    `agency_name` VARCHAR(120) NOT NULL,
+                    `match_text` VARCHAR(160) NOT NULL,
+                    `rental_property_id` INT NOT NULL,
+                    `rental_unit_id` INT NOT NULL,
+                    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uq_rental_agency_unit_mapping` (`created_by_private_user_id`, `agency_name`, `match_text`),
+                    KEY `idx_rental_agency_unit_mappings_unit` (`rental_property_id`, `rental_unit_id`, `is_active`),
+                    KEY `idx_rental_agency_unit_mappings_agency` (`created_by_private_user_id`, `agency_name`, `is_active`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                $this->unitMappingsTable()
             )
         );
 
@@ -1270,11 +1536,16 @@ final class AgencyImportRepository
         $statement->bindValue($parameter, $value, PDO::PARAM_INT);
     }
 
-    private function autoAssignStatementLinesFromLeases(int $statementId, int $privateUserId): void
-    {
+    private function autoAssignStatementLinesFromLeases(
+        int $statementId,
+        int $privateUserId,
+        ?string $agencyName = null
+    ): void {
         if ($statementId <= 0 || $privateUserId <= 0) {
             return;
         }
+
+        $this->autoAssignStatementLinesFromUnitMappings($statementId, $privateUserId, $agencyName);
 
         $candidates = $this->leaseUnitCandidatesForUser($privateUserId);
         if ($candidates === []) {
@@ -1289,6 +1560,41 @@ final class AgencyImportRepository
             }
 
             $candidate = $this->uniqueLeaseCandidateForTenant($tenantName, $candidates);
+            if ($candidate === null) {
+                continue;
+            }
+
+            $this->assignStatementLineRentalUnit(
+                $statementId,
+                $lineId,
+                $candidate['rentalPropertyId'],
+                $candidate['rentalUnitId']
+            );
+        }
+    }
+
+    private function autoAssignStatementLinesFromUnitMappings(
+        int $statementId,
+        int $privateUserId,
+        ?string $agencyName
+    ): void {
+        $agencyName = $this->requiredText((string) $agencyName, 120);
+        if ($statementId <= 0 || $privateUserId <= 0 || $agencyName === '') {
+            return;
+        }
+
+        $candidates = $this->unitMappingCandidatesForAgency($privateUserId, $agencyName);
+        if ($candidates === []) {
+            return;
+        }
+
+        foreach ($this->statementLinesForAutoAssignment($statementId) as $line) {
+            $lineId = is_numeric($line['id'] ?? null) ? (int) $line['id'] : 0;
+            if ($lineId <= 0) {
+                continue;
+            }
+
+            $candidate = $this->uniqueUnitMappingCandidateForLine($line, $candidates);
             if ($candidate === null) {
                 continue;
             }
@@ -1369,11 +1675,11 @@ final class AgencyImportRepository
         try {
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT `id`, `tenant_name`
+                    'SELECT `id`, `raw_label`, `property_label`, `unit_label`, `tenant_name`
                      FROM `%s`
                      WHERE `statement_id` = :statement_id
                        AND `rental_unit_id` IS NULL
-                       AND `tenant_name` IS NOT NULL',
+                       AND (`tenant_name` IS NOT NULL OR `unit_label` IS NOT NULL OR `raw_label` IS NOT NULL)',
                     $this->linesTable()
                 )
             );
@@ -1417,6 +1723,132 @@ final class AgencyImportRepository
         ));
 
         return $this->uniqueUnitCandidate($signatureMatches);
+    }
+
+    /**
+     * @return array<int, array{id:int, agencyName:string, matchText:string, normalizedMatchText:string, matchSignature:string, rentalPropertyId:int, rentalUnitId:int}>
+     */
+    private function unitMappingCandidatesForAgency(int $privateUserId, string $agencyName): array
+    {
+        try {
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT `id`, `agency_name`, `match_text`, `rental_property_id`, `rental_unit_id`
+                     FROM `%s`
+                     WHERE `created_by_private_user_id` = :private_user_id
+                       AND LOWER(TRIM(`agency_name`)) = LOWER(:agency_name)
+                       AND `is_active` = 1
+                     ORDER BY LENGTH(`match_text`) DESC, `id` ASC',
+                    $this->unitMappingsTable()
+                )
+            );
+            $statement->execute([
+                'private_user_id' => $privateUserId,
+                'agency_name' => $agencyName,
+            ]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $candidates = [];
+        foreach ($this->normalizeRows($rows) as $row) {
+            $id = is_numeric($row['id'] ?? null) ? (int) $row['id'] : 0;
+            $propertyId = is_numeric($row['rental_property_id'] ?? null) ? (int) $row['rental_property_id'] : 0;
+            $unitId = is_numeric($row['rental_unit_id'] ?? null) ? (int) $row['rental_unit_id'] : 0;
+            $matchText = is_scalar($row['match_text'] ?? null) ? trim((string) $row['match_text']) : '';
+            $normalizedMatchText = $this->normalizeTenantName($matchText);
+            if ($id <= 0 || $propertyId <= 0 || $unitId <= 0 || $normalizedMatchText === '') {
+                continue;
+            }
+
+            $candidates[] = [
+                'id' => $id,
+                'agencyName' => is_scalar($row['agency_name'] ?? null) ? trim((string) $row['agency_name']) : '',
+                'matchText' => $matchText,
+                'normalizedMatchText' => $normalizedMatchText,
+                'matchSignature' => $this->tenantNameSignature($normalizedMatchText),
+                'rentalPropertyId' => $propertyId,
+                'rentalUnitId' => $unitId,
+            ];
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     * @param array<int, array{id:int, agencyName:string, matchText:string, normalizedMatchText:string, matchSignature:string, rentalPropertyId:int, rentalUnitId:int}> $candidates
+     * @return array{id:int, agencyName:string, matchText:string, normalizedMatchText:string, matchSignature:string, rentalPropertyId:int, rentalUnitId:int}|null
+     */
+    private function uniqueUnitMappingCandidateForLine(array $line, array $candidates): ?array
+    {
+        $texts = [
+            is_scalar($line['tenant_name'] ?? null) ? (string) $line['tenant_name'] : '',
+            is_scalar($line['unit_label'] ?? null) ? (string) $line['unit_label'] : '',
+            is_scalar($line['raw_label'] ?? null) ? (string) $line['raw_label'] : '',
+            is_scalar($line['property_label'] ?? null) ? (string) $line['property_label'] : '',
+        ];
+        $lineVariants = [];
+        foreach ($texts as $text) {
+            $normalized = $this->normalizeTenantName($text);
+            if ($normalized !== '') {
+                $lineVariants[] = [
+                    'normalized' => $normalized,
+                    'signature' => $this->tenantNameSignature($normalized),
+                ];
+            }
+        }
+
+        if ($lineVariants === []) {
+            return null;
+        }
+
+        $matches = [];
+        foreach ($candidates as $candidate) {
+            foreach ($lineVariants as $variant) {
+                if (
+                    $candidate['normalizedMatchText'] === $variant['normalized']
+                    || (
+                        $candidate['matchSignature'] !== ''
+                        && $candidate['matchSignature'] === $variant['signature']
+                    )
+                    || (
+                        mb_strlen($candidate['normalizedMatchText'], 'UTF-8') >= 4
+                        && str_contains($variant['normalized'], $candidate['normalizedMatchText'])
+                    )
+                ) {
+                    $matches[] = $candidate;
+                    break;
+                }
+            }
+        }
+
+        return $this->uniqueUnitMappingCandidate($matches);
+    }
+
+    /**
+     * @param array<int, array{id:int, agencyName:string, matchText:string, normalizedMatchText:string, matchSignature:string, rentalPropertyId:int, rentalUnitId:int}> $candidates
+     * @return array{id:int, agencyName:string, matchText:string, normalizedMatchText:string, matchSignature:string, rentalPropertyId:int, rentalUnitId:int}|null
+     */
+    private function uniqueUnitMappingCandidate(array $candidates): ?array
+    {
+        if ($candidates === []) {
+            return null;
+        }
+
+        $matchesByUnit = [];
+        foreach ($candidates as $candidate) {
+            $key = $candidate['rentalPropertyId'] . ':' . $candidate['rentalUnitId'];
+            $matchesByUnit[$key] = $candidate;
+        }
+
+        if (count($matchesByUnit) !== 1) {
+            return null;
+        }
+
+        $candidate = reset($matchesByUnit);
+        return is_array($candidate) ? $candidate : null;
     }
 
     /**
@@ -1548,6 +1980,67 @@ final class AgencyImportRepository
             )
         );
         $statement->execute(['batch_id' => $batchId]);
+    }
+
+    private function canMapUnit(int $privateUserId, int $rentalPropertyId, int $rentalUnitId): bool
+    {
+        if ($privateUserId <= 0 || $rentalPropertyId <= 0 || $rentalUnitId <= 0) {
+            return false;
+        }
+
+        try {
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT 1
+                     FROM `%s` u
+                     INNER JOIN `%s` p ON p.`id` = u.`rental_property_id`
+                     INNER JOIN `%s` m ON m.`rental_property_id` = p.`id`
+                     WHERE u.`id` = :unit_id
+                       AND u.`rental_property_id` = :property_id
+                       AND u.`is_active` = 1
+                       AND p.`is_active` = 1
+                       AND m.`private_user_id` = :private_user_id
+                       AND m.`status` = "active"
+                       AND m.`is_active` = 1
+                     LIMIT 1',
+                    $this->database->table('rental_units'),
+                    $this->database->table('rental_properties'),
+                    $this->database->table('rental_property_members')
+                )
+            );
+            $statement->execute([
+                'unit_id' => $rentalUnitId,
+                'property_id' => $rentalPropertyId,
+                'private_user_id' => $privateUserId,
+            ]);
+
+            return $statement->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function unitMappingFromRow(array $row): array
+    {
+        return [
+            'id' => is_numeric($row['id'] ?? null) ? (int) $row['id'] : 0,
+            'agencyName' => $this->nullableStringFromRow($row['agency_name'] ?? null),
+            'matchText' => $this->nullableStringFromRow($row['match_text'] ?? null),
+            'rentalPropertyId' => is_numeric($row['rental_property_id'] ?? null)
+                ? (int) $row['rental_property_id']
+                : 0,
+            'rentalUnitId' => is_numeric($row['rental_unit_id'] ?? null) ? (int) $row['rental_unit_id'] : 0,
+            'propertyName' => $this->nullableStringFromRow($row['property_name'] ?? null),
+            'propertyAddress' => $this->nullableStringFromRow($row['property_address'] ?? null),
+            'unitLabel' => $this->nullableStringFromRow($row['unit_label'] ?? null),
+            'unitType' => $this->nullableStringFromRow($row['unit_type'] ?? null),
+            'createdAt' => $this->nullableStringFromRow($row['created_at'] ?? null),
+            'updatedAt' => $this->nullableStringFromRow($row['updated_at'] ?? null),
+        ];
     }
 
     private function storagePath(mixed $value): ?string

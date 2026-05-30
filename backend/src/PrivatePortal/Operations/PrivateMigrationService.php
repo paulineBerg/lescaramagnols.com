@@ -60,6 +60,7 @@ final class PrivateMigrationService
             'rental_agency_statements',
             'rental_agency_statement_lines',
             'rental_agency_import_issues',
+            'rental_agency_unit_mappings',
             'rental_agency_line_mappings',
         ],
         'tax_declaration_helper' => [
