@@ -71,6 +71,25 @@ final class AgencyImportRepositoryTest extends TestCase
             $this->assertIsArray($reviewDocument);
             $this->assertSame(42, $reviewDocument['rentalPropertyId'] ?? null);
             $this->assertCount(2, $reviewDocument['lines'] ?? []);
+            $reviewLines = is_array($reviewDocument['lines'] ?? null) ? $reviewDocument['lines'] : [];
+            $this->assertSame([42, 42], array_map(
+                static fn (mixed $line): ?int => is_array($line) && is_int($line['rentalPropertyId'] ?? null)
+                    ? $line['rentalPropertyId']
+                    : null,
+                $reviewLines
+            ));
+
+            $this->assertTrue($repository->updateStatementPropertyForDocument(1, $document->id, 43));
+            $reviewDocument = $repository->reviewDocumentForUser(1, $document->id);
+            $this->assertIsArray($reviewDocument);
+            $this->assertSame(43, $reviewDocument['rentalPropertyId'] ?? null);
+            $reviewLines = is_array($reviewDocument['lines'] ?? null) ? $reviewDocument['lines'] : [];
+            $this->assertSame([43, 43], array_map(
+                static fn (mixed $line): ?int => is_array($line) && is_int($line['rentalPropertyId'] ?? null)
+                    ? $line['rentalPropertyId']
+                    : null,
+                $reviewLines
+            ));
 
             $corrected = $repository->reviewStatementLine(1, $lines[1]->id, 'correct', [
                 'mapped_category' => 'agency_management_fee',
@@ -102,6 +121,22 @@ final class AgencyImportRepositoryTest extends TestCase
             $this->assertSame(84, $validated->rentalPropertyId);
             $this->assertSame(12, $validated->rentalUnitId);
             $this->assertSame('ignored', $ignored->mappingStatus);
+
+            $this->assertTrue($repository->updateStatementPropertyForDocument(1, $document->id, 42));
+            $reviewDocument = $repository->reviewDocumentForUser(1, $document->id);
+            $this->assertIsArray($reviewDocument);
+            $reviewLines = is_array($reviewDocument['lines'] ?? null) ? $reviewDocument['lines'] : [];
+            $reviewLinesById = [];
+            foreach ($reviewLines as $reviewLine) {
+                if (!is_array($reviewLine) || !is_int($reviewLine['id'] ?? null)) {
+                    continue;
+                }
+
+                $reviewLinesById[$reviewLine['id']] = $reviewLine;
+            }
+            $this->assertSame(84, $reviewLinesById[$lines[0]->id]['rentalPropertyId'] ?? null);
+            $this->assertSame(12, $reviewLinesById[$lines[0]->id]['rentalUnitId'] ?? null);
+            $this->assertSame(42, $reviewLinesById[$lines[1]->id]['rentalPropertyId'] ?? null);
 
             $fiscalLines = $repository->listValidatedFiscalLines(2025, [42]);
             $this->assertSame([], $fiscalLines);

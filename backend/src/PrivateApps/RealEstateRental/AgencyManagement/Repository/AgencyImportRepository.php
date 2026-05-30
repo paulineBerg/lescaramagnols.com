@@ -536,35 +536,56 @@ final class AgencyImportRepository
 
         try {
             $this->ensureSchema();
-            $statement = $this->database->pdo()->prepare(
+            $pdo = $this->database->pdo();
+            $statement = $pdo->prepare(
                 sprintf(
-                    'UPDATE `%s` s
+                    'SELECT s.`id`, s.`rental_property_id`
+                     FROM `%s` s
                      INNER JOIN `%s` d ON d.`id` = s.`imported_document_id`
                      INNER JOIN `%s` b ON b.`id` = d.`batch_id`
-                     SET s.`rental_property_id` = :property_id
                      WHERE s.`imported_document_id` = :document_id
-                       AND b.`created_by_private_user_id` = :created_by',
+                       AND b.`created_by_private_user_id` = :created_by
+                     LIMIT 1',
                     $this->statementsTable(),
                     $this->documentsTable(),
                     $this->batchesTable()
                 )
             );
-
-            $executed = $statement->execute([
-                'property_id' => $rentalPropertyId,
+            $statement->execute([
                 'document_id' => $importedDocumentId,
                 'created_by' => $createdByPrivateUserId,
             ]);
-            if (!$executed) {
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+            if (!is_array($row) || !is_numeric($row['id'] ?? null)) {
                 return false;
             }
 
-            if ($statement->rowCount() > 0) {
-                return true;
+            $statementId = (int) $row['id'];
+            $previousPropertyId = is_numeric($row['rental_property_id'] ?? null)
+                ? (int) $row['rental_property_id']
+                : null;
+
+            $pdo->beginTransaction();
+            $statement = $pdo->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `rental_property_id` = :property_id
+                     WHERE `id` = :statement_id',
+                    $this->statementsTable()
+                )
+            );
+            $this->bindNullableInt($statement, ':property_id', $rentalPropertyId);
+            $statement->bindValue(':statement_id', $statementId, PDO::PARAM_INT);
+            $statement->execute();
+            $this->propagateStatementPropertyToDerivedLines($statementId, $previousPropertyId, $rentalPropertyId);
+            $pdo->commit();
+
+            return true;
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
             }
 
-            return $this->statementPropertyMatchesDocument($createdByPrivateUserId, $importedDocumentId, $rentalPropertyId);
-        } catch (\Throwable) {
             return false;
         }
     }
@@ -1147,43 +1168,6 @@ final class AgencyImportRepository
         return is_array($row) ? AgencyStatementLine::fromDatabaseRow($row) : null;
     }
 
-    private function statementPropertyMatchesDocument(
-        int $createdByPrivateUserId,
-        int $importedDocumentId,
-        ?int $rentalPropertyId
-    ): bool {
-        try {
-            $statement = $this->database->pdo()->prepare(
-                sprintf(
-                    'SELECT s.`rental_property_id`
-                     FROM `%s` s
-                     INNER JOIN `%s` d ON d.`id` = s.`imported_document_id`
-                     INNER JOIN `%s` b ON b.`id` = d.`batch_id`
-                     WHERE s.`imported_document_id` = :document_id
-                       AND b.`created_by_private_user_id` = :created_by
-                     LIMIT 1',
-                    $this->statementsTable(),
-                    $this->documentsTable(),
-                    $this->batchesTable()
-                )
-            );
-            $statement->execute([
-                'document_id' => $importedDocumentId,
-                'created_by' => $createdByPrivateUserId,
-            ]);
-            $value = $statement->fetchColumn();
-        } catch (\Throwable) {
-            return false;
-        }
-
-        if ($value === false) {
-            return false;
-        }
-
-        $currentPropertyId = is_numeric($value) ? (int) $value : null;
-        return $currentPropertyId === $rentalPropertyId;
-    }
-
     private function refreshReviewStatus(int $importedDocumentId): void
     {
         if ($importedDocumentId <= 0) {
@@ -1235,6 +1219,49 @@ final class AgencyImportRepository
         } catch (\Throwable) {
             return;
         }
+    }
+
+    private function propagateStatementPropertyToDerivedLines(
+        int $statementId,
+        ?int $previousPropertyId,
+        ?int $rentalPropertyId
+    ): void {
+        if ($statementId <= 0) {
+            return;
+        }
+
+        $propertyCondition = '`rental_property_id` IS NULL';
+        if ($previousPropertyId !== null) {
+            $propertyCondition .= ' OR `rental_property_id` = :previous_property_id';
+        }
+
+        $statement = $this->database->pdo()->prepare(
+            sprintf(
+                'UPDATE `%s`
+                 SET `rental_property_id` = :property_id
+                 WHERE `statement_id` = :statement_id
+                   AND `rental_unit_id` IS NULL
+                   AND (%s)',
+                $this->linesTable(),
+                $propertyCondition
+            )
+        );
+        $this->bindNullableInt($statement, ':property_id', $rentalPropertyId);
+        $statement->bindValue(':statement_id', $statementId, PDO::PARAM_INT);
+        if ($previousPropertyId !== null) {
+            $statement->bindValue(':previous_property_id', $previousPropertyId, PDO::PARAM_INT);
+        }
+        $statement->execute();
+    }
+
+    private function bindNullableInt(\PDOStatement $statement, string $parameter, ?int $value): void
+    {
+        if ($value === null) {
+            $statement->bindValue($parameter, null, PDO::PARAM_NULL);
+            return;
+        }
+
+        $statement->bindValue($parameter, $value, PDO::PARAM_INT);
     }
 
     private function deleteRowsByImportedDocumentId(string $table, int $importedDocumentId): void

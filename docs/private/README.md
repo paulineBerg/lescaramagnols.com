@@ -1032,7 +1032,7 @@ Progression codee au 2026-05-27 :
 11. [x] creer l'ecran `/private/locations/agence/documents-a-classer` pour revue et validation humaine detaillee ;
 12. [x] ajouter les actions de revue humaine minimales : valider, corriger, ignorer ;
 12bis. [x] separer les documents a revoir et les imports recents en deux onglets, puis permettre la suppression d'un document agence avec nettoyage des lignes, anomalies et fichier stocke ; un lot d'import vide est annule et n'apparait plus dans les imports recents ;
-12ter. [x] permettre un rattachement par ligne agence a une propriete et a un bien locatif, avec une propriete de document conservee comme fallback ;
+12ter. [x] permettre un rattachement par ligne agence a une propriete et a un bien locatif, avec une propriete de document conservee comme fallback et propagee aux lignes sans choix manuel ;
 13. [ ] implementer `CoproFundCallParser` et `CoproChargeRegularizationParser` ;
 14. [x] brancher le `TaxBridge` sur les lignes agence validees uniquement via `AgencyTaxBridgeNormalizer` ;
 15. [ ] ajouter les actions avancees de revue : fractionner, fusionner doublon, resoudre une anomalie ;

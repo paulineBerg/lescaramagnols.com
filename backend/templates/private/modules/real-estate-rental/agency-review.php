@@ -100,44 +100,63 @@ $labelForUnit = static function (array $unit): string {
     $lines = is_array($selectedDocument['lines'] ?? null) ? $selectedDocument['lines'] : [];
     $issues = is_array($selectedDocument['issues'] ?? null) ? $selectedDocument['issues'] : [];
     ?>
-    <section class="card">
-      <h2>Revue du document</h2>
-      <dl>
-        <dt>Fichier</dt><dd><?php echo $h($selectedDocument['filename'] ?? ''); ?></dd>
-        <dt>Agence</dt><dd><?php echo $h($selectedDocument['detectedAgency'] ?? $selectedDocument['batchAgencyName'] ?? ''); ?></dd>
-        <dt>Profil</dt><dd><?php echo $h($selectedDocument['parserProfile'] ?? ''); ?></dd>
-        <dt>Periode</dt><dd><?php echo $h((string) ($selectedDocument['statementPeriodStart'] ?? '') . ' - ' . (string) ($selectedDocument['statementPeriodEnd'] ?? '')); ?></dd>
-        <dt>Statut</dt><dd><?php echo $h($selectedDocument['reviewStatus'] ?? ''); ?></dd>
-      </dl>
+    <section class="card agency-review-card">
+      <div class="agency-review-compact-head">
+        <div class="agency-review-summary-block">
+          <h2>Revue du document</h2>
+          <dl class="agency-review-summary">
+            <div>
+              <dt>Fichier</dt>
+              <dd><?php echo $h($selectedDocument['filename'] ?? ''); ?></dd>
+            </div>
+            <div>
+              <dt>Agence</dt>
+              <dd><?php echo $h($selectedDocument['detectedAgency'] ?? $selectedDocument['batchAgencyName'] ?? ''); ?></dd>
+            </div>
+            <div>
+              <dt>Profil</dt>
+              <dd><?php echo $h($selectedDocument['parserProfile'] ?? ''); ?></dd>
+            </div>
+            <div>
+              <dt>Periode</dt>
+              <dd><?php echo $h((string) ($selectedDocument['statementPeriodStart'] ?? '') . ' - ' . (string) ($selectedDocument['statementPeriodEnd'] ?? '')); ?></dd>
+            </div>
+            <div>
+              <dt>Statut</dt>
+              <dd><?php echo $h($selectedDocument['reviewStatus'] ?? ''); ?></dd>
+            </div>
+          </dl>
+        </div>
 
-      <form method="post" action="<?php echo $h($reviewUrl); ?>">
-        <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
-        <input type="hidden" name="action" value="update_statement_property" />
-        <input type="hidden" name="document_id" value="<?php echo $h($selectedDocumentId); ?>" />
-        <label>Propriété par défaut
-          <select name="rental_property_id">
-            <option value="">Non rattache</option>
-            <?php foreach ($properties as $property): ?>
-              <?php
-              if (!is_array($property) || !is_numeric($property['id'] ?? null)) {
-                  continue;
-              }
-              $propertyId = (int) $property['id'];
-              ?>
-              <option value="<?php echo $h($propertyId); ?>" <?php echo $selectedPropertyId === $propertyId ? 'selected' : ''; ?>>
-                <?php echo $h($labelForProperty($property)); ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-        </label>
-        <?php if ($properties === []): ?>
-          <p class="notice notice-error">Aucune propriété disponible pour ce compte. Créez d'abord une propriété, puis revenez classer ce document.</p>
-          <p class="private-actions"><a href="<?php echo $h($propertiesUrl); ?>">Créer une propriété</a></p>
-        <?php else: ?>
-          <p class="muted">Cette propriété sert de fallback. Si un document contient plusieurs biens, rattache chaque ligne ci-dessous à sa propriété et à son bien locatif.</p>
-        <?php endif; ?>
-        <button type="submit">Rattacher</button>
-      </form>
+        <form method="post" action="<?php echo $h($reviewUrl); ?>" class="agency-review-property-form">
+          <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+          <input type="hidden" name="action" value="update_statement_property" />
+          <input type="hidden" name="document_id" value="<?php echo $h($selectedDocumentId); ?>" />
+          <label>Propriété par défaut
+            <select name="rental_property_id">
+              <option value="">Non rattache</option>
+              <?php foreach ($properties as $property): ?>
+                <?php
+                if (!is_array($property) || !is_numeric($property['id'] ?? null)) {
+                    continue;
+                }
+                $propertyId = (int) $property['id'];
+                ?>
+                <option value="<?php echo $h($propertyId); ?>" <?php echo $selectedPropertyId === $propertyId ? 'selected' : ''; ?>>
+                  <?php echo $h($labelForProperty($property)); ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <?php if ($properties === []): ?>
+            <p class="notice notice-error">Aucune propriété disponible pour ce compte. Créez d'abord une propriété, puis revenez classer ce document.</p>
+            <p class="private-actions"><a href="<?php echo $h($propertiesUrl); ?>">Créer une propriété</a></p>
+          <?php else: ?>
+            <p class="muted">Applique aux lignes sans choix manuel.</p>
+          <?php endif; ?>
+          <button type="submit">Rattacher</button>
+        </form>
+      </div>
 
       <?php if ($issues !== []): ?>
         <h3>Anomalies</h3>
