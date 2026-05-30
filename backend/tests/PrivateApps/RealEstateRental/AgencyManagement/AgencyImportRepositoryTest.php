@@ -126,9 +126,11 @@ final class AgencyImportRepositoryTest extends TestCase
             $this->assertSame([], $repository->listStatementLines($statement->id));
             $this->assertSame([], $repository->listIssues($document->id));
             $this->assertSame([], $repository->listRecentDocumentsForUser(1));
-            $batches = $repository->listRecentBatches(1);
-            $this->assertCount(1, $batches);
-            $this->assertSame(0, $batches[0]->fileCount);
+            $deletedBatch = $repository->findBatchById($batch->id);
+            $this->assertNotNull($deletedBatch);
+            $this->assertSame(0, $deletedBatch->fileCount);
+            $this->assertSame('cancelled', $deletedBatch->status);
+            $this->assertSame([], $repository->listRecentBatches(1));
         } finally {
             @unlink($sourcePath);
         }

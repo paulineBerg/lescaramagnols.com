@@ -130,6 +130,7 @@ final class AgencyImportRepository
                 sprintf(
                     'SELECT * FROM `%s`
                      WHERE `created_by_private_user_id` = :created_by
+                       AND (`file_count` > 0 OR `ignored_file_count` > 0 OR `duplicate_file_count` > 0)
                      ORDER BY `created_at` DESC, `id` DESC
                      LIMIT :limit',
                     $this->batchesTable()
@@ -1263,6 +1264,19 @@ final class AgencyImportRepository
                 'UPDATE `%s`
                  SET `file_count` = CASE WHEN `file_count` > 0 THEN `file_count` - 1 ELSE 0 END
                  WHERE `id` = :batch_id',
+                $this->batchesTable()
+            )
+        );
+        $statement->execute(['batch_id' => $batchId]);
+
+        $statement = $this->database->pdo()->prepare(
+            sprintf(
+                'UPDATE `%s`
+                 SET `status` = "cancelled"
+                 WHERE `id` = :batch_id
+                   AND `file_count` = 0
+                   AND `ignored_file_count` = 0
+                   AND `duplicate_file_count` = 0',
                 $this->batchesTable()
             )
         );
