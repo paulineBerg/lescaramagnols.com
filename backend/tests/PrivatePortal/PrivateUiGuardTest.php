@@ -31,6 +31,9 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('.private-module-dashboard', $stylesheet);
         self::assertStringContainsString('.private-list-filter-grid', $stylesheet);
         self::assertStringContainsString('.private-module-nav a.active', $stylesheet);
+        self::assertStringContainsString('.private-nav-toggle', $stylesheet);
+        self::assertStringContainsString('.private-nav-collapsed .private-nav', $stylesheet);
+        self::assertStringContainsString('.private-nav-collapsed .private-content', $stylesheet);
         self::assertStringContainsString('background: #fff;', $stylesheet);
         self::assertMatchesRegularExpression(
             '/@media \\(width <= 900px\\)\\s*\\{.*?\\.private-nav\\s*\\{[^}]*position:\\s*static;/s',
@@ -63,6 +66,9 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-private-filter-row', $layout);
         self::assertStringContainsString('data-private-filter-empty', $layout);
         self::assertStringContainsString("field instanceof HTMLSelectElement && key !== 'text'", $layout);
+        self::assertStringContainsString('data-private-nav-toggle', $layout);
+        self::assertStringContainsString('type="button"', $layout);
+        self::assertStringContainsString('caramagnols.private.navCollapsed', $layout);
     }
 
     public function testRentalDashboardNavigationDoesNotExposeSubmenu(): void
@@ -87,6 +93,9 @@ final class PrivateUiGuardTest extends TestCase
             $layout
         );
         self::assertStringContainsString('main.admin-main > .notice.notice-success', $layout);
+        self::assertStringContainsString('data-admin-nav-toggle', $layout);
+        self::assertStringContainsString('body.admin-nav-collapsed nav.admin-nav', $layout);
+        self::assertStringContainsString('caramagnols.admin.navCollapsed', $layout);
         self::assertMatchesRegularExpression(
             '/@media \\(max-width: 720px\\)\\s*\\{.*?nav\\.admin-nav\\s*\\{[^}]*position:\\s*static;/s',
             $layout

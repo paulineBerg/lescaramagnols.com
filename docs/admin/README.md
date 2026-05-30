@@ -36,7 +36,7 @@ Mise a jour 2026-03-19 (P1 en cours) :
 - `AdminSettingsService` delegue la gestion des overrides de traductions a `backend/src/Admin/Settings/AdminTranslationSettingsManager.php`.
 - un script de sauvegarde/restauration editorial est disponible : `backend/core/tools/editorial_backup_restore.php`.
 - le tableau de bord admin est recentre sur les elements cles d'exploitation, avec un focus prioritaire sur la moderation des discussions en attente.
-- la colonne de navigation gauche admin est fixe en desktop (hauteur viewport constante) pour garder une ergonomie identique sur pages/articles/discussions/menus/logs/settings.
+- la colonne de navigation gauche admin est fixe en desktop (hauteur viewport constante) pour garder une ergonomie identique sur pages/articles/discussions/menus/logs/settings, et peut etre repliee/depliee en un clic via un bouton icone.
 
 Mise a jour 2026-03-20 (ticket W1-04 execute) :
 - stabilisation du builder menus validee sur les cas systeme `footer_notice`, `banner`, `remonter`.

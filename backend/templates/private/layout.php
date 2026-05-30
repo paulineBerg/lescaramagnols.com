@@ -185,7 +185,18 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
   <body class="<?php echo $isAuthenticated ? 'private-app-page' : 'private-auth-page'; ?>">
     <?php if ($isAuthenticated) : ?>
       <div class="private-app-shell">
-        <nav class="private-nav" aria-label="Navigation privée">
+        <button
+          type="button"
+          class="private-nav-toggle"
+          data-private-nav-toggle
+          aria-controls="private-side-nav"
+          aria-expanded="true"
+          aria-label="<?php echo htmlspecialchars($translate('TXT_PRIVATE_NAV_COLLAPSE', 'Replier le menu'), ENT_QUOTES, 'UTF-8'); ?>"
+          title="<?php echo htmlspecialchars($translate('TXT_PRIVATE_NAV_COLLAPSE', 'Replier le menu'), ENT_QUOTES, 'UTF-8'); ?>"
+        >
+          <span aria-hidden="true">☰</span>
+        </button>
+        <nav id="private-side-nav" class="private-nav" aria-label="Navigation privée">
           <div class="private-nav-brand">
             <strong>Les Caramagnols</strong>
             <span><?php echo htmlspecialchars($translate('TXT_PRIVATE_LAYOUT_BRAND_SUBTITLE', 'Espace privé sécurisé'), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -306,6 +317,42 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
     <?php $privateCspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
     <script<?php echo $privateCspNonce !== '' ? ' nonce="' . htmlspecialchars($privateCspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
       (() => {
+        const navToggle = document.querySelector('[data-private-nav-toggle]');
+        const navCollapseLabel = <?php echo json_encode($translate('TXT_PRIVATE_NAV_COLLAPSE', 'Replier le menu'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const navExpandLabel = <?php echo json_encode($translate('TXT_PRIVATE_NAV_EXPAND', 'Déplier le menu'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const navStorageKey = 'caramagnols.private.navCollapsed';
+        const readNavCollapsed = () => {
+          try {
+            return window.localStorage.getItem(navStorageKey) === '1';
+          } catch (_error) {
+            return false;
+          }
+        };
+        const writeNavCollapsed = (isCollapsed) => {
+          try {
+            window.localStorage.setItem(navStorageKey, isCollapsed ? '1' : '0');
+          } catch (_error) {
+            return;
+          }
+        };
+        const setNavCollapsed = (isCollapsed) => {
+          document.body.classList.toggle('private-nav-collapsed', isCollapsed);
+          if (navToggle instanceof HTMLButtonElement) {
+            const label = isCollapsed ? navExpandLabel : navCollapseLabel;
+            navToggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+            navToggle.setAttribute('aria-label', label);
+            navToggle.setAttribute('title', label);
+          }
+        };
+        if (navToggle instanceof HTMLButtonElement) {
+          setNavCollapsed(readNavCollapsed());
+          navToggle.addEventListener('click', () => {
+            const isCollapsed = !document.body.classList.contains('private-nav-collapsed');
+            setNavCollapsed(isCollapsed);
+            writeNavCollapsed(isCollapsed);
+          });
+        }
+
         document.addEventListener('click', (event) => {
           const button = event.target instanceof Element
             ? event.target.closest('[data-private-password-toggle]')

@@ -109,7 +109,34 @@
     padding: 2.5rem 1.8rem;
     position: fixed;
     top: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
     z-index: 20;
+  }
+
+  .private-nav-toggle {
+    align-items: center;
+    background: rgb(255 255 255 / 18%);
+    border: 1px solid rgb(255 255 255 / 28%);
+    border-radius: 999px;
+    box-shadow: 0 10px 24px rgb(19 41 75 / 18%);
+    color: #fff;
+    display: inline-flex;
+    height: 2.35rem;
+    justify-content: center;
+    left: calc(var(--private-nav-width) - 3.1rem);
+    padding: 0;
+    position: fixed;
+    top: 0.75rem;
+    transition: background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, left 0.2s ease;
+    width: 2.35rem;
+    z-index: 70;
+  }
+
+  .private-nav-toggle:hover,
+  .private-nav-toggle:focus-visible {
+    background: rgb(255 255 255 / 26%);
+    box-shadow: 0 12px 26px rgb(19 41 75 / 22%);
+    transform: none;
   }
 
   .private-nav-brand {
@@ -174,7 +201,31 @@
     max-width: calc(100% - var(--private-nav-width));
     min-width: 0;
     min-height: 100vh;
+    transition: margin-left 0.2s ease, max-width 0.2s ease, width 0.2s ease;
     width: calc(100% - var(--private-nav-width));
+  }
+
+  .private-nav-collapsed .private-nav {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(calc(-1 * var(--private-nav-width)));
+    visibility: hidden;
+  }
+
+  .private-nav-collapsed .private-nav-toggle {
+    background: #fff;
+    color: var(--private-primary-dark);
+    left: 0.75rem;
+  }
+
+  .private-nav-collapsed .private-content {
+    margin-left: 0;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .private-nav-collapsed .private-header {
+    padding-left: 4rem;
   }
 
   .private-header {
@@ -949,10 +1000,25 @@
       padding: 1.2rem;
     }
 
+    .private-nav-toggle {
+      display: none;
+    }
+
+    .private-nav-collapsed .private-nav {
+      opacity: 1;
+      pointer-events: auto;
+      transform: none;
+      visibility: visible;
+    }
+
     .private-content {
       margin-left: 0;
       max-width: 100%;
       width: 100%;
+    }
+
+    .private-nav-collapsed .private-header {
+      padding-left: clamp(1rem, 2.6vw, 1.75rem);
     }
 
     .private-nav-menu {

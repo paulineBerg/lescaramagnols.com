@@ -171,7 +171,7 @@ Regles d'exploitation :
 Cette checklist s'applique a tout nouvel ecran admin ou prive et a toute modification de formulaire, action sensible, navigation ou liste responsive.
 
 1. Le conteneur principal doit rester dans la largeur du viewport : `max-width: 100%`, `min-width: 0`, aucun overflow horizontal global, et scroll horizontal uniquement dans le bloc local quand une table l'exige.
-2. La navigation gauche desktop doit rester fixe et lisible; sur mobile, elle revient en flux normal, sans marge gauche residuelle ni largeur calculee.
+2. La navigation gauche desktop doit rester fixe et lisible, avec un bouton icone permettant de la replier/deplier en un clic; sur mobile, elle revient en flux normal, sans marge gauche residuelle ni largeur calculee.
 3. Les messages applicatifs doivent rester visibles en haut du viewport, utiliser `role="status"` pour les succes et `role="alert"` pour les erreurs.
 4. Toute action JavaScript visible doit etre un vrai `<button type="button">`; toute action de formulaire doit etre un `<button type="submit">`.
 5. Une action destructive doit rester lisible, explicite et annulable : libelle de danger, etape de confirmation ou dialogue dedie, bouton d'annulation accessible clavier/souris.

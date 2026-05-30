@@ -140,6 +140,33 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         z-index: 20;
         overflow-y: auto;
         overscroll-behavior: contain;
+        transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+      }
+
+      .admin-nav-toggle {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 999px;
+        box-shadow: 0 10px 24px rgba(19, 41, 75, 0.18);
+        color: #fff;
+        display: inline-flex;
+        height: 2.35rem;
+        justify-content: center;
+        left: calc(var(--admin-nav-width) - 3.1rem);
+        padding: 0;
+        position: fixed;
+        top: 0.75rem;
+        transition: background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, left 0.2s ease;
+        width: 2.35rem;
+        z-index: 70;
+      }
+
+      .admin-nav-toggle:hover,
+      .admin-nav-toggle:focus-visible {
+        background: rgba(255, 255, 255, 0.26);
+        box-shadow: 0 12px 26px rgba(19, 41, 75, 0.22);
+        transform: none;
       }
 
       .nav-brand {
@@ -208,6 +235,30 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         max-width: calc(100% - var(--admin-nav-width));
         min-width: 0;
         min-height: 100vh;
+        transition: margin-left 0.2s ease, max-width 0.2s ease, width 0.2s ease;
+      }
+
+      body.admin-nav-collapsed nav.admin-nav {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(calc(-1 * var(--admin-nav-width)));
+        visibility: hidden;
+      }
+
+      body.admin-nav-collapsed .admin-nav-toggle {
+        background: #fff;
+        color: var(--admin-primary-dark);
+        left: 0.75rem;
+      }
+
+      body.admin-nav-collapsed .admin-content {
+        margin-left: 0;
+        max-width: 100%;
+        width: 100%;
+      }
+
+      body.admin-nav-collapsed header.admin-header {
+        padding-left: 4rem;
       }
 
       header.admin-header {
@@ -3079,6 +3130,10 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
       }
 
       @media (max-width: 840px) {
+        :root {
+          --admin-nav-width: 210px;
+        }
+
         nav.admin-nav {
           flex: 0 0 210px;
           width: 210px;
@@ -3146,6 +3201,10 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
           flex-direction: column;
         }
 
+        .admin-nav-toggle {
+          display: none;
+        }
+
         nav.admin-nav {
           flex: 1 1 auto;
           width: 100%;
@@ -3159,10 +3218,21 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
           padding: 2rem 1.4rem;
         }
 
+        body.admin-nav-collapsed nav.admin-nav {
+          opacity: 1;
+          pointer-events: auto;
+          transform: none;
+          visibility: visible;
+        }
+
         .admin-content {
           width: 100%;
           margin-left: 0;
           max-width: 100%;
+        }
+
+        body.admin-nav-collapsed header.admin-header {
+          padding-left: clamp(1rem, 2.6vw, 1.75rem);
         }
 
         header.admin-header {
@@ -3530,7 +3600,18 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
     </main>
     <?php else: ?>
     <div class="admin-shell">
-      <nav class="admin-nav" aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_NAV_ARIA', 'Navigation admin'), ENT_QUOTES, 'UTF-8'); ?>">
+      <button
+        type="button"
+        class="admin-nav-toggle"
+        data-admin-nav-toggle
+        aria-controls="admin-side-nav"
+        aria-expanded="true"
+        aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_NAV_COLLAPSE', 'Replier le menu'), ENT_QUOTES, 'UTF-8'); ?>"
+        title="<?php echo htmlspecialchars($translate('TXT_ADMIN_NAV_COLLAPSE', 'Replier le menu'), ENT_QUOTES, 'UTF-8'); ?>"
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+      <nav id="admin-side-nav" class="admin-nav" aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_NAV_ARIA', 'Navigation admin'), ENT_QUOTES, 'UTF-8'); ?>">
         <div class="nav-brand">
           <strong>Les Caramagnols</strong>
           <span><?php echo htmlspecialchars($translate('TXT_ADMIN_LAYOUT_BRAND_SUBTITLE', 'Administration technique'), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -3608,6 +3689,42 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
     <?php endif; ?>
     <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
       (() => {
+        const navToggle = document.querySelector('[data-admin-nav-toggle]');
+        const navCollapseLabel = <?php echo json_encode($translate('TXT_ADMIN_NAV_COLLAPSE', 'Replier le menu'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const navExpandLabel = <?php echo json_encode($translate('TXT_ADMIN_NAV_EXPAND', 'Déplier le menu'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const navStorageKey = 'caramagnols.admin.navCollapsed';
+        const readNavCollapsed = () => {
+          try {
+            return window.localStorage.getItem(navStorageKey) === '1';
+          } catch (_error) {
+            return false;
+          }
+        };
+        const writeNavCollapsed = (isCollapsed) => {
+          try {
+            window.localStorage.setItem(navStorageKey, isCollapsed ? '1' : '0');
+          } catch (_error) {
+            return;
+          }
+        };
+        const setNavCollapsed = (isCollapsed) => {
+          document.body.classList.toggle('admin-nav-collapsed', isCollapsed);
+          if (navToggle instanceof HTMLButtonElement) {
+            const label = isCollapsed ? navExpandLabel : navCollapseLabel;
+            navToggle.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+            navToggle.setAttribute('aria-label', label);
+            navToggle.setAttribute('title', label);
+          }
+        };
+        if (navToggle instanceof HTMLButtonElement) {
+          setNavCollapsed(readNavCollapsed());
+          navToggle.addEventListener('click', () => {
+            const isCollapsed = !document.body.classList.contains('admin-nav-collapsed');
+            setNavCollapsed(isCollapsed);
+            writeNavCollapsed(isCollapsed);
+          });
+        }
+
         document.addEventListener('click', (event) => {
           const button = event.target instanceof Element
             ? event.target.closest('[data-admin-password-toggle]')
