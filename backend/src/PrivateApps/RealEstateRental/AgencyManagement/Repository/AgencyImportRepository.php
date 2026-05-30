@@ -262,6 +262,11 @@ final class AgencyImportRepository
             return null;
         }
 
+        $batch = $this->findBatchById($batchId);
+        if (!$batch instanceof AgencyImportBatch) {
+            return null;
+        }
+
         try {
             $this->ensureSchema();
             $pdo = $this->database->pdo();
@@ -282,6 +287,7 @@ final class AgencyImportRepository
                 $statement = $this->insertStatement($importedDocument->id, $preview->parserResult, $detectedAgency);
                 if ($statement instanceof AgencyStatement) {
                     $this->insertStatementLines($statement->id, $importedDocument->id, $preview->parserResult->statementLines);
+                    $this->autoAssignStatementLinesFromLeases($statement->id, $batch->createdByPrivateUserId);
                 }
             }
 
@@ -1262,6 +1268,240 @@ final class AgencyImportRepository
         }
 
         $statement->bindValue($parameter, $value, PDO::PARAM_INT);
+    }
+
+    private function autoAssignStatementLinesFromLeases(int $statementId, int $privateUserId): void
+    {
+        if ($statementId <= 0 || $privateUserId <= 0) {
+            return;
+        }
+
+        $candidates = $this->leaseUnitCandidatesForUser($privateUserId);
+        if ($candidates === []) {
+            return;
+        }
+
+        foreach ($this->statementLinesForAutoAssignment($statementId) as $line) {
+            $lineId = is_numeric($line['id'] ?? null) ? (int) $line['id'] : 0;
+            $tenantName = is_scalar($line['tenant_name'] ?? null) ? (string) $line['tenant_name'] : '';
+            if ($lineId <= 0 || trim($tenantName) === '') {
+                continue;
+            }
+
+            $candidate = $this->uniqueLeaseCandidateForTenant($tenantName, $candidates);
+            if ($candidate === null) {
+                continue;
+            }
+
+            $this->assignStatementLineRentalUnit(
+                $statementId,
+                $lineId,
+                $candidate['rentalPropertyId'],
+                $candidate['rentalUnitId']
+            );
+        }
+    }
+
+    /**
+     * @return array<int, array{id:int, tenantName:string, normalizedTenantName:string, tenantNameSignature:string, rentalPropertyId:int, rentalUnitId:int}>
+     */
+    private function leaseUnitCandidatesForUser(int $privateUserId): array
+    {
+        try {
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT l.`id`, l.`rental_property_id`, l.`rental_unit_id`, t.`full_name` AS `tenant_name`
+                     FROM `%s` l
+                     INNER JOIN `%s` t ON t.`id` = l.`rental_tenant_id`
+                     INNER JOIN `%s` u ON u.`id` = l.`rental_unit_id`
+                     INNER JOIN `%s` p ON p.`id` = l.`rental_property_id`
+                     INNER JOIN `%s` m ON m.`rental_property_id` = l.`rental_property_id`
+                     WHERE m.`private_user_id` = :private_user_id
+                       AND m.`status` = "active"
+                       AND m.`is_active` = 1
+                       AND l.`status` IN ("draft", "validated")
+                       AND t.`is_active` = 1
+                       AND u.`is_active` = 1
+                       AND p.`is_active` = 1
+                     ORDER BY l.`id` ASC',
+                    $this->database->table('rental_leases'),
+                    $this->database->table('rental_tenants'),
+                    $this->database->table('rental_units'),
+                    $this->database->table('rental_properties'),
+                    $this->database->table('rental_property_members')
+                )
+            );
+            $statement->execute(['private_user_id' => $privateUserId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $candidates = [];
+        foreach ($this->normalizeRows($rows) as $row) {
+            $id = is_numeric($row['id'] ?? null) ? (int) $row['id'] : 0;
+            $propertyId = is_numeric($row['rental_property_id'] ?? null) ? (int) $row['rental_property_id'] : 0;
+            $unitId = is_numeric($row['rental_unit_id'] ?? null) ? (int) $row['rental_unit_id'] : 0;
+            $tenantName = is_scalar($row['tenant_name'] ?? null) ? trim((string) $row['tenant_name']) : '';
+            $normalizedTenantName = $this->normalizeTenantName($tenantName);
+            if ($id <= 0 || $propertyId <= 0 || $unitId <= 0 || $normalizedTenantName === '') {
+                continue;
+            }
+
+            $candidates[] = [
+                'id' => $id,
+                'tenantName' => $tenantName,
+                'normalizedTenantName' => $normalizedTenantName,
+                'tenantNameSignature' => $this->tenantNameSignature($normalizedTenantName),
+                'rentalPropertyId' => $propertyId,
+                'rentalUnitId' => $unitId,
+            ];
+        }
+
+        return $candidates;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function statementLinesForAutoAssignment(int $statementId): array
+    {
+        try {
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT `id`, `tenant_name`
+                     FROM `%s`
+                     WHERE `statement_id` = :statement_id
+                       AND `rental_unit_id` IS NULL
+                       AND `tenant_name` IS NOT NULL',
+                    $this->linesTable()
+                )
+            );
+            $statement->execute(['statement_id' => $statementId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->normalizeRows($rows);
+    }
+
+    /**
+     * @param array<int, array{id:int, tenantName:string, normalizedTenantName:string, tenantNameSignature:string, rentalPropertyId:int, rentalUnitId:int}> $candidates
+     * @return array{id:int, tenantName:string, normalizedTenantName:string, tenantNameSignature:string, rentalPropertyId:int, rentalUnitId:int}|null
+     */
+    private function uniqueLeaseCandidateForTenant(string $tenantName, array $candidates): ?array
+    {
+        $normalizedTenantName = $this->normalizeTenantName($tenantName);
+        if ($normalizedTenantName === '') {
+            return null;
+        }
+
+        $exactMatches = array_values(array_filter(
+            $candidates,
+            static fn (array $candidate): bool => $candidate['normalizedTenantName'] === $normalizedTenantName
+        ));
+        $candidate = $this->uniqueUnitCandidate($exactMatches);
+        if ($candidate !== null) {
+            return $candidate;
+        }
+
+        $signature = $this->tenantNameSignature($normalizedTenantName);
+        if ($signature === '') {
+            return null;
+        }
+
+        $signatureMatches = array_values(array_filter(
+            $candidates,
+            static fn (array $candidate): bool => $candidate['tenantNameSignature'] === $signature
+        ));
+
+        return $this->uniqueUnitCandidate($signatureMatches);
+    }
+
+    /**
+     * @param array<int, array{id:int, tenantName:string, normalizedTenantName:string, tenantNameSignature:string, rentalPropertyId:int, rentalUnitId:int}> $candidates
+     * @return array{id:int, tenantName:string, normalizedTenantName:string, tenantNameSignature:string, rentalPropertyId:int, rentalUnitId:int}|null
+     */
+    private function uniqueUnitCandidate(array $candidates): ?array
+    {
+        if ($candidates === []) {
+            return null;
+        }
+
+        $matchesByUnit = [];
+        foreach ($candidates as $candidate) {
+            $key = $candidate['rentalPropertyId'] . ':' . $candidate['rentalUnitId'];
+            $matchesByUnit[$key] = $candidate;
+        }
+
+        if (count($matchesByUnit) !== 1) {
+            return null;
+        }
+
+        $candidate = reset($matchesByUnit);
+        return is_array($candidate) ? $candidate : null;
+    }
+
+    private function assignStatementLineRentalUnit(
+        int $statementId,
+        int $lineId,
+        int $rentalPropertyId,
+        int $rentalUnitId
+    ): void {
+        $statement = $this->database->pdo()->prepare(
+            sprintf(
+                'UPDATE `%s`
+                 SET `rental_property_id` = :property_id,
+                     `rental_unit_id` = :unit_id
+                 WHERE `id` = :line_id
+                   AND `statement_id` = :statement_id
+                   AND `rental_unit_id` IS NULL',
+                $this->linesTable()
+            )
+        );
+        $statement->execute([
+            'property_id' => $rentalPropertyId,
+            'unit_id' => $rentalUnitId,
+            'line_id' => $lineId,
+            'statement_id' => $statementId,
+        ]);
+    }
+
+    private function normalizeTenantName(string $value): string
+    {
+        $value = (string) preg_replace('/\([^)]*\)/u', ' ', $value);
+        $value = mb_strtolower(trim($value), 'UTF-8');
+        $value = strtr($value, [
+            'à' => 'a',
+            'â' => 'a',
+            'ä' => 'a',
+            'ç' => 'c',
+            'é' => 'e',
+            'è' => 'e',
+            'ê' => 'e',
+            'ë' => 'e',
+            'î' => 'i',
+            'ï' => 'i',
+            'ô' => 'o',
+            'ö' => 'o',
+            'ù' => 'u',
+            'û' => 'u',
+            'ü' => 'u',
+        ]);
+        $value = (string) preg_replace('/[^a-z0-9]+/u', ' ', $value);
+        return trim((string) preg_replace('/\s+/u', ' ', $value));
+    }
+
+    private function tenantNameSignature(string $normalizedTenantName): string
+    {
+        $tokens = array_values(array_filter(
+            explode(' ', $normalizedTenantName),
+            static fn (string $token): bool => $token !== ''
+        ));
+        sort($tokens, SORT_STRING);
+
+        return implode(' ', $tokens);
     }
 
     private function deleteRowsByImportedDocumentId(string $table, int $importedDocumentId): void

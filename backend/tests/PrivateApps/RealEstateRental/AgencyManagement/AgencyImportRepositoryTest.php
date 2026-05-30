@@ -7,6 +7,11 @@ use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\AgencyImpor
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Pdf\DocumentTextExtractorInterface;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Pdf\ExtractedTextResult;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
+use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
+use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyMemberRepository;
+use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository;
+use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalUnitRepository;
+use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
@@ -171,6 +176,76 @@ final class AgencyImportRepositoryTest extends TestCase
         }
     }
 
+    public function testAutoAssignsImportedLinesToRentalUnitsFromTenantNamesAndChargeTotals(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+        $repository = new AgencyImportRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'agency-auto-match@example.com');
+        $property = $propertyRepository->create(
+            $ownerId,
+            'Les Caramagnols P',
+            '2738 route de la Mole',
+            'immeuble',
+            'pleine propriete',
+            'active'
+        );
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unitOne = $unitRepository->create($property->id, 'Appartement Eve', 34.0, true, 'available', null, $ownerId, 'apartment');
+        $unitThree = $unitRepository->create($property->id, 'Appartement Fournajoux', 38.0, true, 'available', null, $ownerId, 'apartment');
+        $this->assertNotNull($unitOne);
+        $this->assertNotNull($unitThree);
+        $tenantOne = $lifecycleRepository->createTenant($property->id, $unitOne->id, 'Herve EVE', null, null, 'validated', $ownerId);
+        $tenantThree = $lifecycleRepository->createTenant($property->id, $unitThree->id, 'Delphine FOURNAJOUX', null, null, 'validated', $ownerId);
+        $this->assertIsArray($tenantOne);
+        $this->assertIsArray($tenantThree);
+        $this->assertIsArray($lifecycleRepository->createLease($property->id, $unitOne->id, (int) $tenantOne['id'], '2026-01-01', null, 857.41, 0.0, 'validated', $ownerId));
+        $this->assertIsArray($lifecycleRepository->createLease($property->id, $unitThree->id, (int) $tenantThree['id'], '2026-01-01', null, 900.0, 0.0, 'validated', $ownerId));
+
+        $batch = $repository->createBatch($ownerId, 'ASG IMMOBILIER', '/tmp/agence', 1);
+        $this->assertNotNull($batch);
+        $sourcePath = tempnam(sys_get_temp_dir(), 'agency-import-auto-match-');
+        $this->assertIsString($sourcePath);
+        file_put_contents($sourcePath, 'auto match pdf bytes');
+
+        try {
+            $preview = (new AgencyImportPreviewService($this->textExtractorReturning($this->asgMultiLotText())))->preview(
+                $sourcePath,
+                'releve-gerance-multi-lot.pdf',
+                'text/plain'
+            );
+            $document = $repository->persistPreview($batch->id, $preview, 'private-doc-auto-match', 'ASG IMMOBILIER');
+            $this->assertNotNull($document);
+            $statement = $repository->findStatementByImportedDocumentId($document->id);
+            $this->assertNotNull($statement);
+
+            $lines = $repository->listStatementLines($statement->id);
+            $this->assertCount(8, $lines);
+            $unitsByAmount = [];
+            foreach ($lines as $line) {
+                $amount = $line->amount !== null ? sprintf('%.2f', $line->amount) : '';
+                $unitsByAmount[$amount] = $line->rentalUnitId;
+            }
+
+            $this->assertSame($unitOne->id, $unitsByAmount['7.41'] ?? null);
+            $this->assertSame($unitOne->id, $unitsByAmount['842.59'] ?? null);
+            $this->assertSame($unitThree->id, $unitsByAmount['900.00'] ?? null);
+            $this->assertSame($unitOne->id, $unitsByAmount['59.50'] ?? null);
+            $this->assertSame($unitOne->id, $unitsByAmount['11.90'] ?? null);
+            $this->assertSame($unitThree->id, $unitsByAmount['63.00'] ?? null);
+            $this->assertSame($unitThree->id, $unitsByAmount['12.60'] ?? null);
+            $this->assertSame($unitOne->id, $unitsByAmount['30.01'] ?? null);
+        } finally {
+            @unlink($sourcePath);
+        }
+    }
+
     private function textExtractorReturning(string $text): DocumentTextExtractorInterface
     {
         return new class ($text) implements DocumentTextExtractorInterface {
@@ -204,5 +279,46 @@ AMIROUCHEN Luc
 Loyer                                                                               662,87        662,87
 Règlement Virement                                                                               548,48
 TEXT;
+    }
+
+    private function asgMultiLotText(): string
+    {
+        return <<<'TEXT'
+Relevé de gérance
+Numéro de compte       411BERGONP
+Libellé                BERGON Gérard
+Le 05/02/2026
+ASG IMMOBILIER
+Période du 01/01/2026 au 31/01/2026 - Jan 2026
+IMMEUBLE - Les Caramagnols COGOLIN                                                  Quittancé      Recettes      Dépenses
+Lot 1 Appartement
+EVE Hervé (Solde débiteur : 14,82)
+Période Déc 2025
+Loyer                                                                                          7,41
+Période Jan 2026
+Loyer                                                                         857,41        842,59
+Total lot        857,41        850,00
+Lot 3 Appartement
+FOURNAJOUX Delphine
+Période Jan 2026
+Loyer                                                                            900,00        900,00
+Total lot        900,00        900,00
+Dépenses de l'immeuble
+Honoraires de gestion Jan 2026 (850 x 7%)                                                                   59,50
+TVA sur Honoraires de gestion Jan 2026                                                                      11,90
+Honoraires de gestion Jan 2026 (900 x 7%)                                                                   63,00
+TVA sur Honoraires de gestion Jan 2026                                                                      12,60
+ASSURANCE MILA Jan 2026 (857,41 x 3,5%)                                                                     30,01
+TEXT;
+    }
+
+    private function createPrivateUser(PrivateUserRepository $repository, string $email): int
+    {
+        $hash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($hash);
+        $userId = $repository->create($email, $hash, 'active');
+        $this->assertIsInt($userId);
+
+        return $userId;
     }
 }

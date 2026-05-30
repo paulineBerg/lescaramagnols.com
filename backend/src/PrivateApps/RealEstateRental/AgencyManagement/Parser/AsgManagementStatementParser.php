@@ -26,6 +26,9 @@ final class AsgManagementStatementParser extends AbstractStatementParser impleme
         $currentUnit = null;
         $currentTenant = null;
         $currentPage = 1;
+        $lotContexts = [];
+        $lastExpenseContext = null;
+        $inBuildingExpenses = false;
         $statementPeriodStart = is_string($fields['periodStart'] ?? null) ? $fields['periodStart'] : null;
         $statementPeriodEnd = is_string($fields['periodEnd'] ?? null) ? $fields['periodEnd'] : null;
 
@@ -35,17 +38,37 @@ final class AsgManagementStatementParser extends AbstractStatementParser impleme
                 $currentProperty = $this->propertyLabel($matches[1]);
                 $currentUnit = null;
                 $currentTenant = null;
+                $inBuildingExpenses = false;
+                $lastExpenseContext = null;
                 continue;
             }
 
-            if (preg_match('/\bLot\s+(.+)/iu', $line, $matches) === 1) {
+            if (preg_match('/D[eé]penses de l[’\']immeuble/iu', $line) === 1) {
+                $currentUnit = null;
+                $currentTenant = null;
+                $inBuildingExpenses = true;
+                $lastExpenseContext = null;
+                continue;
+            }
+
+            if (preg_match('/\bTotal\s+lot\b/iu', $line) === 1) {
+                $context = $this->lotContextFromTotalLine($line, $currentProperty, $currentUnit, $currentTenant);
+                if ($context !== null) {
+                    $lotContexts[] = $context;
+                }
+                continue;
+            }
+
+            if (preg_match('/\ALot\s+(.+)/iu', $line, $matches) === 1) {
                 $currentUnit = trim($matches[1]);
                 $currentTenant = null;
+                $inBuildingExpenses = false;
+                $lastExpenseContext = null;
                 continue;
             }
 
             if ($this->looksLikeTenantLine($line)) {
-                $currentTenant = trim((string) preg_replace('/\s+(entr[eé]|r[eé]vis[eé]).*/iu', '', $line));
+                $currentTenant = $this->tenantLabel($line);
                 continue;
             }
 
@@ -61,6 +84,17 @@ final class AsgManagementStatementParser extends AbstractStatementParser impleme
             $label = $this->labelWithoutAmounts($line);
             $category = $this->categoryGuesser->guess($label);
             $isExpense = $this->isExpenseCategory($category);
+            $lineProperty = $currentProperty;
+            $lineUnit = $currentUnit;
+            $lineTenant = $currentTenant;
+            if ($isExpense && $inBuildingExpenses) {
+                $expenseContext = $this->expenseContext($line, $category, $lotContexts, $lastExpenseContext);
+                $lineProperty = $expenseContext['property'] ?? $currentProperty;
+                $lineUnit = $expenseContext['unit'] ?? null;
+                $lineTenant = $expenseContext['tenant'] ?? null;
+                $lastExpenseContext = $expenseContext ?? null;
+            }
+
             $lines[] = new AgencyStatementLineDraft(
                 $label,
                 $category,
@@ -73,9 +107,9 @@ final class AsgManagementStatementParser extends AbstractStatementParser impleme
                 $statementPeriodStart,
                 $statementPeriodEnd,
                 null,
-                $currentProperty,
-                $currentUnit,
-                $currentTenant,
+                $lineProperty,
+                $lineUnit,
+                $lineTenant,
                 $currentPage,
                 $category === 'other' ? 'review' : 'suggested',
                 $this->lineHash($line)
@@ -136,9 +170,18 @@ final class AsgManagementStatementParser extends AbstractStatementParser impleme
             return false;
         }
 
-        return preg_match('/\A[\p{L} .&\'-]{3,}(?:\s+(entr[eé]|r[eé]vis[eé]).*)?\z/iu', $line) === 1
+        $tenantLabel = $this->tenantLabel($line);
+
+        return preg_match('/\A[\p{L} .&\'-]{3,}\z/iu', $tenantLabel) === 1
             && !str_contains($line, 'IMMEUBLE')
             && !str_contains($line, 'Appartement');
+    }
+
+    private function tenantLabel(string $line): string
+    {
+        $line = (string) preg_replace('/\s+(entr[eé]|r[eé]vis[eé]).*/iu', '', $line);
+        $line = (string) preg_replace('/\s*\([^)]*\)\s*$/u', '', $line);
+        return trim((string) preg_replace('/\s+/u', ' ', $line));
     }
 
     private function propertyLabel(string $value): string
@@ -154,7 +197,8 @@ final class AsgManagementStatementParser extends AbstractStatementParser impleme
 
     private function labelWithoutAmounts(string $line): string
     {
-        $line = (string) preg_replace('/-?\d{1,3}(?:[ \x{00A0}]?\d{3})*(?:[,.]\d{2})/u', '', $line);
+        $money = '-?\d{1,3}(?:[ \x{00A0}]?\d{3})*(?:[,.]\d{2})';
+        $line = (string) preg_replace('/\s+' . $money . '(?:\s+' . $money . ')*\s*\z/u', '', $line);
         return trim((string) preg_replace('/\s+/u', ' ', $line));
     }
 
@@ -170,5 +214,102 @@ final class AsgManagementStatementParser extends AbstractStatementParser impleme
             'condominium_current_charge',
             'copro_work_fund',
         ], true);
+    }
+
+    /**
+     * @return array{property:?string, unit:string, tenant:?string, calledTotal:?float, paidTotal:?float}|null
+     */
+    private function lotContextFromTotalLine(
+        string $line,
+        ?string $property,
+        ?string $unit,
+        ?string $tenant
+    ): ?array {
+        if ($unit === null || trim($unit) === '') {
+            return null;
+        }
+
+        $amounts = $this->amounts($line);
+        if ($amounts === []) {
+            return null;
+        }
+
+        $paidTotal = $amounts[count($amounts) - 1] ?? null;
+        $calledTotal = count($amounts) > 1 ? $amounts[count($amounts) - 2] : $paidTotal;
+
+        return [
+            'property' => $property,
+            'unit' => trim($unit),
+            'tenant' => $tenant,
+            'calledTotal' => $calledTotal,
+            'paidTotal' => $paidTotal,
+        ];
+    }
+
+    /**
+     * @param array<int, array{property:?string, unit:string, tenant:?string, calledTotal:?float, paidTotal:?float}> $lotContexts
+     * @param array{property:?string, unit:string, tenant:?string, calledTotal:?float, paidTotal:?float}|null $lastExpenseContext
+     * @return array{property:?string, unit:string, tenant:?string, calledTotal:?float, paidTotal:?float}|null
+     */
+    private function expenseContext(
+        string $line,
+        string $category,
+        array $lotContexts,
+        ?array $lastExpenseContext
+    ): ?array {
+        $basis = $this->basisAmount($line);
+        if ($basis !== null) {
+            return $this->lotContextByBasis($lotContexts, $basis);
+        }
+
+        if (
+            $category === 'agency_fee_vat'
+            && is_array($lastExpenseContext)
+            && isset($lastExpenseContext['unit'])
+        ) {
+            return $lastExpenseContext;
+        }
+
+        return null;
+    }
+
+    private function basisAmount(string $line): ?float
+    {
+        if (preg_match('/\(\s*(' . $this->amountPattern() . ')\s*x\s*[-\d\s\x{00A0},.]+%?\s*\)/iu', $line, $matches) !== 1) {
+            return null;
+        }
+
+        return $this->amount($matches[1]);
+    }
+
+    /**
+     * @param array<int, array{property:?string, unit:string, tenant:?string, calledTotal:?float, paidTotal:?float}> $lotContexts
+     * @return array{property:?string, unit:string, tenant:?string, calledTotal:?float, paidTotal:?float}|null
+     */
+    private function lotContextByBasis(array $lotContexts, float $basis): ?array
+    {
+        $matches = [];
+        foreach ($lotContexts as $context) {
+            $calledTotal = $context['calledTotal'];
+            $paidTotal = $context['paidTotal'];
+            if (
+                ($calledTotal !== null && abs($calledTotal - $basis) < 0.01)
+                || ($paidTotal !== null && abs($paidTotal - $basis) < 0.01)
+            ) {
+                $matches[$context['unit']] = $context;
+            }
+        }
+
+        if (count($matches) !== 1) {
+            return null;
+        }
+
+        $match = reset($matches);
+        return is_array($match) ? $match : null;
+    }
+
+    private function amountPattern(): string
+    {
+        return '-?\d{1,3}(?:[ \x{00A0}]?\d{3})*(?:[,.]\d+)?';
     }
 }

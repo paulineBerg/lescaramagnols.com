@@ -52,6 +52,57 @@ TEXT;
         $this->assertContains('Villa CARENA COGOLIN', array_column($lines, 'propertyLabel'));
     }
 
+    public function testAsgParserKeepsTenantContextAndSplitsBuildingExpensesByLotTotals(): void
+    {
+        $text = <<<'TEXT'
+Relevé de gérance
+Numéro de compte       411BERGONP
+Libellé                BERGON Gérard
+Le 05/02/2026
+ASG IMMOBILIER
+Période du 01/01/2026 au 31/01/2026 - Jan 2026
+IMMEUBLE - Les Caramagnols COGOLIN                                                  Quittancé      Recettes      Dépenses
+Lot 1 Appartement
+EVE Hervé (Solde débiteur : 14,82)
+Période Jan 2026
+Loyer                                                                         857,41        842,59
+Total lot        857,41        850,00
+Lot 3 Appartement
+FOURNAJOUX Delphine
+Période Jan 2026
+Loyer                                                                            900,00        900,00
+Total lot        900,00        900,00
+Dépenses de l'immeuble
+Honoraires de gestion Jan 2026 (850 x 7%)                                                                   59,50
+TVA sur Honoraires de gestion Jan 2026                                                                      11,90
+Honoraires de gestion Jan 2026 (900 x 7%)                                                                   63,00
+TVA sur Honoraires de gestion Jan 2026                                                                      12,60
+ASSURANCE MILA Jan 2026 (857,41 x 3,5%)                                                                     30,01
+TEXT;
+
+        $parser = new AsgManagementStatementParser();
+        $result = $parser->parse($text);
+        $lines = array_map(static fn ($line): array => $line->toArray(), $result->statementLines);
+
+        $this->assertCount(7, $lines);
+        $this->assertSame('EVE Hervé', $lines[0]['tenantName'] ?? null);
+        $this->assertSame('1 Appartement', $lines[0]['unitLabel'] ?? null);
+        $this->assertSame('FOURNAJOUX Delphine', $lines[1]['tenantName'] ?? null);
+        $this->assertSame('3 Appartement', $lines[1]['unitLabel'] ?? null);
+
+        $this->assertSame('Honoraires de gestion Jan 2026 (850 x 7%)', $lines[2]['rawLabel'] ?? null);
+        $this->assertSame('1 Appartement', $lines[2]['unitLabel'] ?? null);
+        $this->assertSame('EVE Hervé', $lines[2]['tenantName'] ?? null);
+        $this->assertSame('1 Appartement', $lines[3]['unitLabel'] ?? null);
+        $this->assertSame('EVE Hervé', $lines[3]['tenantName'] ?? null);
+        $this->assertSame('3 Appartement', $lines[4]['unitLabel'] ?? null);
+        $this->assertSame('FOURNAJOUX Delphine', $lines[4]['tenantName'] ?? null);
+        $this->assertSame('3 Appartement', $lines[5]['unitLabel'] ?? null);
+        $this->assertSame('FOURNAJOUX Delphine', $lines[5]['tenantName'] ?? null);
+        $this->assertSame('1 Appartement', $lines[6]['unitLabel'] ?? null);
+        $this->assertSame('EVE Hervé', $lines[6]['tenantName'] ?? null);
+    }
+
     public function testIcsParserExtractsManagementReportLines(): void
     {
         $text = <<<'TEXT'
