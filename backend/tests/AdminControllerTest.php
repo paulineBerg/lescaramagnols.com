@@ -2642,6 +2642,8 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('id="database_password" name="database[password]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('id="admin_password" name="admin[password]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('id="admin_totp_secret" name="admin[totp_secret]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('data-admin-totp-generate', $response->body);
+        $this->assertStringContainsString('Générer un secret aléatoire', $response->body);
         $this->assertStringContainsString('id="discussion_recaptcha_secret_key" name="discussions[recaptcha_secret_key]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('id="instagram_access_token" name="instagram[access_token]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('id="backup-database-password" name="backup[database_password]" type="password" value="**********"', $response->body);

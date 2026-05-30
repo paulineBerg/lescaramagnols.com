@@ -99,6 +99,7 @@ trait EditorialSqlTestTrait
                     'rental_documents',
                     'rental_expenses',
                     'rental_payments',
+                    'rental_rents',
                     'rental_leases',
                     'rental_tenants',
                     'rental_property_members',

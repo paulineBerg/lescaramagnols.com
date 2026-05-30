@@ -82,15 +82,6 @@ $privateNavItems = [
     ],
 ];
 
-if ($privateMemberSettingsEnabled) {
-    $privateNavItems[] = [
-        'label' => $translate('TXT_PRIVATE_SETTINGS_NAV', 'Paramètres'),
-        'href' => private_portal_url('member_settings'),
-        'icon' => '⚙',
-        'active' => $privatePathIs(private_portal_url('member_settings')),
-    ];
-}
-
 if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)) {
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'),
@@ -127,6 +118,7 @@ if ($privateHasModule('Locations immobilières')) {
         private_portal_url('rental_property_members'),
         private_portal_url('rental_tenants'),
         private_portal_url('rental_leases'),
+        private_portal_url('rental_rents'),
         private_portal_url('rental_payments'),
         private_portal_url('rental_expenses'),
         private_portal_url('rental_documents'),
@@ -149,6 +141,15 @@ if ($privateHasModule('Aide impôts')) {
         'icon' => '€',
         'active' => $privateCurrentPath !== ''
             && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('tax_dashboard'))),
+    ];
+}
+
+if ($privateMemberSettingsEnabled) {
+    $privateNavItems[] = [
+        'label' => $translate('TXT_PRIVATE_SETTINGS_NAV', 'Paramètres'),
+        'href' => private_portal_url('member_settings'),
+        'icon' => '⚙',
+        'active' => $privatePathIs(private_portal_url('member_settings')),
     ];
 }
 
@@ -263,14 +264,6 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
           </header>
 
           <main class="private-main">
-            <?php if ($noticeText !== null) : ?>
-              <div class="notice notice-success private-screen-notice" role="status"><?php echo htmlspecialchars($noticeText, ENT_QUOTES, 'UTF-8'); ?></div>
-            <?php endif; ?>
-
-            <?php if ($error !== null) : ?>
-              <div class="notice notice-error private-screen-notice" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></div>
-            <?php endif; ?>
-
             <?php echo $privateContent; ?>
           </main>
         </div>
@@ -379,6 +372,81 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
               dialog.close();
             }
           });
+        });
+
+        const normalizeFilterValue = (value) => String(value || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .trim();
+        const datasetKey = (key) => `filter${String(key || '')
+          .replace(/(^|-|_)([a-z])/g, (_match, _sep, letter) => letter.toUpperCase())}`;
+        const rowFilterValue = (row, key) => {
+          if (!(row instanceof HTMLElement)) {
+            return '';
+          }
+
+          const dataKey = datasetKey(key);
+          return normalizeFilterValue(row.dataset[dataKey] || row.dataset.filterText || row.textContent || '');
+        };
+        document.querySelectorAll('[data-private-filter-scope]').forEach((scope) => {
+          const rows = Array.from(scope.querySelectorAll('[data-private-filter-row]'));
+          const fields = Array.from(scope.querySelectorAll('[data-private-filter]'));
+          const emptyState = scope.querySelector('[data-private-filter-empty]');
+          const applyFilters = () => {
+            let visibleCount = 0;
+            rows.forEach((row) => {
+              if (!(row instanceof HTMLElement)) {
+                return;
+              }
+
+              const isVisible = fields.every((field) => {
+                if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLSelectElement)) {
+                  return true;
+                }
+
+                const key = field.getAttribute('data-private-filter') || 'text';
+                const value = normalizeFilterValue(field.value);
+                if (value === '' || value === 'all') {
+                  return true;
+                }
+
+                const rowValue = rowFilterValue(row, key);
+                if (field instanceof HTMLSelectElement && key !== 'text') {
+                  return rowValue === value;
+                }
+
+                return rowValue.includes(value);
+              });
+
+              row.hidden = !isVisible;
+              if (isVisible) {
+                visibleCount += 1;
+              }
+            });
+
+            if (emptyState instanceof HTMLElement) {
+              emptyState.hidden = visibleCount !== 0;
+            }
+          };
+
+          fields.forEach((field) => {
+            field.addEventListener('input', applyFilters);
+            field.addEventListener('change', applyFilters);
+          });
+          scope.querySelectorAll('[data-private-filter-reset]').forEach((button) => {
+            button.addEventListener('click', () => {
+              fields.forEach((field) => {
+                if (field instanceof HTMLInputElement) {
+                  field.value = '';
+                } else if (field instanceof HTMLSelectElement) {
+                  field.value = 'all';
+                }
+              });
+              applyFilters();
+            });
+          });
+          applyFilters();
         });
 
         const sensitiveDialog = document.getElementById('private-sensitive-action-dialog');

@@ -39,6 +39,8 @@ final class AgencyImportServiceTest extends TestCase
         $this->assertTrue($first->isImported());
         $this->assertNotNull($first->document);
         $this->assertSame('review', $first->document->reviewStatus);
+        $this->assertNotNull($first->document->storagePath);
+        $this->assertFileExists((string) $this->storage()->absolutePath((string) $first->document->storagePath));
         $this->assertNotNull($repository->findImportedDocumentBySha256($first->document->sha256));
 
         $duplicateFile = $this->uploadedFile('releve-agence-copie.txt', 'original agency statement bytes');

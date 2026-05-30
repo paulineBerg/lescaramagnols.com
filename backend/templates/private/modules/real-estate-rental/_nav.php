@@ -16,7 +16,7 @@ $mainItems = [
 
 $subItems = match ($currentSection) {
     'agency' => [
-        'properties' => ['Biens locatifs', $url('properties', 'rental_properties')],
+        'properties' => ['Propriétés', $url('properties', 'rental_properties')],
         'agencyImports' => ['Importer agence', $url('agencyImports', 'rental_agency_imports')],
         'agencyReview' => ['Classer les documents', $url('agencyReview', 'rental_agency_review')],
     ],
@@ -26,21 +26,17 @@ $subItems = match ($currentSection) {
         'exportPdf' => ['Export PDF', $url('exportPdf', 'rental_export_pdf')],
     ],
     'personal' => [
-        'properties' => ['Biens locatifs', $url('properties', 'rental_properties')],
-        'units' => ['Lots', $url('units', 'rental_units')],
-        'members' => ['Accès aux biens', $url('members', 'rental_property_members')],
+        'properties' => ['Propriétés', $url('properties', 'rental_properties')],
+        'units' => ['Biens locatifs', $url('units', 'rental_units')],
+        'members' => ['Accès aux propriétés', $url('members', 'rental_property_members')],
         'tenants' => ['Locataires', $url('tenants', 'rental_tenants')],
         'leases' => ['Baux', $url('leases', 'rental_leases')],
-        'payments' => ['Loyers', $url('payments', 'rental_payments')],
+        'rents' => ['Loyers', $url('rents', 'rental_rents')],
+        'payments' => ['Paiements', $url('payments', 'rental_payments')],
         'expenses' => ['Charges', $url('expenses', 'rental_expenses')],
         'documents' => ['Documents locatifs', $url('documents', 'rental_documents')],
     ],
-    default => [
-        'properties' => ['Biens locatifs', $url('properties', 'rental_properties')],
-        'payments' => ['Loyers', $url('payments', 'rental_payments')],
-        'agencyImports' => ['Documents agence', $url('agencyImports', 'rental_agency_imports')],
-        'summary' => ['Synthèse', $url('summary', 'rental_summary')],
-    ],
+    default => [],
 };
 ?>
 <nav class="private-module-nav" aria-label="Navigation locations immobilieres">
@@ -51,11 +47,13 @@ $subItems = match ($currentSection) {
       </a>
     <?php endforeach; ?>
   </div>
-  <div class="private-module-nav-row">
-    <?php foreach ($subItems as $key => [$label, $href]): ?>
-      <a class="<?php echo $currentSubsection === $key ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($href, ENT_QUOTES, 'UTF-8'); ?>">
-        <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
-      </a>
-    <?php endforeach; ?>
-  </div>
+  <?php if ($subItems !== []): ?>
+    <div class="private-module-nav-row">
+      <?php foreach ($subItems as $key => [$label, $href]): ?>
+        <a class="<?php echo $currentSubsection === $key ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($href, ENT_QUOTES, 'UTF-8'); ?>">
+          <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
 </nav>

@@ -2,6 +2,7 @@
 $documents = is_array($viewModel['agencyReviewDocuments'] ?? null) ? $viewModel['agencyReviewDocuments'] : [];
 $selectedDocument = is_array($viewModel['agencyReviewSelectedDocument'] ?? null) ? $viewModel['agencyReviewSelectedDocument'] : null;
 $properties = is_array($viewModel['agencyReviewProperties'] ?? null) ? $viewModel['agencyReviewProperties'] : [];
+$units = is_array($viewModel['agencyReviewUnits'] ?? null) ? $viewModel['agencyReviewUnits'] : [];
 $categories = is_array($viewModel['agencyReviewCategories'] ?? null) ? $viewModel['agencyReviewCategories'] : [];
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
@@ -20,6 +21,27 @@ $labelForProperty = static function (array $property): string {
     $address = is_scalar($property['address'] ?? null) ? trim((string) $property['address']) : '';
     return trim($name . ($address !== '' ? ' - ' . $address : ''));
 };
+$propertiesById = [];
+foreach ($properties as $property) {
+    if (is_array($property) && is_numeric($property['id'] ?? null)) {
+        $propertiesById[(int) $property['id']] = $property;
+    }
+}
+$unitsByPropertyId = [];
+foreach ($units as $unit) {
+    if (!is_array($unit) || !is_numeric($unit['id'] ?? null) || !is_numeric($unit['rentalPropertyId'] ?? null)) {
+        continue;
+    }
+
+    $propertyId = (int) $unit['rentalPropertyId'];
+    $unitsByPropertyId[$propertyId] ??= [];
+    $unitsByPropertyId[$propertyId][] = $unit;
+}
+$labelForUnit = static function (array $unit): string {
+    $label = is_scalar($unit['label'] ?? null) ? trim((string) $unit['label']) : '';
+    $type = is_scalar($unit['unitType'] ?? null) ? trim((string) $unit['unitType']) : '';
+    return trim($label . ($type !== '' ? ' - ' . $type : ''));
+};
 ?>
 <section>
   <?php include __DIR__ . '/_nav.php'; ?>
@@ -29,9 +51,9 @@ $labelForProperty = static function (array $property): string {
 
   <section class="card">
     <h2>Documents agence à classer</h2>
-    <p class="muted">Avant de rattacher un relevé agence, le bien locatif doit exister dans Biens et locations.</p>
+    <p class="muted">Avant de rattacher un relevé agence, la propriété doit exister dans Biens et locations.</p>
     <p class="private-actions">
-      <a href="<?php echo $h($propertiesUrl); ?>">Créer ou modifier un bien</a>
+      <a href="<?php echo $h($propertiesUrl); ?>">Créer ou modifier une propriété</a>
       <a href="<?php echo $h($importsUrl); ?>">Importer un document agence</a>
     </p>
     <?php if ($documents === []): ?>
@@ -92,7 +114,7 @@ $labelForProperty = static function (array $property): string {
         <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
         <input type="hidden" name="action" value="update_statement_property" />
         <input type="hidden" name="document_id" value="<?php echo $h($selectedDocumentId); ?>" />
-        <label>Bien rattache
+        <label>Propriété par défaut
           <select name="rental_property_id">
             <option value="">Non rattache</option>
             <?php foreach ($properties as $property): ?>
@@ -109,10 +131,10 @@ $labelForProperty = static function (array $property): string {
           </select>
         </label>
         <?php if ($properties === []): ?>
-          <p class="notice notice-error">Aucun bien disponible pour ce compte. Créez d'abord un bien locatif, puis revenez classer ce document.</p>
-          <p class="private-actions"><a href="<?php echo $h($propertiesUrl); ?>">Créer un bien locatif</a></p>
+          <p class="notice notice-error">Aucune propriété disponible pour ce compte. Créez d'abord une propriété, puis revenez classer ce document.</p>
+          <p class="private-actions"><a href="<?php echo $h($propertiesUrl); ?>">Créer une propriété</a></p>
         <?php else: ?>
-          <p class="muted">La liste ci-dessus reprend les biens locatifs créés dans Biens et locations.</p>
+          <p class="muted">Cette propriété sert de fallback. Si un document contient plusieurs biens, rattache chaque ligne ci-dessous à sa propriété et à son bien locatif.</p>
         <?php endif; ?>
         <button type="submit">Rattacher</button>
       </form>
@@ -131,43 +153,116 @@ $labelForProperty = static function (array $property): string {
         <p class="muted">Aucune ligne exploitable dans ce document.</p>
       <?php else: ?>
         <h3>Lignes a traiter</h3>
-        <?php foreach ($lines as $line): ?>
-          <?php
-          if (!is_array($line) || !is_numeric($line['id'] ?? null)) {
-              continue;
-          }
-          $lineId = (int) $line['id'];
-          $currentCategory = is_scalar($line['mappedCategory'] ?? null) ? (string) $line['mappedCategory'] : 'other';
-          ?>
-          <form method="post" action="<?php echo $h($reviewUrl); ?>" class="private-review-line">
-            <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
-            <input type="hidden" name="document_id" value="<?php echo $h($selectedDocumentId); ?>" />
-            <input type="hidden" name="line_id" value="<?php echo $h($lineId); ?>" />
-            <p>
-              <strong><?php echo $h($line['rawLabel'] ?? ''); ?></strong>
-              <span class="muted">Page <?php echo $h((int) ($line['sourcePage'] ?? 1)); ?>, statut <?php echo $h($line['mappingStatus'] ?? ''); ?></span>
-            </p>
-            <label>Categorie
-              <select name="mapped_category">
-                <?php foreach ($categories as $category => $categoryLabel): ?>
-                  <option value="<?php echo $h($category); ?>" <?php echo $currentCategory === (string) $category ? 'selected' : ''; ?>>
-                    <?php echo $h($categoryLabel); ?>
-                  </option>
-                <?php endforeach; ?>
-              </select>
-            </label>
-            <label>Debut <input type="date" name="period_start" value="<?php echo $h($line['periodStart'] ?? ''); ?>" /></label>
-            <label>Fin <input type="date" name="period_end" value="<?php echo $h($line['periodEnd'] ?? ''); ?>" /></label>
-            <label>Montant <input type="number" step="0.01" name="amount" value="<?php echo $amount($line['amount'] ?? null); ?>" /></label>
-            <label>Debit <input type="number" step="0.01" name="debit_amount" value="<?php echo $amount($line['debitAmount'] ?? null); ?>" /></label>
-            <label>Credit <input type="number" step="0.01" name="credit_amount" value="<?php echo $amount($line['creditAmount'] ?? null); ?>" /></label>
-            <p class="private-actions">
-              <button type="submit" name="action" value="correct_line">Corriger</button>
-              <button type="submit" name="action" value="validate_line">Valider</button>
-              <button type="submit" name="action" value="ignore_line">Ignorer</button>
-            </p>
-          </form>
-        <?php endforeach; ?>
+        <div class="private-table-wrap agency-review-lines-wrap">
+          <div class="agency-review-lines" role="table" aria-label="Lignes agence a traiter">
+            <div class="agency-review-lines-head" role="row">
+              <span>Libelle</span>
+              <span>Propriété</span>
+              <span>Bien locatif</span>
+              <span>Categorie</span>
+              <span>Debut</span>
+              <span>Fin</span>
+              <span>Montant</span>
+              <span>Debit</span>
+              <span>Credit</span>
+              <span>Actions</span>
+            </div>
+            <?php foreach ($lines as $line): ?>
+              <?php
+              if (!is_array($line) || !is_numeric($line['id'] ?? null)) {
+                  continue;
+              }
+              $lineId = (int) $line['id'];
+              $formId = 'agency-review-line-' . $lineId;
+              $currentCategory = is_scalar($line['mappedCategory'] ?? null) ? (string) $line['mappedCategory'] : 'other';
+              $linePropertyId = is_numeric($line['rentalPropertyId'] ?? null) ? (int) $line['rentalPropertyId'] : 0;
+              $lineUnitId = is_numeric($line['rentalUnitId'] ?? null) ? (int) $line['rentalUnitId'] : 0;
+              $detected = [];
+              if (is_scalar($line['propertyLabel'] ?? null) && trim((string) $line['propertyLabel']) !== '') {
+                  $detected[] = 'Propriete detectee: ' . trim((string) $line['propertyLabel']);
+              }
+              if (is_scalar($line['unitLabel'] ?? null) && trim((string) $line['unitLabel']) !== '') {
+                  $detected[] = 'Bien detecte: ' . trim((string) $line['unitLabel']);
+              }
+              if (is_scalar($line['tenantName'] ?? null) && trim((string) $line['tenantName']) !== '') {
+                  $detected[] = 'Locataire: ' . trim((string) $line['tenantName']);
+              }
+              ?>
+              <form id="<?php echo $h($formId); ?>" method="post" action="<?php echo $h($reviewUrl); ?>" class="agency-review-line-row" role="row">
+                <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+                <input type="hidden" name="document_id" value="<?php echo $h($selectedDocumentId); ?>" />
+                <input type="hidden" name="line_id" value="<?php echo $h($lineId); ?>" />
+                <div class="agency-review-line-main" role="cell">
+                  <strong><?php echo $h($line['rawLabel'] ?? ''); ?></strong>
+                  <span class="muted">Page <?php echo $h((int) ($line['sourcePage'] ?? 1)); ?>, statut <?php echo $h($line['mappingStatus'] ?? ''); ?></span>
+                  <?php if ($detected !== []): ?>
+                    <small><?php echo $h(implode(' | ', $detected)); ?></small>
+                  <?php endif; ?>
+                </div>
+                <label role="cell"><span>Propriété</span>
+                  <select name="rental_property_id">
+                    <option value="">Defaut</option>
+                    <?php foreach ($properties as $property): ?>
+                      <?php
+                      if (!is_array($property) || !is_numeric($property['id'] ?? null)) {
+                          continue;
+                      }
+                      $propertyId = (int) $property['id'];
+                      ?>
+                      <option value="<?php echo $h($propertyId); ?>" <?php echo $linePropertyId === $propertyId ? 'selected' : ''; ?>>
+                        <?php echo $h($labelForProperty($property)); ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </label>
+                <label role="cell"><span>Bien locatif</span>
+                  <select name="rental_unit_id">
+                    <option value="">Non rattache</option>
+                    <?php foreach ($unitsByPropertyId as $propertyId => $propertyUnits): ?>
+                      <?php
+                      $groupLabel = isset($propertiesById[(int) $propertyId])
+                          ? $labelForProperty($propertiesById[(int) $propertyId])
+                          : 'Propriete #' . (int) $propertyId;
+                      ?>
+                      <optgroup label="<?php echo $h($groupLabel); ?>">
+                        <?php foreach ($propertyUnits as $unit): ?>
+                          <?php
+                          if (!is_array($unit) || !is_numeric($unit['id'] ?? null)) {
+                              continue;
+                          }
+                          $unitId = (int) $unit['id'];
+                          ?>
+                          <option value="<?php echo $h($unitId); ?>" <?php echo $lineUnitId === $unitId ? 'selected' : ''; ?>>
+                            <?php echo $h($labelForUnit($unit)); ?>
+                          </option>
+                        <?php endforeach; ?>
+                      </optgroup>
+                    <?php endforeach; ?>
+                  </select>
+                </label>
+                <label role="cell"><span>Categorie</span>
+                  <select name="mapped_category">
+                    <?php foreach ($categories as $category => $categoryLabel): ?>
+                      <option value="<?php echo $h($category); ?>" <?php echo $currentCategory === (string) $category ? 'selected' : ''; ?>>
+                        <?php echo $h($categoryLabel); ?>
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                </label>
+                <label role="cell"><span>Debut</span><input type="date" name="period_start" value="<?php echo $h($line['periodStart'] ?? ''); ?>" /></label>
+                <label role="cell"><span>Fin</span><input type="date" name="period_end" value="<?php echo $h($line['periodEnd'] ?? ''); ?>" /></label>
+                <label role="cell"><span>Montant</span><input type="number" step="0.01" name="amount" value="<?php echo $amount($line['amount'] ?? null); ?>" /></label>
+                <label role="cell"><span>Debit</span><input type="number" step="0.01" name="debit_amount" value="<?php echo $amount($line['debitAmount'] ?? null); ?>" /></label>
+                <label role="cell"><span>Credit</span><input type="number" step="0.01" name="credit_amount" value="<?php echo $amount($line['creditAmount'] ?? null); ?>" /></label>
+                <div class="agency-review-line-actions" role="cell">
+                  <button type="submit" name="action" value="correct_line" class="private-row-action">Corriger</button>
+                  <button type="submit" name="action" value="validate_line">Valider</button>
+                  <button type="submit" name="action" value="ignore_line" class="private-row-action">Ignorer</button>
+                </div>
+              </form>
+            <?php endforeach; ?>
+          </div>
+        </div>
       <?php endif; ?>
 
       <?php if (is_string($selectedDocument['maskedTextPreview'] ?? null) && trim((string) $selectedDocument['maskedTextPreview']) !== ''): ?>

@@ -69,6 +69,13 @@ foreach ($messages as $message) {
 $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_nonce'] : '';
 ?>
 <section>
+  <nav class="private-module-nav" aria-label="Navigation discussions">
+    <div class="private-module-nav-row">
+      <a href="<?php echo htmlspecialchars($indexUrl, ENT_QUOTES, 'UTF-8'); ?>">Tableau de bord</a>
+      <a class="active" href="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>">Conversation</a>
+    </div>
+  </nav>
+
   <aside class="notice private-discussion-security" aria-label="<?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions'), ENT_QUOTES, 'UTF-8'); ?>">
     <strong><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions'), ENT_QUOTES, 'UTF-8'); ?></strong>
     <ul>
@@ -78,11 +85,6 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
       <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par conversation.'), ENT_QUOTES, 'UTF-8'); ?></li>
     </ul>
   </aside>
-
-  <p class="muted">
-    <a href="<?php echo htmlspecialchars($indexUrl, ENT_QUOTES, 'UTF-8'); ?>">Discussions</a>
-    · <?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>
-  </p>
 
   <?php if ($notice !== ''): ?>
     <p class="notice notice-success">
@@ -136,18 +138,20 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
             data-encrypted-payload="<?php echo htmlspecialchars($encryptedPayload, ENT_QUOTES, 'UTF-8'); ?>"
             data-encryption-metadata="<?php echo htmlspecialchars($encryptionMetadata, ENT_QUOTES, 'UTF-8'); ?>"
           >
-            <p class="muted">
-              <strong><?php echo htmlspecialchars($messageAuthor($senderId), ENT_QUOTES, 'UTF-8'); ?></strong>
-              · <?php echo htmlspecialchars($formatDate($message['createdAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-            </p>
-            <?php if ($canDeleteMessage): ?>
-              <form method="post" action="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                <input type="hidden" name="action" value="delete_message" />
-                <input type="hidden" name="message_id" value="<?php echo htmlspecialchars((string) $messageId, ENT_QUOTES, 'UTF-8'); ?>" />
-                <button class="button-small button-danger" type="submit">Supprimer le message</button>
-              </form>
-            <?php endif; ?>
+            <div class="private-discussion-message-header">
+              <p class="muted private-discussion-message-meta">
+                <strong><?php echo htmlspecialchars($messageAuthor($senderId), ENT_QUOTES, 'UTF-8'); ?></strong>
+                · <?php echo htmlspecialchars($formatDate($message['createdAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+              </p>
+              <?php if ($canDeleteMessage): ?>
+                <form class="private-discussion-delete-form" method="post" action="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>">
+                  <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                  <input type="hidden" name="action" value="delete_message" />
+                  <input type="hidden" name="message_id" value="<?php echo htmlspecialchars((string) $messageId, ENT_QUOTES, 'UTF-8'); ?>" />
+                  <button class="private-discussion-delete-button" type="submit" aria-label="Supprimer le message">Supprimer</button>
+                </form>
+              <?php endif; ?>
+            </div>
             <?php if ($encryptionMode !== 'none'): ?>
               <p data-encrypted-body>Message chiffre sur cet appareil.</p>
             <?php elseif ($body !== ''): ?>

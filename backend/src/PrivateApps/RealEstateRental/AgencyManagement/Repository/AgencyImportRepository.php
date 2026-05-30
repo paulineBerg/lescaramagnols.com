@@ -250,7 +250,8 @@ final class AgencyImportRepository
         int $batchId,
         AgencyImportPreview $preview,
         ?string $privateDocumentId = null,
-        ?string $detectedAgency = null
+        ?string $detectedAgency = null,
+        ?string $storagePath = null
     ): ?AgencyImportedDocument {
         if ($batchId <= 0 || !$this->isSha256((string) $preview->sha256)) {
             return null;
@@ -264,7 +265,13 @@ final class AgencyImportRepository
             $this->ensureSchema();
             $pdo = $this->database->pdo();
             $pdo->beginTransaction();
-            $importedDocument = $this->insertImportedDocument($batchId, $preview, $privateDocumentId, $detectedAgency);
+            $importedDocument = $this->insertImportedDocument(
+                $batchId,
+                $preview,
+                $privateDocumentId,
+                $detectedAgency,
+                $storagePath
+            );
             if (!$importedDocument instanceof AgencyImportedDocument) {
                 $pdo->rollBack();
                 return null;
@@ -311,6 +318,60 @@ final class AgencyImportRepository
         }
 
         return is_array($row) ? AgencyImportedDocument::fromDatabaseRow($row) : null;
+    }
+
+    public function deleteImportedDocumentForUser(
+        int $createdByPrivateUserId,
+        int $importedDocumentId
+    ): ?AgencyImportedDocument {
+        if ($createdByPrivateUserId <= 0 || $importedDocumentId <= 0) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+
+            $statement = $pdo->prepare(
+                sprintf(
+                    'SELECT d.*
+                     FROM `%s` d
+                     INNER JOIN `%s` b ON b.`id` = d.`batch_id`
+                     WHERE d.`id` = :document_id
+                       AND b.`created_by_private_user_id` = :created_by
+                     LIMIT 1',
+                    $this->documentsTable(),
+                    $this->batchesTable()
+                )
+            );
+            $statement->execute([
+                'document_id' => $importedDocumentId,
+                'created_by' => $createdByPrivateUserId,
+            ]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+            $document = is_array($row) ? AgencyImportedDocument::fromDatabaseRow($row) : null;
+            if (!$document instanceof AgencyImportedDocument) {
+                $pdo->rollBack();
+                return null;
+            }
+
+            $this->deleteRowsByImportedDocumentId($this->issuesTable(), $document->id);
+            $this->deleteRowsByImportedDocumentId($this->linesTable(), $document->id);
+            $this->deleteRowsByImportedDocumentId($this->statementsTable(), $document->id);
+            $this->deleteRowsById($this->documentsTable(), $document->id);
+            $this->decrementBatchFileCount($document->batchId);
+
+            $pdo->commit();
+
+            return $document;
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return null;
+        }
     }
 
     public function findImportedDocumentBySha256(string $sha256): ?AgencyImportedDocument
@@ -532,13 +593,24 @@ final class AgencyImportRepository
         $amount = $existing->amount;
         $debitAmount = $existing->debitAmount;
         $creditAmount = $existing->creditAmount;
+        $rentalPropertyId = $existing->rentalPropertyId;
+        $rentalUnitId = $existing->rentalUnitId;
         $mappingStatus = match ($action) {
             'validate' => 'validated',
             'ignore' => 'ignored',
             default => 'review',
         };
 
-        if ($action === 'correct') {
+        if (in_array($action, ['correct', 'validate'], true)) {
+            if (array_key_exists('rental_property_id', $corrections)) {
+                $rentalPropertyId = $this->positiveIntOrNull($corrections['rental_property_id']);
+            }
+            if (array_key_exists('rental_unit_id', $corrections)) {
+                $rentalUnitId = $this->positiveIntOrNull($corrections['rental_unit_id']);
+            }
+        }
+
+        if (in_array($action, ['correct', 'validate'], true) && $corrections !== []) {
             $mappedCategory = $this->requiredText((string) ($corrections['mapped_category'] ?? $mappedCategory), 80);
             $periodStart = $this->dateOrNull($corrections['period_start'] ?? $periodStart);
             $periodEnd = $this->dateOrNull($corrections['period_end'] ?? $periodEnd);
@@ -555,7 +627,9 @@ final class AgencyImportRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'UPDATE `%s`
-                     SET `mapped_category` = :mapped_category,
+                     SET `rental_property_id` = :rental_property_id,
+                         `rental_unit_id` = :rental_unit_id,
+                         `mapped_category` = :mapped_category,
                          `period_start` = :period_start,
                          `period_end` = :period_end,
                          `amount` = :amount,
@@ -568,6 +642,8 @@ final class AgencyImportRepository
                 )
             );
             $statement->execute([
+                'rental_property_id' => $rentalPropertyId,
+                'rental_unit_id' => $rentalUnitId,
                 'mapped_category' => $mappedCategory,
                 'period_start' => $periodStart,
                 'period_end' => $periodEnd,
@@ -602,15 +678,17 @@ final class AgencyImportRepository
             $placeholders = $this->placeholders('property_id', $propertyIds);
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT l.*, s.`rental_property_id`, s.`statement_period_start`, s.`statement_period_end`, d.`filename`
+                    'SELECT l.*,
+                            COALESCE(l.`rental_property_id`, s.`rental_property_id`) AS `effective_rental_property_id`,
+                            s.`statement_period_start`, s.`statement_period_end`, d.`filename`
                      FROM `%s` l
                      INNER JOIN `%s` s ON s.`id` = l.`statement_id`
                      INNER JOIN `%s` d ON d.`id` = l.`imported_document_id`
                      WHERE l.`mapping_status` = "validated"
-                       AND s.`rental_property_id` IN (%s)
+                       AND COALESCE(l.`rental_property_id`, s.`rental_property_id`) IN (%s)
                        AND COALESCE(l.`period_start`, l.`period_end`, l.`line_date`) IS NOT NULL
                        AND YEAR(COALESCE(l.`period_start`, l.`period_end`, l.`line_date`)) = :year
-                     ORDER BY s.`rental_property_id` ASC, l.`period_start` ASC, l.`id` ASC',
+                     ORDER BY COALESCE(l.`rental_property_id`, s.`rental_property_id`) ASC, l.`period_start` ASC, l.`id` ASC',
                     $this->linesTable(),
                     $this->statementsTable(),
                     $this->documentsTable(),
@@ -627,7 +705,16 @@ final class AgencyImportRepository
             return [];
         }
 
-        return is_array($rows) ? $this->normalizeRows($rows) : [];
+        $rows = $this->normalizeRows($rows);
+        foreach ($rows as &$row) {
+            if (is_numeric($row['effective_rental_property_id'] ?? null)) {
+                $row['rental_property_id'] = (int) $row['effective_rental_property_id'];
+            }
+            unset($row['effective_rental_property_id']);
+        }
+        unset($row);
+
+        return $rows;
     }
 
     /**
@@ -728,6 +815,7 @@ final class AgencyImportRepository
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `batch_id` INT NOT NULL,
                     `private_document_id` VARCHAR(64) NULL,
+                    `storage_path` VARCHAR(255) NULL,
                     `filename` VARCHAR(255) NOT NULL,
                     `mime_type` VARCHAR(120) NULL,
                     `file_size` INT NULL,
@@ -749,6 +837,12 @@ final class AgencyImportRepository
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->documentsTable()
             )
+        );
+        $this->ensureColumn(
+            $pdo,
+            $this->documentsTable(),
+            'storage_path',
+            '`storage_path` VARCHAR(255) NULL AFTER `private_document_id`'
         );
         $pdo->exec(
             sprintf(
@@ -777,6 +871,8 @@ final class AgencyImportRepository
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `statement_id` INT NOT NULL,
                     `imported_document_id` INT NOT NULL,
+                    `rental_property_id` INT NULL,
+                    `rental_unit_id` INT NULL,
                     `source_page` INT NOT NULL DEFAULT 1,
                     `source_line_hash` CHAR(64) NOT NULL,
                     `line_date` DATE NULL,
@@ -798,11 +894,37 @@ final class AgencyImportRepository
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     KEY `idx_rental_agency_statement_lines_statement` (`statement_id`, `source_page`),
                     KEY `idx_rental_agency_statement_lines_document` (`imported_document_id`),
+                    KEY `idx_rental_agency_statement_lines_property` (`rental_property_id`, `mapping_status`),
+                    KEY `idx_rental_agency_statement_lines_unit` (`rental_unit_id`, `mapping_status`),
                     KEY `idx_rental_agency_statement_lines_category` (`mapped_category`, `mapping_status`),
                     UNIQUE KEY `uq_rental_agency_statement_line_hash` (`statement_id`, `source_line_hash`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->linesTable()
             )
+        );
+        $this->ensureColumn(
+            $pdo,
+            $this->linesTable(),
+            'rental_property_id',
+            '`rental_property_id` INT NULL AFTER `imported_document_id`'
+        );
+        $this->ensureColumn(
+            $pdo,
+            $this->linesTable(),
+            'rental_unit_id',
+            '`rental_unit_id` INT NULL AFTER `rental_property_id`'
+        );
+        $this->ensureIndex(
+            $pdo,
+            $this->linesTable(),
+            'idx_rental_agency_statement_lines_property',
+            '`rental_property_id`, `mapping_status`'
+        );
+        $this->ensureIndex(
+            $pdo,
+            $this->linesTable(),
+            'idx_rental_agency_statement_lines_unit',
+            '`rental_unit_id`, `mapping_status`'
         );
         $pdo->exec(
             sprintf(
@@ -828,7 +950,8 @@ final class AgencyImportRepository
         int $batchId,
         AgencyImportPreview $preview,
         ?string $privateDocumentId,
-        ?string $detectedAgency
+        ?string $detectedAgency,
+        ?string $storagePath
     ): ?AgencyImportedDocument {
         $payload = $preview->parserResult instanceof AgencyParserResult
             ? $this->json($preview->parserResult->toArray())
@@ -837,11 +960,11 @@ final class AgencyImportRepository
         $statement = $this->database->pdo()->prepare(
             sprintf(
                 'INSERT INTO `%s`
-                    (`batch_id`, `private_document_id`, `filename`, `mime_type`, `file_size`, `sha256`,
+                    (`batch_id`, `private_document_id`, `storage_path`, `filename`, `mime_type`, `file_size`, `sha256`,
                      `detected_document_type`, `detected_agency`, `parser_profile`, `classification_confidence`,
                      `text_extraction_status`, `contains_sensitive_data`, `review_status`, `masked_text_preview`, `parser_payload`)
                  VALUES
-                    (:batch_id, :private_document_id, :filename, :mime_type, :file_size, :sha256,
+                    (:batch_id, :private_document_id, :storage_path, :filename, :mime_type, :file_size, :sha256,
                      :detected_document_type, :detected_agency, :parser_profile, :classification_confidence,
                      :text_extraction_status, :contains_sensitive_data, :review_status, :masked_text_preview, :parser_payload)',
                 $this->documentsTable()
@@ -850,6 +973,7 @@ final class AgencyImportRepository
         $statement->execute([
             'batch_id' => $batchId,
             'private_document_id' => $this->nullableText($privateDocumentId, 64),
+            'storage_path' => $this->storagePath($storagePath),
             'filename' => $this->requiredText($preview->filename, 255),
             'mime_type' => $this->nullableText($preview->mimeType, 120),
             'file_size' => $preview->fileSize !== null ? max(0, $preview->fileSize) : null,
@@ -1112,6 +1236,95 @@ final class AgencyImportRepository
         }
     }
 
+    private function deleteRowsByImportedDocumentId(string $table, int $importedDocumentId): void
+    {
+        $statement = $this->database->pdo()->prepare(
+            sprintf('DELETE FROM `%s` WHERE `imported_document_id` = :document_id', $table)
+        );
+        $statement->execute(['document_id' => $importedDocumentId]);
+    }
+
+    private function deleteRowsById(string $table, int $id): void
+    {
+        $statement = $this->database->pdo()->prepare(
+            sprintf('DELETE FROM `%s` WHERE `id` = :id', $table)
+        );
+        $statement->execute(['id' => $id]);
+    }
+
+    private function decrementBatchFileCount(int $batchId): void
+    {
+        if ($batchId <= 0) {
+            return;
+        }
+
+        $statement = $this->database->pdo()->prepare(
+            sprintf(
+                'UPDATE `%s`
+                 SET `file_count` = CASE WHEN `file_count` > 0 THEN `file_count` - 1 ELSE 0 END
+                 WHERE `id` = :batch_id',
+                $this->batchesTable()
+            )
+        );
+        $statement->execute(['batch_id' => $batchId]);
+    }
+
+    private function storagePath(mixed $value): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $path = trim(str_replace('\\', '/', (string) $value));
+        if ($path === '' || strlen($path) > 255 || str_contains($path, '..')) {
+            return null;
+        }
+
+        return preg_match('/\Auploads\/[a-z0-9._\/-]+\z/i', $path) === 1 ? $path : null;
+    }
+
+    private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column'
+            );
+            $statement->execute(['table' => $table, 'column' => $column]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $table, $definition));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureIndex(PDO $pdo, string $table, string $index, string $columns): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND INDEX_NAME = :index_name'
+            );
+            $statement->execute(['table' => $table, 'index_name' => $index]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD INDEX `%s` (%s)', $table, $index, $columns));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
     private function json(array $payload): string
     {
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -1160,6 +1373,16 @@ final class AgencyImportRepository
         }
 
         return is_numeric($value) ? round((float) $value, 2) : null;
+    }
+
+    private function positiveIntOrNull(mixed $value): ?int
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $value = (int) $value;
+        return $value > 0 ? $value : null;
     }
 
     private function normalizeStatus(string $status, array $allowed, string $fallback): string

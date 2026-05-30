@@ -120,9 +120,28 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertNull($unitRepository->create($property->id, 'A', 42.0, false, 'available', null, $ownerId));
         $this->assertNull($unitRepository->create($property->id, 'Lot principal', 0.1, false, 'available', null, $ownerId));
         $this->assertNull($unitRepository->create($property->id, 'Lot principal', 42.0, false, 'unknown', null, $ownerId));
+        $this->assertNull($unitRepository->create($property->id, 'Lot garage', 18.0, false, 'available', null, $ownerId, 'hangar'));
 
-        $valid = $unitRepository->create($property->id, 'Lot principal', 42.0, false, 'available', null, $ownerId);
+        $valid = $unitRepository->create(
+            $property->id,
+            'Lot principal',
+            42.0,
+            false,
+            'available',
+            null,
+            $ownerId,
+            'house',
+            '20 rue du Port',
+            'A',
+            'RDC',
+            '1'
+        );
         $this->assertNotNull($valid);
+        $this->assertSame('house', $valid->unitType);
+        $this->assertSame('20 rue du Port', $valid->address);
+        $this->assertSame('A', $valid->building);
+        $this->assertSame('RDC', $valid->floor);
+        $this->assertSame('1', $valid->door);
     }
 
     public function testLeaseFormDisplaysLeaseTypeChoices(): void
@@ -162,6 +181,251 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertStringContainsString('Habitation vide', $response->body);
         $this->assertStringContainsString('BIC location meublee', $response->body);
         $this->assertStringContainsString('data-rental-lease-start-date', $response->body);
+    }
+
+    public function testCreatingPropertyCanCreateWholeHouseRentalUnit(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'whole-house@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
+
+        $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'whole-house@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            rentalPropertyRepository: $propertyRepository,
+            rentalPropertyMemberRepository: $memberRepository,
+            rentalUnitRepository: $unitRepository
+        );
+
+        $response = $controller->handle(
+            'rental_properties',
+            $this->request('POST', '/private/rental-properties', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'create_property',
+                'name' => 'Maison entière test',
+                'address' => '11 rue du Jardin',
+                'property_type' => 'Maison',
+                'ownership_mode' => 'Pleine propriété',
+                'status' => 'active',
+                'create_default_unit' => '1',
+                'default_unit_surface' => '88.50',
+                'default_unit_furnished' => '1',
+            ])
+        );
+
+        $this->assertSame(302, $response->status);
+        $propertyIds = $memberRepository->activePropertyIdsForUser($ownerId);
+        $this->assertCount(1, $propertyIds);
+        $units = $unitRepository->listByPropertyIds($propertyIds);
+        $this->assertCount(1, $units);
+        $this->assertSame('Maison entière', $units[0]->label);
+        $this->assertSame('house', $units[0]->unitType);
+        $this->assertSame('11 rue du Jardin', $units[0]->address);
+        $this->assertSame(88.50, $units[0]->surface);
+        $this->assertTrue($units[0]->furnished);
+    }
+
+    public function testLeaseRowsOpenEditDialogAndUpdateLease(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'lease-update@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
+        $property = $propertyRepository->create($ownerId, 'Maison update', '9 rue du Bail', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Lot update', 42.0, true, 'available', null, $ownerId);
+        $this->assertNotNull($unit);
+        $tenant = $lifecycleRepository->createTenant($property->id, $unit->id, 'Locataire update', null, null, 'validated', $ownerId, null);
+        $this->assertIsArray($tenant);
+        $lease = $lifecycleRepository->createLease(
+            $property->id,
+            $unit->id,
+            (int) $tenant['id'],
+            '2026-01-01',
+            '2026-12-31',
+            750.0,
+            25.0,
+            'draft',
+            $ownerId,
+            null
+        );
+        $this->assertIsArray($lease);
+        $leaseId = (int) $lease['id'];
+
+        $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'lease-update@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            rentalPropertyRepository: $propertyRepository,
+            rentalPropertyMemberRepository: $memberRepository,
+            rentalUnitRepository: $unitRepository,
+            rentalLifecycleRepository: $lifecycleRepository
+        );
+
+        $response = $controller->handle('rental_leases', $this->request('GET', '/private/leases'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('data-private-dialog-open="rental-lease-dialog-' . $leaseId . '"', $response->body);
+        $this->assertStringContainsString('<input type="hidden" name="action" value="update_lease" />', $response->body);
+        $this->assertStringContainsString('Supprimer le bail', $response->body);
+
+        $post = $controller->handle(
+            'rental_leases',
+            $this->request('POST', '/private/leases', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'update_lease',
+                'lease_id' => (string) $leaseId,
+                'rental_property_id' => (string) $property->id,
+                'rental_unit_id' => (string) $unit->id,
+                'rental_tenant_id' => (string) $tenant['id'],
+                'lease_type' => 'residential_furnished',
+                'start_date' => '2026-02-01',
+                'end_date' => '2027-01-31',
+                'monthly_rent' => '820.50',
+                'charges_provision' => '45.25',
+                'status' => 'validated',
+                'notes' => 'Bail modifie depuis la popup.',
+            ])
+        );
+
+        $this->assertSame(302, $post->status);
+        $this->assertSame('/private/leases?notice=lease_updated', $post->headers['Location'] ?? null);
+
+        $updated = $lifecycleRepository->findLeaseById($leaseId);
+        $this->assertIsArray($updated);
+        $this->assertSame('residential_furnished', $updated['leaseType']);
+        $this->assertSame('bic_furnished', $updated['taxCategory']);
+        $this->assertSame('2026-02-01', $updated['startDate']);
+        $this->assertSame('2027-01-31', $updated['endDate']);
+        $this->assertSame('validated', $updated['status']);
+        $this->assertSame(820.50, (float) $updated['monthlyRent']);
+        $this->assertSame(45.25, (float) $updated['chargesProvision']);
+        $this->assertSame('Bail modifie depuis la popup.', $updated['notes']);
+    }
+
+    public function testLeaseCreationOnlyOffersAvailableUnitsWithoutActiveLease(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'lease-availability@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
+        $property = $propertyRepository->create($ownerId, 'Maison disponibilite', '12 rue du Bail', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+
+        $leasedUnit = $unitRepository->create($property->id, 'Lot deja loue', 40.0, false, 'available', null, $ownerId);
+        $unavailableUnit = $unitRepository->create($property->id, 'Lot travaux', 38.0, false, 'unavailable', null, $ownerId);
+        $freeUnit = $unitRepository->create($property->id, 'Lot libre', 42.0, false, 'available', null, $ownerId);
+        $this->assertNotNull($leasedUnit);
+        $this->assertNotNull($unavailableUnit);
+        $this->assertNotNull($freeUnit);
+        $this->assertSame('unavailable', $unavailableUnit->status);
+
+        $leasedTenant = $lifecycleRepository->createTenant($property->id, $leasedUnit->id, 'Locataire bail actif', null, null, 'validated', $ownerId, null);
+        $unavailableTenant = $lifecycleRepository->createTenant($property->id, $unavailableUnit->id, 'Locataire travaux', null, null, 'validated', $ownerId, null);
+        $freeTenant = $lifecycleRepository->createTenant($property->id, $freeUnit->id, 'Locataire libre', null, null, 'validated', $ownerId, null);
+        $this->assertIsArray($leasedTenant);
+        $this->assertIsArray($unavailableTenant);
+        $this->assertIsArray($freeTenant);
+
+        $activeLease = $lifecycleRepository->createLease(
+            $property->id,
+            $leasedUnit->id,
+            (int) $leasedTenant['id'],
+            '2026-01-01',
+            '2026-12-31',
+            700.0,
+            0.0,
+            'draft',
+            $ownerId,
+            null
+        );
+        $this->assertIsArray($activeLease);
+
+        $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'lease-availability@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            rentalPropertyRepository: $propertyRepository,
+            rentalPropertyMemberRepository: $memberRepository,
+            rentalUnitRepository: $unitRepository,
+            rentalLifecycleRepository: $lifecycleRepository
+        );
+
+        $unitsResponse = $controller->handle('rental_units', $this->request('GET', '/private/rental-units'));
+        $this->assertSame(200, $unitsResponse->status);
+        $this->assertStringContainsString('Disponibilité', $unitsResponse->body);
+        $this->assertStringContainsString('Indisponible', $unitsResponse->body);
+        $this->assertStringNotContainsString('Occupé', $unitsResponse->body);
+        $this->assertStringNotContainsString('Maintenance', $unitsResponse->body);
+
+        $leasesResponse = $controller->handle('rental_leases', $this->request('GET', '/private/leases'));
+        $this->assertSame(200, $leasesResponse->status);
+        $dialogStart = strpos($leasesResponse->body, 'id="rental-lease-create-dialog"');
+        $this->assertIsInt($dialogStart);
+        $createDialogHtml = substr($leasesResponse->body, $dialogStart);
+        $this->assertStringContainsString('Lot libre', $createDialogHtml);
+        $this->assertStringContainsString('Locataire libre', $createDialogHtml);
+        $this->assertStringNotContainsString('Lot deja loue', $createDialogHtml);
+        $this->assertStringNotContainsString('Lot travaux', $createDialogHtml);
+
+        $blockedResponse = $controller->handle(
+            'rental_leases',
+            $this->request('POST', '/private/leases', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'create_lease',
+                'rental_property_id' => (string) $property->id,
+                'rental_unit_id' => (string) $leasedUnit->id,
+                'rental_tenant_id' => (string) $leasedTenant['id'],
+                'lease_type' => 'residential_unfurnished',
+                'start_date' => '2027-01-01',
+                'end_date' => '2027-12-31',
+                'monthly_rent' => '720',
+                'charges_provision' => '0',
+                'status' => 'draft',
+            ])
+        );
+        $this->assertSame(200, $blockedResponse->status);
+        $this->assertStringContainsString('Ce bien locatif est indisponible ou possède déjà un bail actif.', $blockedResponse->body);
+
+        $createdResponse = $controller->handle(
+            'rental_leases',
+            $this->request('POST', '/private/leases', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'create_lease',
+                'rental_property_id' => (string) $property->id,
+                'rental_unit_id' => (string) $freeUnit->id,
+                'rental_tenant_id' => (string) $freeTenant['id'],
+                'lease_type' => 'residential_unfurnished',
+                'start_date' => '2027-01-01',
+                'end_date' => '2027-12-31',
+                'monthly_rent' => '720',
+                'charges_provision' => '0',
+                'status' => 'draft',
+            ])
+        );
+        $this->assertSame(302, $createdResponse->status);
+        $this->assertSame('/private/leases?notice=lease_created', $createdResponse->headers['Location'] ?? null);
     }
 
     public function testArchivingPropertyKeepsHistoricalRowsInactive(): void
@@ -212,7 +476,7 @@ final class RealEstateRentalModuleTest extends TestCase
         return $auth;
     }
 
-    private function request(string $method, string $uri): Request
+    private function request(string $method, string $uri, array $body = []): Request
     {
         return new Request(
             [
@@ -221,7 +485,7 @@ final class RealEstateRentalModuleTest extends TestCase
                 'REMOTE_ADDR' => '127.0.0.1',
             ],
             [],
-            [],
+            $body,
             [],
             ['Host' => '127.0.0.1:8000']
         );

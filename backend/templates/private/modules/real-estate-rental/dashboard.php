@@ -10,8 +10,8 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
   <?php include __DIR__ . '/_nav.php'; ?>
 
   <div class="private-kpi-grid">
-    <div class="private-kpi"><span>Biens</span><strong><?php echo htmlspecialchars((string) (int) ($stats['propertyCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
-    <div class="private-kpi"><span>Lots</span><strong><?php echo htmlspecialchars((string) (int) ($stats['unitCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <div class="private-kpi"><span>Propriétés</span><strong><?php echo htmlspecialchars((string) (int) ($stats['propertyCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <div class="private-kpi"><span>Biens locatifs</span><strong><?php echo htmlspecialchars((string) (int) ($stats['unitCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
     <div class="private-kpi"><span>Locataires</span><strong><?php echo htmlspecialchars((string) (int) ($stats['tenantCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
     <div class="private-kpi"><span>Baux actifs</span><strong><?php echo htmlspecialchars((string) (int) ($stats['activeLeaseCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
     <div class="private-kpi"><span>Loyers encaisses</span><strong><?php echo htmlspecialchars($money($stats['rentPaid'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
@@ -29,10 +29,11 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
     <section class="card">
       <h2>Biens et locations</h2>
       <ul>
-        <li><a href="<?php echo htmlspecialchars((string) ($urls['properties'] ?? private_portal_url('rental_properties')), ENT_QUOTES, 'UTF-8'); ?>">Créer ou modifier un bien</a></li>
-        <li><a href="<?php echo htmlspecialchars((string) ($urls['units'] ?? private_portal_url('rental_units')), ENT_QUOTES, 'UTF-8'); ?>">Lots rattachés aux biens</a></li>
+        <li><a href="<?php echo htmlspecialchars((string) ($urls['properties'] ?? private_portal_url('rental_properties')), ENT_QUOTES, 'UTF-8'); ?>">Créer ou modifier une propriété</a></li>
+        <li><a href="<?php echo htmlspecialchars((string) ($urls['units'] ?? private_portal_url('rental_units')), ENT_QUOTES, 'UTF-8'); ?>">Biens locatifs rattachés aux propriétés</a></li>
         <li><a href="<?php echo htmlspecialchars((string) ($urls['tenants'] ?? private_portal_url('rental_tenants')), ENT_QUOTES, 'UTF-8'); ?>">Locataires</a></li>
-        <li><a href="<?php echo htmlspecialchars((string) ($urls['payments'] ?? private_portal_url('rental_payments')), ENT_QUOTES, 'UTF-8'); ?>">Loyers et paiements</a></li>
+        <li><a href="<?php echo htmlspecialchars((string) ($urls['rents'] ?? private_portal_url('rental_rents')), ENT_QUOTES, 'UTF-8'); ?>">Loyers</a></li>
+        <li><a href="<?php echo htmlspecialchars((string) ($urls['payments'] ?? private_portal_url('rental_payments')), ENT_QUOTES, 'UTF-8'); ?>">Paiements</a></li>
         <li><a href="<?php echo htmlspecialchars((string) ($urls['expenses'] ?? private_portal_url('rental_expenses')), ENT_QUOTES, 'UTF-8'); ?>">Charges</a></li>
       </ul>
     </section>
@@ -44,9 +45,9 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
         document(s) a classer sur
         <?php echo htmlspecialchars((string) (int) ($stats['agencyDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> import(s).
       </p>
-      <p class="muted">Le classement agence se rattache aux biens locatifs créés dans le menu Biens et locations.</p>
+      <p class="muted">Le classement agence se rattache aux propriétés créées dans le menu Biens et locations.</p>
       <p class="private-actions">
-        <a href="<?php echo htmlspecialchars((string) ($urls['properties'] ?? private_portal_url('rental_properties')), ENT_QUOTES, 'UTF-8'); ?>">Biens locatifs</a>
+        <a href="<?php echo htmlspecialchars((string) ($urls['properties'] ?? private_portal_url('rental_properties')), ENT_QUOTES, 'UTF-8'); ?>">Propriétés</a>
         <a href="<?php echo htmlspecialchars((string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports')), ENT_QUOTES, 'UTF-8'); ?>">Importer agence</a>
         <a href="<?php echo htmlspecialchars((string) ($urls['agencyReview'] ?? private_portal_url('rental_agency_review')), ENT_QUOTES, 'UTF-8'); ?>">Classer</a>
       </p>
@@ -67,12 +68,12 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
   </div>
 
   <section class="card private-card-wide">
-    <h2>Biens suivis</h2>
+    <h2>Propriétés suivies</h2>
     <?php if ($properties === []): ?>
-      <p class="muted">Aucun bien autorise pour ce compte.</p>
+      <p class="muted">Aucune propriété autorisée pour ce compte.</p>
     <?php else: ?>
       <table>
-        <thead><tr><th>Bien</th><th>Type</th><th>Statut</th></tr></thead>
+        <thead><tr><th>Propriété</th><th>Type</th><th>Statut</th></tr></thead>
         <tbody>
           <?php foreach ($properties as $property): ?>
             <?php if (!is_array($property)) { continue; } ?>

@@ -175,6 +175,85 @@ final class RentalLifecycleTest extends TestCase
         $this->assertGreaterThanOrEqual(3, count($issues));
     }
 
+    public function testSeveralPaymentsCanSettleOneRent(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+        $summaryService = new RentalAnnualSummaryService($lifecycleRepository);
+        $ownerId = $this->createPrivateUser($userRepository, 'owner-rent-split@example.com');
+
+        [$propertyId, $unitId, $leaseId] = $this->createRentalSourceSet(
+            $propertyRepository,
+            $memberRepository,
+            $unitRepository,
+            $lifecycleRepository,
+            $ownerId,
+            'Maison paiements multiples',
+            'validated'
+        );
+
+        $rent = $lifecycleRepository->createRent(
+            $leaseId,
+            $propertyId,
+            $unitId,
+            2026,
+            4,
+            '2026-04-01',
+            1000.0,
+            'validated',
+            $ownerId,
+            null
+        );
+        $this->assertIsArray($rent);
+        $rentId = (int) $rent['id'];
+        $this->assertNotNull($lifecycleRepository->createPayment(
+            $leaseId,
+            $propertyId,
+            $unitId,
+            '2026-04-05',
+            2026,
+            4,
+            0.0,
+            400.0,
+            'validated',
+            $ownerId,
+            null,
+            $rentId
+        ));
+        $this->assertNotNull($lifecycleRepository->createPayment(
+            $leaseId,
+            $propertyId,
+            $unitId,
+            '2026-04-20',
+            2026,
+            4,
+            0.0,
+            600.0,
+            'validated',
+            $ownerId,
+            null,
+            $rentId
+        ));
+
+        $rents = $lifecycleRepository->listRents([$propertyId], 2026);
+        $this->assertSame(1, count($rents));
+        $this->assertSame(1000.0, (float) ($rents[0]['amountPaid'] ?? 0));
+        $this->assertSame(2, (int) ($rents[0]['paymentCount'] ?? 0));
+
+        $summary = $summaryService->build(2026, [$propertyId]);
+        $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
+
+        $this->assertSame(1000.0, $totals['rentDue'] ?? null);
+        $this->assertSame(1000.0, $totals['rentPaid'] ?? null);
+        $this->assertSame(0.0, $totals['unpaidRent'] ?? null);
+        $this->assertSame(2, $totals['validatedPayments'] ?? null);
+        $this->assertSame(0, $totals['partialPayments'] ?? null);
+    }
+
     public function testLeaseTypeComputesDefaultEndDateAndTaxCategory(): void
     {
         $database = $this->editorialSqlDatabase();

@@ -11,14 +11,10 @@ $error = is_string($viewModel['taxError'] ?? null) ? (string) $viewModel['taxErr
 $csrfToken = is_string($viewModel['taxCsrfToken'] ?? null) ? (string) $viewModel['taxCsrfToken'] : '';
 $urls = is_array($viewModel['taxUrls'] ?? null) ? $viewModel['taxUrls'] : [];
 $yearUrl = (string) ($urls['year'] ?? (private_portal_url('tax_dashboard') . '/' . $year));
+$taxCurrentSubsection = 'year';
 ?>
 <section>
-  <p class="muted">
-    <a href="<?php echo htmlspecialchars((string) ($urls['dashboard'] ?? private_portal_url('tax_dashboard')), ENT_QUOTES, 'UTF-8'); ?>">Impots</a>
-    · <a href="<?php echo htmlspecialchars((string) ($urls['manual'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Revenus manuels</a>
-    · <a href="<?php echo htmlspecialchars((string) ($urls['controls'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Controle</a>
-    · <a href="<?php echo htmlspecialchars((string) ($urls['documents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Documents</a>
-  </p>
+  <?php include __DIR__ . '/_nav.php'; ?>
   <p class="notice">Aide non officielle : cette synthese ne remplace pas une declaration fiscale ni un conseil professionnel.</p>
   <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>

@@ -435,6 +435,10 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         transform: translateY(-50%);
       }
 
+      .admin-secret-actions {
+        margin-top: 0.35rem;
+      }
+
       button[disabled] {
         cursor: not-allowed;
         opacity: 0.55;
@@ -3625,6 +3629,42 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
           input.type = isVisible ? 'password' : 'text';
           button.textContent = isVisible ? showLabel : hideLabel;
           button.setAttribute('aria-pressed', isVisible ? 'false' : 'true');
+        });
+
+        document.addEventListener('click', (event) => {
+          const button = event.target instanceof Element
+            ? event.target.closest('[data-admin-totp-generate]')
+            : null;
+          if (!(button instanceof HTMLButtonElement)) {
+            return;
+          }
+
+          const inputId = button.getAttribute('aria-controls') || '';
+          const input = document.getElementById(inputId);
+          if (!(input instanceof HTMLInputElement)) {
+            return;
+          }
+
+          event.preventDefault();
+
+          const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+          const bytes = new Uint8Array(20);
+          if (!window.crypto || typeof window.crypto.getRandomValues !== 'function') {
+            return;
+          }
+
+          window.crypto.getRandomValues(bytes);
+          input.value = Array.from(bytes, (byte) => alphabet[byte & 31]).join('');
+          input.removeAttribute('data-admin-secret-mask');
+          input.type = 'text';
+          const toggle = Array.from(document.querySelectorAll('[data-admin-password-toggle]'))
+            .find((candidate) => candidate.getAttribute('aria-controls') === input.id);
+          if (toggle instanceof HTMLButtonElement) {
+            toggle.textContent = toggle.dataset.adminPasswordHide || 'Masquer';
+            toggle.setAttribute('aria-pressed', 'true');
+          }
+          input.focus();
+          input.select();
         });
 
         document.addEventListener('focusin', (event) => {

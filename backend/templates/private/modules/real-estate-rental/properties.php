@@ -23,6 +23,7 @@ $ownershipModes = [
     'Nue-propriété' => 'Nue-propriété',
     'Autre' => 'Autre',
 ];
+$createDialogId = 'rental-property-create-dialog';
 ?>
 <section>
   <?php include __DIR__ . '/_nav.php'; ?>
@@ -34,45 +35,36 @@ $ownershipModes = [
     <p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
   <?php endif; ?>
 
-  <section class="card">
-    <h2>Ajouter un bien</h2>
-    <form method="post" action="<?php echo htmlspecialchars($propertiesUrl, ENT_QUOTES, 'UTF-8'); ?>">
-      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-      <input type="hidden" name="action" value="create_property" />
-      <label>Nom <input type="text" name="name" maxlength="160" required /></label>
-      <label>Adresse <input type="text" name="address" maxlength="255" required /></label>
-      <label>Type
-        <select name="property_type" required>
-          <option value="">Choisir un type</option>
-          <?php foreach ($propertyTypes as $value => $label): ?>
-            <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
-          <?php endforeach; ?>
-        </select>
-      </label>
-      <label>Mode de détention
-        <select name="ownership_mode" required>
-          <option value="">Choisir un mode</option>
-          <?php foreach ($ownershipModes as $value => $label): ?>
-            <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
-          <?php endforeach; ?>
-        </select>
-      </label>
-      <label>Statut
-        <select name="status">
-          <option value="draft">Brouillon</option>
-          <option value="active">Actif</option>
-        </select>
-      </label>
-      <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
-      <button type="submit">Créer le bien</button>
-    </form>
-  </section>
-
-  <section class="card">
-    <h2>Biens autorisés</h2>
+  <section class="card private-list-section" data-private-filter-scope>
+    <div class="private-list-header">
+      <div>
+        <h2>Propriétés autorisées</h2>
+        <p class="muted">Adresses ou ensembles accessibles, avec filtre avant modification.</p>
+      </div>
+      <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>">Créer une propriété</button>
+    </div>
     <?php if ($properties === []): ?>
-      <p class="muted">Aucun bien locatif autorisé pour ce compte.</p>
+      <p class="muted">Aucune propriété autorisée pour ce compte.</p>
     <?php else: ?>
+      <div class="private-list-tools">
+        <div class="private-list-filter-grid">
+          <label>Recherche
+            <input type="search" placeholder="Nom, adresse, type" data-private-filter="text" />
+          </label>
+          <label>Statut
+            <select data-private-filter="status">
+              <option value="all">Tous</option>
+              <?php foreach ($statuses as $value => $label): ?>
+                <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <div class="private-list-filter-actions">
+            <button type="button" class="private-button-secondary" data-private-filter-reset>Réinitialiser</button>
+          </div>
+        </div>
+      </div>
+      <div class="private-table-wrap">
       <table class="private-click-table">
         <thead>
           <tr>
@@ -99,7 +91,7 @@ $ownershipModes = [
             $ownershipMode = is_string($property['ownershipMode'] ?? null) ? (string) $property['ownershipMode'] : '';
             $dialogId = 'rental-property-dialog-' . $id;
             ?>
-            <tr>
+            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($property['name'] ?? '') . ' ' . (string) ($property['address'] ?? '') . ' ' . $propertyType . ' ' . $ownershipMode)), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>">
               <td><strong><?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
               <td><?php echo htmlspecialchars((string) ($property['address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($propertyType, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -110,8 +102,10 @@ $ownershipModes = [
               </td>
             </tr>
           <?php endforeach; ?>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucune propriété ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
+      </div>
 
       <?php foreach ($properties as $property): ?>
         <?php
@@ -130,7 +124,7 @@ $ownershipModes = [
         <dialog class="private-dialog" id="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
           <div class="private-dialog-panel">
             <header class="private-dialog-header">
-              <h3 id="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Modifier le bien <?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></h3>
+              <h3 id="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Modifier la propriété <?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></h3>
               <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
             </header>
             <form method="post" action="<?php echo htmlspecialchars($propertiesUrl, ENT_QUOTES, 'UTF-8'); ?>">
@@ -190,4 +184,52 @@ $ownershipModes = [
       <?php endforeach; ?>
     <?php endif; ?>
   </section>
+
+  <dialog class="private-dialog" id="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($createDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
+    <div class="private-dialog-panel">
+      <header class="private-dialog-header">
+        <h3 id="<?php echo htmlspecialchars($createDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Créer une propriété</h3>
+        <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+      </header>
+      <form method="post" action="<?php echo htmlspecialchars($propertiesUrl, ENT_QUOTES, 'UTF-8'); ?>">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+        <input type="hidden" name="action" value="create_property" />
+        <label>Nom <input type="text" name="name" maxlength="160" required /></label>
+        <label>Adresse <input type="text" name="address" maxlength="255" required /></label>
+        <label>Type
+          <select name="property_type" required>
+            <option value="">Choisir un type</option>
+            <?php foreach ($propertyTypes as $value => $label): ?>
+              <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label>Mode de détention
+          <select name="ownership_mode" required>
+            <option value="">Choisir un mode</option>
+            <?php foreach ($ownershipModes as $value => $label): ?>
+              <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
+        <label>Statut
+          <select name="status">
+            <option value="draft">Brouillon</option>
+            <option value="active">Actif</option>
+          </select>
+        </label>
+        <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
+        <fieldset class="private-fieldset">
+          <legend>Bien locatif initial</legend>
+          <label class="private-checkbox-inline">
+            <input type="checkbox" name="create_default_unit" value="1" />
+            Créer aussi le bien locatif Maison entière
+          </label>
+          <label>Surface du bien locatif <input type="number" name="default_unit_surface" min="0.5" max="10000" step="0.01" /></label>
+          <label class="private-checkbox-inline"><input type="checkbox" name="default_unit_furnished" value="1" /> Meublé</label>
+        </fieldset>
+        <button type="submit">Créer la propriété</button>
+      </form>
+    </div>
+  </dialog>
 </section>

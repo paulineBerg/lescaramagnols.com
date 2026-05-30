@@ -10,6 +10,11 @@ final class RentalUnit
         public readonly int $id,
         public readonly int $rentalPropertyId,
         public readonly string $label,
+        public readonly string $unitType,
+        public readonly ?string $address,
+        public readonly ?string $building,
+        public readonly ?string $floor,
+        public readonly ?string $door,
         public readonly float $surface,
         public readonly bool $furnished,
         public readonly string $status,
@@ -43,10 +48,11 @@ final class RentalUnit
         }
 
         $label = trim((string) ($row['label'] ?? ''));
-        $status = trim((string) ($row['status'] ?? ''));
+        $status = self::normalizeStatus(trim((string) ($row['status'] ?? '')));
         $createdAt = trim((string) ($row['created_at'] ?? ''));
         $updatedAt = trim((string) ($row['updated_at'] ?? ''));
         $surface = is_numeric($row['surface'] ?? null) ? (float) $row['surface'] : 0.0;
+        $unitType = trim((string) ($row['unit_type'] ?? 'other'));
 
         if ($label === '' || $status === '' || $createdAt === '' || $updatedAt === '') {
             return null;
@@ -66,6 +72,11 @@ final class RentalUnit
             $id,
             $propertyId,
             $label,
+            $unitType !== '' ? $unitType : 'other',
+            self::nullableString($row['address'] ?? null),
+            self::nullableString($row['building'] ?? null),
+            self::nullableString($row['floor'] ?? null),
+            self::nullableString($row['door'] ?? null),
             $surface,
             ((int) ($row['furnished'] ?? 0)) === 1,
             $status,
@@ -85,6 +96,11 @@ final class RentalUnit
             'id' => $this->id,
             'rentalPropertyId' => $this->rentalPropertyId,
             'label' => $this->label,
+            'unitType' => $this->unitType,
+            'address' => $this->address,
+            'building' => $this->building,
+            'floor' => $this->floor,
+            'door' => $this->door,
             'surface' => $this->surface,
             'furnished' => $this->furnished,
             'status' => $this->status,
@@ -96,5 +112,25 @@ final class RentalUnit
             'createdByPrivateUserId' => $this->createdByPrivateUserId,
             'archivedByPrivateUserId' => $this->archivedByPrivateUserId,
         ];
+    }
+
+    private static function nullableString(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        return $value !== '' ? $value : null;
+    }
+
+    private static function normalizeStatus(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            'available' => 'available',
+            'unavailable', 'occupied', 'maintenance' => 'unavailable',
+            'archived' => 'archived',
+            default => '',
+        };
     }
 }

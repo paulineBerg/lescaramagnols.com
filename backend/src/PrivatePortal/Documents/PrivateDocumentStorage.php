@@ -412,6 +412,48 @@ final class PrivateDocumentStorage
         return $deleted;
     }
 
+    public function deleteStoredDocumentByDocumentId(string $documentId): bool
+    {
+        $documentId = $this->normalizeDocumentId($documentId);
+        if ($documentId === '' || !is_dir($this->uploadsDirectoryPath)) {
+            return false;
+        }
+
+        $deleted = false;
+        $pattern = '/\A' . preg_quote($documentId, '/') . '\.[a-z0-9]{1,' . self::MAX_EXTENSION_LENGTH . '}\z/i';
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($this->uploadsDirectoryPath, \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($iterator as $file) {
+                if (!$file instanceof \SplFileInfo || !$file->isFile()) {
+                    continue;
+                }
+
+                if (preg_match($pattern, $file->getFilename()) !== 1) {
+                    continue;
+                }
+
+                $path = str_replace('\\', '/', $file->getPathname());
+                if (!str_starts_with($path, $this->uploadsDirectoryPath . '/')) {
+                    continue;
+                }
+
+                $deleted = @unlink($path) || $deleted;
+            }
+        } catch (\Throwable) {
+            return $deleted;
+        }
+
+        if ($deleted) {
+            $this->logEvent('private.documents.deleted', [
+                'document_id' => $documentId,
+            ]);
+        }
+
+        return $deleted;
+    }
+
     private function buildStoragePath(string $documentId, string $extension): string
     {
         $hash = hash('sha256', $documentId . '|' . (string) time());

@@ -94,7 +94,7 @@ foreach ($thresholds as $metric => $threshold) {
             'metric' => $metric,
             'count' => $counts[$metric],
             'threshold' => $threshold,
-            'severity' => $severities[$metric] ?? 'warning',
+            'severity' => $severities[$metric],
         ];
     }
 }
@@ -228,7 +228,7 @@ if ($jsonOutput) {
                 sprintf(
                     "  - %s [%s]: %d >= %d\n",
                     (string) $alert['metric'],
-                    (string) ($alert['severity'] ?? 'warning'),
+                    (string) $alert['severity'],
                     (int) $alert['count'],
                     (int) $alert['threshold']
                 )

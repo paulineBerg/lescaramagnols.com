@@ -75,7 +75,7 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/locations/locataires' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_tenants'],
             '/private/leases' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_leases'],
             '/private/payments' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_payments'],
-            '/private/rents' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_payments'],
+            '/private/rents' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_rents'],
             '/private/charges' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_expenses'],
             '/private/locations/documents' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_documents'],
             '/private/locations/agence/imports' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_imports'],

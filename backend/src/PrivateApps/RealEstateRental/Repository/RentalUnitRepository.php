@@ -11,9 +11,22 @@ use PDO;
 final class RentalUnitRepository
 {
     private const TEXT_LENGTH_LABEL = 160;
+    private const TEXT_LENGTH_ADDRESS = 255;
+    private const TEXT_LENGTH_BUILDING = 120;
+    private const TEXT_LENGTH_SHORT = 64;
     private const TEXT_LENGTH_NOTES = 2000;
     private const ALLOWED_LABEL_PATTERN = '/^[\p{L}0-9][\p{L}0-9 _\-.,#()]{1,158}$/u';
-    private const ALLOWED_STATUSES = ['available', 'occupied', 'maintenance', 'archived'];
+    private const ALLOWED_UNIT_TYPES = [
+        'apartment',
+        'house',
+        'garage',
+        'parking',
+        'commercial_space',
+        'room',
+        'storage',
+        'other',
+    ];
+    private const ALLOWED_STATUSES = ['available', 'unavailable'];
     private const MAX_SURFACE = 10000.0;
     private const MIN_SURFACE = 0.5;
     private bool $schemaReady = false;
@@ -122,18 +135,29 @@ final class RentalUnitRepository
         string $status,
         ?string $notes,
         int $createdByPrivateUserId,
+        string $unitType = 'other',
+        ?string $address = null,
+        ?string $building = null,
+        ?string $floor = null,
+        ?string $door = null,
     ): ?RentalUnit {
         $label = sanitize_text_field($label, 160);
-        $notes = is_string($notes) ? sanitize_text_field($notes, 2000) : null;
-        $status = strtolower(trim($status));
+        $unitType = $this->normalizeUnitType($unitType);
+        $address = $this->normalizeNullableText($address, self::TEXT_LENGTH_ADDRESS);
+        $building = $this->normalizeNullableText($building, self::TEXT_LENGTH_BUILDING);
+        $floor = $this->normalizeNullableText($floor, self::TEXT_LENGTH_SHORT);
+        $door = $this->normalizeNullableText($door, self::TEXT_LENGTH_SHORT);
+        $notes = $this->normalizeNullableText($notes, self::TEXT_LENGTH_NOTES);
+        $status = $this->normalizeStatus($status);
 
         if (
             $rentalPropertyId <= 0
             || $label === ''
+            || $unitType === ''
             || $surface <= 0
             || strlen($label) > self::TEXT_LENGTH_LABEL
             || ($notes !== null && strlen($notes) > self::TEXT_LENGTH_NOTES)
-            || !in_array($status, self::ALLOWED_STATUSES, true)
+            || $status === ''
             || $createdByPrivateUserId <= 0
         ) {
             return null;
@@ -154,15 +178,20 @@ final class RentalUnitRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`rental_property_id`, `label`, `surface`, `furnished`, `status`, `is_active`, `notes`, `created_by_private_user_id`)
+                        (`rental_property_id`, `label`, `unit_type`, `address`, `building`, `floor`, `door`, `surface`, `furnished`, `status`, `is_active`, `notes`, `created_by_private_user_id`)
                      VALUES
-                        (:rental_property_id, :label, :surface, :furnished, :status, 1, :notes, :created_by)',
+                        (:rental_property_id, :label, :unit_type, :address, :building, :floor, :door, :surface, :furnished, :status, 1, :notes, :created_by)',
                     $this->table()
                 )
             );
             $statement->execute([
                 'rental_property_id' => $rentalPropertyId,
                 'label' => $label,
+                'unit_type' => $unitType,
+                'address' => $address,
+                'building' => $building,
+                'floor' => $floor,
+                'door' => $door,
                 'surface' => $surface,
                 'furnished' => $furnished ? 1 : 0,
                 'status' => $status,
@@ -253,19 +282,30 @@ final class RentalUnitRepository
         bool $furnished,
         string $status,
         ?string $notes,
+        string $unitType = 'other',
+        ?string $address = null,
+        ?string $building = null,
+        ?string $floor = null,
+        ?string $door = null,
     ): ?RentalUnit {
         if ($unitId <= 0 || $actorPrivateUserId <= 0 || $propertyId <= 0) {
             return null;
         }
 
         $label = sanitize_text_field($label, 160);
-        $notes = is_string($notes) ? sanitize_text_field($notes, 2000) : null;
-        $status = strtolower(trim($status));
+        $unitType = $this->normalizeUnitType($unitType);
+        $address = $this->normalizeNullableText($address, self::TEXT_LENGTH_ADDRESS);
+        $building = $this->normalizeNullableText($building, self::TEXT_LENGTH_BUILDING);
+        $floor = $this->normalizeNullableText($floor, self::TEXT_LENGTH_SHORT);
+        $door = $this->normalizeNullableText($door, self::TEXT_LENGTH_SHORT);
+        $notes = $this->normalizeNullableText($notes, self::TEXT_LENGTH_NOTES);
+        $status = $this->normalizeStatus($status);
 
         if (
             $label === ''
+            || $unitType === ''
             || $surface <= 0
-            || !in_array($status, self::ALLOWED_STATUSES, true)
+            || $status === ''
             || strlen($label) > self::TEXT_LENGTH_LABEL
             || ($notes !== null && strlen($notes) > self::TEXT_LENGTH_NOTES)
             || !preg_match(self::ALLOWED_LABEL_PATTERN, $label)
@@ -283,6 +323,11 @@ final class RentalUnitRepository
                     'UPDATE `%s`
                      SET `rental_property_id` = :property_id,
                          `label` = :label,
+                         `unit_type` = :unit_type,
+                         `address` = :address,
+                         `building` = :building,
+                         `floor` = :floor,
+                         `door` = :door,
                          `surface` = :surface,
                          `furnished` = :furnished,
                          `status` = :status,
@@ -296,6 +341,11 @@ final class RentalUnitRepository
             $statement->execute([
                 'property_id' => $propertyId,
                 'label' => $label,
+                'unit_type' => $unitType,
+                'address' => $address,
+                'building' => $building,
+                'floor' => $floor,
+                'door' => $door,
                 'surface' => $surface,
                 'furnished' => $furnished ? 1 : 0,
                 'status' => $status,
@@ -328,9 +378,14 @@ final class RentalUnitRepository
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `rental_property_id` INT NOT NULL,
                     `label` VARCHAR(160) NOT NULL,
+                    `unit_type` VARCHAR(64) NOT NULL DEFAULT "other",
+                    `address` VARCHAR(255) NULL,
+                    `building` VARCHAR(120) NULL,
+                    `floor` VARCHAR(64) NULL,
+                    `door` VARCHAR(64) NULL,
                     `surface` DECIMAL(8,2) NOT NULL,
                     `furnished` TINYINT(1) NOT NULL DEFAULT 0,
-                    `status` ENUM("available", "occupied", "maintenance", "archived") NOT NULL DEFAULT "available",
+                    `status` ENUM("available", "unavailable", "archived") NOT NULL DEFAULT "available",
                     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
                     `notes` TEXT NULL,
                     `created_by_private_user_id` INT NOT NULL,
@@ -340,6 +395,7 @@ final class RentalUnitRepository
                     `archived_by_private_user_id` INT NULL,
                     UNIQUE KEY `uq_rental_units_property_label` (`rental_property_id`, `label`),
                     KEY `idx_rental_units_property_active` (`rental_property_id`, `is_active`),
+                    KEY `idx_rental_units_type` (`unit_type`),
                     KEY `idx_rental_units_status` (`status`),
                     KEY `idx_rental_units_active` (`is_active`),
                     KEY `idx_rental_units_created` (`created_by_private_user_id`)
@@ -347,6 +403,13 @@ final class RentalUnitRepository
                 $this->table()
             )
         );
+        $this->ensureColumn($pdo, $this->table(), 'unit_type', '`unit_type` VARCHAR(64) NOT NULL DEFAULT "other" AFTER `label`');
+        $this->ensureColumn($pdo, $this->table(), 'address', '`address` VARCHAR(255) NULL AFTER `unit_type`');
+        $this->ensureColumn($pdo, $this->table(), 'building', '`building` VARCHAR(120) NULL AFTER `address`');
+        $this->ensureColumn($pdo, $this->table(), 'floor', '`floor` VARCHAR(64) NULL AFTER `building`');
+        $this->ensureColumn($pdo, $this->table(), 'door', '`door` VARCHAR(64) NULL AFTER `floor`');
+        $this->ensureAvailabilityStatusSchema($pdo);
+        $this->ensureIndex($pdo, $this->table(), 'idx_rental_units_type', '`unit_type`');
 
         $this->schemaReady = true;
     }
@@ -376,5 +439,97 @@ final class RentalUnitRepository
         }
 
         return min($limit, 500);
+    }
+
+    private function normalizeUnitType(string $unitType): string
+    {
+        $unitType = strtolower(trim($unitType));
+        return in_array($unitType, self::ALLOWED_UNIT_TYPES, true) ? $unitType : '';
+    }
+
+    private function normalizeStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+        if (in_array($status, self::ALLOWED_STATUSES, true)) {
+            return $status;
+        }
+
+        return match ($status) {
+            'occupied', 'maintenance' => 'unavailable',
+            default => '',
+        };
+    }
+
+    private function normalizeNullableText(?string $value, int $maxLength): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = sanitize_text_field($value, $maxLength);
+        return $value !== '' ? $value : null;
+    }
+
+    private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column'
+            );
+            $statement->execute(['table' => $table, 'column' => $column]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $table, $definition));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureAvailabilityStatusSchema(PDO $pdo): void
+    {
+        try {
+            $table = $this->table();
+            $pdo->exec(sprintf(
+                'ALTER TABLE `%s` MODIFY COLUMN `status` ENUM("available", "unavailable", "occupied", "maintenance", "archived") NOT NULL DEFAULT "available"',
+                $table
+            ));
+            $pdo->exec(sprintf(
+                'UPDATE `%s` SET `status` = "unavailable" WHERE `status` IN ("occupied", "maintenance")',
+                $table
+            ));
+            $pdo->exec(sprintf(
+                'ALTER TABLE `%s` MODIFY COLUMN `status` ENUM("available", "unavailable", "archived") NOT NULL DEFAULT "available"',
+                $table
+            ));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureIndex(PDO $pdo, string $table, string $index, string $columns): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND INDEX_NAME = :index_name'
+            );
+            $statement->execute(['table' => $table, 'index_name' => $index]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD KEY `%s` (%s)', $table, $index, $columns));
+        } catch (\Throwable) {
+            return;
+        }
     }
 }

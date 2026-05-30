@@ -61,9 +61,8 @@ final class PrivateDocumentScanner
             $stderr = $this->appendPipeOutput($pipes[2] ?? null, $stderr);
 
             $status = proc_get_status($process);
-            if (!($status['running'] ?? false)) {
-                $rawExitCode = $status['exitcode'] ?? null;
-                $exitCode = is_int($rawExitCode) && $rawExitCode >= 0 ? $rawExitCode : null;
+            if (!$status['running']) {
+                $exitCode = $status['exitcode'] >= 0 ? $status['exitcode'] : null;
                 break;
             }
 

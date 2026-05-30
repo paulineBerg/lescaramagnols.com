@@ -495,6 +495,7 @@ final class PrivateDataProtectionService
             ['original_name' => 'document-locatif-supprime', 'private_user_id' => $privateUserId]
         );
         $this->safeDelete('rental_payments', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('rental_rents', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_expenses', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_leases', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_export_logs', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
@@ -744,7 +745,7 @@ final class PrivateDataProtectionService
 
             $table = is_string($file['table'] ?? null) ? (string) $file['table'] : '';
             $storagePath = is_string($file['storagePath'] ?? null) ? (string) $file['storagePath'] : '';
-            $resolver = in_array($table, ['private_documents', 'rental_documents'], true)
+            $resolver = in_array($table, ['private_documents', 'rental_documents', 'rental_agency_imported_documents'], true)
                 ? $privateDocumentStorage
                 : ($table === 'discussion_message_attachments' ? $discussionAttachmentStorage : null);
             $absolutePath = $resolver !== null && $storagePath !== '' ? $resolver->absolutePath($storagePath) : '';
@@ -858,6 +859,17 @@ final class PrivateDataProtectionService
     {
         $messageIds = '`message_id` IN (SELECT `id` FROM `' . $this->database->table('discussion_messages') . '` WHERE `sender_private_user_id` = :private_user_id)';
         $summaryIds = '`tax_annual_summary_id` IN (SELECT `id` FROM `' . $this->database->table('tax_annual_summaries') . '` WHERE `private_user_id` = :private_user_id OR `generated_by_private_user_id` = :private_user_id)';
+        $agencyDocumentIds = '`imported_document_id` IN (
+            SELECT d.`id`
+            FROM `' . $this->database->table('rental_agency_imported_documents') . '` d
+            INNER JOIN `' . $this->database->table('rental_agency_import_batches') . '` b ON b.`id` = d.`batch_id`
+            WHERE b.`created_by_private_user_id` = :private_user_id
+        )';
+        $agencyBatchDocumentIds = '`batch_id` IN (
+            SELECT `id`
+            FROM `' . $this->database->table('rental_agency_import_batches') . '`
+            WHERE `created_by_private_user_id` = :private_user_id
+        )';
 
         return [
             'private_users' => '`id` = :private_user_id',
@@ -879,10 +891,16 @@ final class PrivateDataProtectionService
             'rental_property_members' => '`private_user_id` = :private_user_id OR `added_by_private_user_id` = :private_user_id OR `removed_by_private_user_id` = :private_user_id',
             'rental_tenants' => '`created_by_private_user_id` = :private_user_id',
             'rental_leases' => '`created_by_private_user_id` = :private_user_id',
+            'rental_rents' => '`created_by_private_user_id` = :private_user_id',
             'rental_payments' => '`created_by_private_user_id` = :private_user_id',
             'rental_expenses' => '`created_by_private_user_id` = :private_user_id',
             'rental_documents' => '`uploaded_by_private_user_id` = :private_user_id',
             'rental_export_logs' => '`private_user_id` = :private_user_id',
+            'rental_agency_import_batches' => '`created_by_private_user_id` = :private_user_id',
+            'rental_agency_imported_documents' => $agencyBatchDocumentIds,
+            'rental_agency_statements' => $agencyDocumentIds,
+            'rental_agency_statement_lines' => $agencyDocumentIds,
+            'rental_agency_import_issues' => $agencyDocumentIds,
             'tax_years' => '`private_user_id` = :private_user_id OR `locked_by_private_user_id` = :private_user_id OR `unlocked_by_private_user_id` = :private_user_id',
             'tax_source_activations' => '`private_user_id` = :private_user_id OR `enabled_by_private_user_id` = :private_user_id OR `disabled_by_private_user_id` = :private_user_id',
             'tax_manual_income_entries' => '`private_user_id` = :private_user_id OR `created_by_private_user_id` = :private_user_id',
@@ -913,7 +931,13 @@ final class PrivateDataProtectionService
             'private_blocnote_categories',
             'rental_export_logs',
             'rental_documents',
+            'rental_agency_import_issues',
+            'rental_agency_statement_lines',
+            'rental_agency_statements',
+            'rental_agency_imported_documents',
+            'rental_agency_import_batches',
             'rental_payments',
+            'rental_rents',
             'rental_expenses',
             'rental_leases',
             'rental_tenants',
@@ -955,6 +979,7 @@ final class PrivateDataProtectionService
         return [
             'private_documents' => ['storagePath' => 'storagePath', 'name' => 'originalName', 'resolver' => $privateDocumentStorage],
             'rental_documents' => ['storagePath' => 'storagePath', 'name' => 'originalName', 'resolver' => $privateDocumentStorage],
+            'rental_agency_imported_documents' => ['storagePath' => 'storagePath', 'name' => 'filename', 'resolver' => $privateDocumentStorage],
             'discussion_message_attachments' => ['storagePath' => 'storagePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],
             'discussion_message_attachment_previews' => ['storagePath' => 'previewStoragePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],
         ];

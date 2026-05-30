@@ -134,6 +134,7 @@ final class PrivateModulePermissionRepository
             + $this->countRows('rental_property_members', '`private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
             + $this->countRows('rental_tenants', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
             + $this->countRows('rental_leases', '`created_by_private_user_id` = :user_id AND `status` <> \'cancelled\'', ['user_id' => $userId])
+            + $this->countRows('rental_rents', '`created_by_private_user_id` = :user_id AND `status` <> \'cancelled\'', ['user_id' => $userId])
             + $this->countRows('rental_payments', '`created_by_private_user_id` = :user_id AND `status` <> \'cancelled\'', ['user_id' => $userId])
             + $this->countRows('rental_expenses', '`created_by_private_user_id` = :user_id AND `status` <> \'cancelled\'', ['user_id' => $userId])
             + $this->countRows('rental_documents', '`uploaded_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])

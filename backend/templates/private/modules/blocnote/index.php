@@ -47,6 +47,7 @@ foreach ($blocNoteNotes as $note) {
         'category' => (string) ($note['categoryName'] ?? 'Sans catégorie'),
         'updated' => $blocNoteDate($note['updatedAt'] ?? ''),
         'content' => (string) ($note['contentText'] ?? ''),
+        'colorClass' => $blocNoteColorClass($note['categoryColor'] ?? $note['color'] ?? '#ffffff', $blocNoteDefaultColor),
     ];
 }
 $blocNoteNotesJson = json_encode($blocNoteModalNotes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
@@ -61,21 +62,18 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
     'idle' => 'Peu d’activité récente',
     default => 'Aucune note enregistrée',
 };
+$blocNoteCreateDialogId = 'blocnote-note-create-dialog';
+$blocNoteCategoryDialogId = 'blocnote-category-create-dialog';
 ?>
 <section class="blocnote-module" data-blocnote-root>
 
-  <div class="blocnote-hero">
-    <span class="tag">Notes privées</span>
-    <h2>Bloc-note</h2>
-    <p class="muted">Un espace personnel pour noter, classer et retrouver rapidement les informations utiles.</p>
-  </div>
-
-  <nav class="blocnote-tabs" aria-label="Navigation Bloc-note">
-    <a class="<?php echo $blocNoteView === 'dashboard' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('dashboard')); ?>">Tableau de bord</a>
-    <a class="<?php echo $blocNoteView === 'notes' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('notes')); ?>">Mes notes</a>
-    <a class="<?php echo $blocNoteView === 'form' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('form')); ?>">Nouvelle note</a>
-    <a class="<?php echo $blocNoteView === 'categories' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('categories')); ?>">Catégories</a>
-    <a class="<?php echo $blocNoteView === 'help' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('help')); ?>">Aide</a>
+  <nav class="private-module-nav" aria-label="Navigation Bloc-note">
+    <div class="private-module-nav-row">
+      <a class="<?php echo $blocNoteView === 'dashboard' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('dashboard')); ?>">Tableau de bord</a>
+      <a class="<?php echo $blocNoteView === 'notes' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('notes')); ?>">Mes notes</a>
+      <a class="<?php echo $blocNoteView === 'categories' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('categories')); ?>">Catégories</a>
+      <a class="<?php echo $blocNoteView === 'help' ? 'active' : ''; ?>" href="<?php echo $h($blocNoteUrl('help')); ?>">Aide</a>
+    </div>
   </nav>
 
   <?php if ($blocNoteView === 'dashboard'): ?>
@@ -84,7 +82,7 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
       <h3>Tableau de bord Bloc-note</h3>
       <p class="muted">Suivi rapide des notes, de l’activité récente et de la qualité du classement.</p>
       <div class="blocnote-actions">
-        <a class="blocnote-link-button" href="<?php echo $h($blocNoteUrl('form')); ?>">Créer une note</a>
+        <button type="button" class="blocnote-link-button" data-private-dialog-open="<?php echo $h($blocNoteCreateDialogId); ?>">Créer une note</button>
         <a class="blocnote-link-button" href="<?php echo $h($blocNoteUrl('notes')); ?>">Ouvrir mes notes</a>
         <a class="blocnote-link-button" href="<?php echo $h($blocNoteUrl('categories')); ?>">Gérer les catégories</a>
       </div>
@@ -137,10 +135,15 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
     </div>
   <?php elseif ($blocNoteView === 'notes'): ?>
     <section class="blocnote-card">
-      <h3>Mes notes</h3>
+      <div class="private-list-header">
+        <div>
+          <h3>Mes notes</h3>
+          <p class="muted">Liste filtrable des notes privées.</p>
+        </div>
+        <button type="button" class="blocnote-link-button" data-private-dialog-open="<?php echo $h($blocNoteCreateDialogId); ?>">Créer une note</button>
+      </div>
       <?php if ($blocNoteNotes === []): ?>
         <p class="muted">Aucune note enregistrée pour le moment.</p>
-        <p><a class="blocnote-link-button" href="<?php echo $h($blocNoteUrl('form')); ?>">Créer une note</a></p>
       <?php else: ?>
         <div class="blocnote-filter-row" data-blocnote-filters>
           <div class="blocnote-filter-field">
@@ -236,38 +239,17 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
       </form>
     </section>
   <?php elseif ($blocNoteView === 'categories'): ?>
-    <div class="blocnote-grid blocnote-grid-wide">
-      <section class="blocnote-card">
-        <h3>Catégorie</h3>
-        <form class="blocnote-form" method="post" action="<?php echo $h($blocNoteBaseUrl); ?>" id="blocnote-category-form">
-          <input type="hidden" name="csrf_token" value="<?php echo $h($blocNoteCsrfToken); ?>" />
-          <input type="hidden" name="action" value="save_category" />
-          <input type="hidden" name="category_id" value="0" data-blocnote-category-id />
-          <div>
-            <label for="blocnote-category-name">Nom</label>
-            <input type="text" id="blocnote-category-name" name="category_name" maxlength="80" required data-blocnote-category-name />
-          </div>
-          <div>
-            <label>Couleur</label>
-            <div class="blocnote-color-choices">
-              <?php foreach ($blocNoteColors as $color): ?>
-                <?php $color = is_string($color) ? $color : $blocNoteDefaultColor; ?>
-                <label class="blocnote-color-choice">
-                  <input type="radio" name="category_color" value="<?php echo $h($color); ?>" <?php echo $color === $blocNoteDefaultColor ? 'checked' : ''; ?> />
-                  <span class="blocnote-color-swatch <?php echo $h($blocNoteColorClass($color, $blocNoteDefaultColor)); ?>"></span>
-                </label>
-              <?php endforeach; ?>
-            </div>
-          </div>
-          <div class="blocnote-actions">
-            <button type="submit">Enregistrer la catégorie</button>
-            <button type="button" class="blocnote-button-secondary" data-blocnote-category-reset>Nouvelle catégorie</button>
-          </div>
-        </form>
-      </section>
-
-      <section class="blocnote-card">
-        <h3>Catégories existantes</h3>
+    <section class="blocnote-card">
+      <div class="private-list-header">
+        <div>
+          <h3>Catégories existantes</h3>
+          <p class="muted">Classement couleur, catégorie par défaut et réattribution automatique à la suppression.</p>
+        </div>
+        <button type="button" class="blocnote-link-button" data-private-dialog-open="<?php echo $h($blocNoteCategoryDialogId); ?>" data-blocnote-category-reset>Nouvelle catégorie</button>
+      </div>
+      <?php if ($blocNoteCategories === []): ?>
+        <p class="muted">Aucune catégorie enregistrée pour le moment.</p>
+      <?php else: ?>
         <div class="blocnote-category-list">
           <?php foreach ($blocNoteCategories as $category): ?>
             <?php if (!is_array($category)): continue; endif; ?>
@@ -279,6 +261,7 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
               <div class="blocnote-category-actions">
                 <button type="button"
                         class="blocnote-button-secondary"
+                        data-private-dialog-open="<?php echo $h($blocNoteCategoryDialogId); ?>"
                         data-blocnote-category-edit
                         data-category-id="<?php echo $categoryId; ?>"
                         data-category-name="<?php echo $h($category['name'] ?? ''); ?>"
@@ -301,8 +284,8 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
             </article>
           <?php endforeach; ?>
         </div>
-      </section>
-    </div>
+      <?php endif; ?>
+    </section>
   <?php else: ?>
     <div class="blocnote-grid blocnote-grid-wide">
       <section class="blocnote-card">
@@ -324,12 +307,82 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
     </div>
   <?php endif; ?>
 
+  <dialog class="private-dialog" id="<?php echo $h($blocNoteCreateDialogId); ?>" aria-labelledby="<?php echo $h($blocNoteCreateDialogId . '-title'); ?>">
+    <div class="private-dialog-panel">
+      <header class="private-dialog-header">
+        <h3 id="<?php echo $h($blocNoteCreateDialogId . '-title'); ?>">Créer une note</h3>
+        <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+      </header>
+      <form class="blocnote-form" method="post" action="<?php echo $h($blocNoteBaseUrl); ?>">
+        <input type="hidden" name="csrf_token" value="<?php echo $h($blocNoteCsrfToken); ?>" />
+        <input type="hidden" name="action" value="save_note" />
+        <input type="hidden" name="note_id" value="0" />
+        <div>
+          <label for="blocnote-create-title">Titre</label>
+          <input type="text" id="blocnote-create-title" name="title" maxlength="191" />
+        </div>
+        <div>
+          <label for="blocnote-create-category">Catégorie</label>
+          <select id="blocnote-create-category" name="category_id">
+            <?php foreach ($blocNoteCategories as $category): ?>
+              <?php if (!is_array($category)): continue; endif; ?>
+              <?php $categoryId = is_numeric($category['id'] ?? null) ? (int) $category['id'] : 0; ?>
+              <option value="<?php echo $categoryId; ?>"><?php echo $h($category['name'] ?? 'Catégorie'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div>
+          <label for="blocnote-create-content">Contenu</label>
+          <textarea id="blocnote-create-content" name="content"></textarea>
+        </div>
+        <button type="submit">Enregistrer</button>
+      </form>
+    </div>
+  </dialog>
+
+  <dialog class="private-dialog" id="<?php echo $h($blocNoteCategoryDialogId); ?>" aria-labelledby="<?php echo $h($blocNoteCategoryDialogId . '-title'); ?>">
+    <div class="private-dialog-panel">
+      <header class="private-dialog-header">
+        <h3 id="<?php echo $h($blocNoteCategoryDialogId . '-title'); ?>">Catégorie</h3>
+        <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+      </header>
+      <form class="blocnote-form" method="post" action="<?php echo $h($blocNoteBaseUrl); ?>" id="blocnote-category-form">
+        <input type="hidden" name="csrf_token" value="<?php echo $h($blocNoteCsrfToken); ?>" />
+        <input type="hidden" name="action" value="save_category" />
+        <input type="hidden" name="category_id" value="0" data-blocnote-category-id />
+        <div>
+          <label for="blocnote-category-name">Nom</label>
+          <input type="text" id="blocnote-category-name" name="category_name" maxlength="80" required data-blocnote-category-name />
+        </div>
+        <div>
+          <label>Couleur</label>
+          <div class="blocnote-color-choices">
+            <?php foreach ($blocNoteColors as $color): ?>
+              <?php $color = is_string($color) ? $color : $blocNoteDefaultColor; ?>
+              <label class="blocnote-color-choice">
+                <input type="radio" name="category_color" value="<?php echo $h($color); ?>" <?php echo $color === $blocNoteDefaultColor ? 'checked' : ''; ?> />
+                <span class="blocnote-color-swatch <?php echo $h($blocNoteColorClass($color, $blocNoteDefaultColor)); ?>"></span>
+              </label>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <div class="blocnote-actions">
+          <button type="submit">Enregistrer la catégorie</button>
+          <button type="button" class="blocnote-button-secondary" data-blocnote-category-reset>Nouvelle catégorie</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <div class="blocnote-modal" hidden data-blocnote-modal aria-hidden="true">
-    <div class="blocnote-modal-panel" role="dialog" aria-modal="true" aria-labelledby="blocnote-modal-title">
+    <div class="blocnote-modal-panel private-color-ffffff" role="dialog" aria-modal="true" aria-labelledby="blocnote-modal-title" data-blocnote-modal-panel>
       <header class="blocnote-modal-header">
         <div>
           <h3 id="blocnote-modal-title">Note</h3>
-          <p class="blocnote-meta" data-blocnote-modal-meta></p>
+          <p class="blocnote-meta">
+            <span class="blocnote-color-dot private-color-ffffff" aria-hidden="true" data-blocnote-modal-color></span>
+            <span data-blocnote-modal-meta></span>
+          </p>
         </div>
         <button type="button" class="blocnote-button-secondary" data-blocnote-modal-close>Fermer</button>
       </header>
@@ -347,9 +400,27 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
 
       const notesById = <?php echo $blocNoteNotesJson; ?>;
       const modal = root.querySelector('[data-blocnote-modal]');
+      const modalPanel = root.querySelector('[data-blocnote-modal-panel]');
       const modalTitle = root.querySelector('#blocnote-modal-title');
       const modalMeta = root.querySelector('[data-blocnote-modal-meta]');
+      const modalColor = root.querySelector('[data-blocnote-modal-color]');
       const modalContent = root.querySelector('[data-blocnote-modal-content]');
+      const colorClasses = [
+        'private-color-ffffff',
+        'private-color-fff1d6',
+        'private-color-ffe0e0',
+        'private-color-e1f7d5',
+        'private-color-d6ecff',
+        'private-color-eadbff',
+        'private-color-ffdff3',
+      ];
+      const applyModalColor = (colorClass) => {
+        const nextColorClass = colorClasses.includes(colorClass) ? colorClass : 'private-color-ffffff';
+        modalPanel?.classList.remove(...colorClasses);
+        modalColor?.classList.remove(...colorClasses);
+        modalPanel?.classList.add(nextColorClass);
+        modalColor?.classList.add(nextColorClass);
+      };
       const closeModal = () => {
         if (!modal) {
           return;
@@ -361,10 +432,11 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
       root.querySelectorAll('[data-blocnote-open-note]').forEach((button) => {
         button.addEventListener('click', () => {
           const note = notesById[button.getAttribute('data-blocnote-open-note') || ''];
-          if (!note || !modal || !modalTitle || !modalMeta || !modalContent) {
+          if (!note || !modal || !modalPanel || !modalTitle || !modalMeta || !modalContent) {
             return;
           }
 
+          applyModalColor(note.colorClass || 'private-color-ffffff');
           modalTitle.textContent = note.title || 'Sans titre';
           modalMeta.textContent = `${note.category || 'Sans catégorie'} · ${note.updated || ''}`;
           modalContent.textContent = note.content || 'Aucun contenu.';
@@ -484,7 +556,7 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
 
       const categoryId = root.querySelector('[data-blocnote-category-id]');
       const categoryName = root.querySelector('[data-blocnote-category-name]');
-      const categoryReset = root.querySelector('[data-blocnote-category-reset]');
+      const categoryResetButtons = root.querySelectorAll('[data-blocnote-category-reset]');
       const selectCategoryColor = (color) => {
         root.querySelectorAll('input[name="category_color"]').forEach((input) => {
           if (input instanceof HTMLInputElement) {
@@ -503,19 +575,20 @@ $blocNoteStatusLabel = match ($blocNoteStatus) {
             categoryName.focus();
           }
           selectCategoryColor(button.getAttribute('data-category-color') || '#ffffff');
-          document.getElementById('blocnote-category-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       });
 
-      categoryReset?.addEventListener('click', () => {
-        if (categoryId instanceof HTMLInputElement) {
-          categoryId.value = '0';
-        }
-        if (categoryName instanceof HTMLInputElement) {
-          categoryName.value = '';
-          categoryName.focus();
-        }
-        selectCategoryColor('#ffffff');
+      categoryResetButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          if (categoryId instanceof HTMLInputElement) {
+            categoryId.value = '0';
+          }
+          if (categoryName instanceof HTMLInputElement) {
+            categoryName.value = '';
+            categoryName.focus();
+          }
+          selectCategoryColor('#ffffff');
+        });
       });
     })();
   </script>

@@ -42,6 +42,7 @@ final class RentalAnnualSummaryService
                 'endedLeases' => 0,
             ],
             'leaseTaxCategories' => [],
+            'rents' => [],
             'payments' => [],
             'expenses' => [],
             'leases' => [],
@@ -51,9 +52,25 @@ final class RentalAnnualSummaryService
             return $summary;
         }
 
+        $rents = $this->repository->listRents($propertyIds, $year, 1000);
         $payments = $this->repository->listPayments($propertyIds, $year, 1000);
         $expenses = $this->repository->listExpenses($propertyIds, $year, 1000);
         $leases = $this->leasesForYear($this->repository->listLeases($propertyIds, 1000), $year);
+
+        foreach ($rents as $rent) {
+            if (($rent['status'] ?? '') !== 'validated') {
+                continue;
+            }
+
+            $amountDue = $this->amount($rent['amountDue'] ?? 0);
+            $amountPaid = $this->amount($rent['amountPaid'] ?? 0);
+            $summary['totals']['rentDue'] += $amountDue;
+            $summary['totals']['unpaidRent'] += max(0.0, $amountDue - $amountPaid);
+            if ($amountPaid < $amountDue) {
+                ++$summary['totals']['partialPayments'];
+            }
+            $summary['rents'][] = $rent;
+        }
 
         foreach ($payments as $payment) {
             if (($payment['status'] ?? '') !== 'validated') {
@@ -62,11 +79,11 @@ final class RentalAnnualSummaryService
 
             $amountDue = $this->amount($payment['amountDue'] ?? 0);
             $amountPaid = $this->amount($payment['amountPaid'] ?? 0);
-            $summary['totals']['rentDue'] += $amountDue;
             $summary['totals']['rentPaid'] += $amountPaid;
-            $summary['totals']['unpaidRent'] += max(0.0, $amountDue - $amountPaid);
             ++$summary['totals']['validatedPayments'];
-            if ($amountPaid < $amountDue) {
+            if ((int) ($payment['rentalRentId'] ?? 0) <= 0 && $amountDue > 0) {
+                $summary['totals']['rentDue'] += $amountDue;
+                $summary['totals']['unpaidRent'] += max(0.0, $amountDue - $amountPaid);
                 ++$summary['totals']['partialPayments'];
             }
             $summary['payments'][] = $payment;

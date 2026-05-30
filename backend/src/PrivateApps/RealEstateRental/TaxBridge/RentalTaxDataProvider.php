@@ -188,9 +188,10 @@ final class RentalTaxDataProvider implements RentalTaxDataProviderInterface
                 'id' => $this->integer($payment['id'] ?? 0),
                 'propertyId' => $this->integer($payment['rentalPropertyId'] ?? 0),
                 'leaseId' => $this->integer($payment['rentalLeaseId'] ?? 0),
+                'rentId' => $this->integer($payment['rentalRentId'] ?? 0),
                 'periodYear' => $this->integer($payment['periodYear'] ?? 0),
                 'periodMonth' => $this->integer($payment['periodMonth'] ?? 0),
-                'amountDue' => $this->amount($payment['amountDue'] ?? 0),
+                'amountDue' => $this->amount(($payment['rentAmountDue'] ?? 0) ?: ($payment['amountDue'] ?? 0)),
                 'amountPaid' => $this->amount($payment['amountPaid'] ?? 0),
                 'taxCategory' => is_scalar($payment['taxCategory'] ?? null)
                     ? (string) $payment['taxCategory']

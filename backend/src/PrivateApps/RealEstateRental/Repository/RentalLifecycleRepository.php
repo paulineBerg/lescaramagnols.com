@@ -12,6 +12,7 @@ final class RentalLifecycleRepository
 {
     private const VALID_STATUSES = ['draft', 'validated', 'cancelled'];
     private const LEASE_STATUSES = ['draft', 'validated', 'cancelled', 'ended'];
+    private const ACTIVE_LEASE_STATUSES = ['draft', 'validated'];
     private const MAX_TEXT_LENGTH = 160;
     private const MAX_NOTES_LENGTH = 2000;
     private bool $schemaReady = false;
@@ -33,6 +34,11 @@ final class RentalLifecycleRepository
     public function paymentsTable(): string
     {
         return $this->database->table('rental_payments');
+    }
+
+    public function rentsTable(): string
+    {
+        return $this->database->table('rental_rents');
     }
 
     public function expensesTable(): string
@@ -279,6 +285,10 @@ final class RentalLifecycleRepository
             return null;
         }
 
+        if (!$this->unitCanReceiveNewLease($propertyId, $unitId) || $this->hasActiveLeaseForUnit($unitId)) {
+            return null;
+        }
+
         try {
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(
@@ -338,6 +348,158 @@ final class RentalLifecycleRepository
         return is_array($row) ? $this->normalizeRow($row) : null;
     }
 
+    public function hasActiveLeaseForUnit(int $unitId, int $excludedLeaseId = 0): bool
+    {
+        if ($unitId <= 0) {
+            return true;
+        }
+
+        try {
+            $this->ensureSchema();
+            $excludedClause = $excludedLeaseId > 0 ? ' AND `id` <> :excluded_lease_id' : '';
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT COUNT(*)
+                     FROM `%s`
+                     WHERE `rental_unit_id` = :unit_id
+                       AND `status` IN ("draft", "validated")%s',
+                    $this->leasesTable(),
+                    $excludedClause
+                )
+            );
+            $statement->bindValue(':unit_id', $unitId, PDO::PARAM_INT);
+            if ($excludedLeaseId > 0) {
+                $statement->bindValue(':excluded_lease_id', $excludedLeaseId, PDO::PARAM_INT);
+            }
+
+            $statement->execute();
+            return (int) $statement->fetchColumn() > 0;
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array<string, mixed>|null
+     */
+    public function updateLease(
+        int $leaseId,
+        array $propertyIds,
+        int $propertyId,
+        int $unitId,
+        int $tenantId,
+        string $startDate,
+        ?string $endDate,
+        float $monthlyRent,
+        float $chargesProvision,
+        string $status,
+        ?string $notes = null,
+        string $leaseType = RentalLeaseTypeCatalog::DEFAULT
+    ): ?array {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        $leaseType = RentalLeaseTypeCatalog::normalize($leaseType);
+        $taxCategory = RentalLeaseTypeCatalog::taxCategory($leaseType);
+        $status = $this->normalizeStatus($status, self::LEASE_STATUSES);
+        $startDate = $this->normalizeDate($startDate);
+        $endDate = $endDate !== null && trim($endDate) !== '' ? $this->normalizeDate($endDate) : null;
+        $endDate ??= RentalLeaseTypeCatalog::defaultEndDate($leaseType, $startDate);
+        $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
+        $monthlyRent = round($monthlyRent, 2);
+        $chargesProvision = round($chargesProvision, 2);
+
+        if (
+            $leaseId <= 0
+            || $propertyIds === []
+            || !in_array($propertyId, $propertyIds, true)
+            || $propertyId <= 0
+            || $unitId <= 0
+            || $tenantId <= 0
+            || $startDate === ''
+            || $status === ''
+            || $monthlyRent <= 0
+            || $chargesProvision < 0
+            || ($endDate !== null && $endDate < $startDate)
+        ) {
+            return null;
+        }
+
+        $current = $this->findLeaseById($leaseId);
+        if (!is_array($current)) {
+            return null;
+        }
+
+        if (in_array($status, self::ACTIVE_LEASE_STATUSES, true)) {
+            $currentUnitId = is_numeric($current['rentalUnitId'] ?? null) ? (int) $current['rentalUnitId'] : 0;
+            $currentStatus = is_string($current['status'] ?? null) ? (string) $current['status'] : '';
+            $sameActiveLease = $currentUnitId === $unitId && in_array($currentStatus, self::ACTIVE_LEASE_STATUSES, true);
+            if ($this->hasActiveLeaseForUnit($unitId, $leaseId)) {
+                return null;
+            }
+            if (!$sameActiveLease && !$this->unitCanReceiveNewLease($propertyId, $unitId)) {
+                return null;
+            }
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `rental_property_id` = :property_id,
+                         `rental_unit_id` = :unit_id,
+                         `rental_tenant_id` = :tenant_id,
+                         `lease_type` = :lease_type,
+                         `tax_category` = :tax_category,
+                         `start_date` = :start_date,
+                         `end_date` = :end_date,
+                         `monthly_rent` = :monthly_rent,
+                         `charges_provision` = :charges_provision,
+                         `status` = :status,
+                         `notes` = :notes,
+                         `updated_at` = :updated_at
+                     WHERE `id` = :id
+                       AND `rental_property_id` IN (%s)',
+                    $this->leasesTable(),
+                    implode(',', $placeholders)
+                )
+            );
+            $statement->bindValue(':property_id', $propertyId, PDO::PARAM_INT);
+            $statement->bindValue(':unit_id', $unitId, PDO::PARAM_INT);
+            $statement->bindValue(':tenant_id', $tenantId, PDO::PARAM_INT);
+            $statement->bindValue(':lease_type', $leaseType);
+            $statement->bindValue(':tax_category', $taxCategory);
+            $statement->bindValue(':start_date', $startDate);
+            if ($endDate === null) {
+                $statement->bindValue(':end_date', null, PDO::PARAM_NULL);
+            } else {
+                $statement->bindValue(':end_date', $endDate);
+            }
+            $statement->bindValue(':monthly_rent', $monthlyRent);
+            $statement->bindValue(':charges_provision', $chargesProvision);
+            $statement->bindValue(':status', $status);
+            if ($notes === null || $notes === '') {
+                $statement->bindValue(':notes', null, PDO::PARAM_NULL);
+            } else {
+                $statement->bindValue(':notes', $notes);
+            }
+            $statement->bindValue(':updated_at', date('Y-m-d H:i:s'));
+            $statement->bindValue(':id', $leaseId, PDO::PARAM_INT);
+            $this->bindIds($statement, 'property_id', $propertyIds);
+            $statement->execute();
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $updated = $this->findLeaseById($leaseId);
+        $updatedPropertyId = is_array($updated) && is_numeric($updated['rentalPropertyId'] ?? null)
+            ? (int) $updated['rentalPropertyId']
+            : 0;
+
+        return $updatedPropertyId === $propertyId && in_array($updatedPropertyId, $propertyIds, true) ? $updated : null;
+    }
+
     /**
      * @param array<int, int> $propertyIds
      * @return array<int, array<string, mixed>>
@@ -384,6 +546,193 @@ final class RentalLifecycleRepository
     /**
      * @return array<string, mixed>|null
      */
+    public function createRent(
+        int $leaseId,
+        int $propertyId,
+        int $unitId,
+        int $periodYear,
+        int $periodMonth,
+        string $dueDate,
+        float $amountDue,
+        string $status,
+        int $actorPrivateUserId,
+        ?string $notes = null
+    ): ?array {
+        $dueDate = $this->normalizeDate($dueDate);
+        $status = $this->normalizeStatus($status, self::VALID_STATUSES);
+        $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
+        $amountDue = round($amountDue, 2);
+
+        if (
+            $leaseId <= 0
+            || $propertyId <= 0
+            || $unitId <= 0
+            || $periodYear < 2000
+            || $periodYear > 2100
+            || $periodMonth < 1
+            || $periodMonth > 12
+            || $dueDate === ''
+            || $amountDue <= 0
+            || $status === ''
+            || $actorPrivateUserId <= 0
+        ) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'INSERT INTO `%s`
+                        (`rental_lease_id`, `rental_property_id`, `rental_unit_id`, `period_year`, `period_month`,
+                         `due_date`, `amount_due`, `status`, `notes`, `created_by_private_user_id`)
+                     VALUES
+                        (:lease_id, :property_id, :unit_id, :period_year, :period_month,
+                         :due_date, :amount_due, :status, :notes, :created_by)',
+                    $this->rentsTable()
+                )
+            );
+            $statement->execute([
+                'lease_id' => $leaseId,
+                'property_id' => $propertyId,
+                'unit_id' => $unitId,
+                'period_year' => $periodYear,
+                'period_month' => $periodMonth,
+                'due_date' => $dueDate,
+                'amount_due' => $amountDue,
+                'status' => $status,
+                'notes' => $notes !== '' ? $notes : null,
+                'created_by' => $actorPrivateUserId,
+            ]);
+
+            return $this->findRentById((int) $this->database->pdo()->lastInsertId());
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findRentById(int $rentId): ?array
+    {
+        if ($rentId <= 0) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT * FROM `%s` WHERE `id` = :id LIMIT 1', $this->rentsTable())
+            );
+            $statement->execute(['id' => $rentId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function listRents(array $propertyIds, ?int $year = null, int $limit = 500): array
+    {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        $limit = $this->normalizeLimit($limit);
+        if ($propertyIds === [] || $limit <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $sql = sprintf(
+                'SELECT rent.*,
+                        prop.`name` AS `property_name`,
+                        u.`label` AS `unit_label`,
+                        l.`lease_type` AS `lease_type`,
+                        l.`tax_category` AS `tax_category`,
+                        t.`full_name` AS `tenant_name`,
+                        COALESCE(pmt_sum.`amount_paid`, 0) AS `amount_paid`,
+                        COALESCE(pmt_sum.`payment_count`, 0) AS `payment_count`
+                 FROM `%s` rent
+                 INNER JOIN `%s` prop ON prop.`id` = rent.`rental_property_id`
+                 INNER JOIN `%s` u ON u.`id` = rent.`rental_unit_id`
+                 INNER JOIN `%s` l ON l.`id` = rent.`rental_lease_id`
+                 INNER JOIN `%s` t ON t.`id` = l.`rental_tenant_id`
+                 LEFT JOIN (
+                    SELECT `rental_rent_id`,
+                           SUM(CASE WHEN `status` = "validated" THEN `amount_paid` ELSE 0 END) AS `amount_paid`,
+                           COUNT(`id`) AS `payment_count`
+                    FROM `%s`
+                    WHERE `rental_rent_id` IS NOT NULL
+                    GROUP BY `rental_rent_id`
+                 ) pmt_sum ON pmt_sum.`rental_rent_id` = rent.`id`
+                 WHERE rent.`rental_property_id` IN (%s)',
+                $this->rentsTable(),
+                $this->database->table('rental_properties'),
+                $this->database->table('rental_units'),
+                $this->leasesTable(),
+                $this->tenantsTable(),
+                $this->paymentsTable(),
+                implode(',', $placeholders)
+            );
+            if ($year !== null) {
+                $sql .= ' AND rent.`period_year` = :year';
+            }
+            $sql .= ' ORDER BY rent.`period_year` DESC, rent.`period_month` DESC, rent.`id` DESC
+                      LIMIT :limit';
+            $statement = $this->database->pdo()->prepare($sql);
+            $this->bindIds($statement, 'property_id', $propertyIds);
+            if ($year !== null) {
+                $statement->bindValue(':year', $year, PDO::PARAM_INT);
+            }
+            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->normalizeRows($rows);
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     */
+    public function deleteRent(int $rentId, array $propertyIds): bool
+    {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        if ($rentId <= 0 || $propertyIds === []) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $rent = $this->findRentById($rentId);
+            $rentPropertyId = is_array($rent) && is_numeric($rent['rentalPropertyId'] ?? null)
+                ? (int) $rent['rentalPropertyId']
+                : 0;
+            if (!in_array($rentPropertyId, $propertyIds, true)) {
+                return false;
+            }
+
+            $this->database->pdo()->prepare(
+                sprintf('UPDATE `%s` SET `rental_rent_id` = NULL WHERE `rental_rent_id` = :id', $this->paymentsTable())
+            )->execute(['id' => $rentId]);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return $this->deleteRowByPropertyIds($this->rentsTable(), $rentId, $propertyIds);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
     public function createPayment(
         int $leaseId,
         int $propertyId,
@@ -395,13 +744,15 @@ final class RentalLifecycleRepository
         float $amountPaid,
         string $status,
         int $actorPrivateUserId,
-        ?string $notes = null
+        ?string $notes = null,
+        ?int $rentId = null
     ): ?array {
         $paymentDate = $this->normalizeDate($paymentDate);
         $status = $this->normalizeStatus($status, self::VALID_STATUSES);
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
         $amountDue = round($amountDue, 2);
         $amountPaid = round($amountPaid, 2);
+        $rentId = $rentId !== null && $rentId > 0 ? $rentId : null;
 
         if (
             $leaseId <= 0
@@ -423,18 +774,35 @@ final class RentalLifecycleRepository
 
         try {
             $this->ensureSchema();
+            if ($rentId === null && $amountDue > 0) {
+                $rent = $this->createRent(
+                    $leaseId,
+                    $propertyId,
+                    $unitId,
+                    $periodYear,
+                    $periodMonth,
+                    sprintf('%04d-%02d-01', $periodYear, $periodMonth),
+                    $amountDue,
+                    $status,
+                    $actorPrivateUserId,
+                    null
+                );
+                $rentId = is_array($rent) && is_numeric($rent['id'] ?? null) ? (int) $rent['id'] : null;
+            }
+
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`rental_lease_id`, `rental_property_id`, `rental_unit_id`, `payment_date`, `period_year`,
+                        (`rental_rent_id`, `rental_lease_id`, `rental_property_id`, `rental_unit_id`, `payment_date`, `period_year`,
                          `period_month`, `amount_due`, `amount_paid`, `status`, `notes`, `created_by_private_user_id`)
                      VALUES
-                        (:lease_id, :property_id, :unit_id, :payment_date, :period_year,
+                        (:rent_id, :lease_id, :property_id, :unit_id, :payment_date, :period_year,
                          :period_month, :amount_due, :amount_paid, :status, :notes, :created_by)',
                     $this->paymentsTable()
                 )
             );
             $statement->execute([
+                'rent_id' => $rentId,
                 'lease_id' => $leaseId,
                 'property_id' => $propertyId,
                 'unit_id' => $unitId,
@@ -496,16 +864,25 @@ final class RentalLifecycleRepository
                 'SELECT pmt.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`,
                         l.`start_date` AS `lease_start_date`,
                         l.`lease_type` AS `lease_type`,
-                        l.`tax_category` AS `tax_category`
+                        l.`tax_category` AS `tax_category`,
+                        rent.`period_year` AS `rent_period_year`,
+                        rent.`period_month` AS `rent_period_month`,
+                        rent.`amount_due` AS `rent_amount_due`,
+                        rent.`status` AS `rent_status`,
+                        t.`full_name` AS `tenant_name`
                  FROM `%s` pmt
                  INNER JOIN `%s` prop ON prop.`id` = pmt.`rental_property_id`
                  INNER JOIN `%s` u ON u.`id` = pmt.`rental_unit_id`
                  INNER JOIN `%s` l ON l.`id` = pmt.`rental_lease_id`
+                 LEFT JOIN `%s` rent ON rent.`id` = pmt.`rental_rent_id`
+                 LEFT JOIN `%s` t ON t.`id` = l.`rental_tenant_id`
                  WHERE pmt.`rental_property_id` IN (%s)',
                 $this->paymentsTable(),
                 $this->database->table('rental_properties'),
                 $this->database->table('rental_units'),
                 $this->leasesTable(),
+                $this->rentsTable(),
+                $this->tenantsTable(),
                 implode(',', $placeholders)
             );
             if ($year !== null) {
@@ -889,7 +1266,7 @@ final class RentalLifecycleRepository
     public function deleteLifecycleDataByPropertyIds(array $propertyIds): array
     {
         $propertyIds = $this->normalizeIds($propertyIds);
-        $deleted = ['tenants' => 0, 'leases' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0];
+        $deleted = ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0];
         if ($propertyIds === []) {
             return $deleted;
         }
@@ -903,6 +1280,7 @@ final class RentalLifecycleRepository
             $deleteDefinitions = [
                 'documents' => ['table' => $this->documentsTable(), 'sql' => 'UPDATE `%s` SET `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
                 'payments' => ['table' => $this->paymentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
+                'rents' => ['table' => $this->rentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'expenses' => ['table' => $this->expensesTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'leases' => ['table' => $this->leasesTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'tenants' => ['table' => $this->tenantsTable(), 'sql' => 'UPDATE `%s` SET `full_name` = \'Locataire supprime\', `email` = NULL, `phone` = NULL, `notes` = NULL, `status` = \'cancelled\', `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
@@ -921,7 +1299,7 @@ final class RentalLifecycleRepository
                 $pdo->rollBack();
             }
 
-            return ['tenants' => 0, 'leases' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0];
+            return ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0];
         }
 
         return $deleted;
@@ -954,6 +1332,22 @@ final class RentalLifecycleRepository
                            AND `start_date` <= :year_end
                            AND (`end_date` IS NULL OR `end_date` >= :year_start)',
                         $this->leasesTable(),
+                        implode(',', $placeholders)
+                    ),
+                    $propertyIds,
+                    $year
+                )
+            );
+            $issues = array_merge(
+                $issues,
+                $this->draftIssueRows(
+                    sprintf(
+                        'SELECT CONCAT("Loyer brouillon #", `id`) AS label
+                         FROM `%s`
+                         WHERE `rental_property_id` IN (%s)
+                           AND `status` = "draft"
+                           AND `period_year` = :year',
+                        $this->rentsTable(),
                         implode(',', $placeholders)
                     ),
                     $propertyIds,
@@ -1137,6 +1531,30 @@ final class RentalLifecycleRepository
                     `rental_lease_id` INT NOT NULL,
                     `rental_property_id` INT NOT NULL,
                     `rental_unit_id` INT NOT NULL,
+                    `period_year` SMALLINT NOT NULL,
+                    `period_month` TINYINT NOT NULL,
+                    `due_date` DATE NOT NULL,
+                    `amount_due` DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    `status` ENUM("draft", "validated", "cancelled") NOT NULL DEFAULT "draft",
+                    `notes` TEXT NULL,
+                    `created_by_private_user_id` INT NOT NULL,
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    KEY `idx_rental_rents_property_year` (`rental_property_id`, `period_year`, `status`),
+                    KEY `idx_rental_rents_lease` (`rental_lease_id`),
+                    KEY `idx_rental_rents_unit` (`rental_unit_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                $this->rentsTable()
+            )
+        );
+        $pdo->exec(
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS `%s` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `rental_rent_id` INT NULL,
+                    `rental_lease_id` INT NOT NULL,
+                    `rental_property_id` INT NOT NULL,
+                    `rental_unit_id` INT NOT NULL,
                     `payment_date` DATE NOT NULL,
                     `period_year` SMALLINT NOT NULL,
                     `period_month` TINYINT NOT NULL,
@@ -1148,12 +1566,15 @@ final class RentalLifecycleRepository
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     KEY `idx_rental_payments_property_year` (`rental_property_id`, `period_year`, `status`),
+                    KEY `idx_rental_payments_rent` (`rental_rent_id`),
                     KEY `idx_rental_payments_lease` (`rental_lease_id`),
                     KEY `idx_rental_payments_unit` (`rental_unit_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->paymentsTable()
             )
         );
+        $this->ensureColumn($pdo, $this->paymentsTable(), 'rental_rent_id', '`rental_rent_id` INT NULL AFTER `id`');
+        $this->ensureIndex($pdo, $this->paymentsTable(), 'idx_rental_payments_rent', '`rental_rent_id`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -1397,6 +1818,36 @@ final class RentalLifecycleRepository
         }
 
         return $value;
+    }
+
+    private function unitCanReceiveNewLease(int $propertyId, int $unitId): bool
+    {
+        if ($propertyId <= 0 || $unitId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT COUNT(*)
+                     FROM `%s`
+                     WHERE `id` = :unit_id
+                       AND `rental_property_id` = :property_id
+                       AND `is_active` = 1
+                       AND `status` = "available"',
+                    $this->database->table('rental_units')
+                )
+            );
+            $statement->execute([
+                'unit_id' => $unitId,
+                'property_id' => $propertyId,
+            ]);
+
+            return (int) $statement->fetchColumn() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

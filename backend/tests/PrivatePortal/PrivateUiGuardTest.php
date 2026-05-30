@@ -22,12 +22,16 @@ final class PrivateUiGuardTest extends TestCase
             '/\\.private-content\\s*\\{[^}]*max-width:\\s*calc\\(100% - var\\(--private-nav-width\\)\\);/s',
             $stylesheet
         );
-        self::assertStringContainsString('.private-main > .private-screen-notice', $stylesheet);
+        self::assertStringContainsString('.private-screen-notice', $stylesheet);
         self::assertStringContainsString('top: 4.35rem;', $stylesheet);
         self::assertStringContainsString(
             'grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));',
             $stylesheet
         );
+        self::assertStringContainsString('.private-module-dashboard', $stylesheet);
+        self::assertStringContainsString('.private-list-filter-grid', $stylesheet);
+        self::assertStringContainsString('.private-module-nav a.active', $stylesheet);
+        self::assertStringContainsString('background: #fff;', $stylesheet);
         self::assertMatchesRegularExpression(
             '/@media \\(width <= 900px\\)\\s*\\{.*?\\.private-nav\\s*\\{[^}]*position:\\s*static;/s',
             $stylesheet
@@ -46,8 +50,27 @@ final class PrivateUiGuardTest extends TestCase
     {
         $layout = $this->readRepoFile('backend/templates/private/layout.php');
 
-        self::assertSame(2, substr_count($layout, 'notice notice-success private-screen-notice" role="status"'));
-        self::assertSame(2, substr_count($layout, 'notice notice-error private-screen-notice" role="alert"'));
+        self::assertSame(1, substr_count($layout, 'notice notice-success private-screen-notice" role="status"'));
+        self::assertSame(1, substr_count($layout, 'notice notice-error private-screen-notice" role="alert"'));
+        self::assertStringNotContainsString('<main class="private-main">
+            <?php if ($noticeText !== null)', $layout);
+        self::assertGreaterThan(
+            strpos($layout, "TXT_PRIVATE_NAV_TAX"),
+            strpos($layout, "TXT_PRIVATE_SETTINGS_NAV"),
+            'Le menu Paramètres doit rester le dernier item privé.'
+        );
+        self::assertStringContainsString('data-private-filter-scope', $layout);
+        self::assertStringContainsString('data-private-filter-row', $layout);
+        self::assertStringContainsString('data-private-filter-empty', $layout);
+        self::assertStringContainsString("field instanceof HTMLSelectElement && key !== 'text'", $layout);
+    }
+
+    public function testRentalDashboardNavigationDoesNotExposeSubmenu(): void
+    {
+        $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');
+
+        self::assertStringContainsString('default => []', $template);
+        self::assertStringContainsString('<?php if ($subItems !== []): ?>', $template);
     }
 
     public function testAdminLayoutKeepsBackOfficeNavigationAndMessagesStable(): void
@@ -72,6 +95,8 @@ final class PrivateUiGuardTest extends TestCase
             '/@media \\(max-width: 720px\\)\\s*\\{.*?\\.admin-content\\s*\\{[^}]*max-width:\\s*100%;/s',
             $layout
         );
+        self::assertStringContainsString('data-admin-totp-generate', $layout);
+        self::assertStringContainsString('window.crypto.getRandomValues(bytes);', $layout);
     }
 
     public function testAdminPrivateMemberDestructiveDialogUsesCentralButtonHandlers(): void

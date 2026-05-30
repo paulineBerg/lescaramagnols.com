@@ -66,7 +66,7 @@ Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
 - cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
 - les modules prives peuvent envoyer des emails via cette configuration : documents locatifs en pieces jointes, quittance de loyer PDF depuis un paiement, PDF fiscal annuel et invitations FamilyDiscussion;
-- RealEstateRental permet maintenant la suppression individuelle des locataires, baux, paiements, charges et documents, ainsi que la suppression globale des documents ou des donnees locatives avec confirmation explicite `SUPPRIMER`;
+- RealEstateRental permet maintenant la suppression individuelle des locataires, baux, paiements, charges et documents, avec edition des baux depuis une popup `Modifier` qui conserve aussi l'action de suppression; la suppression globale des documents ou des donnees locatives reste protegee par confirmation explicite `SUPPRIMER`;
 - FamilyDiscussion permet l'invitation email d'un membre, la suppression d'un message, d'une piece jointe ou de tous les messages/fichiers envoyes par l'utilisateur dans une conversation;
 - dans le BO membres prives, un module deja affecte ne peut pas etre decoche tant que des informations rattachees existent; les comptes supprimes et neutralises peuvent etre reinvites sur une nouvelle adresse ou purges cote donnees, sans restaurer de donnees neutralisees;
 - aucune recuperation serveur des messages chiffres client n'est ajoutee : sans cle locale d'un appareil participant, le contenu chiffre reste illisible par conception.
@@ -176,7 +176,9 @@ Cette checklist s'applique a tout nouvel ecran admin ou prive et a toute modific
 4. Toute action JavaScript visible doit etre un vrai `<button type="button">`; toute action de formulaire doit etre un `<button type="submit">`.
 5. Une action destructive doit rester lisible, explicite et annulable : libelle de danger, etape de confirmation ou dialogue dedie, bouton d'annulation accessible clavier/souris.
 6. Les cartes, grilles, tableaux, boutons, liens d'action, medias et dialogues doivent supporter les largeurs `390px`, `768px` et desktop sans sortir de l'ecran.
-7. Les tests de garde `PrivateTemplateGuardTest` et `PrivateUiGuardTest` doivent etre lances quand un template prive, le layout admin, le layout prive ou `frontend/src/scss/private.scss` change.
+7. Chaque entree de menu prive doit ouvrir un tableau de bord representatif du module; les sous-pages de saisie restent accessibles depuis une liste, un filtre ou une action explicite.
+8. Les pages qui creent un item doivent afficher d'abord la liste filtrable existante; la creation passe par un bouton qui ouvre un dialogue ou une section courte, sans formulaire pleine hauteur en tete de page.
+9. Les tests de garde `PrivateTemplateGuardTest` et `PrivateUiGuardTest` doivent etre lances quand un template prive, le layout admin, le layout prive ou `frontend/src/scss/private.scss` change.
 
 ## 0.4 Observabilite exploitation privee
 
@@ -255,8 +257,8 @@ Portail prive famille
 +-- RGPD
 |
 +-- Module RealEstateRental
-|   +-- Biens
-|   +-- Lots
+|   +-- Proprietes
+|   +-- Biens locatifs
 |   +-- Locataires
 |   +-- Baux
 |   +-- Loyers
@@ -669,8 +671,8 @@ Contraintes :
 
 Le module gere :
 
-1. les biens ;
-2. les lots ;
+1. les proprietes, c'est-a-dire une adresse ou un ensemble immobilier ;
+2. les biens locatifs, c'est-a-dire une unite louable concrete rattachee a une propriete ;
 3. les proprietaires ou membres concernes ;
 4. les locataires ;
 5. les baux ;
@@ -697,12 +699,12 @@ Ce mode s'adresse au proprietaire qui gere lui-meme tout le cycle locatif apres 
 
 Fonctions ciblees :
 
-1. dossier du bien, des lots, des proprietaires associes et des locataires ;
+1. dossier des proprietes, des biens locatifs, des proprietaires associes et des locataires ;
 2. contrat de location prerempli selon le type de bail : habitation principale, meuble, garage, parking, commercial ou professionnel ;
 3. acte de caution solidaire prerempli quand une caution est rattachee au bail ;
 4. modeles d'etats des lieux preremplis, modifiables, imprimables et rattachables au bail ;
 5. suivi des diagnostics techniques : DPE, electricite, gaz, risques, amiante, plomb et dates de validite ;
-6. edition du contrat de location a partir des donnees du bien, du lot, du locataire et des conditions du bail ;
+6. edition du contrat de location a partir des donnees de la propriete, du bien locatif, du locataire et des conditions du bail ;
 7. generation de l'echeancier selon la periodicite du bail : mensuelle, trimestrielle, semestrielle ou annuelle ;
 8. gestion des loyers a terme a echoir ou a terme echu ;
 9. enregistrement des loyers attendus, loyers encaisses, paiements partiels, retards et trop-percus ;
@@ -1029,6 +1031,8 @@ Progression codee au 2026-05-27 :
 10. [x] creer l'ecran `/private/locations/agence/imports` pour uploader, lister, dedoublonner et classifier ;
 11. [x] creer l'ecran `/private/locations/agence/documents-a-classer` pour revue et validation humaine detaillee ;
 12. [x] ajouter les actions de revue humaine minimales : valider, corriger, ignorer ;
+12bis. [x] separer les documents a revoir et les imports recents en deux onglets, puis permettre la suppression d'un document agence avec nettoyage des lignes, anomalies et fichier stocke ;
+12ter. [x] permettre un rattachement par ligne agence a une propriete et a un bien locatif, avec une propriete de document conservee comme fallback ;
 13. [ ] implementer `CoproFundCallParser` et `CoproChargeRegularizationParser` ;
 14. [x] brancher le `TaxBridge` sur les lignes agence validees uniquement via `AgencyTaxBridgeNormalizer` ;
 15. [ ] ajouter les actions avancees de revue : fractionner, fusionner doublon, resoudre une anomalie ;
@@ -1392,6 +1396,7 @@ rental_units
 rental_property_members
 rental_tenants
 rental_leases
+rental_rents
 rental_payments
 rental_expenses
 rental_documents
@@ -1435,7 +1440,7 @@ Regles de stockage :
 7. les documents generes envoyes doivent garder un snapshot immuable, meme si le modele evolue ensuite ;
 8. les calculs annuels doivent pouvoir etre rejoues depuis les donnees sources et compares a un snapshot exporte ;
 9. chaque document importe doit avoir une empreinte `sha256`, une taille, un type MIME verifie et un statut d'extraction ;
-10. les documents d'agence doivent pouvoir etre rattaches a plusieurs objets metier quand un dossier PDF regroupe bail, annexes, diagnostics et justificatifs.
+10. les documents d'agence doivent pouvoir etre rattaches a plusieurs objets metier quand un dossier PDF regroupe bail, annexes, diagnostics, justificatifs ou plusieurs biens sur un meme releve ; le rattachement fiscal prioritaire se fait alors ligne par ligne.
 
 ### 6.6 Categories de charges
 
@@ -1517,9 +1522,13 @@ Routes recommandees :
 Implementation actuelle :
 
 1. `/private/locations` est le tableau de bord locatif et le point d'entree du module ;
-2. le menu haut sticky separe `Tableau de bord`, `Gestion perso`, `Gestion agence` et `Rapports` ;
-3. le sous-menu depend de la section active pour eviter le melange entre saisie proprietaire et imports agence ;
-4. les pages historiques gardent leurs routes techniques actuelles (`/private/rental-properties`, `/private/rental-units`, `/private/rental-property-members`, `/private/locations/locataires`, `/private/leases`, `/private/payments`, `/private/charges`) tant que les shims propres ne sont pas migres.
+2. le menu haut sticky separe `Tableau de bord`, `Biens et locations`, `Documents agence` et `Rapports`, sans sous-menu sur le tableau de bord ;
+3. le sous-menu depend de la section active pour eviter le melange entre saisie proprietaire et imports agence, avec des onglets actifs discrets sans bandeau colore dominant ;
+4. le vocabulaire fonctionnel est `Proprietes` pour `rental_properties` et `Biens locatifs` pour `rental_units` ;
+5. un bien locatif porte son type (`apartment`, `house`, `garage`, `parking`, `commercial_space`, `room`, `storage`, `other`), une surface, le statut meuble ou non, sa disponibilite (`available` ou `unavailable`) et des reperes optionnels d'adresse, batiment, etage ou porte ;
+6. `Disponible` signifie qu'un bail peut etre cree ; `Indisponible` bloque la creation de bail, par exemple pendant des travaux ; un bien locatif qui possede deja un bail actif (`draft` ou `validated`) n'est pas propose dans la creation d'un nouveau bail ;
+7. une maison louee en entier peut etre saisie comme une propriete avec un bien locatif `Maison entiere` cree automatiquement ;
+8. les pages historiques gardent leurs routes techniques actuelles (`/private/rental-properties`, `/private/rental-units`, `/private/rental-property-members`, `/private/locations/locataires`, `/private/leases`, `/private/payments`, `/private/charges`) tant que les shims propres ne sont pas migres.
 
 Les ecrans doivent etre denses, lisibles et utilisables sur mobile, sans effet marketing ni decoration inutile. Les actions sensibles utilisent confirmation, CSRF, permission serveur et audit.
 
@@ -1590,7 +1599,7 @@ Le module doit donc produire par annee :
 Annee fiscale
 Statut : brouillon / genere / verrouille
 Sources activees manuellement
-Biens et lots concernes
+Proprietes et biens locatifs concernes
 Regime fiscal indique par l'utilisateur : nu, meuble, SCI, mixte, non renseigne
 Loyers encaisses valides
 Revenus manuels valides
@@ -1674,11 +1683,12 @@ Liaison activee par source code `real_estate_rental`.
 
 | Donnee RealEstateRental | Condition d'inclusion | Ligne TaxDeclarationHelper | Controle |
 | --- | --- | --- | --- |
-| `rental_payments.amount_paid` | paiement `validated`, annee de periode cible, bien autorise | `income`, libelle `Loyers encaisses`, origine `rental_payments` | brouillons ou paiements partiels signales par la synthese locative |
-| `rental_payments.amount_due - amount_paid` | paiement valide avec impaye | metadonnee de controle, pas revenu encaisse | verifier relances et solde locataire |
+| `rental_rents.amount_due` | loyer `validated`, annee de periode cible, bien autorise | metadonnee de controle, pas revenu encaisse | base de calcul des impayes et paiements partiels |
+| `rental_payments.amount_paid` | paiement `validated`, rattache a un loyer ou a un ancien enregistrement combine, bien autorise | `income`, libelle `Loyers encaisses`, origine `rental_payments` | brouillons ou paiements partiels signales par la synthese locative |
+| `rental_rents.amount_due - somme(rental_payments.amount_paid)` | loyer valide avec solde restant | metadonnee de controle, pas revenu encaisse | verifier relances et solde locataire |
 | `rental_expenses.amount` | depense `validated`, `is_deductible_candidate = 1` | `expense`, libelle `Charges potentiellement deductibles`, origine `rental_expenses` | l'utilisateur confirme la deductibilite reelle |
 | `rental_expenses.is_recoverable` | depense recuperable | metadonnee de controle | ne pas additionner deux fois charge locataire et charge proprietaire |
-| `rental_agency_statement_lines` | ligne agence validee et normalisee fiscalement | revenu ou charge selon mapping | revue humaine obligatoire avant pont fiscal |
+| `rental_agency_statement_lines` | ligne agence validee et normalisee fiscalement, rattachee a sa propriete ligne par ligne avec fallback document | revenu ou charge selon mapping | revue humaine obligatoire avant pont fiscal |
 | `rental_documents` | justificatif rattache au bien | suppression de l'alerte document manquant | alerte si revenus/charges sans justificatif |
 | `rental_leases` | bail valide sur l'annee | contexte d'occupation | incoherence si paiement hors bail ou bail brouillon |
 
@@ -2702,8 +2712,8 @@ Clôture phase 5 / bascule phase 6 :
 
 Checklist :
 
-- [x] Creer `rental_tenants`, `rental_leases`, `rental_payments`, `rental_expenses`, `rental_documents`.
-- [x] Ajouter ecrans locataires, baux, loyers, charges, documents.
+- [x] Creer `rental_tenants`, `rental_leases`, `rental_rents`, `rental_payments`, `rental_expenses`, `rental_documents`.
+- [x] Ajouter ecrans locataires, baux, loyers, paiements, charges, documents.
 - [x] Distinguer charges recuperables et charges potentiellement deductibles.
 - [x] Ajouter statuts brouillon/valide/annule.
 - [x] Empecher la generation fiscale depuis des donnees brouillon.
@@ -3216,20 +3226,20 @@ Routes privees PHP actuelles :
 | Categories documents | POST | `/{private}/files/categories` | `files_categories` | session + module `documents` | validation, csrf, conflict |
 | Fichiers documents | POST | `/{private}/files/{documentId}/delete` | `files_delete` | session + module `documents` + proprietaire | validation, csrf, not_found |
 | Locations | GET | `/{private}/locations` | `rental_dashboard` | session + module `real_estate_rental` | forbidden |
-| Locations | GET, POST | `/{private}/rental-properties` | `rental_properties` | module `real_estate_rental` | validation, csrf |
+| Locations | GET, POST | `/{private}/rental-properties` | `rental_properties` | module `real_estate_rental`, proprietes | validation, csrf |
 | Locations | POST | `/{private}/rental-properties/{propertyId}/archive` | `rental_property_archive` | proprietaire/gestionnaire | validation, csrf, forbidden |
-| Locations | GET, POST | `/{private}/rental-units` | `rental_units` | acces bien | validation, csrf |
-| Locations | POST | `/{private}/rental-units/{unitId}/archive` | `rental_unit_archive` | acces bien | validation, csrf, forbidden |
+| Locations | GET, POST | `/{private}/rental-units` | `rental_units` | acces propriete, biens locatifs | validation, csrf |
+| Locations | POST | `/{private}/rental-units/{unitId}/archive` | `rental_unit_archive` | acces propriete | validation, csrf, forbidden |
 | Locations | GET, POST | `/{private}/rental-property-members` | `rental_property_members` | proprietaire/gestionnaire | validation, csrf, forbidden |
-| Locations | GET, POST | `/{private}/locations/locataires` | `rental_tenants` | acces bien | validation, csrf |
-| Locations | GET, POST | `/{private}/leases` | `rental_leases` | acces bien | validation, csrf |
-| Locations | GET, POST | `/{private}/payments` | `rental_payments` | acces bail/bien | validation, csrf |
-| Locations | GET, POST | `/{private}/rents` | `rental_payments` | acces bail/bien | validation, csrf |
-| Locations | GET, POST | `/{private}/charges` | `rental_expenses` | acces bien | validation, csrf |
-| Locations | GET, POST | `/{private}/locations/documents` | `rental_documents` | acces bien | validation, csrf, storage |
+| Locations | GET, POST | `/{private}/locations/locataires` | `rental_tenants` | acces propriete et bien locatif | validation, csrf |
+| Locations | GET, POST | `/{private}/leases` | `rental_leases` | acces propriete et bien locatif | validation, csrf |
+| Locations | GET, POST | `/{private}/rents` | `rental_rents` | acces bail/propriete | validation, csrf |
+| Locations | GET, POST | `/{private}/payments` | `rental_payments` | acces loyer/propriete | validation, csrf |
+| Locations | GET, POST | `/{private}/charges` | `rental_expenses` | acces propriete et bien locatif optionnel | validation, csrf |
+| Locations | GET, POST | `/{private}/locations/documents` | `rental_documents` | acces propriete et bien locatif optionnel | validation, csrf, storage |
 | Agence | GET, POST | `/{private}/locations/agence/imports` | `rental_agency_imports` | module `real_estate_rental` | validation, csrf, storage |
 | Agence | GET, POST | `/{private}/locations/agence/documents-a-classer` | `rental_agency_review` | module `real_estate_rental` | validation, csrf |
-| Locations | GET | `/{private}/locations/documents/{documentId}` | `rental_document_file` | acces bien/document | not_found, forbidden |
+| Locations | GET | `/{private}/locations/documents/{documentId}` | `rental_document_file` | acces propriete/document | not_found, forbidden |
 | Locations | GET | `/{private}/locations/summary` | `rental_summary` | module `real_estate_rental` | forbidden |
 | Locations | GET | `/{private}/locations/export.csv` | `rental_export_csv` | module `real_estate_rental` | forbidden, export |
 | Locations | GET | `/{private}/locations/export.pdf` | `rental_export_pdf` | module `real_estate_rental` | forbidden, export |
@@ -3263,7 +3273,7 @@ Tables privees et proprietaires fonctionnels :
 | Documents | `private_document_categories`, `private_documents` | Module `documents`, proprietaire `private_user_id` |
 | Bloc-note | `private_blocnote_categories`, `private_blocnote_notes` | Module `blocnote`, proprietaire `private_user_id` |
 | Discussions chiffrees | `discussion_conversations`, `discussion_conversation_members`, `discussion_messages`, `discussion_message_reads`, `discussion_message_attachments`, `discussion_crypto_devices`, `discussion_conversation_keys`, `discussion_retention_runs` | Module `discussions`, acces par membre conversation |
-| Locations socle | `rental_properties`, `rental_units`, `rental_property_members`, `rental_tenants`, `rental_leases`, `rental_payments`, `rental_expenses`, `rental_documents`, `rental_export_logs` | Module `real_estate_rental`, acces par membre de bien |
+| Locations socle | `rental_properties`, `rental_units`, `rental_property_members`, `rental_tenants`, `rental_leases`, `rental_rents`, `rental_payments`, `rental_expenses`, `rental_documents`, `rental_export_logs` | Module `real_estate_rental`, acces par membre de propriete |
 | Imports agence | `rental_agency_import_batches`, `rental_agency_imported_documents`, `rental_agency_import_issues`, `rental_agency_statements`, `rental_agency_statement_lines`, `rental_agency_line_mappings` | Sous-domaine agence du module locations |
 | Aide impots | `tax_years`, `tax_income_sources`, `tax_source_activations`, `tax_manual_income_entries`, `tax_annual_summaries`, `tax_summary_lines`, `tax_export_logs` | Module `tax_declaration_helper`, proprietaire `private_user_id` |
 
@@ -3331,11 +3341,11 @@ Contrats API cibles. En M1, ces contrats guident la modernisation ; les routes P
 | Discussions | `/api/private/discussions/conversations/{id}/messages` | GET, POST | message chiffre, pieces jointes | messages/livraison | membre conversation |
 | Discussions | `/api/private/discussions/crypto/devices` | GET, POST | device id, cle publique | appareil enregistre | module `discussions` |
 | Rental | `/api/private/rental/properties` | GET, POST | bien, adresse, type | bien/liste | module `real_estate_rental` |
-| Rental | `/api/private/rental/units` | GET, POST | bien, lot | lot/liste | acces bien |
-| Rental | `/api/private/rental/tenants` | GET, POST | locataire | locataire/liste | acces bien |
-| Rental | `/api/private/rental/leases` | GET, POST | bail | bail/liste | acces bien |
-| Rental | `/api/private/rental/payments` | GET, POST | echeance/paiement | paiement/liste | acces bien |
-| Rental | `/api/private/rental/expenses` | GET, POST | charge | charge/liste | acces bien |
+| Rental | `/api/private/rental/units` | GET, POST | propriete, bien locatif | bien locatif/liste | acces propriete |
+| Rental | `/api/private/rental/tenants` | GET, POST | locataire | locataire/liste | acces propriete |
+| Rental | `/api/private/rental/leases` | GET, POST | bail | bail/liste | acces propriete |
+| Rental | `/api/private/rental/payments` | GET, POST | echeance/paiement | paiement/liste | acces propriete |
+| Rental | `/api/private/rental/expenses` | GET, POST | charge | charge/liste | acces propriete |
 | Agency import | `/api/private/rental/agency/imports` | POST | fichiers agence | lot d'import | module `real_estate_rental` |
 | Agency import | `/api/private/rental/agency/review` | GET, POST | lignes a classer | rapprochement sauvegarde | module `real_estate_rental` |
 | Tax | `/api/private/tax/years` | GET, POST | annee | annee fiscale | module `tax_declaration_helper` |

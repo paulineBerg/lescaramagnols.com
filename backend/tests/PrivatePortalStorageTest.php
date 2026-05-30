@@ -736,8 +736,10 @@ final class PrivatePortalStorageTest extends TestCase
         $stored = $storage->storeUploadedFile($validated, $documentId);
         $this->assertIsArray($stored);
         $this->cleanupUploadFixture($valid['tmp_name']);
-        $this->assertSame('payload', file_get_contents((string) $storage->absolutePath((string) $stored['storagePath'])));
-        $storage->deleteStoredDocument((string) $stored['storagePath'], $documentId);
+        $absolutePath = (string) $storage->absolutePath((string) $stored['storagePath']);
+        $this->assertSame('payload', file_get_contents($absolutePath));
+        $this->assertTrue($storage->deleteStoredDocumentByDocumentId($documentId));
+        $this->assertFileDoesNotExist($absolutePath);
     }
 
     private function seedDocument(

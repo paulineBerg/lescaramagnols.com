@@ -39,6 +39,7 @@ final class PrivateBackupService
         'rental_property_members',
         'rental_tenants',
         'rental_leases',
+        'rental_rents',
         'rental_payments',
         'rental_expenses',
         'rental_documents',

@@ -2,8 +2,11 @@
 $years = is_array($viewModel['taxYears'] ?? null) ? $viewModel['taxYears'] : [];
 $currentYear = is_numeric($viewModel['taxCurrentYear'] ?? null) ? (int) $viewModel['taxCurrentYear'] : (int) date('Y');
 $baseUrl = is_string($viewModel['taxBaseUrl'] ?? null) ? (string) $viewModel['taxBaseUrl'] : private_portal_url('tax_dashboard');
+$year = $currentYear;
+$taxCurrentSubsection = 'dashboard';
 ?>
 <section>
+  <?php include __DIR__ . '/_nav.php'; ?>
   <p class="notice">Aide non officielle : cette synthese ne remplace pas une declaration fiscale ni un conseil professionnel.</p>
   <section class="card">
     <h2>Années fiscales</h2>

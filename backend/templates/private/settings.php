@@ -23,17 +23,56 @@ $fullName = is_string($profile['fullName'] ?? null) ? (string) $profile['fullNam
 $postalAddress = is_string($profile['postalAddress'] ?? null) ? (string) $profile['postalAddress'] : '';
 $phone = is_string($profile['phone'] ?? null) ? (string) $profile['phone'] : '';
 $changeEmailAddress = 'private@lescaramagnols.com';
+$completedProfileFields = 0;
+foreach ([$fullName, $postalAddress, $phone] as $profileField) {
+    if (trim($profileField) !== '') {
+        ++$completedProfileFields;
+    }
+}
+$profileCompletion = (int) round(($completedProfileFields / 3) * 100);
 ?>
 
-<section class="card private-card-wide">
-  <span class="tag"><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_TAG', 'Compte membre')); ?></span>
-  <h2><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_TITLE', 'Paramètres membre')); ?></h2>
-  <p class="muted">
-    <?php echo $escape($translate('TXT_PRIVATE_SETTINGS_INTRO', 'Ces informations sont facultatives et restent rattachées à votre compte privé.')); ?>
-  </p>
+<section class="private-module-dashboard">
+  <div class="private-list-header">
+    <div>
+      <span class="tag"><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_TAG', 'Compte membre')); ?></span>
+      <h2><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_TITLE', 'Paramètres membre')); ?></h2>
+      <p class="muted">
+        <?php echo $escape($translate('TXT_PRIVATE_SETTINGS_INTRO', 'Ces informations sont facultatives et restent rattachées à votre compte privé.')); ?>
+      </p>
+    </div>
+    <button type="button" class="private-create-button" data-private-dialog-open="private-settings-profile-dialog">
+      <?php echo $escape($translate('TXT_PRIVATE_SETTINGS_EDIT', 'Modifier mes informations')); ?>
+    </button>
+  </div>
 
-  <form method="post" action="<?php echo $escape($formAction); ?>" autocomplete="on" novalidate>
-    <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+  <div class="private-dashboard-summary">
+    <section class="private-dashboard-panel">
+      <h3><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_EMAIL_LABEL', 'Email de connexion')); ?></h3>
+      <p><strong><?php echo $escape($email !== '' ? $email : '—'); ?></strong></p>
+      <p class="muted"><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_EMAIL_DASHBOARD_HELP', 'Changement uniquement sur demande sécurisée.')); ?></p>
+    </section>
+    <section class="private-dashboard-panel">
+      <h3><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_PROFILE_STATE', 'Profil')); ?></h3>
+      <p><strong><?php echo $escape((string) $profileCompletion); ?> %</strong></p>
+      <p class="muted"><?php echo $escape($completedProfileFields . '/3 champs renseignés'); ?></p>
+    </section>
+    <section class="private-dashboard-panel">
+      <h3><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_CONTACT', 'Contact changement email')); ?></h3>
+      <p><a href="mailto:<?php echo $escape($changeEmailAddress); ?>"><?php echo $escape($changeEmailAddress); ?></a></p>
+      <p class="muted"><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_CONTACT_HELP', 'L’adresse de connexion reste protégée hors formulaire.')); ?></p>
+    </section>
+  </div>
+</section>
+
+<dialog class="private-dialog" id="private-settings-profile-dialog" aria-labelledby="private-settings-profile-title">
+  <div class="private-dialog-panel">
+    <header class="private-dialog-header">
+      <h3 id="private-settings-profile-title"><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_EDIT', 'Modifier mes informations')); ?></h3>
+      <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="<?php echo $escape($translate('TXT_PRIVATE_COMMON_CLOSE', 'Fermer')); ?>">×</button>
+    </header>
+    <form method="post" action="<?php echo $escape($formAction); ?>" autocomplete="on" novalidate>
+      <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
 
     <div>
       <label for="member-profile-email"><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_EMAIL_LABEL', 'Email de connexion')); ?></label>
@@ -62,5 +101,6 @@ $changeEmailAddress = 'private@lescaramagnols.com';
     <div class="private-actions">
       <button type="submit"><?php echo $escape($translate('TXT_PRIVATE_SETTINGS_SAVE', 'Enregistrer')); ?></button>
     </div>
-  </form>
-</section>
+    </form>
+  </div>
+</dialog>

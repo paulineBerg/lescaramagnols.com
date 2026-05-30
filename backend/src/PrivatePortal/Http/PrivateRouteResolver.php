@@ -207,7 +207,7 @@ final class PrivateRouteResolver
             [
                 'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('rental_rents'),
-                'handler' => ['type' => 'private', 'page' => 'rental_payments'],
+                'handler' => ['type' => 'private', 'page' => 'rental_rents'],
             ],
             [
                 'methods' => ['GET', 'POST'],

@@ -10,6 +10,8 @@ final class AgencyStatementLine
         public readonly int $id,
         public readonly int $statementId,
         public readonly int $importedDocumentId,
+        public readonly ?int $rentalPropertyId,
+        public readonly ?int $rentalUnitId,
         public readonly string $rawLabel,
         public readonly string $mappedCategory,
         public readonly string $mappingStatus,
@@ -62,6 +64,8 @@ final class AgencyStatementLine
             $id,
             $statementId,
             $importedDocumentId,
+            self::intOrNull($row['rental_property_id'] ?? null),
+            self::intOrNull($row['rental_unit_id'] ?? null),
             $rawLabel,
             $mappedCategory,
             $mappingStatus,
@@ -92,6 +96,8 @@ final class AgencyStatementLine
             'id' => $this->id,
             'statementId' => $this->statementId,
             'importedDocumentId' => $this->importedDocumentId,
+            'rentalPropertyId' => $this->rentalPropertyId,
+            'rentalUnitId' => $this->rentalUnitId,
             'rawLabel' => $this->rawLabel,
             'mappedCategory' => $this->mappedCategory,
             'mappingStatus' => $this->mappingStatus,
@@ -116,6 +122,16 @@ final class AgencyStatementLine
     private static function floatOrNull(mixed $value): ?float
     {
         return is_numeric($value) ? round((float) $value, 2) : null;
+    }
+
+    private static function intOrNull(mixed $value): ?int
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $value = (int) $value;
+        return $value > 0 ? $value : null;
     }
 
     private static function nullableString(mixed $value): ?string

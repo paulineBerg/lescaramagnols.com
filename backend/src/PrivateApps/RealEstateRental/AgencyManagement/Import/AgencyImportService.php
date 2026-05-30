@@ -87,7 +87,8 @@ final class AgencyImportService
             $batch->id,
             $preview,
             (string) $stored['documentId'],
-            $agencyName
+            $agencyName,
+            (string) $stored['storagePath']
         );
 
         if (!$document instanceof \Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyImportedDocument) {

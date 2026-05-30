@@ -38,8 +38,15 @@ final class AgencyImportRepositoryTest extends TestCase
                 'text/plain'
             );
 
-            $document = $repository->persistPreview($batch->id, $preview, 'private-doc-001', 'ASG IMMOBILIER');
+            $document = $repository->persistPreview(
+                $batch->id,
+                $preview,
+                'private-doc-001',
+                'ASG IMMOBILIER',
+                'uploads/aa/bb/private-doc-001.txt'
+            );
             $this->assertNotNull($document);
+            $this->assertSame('uploads/aa/bb/private-doc-001.txt', $document->storagePath);
             $this->assertSame(AgencyDocumentType::ASG_MANAGEMENT_STATEMENT, $document->detectedDocumentType);
             $this->assertSame('asg-releve-gerance-v1', $document->parserProfile);
             $this->assertTrue($document->containsSensitiveData);
@@ -78,21 +85,50 @@ final class AgencyImportRepositoryTest extends TestCase
             $this->assertSame('review', $corrected->mappingStatus);
             $this->assertSame(24.5, $corrected->debitAmount);
 
-            $validated = $repository->reviewStatementLine(1, $lines[0]->id, 'validate');
+            $validated = $repository->reviewStatementLine(1, $lines[0]->id, 'validate', [
+                'rental_property_id' => '84',
+                'rental_unit_id' => '12',
+                'mapped_category' => 'rent_income',
+                'period_start' => '2025-02-01',
+                'period_end' => '2025-02-28',
+                'amount' => '662,87',
+                'debit_amount' => '',
+                'credit_amount' => '662,87',
+            ]);
             $ignored = $repository->reviewStatementLine(1, $lines[1]->id, 'ignore');
             $this->assertNotNull($validated);
             $this->assertNotNull($ignored);
             $this->assertSame('validated', $validated->mappingStatus);
+            $this->assertSame(84, $validated->rentalPropertyId);
+            $this->assertSame(12, $validated->rentalUnitId);
             $this->assertSame('ignored', $ignored->mappingStatus);
 
             $fiscalLines = $repository->listValidatedFiscalLines(2025, [42]);
+            $this->assertSame([], $fiscalLines);
+            $fiscalLines = $repository->listValidatedFiscalLines(2025, [84]);
             $this->assertCount(1, $fiscalLines);
             $this->assertSame('rent_income', $fiscalLines[0]['mapped_category'] ?? null);
-            $this->assertSame(42, (int) ($fiscalLines[0]['rental_property_id'] ?? 0));
+            $this->assertSame(84, (int) ($fiscalLines[0]['rental_property_id'] ?? 0));
+            $this->assertSame(12, (int) ($fiscalLines[0]['rental_unit_id'] ?? 0));
 
             $reviewedDocument = $repository->reviewDocumentForUser(1, $document->id);
             $this->assertIsArray($reviewedDocument);
             $this->assertSame('validated', $reviewedDocument['reviewStatus'] ?? null);
+
+            $this->assertNull($repository->deleteImportedDocumentForUser(2, $document->id));
+            $this->assertNotNull($repository->findImportedDocumentById($document->id));
+
+            $deleted = $repository->deleteImportedDocumentForUser(1, $document->id);
+            $this->assertNotNull($deleted);
+            $this->assertSame('private-doc-001', $deleted->privateDocumentId);
+            $this->assertNull($repository->findImportedDocumentById($document->id));
+            $this->assertNull($repository->findStatementByImportedDocumentId($document->id));
+            $this->assertSame([], $repository->listStatementLines($statement->id));
+            $this->assertSame([], $repository->listIssues($document->id));
+            $this->assertSame([], $repository->listRecentDocumentsForUser(1));
+            $batches = $repository->listRecentBatches(1);
+            $this->assertCount(1, $batches);
+            $this->assertSame(0, $batches[0]->fileCount);
         } finally {
             @unlink($sourcePath);
         }

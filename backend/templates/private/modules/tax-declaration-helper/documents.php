@@ -7,9 +7,10 @@ $csrfToken = is_string($viewModel['taxCsrfToken'] ?? null) ? (string) $viewModel
 $notice = is_string($viewModel['taxNotice'] ?? null) ? (string) $viewModel['taxNotice'] : '';
 $error = is_string($viewModel['taxError'] ?? null) ? (string) $viewModel['taxError'] : '';
 $mailDefaults = is_array($viewModel['taxMailDefaults'] ?? null) ? $viewModel['taxMailDefaults'] : [];
+$taxCurrentSubsection = 'documents';
 ?>
 <section>
-  <p class="muted"><a href="<?php echo htmlspecialchars((string) ($urls['year'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Retour synthese <?php echo htmlspecialchars((string) $year, ENT_QUOTES, 'UTF-8'); ?></a></p>
+  <?php include __DIR__ . '/_nav.php'; ?>
   <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 

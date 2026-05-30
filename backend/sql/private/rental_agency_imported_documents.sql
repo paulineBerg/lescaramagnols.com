@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS car_rental_agency_imported_documents (
     id INT AUTO_INCREMENT PRIMARY KEY,
     batch_id INT NOT NULL,
     private_document_id VARCHAR(64) NULL,
+    storage_path VARCHAR(255) NULL,
     filename VARCHAR(255) NOT NULL,
     mime_type VARCHAR(120) NULL,
     file_size INT NULL,

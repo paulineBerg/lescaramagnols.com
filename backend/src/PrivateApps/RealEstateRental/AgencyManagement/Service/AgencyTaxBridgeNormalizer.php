@@ -129,6 +129,7 @@ final class AgencyTaxBridgeNormalizer
             'table' => 'rental_agency_statement_lines',
             'id' => $this->integer($line['id'] ?? 0),
             'propertyId' => $this->integer($line['rental_property_id'] ?? 0),
+            'unitId' => $this->integer($line['rental_unit_id'] ?? 0),
             'documentId' => $this->integer($line['imported_document_id'] ?? 0),
             'statementId' => $this->integer($line['statement_id'] ?? 0),
             'sourcePage' => $this->integer($line['source_page'] ?? 1),

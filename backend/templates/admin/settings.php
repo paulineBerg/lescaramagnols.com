@@ -768,6 +768,16 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
               <?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>
             </button>
           </div>
+          <div class="actions-inline admin-secret-actions">
+            <button
+              type="button"
+              class="button-muted button-small"
+              data-admin-totp-generate
+              aria-controls="admin_totp_secret"
+            >
+              <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_GENERATE', 'Générer un secret aléatoire'), ENT_QUOTES, 'UTF-8'); ?>
+            </button>
+          </div>
           <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_HELP', 'Laisser vide pour conserver le secret actuel. Pour désactiver le TOTP, décoche simplement la case ci-dessus'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($admin['totpSecretConfigured']) ? ' (' . htmlspecialchars($translate('TXT_ADMIN_SETTINGS_PASSWORD_ALREADY_SET', 'déjà enregistré'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>. <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_FORMAT_HELP', 'Activation possible uniquement avec un secret Base32 valide (A-Z, 2-7), au moins 16 caractères.'), ENT_QUOTES, 'UTF-8'); ?></small>
         </div>
         <div class="settings-dialog__grid">
