@@ -223,6 +223,9 @@ final class PrivatePortalMembersTest extends TestCase
 
     public function testMfaTotpAcceptsCurrentCode(): void
     {
+        global $appConfig;
+
+        $appConfig['private']['mfa_totp_enabled'] = true;
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
         $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);

@@ -255,6 +255,81 @@ final class AdminControllerTest extends TestCase
         $this->assertSame('Accès privé', $siteOverride['private']['mail']['templates']['admin_invite_subject'] ?? null);
     }
 
+    public function testPrivateMembersEmailTabKeepsSmtpPasswordWhenMaskIsSubmitted(): void
+    {
+        global $appConfig;
+
+        $appConfig['private']['mail']['smtp_password'] = 'existing-smtp-secret';
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'private_members',
+            $this->request(
+                'POST',
+                '/admin/parametres/espace-prive',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'private_member_action' => 'mail_settings',
+                    'private_members_tab' => 'email',
+                    'private_mail' => [
+                        'enabled' => '1',
+                        'smtp_host' => 'ssl0.ovh.net',
+                        'smtp_port' => '465',
+                        'smtp_encryption' => 'ssl',
+                        'smtp_user' => 'ne-pas-repondre@lescaramagnols.com',
+                        'smtp_password' => '**********',
+                        'from_address' => 'ne-pas-repondre@lescaramagnols.com',
+                        'from_name' => 'Les Caramagnols',
+                        'reply_to' => 'private@lescaramagnols.com',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertFileExists($this->siteOverrideFile);
+
+        $siteOverride = require $this->siteOverrideFile;
+        $this->assertSame('existing-smtp-secret', $siteOverride['private']['mail']['smtp_password'] ?? null);
+    }
+
+    public function testPrivateMembersTabSavesPrivateSecuritySettings(): void
+    {
+        global $appConfig;
+
+        $appConfig['private']['mfa_totp_enabled'] = false;
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+        $token = admin_csrf_token();
+
+        $response = $controller->handle(
+            'private_members',
+            $this->request(
+                'POST',
+                '/admin/parametres/espace-prive',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'private_member_action' => 'security_settings',
+                    'private_members_tab' => 'members',
+                    'private_security' => [
+                        'mfa_totp_enabled' => '1',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin/parametres/espace-prive', $response->headers['Location'] ?? null);
+        $this->assertFileExists($this->siteOverrideFile);
+
+        $siteOverride = require $this->siteOverrideFile;
+        $this->assertTrue($siteOverride['private']['mfa_totp_enabled'] ?? false);
+        $this->assertTrue($appConfig['private']['mfa_totp_enabled']);
+    }
+
     public function testTilesPageRendersDuplicateSuccessFlashMessage(): void
     {
         admin_login('admin@example.com', 'topsecret');
@@ -2515,6 +2590,13 @@ final class AdminControllerTest extends TestCase
 
     public function testSettingsPageRendersOperationSettingsForm(): void
     {
+        global $appConfig;
+
+        $appConfig['database']['password'] = 'configured-database-secret';
+        $appConfig['admin']['totp_secret'] = 'JBSWY3DPEHPK3PXP';
+        $appConfig['site']['discussions']['recaptcha']['secret_key'] = 'configured-recaptcha-secret';
+        $appConfig['site']['instagram']['access_token'] = 'configured-instagram-token';
+
         admin_login('admin@example.com', 'topsecret');
         $controller = $this->controller();
 
@@ -2557,6 +2639,17 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('name="backup[database_user]"', $response->body);
         $this->assertStringContainsString('name="backup[database_password]"', $response->body);
         $this->assertStringContainsString('Connexion SQL utilisee par le site et par le dump mysqldump', $response->body);
+        $this->assertStringContainsString('id="database_password" name="database[password]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('id="admin_password" name="admin[password]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('id="admin_totp_secret" name="admin[totp_secret]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('id="discussion_recaptcha_secret_key" name="discussions[recaptcha_secret_key]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('id="instagram_access_token" name="instagram[access_token]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('id="backup-database-password" name="backup[database_password]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('data-admin-secret-mask="true"', $response->body);
+        $this->assertStringContainsString('data-admin-password-toggle', $response->body);
+        $this->assertStringNotContainsString('configured-database-secret', $response->body);
+        $this->assertStringNotContainsString('configured-recaptcha-secret', $response->body);
+        $this->assertStringNotContainsString('configured-instagram-token', $response->body);
         $this->assertStringContainsString('id="cron-center-ovh-command"', $response->body);
         $this->assertStringContainsString('id="cron-center-history"', $response->body);
         $this->assertStringContainsString('run_cron_center.php', $response->body);
@@ -2731,6 +2824,57 @@ final class AdminControllerTest extends TestCase
         $this->assertSame('CarBDbase', $databaseOverride['name'] ?? null);
         $this->assertSame('db_user_example', $databaseOverride['user'] ?? null);
         $this->assertSame('sql-backup-secret', $databaseOverride['password'] ?? null);
+    }
+
+    public function testSettingsBackupSectionKeepsDatabasePasswordWhenMaskIsSubmitted(): void
+    {
+        global $appConfig;
+
+        $appConfig['database'] = [
+            'host' => 'db123.example-host.tld',
+            'port' => 35987,
+            'name' => 'CarBDbase',
+            'user' => 'db_user_example',
+            'password' => 'existing-sql-backup-secret',
+            'charset' => 'utf8mb4',
+        ];
+        $backupRoot = sys_get_temp_dir() . '/caramagnols-admin-backup-root-' . bin2hex(random_bytes(4));
+
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'settings_section' => 'backup',
+                    'settings_action' => 'backup_save',
+                    'backup' => [
+                        'root_dir' => $backupRoot,
+                        'retention_days' => '21',
+                        'files_dir' => $backupRoot . '/archives',
+                        'sql_dir' => $backupRoot . '/dumps',
+                        'manifest_dir' => $backupRoot . '/manifestes',
+                        'php_binary' => 'php',
+                        'tar_binary' => 'tar',
+                        'mysqldump_binary' => 'mysqldump',
+                        'database_host' => 'db123.example-host.tld',
+                        'database_port' => '35987',
+                        'database_name' => 'CarBDbase',
+                        'database_user' => 'db_user_example',
+                        'database_password' => '**********',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Paramètres de backup sauvegardés.', $response->body);
+        $this->assertFileDoesNotExist($this->databaseOverrideFile);
     }
 
     public function testSettingsBackupSectionRejectsUnwritableRoot(): void
@@ -3013,6 +3157,108 @@ final class AdminControllerTest extends TestCase
         $this->assertSame('Blog des Caramagnols (admin)', $siteOverride['i18n_overrides']['fr']['TXT_BLOG_SITE_TITLE'] ?? null);
         $this->assertSame('Envoyer maintenant', $siteOverride['i18n_overrides']['fr']['TXT_CONTACT_SUBMIT'] ?? null);
         $this->assertSame('Caramagnols Blog', $siteOverride['i18n_overrides']['en']['TXT_BLOG_SITE_TITLE'] ?? null);
+    }
+
+    public function testSettingsPostKeepsExistingSecretsWhenMaskIsSubmitted(): void
+    {
+        global $appConfig;
+
+        $appConfig['database'] = [
+            'host' => '127.0.0.1',
+            'port' => 3306,
+            'name' => 'existing_db',
+            'user' => 'existing_user',
+            'password' => 'existing-db-secret',
+            'charset' => 'utf8mb4',
+        ];
+        $appConfig['database_prefix'] = 'car_';
+        $appConfig['admin']['password_hash'] = password_hash('topsecret', PASSWORD_DEFAULT);
+        $appConfig['admin']['totp_enabled'] = false;
+        $appConfig['admin']['totp_secret'] = 'JBSWY3DPEHPK3PXP';
+        $appConfig['site']['discussions']['recaptcha'] = [
+            'enabled' => true,
+            'mode' => 'v2_checkbox',
+            'site_key' => 'existing-site-key',
+            'secret_key' => 'existing-recaptcha-secret',
+            'minimum_score' => 0.5,
+            'timeout_seconds' => 8,
+        ];
+        $appConfig['site']['instagram'] = [
+            'enabled' => true,
+            'username' => 'paulineetnoel',
+            'user_id' => '17841400011122233',
+            'access_token' => 'existing-instagram-token',
+            'limit' => 6,
+            'rotation_interval_ms' => 5500,
+            'cache_ttl_seconds' => 1800,
+            'timeout_seconds' => 8,
+        ];
+
+        admin_login('admin@example.com', 'topsecret');
+        $appConfig['admin']['totp_enabled'] = true;
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'settings',
+            $this->request(
+                'POST',
+                '/admin/settings',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'database' => [
+                        'host' => '127.0.0.1',
+                        'port' => '3306',
+                        'name' => 'existing_db',
+                        'user' => 'existing_user',
+                        'password' => '**********',
+                        'prefix' => 'car_',
+                    ],
+                    'admin' => [
+                        'identifier' => 'admin@example.com',
+                        'password' => '**********',
+                        'allowed_ips' => '',
+                        'totp_enabled' => '1',
+                        'totp_secret' => '**********',
+                        'inactivity_timeout_seconds' => '1200',
+                        'reauth_timeout_seconds' => '600',
+                    ],
+                    'discussions' => [
+                        'recaptcha_enabled' => '1',
+                        'recaptcha_mode' => 'v2_checkbox',
+                        'recaptcha_site_key' => 'existing-site-key',
+                        'recaptcha_secret_key' => '**********',
+                    ],
+                    'instagram' => [
+                        'enabled' => '1',
+                        'username' => 'paulineetnoel',
+                        'user_id' => '17841400011122233',
+                        'access_token' => '**********',
+                        'limit' => '6',
+                        'rotation_interval_ms' => '5500',
+                        'cache_ttl_seconds' => '1800',
+                        'timeout_seconds' => '8',
+                    ],
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Paramètres d’exploitation sauvegardés.', $response->body);
+        $this->assertFileExists($this->databaseOverrideFile);
+        $this->assertFileExists($this->adminOverrideFile);
+        $this->assertFileExists($this->siteOverrideFile);
+
+        $databaseOverride = require $this->databaseOverrideFile;
+        $adminOverride = require $this->adminOverrideFile;
+        $siteOverride = require $this->siteOverrideFile;
+
+        $this->assertSame('existing-db-secret', $databaseOverride['password'] ?? null);
+        $this->assertTrue(password_verify('topsecret', (string) ($adminOverride['password_hash'] ?? '')));
+        $this->assertFalse(password_verify('**********', (string) ($adminOverride['password_hash'] ?? '')));
+        $this->assertSame('JBSWY3DPEHPK3PXP', $adminOverride['totp_secret'] ?? null);
+        $this->assertSame('existing-recaptcha-secret', $siteOverride['discussions']['recaptcha']['secret_key'] ?? null);
+        $this->assertSame('existing-instagram-token', $siteOverride['instagram']['access_token'] ?? null);
     }
 
     public function testSettingsValidationErrorReopensSubmittedPopup(): void

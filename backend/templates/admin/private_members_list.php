@@ -4,6 +4,7 @@ $memberEmailChoices = is_array($privateMemberEmailChoices ?? null) ? array_value
 $stats = is_array($privateMembersStats ?? null) ? $privateMembersStats : [];
 $moduleRegistry = is_array($privateModuleRegistry ?? null) ? $privateModuleRegistry : [];
 $privateMail = is_array($privateMail ?? null) ? $privateMail : [];
+$privateSecurity = is_array($privateSecurity ?? null) ? $privateSecurity : [];
 $privateMailTemplates = is_array($privateMail['templates'] ?? null) ? $privateMail['templates'] : [];
 $privateMailTemplateCatalog = is_array($privateMail['templateCatalog'] ?? null) ? $privateMail['templateCatalog'] : [];
 $privateMailCommonVariables = is_array($privateMail['commonVariables'] ?? null) ? array_values(array_filter($privateMail['commonVariables'], 'is_string')) : [];
@@ -44,6 +45,20 @@ $translate = static function (string $key, string $fallback): string {
 };
 
 $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+$renderSecretToggleButton = static function (string $inputId) use ($translate, $escape): string {
+    $showLabel = $escape($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'));
+    $hideLabel = $escape($translate('TXT_ADMIN_PASSWORD_HIDE', 'Masquer'));
+    $safeInputId = $escape($inputId);
+
+    return sprintf(
+        '<button class="admin-password-toggle" type="button" data-admin-password-toggle data-admin-password-show="%s" data-admin-password-hide="%s" aria-controls="%s" aria-pressed="false">%s</button>',
+        $showLabel,
+        $hideLabel,
+        $safeInputId,
+        $showLabel
+    );
+};
+$secretMaskAttribute = static fn (bool $configured): string => $configured ? ' data-admin-secret-mask="true"' : '';
 
 $statusLabels = [
     'invited' => $translate('TXT_ADMIN_PRIVATE_MEMBER_STATUS_INVITED', 'Invité'),
@@ -130,8 +145,11 @@ $statusLabels = [
       </div>
       <div class="field">
         <label for="private_mail_smtp_password"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD', 'Mot de passe SMTP')); ?></label>
-        <input id="private_mail_smtp_password" name="private_mail[smtp_password]" type="password" value="" autocomplete="new-password" />
-        <small><?php echo $escape(!empty($privateMail['smtpPasswordConfigured']) ? $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_SET', 'Laisser vide pour conserver le mot de passe enregistré.') : $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_EMPTY', 'Renseigner le mot de passe avant activation en production.')); ?></small>
+        <div class="admin-password-field">
+          <input id="private_mail_smtp_password" name="private_mail[smtp_password]" type="password" value="<?php echo $escape((string) ($privateMail['smtpPassword'] ?? '')); ?>" autocomplete="new-password"<?php echo $secretMaskAttribute(!empty($privateMail['smtpPasswordConfigured'])); ?> />
+          <?php echo $renderSecretToggleButton('private_mail_smtp_password'); ?>
+        </div>
+        <small><?php echo $escape(!empty($privateMail['smtpPasswordConfigured']) ? $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_SET', 'Laisser les ********** ou vider le champ pour conserver le mot de passe enregistré.') : $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_EMPTY', 'Renseigner le mot de passe avant activation en production.')); ?></small>
       </div>
       <div class="field">
         <label for="private_mail_from_address"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_FROM', 'Adresse expéditeur')); ?></label>
@@ -230,6 +248,19 @@ $statusLabels = [
     );
     ?>
   </p>
+
+  <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="filters-form admin-private-security-form" autocomplete="off" novalidate>
+    <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+    <input type="hidden" name="private_member_action" value="security_settings" />
+    <input type="hidden" name="private_members_tab" value="members" />
+    <label class="admin-private-mail-toggle">
+      <input type="hidden" name="private_security[mfa_totp_enabled]" value="0" />
+      <input type="checkbox" name="private_security[mfa_totp_enabled]" value="1"<?php echo !empty($privateSecurity['mfaTotpEnabled']) ? ' checked' : ''; ?> />
+      <span><?php echo $escape($translate('TXT_ADMIN_PRIVATE_SECURITY_2FA_LABEL', 'Code 2FA')); ?></span>
+    </label>
+    <small><?php echo $escape($translate('TXT_ADMIN_PRIVATE_SECURITY_2FA_HELP', 'Lorsque le Code 2FA est désactivé, le champ n’apparaît pas sur le formulaire de connexion privé.')); ?></small>
+    <button type="submit"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_SAVE', 'Enregistrer')); ?></button>
+  </form>
 
   <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="filters-form" aria-label="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_INVITE_FORM', 'Inviter un membre privé')); ?>">
     <div class="inline-form">

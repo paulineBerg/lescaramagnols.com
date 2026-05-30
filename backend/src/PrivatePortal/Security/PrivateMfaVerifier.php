@@ -14,7 +14,8 @@ final class PrivateMfaVerifier
             return false;
         }
 
-        return $this->truthy($user['mfa_enabled'] ?? null)
+        return (bool) app_config('private.mfa_totp_enabled', false)
+            && $this->truthy($user['mfa_enabled'] ?? null)
             && $this->secret($user) !== '';
     }
 

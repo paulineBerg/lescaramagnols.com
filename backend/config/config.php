@@ -712,7 +712,7 @@ $appConfig = [
             FILTER_NULL_ON_FAILURE
         ) ?? false,
         'mfa_totp_enabled' => filter_var(
-            env('PRIVATE_MFA_TOTP_ENABLED', false),
+            $sitePrivateOverride['mfa_totp_enabled'] ?? env('PRIVATE_MFA_TOTP_ENABLED', false),
             FILTER_VALIDATE_BOOLEAN,
             FILTER_NULL_ON_FAILURE
         ) ?? false,

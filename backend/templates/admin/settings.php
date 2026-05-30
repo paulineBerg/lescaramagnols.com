@@ -32,6 +32,21 @@ $translate = static function (string $key, string $fallback): string {
 
     return $translated;
 };
+$renderSecretToggleButton = static function (string $inputId) use ($translate): string {
+    $showLabel = htmlspecialchars($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8');
+    $hideLabel = htmlspecialchars($translate('TXT_ADMIN_PASSWORD_HIDE', 'Masquer'), ENT_QUOTES, 'UTF-8');
+    $safeInputId = htmlspecialchars($inputId, ENT_QUOTES, 'UTF-8');
+
+    return sprintf(
+        '<button class="admin-password-toggle" type="button" data-admin-password-toggle data-admin-password-show="%s" data-admin-password-hide="%s" aria-controls="%s" aria-pressed="false">%s</button>',
+        $showLabel,
+        $hideLabel,
+        $safeInputId,
+        $showLabel
+    );
+};
+$secretMask = '**********';
+$secretMaskAttribute = static fn (bool $configured): string => $configured ? ' data-admin-secret-mask="true"' : '';
 $adminInterfaceLanguage = function_exists('admin_interface_language') ? admin_interface_language() : 'fr';
 $settingChoiceLabels = [
     'orientation' => [
@@ -203,8 +218,8 @@ $adminAllowedIpsSummary = $adminAllowedIps === []
     );
 $adminTotpEnabled = !empty($admin['totpEnabled']);
 $adminTotpSummary = $adminTotpEnabled
-    ? $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_ENABLED', '2FA TOTP actif')
-    : $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_DISABLED', '2FA TOTP inactif');
+    ? $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_ENABLED', 'Code 2FA actif')
+    : $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_DISABLED', 'Code 2FA inactif');
 $adminTotpSecretSummary = !empty($admin['totpSecretConfigured'])
     ? $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_SET', 'secret enregistré')
     : $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_MISSING', 'secret absent');
@@ -629,7 +644,10 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
           </div>
           <div class="field">
             <label for="database_password"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_DATABASE_PASSWORD_LABEL', 'Mot de passe SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
-            <input id="database_password" name="database[password]" type="password" value="" autocomplete="new-password" />
+            <div class="admin-password-field">
+              <input id="database_password" name="database[password]" type="password" value="<?php echo htmlspecialchars((string) ($database['password'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="new-password"<?php echo $secretMaskAttribute(!empty($database['passwordConfigured'])); ?> />
+              <?php echo $renderSecretToggleButton('database_password'); ?>
+            </div>
             <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_DATABASE_PASSWORD_HELP', 'Masqué côté interface. Laisser vide pour conserver la valeur enregistrée'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($database['passwordConfigured']) ? ' (' . htmlspecialchars((string) ($database['passwordMask'] ?? '********'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>.</small>
           </div>
           <div class="field">
@@ -706,7 +724,20 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
         </div>
         <div class="field">
           <label for="admin_password"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_PASSWORD_LABEL', 'Mot de passe admin'), ENT_QUOTES, 'UTF-8'); ?></label>
-          <input id="admin_password" name="admin[password]" type="password" value="" autocomplete="new-password" />
+          <div class="admin-password-field">
+            <input id="admin_password" name="admin[password]" type="password" value="<?php echo htmlspecialchars((string) ($admin['password'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="new-password"<?php echo $secretMaskAttribute(!empty($admin['passwordConfigured'])); ?> />
+            <button
+              class="admin-password-toggle"
+              type="button"
+              data-admin-password-toggle
+              data-admin-password-show="<?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>"
+              data-admin-password-hide="<?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_HIDE', 'Masquer'), ENT_QUOTES, 'UTF-8'); ?>"
+              aria-controls="admin_password"
+              aria-pressed="false"
+            >
+              <?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>
+            </button>
+          </div>
           <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_PASSWORD_HELP', 'Hashé avant sauvegarde. Laisser vide pour conserver le mot de passe actuel'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($admin['passwordConfigured']) ? ' (' . htmlspecialchars($translate('TXT_ADMIN_SETTINGS_PASSWORD_ALREADY_SET', 'déjà enregistré'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>.</small>
         </div>
         <div class="field">
@@ -718,13 +749,26 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
           <label class="checkbox-field">
             <input type="hidden" name="admin[totp_enabled]" value="0" />
             <input type="checkbox" name="admin[totp_enabled]" value="1"<?php echo !empty($admin['totpEnabled']) ? ' checked' : ''; ?> />
-            <span><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_ENABLED_LABEL', 'Activer le 2FA TOTP (désactivé automatiquement en localhost)'), ENT_QUOTES, 'UTF-8'); ?></span>
+            <span><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_ENABLED_LABEL', 'Activer le Code 2FA pour l’admin (désactivé par défaut)'), ENT_QUOTES, 'UTF-8'); ?></span>
           </label>
         </div>
         <div class="field">
-          <label for="admin_totp_secret"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_LABEL', 'Secret TOTP (Base32)'), ENT_QUOTES, 'UTF-8'); ?></label>
-          <input id="admin_totp_secret" name="admin[totp_secret]" type="password" value="" autocomplete="new-password" placeholder="JBSWY3DPEHPK3PXP" />
-          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_HELP', 'Laisser vide pour conserver le secret actuel'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($admin['totpSecretConfigured']) ? ' (' . htmlspecialchars($translate('TXT_ADMIN_SETTINGS_PASSWORD_ALREADY_SET', 'déjà enregistré'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>. <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_FORMAT_HELP', 'Format attendu: Base32 (A-Z, 2-7), au moins 16 caractères.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          <label for="admin_totp_secret"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_LABEL', 'Secret Code 2FA (Base32)'), ENT_QUOTES, 'UTF-8'); ?></label>
+          <div class="admin-password-field">
+            <input id="admin_totp_secret" name="admin[totp_secret]" type="password" value="<?php echo htmlspecialchars((string) ($admin['totpSecret'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="new-password" placeholder="JBSWY3DPEHPK3PXP"<?php echo $secretMaskAttribute(!empty($admin['totpSecretConfigured'])); ?> />
+            <button
+              class="admin-password-toggle"
+              type="button"
+              data-admin-password-toggle
+              data-admin-password-show="<?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>"
+              data-admin-password-hide="<?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_HIDE', 'Masquer'), ENT_QUOTES, 'UTF-8'); ?>"
+              aria-controls="admin_totp_secret"
+              aria-pressed="false"
+            >
+              <?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>
+            </button>
+          </div>
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_HELP', 'Laisser vide pour conserver le secret actuel. Pour désactiver le TOTP, décoche simplement la case ci-dessus'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($admin['totpSecretConfigured']) ? ' (' . htmlspecialchars($translate('TXT_ADMIN_SETTINGS_PASSWORD_ALREADY_SET', 'déjà enregistré'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>. <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_FORMAT_HELP', 'Activation possible uniquement avec un secret Base32 valide (A-Z, 2-7), au moins 16 caractères.'), ENT_QUOTES, 'UTF-8'); ?></small>
         </div>
         <div class="settings-dialog__grid">
           <div class="field">
@@ -1031,7 +1075,10 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
           </div>
           <div class="field">
             <label for="discussion_recaptcha_secret_key"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_DISCUSSIONS_RECAPTCHA_SECRET_KEY_LABEL', 'reCAPTCHA Secret Key'), ENT_QUOTES, 'UTF-8'); ?></label>
-            <input id="discussion_recaptcha_secret_key" name="discussions[recaptcha_secret_key]" type="password" value="" autocomplete="new-password" />
+            <div class="admin-password-field">
+              <input id="discussion_recaptcha_secret_key" name="discussions[recaptcha_secret_key]" type="password" value="<?php echo htmlspecialchars((string) ($discussions['recaptchaSecretKey'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="new-password"<?php echo $secretMaskAttribute(!empty($discussions['recaptchaSecretKeyConfigured'])); ?> />
+              <?php echo $renderSecretToggleButton('discussion_recaptcha_secret_key'); ?>
+            </div>
             <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_DISCUSSIONS_RECAPTCHA_SECRET_KEY_HELP', 'Laisser vide pour conserver la clé actuelle'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($discussions['recaptchaSecretKeyConfigured']) ? ' (' . htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECRET_KEY_REGISTERED', 'enregistrée'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>.</small>
           </div>
           <div class="field">
@@ -1087,7 +1134,10 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
           </div>
           <div class="field">
             <label for="instagram_access_token"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_INSTAGRAM_ACCESS_TOKEN_LABEL', 'Access Token Instagram'), ENT_QUOTES, 'UTF-8'); ?></label>
-            <input id="instagram_access_token" name="instagram[access_token]" type="password" value="" autocomplete="new-password" />
+            <div class="admin-password-field">
+              <input id="instagram_access_token" name="instagram[access_token]" type="password" value="<?php echo htmlspecialchars((string) ($instagram['accessToken'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="new-password"<?php echo $secretMaskAttribute(!empty($instagram['accessTokenConfigured'])); ?> />
+              <?php echo $renderSecretToggleButton('instagram_access_token'); ?>
+            </div>
             <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_INSTAGRAM_ACCESS_TOKEN_HELP', 'Laisser vide pour conserver le token actuel'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($instagram['accessTokenConfigured']) ? ' (' . htmlspecialchars($translate('TXT_ADMIN_SETTINGS_TOKEN_REGISTERED', 'enregistré'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>.</small>
           </div>
           <div class="field">
@@ -1245,7 +1295,10 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
           </div>
           <div class="field">
             <label for="backup-database-password"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PASSWORD_LABEL', 'Mot de passe SQL'), ENT_QUOTES, 'UTF-8'); ?></label>
-            <input id="backup-database-password" name="backup[database_password]" type="password" value="" autocomplete="new-password" />
+            <div class="admin-password-field">
+              <input id="backup-database-password" name="backup[database_password]" type="password" value="<?php echo $backupDatabasePasswordConfigured ? htmlspecialchars($secretMask, ENT_QUOTES, 'UTF-8') : ''; ?>" autocomplete="new-password"<?php echo $secretMaskAttribute($backupDatabasePasswordConfigured); ?> />
+              <?php echo $renderSecretToggleButton('backup-database-password'); ?>
+            </div>
             <small>
               <?php echo $backupDatabasePasswordConfigured
                   ? htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BACKUP_DATABASE_PASSWORD_KEEP_HELP', 'Mot de passe déjà enregistré. Laisse vide pour le conserver, remplis uniquement pour le remplacer.'), ENT_QUOTES, 'UTF-8')
@@ -1665,7 +1718,7 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
     <div class="region-modal__body settings-dialog__body">
       <ul class="settings-dialog__list">
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_PASSWORD_HASHED', 'Le mot de passe admin est hashé via password_hash() avant écriture.'), ENT_QUOTES, 'UTF-8'); ?></li>
-        <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_TOTP_LOCALHOST', 'Le 2FA TOTP peut être activé et reste automatiquement bypassé en localhost.'), ENT_QUOTES, 'UTF-8'); ?></li>
+        <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_TOTP_LOCALHOST', 'Le Code 2FA est désactivé par défaut, activable depuis les paramètres admin, et bypassé en localhost quand le bypass local est configuré.'), ENT_QUOTES, 'UTF-8'); ?></li>
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_SESSION_TIMEOUT', 'La session admin coupe automatiquement après inactivité (20 min par défaut).'), ENT_QUOTES, 'UTF-8'); ?></li>
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_REAUTH', 'Les actions sensibles forcent une ré-authentification périodique.'), ENT_QUOTES, 'UTF-8'); ?></li>
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_DATABASE_PASSWORD', 'Le mot de passe BDD n’est jamais réaffiché dans l’interface.'), ENT_QUOTES, 'UTF-8'); ?></li>

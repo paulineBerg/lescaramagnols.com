@@ -5,6 +5,72 @@ Date de reference : 2026-03-21
 Ce runbook complete la checklist V1 avec des commandes executables.
 Il sert de guide de verification avant mise en ligne puis en J+1/J+7.
 
+## 0) Discipline local / preprod
+
+La preprod valide le comportement reel, mais le depot local reste la source de verite applicative.
+Tout changement durable teste en preprod doit exister localement avant le prochain deploiement.
+
+Ce qui doit rester aligne local -> preprod:
+- code PHP, templates, CSS/JS sources, migrations, outils CLI et documentation utile
+- assets sources sous `frontend/src/**` et assets publies regeneres par le build
+- schema SQL ou payload editorial explicitement choisi pour la recette
+
+Ce qui ne doit pas etre rendu identique:
+- `.env`, `backend/config/*.override.php`, secrets, tokens et mots de passe
+- logs, caches, backups, sessions, permissions serveur, crons et donnees runtime propres a l'environnement
+- fixtures de recette preprod declarees jetables
+
+Avant deploy preprod:
+
+```bash
+git status --short
+```
+
+Si le changement touche le frontend ou les images publiques:
+
+```bash
+cd frontend && npm run build
+```
+
+Puis controler les assets publies et les references editoriales avant l'envoi:
+
+```bash
+php backend/core/tools/check_vite_assets.php --public-root=backend/public
+php backend/core/tools/check_editorial_media.php --check-published-assets
+```
+
+Deploiement preprod depuis le local, en preferant le perimetre indexe Git pour eviter d'envoyer des changements non lies:
+
+```bash
+git add <fichiers-backend-a-deployer>
+REMOTE_HOST=ovh-boutique \
+REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend \
+SITEMAP_BASE_URL=https://preprod.lescaramagnols.com \
+bash backend/tools/deploy-fast.sh
+```
+
+Utiliser `--all-changes` seulement si le diff local est volontairement isole et relu.
+Si le deploy ne concerne que le frontend publie, `deploy-fast.sh` peut sortir sans action faute de fichier `backend/` stage; dans ce cas, apres `npm run build`, synchroniser explicitement l'arbre publie:
+
+```bash
+REMOTE_HOST=ovh-boutique \
+REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend \
+bash backend/tools/sync-published-frontend-tree.sh
+```
+
+Apres deploy, rejouer les controles du domaine touche puis un smoke HTTP sur les URLs modifiees.
+
+Si une correction a ete faite directement en preprod:
+- identifier le ou les fichiers ou donnees touches
+- reconstruire la correction en local ou rapatrier seulement les fichiers cibles hors secrets/runtime
+- verifier le diff local avec `git diff`
+- relancer les validations locales adaptees
+- redeployer depuis le local pour que preprod redevienne le reflet applicatif du depot
+
+Pour du contenu SQL/editorial cree ou corrige en preprod via l'admin, ne pas le recopier a la main dans deux environnements.
+Il faut choisir explicitement: fixture jetable de recette, export a garder, ou synchronisation vers l'environnement source de verite.
+Dans tous les cas, noter la decision dans la preuve de recette si le contenu peut influencer un futur deploy.
+
 ## 1) Go-Live (avant bascule)
 
 1. Verifier la configuration production (hors Git) :

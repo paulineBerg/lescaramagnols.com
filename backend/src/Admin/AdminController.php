@@ -545,6 +545,11 @@ final class AdminController
                     $body,
                     admin_current_identifier()
                 );
+            } elseif ($action === 'security_settings') {
+                $result = $this->settingsService->savePrivateSecurity(
+                    $body,
+                    admin_current_identifier()
+                );
             } elseif ($action === 'download_backup') {
                 $result = $this->privateMembersService->downloadDeletionBackup($body, admin_current_identifier());
                 if (($result['success'] ?? false) === true) {
@@ -599,6 +604,7 @@ final class AdminController
                 'privateModuleRegistry' => is_array($viewModel['moduleRegistry'] ?? null) ? $viewModel['moduleRegistry'] : [],
                 'privateMembersActiveTab' => $privateMembersActiveTab,
                 'privateMail' => $this->settingsService->privateMailViewModel(),
+                'privateSecurity' => $this->settingsService->privateSecurityViewModel(),
                 'message' => $message,
                 'error' => $error,
                 'csrfToken' => admin_csrf_token(),

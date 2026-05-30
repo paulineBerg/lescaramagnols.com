@@ -14,6 +14,8 @@ use Caramagnols\Support\PhpCliBinary;
 
 final class AdminSettingsService
 {
+    private const SECRET_FIELD_MASK = '**********';
+
     private AppEventLogger $eventLogger;
     private ?InstagramFeedService $instagramFeedService;
     private AdminTranslationSettingsManager $translationSettingsManager;
@@ -98,7 +100,7 @@ final class AdminSettingsService
             'smtpHost' => (string) ($privateMail['smtpHost'] ?? 'ssl0.ovh.net'),
             'smtpPort' => (int) ($privateMail['smtpPort'] ?? 465),
             'smtpUser' => (string) ($privateMail['smtpUser'] ?? 'ne-pas-repondre@lescaramagnols.com'),
-            'smtpPassword' => '',
+            'smtpPassword' => $this->secretFieldDisplayValue($privateMailPasswordConfigured),
             'smtpPasswordConfigured' => $privateMailPasswordConfigured,
             'smtpEncryption' => (string) ($privateMail['smtpEncryption'] ?? 'ssl'),
             'fromAddress' => (string) ($privateMail['fromAddress'] ?? 'ne-pas-repondre@lescaramagnols.com'),
@@ -349,6 +351,23 @@ final class AdminSettingsService
         return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
     }
 
+    private function secretFormValue(mixed $value): string
+    {
+        $secret = (string) $value;
+
+        return $this->isSecretFieldMask($secret) ? '' : $secret;
+    }
+
+    private function secretFieldDisplayValue(bool $configured): string
+    {
+        return $configured ? self::SECRET_FIELD_MASK : '';
+    }
+
+    private function isSecretFieldMask(string $value): bool
+    {
+        return preg_match('/^\*{6,}$/', trim($value)) === 1;
+    }
+
     private function normalizeBooleanValue(mixed $value, bool $fallback): bool
     {
         if ($value === null) {
@@ -423,7 +442,7 @@ final class AdminSettingsService
             'recaptchaEnabled' => $this->postBoolean($payload, 'recaptcha_enabled', $this->normalizeBooleanValue($fallback['recaptchaEnabled'] ?? false, false)),
             'recaptchaMode' => trim((string) ($payload['recaptcha_mode'] ?? ($fallback['recaptchaMode'] ?? DiscussionRecaptchaMode::V2_CHECKBOX))),
             'recaptchaSiteKey' => trim((string) ($payload['recaptcha_site_key'] ?? ($fallback['recaptchaSiteKey'] ?? ''))),
-            'recaptchaSecretKey' => trim((string) ($payload['recaptcha_secret_key'] ?? '')),
+            'recaptchaSecretKey' => $this->secretFormValue($payload['recaptcha_secret_key'] ?? ''),
             'recaptchaMinimumScore' => (string) ($payload['recaptcha_minimum_score'] ?? ($fallback['recaptchaMinimumScore'] ?? 0.5)),
             'recaptchaTimeoutSeconds' => (string) ($payload['recaptcha_timeout_seconds'] ?? ($fallback['recaptchaTimeoutSeconds'] ?? 8)),
             'recaptchaSecretKeyFallback' => trim((string) ($fallback['recaptchaSecretKey'] ?? '')),
@@ -440,7 +459,7 @@ final class AdminSettingsService
             'enabled' => $this->postBoolean($payload, 'enabled', $this->normalizeBooleanValue($fallback['enabled'] ?? false, false)),
             'username' => ltrim(trim((string) ($payload['username'] ?? ($fallback['username'] ?? ''))), '@'),
             'userId' => trim((string) ($payload['user_id'] ?? ($fallback['userId'] ?? ''))),
-            'accessToken' => trim((string) ($payload['access_token'] ?? '')),
+            'accessToken' => $this->secretFormValue($payload['access_token'] ?? ''),
             'limit' => (string) ($payload['limit'] ?? ($fallback['limit'] ?? 6)),
             'rotationIntervalMs' => (string) ($payload['rotation_interval_ms'] ?? ($fallback['rotationIntervalMs'] ?? 5500)),
             'cacheTtlSeconds' => (string) ($payload['cache_ttl_seconds'] ?? ($fallback['cacheTtlSeconds'] ?? 1800)),
@@ -487,7 +506,7 @@ final class AdminSettingsService
             'smtpHost' => trim((string) ($payload['smtp_host'] ?? ($fallback['smtpHost'] ?? 'ssl0.ovh.net'))),
             'smtpPort' => trim((string) ($payload['smtp_port'] ?? ($fallback['smtpPort'] ?? 465))),
             'smtpUser' => trim((string) ($payload['smtp_user'] ?? ($fallback['smtpUser'] ?? 'ne-pas-repondre@lescaramagnols.com'))),
-            'smtpPassword' => (string) ($payload['smtp_password'] ?? ''),
+            'smtpPassword' => $this->secretFormValue($payload['smtp_password'] ?? ''),
             'smtpPasswordFallback' => (string) ($fallback['smtpPasswordFallback'] ?? ''),
             'smtpEncryption' => strtolower(trim((string) ($payload['smtp_encryption'] ?? ($fallback['smtpEncryption'] ?? 'ssl')))),
             'fromAddress' => trim((string) ($payload['from_address'] ?? ($fallback['fromAddress'] ?? 'ne-pas-repondre@lescaramagnols.com'))),
@@ -1088,15 +1107,15 @@ final class AdminSettingsService
             'port' => trim((string) ($databasePayload['port'] ?? app_config('database.port', 3306))),
             'name' => trim((string) ($databasePayload['name'] ?? app_config('database.name', ''))),
             'user' => trim((string) ($databasePayload['user'] ?? app_config('database.user', ''))),
-            'password' => (string) ($databasePayload['password'] ?? ''),
+            'password' => $this->secretFormValue($databasePayload['password'] ?? ''),
             'prefix' => trim((string) ($databasePayload['prefix'] ?? app_config('database_prefix', 'car_'))),
         ];
         $adminForm = [
             'identifier' => trim((string) ($adminPayload['identifier'] ?? $this->configuredAdminIdentifier())),
-            'password' => (string) ($adminPayload['password'] ?? ''),
+            'password' => $this->secretFormValue($adminPayload['password'] ?? ''),
             'allowedIps' => trim((string) ($adminPayload['allowed_ips'] ?? implode(', ', $this->configuredAdminAllowedIps()))),
             'totpEnabled' => $this->postBoolean($adminPayload, 'totp_enabled', $this->configuredAdminTotpEnabled()),
-            'totpSecret' => trim((string) ($adminPayload['totp_secret'] ?? '')),
+            'totpSecret' => $this->secretFormValue($adminPayload['totp_secret'] ?? ''),
             'totpSecretFallback' => $this->configuredAdminTotpSecret(),
             'inactivityTimeoutSeconds' => trim((string) ($adminPayload['inactivity_timeout_seconds'] ?? $this->configuredAdminInactivityTimeoutSeconds())),
             'reauthTimeoutSeconds' => trim((string) ($adminPayload['reauth_timeout_seconds'] ?? $this->configuredAdminReauthTimeoutSeconds())),
@@ -1553,6 +1572,71 @@ final class AdminSettingsService
     }
 
     /**
+     * @return array{mfaTotpEnabled: bool}
+     */
+    public function privateSecurityViewModel(): array
+    {
+        return [
+            'mfaTotpEnabled' => $this->normalizeBooleanValue(app_config('private.mfa_totp_enabled', false), false),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, message: string|null, error: string|null, view: array<string, mixed>}
+     */
+    public function savePrivateSecurity(array $payload, ?string $actorIdentifier = null): array
+    {
+        $securityPayload = is_array($payload['private_security'] ?? null) ? $payload['private_security'] : [];
+        $mfaTotpEnabled = $this->normalizeBooleanValue($securityPayload['mfa_totp_enabled'] ?? false, false);
+        $previousMfaTotpEnabled = $this->normalizeBooleanValue(app_config('private.mfa_totp_enabled', false), false);
+
+        $siteOverride = $this->readPhpArrayFile($this->siteOverridePath);
+        $existingPrivateOverride = is_array($siteOverride['private'] ?? null) ? $siteOverride['private'] : [];
+        $siteOverride['private'] = array_merge($existingPrivateOverride, [
+            'mfa_totp_enabled' => $mfaTotpEnabled,
+        ]);
+
+        try {
+            $this->writePhpArrayFile($this->siteOverridePath, $siteOverride);
+            $this->applyPrivateSecurityRuntimeConfig($mfaTotpEnabled);
+        } catch (\Throwable $exception) {
+            $this->eventLogger->security(
+                'admin.private_security.save_failed',
+                [
+                    'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                    'exception' => $exception->getMessage(),
+                ],
+                'error'
+            );
+
+            return [
+                'success' => false,
+                'message' => null,
+                'error' => 'Impossible de sauvegarder les paramètres de sécurité privée.',
+                'view' => $this->privateSecurityViewModel(),
+            ];
+        }
+
+        $this->eventLogger->security(
+            'admin.private_security.saved',
+            [
+                'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                'changes' => [
+                    'mfa_totp_enabled' => $previousMfaTotpEnabled !== $mfaTotpEnabled,
+                ],
+            ]
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Paramètres Code 2FA sauvegardés.',
+            'error' => null,
+            'view' => $this->privateSecurityViewModel(),
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $payload
      * @return array{success: bool, message: string|null, error: string|null, view: array<string, mixed>, adminIdentifier: string|null}
      */
@@ -1575,7 +1659,7 @@ final class AdminSettingsService
             'port' => trim((string) ($backupPayload['database_port'] ?? ($configuredBackup['databasePort'] ?? app_config('database.port', 3306)))),
             'name' => trim((string) ($backupPayload['database_name'] ?? ($configuredBackup['databaseName'] ?? app_config('database.name', '')))),
             'user' => trim((string) ($backupPayload['database_user'] ?? ($configuredBackup['databaseUser'] ?? app_config('database.user', '')))),
-            'password' => (string) ($backupPayload['database_password'] ?? ''),
+            'password' => $this->secretFormValue($backupPayload['database_password'] ?? ''),
             'prefix' => trim((string) ($configuredBackup['databasePrefix'] ?? app_config('database_prefix', 'car_'))),
         ];
 
@@ -1785,15 +1869,15 @@ final class AdminSettingsService
             'port' => trim((string) ($databasePayload['port'] ?? app_config('database.port', 3306))),
             'name' => trim((string) ($databasePayload['name'] ?? app_config('database.name', ''))),
             'user' => trim((string) ($databasePayload['user'] ?? app_config('database.user', ''))),
-            'password' => (string) ($databasePayload['password'] ?? ''),
+            'password' => $this->secretFormValue($databasePayload['password'] ?? ''),
             'prefix' => trim((string) ($databasePayload['prefix'] ?? app_config('database_prefix', 'car_'))),
         ];
         $adminForm = [
             'identifier' => trim((string) ($adminPayload['identifier'] ?? $this->configuredAdminIdentifier())),
-            'password' => (string) ($adminPayload['password'] ?? ''),
+            'password' => $this->secretFormValue($adminPayload['password'] ?? ''),
             'allowedIps' => trim((string) ($adminPayload['allowed_ips'] ?? implode(', ', $this->configuredAdminAllowedIps()))),
             'totpEnabled' => $this->postBoolean($adminPayload, 'totp_enabled', $this->configuredAdminTotpEnabled()),
-            'totpSecret' => trim((string) ($adminPayload['totp_secret'] ?? '')),
+            'totpSecret' => $this->secretFormValue($adminPayload['totp_secret'] ?? ''),
             'totpSecretFallback' => $this->configuredAdminTotpSecret(),
             'inactivityTimeoutSeconds' => trim((string) ($adminPayload['inactivity_timeout_seconds'] ?? $this->configuredAdminInactivityTimeoutSeconds())),
             'reauthTimeoutSeconds' => trim((string) ($adminPayload['reauth_timeout_seconds'] ?? $this->configuredAdminReauthTimeoutSeconds())),
@@ -1958,18 +2042,18 @@ final class AdminSettingsService
                 'port' => $database['port'],
                 'name' => $database['name'],
                 'user' => $database['user'],
-                'password' => '',
+                'password' => $this->secretFieldDisplayValue($databasePasswordConfigured),
                 'passwordConfigured' => $databasePasswordConfigured,
-                'passwordMask' => $databasePasswordConfigured ? '********' : '',
+                'passwordMask' => $this->secretFieldDisplayValue($databasePasswordConfigured),
                 'prefix' => $database['prefix'],
             ],
             'admin' => [
                 'identifier' => $admin['identifier'],
-                'password' => '',
+                'password' => $this->secretFieldDisplayValue($adminPasswordConfigured),
                 'allowedIps' => (string) ($admin['allowedIps'] ?? ''),
                 'passwordConfigured' => $adminPasswordConfigured,
                 'totpEnabled' => $this->normalizeBooleanValue($admin['totpEnabled'] ?? false, false),
-                'totpSecret' => '',
+                'totpSecret' => $this->secretFieldDisplayValue($adminTotpSecretConfigured),
                 'totpSecretConfigured' => $adminTotpSecretConfigured,
                 'inactivityTimeoutSeconds' => $adminInactivityTimeoutSeconds,
                 'reauthTimeoutSeconds' => $adminReauthTimeoutSeconds,
@@ -2011,7 +2095,7 @@ final class AdminSettingsService
                 'recaptchaEnabled' => $this->normalizeBooleanValue($discussions['recaptchaEnabled'] ?? false, false),
                 'recaptchaMode' => DiscussionRecaptchaMode::normalize($discussions['recaptchaMode'] ?? DiscussionRecaptchaMode::V2_CHECKBOX),
                 'recaptchaSiteKey' => (string) ($discussions['recaptchaSiteKey'] ?? ''),
-                'recaptchaSecretKey' => '',
+                'recaptchaSecretKey' => $this->secretFieldDisplayValue($discussionRecaptchaSecretConfigured),
                 'recaptchaSecretKeyConfigured' => $discussionRecaptchaSecretConfigured,
                 'recaptchaMinimumScore' => (float) ($discussions['recaptchaMinimumScore'] ?? 0.5),
                 'recaptchaTimeoutSeconds' => (int) ($discussions['recaptchaTimeoutSeconds'] ?? 8),
@@ -2020,7 +2104,7 @@ final class AdminSettingsService
                 'enabled' => $this->normalizeBooleanValue($instagram['enabled'] ?? false, false),
                 'username' => (string) ($instagram['username'] ?? ''),
                 'userId' => (string) ($instagram['userId'] ?? ''),
-                'accessToken' => '',
+                'accessToken' => $this->secretFieldDisplayValue($instagramAccessTokenConfigured),
                 'accessTokenConfigured' => $instagramAccessTokenConfigured,
                 'limit' => (int) ($instagram['limit'] ?? 6),
                 'rotationIntervalMs' => (int) ($instagram['rotationIntervalMs'] ?? 5500),
@@ -2340,6 +2424,12 @@ final class AdminSettingsService
             $this->applyPrivateMailRuntimeConfig($siteOverride['private']['mail']);
         }
 
+        if (is_array($siteOverride['private'] ?? null) && array_key_exists('mfa_totp_enabled', $siteOverride['private'])) {
+            $this->applyPrivateSecurityRuntimeConfig(
+                $this->normalizeBooleanValue($siteOverride['private']['mfa_totp_enabled'], false)
+            );
+        }
+
         if (is_array($siteOverride['backup'] ?? null)) {
             $this->applyBackupRuntimeConfig($siteOverride['backup']);
         }
@@ -2369,6 +2459,19 @@ final class AdminSettingsService
                 'reply_to' => trim((string) ($mail['reply_to'] ?? 'private@lescaramagnols.com')),
                 'templates' => array_merge($this->defaultPrivateMailTemplates(), $this->normalizePrivateMailTemplates($mail['templates'] ?? [])),
             ],
+        ]);
+    }
+
+    private function applyPrivateSecurityRuntimeConfig(bool $mfaTotpEnabled): void
+    {
+        global $appConfig;
+
+        if (!is_array($appConfig)) {
+            return;
+        }
+
+        $appConfig['private'] = array_merge((array) ($appConfig['private'] ?? []), [
+            'mfa_totp_enabled' => $mfaTotpEnabled,
         ]);
     }
 

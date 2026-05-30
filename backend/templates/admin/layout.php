@@ -19,6 +19,7 @@ $translate = static function (string $key, string $fallback = ''): string {
 
     return $translated;
 };
+$cspNonce = (string) ($GLOBALS['csp_nonce'] ?? '');
 $adminMenu = [
     ['id' => 'dashboard', 'label' => $translate('TXT_ADMIN_NAV_DASHBOARD', 'Tableau de bord'), 'href' => $adminDashboardUrl ?? admin_url('dashboard'), 'icon' => '📊'],
     ['id' => 'pages', 'label' => $translate('TXT_ADMIN_NAV_PAGES', 'Pages'), 'href' => $adminPagesUrl ?? admin_url('pages'), 'icon' => '📝'],
@@ -352,6 +353,15 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         margin-bottom: 0.8rem;
       }
 
+      .admin-password-field {
+        position: relative;
+      }
+
+      .admin-password-field input {
+        width: 100%;
+        padding-right: 6.8rem;
+      }
+
       label {
         font-size: 0.84rem;
         font-weight: 600;
@@ -403,6 +413,26 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
       button:hover {
         transform: translateY(-1px);
         box-shadow: 0 12px 24px rgba(29, 111, 141, 0.3);
+      }
+
+      .admin-password-toggle {
+        position: absolute;
+        top: 50%;
+        right: 0.35rem;
+        min-height: 2rem;
+        padding: 0.35rem 0.65rem;
+        border-radius: 8px;
+        background: rgba(19, 41, 75, 0.08);
+        color: var(--admin-primary-dark);
+        font-size: 0.84rem;
+        transform: translateY(-50%);
+      }
+
+      .admin-password-toggle:hover,
+      .admin-password-toggle:focus-visible {
+        background: rgba(29, 111, 141, 0.16);
+        box-shadow: none;
+        transform: translateY(-50%);
       }
 
       button[disabled] {
@@ -3572,6 +3602,41 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
       </div>
     </div>
     <?php endif; ?>
+    <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+      (() => {
+        document.addEventListener('click', (event) => {
+          const button = event.target instanceof Element
+            ? event.target.closest('[data-admin-password-toggle]')
+            : null;
+          if (!(button instanceof HTMLButtonElement)) {
+            return;
+          }
+
+          const inputId = button.getAttribute('aria-controls') || '';
+          const input = document.getElementById(inputId);
+          if (!(input instanceof HTMLInputElement)) {
+            return;
+          }
+
+          event.preventDefault();
+          const showLabel = button.dataset.adminPasswordShow || 'Afficher';
+          const hideLabel = button.dataset.adminPasswordHide || 'Masquer';
+          const isVisible = input.type === 'text';
+          input.type = isVisible ? 'password' : 'text';
+          button.textContent = isVisible ? showLabel : hideLabel;
+          button.setAttribute('aria-pressed', isVisible ? 'false' : 'true');
+        });
+
+        document.addEventListener('focusin', (event) => {
+          const input = event.target;
+          if (!(input instanceof HTMLInputElement) || !input.hasAttribute('data-admin-secret-mask')) {
+            return;
+          }
+
+          window.setTimeout(() => input.select(), 0);
+        });
+      })();
+    </script>
     <?php if (!$isLoginPage): ?>
     <dialog class="admin-sensitive-dialog" id="admin-sensitive-action-dialog" aria-labelledby="admin-sensitive-action-title" aria-describedby="admin-sensitive-action-message">
       <div class="admin-sensitive-dialog__surface">

@@ -225,6 +225,7 @@ final class PrivatePortalController
             'errorKey' => $error,
             'csrfToken' => csrf_token('private'),
             'privatePasswordForgotUrl' => private_portal_url('password_forgot'),
+            'privateMfaEnabled' => (bool) app_config('private.mfa_totp_enabled', false),
         ]);
     }
 

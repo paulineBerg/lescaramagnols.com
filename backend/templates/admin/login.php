@@ -42,12 +42,25 @@ $translate = static function (string $key, string $fallback): string {
   <?php if (($passwordRequired ?? true)): ?>
   <div class="field">
     <label for="password"><?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_PASSWORD_LABEL', 'Mot de passe'), ENT_QUOTES, 'UTF-8'); ?></label>
-    <input id="password" name="password" type="password" required />
+    <div class="admin-password-field">
+      <input id="password" name="password" type="password" required autocomplete="current-password" />
+      <button
+        class="admin-password-toggle"
+        type="button"
+        data-admin-password-toggle
+        data-admin-password-show="<?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>"
+        data-admin-password-hide="<?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_HIDE', 'Masquer'), ENT_QUOTES, 'UTF-8'); ?>"
+        aria-controls="password"
+        aria-pressed="false"
+      >
+        <?php echo htmlspecialchars($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'), ENT_QUOTES, 'UTF-8'); ?>
+      </button>
+    </div>
   </div>
   <?php endif; ?>
   <?php if (!empty($totpRequired)): ?>
   <div class="field">
-    <label for="totp_code"><?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_TOTP_LABEL', 'Code 2FA (TOTP)'), ENT_QUOTES, 'UTF-8'); ?></label>
+    <label for="totp_code"><?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_TOTP_LABEL', 'Code 2FA'), ENT_QUOTES, 'UTF-8'); ?></label>
     <input id="totp_code" name="totp_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_TOTP_PLACEHOLDER', '123456'), ENT_QUOTES, 'UTF-8'); ?>" required />
   </div>
   <?php endif; ?>

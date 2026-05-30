@@ -23,6 +23,8 @@ Ordre de travail recommande:
 - les extensions JSON-LD de type FAQ ou avis ne doivent etre emises que depuis un contenu visible, valide et teste; en cas de doute, ne pas baliser plutot que publier une donnee structuree approximative
 - avant un deploy ou un push editorial, verifier les medias references via `php backend/core/tools/check_editorial_media.php --check-published-assets` ou laisser les scripts de deploiement bloquer automatiquement
 - terminer par les validations adaptees au risque: JSON, PHP, frontend, index, build, smoke HTTP ou verification manuelle ciblee
+- pour toute modification durable validee en preprod, garder le local comme source de verite applicative: reporter la correction dans le depot local, valider, puis redeployer depuis local; preprod ne doit pas devenir une copie manuelle separee
+- si une intervention urgente est faite directement en preprod, rapatrier ou reconstruire le meme diff en local avant tout nouveau deploiement, puis signaler explicitement toute divergence restante
 - pour toute modification de rendu public, viser `100` sur PageSpeed Insights (Performance/Accessibilite/Bonnes pratiques/SEO), avec une tolerance minimale `Performance >= 95` sur toutes les pages servies; supprimer obligatoirement tout dossier temporaire apres usage
 - signaler explicitement toute divergence restante entre JSON, SQL, prod, index ou assets publies
 
@@ -856,6 +858,34 @@ Regles:
 - ne pas commit les artefacts generes ignores par Git
 - ne pas corriger un probleme produit en editant un fichier publie si la source existe dans `frontend/src/` ou un outil de publication
 - ne pas oublier que `npm run build` applique aussi les budgets frontend et le `postbuild`
+
+### 15.1 Coherence local, preprod et production
+
+Regle centrale:
+- le depot local est la source de verite pour le code, les templates, les styles, les scripts, les migrations, les outils et les assets sources versionnes
+- la preprod sert a valider dans un environnement proche production; elle ne doit pas recevoir de correction durable qui reste absente du local
+- la production et la preprod gardent leurs propres secrets, overrides, logs, caches, sauvegardes, permissions, crons et donnees runtime; ces elements ne doivent pas etre rendus identiques au depot local
+
+Ordre normal:
+- corriger en local
+- lancer les validations adaptees
+- generer les assets publies si necessaire (`cd frontend && npm run build`)
+- deployer vers preprod depuis le local
+- valider en preprod
+- promouvoir vers production seulement apres validation explicite
+
+Cas d'urgence en preprod:
+- une correction directe en preprod est toleree seulement pour diagnostiquer ou debloquer une recette
+- avant le prochain deploy, reconstruire la correction dans le depot local ou rapatrier le fichier cible avec controle du diff
+- ne jamais recopier en masse la preprod vers le local: exclure `.env`, `config/*.override.php`, `var/**`, `data/logs/**`, `data/snapshots/**`, `public/uploads/**` sauf operation runtime explicitement ciblee
+- relancer les validations locales puis redeployer depuis le local afin que la preprod redevienne le reflet applicatif du depot
+
+Donnees SQL et contenu editorial:
+- ne pas dupliquer une correction SQL a la main dans deux environnements
+- identifier d'abord le stockage actif et l'environnement source de verite du contenu concerne
+- si un contenu utile est cree ou corrige en preprod via l'admin, l'exporter ou le resynchroniser proprement vers le local avant tout nouveau push qui pourrait l'ecraser
+- si la donnee preprod est seulement une fixture de recette, la documenter comme jetable et ne pas la rapatrier dans le depot
+- apres toute synchronisation editoriale utile, regenerer index, sitemap/cache si le workflow le demande et verifier le rendu cible
 
 Regle de deploiement propre:
 - tout deploiement vers OVH doit produire un backend de production minimal et nettoye automatiquement
