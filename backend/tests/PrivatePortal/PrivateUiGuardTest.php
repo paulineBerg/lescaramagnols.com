@@ -69,6 +69,20 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-private-nav-toggle', $layout);
         self::assertStringContainsString('type="button"', $layout);
         self::assertStringContainsString('caramagnols.private.navCollapsed', $layout);
+        self::assertStringContainsString('data-private-auto-submit', $layout);
+        self::assertStringContainsString('form.requestSubmit(submitter);', $layout);
+    }
+
+    public function testAgencyReviewLineFeedbackStaysNearReviewedLine(): void
+    {
+        $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/agency-review.php');
+        $stylesheet = $this->readRepoFile('frontend/src/scss/private.scss');
+
+        self::assertStringContainsString('agencyReviewLineFeedbackId', $template);
+        self::assertStringContainsString('agency-review-line-feedback', $template);
+        self::assertStringContainsString('data-private-auto-submit="validate_line"', $template);
+        self::assertStringContainsString('.agency-review-line-feedback', $stylesheet);
+        self::assertStringContainsString('scroll-margin-top: 6rem;', $stylesheet);
     }
 
     public function testRentalDashboardNavigationDoesNotExposeSubmenu(): void

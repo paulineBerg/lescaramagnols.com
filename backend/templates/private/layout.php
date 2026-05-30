@@ -496,6 +496,45 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
           applyFilters();
         });
 
+        document.addEventListener('change', (event) => {
+          const field = event.target instanceof Element
+            ? event.target.closest('[data-private-auto-submit]')
+            : null;
+          if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLSelectElement)) {
+            return;
+          }
+
+          const form = field.closest('form');
+          if (!(form instanceof HTMLFormElement)) {
+            return;
+          }
+
+          const submitValue = field.getAttribute('data-private-auto-submit') || '';
+          if (submitValue === '') {
+            return;
+          }
+
+          const submitters = Array.from(form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])'));
+          const submitter = submitters.find((candidate) => (
+            candidate instanceof HTMLButtonElement || candidate instanceof HTMLInputElement
+          ) && candidate.getAttribute('value') === submitValue);
+          if (submitter instanceof HTMLElement && typeof form.requestSubmit === 'function') {
+            form.requestSubmit(submitter);
+            return;
+          }
+
+          let fallback = form.querySelector('input[type="hidden"][name="action"][data-private-auto-submit-fallback]');
+          if (!(fallback instanceof HTMLInputElement)) {
+            fallback = document.createElement('input');
+            fallback.type = 'hidden';
+            fallback.name = 'action';
+            fallback.setAttribute('data-private-auto-submit-fallback', 'true');
+            form.appendChild(fallback);
+          }
+          fallback.value = submitValue;
+          form.submit();
+        });
+
         const sensitiveDialog = document.getElementById('private-sensitive-action-dialog');
         const sensitiveConfirmTemplate = <?php echo json_encode($translate('TXT_PRIVATE_SENSITIVE_ACTION_CONFIRM_TEMPLATE', 'Confirmer : %s ? Cette action peut supprimer ou archiver des données privées.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const sensitiveMessage = sensitiveDialog instanceof HTMLDialogElement

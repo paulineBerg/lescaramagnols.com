@@ -7,6 +7,15 @@ $categories = is_array($viewModel['agencyReviewCategories'] ?? null) ? $viewMode
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
+$lineFeedbackId = is_numeric($viewModel['agencyReviewLineFeedbackId'] ?? null)
+    ? (int) $viewModel['agencyReviewLineFeedbackId']
+    : 0;
+$lineNotice = is_string($viewModel['agencyReviewLineNotice'] ?? null)
+    ? (string) $viewModel['agencyReviewLineNotice']
+    : '';
+$lineError = is_string($viewModel['agencyReviewLineError'] ?? null)
+    ? (string) $viewModel['agencyReviewLineError']
+    : '';
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
 $reviewUrl = (string) ($urls['agencyReview'] ?? private_portal_url('rental_agency_review'));
 $importsUrl = (string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports'));
@@ -196,6 +205,7 @@ $labelForUnit = static function (array $unit): string {
               $currentCategory = is_scalar($line['mappedCategory'] ?? null) ? (string) $line['mappedCategory'] : 'other';
               $linePropertyId = is_numeric($line['rentalPropertyId'] ?? null) ? (int) $line['rentalPropertyId'] : 0;
               $lineUnitId = is_numeric($line['rentalUnitId'] ?? null) ? (int) $line['rentalUnitId'] : 0;
+              $hasLineFeedback = $lineFeedbackId === $lineId && ($lineNotice !== '' || $lineError !== '');
               $detected = [];
               if (is_scalar($line['propertyLabel'] ?? null) && trim((string) $line['propertyLabel']) !== '') {
                   $detected[] = 'Propriete detectee: ' . trim((string) $line['propertyLabel']);
@@ -219,7 +229,7 @@ $labelForUnit = static function (array $unit): string {
                   <?php endif; ?>
                 </div>
                 <label role="cell"><span>Propriété</span>
-                  <select name="rental_property_id">
+                  <select name="rental_property_id" data-private-auto-submit="validate_line">
                     <option value="">Defaut</option>
                     <?php foreach ($properties as $property): ?>
                       <?php
@@ -235,7 +245,7 @@ $labelForUnit = static function (array $unit): string {
                   </select>
                 </label>
                 <label role="cell"><span>Bien locatif</span>
-                  <select name="rental_unit_id">
+                  <select name="rental_unit_id" data-private-auto-submit="validate_line">
                     <option value="">Non rattache</option>
                     <?php foreach ($unitsByPropertyId as $propertyId => $propertyUnits): ?>
                       <?php
@@ -260,7 +270,7 @@ $labelForUnit = static function (array $unit): string {
                   </select>
                 </label>
                 <label role="cell"><span>Categorie</span>
-                  <select name="mapped_category">
+                  <select name="mapped_category" data-private-auto-submit="validate_line">
                     <?php foreach ($categories as $category => $categoryLabel): ?>
                       <option value="<?php echo $h($category); ?>" <?php echo $currentCategory === (string) $category ? 'selected' : ''; ?>>
                         <?php echo $h($categoryLabel); ?>
@@ -274,6 +284,14 @@ $labelForUnit = static function (array $unit): string {
                 <label role="cell"><span>Debit</span><input type="number" step="0.01" name="debit_amount" value="<?php echo $amount($line['debitAmount'] ?? null); ?>" /></label>
                 <label role="cell"><span>Credit</span><input type="number" step="0.01" name="credit_amount" value="<?php echo $amount($line['creditAmount'] ?? null); ?>" /></label>
                 <div class="agency-review-line-actions" role="cell">
+                  <?php if ($hasLineFeedback): ?>
+                    <span
+                      class="agency-review-line-feedback <?php echo $lineError !== '' ? 'is-error' : 'is-success'; ?>"
+                      role="<?php echo $lineError !== '' ? 'alert' : 'status'; ?>"
+                    >
+                      <?php echo $h($lineError !== '' ? $lineError : $lineNotice); ?>
+                    </span>
+                  <?php endif; ?>
                   <button type="submit" name="action" value="correct_line" class="private-row-action">Corriger</button>
                   <button type="submit" name="action" value="validate_line">Valider</button>
                   <button type="submit" name="action" value="ignore_line" class="private-row-action">Ignorer</button>

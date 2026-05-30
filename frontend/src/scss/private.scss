@@ -984,6 +984,8 @@
   .agency-review-line-row {
     border-bottom: 1px solid var(--private-border);
     padding: 0.55rem 0.35rem;
+    position: relative;
+    scroll-margin-top: 6rem;
   }
 
   .agency-review-line-row label {
@@ -1038,12 +1040,47 @@
     flex-wrap: nowrap;
     gap: 0.35rem;
     justify-content: flex-end;
+    position: relative;
   }
 
   .agency-review-line-actions button {
     min-height: 2.1rem;
     padding: 0.4rem 0.55rem;
     white-space: nowrap;
+  }
+
+  .agency-review-line-feedback {
+    background: rgb(24 118 69 / 96%);
+    border-radius: 8px;
+    bottom: calc(100% + 0.38rem);
+    box-shadow: 0 0.65rem 1.6rem rgb(9 24 48 / 18%);
+    color: #fff;
+    font-size: 0.76rem;
+    font-weight: 800;
+    line-height: 1.25;
+    max-width: min(20rem, 72vw);
+    padding: 0.45rem 0.62rem;
+    position: absolute;
+    right: 0;
+    white-space: nowrap;
+    z-index: 4;
+  }
+
+  .agency-review-line-feedback::after {
+    border: 0.38rem solid transparent;
+    border-top-color: rgb(24 118 69 / 96%);
+    content: "";
+    position: absolute;
+    right: 1rem;
+    top: 100%;
+  }
+
+  .agency-review-line-feedback.is-error {
+    background: rgb(161 26 42 / 96%);
+  }
+
+  .agency-review-line-feedback.is-error::after {
+    border-top-color: rgb(161 26 42 / 96%);
   }
 
   .private-checkbox-inline {

@@ -1643,9 +1643,20 @@ final class PrivatePortalController
         $documentId = $this->normalizeNumericId($query['document_id'] ?? null);
         $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
         $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
+        $lineFeedbackId = $this->normalizeNumericId($query['line_id'] ?? null);
+        $lineNotice = is_string($query['line_notice'] ?? null) ? (string) $query['line_notice'] : '';
+        $lineError = is_string($query['line_error'] ?? null) ? (string) $query['line_error'] : '';
 
         if ($request->method() !== self::METHOD_POST) {
-            return $this->renderRentalAgencyReview($userId, $documentId, $notice, $error);
+            return $this->renderRentalAgencyReview(
+                $userId,
+                $documentId,
+                $notice,
+                $error,
+                $lineFeedbackId,
+                $lineNotice,
+                $lineError
+            );
         }
 
         $body = $request->body();
@@ -1742,8 +1753,9 @@ final class PrivatePortalController
             'ignore' => 'agency_line_ignored',
         };
 
-        return $this->redirect($this->rentalAgencyReviewUrl(
+        return $this->redirect($this->rentalAgencyReviewLineUrl(
             $documentId,
+            $lineId,
             $line !== null ? $lineNotice : '',
             $line !== null ? '' : 'agency_review_failed'
         ));
@@ -3349,7 +3361,10 @@ final class PrivatePortalController
         int $userId,
         int $documentId = 0,
         string $notice = '',
-        string $error = ''
+        string $error = '',
+        int $lineFeedbackId = 0,
+        string $lineNotice = '',
+        string $lineError = ''
     ): Response {
         $documents = $this->agencyImportRepository()->listRecentDocumentsForUser(
             $userId,
@@ -3384,6 +3399,9 @@ final class PrivatePortalController
                 'agencyReviewProperties' => $this->objectsToArrays($properties),
                 'agencyReviewUnits' => $this->objectsToArrays($units),
                 'agencyReviewCategories' => $this->agencyReviewCategories(),
+                'agencyReviewLineFeedbackId' => $lineFeedbackId,
+                'agencyReviewLineNotice' => $this->rentalNotice($lineNotice),
+                'agencyReviewLineError' => $this->rentalError($lineError),
             ]
         ));
     }
@@ -4063,6 +4081,31 @@ final class PrivatePortalController
 
         $url = private_portal_url('rental_agency_review');
         return $query === [] ? $url : $url . '?' . http_build_query($query);
+    }
+
+    private function rentalAgencyReviewLineUrl(
+        int $documentId,
+        int $lineId,
+        string $notice = '',
+        string $error = ''
+    ): string {
+        $url = $this->rentalAgencyReviewUrl($documentId);
+        $query = [];
+        if ($lineId > 0) {
+            $query['line_id'] = (string) $lineId;
+        }
+        if ($notice !== '') {
+            $query['line_notice'] = $notice;
+        }
+        if ($error !== '') {
+            $query['line_error'] = $error;
+        }
+
+        if ($query !== []) {
+            $url .= (str_contains($url, '?') ? '&' : '?') . http_build_query($query);
+        }
+
+        return $lineId > 0 ? $url . '#agency-review-line-' . $lineId : $url;
     }
 
     /**
