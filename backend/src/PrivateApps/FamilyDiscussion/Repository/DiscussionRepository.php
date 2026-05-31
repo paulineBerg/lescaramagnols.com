@@ -11,6 +11,8 @@ final class DiscussionRepository
 {
     /** @var array<int, string> */
     private const MESSAGE_PURGE_STATUSES = ['active', 'deleted', 'redacted', 'expired', 'purged'];
+    /** @var array<int, string> */
+    private const ATTACHMENT_AVAILABILITY_STATUSES = ['pending_scan', 'available', 'blocked', 'deleted', 'purged'];
 
     private bool $schemaReady = false;
 
@@ -147,10 +149,15 @@ final class DiscussionRepository
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `expires_at` DATETIME NOT NULL,
                 `purge_status` VARCHAR(16) NOT NULL DEFAULT 'active',
+                `availability_status` VARCHAR(16) NOT NULL DEFAULT 'available',
+                `scanned_at` DATETIME NULL,
+                `scan_error` VARCHAR(120) NULL,
+                `thumbnail_storage_path` VARCHAR(255) NULL,
                 UNIQUE KEY `uq_discussion_attachments_attachment_id` (`attachment_id`),
                 UNIQUE KEY `uq_discussion_attachments_storage_path` (`storage_path`),
                 KEY `idx_discussion_attachments_message` (`message_id`),
                 KEY `idx_discussion_attachments_status_message` (`message_id`, `purge_status`, `id`),
+                KEY `idx_discussion_attachments_availability` (`availability_status`, `expires_at`, `id`),
                 KEY `idx_discussion_attachments_expiry` (`expires_at`, `purge_status`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->attachmentTable()
@@ -160,6 +167,16 @@ final class DiscussionRepository
             $this->attachmentTable(),
             'idx_discussion_attachments_status_message',
             'ADD INDEX `idx_discussion_attachments_status_message` (`message_id`, `purge_status`, `id`)'
+        );
+        $this->ensureColumn($pdo, $this->attachmentTable(), 'availability_status', "`availability_status` VARCHAR(16) NOT NULL DEFAULT 'available'");
+        $this->ensureColumn($pdo, $this->attachmentTable(), 'scanned_at', '`scanned_at` DATETIME NULL');
+        $this->ensureColumn($pdo, $this->attachmentTable(), 'scan_error', '`scan_error` VARCHAR(120) NULL');
+        $this->ensureColumn($pdo, $this->attachmentTable(), 'thumbnail_storage_path', '`thumbnail_storage_path` VARCHAR(255) NULL');
+        $this->ensureIndex(
+            $pdo,
+            $this->attachmentTable(),
+            'idx_discussion_attachments_availability',
+            'ADD INDEX `idx_discussion_attachments_availability` (`availability_status`, `expires_at`, `id`)'
         );
 
         $pdo->exec(sprintf(
@@ -901,18 +918,22 @@ final class DiscussionRepository
         string $originalFilename,
         string $storagePath,
         ?string $previewStoragePath,
+        ?string $thumbnailStoragePath,
         string $mimeType,
         int $sizeBytes,
         string $sha256,
         ?int $width,
         ?int $height,
-        string $expiresAt
+        string $expiresAt,
+        string $availabilityStatus = 'pending_scan'
     ): ?array {
         $attachmentId = $this->normalizePublicId($attachmentId);
         $originalFilename = $this->normalizeFilename($originalFilename);
         $storagePath = $this->normalizeStoragePath($storagePath);
         $previewStoragePath = $previewStoragePath !== null ? $this->normalizeStoragePath($previewStoragePath) : null;
+        $thumbnailStoragePath = $thumbnailStoragePath !== null ? $this->normalizeStoragePath($thumbnailStoragePath) : null;
         $sha256 = strtolower(trim($sha256));
+        $availabilityStatus = $this->normalizeAttachmentAvailabilityStatus($availabilityStatus, 'pending_scan');
         if (
             $messageId <= 0
             || $attachmentId === ''
@@ -930,9 +951,9 @@ final class DiscussionRepository
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(sprintf(
                 "INSERT INTO `%s`
-                    (`message_id`, `attachment_id`, `original_filename`, `storage_path`, `preview_storage_path`, `mime_type`, `size_bytes`, `sha256`, `width`, `height`, `expires_at`)
+                    (`message_id`, `attachment_id`, `original_filename`, `storage_path`, `preview_storage_path`, `thumbnail_storage_path`, `mime_type`, `size_bytes`, `sha256`, `width`, `height`, `expires_at`, `availability_status`)
                  VALUES
-                    (:message_id, :attachment_id, :original_filename, :storage_path, :preview_storage_path, :mime_type, :size_bytes, :sha256, :width, :height, :expires_at)",
+                    (:message_id, :attachment_id, :original_filename, :storage_path, :preview_storage_path, :thumbnail_storage_path, :mime_type, :size_bytes, :sha256, :width, :height, :expires_at, :availability_status)",
                 $this->attachmentTable()
             ));
             $statement->execute([
@@ -941,12 +962,14 @@ final class DiscussionRepository
                 'original_filename' => $originalFilename,
                 'storage_path' => $storagePath,
                 'preview_storage_path' => $previewStoragePath,
+                'thumbnail_storage_path' => $thumbnailStoragePath,
                 'mime_type' => strtolower(trim($mimeType)),
                 'size_bytes' => $sizeBytes,
                 'sha256' => $sha256,
                 'width' => $width,
                 'height' => $height,
                 'expires_at' => $expiresAt,
+                'availability_status' => $availabilityStatus,
             ]);
             $id = (int) $this->database->pdo()->lastInsertId();
         } catch (\Throwable) {
@@ -972,6 +995,7 @@ final class DiscussionRepository
                  INNER JOIN `%s` cm ON cm.`conversation_id` = m.`conversation_id`
                  WHERE a.`attachment_id` = :attachment_id
                    AND a.`purge_status` = 'active'
+                   AND a.`availability_status` = 'available'
                    AND a.`expires_at` > :now
                    AND m.`purge_status` = 'active'
                    AND cm.`private_user_id` = :user_id
@@ -1089,6 +1113,8 @@ final class DiscussionRepository
                 "UPDATE `%s`
                  SET `storage_path` = CONCAT('purged/', `id`),
                      `preview_storage_path` = NULL,
+                     `thumbnail_storage_path` = NULL,
+                     `availability_status` = 'purged',
                      `purge_status` = 'purged'
                  WHERE `id` = :id
                    AND `purge_status` <> 'purged'",
@@ -1119,6 +1145,8 @@ final class DiscussionRepository
                 "UPDATE `%s`
                  SET `storage_path` = CONCAT(:purge_status, '/', `id`),
                      `preview_storage_path` = NULL,
+                     `thumbnail_storage_path` = NULL,
+                     `availability_status` = 'deleted',
                      `purge_status` = :purge_status
                  WHERE `id` = :id
                    AND `purge_status` = 'active'",
@@ -1280,6 +1308,195 @@ final class DiscussionRepository
             array_map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0, is_array($ids) ? $ids : []),
             static fn (int $id): bool => $id > 0
         ));
+    }
+
+    public function markAttachmentAvailability(
+        int $attachmentRowId,
+        string $status,
+        ?string $scanError = null,
+        ?string $thumbnailStoragePath = null
+    ): bool {
+        if ($attachmentRowId <= 0) {
+            return false;
+        }
+
+        $status = $this->normalizeAttachmentAvailabilityStatus($status, 'pending_scan');
+        $scanError = $scanError !== null ? $this->normalizeScanError($scanError) : null;
+        $thumbnailStoragePath = $thumbnailStoragePath !== null ? $this->normalizeStoragePath($thumbnailStoragePath) : null;
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "UPDATE `%s`
+                 SET `availability_status` = :availability_status,
+                     `scanned_at` = CASE WHEN :case_status IN ('available', 'blocked') THEN :scanned_at ELSE `scanned_at` END,
+                     `scan_error` = :scan_error,
+                     `thumbnail_storage_path` = :thumbnail_storage_path
+                 WHERE `id` = :id
+                   AND `purge_status` = 'active'",
+                $this->attachmentTable()
+            ));
+            $statement->execute([
+                'availability_status' => $status,
+                'case_status' => $status,
+                'scanned_at' => $this->now(),
+                'scan_error' => $scanError,
+                'thumbnail_storage_path' => $thumbnailStoragePath,
+                'id' => $attachmentRowId,
+            ]);
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listPendingScanAttachments(int $limit = 100): array
+    {
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `purge_status` = 'active'
+                   AND `availability_status` = 'pending_scan'
+                 ORDER BY `created_at` ASC, `id` ASC
+                 LIMIT :limit",
+                $this->attachmentTable()
+            ));
+            $statement->bindValue(':limit', max(1, min(1000, $limit)), PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->hydrateAttachments(is_array($rows) ? $rows : []);
+    }
+
+    public function attachmentUsageForUser(int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT COALESCE(SUM(a.`size_bytes`), 0)
+                 FROM `%s` a
+                 INNER JOIN `%s` m ON m.`id` = a.`message_id`
+                 WHERE m.`sender_private_user_id` = :user_id
+                   AND a.`purge_status` = 'active'
+                   AND a.`availability_status` IN ('pending_scan', 'available', 'blocked')",
+                $this->attachmentTable(),
+                $this->messageTable()
+            ));
+            $statement->execute(['user_id' => $userId]);
+            $usage = $statement->fetchColumn();
+
+            return is_numeric($usage) ? max(0, (int) $usage) : 0;
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    public function attachmentUsageForConversation(int $conversationId): int
+    {
+        if ($conversationId <= 0) {
+            return 0;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT COALESCE(SUM(a.`size_bytes`), 0)
+                 FROM `%s` a
+                 INNER JOIN `%s` m ON m.`id` = a.`message_id`
+                 WHERE m.`conversation_id` = :conversation_id
+                   AND a.`purge_status` = 'active'
+                   AND a.`availability_status` IN ('pending_scan', 'available', 'blocked')",
+                $this->attachmentTable(),
+                $this->messageTable()
+            ));
+            $statement->execute(['conversation_id' => $conversationId]);
+            $usage = $statement->fetchColumn();
+
+            return is_numeric($usage) ? max(0, (int) $usage) : 0;
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function attachmentStoragePaths(): array
+    {
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->query(sprintf(
+                "SELECT `storage_path`, `preview_storage_path`, `thumbnail_storage_path`
+                 FROM `%s`
+                 WHERE `purge_status` <> 'purged'",
+                $this->attachmentTable()
+            ));
+            $rows = $statement !== false ? $statement->fetchAll(PDO::FETCH_ASSOC) : [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $paths = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            foreach (['storage_path', 'preview_storage_path', 'thumbnail_storage_path'] as $column) {
+                $path = is_string($row[$column] ?? null) ? $this->normalizeStoragePath((string) $row[$column]) : '';
+                if ($path !== '') {
+                    $paths[] = $path;
+                }
+            }
+        }
+
+        sort($paths);
+
+        return array_values(array_unique($paths));
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listMediaGalleryForUser(int $conversationId, int $userId, int $limit = 40): array
+    {
+        if ($conversationId <= 0 || $userId <= 0 || !$this->isParticipant($conversationId, $userId)) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT a.*, m.`conversation_id`, m.`sender_private_user_id`
+                 FROM `%s` a
+                 INNER JOIN `%s` m ON m.`id` = a.`message_id`
+                 WHERE m.`conversation_id` = :conversation_id
+                   AND m.`purge_status` = 'active'
+                   AND a.`purge_status` = 'active'
+                   AND a.`availability_status` = 'available'
+                 ORDER BY a.`created_at` DESC, a.`id` DESC
+                 LIMIT :limit",
+                $this->attachmentTable(),
+                $this->messageTable()
+            ));
+            $statement->bindValue(':conversation_id', $conversationId, PDO::PARAM_INT);
+            $statement->bindValue(':limit', max(1, min(100, $limit)), PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->hydrateAttachments(is_array($rows) ? $rows : []);
     }
 
     public function createRetentionRun(?int $userId, string $scope): int
@@ -2087,6 +2304,7 @@ final class DiscussionRepository
                  FROM `%s`
                  WHERE `message_id` = :message_id
                    AND `purge_status` = 'active'
+                   AND `availability_status` = 'available'
                  ORDER BY `id` ASC",
                 $this->attachmentTable()
             ));
@@ -2293,6 +2511,7 @@ final class DiscussionRepository
             'originalFilename' => is_string($row['original_filename'] ?? null) ? (string) $row['original_filename'] : '',
             'storagePath' => is_string($row['storage_path'] ?? null) ? (string) $row['storage_path'] : '',
             'previewStoragePath' => is_string($row['preview_storage_path'] ?? null) ? (string) $row['preview_storage_path'] : '',
+            'thumbnailStoragePath' => is_string($row['thumbnail_storage_path'] ?? null) ? (string) $row['thumbnail_storage_path'] : '',
             'mimeType' => is_string($row['mime_type'] ?? null) ? (string) $row['mime_type'] : '',
             'sizeBytes' => max(0, (int) ($row['size_bytes'] ?? 0)),
             'sha256' => is_string($row['sha256'] ?? null) ? (string) $row['sha256'] : '',
@@ -2301,6 +2520,9 @@ final class DiscussionRepository
             'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
             'expiresAt' => is_string($row['expires_at'] ?? null) ? (string) $row['expires_at'] : '',
             'purgeStatus' => is_string($row['purge_status'] ?? null) ? (string) $row['purge_status'] : '',
+            'availabilityStatus' => $this->normalizeAttachmentAvailabilityStatus(is_string($row['availability_status'] ?? null) ? (string) $row['availability_status'] : ''),
+            'scannedAt' => is_string($row['scanned_at'] ?? null) ? (string) $row['scanned_at'] : '',
+            'scanError' => is_string($row['scan_error'] ?? null) ? (string) $row['scan_error'] : '',
         ];
     }
 
@@ -2446,6 +2668,23 @@ final class DiscussionRepository
         $fallback = in_array($fallback, self::MESSAGE_PURGE_STATUSES, true) ? $fallback : 'active';
 
         return in_array($status, self::MESSAGE_PURGE_STATUSES, true) ? $status : $fallback;
+    }
+
+    private function normalizeAttachmentAvailabilityStatus(string $status, string $fallback = 'available'): string
+    {
+        $status = strtolower(trim($status));
+        $fallback = in_array($fallback, self::ATTACHMENT_AVAILABILITY_STATUSES, true) ? $fallback : 'available';
+
+        return in_array($status, self::ATTACHMENT_AVAILABILITY_STATUSES, true) ? $status : $fallback;
+    }
+
+    private function normalizeScanError(string $error): string
+    {
+        $error = strtolower(trim($error));
+        $error = preg_replace('/[^a-z0-9._-]+/', '_', $error);
+        $error = is_string($error) ? trim($error, '_') : '';
+
+        return $error === '' ? 'scan_failed' : substr($error, 0, 120);
     }
 
     private function normalizeClientMessageId(string $clientMessageId): ?string

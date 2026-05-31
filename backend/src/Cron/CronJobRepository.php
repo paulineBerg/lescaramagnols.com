@@ -370,6 +370,15 @@ final class CronJobRepository
                 'timeout_seconds' => 300,
             ],
             [
+                'code' => 'scan_private_discussion_attachments',
+                'name' => 'Scan pièces jointes discussions',
+                'description' => 'Valide la file des pièces jointes FamilyDiscussion avant disponibilité.',
+                'script_path' => 'core/tools/scan_private_discussion_attachments.php',
+                'arguments' => ['args' => ['--quiet']],
+                'schedule_expression' => '*/10 * * * *',
+                'timeout_seconds' => 300,
+            ],
+            [
                 'code' => 'purge_private_account_deletion_backups',
                 'name' => 'Suppressions comptes privés',
                 'description' => 'Avertit à J+20 puis supprime les données, le compte et la sauvegarde après 30 jours de rétention.',

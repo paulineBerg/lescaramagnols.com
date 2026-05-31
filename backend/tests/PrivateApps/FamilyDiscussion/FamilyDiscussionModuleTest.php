@@ -10,6 +10,7 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionServic
 use Caramagnols\PrivateApps\FamilyDiscussion\Realtime\ConversationEventStream;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionEventService;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionMediaService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionNotificationService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionTimelineService;
@@ -202,12 +203,14 @@ final class FamilyDiscussionModuleTest extends TestCase
             (string) $stored['originalFilename'],
             (string) $stored['storagePath'],
             is_string($stored['previewStoragePath'] ?? null) ? (string) $stored['previewStoragePath'] : null,
+            is_string($stored['thumbnailStoragePath'] ?? null) ? (string) $stored['thumbnailStoragePath'] : null,
             (string) $stored['mimeType'],
             (int) $stored['sizeBytes'],
             (string) $stored['sha256'],
             is_int($stored['width'] ?? null) ? $stored['width'] : null,
             is_int($stored['height'] ?? null) ? $stored['height'] : null,
-            $expiredAt
+            $expiredAt,
+            'available'
         );
         $this->assertIsArray($expiredAttachment);
         $expiredPath = $storage->absolutePath((string) $stored['storagePath']);
@@ -236,6 +239,101 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertSame('purged', $purgedMessage['purgeStatus']);
         $this->assertFileDoesNotExist($expiredPath);
         $this->assertFileExists($activePath);
+    }
+
+    public function testAttachmentScanQueueQuotasAndOrphanCleanup(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $storage = $this->storage();
+        $media = new DiscussionMediaService($repository, $storage);
+        $service = new DiscussionService($repository, $userRepository, $storage, mediaService: $media);
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $upload = $this->createUpload('scan-ok.txt', 'piece jointe a scanner');
+        $message = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Voir le fichier',
+            [
+                'discussion_files' => [
+                    'name' => [$upload['name']],
+                    'tmp_name' => [$upload['tmp_name']],
+                    'size' => [$upload['size']],
+                    'error' => [UPLOAD_ERR_OK],
+                    'type' => ['text/plain'],
+                ],
+            ],
+            $this->encryptedPayload()
+        );
+        $this->assertIsArray($message);
+        $this->assertCount(1, $message['attachments']);
+        $this->assertSame('available', $message['attachments'][0]['availabilityStatus']);
+
+        $attachmentId = (string) $message['attachments'][0]['attachmentId'];
+        $attachment = $repository->findAttachmentForUser($attachmentId, $bobId);
+        $this->assertIsArray($attachment);
+        $this->assertSame('available', $attachment['availabilityStatus']);
+        $this->assertNotSame('', $attachment['scannedAt']);
+        $this->assertSame([], $repository->listPendingScanAttachments());
+        $this->assertNotEmpty($repository->listMediaGalleryForUser($conversationId, $bobId));
+
+        global $appConfig;
+        $appConfig['private']['discussions']['max_user_storage_bytes'] = 1;
+        $quotaService = new DiscussionService(
+            $repository,
+            $userRepository,
+            $storage,
+            mediaService: new DiscussionMediaService($repository, $storage)
+        );
+        $quotaUpload = $this->createUpload('quota.txt', 'quota refusee');
+        $quotaMessage = $quotaService->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Fichier trop lourd pour le quota',
+            [
+                'discussion_files' => [
+                    'name' => [$quotaUpload['name']],
+                    'tmp_name' => [$quotaUpload['tmp_name']],
+                    'size' => [$quotaUpload['size']],
+                    'error' => [UPLOAD_ERR_OK],
+                    'type' => ['text/plain'],
+                ],
+            ],
+            $this->encryptedPayload(),
+            'quota-message'
+        );
+        $this->assertIsArray($quotaMessage);
+        $this->assertSame([], $quotaMessage['attachments']);
+
+        $orphanUpload = $this->createUpload('orphan.txt', 'fichier orphelin');
+        $metadata = $storage->validateUploadedFile([
+            'name' => $orphanUpload['name'],
+            'tmp_name' => $orphanUpload['tmp_name'],
+            'size' => $orphanUpload['size'],
+            'error' => UPLOAD_ERR_OK,
+            'type' => 'text/plain',
+        ]);
+        $this->assertIsArray($metadata);
+        $stored = $storage->store($metadata, 'orphanattachment');
+        $this->assertIsArray($stored);
+        $orphanPath = $storage->absolutePath((string) $stored['storagePath']);
+        $this->assertIsString($orphanPath);
+        $this->assertFileExists($orphanPath);
+
+        $dryRun = $media->cleanupOrphans(100, true);
+        $this->assertGreaterThanOrEqual(1, $dryRun['orphans']);
+        $this->assertFileExists($orphanPath);
+
+        $cleanup = $media->cleanupOrphans(100, false);
+        $this->assertGreaterThanOrEqual(1, $cleanup['deleted']);
+        $this->assertFileDoesNotExist($orphanPath);
     }
 
     public function testEncryptedTextMessagesStoreOnlyCiphertext(): void

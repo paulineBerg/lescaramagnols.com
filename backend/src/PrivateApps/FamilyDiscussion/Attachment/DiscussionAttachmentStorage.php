@@ -12,6 +12,7 @@ final class DiscussionAttachmentStorage
     private const ENCRYPTION_TAG_BYTES = 16;
     private const DIRECTORY_PERMISSIONS = 0700;
     private const DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+    private const DEFAULT_THUMBNAIL_MAX_EDGE = 640;
     private const DEFAULT_ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
     private const DEFAULT_ALLOWED_MIME_TYPES = [
         'application/pdf',
@@ -102,6 +103,11 @@ final class DiscussionAttachmentStorage
     public function uploadsDirectory(): string
     {
         return $this->rootPath . '/uploads';
+    }
+
+    public function previewsDirectory(): string
+    {
+        return $this->rootPath . '/previews';
     }
 
     public function generateAttachmentId(): string
@@ -196,7 +202,7 @@ final class DiscussionAttachmentStorage
 
     /**
      * @param array{tmpPath:string,originalFilename:string,extension:string,mimeType:string,sizeBytes:int,sha256:string,width:?int,height:?int,isImage:bool} $metadata
-     * @return array{attachmentId:string,storagePath:string,previewStoragePath:?string,originalFilename:string,mimeType:string,sizeBytes:int,sha256:string,width:?int,height:?int}|null
+     * @return array{attachmentId:string,storagePath:string,previewStoragePath:?string,thumbnailStoragePath:?string,originalFilename:string,mimeType:string,sizeBytes:int,sha256:string,width:?int,height:?int}|null
      */
     public function store(array $metadata, string $attachmentId): ?array
     {
@@ -233,25 +239,19 @@ final class DiscussionAttachmentStorage
             return null;
         }
 
-        $storedContent = $this->encryptContent($plainContent, $storagePath);
-        if ($storedContent === null) {
-            $this->lastError = 'encryption_failed';
+        if (!$this->writeEncryptedContent($storagePath, $plainContent)) {
             return null;
         }
 
-        $stored = file_put_contents($absolutePath, $storedContent, LOCK_EX);
-        if ($stored === false || !is_file($absolutePath)) {
-            $this->lastError = 'write_failed';
-            return null;
-        }
-        @chmod($absolutePath, 0600);
-
-        $previewStoragePath = !empty($metadata['isImage']) ? $storagePath : null;
+        $previewStoragePath = !empty($metadata['isImage'])
+            ? $this->storeImagePreview($metadata, $attachmentId)
+            : null;
 
         return [
             'attachmentId' => $attachmentId,
             'storagePath' => $storagePath,
             'previewStoragePath' => $previewStoragePath,
+            'thumbnailStoragePath' => $previewStoragePath,
             'originalFilename' => (string) ($metadata['originalFilename'] ?? ''),
             'mimeType' => (string) ($metadata['mimeType'] ?? ''),
             'sizeBytes' => (int) ($metadata['sizeBytes'] ?? 0),
@@ -268,11 +268,30 @@ final class DiscussionAttachmentStorage
             return null;
         }
 
-        if (preg_match('/\Afamily-discussion\/uploads\/[a-z0-9]{2}\/[a-z0-9]{2}\/[A-Za-z0-9._-]+\.[a-z0-9]{1,16}\z/', $storagePath) !== 1) {
+        if (preg_match('/\Afamily-discussion\/(?:uploads|previews)\/[a-z0-9]{2}\/[a-z0-9]{2}\/[A-Za-z0-9._-]+\.[a-z0-9]{1,16}\z/', $storagePath) !== 1) {
             return null;
         }
 
         return $this->rootPath . '/' . substr($storagePath, strlen('family-discussion/'));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function listStoredFiles(int $limit = 5000): array
+    {
+        $limit = max(1, min(50000, $limit));
+        $files = [];
+        foreach ([$this->uploadsDirectory(), $this->previewsDirectory()] as $directory) {
+            $this->collectStoredFiles($directory, $files, $limit);
+            if (count($files) >= $limit) {
+                break;
+            }
+        }
+
+        sort($files);
+
+        return array_slice(array_values(array_unique($files)), 0, $limit);
     }
 
     public function read(string $storagePath): ?string
@@ -318,11 +337,128 @@ final class DiscussionAttachmentStorage
         return @unlink($absolutePath);
     }
 
-    private function buildStoragePath(string $attachmentId, string $extension): string
+    private function buildStoragePath(string $attachmentId, string $extension, string $scope = 'uploads'): string
     {
-        $hash = hash('sha256', $attachmentId . '|' . time());
+        $scope = $scope === 'previews' ? 'previews' : 'uploads';
+        $hash = hash('sha256', $attachmentId . '|' . $scope . '|' . time());
 
-        return sprintf('family-discussion/uploads/%s/%s/%s.%s', substr($hash, 0, 2), substr($hash, 2, 2), $attachmentId, $extension);
+        return sprintf('family-discussion/%s/%s/%s/%s.%s', $scope, substr($hash, 0, 2), substr($hash, 2, 2), $attachmentId, $extension);
+    }
+
+    private function writeEncryptedContent(string $storagePath, string $plainContent): bool
+    {
+        $absolutePath = $this->absolutePath($storagePath);
+        if ($absolutePath === null) {
+            $this->lastError = 'invalid_storage_path';
+            return false;
+        }
+
+        $targetDir = dirname($absolutePath);
+        if (!is_dir($targetDir) && !@mkdir($targetDir, self::DIRECTORY_PERMISSIONS, true) && !is_dir($targetDir)) {
+            $this->lastError = 'storage_unavailable';
+            return false;
+        }
+
+        $storedContent = $this->encryptContent($plainContent, $storagePath);
+        if ($storedContent === null) {
+            $this->lastError = 'encryption_failed';
+            return false;
+        }
+
+        $stored = file_put_contents($absolutePath, $storedContent, LOCK_EX);
+        if ($stored === false || !is_file($absolutePath)) {
+            $this->lastError = 'write_failed';
+            return false;
+        }
+        @chmod($absolutePath, 0600);
+
+        return true;
+    }
+
+    /**
+     * @param array{tmpPath:string,originalFilename:string,extension:string,mimeType:string,sizeBytes:int,sha256:string,width:?int,height:?int,isImage:bool} $metadata
+     */
+    private function storeImagePreview(array $metadata, string $attachmentId): ?string
+    {
+        $tmpPath = is_string($metadata['tmpPath'] ?? null) ? trim((string) $metadata['tmpPath']) : '';
+        $extension = is_string($metadata['extension'] ?? null) ? strtolower(trim((string) $metadata['extension'])) : '';
+        if ($tmpPath === '' || $extension === '' || !is_file($tmpPath)) {
+            return null;
+        }
+
+        $plainPreview = $this->createPreviewContent(
+            $tmpPath,
+            is_string($metadata['mimeType'] ?? null) ? (string) $metadata['mimeType'] : ''
+        );
+        if ($plainPreview === null) {
+            return null;
+        }
+
+        $previewStoragePath = $this->buildStoragePath($attachmentId, $extension, 'previews');
+
+        return $this->writeEncryptedContent($previewStoragePath, $plainPreview) ? $previewStoragePath : null;
+    }
+
+    private function createPreviewContent(string $tmpPath, string $mimeType): ?string
+    {
+        $original = file_get_contents($tmpPath);
+        if (!is_string($original)) {
+            return null;
+        }
+
+        if (
+            !function_exists('imagecreatefromstring')
+            || !function_exists('imagesx')
+            || !function_exists('imagesy')
+            || !function_exists('imagecreatetruecolor')
+            || !function_exists('imagecopyresampled')
+        ) {
+            return $original;
+        }
+
+        $source = @imagecreatefromstring($original);
+        if (!$source instanceof \GdImage) {
+            return $original;
+        }
+
+        $width = imagesx($source);
+        $height = imagesy($source);
+
+        $maxEdge = self::DEFAULT_THUMBNAIL_MAX_EDGE;
+        $ratio = min(1.0, $maxEdge / max($width, $height));
+        if ($ratio >= 1.0) {
+            imagedestroy($source);
+            return $original;
+        }
+
+        $targetWidth = max(1, (int) round($width * $ratio));
+        $targetHeight = max(1, (int) round($height * $ratio));
+        $target = imagecreatetruecolor($targetWidth, $targetHeight);
+        if (!$target instanceof \GdImage) {
+            imagedestroy($source);
+            return $original;
+        }
+
+        if (in_array($mimeType, ['image/png', 'image/gif', 'image/webp'], true)) {
+            imagealphablending($target, false);
+            imagesavealpha($target, true);
+        }
+
+        imagecopyresampled($target, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
+
+        ob_start();
+        $encoded = match ($mimeType) {
+            'image/png' => function_exists('imagepng') ? imagepng($target, null, 6) : false,
+            'image/gif' => function_exists('imagegif') ? imagegif($target) : false,
+            'image/webp' => function_exists('imagewebp') ? imagewebp($target, null, 82) : false,
+            default => function_exists('imagejpeg') ? imagejpeg($target, null, 82) : false,
+        };
+        $preview = ob_get_clean();
+
+        imagedestroy($target);
+        imagedestroy($source);
+
+        return $encoded && is_string($preview) && $preview !== '' ? $preview : $original;
     }
 
     private function encryptContent(string $plainContent, string $storagePath): ?string
@@ -447,6 +583,54 @@ final class DiscussionAttachmentStorage
         if (is_dir($this->rootPath)) {
             @chmod($this->rootPath, self::DIRECTORY_PERMISSIONS);
         }
+    }
+
+    /**
+     * @param array<int, string> $files
+     */
+    private function collectStoredFiles(string $directory, array &$files, int $limit): void
+    {
+        if (!is_dir($directory) || count($files) >= $limit) {
+            return;
+        }
+
+        $items = scandir($directory);
+        if (!is_array($items)) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $path = $directory . '/' . $item;
+            if (is_dir($path)) {
+                $this->collectStoredFiles($path, $files, $limit);
+            } elseif (is_file($path)) {
+                $relative = $this->relativeStoragePath($path);
+                if ($relative !== null) {
+                    $files[] = $relative;
+                }
+            }
+
+            if (count($files) >= $limit) {
+                return;
+            }
+        }
+    }
+
+    private function relativeStoragePath(string $absolutePath): ?string
+    {
+        $normalized = str_replace('\\', '/', $absolutePath);
+        $root = rtrim(str_replace('\\', '/', $this->rootPath), '/') . '/';
+        if (!str_starts_with($normalized, $root)) {
+            return null;
+        }
+
+        $relative = 'family-discussion/' . substr($normalized, strlen($root));
+
+        return $this->absolutePath($relative) !== null ? $relative : null;
     }
 
     private function normalizeAttachmentId(string $id): string

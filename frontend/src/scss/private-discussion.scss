@@ -248,6 +248,46 @@
   overflow-wrap: anywhere;
 }
 
+.private-discussion-media-gallery {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  margin: 0;
+  padding: 0;
+}
+
+.private-discussion-media-gallery li {
+  display: block;
+  min-width: 0;
+}
+
+.private-discussion-media-gallery a {
+  align-content: start;
+  border: 1px solid var(--private-border);
+  border-radius: 8px;
+  color: inherit;
+  display: grid;
+  gap: 0.35rem;
+  min-height: 7rem;
+  overflow: hidden;
+  padding: 0.45rem;
+  text-decoration: none;
+}
+
+.private-discussion-media-gallery img {
+  aspect-ratio: 1;
+  background: rgb(19 41 75 / 4%);
+  border-radius: 6px;
+  max-width: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.private-discussion-media-gallery span {
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
 .discussion-attachment-preview,
 .private-discussion-preview-image {
   border-radius: 8px;

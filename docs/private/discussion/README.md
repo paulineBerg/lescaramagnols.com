@@ -144,7 +144,7 @@ Tables SQL du module :
 | `discussion_conversation_events` | journal append-only minimal pour sync, SSE et audit sans contenu clair |
 | `discussion_notification_preferences` | preferences neutres par conversation et membre |
 | `discussion_messages` | messages, contenu chiffre, statut de purge, expiration |
-| `discussion_message_attachments` | pieces jointes et metadonnees de stockage |
+| `discussion_message_attachments` | pieces jointes, scan, disponibilite, miniatures et metadonnees de stockage |
 | `discussion_message_reads` | lectures par utilisateur et message |
 | `discussion_crypto_devices` | appareils crypto declares par membre |
 | `discussion_conversation_keys` | cles de conversation enveloppees par utilisateur/appareil |
@@ -226,6 +226,8 @@ Parametres utilises :
 | `max_message_length` | longueur maximale du message texte |
 | `max_attachments_per_message` | nombre maximal de fichiers joints par message |
 | `max_attachment_bytes` | taille maximale d'une piece jointe |
+| `max_user_storage_bytes` | quota total de pieces jointes actives par utilisateur |
+| `max_conversation_storage_bytes` | quota total de pieces jointes actives par conversation |
 | `poll_interval_seconds` | intervalle de rafraichissement client |
 | `message_rate_limit_attempts` | nombre d'envois autorises par fenetre |
 | `message_rate_limit_window` | fenetre de rate limit message |
@@ -242,9 +244,12 @@ Purge planifiee :
 ```bash
 php backend/core/tools/purge_private_discussions.php --dry-run --json
 php backend/core/tools/purge_private_discussions.php --json
+php backend/core/tools/scan_private_discussion_attachments.php --dry-run --json
+php backend/core/tools/cleanup_private_discussion_orphans.php --dry-run --json
 ```
 
 La purge est inscrite dans le Cron Center prive sous le job `purge_private_discussions`.
+Le scan de la file de pieces jointes est inscrit sous `scan_private_discussion_attachments`.
 
 Controles utiles :
 
@@ -425,12 +430,12 @@ Les notifications immediates ne sont envoyees que pour le mode `notify`. Les mod
 
 Priorites :
 
-1. scan antivirus ou file d'attente de scan;
-2. blocage tant que le fichier n'est pas sain;
-3. miniatures asynchrones chiffrees hors webroot;
+1. file d'attente de scan via `availability_status = pending_scan`;
+2. blocage tant que le fichier n'est pas marque `available`;
+3. miniatures chiffrees hors webroot, sous le meme stockage prive que les fichiers;
 4. quotas par utilisateur et par conversation;
 5. nettoyage des fichiers orphelins avec dry-run JSON;
-6. galerie media.
+6. galerie media limitee aux pieces jointes disponibles.
 
 Statuts fichiers cibles :
 
@@ -446,6 +451,8 @@ Commandes CLI a prevoir :
 php backend/core/tools/scan_private_discussion_attachments.php --dry-run --json
 php backend/core/tools/cleanup_private_discussion_orphans.php --dry-run --json
 ```
+
+Les pieces jointes conservent `purge_status` pour la retention et les operations RGPD. Leur cycle de disponibilite est porte separement par `availability_status` afin de ne servir que les fichiers `available`. Les statuts `pending_scan` et `blocked` restent invisibles au telechargement; `deleted` et `purged` accompagnent les suppressions manuelles, la retention et les purges centralisees.
 
 ### Observabilite
 
@@ -628,15 +635,15 @@ Objectif : mieux controler les pieces jointes.
 
 Checklist :
 
-- [ ] ajouter statuts `pending_scan`, `available`, `blocked`, `deleted`, `purged`;
-- [ ] ne servir que les fichiers `available`;
-- [ ] ajouter scan antivirus ou file d'attente;
-- [ ] generer miniatures hors webroot;
-- [ ] chiffrer miniatures et fichiers;
-- [ ] ajouter quotas utilisateur/conversation;
-- [ ] ajouter cleanup orphelins avec dry-run JSON;
-- [ ] ajouter galerie media;
-- [ ] verifier scopes backup/export/purge.
+- [x] ajouter statuts `pending_scan`, `available`, `blocked`, `deleted`, `purged`;
+- [x] ne servir que les fichiers `available`;
+- [x] ajouter scan antivirus ou file d'attente;
+- [x] generer miniatures hors webroot;
+- [x] chiffrer miniatures et fichiers;
+- [x] ajouter quotas utilisateur/conversation;
+- [x] ajouter cleanup orphelins avec dry-run JSON;
+- [x] ajouter galerie media;
+- [x] verifier scopes backup/export/purge.
 
 ### Phase D8 - Observabilite sans contenu prive
 

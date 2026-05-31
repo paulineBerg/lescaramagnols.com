@@ -483,7 +483,7 @@ final class PrivateDataProtectionService
         );
         $this->safeUpdate(
             'discussion_message_attachments',
-            '`original_filename` = :filename, `purge_status` = \'purged\'',
+            '`original_filename` = :filename, `purge_status` = \'purged\', `availability_status` = \'purged\'',
             '`message_id` IN (SELECT `id` FROM `' . $this->database->table('discussion_messages') . '` WHERE `sender_private_user_id` = :private_user_id)',
             ['filename' => 'piece-jointe-supprimee', 'private_user_id' => $privateUserId]
         );
@@ -679,7 +679,7 @@ final class PrivateDataProtectionService
         $discussionAttachmentStorage = DiscussionAttachmentStorage::fromAppConfig();
 
         foreach ($this->deletionFileScopes($privateDocumentStorage, $discussionAttachmentStorage) as $table => $definition) {
-            $sourceTable = $table === 'discussion_message_attachment_previews'
+            $sourceTable = in_array($table, ['discussion_message_attachment_previews', 'discussion_message_attachment_thumbnails'], true)
                 ? 'discussion_message_attachments'
                 : $table;
             $rows = is_array($tables[$sourceTable] ?? null) ? $tables[$sourceTable] : [];
@@ -819,6 +819,7 @@ final class PrivateDataProtectionService
             $this->deletePrivateFileIfSafe($absolutePath, [
                 $privateDocumentStorage->uploadsDirectory(),
                 $discussionAttachmentStorage->uploadsDirectory(),
+                $discussionAttachmentStorage->previewsDirectory(),
             ]);
         }
     }
@@ -1063,6 +1064,7 @@ final class PrivateDataProtectionService
             'rental_agency_imported_documents' => ['storagePath' => 'storagePath', 'name' => 'filename', 'resolver' => $privateDocumentStorage],
             'discussion_message_attachments' => ['storagePath' => 'storagePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],
             'discussion_message_attachment_previews' => ['storagePath' => 'previewStoragePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],
+            'discussion_message_attachment_thumbnails' => ['storagePath' => 'thumbnailStoragePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],
         ];
     }
 

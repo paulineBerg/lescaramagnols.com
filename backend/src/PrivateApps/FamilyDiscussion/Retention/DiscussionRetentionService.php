@@ -66,11 +66,15 @@ final class DiscussionRetentionService
         foreach ($attachments as $attachment) {
             $storagePath = is_string($attachment['storagePath'] ?? null) ? (string) $attachment['storagePath'] : '';
             $previewStoragePath = is_string($attachment['previewStoragePath'] ?? null) ? (string) $attachment['previewStoragePath'] : '';
+            $thumbnailStoragePath = is_string($attachment['thumbnailStoragePath'] ?? null) ? (string) $attachment['thumbnailStoragePath'] : '';
             if ($storagePath !== '') {
                 $this->storage->delete($storagePath);
             }
             if ($previewStoragePath !== '' && $previewStoragePath !== $storagePath) {
                 $this->storage->delete($previewStoragePath);
+            }
+            if ($thumbnailStoragePath !== '' && !in_array($thumbnailStoragePath, [$storagePath, $previewStoragePath], true)) {
+                $this->storage->delete($thumbnailStoragePath);
             }
 
             $rowId = is_numeric($attachment['id'] ?? null) ? (int) $attachment['id'] : 0;

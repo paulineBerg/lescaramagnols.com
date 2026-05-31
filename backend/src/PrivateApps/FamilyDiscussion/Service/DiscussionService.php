@@ -16,6 +16,7 @@ final class DiscussionService
     private readonly int $maxMessageLength;
     private readonly int $maxAttachmentsPerMessage;
     private readonly DiscussionEventService $eventService;
+    private readonly DiscussionMediaService $mediaService;
 
     public function __construct(
         private readonly DiscussionRepository $repository,
@@ -24,6 +25,7 @@ final class DiscussionService
         private readonly ?AppEventLogger $eventLogger = null,
         private readonly ?PrivateModulePermissionRepository $modulePermissionRepository = null,
         ?DiscussionEventService $eventService = null,
+        ?DiscussionMediaService $mediaService = null,
         private readonly ?DiscussionNotificationService $notificationService = null
     ) {
         $config = is_array(app_config('private.discussions', [])) ? (array) app_config('private.discussions') : [];
@@ -31,6 +33,7 @@ final class DiscussionService
         $this->maxMessageLength = max(1, (int) ($config['max_message_length'] ?? 4000));
         $this->maxAttachmentsPerMessage = max(0, min(10, (int) ($config['max_attachments_per_message'] ?? 5)));
         $this->eventService = $eventService ?? new DiscussionEventService($repository);
+        $this->mediaService = $mediaService ?? new DiscussionMediaService($repository, $attachmentStorage, $eventLogger);
     }
 
     /**
@@ -191,6 +194,13 @@ final class DiscussionService
             if ($metadata === null) {
                 continue;
             }
+            if (!$this->mediaService->withinQuota($conversationId, $actorId, (int) $metadata['sizeBytes'])) {
+                $this->log('private.discussion.attachment.quota_exceeded', [
+                    'conversation_id' => $conversationId,
+                    'size_bytes' => (int) $metadata['sizeBytes'],
+                ], 'warning');
+                continue;
+            }
 
             $attachmentId = $this->attachmentStorage->generateAttachmentId();
             $stored = $this->attachmentStorage->store($metadata, $attachmentId);
@@ -204,21 +214,29 @@ final class DiscussionService
                 (string) $stored['originalFilename'],
                 (string) $stored['storagePath'],
                 is_string($stored['previewStoragePath'] ?? null) ? (string) $stored['previewStoragePath'] : null,
+                is_string($stored['thumbnailStoragePath'] ?? null) ? (string) $stored['thumbnailStoragePath'] : null,
                 (string) $stored['mimeType'],
                 (int) $stored['sizeBytes'],
                 (string) $stored['sha256'],
                 is_int($stored['width'] ?? null) ? $stored['width'] : null,
                 is_int($stored['height'] ?? null) ? $stored['height'] : null,
-                $expiresAt
+                $expiresAt,
+                'pending_scan'
             );
             if (is_array($attachment)) {
-                $attachments[] = $attachment;
+                $scan = $this->mediaService->scanAttachment($attachment);
+                if ($scan['status'] === 'available') {
+                    $attachment['availabilityStatus'] = 'available';
+                    $attachment['scannedAt'] = date('Y-m-d H:i:s');
+                    $attachments[] = $attachment;
+                }
                 $this->log('private.discussion.attachment.uploaded', [
                     'conversation_id' => $conversationId,
                     'message_id' => (int) $message['id'],
                     'attachment_id' => (string) $attachment['attachmentId'],
                     'size_bytes' => (int) $attachment['sizeBytes'],
-                ]);
+                    'availability_status' => $scan['status'],
+                ], $scan['status'] === 'available' ? 'info' : 'warning');
             }
         }
 
@@ -386,11 +404,15 @@ final class DiscussionService
     {
         $storagePath = is_string($attachment['storagePath'] ?? null) ? (string) $attachment['storagePath'] : '';
         $previewStoragePath = is_string($attachment['previewStoragePath'] ?? null) ? (string) $attachment['previewStoragePath'] : '';
+        $thumbnailStoragePath = is_string($attachment['thumbnailStoragePath'] ?? null) ? (string) $attachment['thumbnailStoragePath'] : '';
         if ($storagePath !== '') {
             $this->attachmentStorage->delete($storagePath);
         }
         if ($previewStoragePath !== '' && $previewStoragePath !== $storagePath) {
             $this->attachmentStorage->delete($previewStoragePath);
+        }
+        if ($thumbnailStoragePath !== '' && !in_array($thumbnailStoragePath, [$storagePath, $previewStoragePath], true)) {
+            $this->attachmentStorage->delete($thumbnailStoragePath);
         }
     }
 
@@ -484,12 +506,12 @@ final class DiscussionService
         ]);
     }
 
-    private function log(string $event, array $context): void
+    private function log(string $event, array $context, string $severity = 'info'): void
     {
         if ($this->eventLogger === null) {
             return;
         }
 
-        $this->eventLogger->security($event, $context, 'info');
+        $this->eventLogger->security($event, $context, $severity);
     }
 }

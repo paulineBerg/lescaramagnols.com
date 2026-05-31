@@ -17,6 +17,7 @@ $conversation = is_array($viewModel['conversation'] ?? null) ? $viewModel['conve
 $conversations = is_array($viewModel['conversations'] ?? null) ? $viewModel['conversations'] : [];
 $messages = is_array($viewModel['messages'] ?? null) ? $viewModel['messages'] : [];
 $conversationMembers = is_array($viewModel['conversationMembers'] ?? null) ? $viewModel['conversationMembers'] : [];
+$mediaGallery = is_array($viewModel['discussionMediaGallery'] ?? null) ? $viewModel['discussionMediaGallery'] : [];
 $members = is_array($viewModel['members'] ?? null) ? $viewModel['members'] : [];
 $timeline = is_array($viewModel['discussionTimeline'] ?? null) ? $viewModel['discussionTimeline'] : [];
 $notificationPreference = is_array($viewModel['notificationPreference'] ?? null) ? $viewModel['notificationPreference'] : [];
@@ -245,6 +246,40 @@ $notificationLabels = [
           <button type="submit" class="private-button-secondary">Enregistrer</button>
         </form>
       </section>
+
+      <?php if ($mediaGallery !== []): ?>
+        <section class="private-discussion-sidebar-section">
+          <div class="private-discussion-sidebar-heading">
+            <span class="tag">Fichiers</span>
+            <h2>Galerie</h2>
+          </div>
+          <ul class="private-discussion-media-gallery">
+            <?php foreach ($mediaGallery as $media): ?>
+              <?php if (!is_array($media)) { continue; } ?>
+              <?php
+              $mediaId = is_string($media['attachmentId'] ?? null) ? (string) $media['attachmentId'] : '';
+              $mediaName = is_string($media['originalFilename'] ?? null) ? (string) $media['originalFilename'] : 'piece-jointe';
+              $mediaMime = is_string($media['mimeType'] ?? null) ? (string) $media['mimeType'] : '';
+              if ($mediaId === '') {
+                  continue;
+              }
+              $mediaHref = $filesUrl . '/' . rawurlencode($mediaId);
+              $mediaPreviewHref = $mediaHref . '/preview';
+              ?>
+              <li>
+                <a href="<?php echo $h($mediaHref); ?>">
+                  <?php if (str_starts_with($mediaMime, 'image/')): ?>
+                    <img src="<?php echo $h($mediaPreviewHref); ?>" alt="<?php echo $h($mediaName); ?>" loading="lazy" />
+                  <?php else: ?>
+                    <span aria-hidden="true">Fichier</span>
+                  <?php endif; ?>
+                  <span><?php echo $h($shortText($mediaName, 42)); ?></span>
+                </a>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        </section>
+      <?php endif; ?>
 
       <aside class="notice private-discussion-security" aria-label="<?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions')); ?>">
         <strong><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions')); ?></strong>

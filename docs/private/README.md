@@ -57,6 +57,7 @@ Mise a jour 2026-05-29 (emails transactionnels V2) :
 Mise a jour 2026-05-29 (cron et idempotence V3) :
 - le Cron Center reste l'unique point d'entree OVH et orchestre les jobs prives autorises;
 - `purge_private_discussions.php` est inscrit au catalogue des scripts autorises et dispose maintenant de `--dry-run`, `--json`, `--quiet` et `--limit`;
+- `scan_private_discussion_attachments.php` valide la file de pieces jointes FamilyDiscussion en `pending_scan` avant disponibilite;
 - `purge_private_account_deletion_backups.php` journalise debut, fin, duree, compteurs et erreurs, et ajoute un verrou CLI direct en plus du verrou Cron Center;
 - les erreurs de job cron produisent `cron.job.failed` et `cron.scheduler.failed`, visibles dans les logs d'exploitation et detectees par `check_log_alerts.php`;
 - l'idempotence J+20/J+30 est couverte par tests : pas de doublon email J+20 apres relance, pas de seconde suppression definitive apres J+30.
@@ -175,6 +176,7 @@ Jobs prives actifs :
 | Code | Script | Frequence | Role | Dry-run |
 |---|---|---|---|---|
 | `purge_private_discussions` | `core/tools/purge_private_discussions.php` | `45 3 * * *` | purge des messages et fichiers FamilyDiscussion expires | `--dry-run --json` |
+| `scan_private_discussion_attachments` | `core/tools/scan_private_discussion_attachments.php` | `*/10 * * * *` | scan de la file des pieces jointes FamilyDiscussion | `--dry-run --json` |
 | `purge_private_account_deletion_backups` | `core/tools/purge_private_account_deletion_backups.php` | `55 3 * * *` | avertissement J+20 puis suppression compte+sauvegarde a J+30 | `--dry-run --json` |
 
 Commandes de controle :
@@ -182,6 +184,7 @@ Commandes de controle :
 ```bash
 php backend/core/tools/run_cron_center.php --dry-run --json
 php backend/core/tools/purge_private_discussions.php --dry-run --json
+php backend/core/tools/scan_private_discussion_attachments.php --dry-run --json
 php backend/core/tools/purge_private_account_deletion_backups.php --dry-run --json
 php backend/core/tools/check_log_alerts.php --strict --json --cron-failed-threshold=1
 ```

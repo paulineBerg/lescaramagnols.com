@@ -13,6 +13,7 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
 use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionEventService;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionMediaService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionNotificationService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionTimelineService;
@@ -2959,6 +2960,7 @@ final class PrivatePortalController
             'discussionTimeline' => $timeline,
             'conversationMembers' => $this->discussionRepository()->listConversationMembers($conversationId),
             'notificationPreference' => $this->discussionRepository()->notificationPreferenceForUser($conversationId, $userId),
+            'discussionMediaGallery' => $this->discussionRepository()->listMediaGalleryForUser($conversationId, $userId),
             'members' => $this->discussionService()->listActiveMembers($userId),
             'error' => is_string($request->query()['error'] ?? null) ? (string) $request->query()['error'] : '',
             'notice' => is_string($request->query()['notice'] ?? null) ? (string) $request->query()['notice'] : '',
@@ -6534,6 +6536,7 @@ final class PrivatePortalController
             $this->discussionAttachmentStorage(),
             $this->eventLogger,
             $this->modulePermissionRepository(),
+            mediaService: $this->discussionMediaService(),
             notificationService: $this->discussionNotificationService()
         );
     }
@@ -6565,6 +6568,15 @@ final class PrivatePortalController
                 [],
                 0
             )
+        );
+    }
+
+    private function discussionMediaService(): DiscussionMediaService
+    {
+        return new DiscussionMediaService(
+            $this->discussionRepository(),
+            $this->discussionAttachmentStorage(),
+            $this->eventLogger
         );
     }
 
