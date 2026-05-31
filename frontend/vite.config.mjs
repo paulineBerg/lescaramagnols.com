@@ -18,7 +18,8 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'src/js/main.ts'),
         style: path.resolve(__dirname, 'src/scss/style.scss'),
-        private: path.resolve(__dirname, 'src/scss/private.scss')
+        private: path.resolve(__dirname, 'src/scss/private.scss'),
+        privateDiscussion: path.resolve(__dirname, 'src/js/private-discussion.ts')
       },
       output: {
         assetFileNames: 'assets/[name].[hash][extname]',

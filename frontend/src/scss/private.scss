@@ -2,6 +2,8 @@
  * Extracted from PHP templates so the private CSP can reject inline styles.
  */
 
+@use "private-discussion";
+
 /* Shared private layout. */
 :root {
     color-scheme: light;

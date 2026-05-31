@@ -2938,13 +2938,16 @@ final class PrivatePortalController
             );
         }
 
-        $messages = $this->discussionTimelineService()->timeline($conversationId, $userId)['messages'];
+        $timeline = $this->discussionTimelineService()->timeline($conversationId, $userId);
         $this->discussionService()->markRead($conversationId, $userId, $this->discussionRequestId($request));
 
         return $this->render('modules/family-discussion/conversation', $this->discussionViewModel($userId, [
             'privatePageTitle' => 'Discussion',
             'conversation' => $conversation,
-            'messages' => $messages,
+            'conversations' => $this->discussionService()->listConversations($userId),
+            'messages' => $timeline['messages'],
+            'discussionTimeline' => $timeline,
+            'conversationMembers' => $this->discussionRepository()->listConversationMembers($conversationId),
             'members' => $this->discussionService()->listActiveMembers($userId),
             'error' => is_string($request->query()['error'] ?? null) ? (string) $request->query()['error'] : '',
             'notice' => is_string($request->query()['notice'] ?? null) ? (string) $request->query()['notice'] : '',

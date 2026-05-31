@@ -538,19 +538,19 @@ Objectif : rendre l'usage fluide sans transformer le module en SPA.
 
 Checklist :
 
-- [ ] creer `frontend/src/js/private-discussion.ts`;
-- [ ] creer `frontend/src/scss/private-discussion.scss` si necessaire;
-- [ ] garder le rendu initial PHP;
-- [ ] ajouter layout deux panneaux desktop;
-- [ ] ajouter vue mobile liste puis fil;
-- [ ] rendre le composer sticky;
-- [ ] ajouter etats d'envoi;
-- [ ] ajouter drag and drop;
-- [ ] ajouter collage image;
-- [ ] ajouter preview avant upload;
-- [ ] ajouter brouillon local sans secret;
-- [ ] ajouter recherche locale uniquement dans messages dechiffres charges;
-- [ ] tester 390px, 768px et desktop.
+- [x] creer `frontend/src/js/private-discussion.ts`;
+- [x] creer `frontend/src/scss/private-discussion.scss` si necessaire;
+- [x] garder le rendu initial PHP;
+- [x] ajouter layout deux panneaux desktop;
+- [x] ajouter vue mobile liste puis fil;
+- [x] rendre le composer sticky;
+- [x] ajouter etats d'envoi;
+- [x] ajouter drag and drop;
+- [x] ajouter collage image;
+- [x] ajouter preview avant upload;
+- [x] ajouter brouillon local sans secret;
+- [x] ajouter recherche locale uniquement dans messages dechiffres charges;
+- [x] tester 390px, 768px et desktop.
 
 Pieges a eviter :
 
