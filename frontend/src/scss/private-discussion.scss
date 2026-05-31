@@ -264,6 +264,21 @@
   gap: 0.6rem;
 }
 
+.private-discussion-device-panel {
+  border: 1px solid var(--private-border);
+  border-radius: 8px;
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+  padding: 0.7rem;
+}
+
+.private-discussion-device-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .private-discussion-message-form textarea {
   min-height: 5.2rem;
   resize: vertical;

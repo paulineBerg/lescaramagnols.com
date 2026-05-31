@@ -190,6 +190,28 @@ Points de vigilance :
 - la recherche serveur dans les contenus chiffres n'est pas possible sans changer le modele de confidentialite;
 - toute evolution "messenger" doit preserver la separation entre contenu chiffre, metadonnees necessaires et journaux d'exploitation.
 
+### Protocole crypto multi-appareils V2
+
+Le protocole V2 garde la meme regle centrale : le serveur ne recoit jamais le corps texte en clair et ne peut pas reconstruire une cle perdue.
+
+Principe retenu :
+
+- chaque navigateur declare un appareil dans `discussion_crypto_devices` avec une cle publique RSA-OAEP-256;
+- le premier appareil actif d'un membre est marque `trusted`;
+- un nouvel appareil est marque `pending` tant qu'il n'a pas pu recuperer ou regenerer une cle locale autorisee;
+- un appareil revoque passe en `revoked`, et ses enveloppes de cles dans `discussion_conversation_keys` sont revoquees en meme temps;
+- la cle de conversation AES-GCM-256 reste stockee localement par le navigateur, puis enveloppee par appareil participant dans `discussion_conversation_keys`;
+- la regeneration de cle cree une nouvelle cle locale pour les prochains messages et reenveloppe cette cle vers les appareils actifs; les anciens messages peuvent rester illisibles si l'ancienne cle locale n'existe plus;
+- la strategie de recuperation est explicite : ouvrir un appareil encore connu pour partager la cle, ou regenerer une cle en acceptant que l'historique chiffre avec l'ancienne cle puisse rester illisible.
+
+Statuts appareil :
+
+| Statut | Role |
+|---|---|
+| `trusted` | appareil connu par le membre, capable de dechiffrer ou de partager la cle courante |
+| `pending` | nouvel appareil detecte, pas encore confirme par une cle locale exploitable |
+| `revoked` | appareil retire; ses enveloppes ne sont plus servies |
+
 ## 6. Configuration
 
 Configuration principale : `backend/config/config.php`, cle `private.discussions`.
@@ -565,16 +587,16 @@ Objectif : rendre le chiffrement comprehensible et durable sur plusieurs apparei
 
 Checklist :
 
-- [ ] formaliser le protocole crypto V2;
-- [ ] definir statuts appareil `trusted`, `pending`, `revoked`;
-- [ ] utiliser `discussion_crypto_devices`;
-- [ ] utiliser `discussion_conversation_keys`;
-- [ ] ajouter UI "cet appareil est connu";
-- [ ] ajouter UI "nouvel appareil detecte";
-- [ ] ajouter action "revoquer cet appareil";
-- [ ] ajouter action "regenerer les cles de conversation";
-- [ ] documenter la strategie de recuperation;
-- [ ] tester rotation et revocation.
+- [x] formaliser le protocole crypto V2;
+- [x] definir statuts appareil `trusted`, `pending`, `revoked`;
+- [x] utiliser `discussion_crypto_devices`;
+- [x] utiliser `discussion_conversation_keys`;
+- [x] ajouter UI "cet appareil est connu";
+- [x] ajouter UI "nouvel appareil detecte";
+- [x] ajouter action "revoquer cet appareil";
+- [x] ajouter action "regenerer les cles de conversation";
+- [x] documenter la strategie de recuperation;
+- [x] tester rotation et revocation.
 
 Regle centrale :
 

@@ -25,6 +25,7 @@ type CryptoState = {
     deviceId: string;
     privateKey: CryptoKey;
     publicKeyJwk: JsonWebKey;
+    trustStatus: string;
   };
   aesKey: CryptoKey;
 };
@@ -98,6 +99,13 @@ const dbPut = (db: IDBDatabase, value: Record<string, unknown>): Promise<boolean
   tx.oncomplete = () => resolve(true);
 });
 
+const dbDelete = (db: IDBDatabase, id: string): Promise<boolean> => new Promise((resolve, reject) => {
+  const tx = db.transaction('items', 'readwrite');
+  const request = tx.objectStore('items').delete(id);
+  request.onerror = () => reject(request.error);
+  tx.oncomplete = () => resolve(true);
+});
+
 const secureRandomHex = (length = 16): string => {
   if (window.crypto?.getRandomValues) {
     const bytes = new Uint8Array(length);
@@ -143,6 +151,10 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
   const submitButton = root.querySelector<HTMLButtonElement>('[data-discussion-submit-button]');
   const submitStatus = root.querySelector<HTMLElement>('[data-discussion-submit-status]');
   const loadBeforeButton = root.querySelector<HTMLButtonElement>('[data-discussion-load-before]');
+  const devicePanel = root.querySelector<HTMLElement>('[data-discussion-device-panel]');
+  const deviceSummary = root.querySelector<HTMLElement>('[data-discussion-device-summary]');
+  const regenerateKeysButton = root.querySelector<HTMLButtonElement>('[data-discussion-regenerate-keys]');
+  const revokeDeviceButton = root.querySelector<HTMLButtonElement>('[data-discussion-revoke-device]');
 
   if (!messagesRoot) {
     return;
@@ -166,6 +178,8 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
   let lastEventId = 0;
   let lastMessageElement = root.querySelector<HTMLElement>('[data-discussion-last-message]');
   let cryptoState: CryptoState | null = null;
+  let currentDb: IDBDatabase | null = null;
+  let currentDevice: CryptoState['device'] | null = null;
   let selectedFiles: File[] = [];
   let previewUrls: string[] = [];
 
@@ -194,6 +208,17 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     }
     if (submitButton) {
       submitButton.disabled = state === 'sending';
+    }
+  };
+
+  const setDevicePanel = (text: string, danger = false): void => {
+    if (devicePanel) {
+      devicePanel.hidden = false;
+      devicePanel.dataset.deviceState = danger ? 'warning' : 'ready';
+    }
+    if (deviceSummary) {
+      deviceSummary.textContent = text;
+      deviceSummary.classList.toggle('notice-error', danger);
     }
   };
 
@@ -236,7 +261,7 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
       await dbPut(db, device);
     }
 
-    await fetch(devicesUrl, {
+    const response = await fetch(devicesUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-CSRF-Token': csrfToken, Accept: 'application/json' },
       body: new URLSearchParams({
@@ -248,11 +273,20 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
       }),
       credentials: 'same-origin'
     });
+    let trustStatus = 'pending';
+    if (response.ok) {
+      const payload = await response.json() as Record<string, unknown>;
+      const serverDevice = payload.device && typeof payload.device === 'object'
+        ? payload.device as Record<string, unknown>
+        : {};
+      trustStatus = String(serverDevice.trustStatus || trustStatus);
+    }
 
     return {
       deviceId: String(device.deviceId || ''),
       privateKey: device.privateKey as CryptoKey,
-      publicKeyJwk: device.publicKeyJwk as JsonWebKey
+      publicKeyJwk: device.publicKeyJwk as JsonWebKey,
+      trustStatus
     };
   };
 
@@ -290,6 +324,25 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     return Array.isArray(payload.devices) ? payload.devices as Array<Record<string, unknown>> : [];
   };
 
+  const trustCurrentDevice = async (): Promise<void> => {
+    const device = cryptoState?.device || currentDevice;
+    if (!device?.deviceId) {
+      return;
+    }
+    await fetch(devicesUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-CSRF-Token': csrfToken, Accept: 'application/json' },
+      body: new URLSearchParams({
+        csrf_token: csrfToken,
+        action: 'trust_device',
+        conversation_id: String(conversationId),
+        device_id: device.deviceId
+      }),
+      credentials: 'same-origin'
+    });
+    device.trustStatus = 'trusted';
+  };
+
   const shareKey = async (aesKey: CryptoKey, devices: Array<Record<string, unknown>>): Promise<void> => {
     const rawKey = await exportAesKey(aesKey);
     const wrappers = [];
@@ -323,6 +376,61 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     });
   };
 
+  const regenerateConversationKey = async (): Promise<void> => {
+    if (!cryptoOk || conversationId <= 0) {
+      setStatus('Chiffrement local indisponible. Clés non régénérées.', true);
+      return;
+    }
+    const db = currentDb || await openCryptoDb();
+    const device = currentDevice || await registerDevice(db);
+    currentDb = db;
+    currentDevice = device;
+    const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+    await dbPut(db, { id: `conversation:${conversationId}`, aesKey });
+    cryptoState = { db, device, aesKey };
+    await shareKey(aesKey, await fetchConversationDevices());
+    await trustCurrentDevice();
+    setStatus('Nouvelle clé locale active pour les prochains messages.');
+    setDevicePanel('Cet appareil est connu. Les anciens messages peuvent rester illisibles si leur ancienne clé n existe plus localement.');
+  };
+
+  const revokeCurrentDevice = async (): Promise<void> => {
+    const device = cryptoState?.device || currentDevice;
+    if (!device?.deviceId) {
+      setDevicePanel('Aucun appareil courant a revoquer.', true);
+      return;
+    }
+    const response = await fetch(devicesUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-CSRF-Token': csrfToken, Accept: 'application/json' },
+      body: new URLSearchParams({
+        csrf_token: csrfToken,
+        action: 'revoke_device',
+        conversation_id: String(conversationId),
+        device_id: device.deviceId
+      }),
+      credentials: 'same-origin'
+    });
+    if (!response.ok) {
+      setDevicePanel('Révocation impossible pour cet appareil.', true);
+      return;
+    }
+    const db = cryptoState?.db || currentDb;
+    if (db) {
+      await dbDelete(db, `conversation:${conversationId}`);
+      await dbDelete(db, 'device');
+    }
+    try {
+      window.localStorage.removeItem('caramagnolsDiscussionDeviceId');
+    } catch (_error) {
+      // Le nouvel appareil sera recree au prochain chargement si le stockage est bloque.
+    }
+    cryptoState = null;
+    currentDevice = null;
+    setStatus('Appareil révoqué. Rechargez la page pour déclarer un nouvel appareil.', true);
+    setDevicePanel('Cet appareil est révoqué pour les discussions.', true);
+  };
+
   const conversationKey = async (): Promise<CryptoKey | null> => {
     if (!cryptoOk || conversationId <= 0) {
       return null;
@@ -332,10 +440,14 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     }
     const db = await openCryptoDb();
     const device = await registerDevice(db);
+    currentDb = db;
+    currentDevice = device;
     const localKey = await dbGet(db, `conversation:${conversationId}`);
     if (localKey?.aesKey) {
       cryptoState = { db, device, aesKey: localKey.aesKey as CryptoKey };
       await shareKey(localKey.aesKey as CryptoKey, await fetchConversationDevices());
+      await trustCurrentDevice();
+      setDevicePanel('Cet appareil est connu pour cette conversation.');
 
       return localKey.aesKey as CryptoKey;
     }
@@ -353,6 +465,8 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
         const aesKey = await importAesKey(raw);
         await dbPut(db, { id: `conversation:${conversationId}`, aesKey });
         cryptoState = { db, device, aesKey };
+        await trustCurrentDevice();
+        setDevicePanel('Cet appareil est connu pour cette conversation.');
 
         return aesKey;
       } catch (_error) {
@@ -360,12 +474,19 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
       }
     }
     if (keyPayload.knownKeyCount > 0) {
+      cryptoState = null;
+      setDevicePanel(
+        'Nouvel appareil detecte: les anciens messages restent illisibles sans cle locale autorisee.',
+        true
+      );
       return null;
     }
     const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
     await dbPut(db, { id: `conversation:${conversationId}`, aesKey });
     await shareKey(aesKey, await fetchConversationDevices());
     cryptoState = { db, device, aesKey };
+    await trustCurrentDevice();
+    setDevicePanel('Cet appareil est connu pour cette conversation.');
 
     return aesKey;
   };
@@ -764,6 +885,12 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
   searchInput?.addEventListener('input', applySearch);
   loadBeforeButton?.addEventListener('click', () => {
     void loadPreviousMessages();
+  });
+  regenerateKeysButton?.addEventListener('click', () => {
+    void regenerateConversationKey();
+  });
+  revokeDeviceButton?.addEventListener('click', () => {
+    void revokeCurrentDevice();
   });
 
   if (lastMessageElement instanceof HTMLElement) {

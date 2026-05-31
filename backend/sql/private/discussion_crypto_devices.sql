@@ -7,9 +7,11 @@ CREATE TABLE IF NOT EXISTS car_discussion_crypto_devices (
     device_label VARCHAR(120) NOT NULL DEFAULT '',
     public_key_jwk MEDIUMTEXT NOT NULL,
     algorithm VARCHAR(64) NOT NULL DEFAULT 'RSA-OAEP-256',
+    trust_status VARCHAR(16) NOT NULL DEFAULT 'trusted',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     revoked_at DATETIME NULL,
     UNIQUE KEY uq_discussion_crypto_device (private_user_id, device_id),
-    KEY idx_discussion_crypto_devices_user (private_user_id, revoked_at)
+    KEY idx_discussion_crypto_devices_user (private_user_id, revoked_at),
+    KEY idx_discussion_crypto_devices_status (private_user_id, trust_status, revoked_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

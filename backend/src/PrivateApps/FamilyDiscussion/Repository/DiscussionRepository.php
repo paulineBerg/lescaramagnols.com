@@ -194,14 +194,23 @@ final class DiscussionRepository
                 `device_label` VARCHAR(120) NOT NULL DEFAULT '',
                 `public_key_jwk` MEDIUMTEXT NOT NULL,
                 `algorithm` VARCHAR(64) NOT NULL DEFAULT 'RSA-OAEP-256',
+                `trust_status` VARCHAR(16) NOT NULL DEFAULT 'trusted',
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `last_seen_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `revoked_at` DATETIME NULL,
                 UNIQUE KEY `uq_discussion_crypto_device` (`private_user_id`, `device_id`),
-                KEY `idx_discussion_crypto_devices_user` (`private_user_id`, `revoked_at`)
+                KEY `idx_discussion_crypto_devices_user` (`private_user_id`, `revoked_at`),
+                KEY `idx_discussion_crypto_devices_status` (`private_user_id`, `trust_status`, `revoked_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->cryptoDeviceTable()
         ));
+        $this->ensureColumn($pdo, $this->cryptoDeviceTable(), 'trust_status', "`trust_status` VARCHAR(16) NOT NULL DEFAULT 'trusted'");
+        $this->ensureIndex(
+            $pdo,
+            $this->cryptoDeviceTable(),
+            'idx_discussion_crypto_devices_status',
+            'ADD INDEX `idx_discussion_crypto_devices_status` (`private_user_id`, `trust_status`, `revoked_at`)'
+        );
 
         $pdo->exec(sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (
@@ -1295,14 +1304,17 @@ final class DiscussionRepository
         try {
             $this->ensureSchema();
             $now = $this->now();
+            $existingDevice = $this->findCryptoDeviceIncludingRevoked($userId, $deviceId);
+            $trustStatus = $this->initialTrustStatus($userId, $existingDevice);
             $statement = $this->database->pdo()->prepare(sprintf(
                 "INSERT INTO `%s`
-                    (`private_user_id`, `device_id`, `device_label`, `public_key_jwk`, `algorithm`, `created_at`, `last_seen_at`, `revoked_at`)
+                    (`private_user_id`, `device_id`, `device_label`, `public_key_jwk`, `algorithm`, `trust_status`, `created_at`, `last_seen_at`, `revoked_at`)
                  VALUES
-                    (:user_id, :device_id, :device_label, :public_key_jwk, 'RSA-OAEP-256', :created_at, :last_seen_at, NULL)
+                    (:user_id, :device_id, :device_label, :public_key_jwk, 'RSA-OAEP-256', :trust_status, :created_at, :last_seen_at, NULL)
                  ON DUPLICATE KEY UPDATE
                     `device_label` = VALUES(`device_label`),
                     `public_key_jwk` = VALUES(`public_key_jwk`),
+                    `trust_status` = VALUES(`trust_status`),
                     `last_seen_at` = VALUES(`last_seen_at`),
                     `revoked_at` = NULL",
                 $this->cryptoDeviceTable()
@@ -1312,6 +1324,7 @@ final class DiscussionRepository
                 'device_id' => $deviceId,
                 'device_label' => $label,
                 'public_key_jwk' => $publicKeyJwk,
+                'trust_status' => $trustStatus,
                 'created_at' => $now,
                 'last_seen_at' => $now,
             ]);
@@ -1349,7 +1362,31 @@ final class DiscussionRepository
         return is_array($row) ? $this->hydrateCryptoDevice($row) : null;
     }
 
-    public function revokeCryptoDevice(int $userId, string $deviceId): bool
+    private function findCryptoDeviceIncludingRevoked(int $userId, string $deviceId): ?array
+    {
+        if ($userId <= 0 || $deviceId === '') {
+            return null;
+        }
+
+        try {
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `private_user_id` = :user_id
+                   AND `device_id` = :device_id
+                 LIMIT 1",
+                $this->cryptoDeviceTable()
+            ));
+            $statement->execute(['user_id' => $userId, 'device_id' => $deviceId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->hydrateCryptoDevice($row) : null;
+    }
+
+    public function trustCryptoDevice(int $userId, string $deviceId): bool
     {
         $deviceId = $this->normalizeDeviceId($deviceId);
         if ($userId <= 0 || $deviceId === '') {
@@ -1360,20 +1397,75 @@ final class DiscussionRepository
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(sprintf(
                 "UPDATE `%s`
-                 SET `revoked_at` = COALESCE(`revoked_at`, :revoked_at)
+                 SET `trust_status` = 'trusted',
+                     `last_seen_at` = :last_seen_at
                  WHERE `private_user_id` = :user_id
                    AND `device_id` = :device_id
                    AND `revoked_at` IS NULL",
                 $this->cryptoDeviceTable()
             ));
             $statement->execute([
-                'revoked_at' => $this->now(),
+                'last_seen_at' => $this->now(),
                 'user_id' => $userId,
                 'device_id' => $deviceId,
             ]);
 
             return $statement->rowCount() > 0;
         } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function revokeCryptoDevice(int $userId, string $deviceId): bool
+    {
+        $deviceId = $this->normalizeDeviceId($deviceId);
+        if ($userId <= 0 || $deviceId === '') {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+            $now = $this->now();
+            $statement = $pdo->prepare(sprintf(
+                "UPDATE `%s`
+                 SET `trust_status` = 'revoked',
+                     `revoked_at` = COALESCE(`revoked_at`, :revoked_at)
+                 WHERE `private_user_id` = :user_id
+                   AND `device_id` = :device_id
+                   AND `revoked_at` IS NULL",
+                $this->cryptoDeviceTable()
+            ));
+            $statement->execute([
+                'revoked_at' => $now,
+                'user_id' => $userId,
+                'device_id' => $deviceId,
+            ]);
+            $revoked = $statement->rowCount() > 0;
+            if ($revoked) {
+                $keys = $pdo->prepare(sprintf(
+                    "UPDATE `%s`
+                     SET `revoked_at` = COALESCE(`revoked_at`, :revoked_at)
+                     WHERE `private_user_id` = :user_id
+                       AND `device_id` = :device_id
+                       AND `revoked_at` IS NULL",
+                    $this->conversationKeyTable()
+                ));
+                $keys->execute([
+                    'revoked_at' => $now,
+                    'user_id' => $userId,
+                    'device_id' => $deviceId,
+                ]);
+            }
+            $pdo->commit();
+
+            return $revoked;
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             return false;
         }
     }
@@ -2144,8 +2236,10 @@ final class DiscussionRepository
             'deviceLabel' => is_string($row['device_label'] ?? null) ? (string) $row['device_label'] : '',
             'publicKeyJwk' => $publicKeyJwk,
             'algorithm' => is_string($row['algorithm'] ?? null) ? (string) $row['algorithm'] : '',
+            'trustStatus' => $this->normalizeTrustStatus(is_string($row['trust_status'] ?? null) ? (string) $row['trust_status'] : ''),
             'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
             'lastSeenAt' => is_string($row['last_seen_at'] ?? null) ? (string) $row['last_seen_at'] : '',
+            'revokedAt' => is_string($row['revoked_at'] ?? null) ? (string) $row['revoked_at'] : '',
         ];
     }
 
@@ -2367,6 +2461,53 @@ final class DiscussionRepository
         $label = trim((string) preg_replace('/\s+/', ' ', $label));
 
         return strlen($label) <= 120 ? $label : '';
+    }
+
+    /**
+     * @param array<string, mixed>|null $existingDevice
+     */
+    private function initialTrustStatus(int $userId, ?array $existingDevice): string
+    {
+        if (is_array($existingDevice)) {
+            $status = is_string($existingDevice['trustStatus'] ?? null) ? (string) $existingDevice['trustStatus'] : '';
+            $revokedAt = is_string($existingDevice['revokedAt'] ?? null) ? trim((string) $existingDevice['revokedAt']) : '';
+            if ($revokedAt === '' && in_array($status, ['trusted', 'pending'], true)) {
+                return $status;
+            }
+
+            return 'pending';
+        }
+
+        return $this->countActiveCryptoDevicesForUser($userId) === 0 ? 'trusted' : 'pending';
+    }
+
+    private function countActiveCryptoDevicesForUser(int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+
+        try {
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT COUNT(*)
+                 FROM `%s`
+                 WHERE `private_user_id` = :user_id
+                   AND `revoked_at` IS NULL",
+                $this->cryptoDeviceTable()
+            ));
+            $statement->execute(['user_id' => $userId]);
+
+            return max(0, (int) $statement->fetchColumn());
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    private function normalizeTrustStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+
+        return in_array($status, ['trusted', 'pending', 'revoked'], true) ? $status : 'pending';
     }
 
     private function normalizePublicKeyJwk(string $publicKeyJwk): string

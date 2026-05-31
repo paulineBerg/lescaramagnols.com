@@ -3112,6 +3112,17 @@ final class PrivatePortalController
         $body = $request->body();
         $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
         $conversationId = is_numeric($body['conversation_id'] ?? null) ? (int) $body['conversation_id'] : 0;
+        if ($action === 'trust_device') {
+            $trusted = $this->discussionRepository()->trustCryptoDevice(
+                $userId,
+                is_string($body['device_id'] ?? null) ? (string) $body['device_id'] : ''
+            );
+
+            return $trusted
+                ? $this->jsonPrivateResponse(['ok' => true])
+                : $this->jsonPrivateResponse(['error' => 'invalid_device'], 422);
+        }
+
         if ($action === 'revoke_device') {
             $revoked = $this->discussionRepository()->revokeCryptoDevice(
                 $userId,

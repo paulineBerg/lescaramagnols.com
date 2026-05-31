@@ -322,6 +322,19 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertIsArray($aliceDevice);
         $this->assertIsArray($bobDevice);
         $this->assertIsArray($outsiderDevice);
+        $this->assertSame('trusted', $aliceDevice['trustStatus']);
+        $aliceSecondDevice = $repository->registerCryptoDevice(
+            $aliceId,
+            'alice-device-0002',
+            $this->publicKeyJwk('alice-key-2'),
+            'Alice tablette'
+        );
+        $this->assertIsArray($aliceSecondDevice);
+        $this->assertSame('pending', $aliceSecondDevice['trustStatus']);
+        $this->assertTrue($repository->trustCryptoDevice($aliceId, 'alice-device-0002'));
+        $aliceTrustedDevice = $repository->findCryptoDevice($aliceId, 'alice-device-0002');
+        $this->assertIsArray($aliceTrustedDevice);
+        $this->assertSame('trusted', $aliceTrustedDevice['trustStatus']);
 
         $conversation = $service->createDirectConversation($aliceId, $bobId);
         $this->assertIsArray($conversation);
@@ -350,6 +363,40 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertCount(1, $repository->listConversationKeysForUser($conversationId, $aliceId));
         $this->assertCount(1, $repository->listConversationKeysForUser($conversationId, $bobId));
         $this->assertSame([], $repository->listConversationKeysForUser($conversationId, $outsiderId));
+
+        $this->assertTrue($repository->revokeCryptoDevice($bobId, 'bob-device-000001'));
+        $this->assertNull($repository->findCryptoDevice($bobId, 'bob-device-000001'));
+        $this->assertCount(0, $repository->listConversationKeysForUser($conversationId, $bobId));
+        $this->assertSame(1, $repository->countConversationKeys($conversationId));
+
+        $deviceStatus = $database->pdo()->prepare(sprintf(
+            'SELECT `trust_status`, `revoked_at` FROM `%s` WHERE `private_user_id` = :user_id AND `device_id` = :device_id',
+            $database->table('discussion_crypto_devices')
+        ));
+        $deviceStatus->execute(['user_id' => $bobId, 'device_id' => 'bob-device-000001']);
+        $statusRow = $deviceStatus->fetch(PDO::FETCH_ASSOC);
+        $this->assertIsArray($statusRow);
+        $this->assertSame('revoked', $statusRow['trust_status']);
+        $this->assertNotEmpty($statusRow['revoked_at']);
+
+        $reRegisteredBobDevice = $repository->registerCryptoDevice(
+            $bobId,
+            'bob-device-000001',
+            $this->publicKeyJwk('bob-key-rotated'),
+            'Bob apres revocation'
+        );
+        $this->assertIsArray($reRegisteredBobDevice);
+        $this->assertSame('pending', $reRegisteredBobDevice['trustStatus']);
+
+        $rotated = $repository->upsertConversationKeys($conversationId, $aliceId, [
+            [
+                'privateUserId' => $bobId,
+                'deviceId' => 'bob-device-000001',
+                'encryptedKey' => base64_encode(random_bytes(48)),
+            ],
+        ]);
+        $this->assertSame(1, $rotated);
+        $this->assertSame(2, $repository->countConversationKeys($conversationId));
     }
 
     public function testMessagesAreIdempotentAndTimelineUsesCursorPagination(): void
