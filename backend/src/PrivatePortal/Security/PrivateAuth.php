@@ -81,18 +81,29 @@ final class PrivateAuth
             $context[self::SESSION_LAST_REAUTH_AT_KEY] = $loginAt;
         }
 
-        if (($now - $lastReauthAt) > $this->reauthTimeoutSeconds) {
-            $this->logout('reauth_timeout');
-
-            $this->log('private.session.expired', ['reason' => 'reauth_timeout']);
-
-            return false;
-        }
-
         $context[self::SESSION_LAST_ACTIVITY_AT_KEY] = $now;
         $this->session->setAll($context);
 
         return true;
+    }
+
+    public function inactivityTimeoutSeconds(): int
+    {
+        return $this->inactivityTimeoutSeconds;
+    }
+
+    public function remainingInactivitySeconds(): int
+    {
+        $this->session->start();
+
+        $context = $this->session->all();
+        $loginAt = (int) ($context[self::SESSION_LOGIN_AT_KEY] ?? 0);
+        $lastActivityAt = (int) ($context[self::SESSION_LAST_ACTIVITY_AT_KEY] ?? $loginAt);
+        if ($loginAt <= 0 || $lastActivityAt <= 0) {
+            return 0;
+        }
+
+        return max(0, $this->inactivityTimeoutSeconds - max(0, time() - $lastActivityAt));
     }
 
     public function isReauthFresh(): bool

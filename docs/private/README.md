@@ -9,6 +9,11 @@ Mise a jour 2026-05-31 (SMTP membre et fiches agences) :
 - les agences importees disposent d'une fiche modifiable (`rental_agencies`) avec raison sociale, adresse, telephone, email, conseiller et notes;
 - la revue des documents agence permet d'enregistrer toutes les corrections de lignes en une seule action, tout en conservant les actions rapides par ligne.
 
+Mise a jour 2026-05-31 (session privee active) :
+- la session privee n'est plus invalidee par le seul depassement du delai de re-authentification lorsque l'utilisateur travaille encore; ce delai reste disponible pour les actions sensibles qui demandent explicitement une session fraiche;
+- un endpoint `POST /private/session/ping`, protege par CSRF, prolonge le timeout d'inactivite lorsque l'interface privee detecte une activite utilisateur recente;
+- le comportement attendu devient : travail actif conserve la session, absence prolongee expire selon `PRIVATE_INACTIVITY_TIMEOUT_SECONDS`, action sensible peut encore redemander une authentification recente.
+
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis trois modules metier prioritaires :
 

@@ -8,6 +8,7 @@ use Caramagnols\PrivatePortal\Security\PrivatePasswordPolicy;
 use Caramagnols\PrivatePortal\Security\PrivatePortalSecurityGuard;
 use Caramagnols\PrivatePortal\Security\PrivateSession;
 use Caramagnols\PrivatePortal\Http\PrivateErrorResponder;
+use Caramagnols\PrivatePortal\Http\PrivatePortalController;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
@@ -210,7 +211,7 @@ final class PrivatePortalSecurityTest extends TestCase
         $this->assertFalse($auth->isAuthenticated());
     }
 
-    public function testReauthTimeoutInvalidatesAuthenticatedSession(): void
+    public function testReauthTimeoutDoesNotInvalidateActiveSessionButFreshGuardCanRequireIt(): void
     {
         $this->configurePrivatePasswordHash(password_hash('secret123', PASSWORD_ARGON2ID));
         $this->setPrivateConfigValue('reauth_timeout_seconds', 301);
@@ -223,7 +224,42 @@ final class PrivatePortalSecurityTest extends TestCase
         $context['last_reauth_at'] = time() - 302;
         $_SESSION['private_user'] = $context;
 
-        $this->assertFalse($auth->isAuthenticated());
+        $this->assertTrue($auth->isAuthenticated());
+        $this->assertFalse($auth->isReauthFresh());
+
+        $guard = new PrivatePortalSecurityGuard($auth);
+        $response = $guard->requireAuthenticated($this->request('GET', '/private/privacy/export'), '/private/login', true);
+
+        $this->assertNotNull($response);
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/private/login', $response->headers['Location'] ?? null);
+    }
+
+    public function testPrivateSessionPingRenewsAuthenticatedSession(): void
+    {
+        $this->configurePrivatePasswordHash(password_hash('secret123', PASSWORD_ARGON2ID));
+        $this->setPrivateConfigValue('inactivity_timeout_seconds', 300);
+        $auth = $this->privateAuth();
+        $this->assertTrue($auth->login('family@example.com', 'secret123', '127.0.0.1'));
+
+        $context = $_SESSION['private_user'] ?? [];
+        $this->assertIsArray($context);
+        $context['last_activity_at'] = time() - 250;
+        $_SESSION['private_user'] = $context;
+
+        $token = csrf_token('private_session');
+        $controller = new PrivatePortalController($auth);
+        $response = $controller->handle(
+            'session_ping',
+            $this->request('POST', '/private/session/ping', ['csrf_token' => $token])
+        );
+
+        $this->assertSame(200, $response->status);
+        $payload = json_decode($response->body, true);
+        $this->assertIsArray($payload);
+        $this->assertTrue($payload['ok'] ?? false);
+        $this->assertSame(300, $payload['timeoutSeconds'] ?? null);
+        $this->assertGreaterThan(240, (int) ($payload['remainingSeconds'] ?? 0));
     }
 
     public function testPasswordPolicyRejectsWeakPasswordsAndMismatchedConfirmation(): void

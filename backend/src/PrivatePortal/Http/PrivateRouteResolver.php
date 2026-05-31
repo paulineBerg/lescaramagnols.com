@@ -21,6 +21,7 @@ final class PrivateRouteResolver
             'documents' => $basePath . '/documents',
             'blocnote' => $basePath . '/blocnote',
             'logout' => $basePath . '/logout',
+            'session_ping' => $basePath . '/session/ping',
             'activate' => $basePath . '/activate',
             'password_forgot' => $basePath . '/password/forgot',
             'password_reset' => $basePath . '/password/reset',
@@ -125,6 +126,11 @@ final class PrivateRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('logout'),
                 'handler' => ['type' => 'private', 'page' => 'logout'],
+            ],
+            [
+                'methods' => ['POST'],
+                'path' => $this->canonicalPath('session_ping'),
+                'handler' => ['type' => 'private', 'page' => 'session_ping'],
             ],
             [
                 'methods' => ['GET', 'POST'],

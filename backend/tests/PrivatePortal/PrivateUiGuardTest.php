@@ -76,6 +76,10 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-private-nav-toggle', $layout);
         self::assertStringContainsString('type="button"', $layout);
         self::assertStringContainsString('caramagnols.private.navCollapsed', $layout);
+        self::assertStringContainsString('privateSessionPingUrl', $layout);
+        self::assertStringContainsString('sessionPingUrl', $layout);
+        self::assertStringContainsString('sessionCsrfToken', $layout);
+        self::assertStringContainsString('initSessionKeepAlive();', $layout);
         self::assertStringContainsString('data-private-auto-submit', $layout);
         self::assertStringContainsString('form.requestSubmit(submitter);', $layout);
         self::assertStringContainsString('data-private-dialog-auto-open', $layout);

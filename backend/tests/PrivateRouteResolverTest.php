@@ -19,6 +19,7 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c/parametres', $resolver->canonicalPath('member_settings'));
         $this->assertSame('/private-4h6F1c/documents', $resolver->canonicalPath('documents'));
         $this->assertSame('/private-4h6F1c/blocnote', $resolver->canonicalPath('blocnote'));
+        $this->assertSame('/private-4h6F1c/session/ping', $resolver->canonicalPath('session_ping'));
         $this->assertSame('/private-4h6F1c/files/categories', $resolver->canonicalPath('files_categories'));
         $this->assertSame('/private-4h6F1c/locations', $resolver->canonicalPath('rental_dashboard'));
         $this->assertSame('/private-4h6F1c/locations/locataires', $resolver->canonicalPath('rental_tenants'));
@@ -60,6 +61,7 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/blocnote' => ['methods' => ['GET', 'POST'], 'handler' => 'private:blocnote'],
             '/private/dashboard.php' => ['methods' => ['GET'], 'handler' => 'redirect:/private/dashboard'],
             '/private/logout' => ['methods' => ['GET', 'POST'], 'handler' => 'private:logout'],
+            '/private/session/ping' => ['methods' => ['POST'], 'handler' => 'private:session_ping'],
             '/private/activate/{token:[A-Za-z0-9._-]+}' => ['methods' => ['GET', 'POST'], 'handler' => 'private:activate'],
             '/private/password/forgot' => ['methods' => ['GET', 'POST'], 'handler' => 'private:password_forgot'],
             '/private/password/reset/{token:[A-Za-z0-9._-]+}' => ['methods' => ['GET', 'POST'], 'handler' => 'private:password_reset'],

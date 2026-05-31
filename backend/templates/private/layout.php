@@ -321,7 +321,78 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
         const navToggle = document.querySelector('[data-private-nav-toggle]');
         const navCollapseLabel = <?php echo json_encode($translate('TXT_PRIVATE_NAV_COLLAPSE', 'Replier le menu'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const navExpandLabel = <?php echo json_encode($translate('TXT_PRIVATE_NAV_EXPAND', 'Déplier le menu'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const sessionPingUrl = <?php echo json_encode((string) ($privateSessionPingUrl ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const sessionCsrfToken = <?php echo json_encode((string) ($privateSessionCsrfToken ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const sessionLoginUrl = <?php echo json_encode((string) ($privateLoginUrl ?? private_portal_url('login')), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const sessionKeepAliveSeconds = Math.max(60, Number(<?php echo json_encode((int) ($privateSessionKeepAliveSeconds ?? 300)); ?>) || 300);
+        const sessionRecentActivitySeconds = Math.max(120, Math.min(900, Number(<?php echo json_encode((int) ($privateSessionTimeoutSeconds ?? 3600)); ?>) || 3600));
         const navStorageKey = 'caramagnols.private.navCollapsed';
+        const initSessionKeepAlive = () => {
+          if (sessionPingUrl === '' || sessionCsrfToken === '') {
+            return;
+          }
+
+          const keepAliveMs = sessionKeepAliveSeconds * 1000;
+          const recentActivityMs = sessionRecentActivitySeconds * 1000;
+          let lastActivityAt = Date.now();
+          let lastPingAt = 0;
+          let pingInFlight = false;
+
+          const markActivity = () => {
+            lastActivityAt = Date.now();
+          };
+          const hasRecentActivity = () => Date.now() - lastActivityAt <= recentActivityMs;
+          const pingSession = async (force = false) => {
+            if (pingInFlight || document.hidden) {
+              return;
+            }
+
+            const now = Date.now();
+            if (!force && (!hasRecentActivity() || now - lastPingAt < keepAliveMs)) {
+              return;
+            }
+
+            pingInFlight = true;
+            lastPingAt = now;
+
+            try {
+              const body = new URLSearchParams();
+              body.set('csrf_token', sessionCsrfToken);
+              const response = await fetch(sessionPingUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                  'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+                body: body.toString(),
+              });
+
+              if (response.status === 401 && sessionLoginUrl !== '') {
+                window.location.assign(sessionLoginUrl);
+              }
+            } catch (_error) {
+              // La prochaine activite relancera un ping; ne pas interrompre la saisie utilisateur.
+            } finally {
+              pingInFlight = false;
+            }
+          };
+
+          ['click', 'keydown', 'input', 'change', 'scroll', 'focus'].forEach((eventName) => {
+            window.addEventListener(eventName, markActivity, { passive: true });
+          });
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+              markActivity();
+              void pingSession(true);
+            }
+          });
+          window.setInterval(() => {
+            void pingSession(false);
+          }, Math.min(60000, keepAliveMs));
+        };
+        initSessionKeepAlive();
+
         const readNavCollapsed = () => {
           try {
             return window.localStorage.getItem(navStorageKey) === '1';

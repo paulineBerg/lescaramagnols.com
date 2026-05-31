@@ -64,6 +64,7 @@ final class PrivatePortalController
     private const CSRF_DISCUSSIONS = 'private_discussions';
     private const CSRF_BLOCNOTE = 'private_blocnote';
     private const CSRF_MEMBER_SETTINGS = 'private_member_settings';
+    private const CSRF_SESSION = 'private_session';
 
     private ?string $lastPrivateMailFailure = null;
 
@@ -108,6 +109,7 @@ final class PrivatePortalController
             'documents' => $this->handleDocuments($request),
             'blocnote' => $this->handleBlocNote($request),
             'logout' => $this->handleLogout($request),
+            'session_ping' => $this->handleSessionPing($request),
             'activate' => $this->handleActivate($request, (string) ($routeParams['token'] ?? '')),
             'password_forgot' => $this->handlePasswordForgot($request),
             'password_reset' => $this->handlePasswordReset(
@@ -261,7 +263,7 @@ final class PrivatePortalController
     private function handleDashboard(Request $request): Response
     {
         $guard = $this->guard();
-        $required = $guard->requireAuthenticated($request, private_portal_url('login'), true);
+        $required = $guard->requireAuthenticated($request, private_portal_url('login'));
         if ($required !== null) {
             return $required;
         }
@@ -3289,6 +3291,32 @@ final class PrivatePortalController
         return $this->redirect(private_portal_url('login'));
     }
 
+    private function handleSessionPing(Request $request): Response
+    {
+        if ($request->method() !== self::METHOD_POST) {
+            return $this->jsonPrivateResponse(['ok' => false, 'error' => 'method_not_allowed'], 405);
+        }
+
+        if (!$this->auth->isAuthenticated()) {
+            return $this->jsonPrivateResponse([
+                'ok' => false,
+                'error' => 'unauthenticated',
+                'loginUrl' => private_portal_url('login'),
+            ], 401);
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_SESSION)) {
+            return $this->jsonPrivateResponse(['ok' => false, 'error' => 'csrf'], 419);
+        }
+
+        return $this->jsonPrivateResponse([
+            'ok' => true,
+            'remainingSeconds' => $this->auth->remainingInactivitySeconds(),
+            'timeoutSeconds' => $this->auth->inactivityTimeoutSeconds(),
+            'reauthFresh' => $this->auth->isReauthFresh(),
+        ]);
+    }
+
     private function handleActivate(Request $request, string $token): Response
     {
         $token = $this->normalizeDocumentId($token);
@@ -5675,7 +5703,7 @@ final class PrivatePortalController
 
     private function requireModuleOrUnauthorized(Request $request, string $module): int|Response|null
     {
-        $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), true);
+        $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'));
         if ($required !== null) {
             return $required;
         }
@@ -6112,6 +6140,11 @@ final class PrivatePortalController
             if ($privateLogoutCsrfToken === '') {
                 $privateLogoutCsrfToken = csrf_token('private_logout');
             }
+
+            $privateSessionPingUrl = private_portal_url('session_ping');
+            $privateSessionCsrfToken = csrf_token(self::CSRF_SESSION);
+            $privateSessionTimeoutSeconds = $this->auth->inactivityTimeoutSeconds();
+            $privateSessionKeepAliveSeconds = max(60, min(300, (int) floor($privateSessionTimeoutSeconds / 3)));
 
             $currentIdentifier = $this->auth->currentIdentifier();
             if ($privateUserIdentifier === '' && is_string($currentIdentifier)) {
