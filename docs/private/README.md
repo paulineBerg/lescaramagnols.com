@@ -1,6 +1,6 @@
 # Portail prive famille, locations et aide impots
 
-Date de mise a jour : 2026-05-29
+Date de mise a jour : 2026-05-31
 Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, chiffrement serveur au repos des fichiers joints, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
 
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
@@ -19,6 +19,7 @@ References projet a garder alignees :
 - `docs/backend/logging.md`
 - `docs/security/README.md`
 - `docs/private/backlog-pvt01.md`
+- `docs/private/locations-immobilieres/README.md`
 - `docs/deployment/README.md`
 
 Mise a jour 2026-05-28 (parametres membre) :
@@ -61,6 +62,11 @@ Mise a jour 2026-05-29 (observabilite exploitation V5) :
 - les seuils prives sont configurables en CLI : `--private-login-fail-threshold`, `--private-csrf-threshold`, `--private-rate-limit-threshold`, `--private-email-failed-threshold`, `--private-backup-failed-threshold`, `--private-backup-warning-threshold`, `--private-purge-failed-threshold`;
 - le rapport ne recopie pas les lignes de logs brutes : il publie uniquement compteurs, seuils, severites et resume, afin de ne pas diffuser de token, mot de passe ou secret;
 - `--log-dir` permet une recette d'alerte backup/cron/email sur logs factices isoles, sans polluer les logs d'exploitation reels.
+
+Mise a jour 2026-05-31 (locations immobilieres L0) :
+- le cadrage detaille du module `RealEstateRental` est maintenu dans `docs/private/locations-immobilieres/README.md`;
+- la phase L0 confirme le maintien de l'architecture `PrivateApps/RealEstateRental`, l'absence de point d'entree public et le contrat minimal des champs necessaires aux futurs documents generes;
+- les envois et PDF locatifs futurs doivent s'appuyer sur bailleur, mode de paiement, reference logement, adresse exacte, civilite locataire si disponible, contenu modifiable avant envoi et snapshot conserve.
 
 Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
