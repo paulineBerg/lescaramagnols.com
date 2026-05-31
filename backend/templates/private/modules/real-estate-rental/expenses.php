@@ -2,6 +2,7 @@
 $properties = is_array($viewModel['rentalProperties'] ?? null) ? $viewModel['rentalProperties'] : [];
 $units = is_array($viewModel['rentalUnits'] ?? null) ? $viewModel['rentalUnits'] : [];
 $expenses = is_array($viewModel['rentalExpenses'] ?? null) ? $viewModel['rentalExpenses'] : [];
+$expenseCategories = is_array($viewModel['rentalExpenseCategories'] ?? null) ? $viewModel['rentalExpenseCategories'] : [];
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
@@ -13,6 +14,34 @@ foreach ($properties as $property) {
     }
 }
 $expenseStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled' => 'Annule'];
+$categoryLabels = [];
+foreach ($expenseCategories as $category) {
+    if (is_array($category) && is_string($category['code'] ?? null)) {
+        $categoryLabels[(string) $category['code']] = (string) ($category['label'] ?? $category['code']);
+    }
+}
+$expenseGroups = [
+    'recoverable' => ['title' => 'Charges recuperables', 'total' => 0.0, 'rows' => []],
+    'deductible' => ['title' => 'Candidates deductibles', 'total' => 0.0, 'rows' => []],
+    'nonDeductible' => ['title' => 'Non deductibles', 'total' => 0.0, 'rows' => []],
+];
+foreach ($expenses as $expense) {
+    if (!is_array($expense) || (string) ($expense['status'] ?? '') !== 'validated') {
+        continue;
+    }
+    $amount = (float) ($expense['amount'] ?? 0);
+    if ((int) ($expense['isRecoverable'] ?? 0) === 1) {
+        $expenseGroups['recoverable']['total'] += $amount;
+        $expenseGroups['recoverable']['rows'][] = $expense;
+    }
+    if ((int) ($expense['isDeductibleCandidate'] ?? 0) === 1) {
+        $expenseGroups['deductible']['total'] += $amount;
+        $expenseGroups['deductible']['rows'][] = $expense;
+    } else {
+        $expenseGroups['nonDeductible']['total'] += $amount;
+        $expenseGroups['nonDeductible']['rows'][] = $expense;
+    }
+}
 $createDialogId = 'rental-expense-create-dialog';
 ?>
 <section>
@@ -35,6 +64,27 @@ $createDialogId = 'rental-expense-create-dialog';
       <p class="muted">Aucune charge enregistree.</p>
     <?php else: ?>
       <div class="private-list-tools">
+        <div class="private-kpi-grid">
+          <?php foreach ($expenseGroups as $group): ?>
+            <?php $rows = is_array($group['rows'] ?? null) ? $group['rows'] : []; ?>
+            <section class="private-kpi">
+              <span><?php echo htmlspecialchars((string) ($group['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+              <strong><?php echo htmlspecialchars(number_format((float) ($group['total'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</strong>
+              <?php if ($rows === []): ?>
+                <p class="muted">Aucune charge validee.</p>
+              <?php else: ?>
+                <ul>
+                  <?php foreach (array_slice($rows, 0, 5) as $row): ?>
+                    <?php if (!is_array($row)) { continue; } ?>
+                    <li><?php echo htmlspecialchars((string) ($row['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> - <?php echo htmlspecialchars(number_format((float) ($row['amount'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</li>
+                  <?php endforeach; ?>
+                </ul>
+              <?php endif; ?>
+            </section>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <div class="private-list-tools">
         <div class="private-list-filter-grid">
           <label>Recherche <input type="search" placeholder="Libellé ou propriété" data-private-filter="text" /></label>
           <label>Statut
@@ -52,20 +102,23 @@ $createDialogId = 'rental-expense-create-dialog';
       </div>
       <div class="private-table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Propriété</th><th>Libelle</th><th>Montant</th><th>Nature</th><th>Statut</th><th>Action</th></tr></thead>
+        <thead><tr><th>Date</th><th>Annee fiscale</th><th>Propriété</th><th>Categorie</th><th>Libelle</th><th>Montant</th><th>Nature</th><th>Justificatifs</th><th>Statut</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($expenses as $expense): ?>
             <?php if (!is_array($expense)) { continue; } ?>
             <?php $expenseId = is_numeric($expense['id'] ?? null) ? (int) $expense['id'] : 0; ?>
             <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($expense['expenseDate'] ?? '') . ' ' . (string) ($expense['propertyName'] ?? '') . ' ' . (string) ($expense['label'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($expense['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
               <td><?php echo htmlspecialchars((string) ($expense['expenseDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) (int) ($expense['taxYear'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($expense['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($categoryLabels[(string) ($expense['expenseCategory'] ?? '')] ?? ($expense['expenseCategory'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($expense['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars(number_format((float) ($expense['amount'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</td>
               <td>
                 <?php echo ((int) ($expense['isRecoverable'] ?? 0) === 1) ? 'recuperable' : 'non recuperable'; ?>,
                 <?php echo ((int) ($expense['isDeductibleCandidate'] ?? 0) === 1) ? 'potentiellement deductible' : 'non deductible'; ?>
               </td>
+              <td><?php echo htmlspecialchars((string) (int) ($expense['supportingDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($expenseStatuses[(string) ($expense['status'] ?? '')] ?? ($expense['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php if ($expenseId > 0): ?>
@@ -79,7 +132,7 @@ $createDialogId = 'rental-expense-create-dialog';
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="7">Aucune charge ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="10">Aucune charge ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -95,7 +148,7 @@ $createDialogId = 'rental-expense-create-dialog';
       <?php if ($propertyNames === []): ?>
         <p class="muted">Créer d'abord une propriété autorisée.</p>
       <?php else: ?>
-        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['expenses'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-rental-expense-form>
+        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['expenses'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" data-rental-expense-form>
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
           <input type="hidden" name="action" value="create_expense" />
           <label>Propriété
@@ -116,6 +169,15 @@ $createDialogId = 'rental-expense-create-dialog';
             </select>
           </label>
           <label>Date <input type="date" name="expense_date" required /></label>
+          <label>Annee fiscale <input type="number" name="tax_year" min="2000" max="2100" value="<?php echo htmlspecialchars((string) date('Y'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+          <label>Categorie
+            <select name="expense_category" required>
+              <?php foreach ($expenseCategories as $category): ?>
+                <?php if (!is_array($category) || !is_string($category['code'] ?? null)) { continue; } ?>
+                <option value="<?php echo htmlspecialchars((string) $category['code'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) ($category['label'] ?? $category['code']), ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
           <label>Libelle <input type="text" name="label" maxlength="160" required /></label>
           <label>Montant <input type="number" name="amount" min="0.01" step="0.01" required /></label>
           <label><input type="checkbox" name="is_recoverable" value="1" /> Charge recuperable</label>
@@ -127,6 +189,7 @@ $createDialogId = 'rental-expense-create-dialog';
               <?php endforeach; ?>
             </select>
           </label>
+          <label>Justificatif optionnel <input type="file" name="rental_document_file" /></label>
           <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
           <button type="submit">Créer la charge</button>
         </form>
@@ -138,6 +201,8 @@ $createDialogId = 'rental-expense-create-dialog';
       document.querySelectorAll('[data-rental-expense-form]').forEach((form) => {
         const propertySelect = form.querySelector('[name="rental_property_id"]');
         const unitSelect = form.querySelector('[data-rental-expense-unit-select]');
+        const dateInput = form.querySelector('[name="expense_date"]');
+        const taxYearInput = form.querySelector('[name="tax_year"]');
         if (!(propertySelect instanceof HTMLSelectElement) || !(unitSelect instanceof HTMLSelectElement)) {
           return;
         }
@@ -163,6 +228,13 @@ $createDialogId = 'rental-expense-create-dialog';
         };
 
         propertySelect.addEventListener('change', refreshUnits);
+        if (dateInput instanceof HTMLInputElement && taxYearInput instanceof HTMLInputElement) {
+          dateInput.addEventListener('change', () => {
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateInput.value)) {
+              taxYearInput.value = dateInput.value.slice(0, 4);
+            }
+          });
+        }
         refreshUnits();
       });
     })();

@@ -102,6 +102,12 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertStringContainsString('Rapports', $dashboard->body);
         $this->assertStringContainsString('Maison A', $dashboard->body);
         $this->assertStringNotContainsString('Maison B', $dashboard->body);
+
+        $regularizations = $controller->handle('rental_regularizations', $this->request('GET', '/private/locations/regularisations'));
+        $this->assertSame(200, $regularizations->status);
+        $this->assertStringContainsString('Regularisations', $regularizations->body);
+        $this->assertStringContainsString('Maison A', $regularizations->body);
+        $this->assertStringNotContainsString('Maison B', $regularizations->body);
     }
 
     public function testInvalidRentalUnitWritesAreRejectedServerSide(): void

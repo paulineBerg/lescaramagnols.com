@@ -53,7 +53,7 @@ foreach ($properties as $property) {
       </div>
       <div class="private-table-wrap">
       <table>
-        <thead><tr><th>Propriété</th><th>Nom</th><th>Poids</th><th>Ajoute le</th><th>Action</th></tr></thead>
+        <thead><tr><th>Propriété</th><th>Nom</th><th>Rattachement</th><th>Poids</th><th>Ajoute le</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($documents as $document): ?>
             <?php if (!is_array($document)) { continue; } ?>
@@ -62,6 +62,7 @@ foreach ($properties as $property) {
             <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($document['propertyName'] ?? '') . ' ' . (string) ($document['originalName'] ?? $documentId))), ENT_QUOTES, 'UTF-8'); ?>">
               <td><?php echo htmlspecialchars((string) ($document['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><a href="<?php echo htmlspecialchars(rtrim((string) ($urls['documents'] ?? ''), '/') . '/' . rawurlencode($documentId), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) ($document['originalName'] ?? $documentId), ENT_QUOTES, 'UTF-8'); ?></a></td>
+              <td><?php echo htmlspecialchars((string) (($document['expenseLabel'] ?? '') ?: ($document['unitLabel'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars(number_format(((int) ($document['sizeBytes'] ?? 0)) / 1024, 1, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> Ko</td>
               <td><?php echo htmlspecialchars((string) ($document['uploadedAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
@@ -74,7 +75,7 @@ foreach ($properties as $property) {
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="5">Aucun document ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucun document ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>

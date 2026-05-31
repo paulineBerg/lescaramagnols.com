@@ -496,21 +496,40 @@ Validations L4 executees :
 
 ### Phase L5 - Charges, justificatifs et regularisations
 
-- [ ] Ajouter categorie de charge normalisee.
-- [ ] Ajouter `tax_year`.
-- [ ] Rattacher un justificatif a une charge.
-- [ ] Afficher charges recuperables, candidates deductibles et non deductibles separement.
-- [ ] Creer l'ecran `Regularisations`.
-- [ ] Calculer provisions, charges reelles, part recuperable et solde.
-- [ ] Generer un document de regularisation verifiable.
+- [x] Ajouter categorie de charge normalisee.
+- [x] Ajouter `tax_year`.
+- [x] Rattacher un justificatif a une charge.
+- [x] Afficher charges recuperables, candidates deductibles et non deductibles separement.
+- [x] Creer l'ecran `Regularisations`.
+- [x] Calculer provisions, charges reelles, part recuperable et solde.
+- [x] Generer un document de regularisation verifiable.
 
 Tests minimum :
 
-- [ ] `RentalExpenseCategoryTest`;
-- [ ] `ChargeRegularizationServiceTest`;
-- [ ] charge recuperable non automatiquement deductible;
-- [ ] regularisation avec solde a demander;
-- [ ] regularisation avec remboursement.
+- [x] `RentalExpenseCategoryTest`;
+- [x] `ChargeRegularizationServiceTest`;
+- [x] charge recuperable non automatiquement deductible;
+- [x] regularisation avec solde a demander;
+- [x] regularisation avec remboursement.
+
+Decisions L5 :
+
+- les categories de charges sont centralisees dans `RentalExpenseCategoryCatalog`, avec normalisation stricte et libelles stables;
+- `tax_year` devient explicite sur `rental_expenses`; les anciennes charges sont migrees depuis `expense_date` lors de l'initialisation de schema;
+- les justificatifs de charges restent dans le stockage prive et sont relies par `rental_documents.rental_expense_id`;
+- les regularisations sont conservees dans `rental_charge_regularizations` avec snapshot JSON, document PDF prive, empreinte SHA-256 et cle d'idempotence;
+- une charge recuperable ne devient jamais deductible par automatisme : les deux decisions restent separees.
+
+Validations L5 executees :
+
+- `php -l` sur les services, repository, controller, routes, templates et tests L5;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalExpenseCategoryTest.php tests/PrivateApps/RealEstateRental/Lifecycle/ChargeRegularizationServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateRouteResolverTest.php tests/PrivatePortalPhaseCoverageTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php tests/PrivatePortal/PrivateModuleMigrationPlanTest.php tests/PrivatePortal/PrivacyOperationsTest.php`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`.
 
 ### Phase L6 - Dashboard et synthese fiscale provisoire
 

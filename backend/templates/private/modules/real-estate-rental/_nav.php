@@ -34,6 +34,7 @@ $subItems = match ($currentSection) {
         'rents' => ['Loyers', $url('rents', 'rental_rents')],
         'payments' => ['Paiements', $url('payments', 'rental_payments')],
         'expenses' => ['Charges', $url('expenses', 'rental_expenses')],
+        'regularizations' => ['Regularisations', $url('regularizations', 'rental_regularizations')],
         'documents' => ['Documents locatifs', $url('documents', 'rental_documents')],
     ],
     default => [],

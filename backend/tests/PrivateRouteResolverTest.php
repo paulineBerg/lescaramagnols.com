@@ -22,6 +22,7 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c/files/categories', $resolver->canonicalPath('files_categories'));
         $this->assertSame('/private-4h6F1c/locations', $resolver->canonicalPath('rental_dashboard'));
         $this->assertSame('/private-4h6F1c/locations/locataires', $resolver->canonicalPath('rental_tenants'));
+        $this->assertSame('/private-4h6F1c/locations/regularisations', $resolver->canonicalPath('rental_regularizations'));
         $this->assertSame('/private-4h6F1c/locations/agence/imports', $resolver->canonicalPath('rental_agency_imports'));
     }
 
@@ -77,10 +78,12 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/payments' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_payments'],
             '/private/rents' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_rents'],
             '/private/charges' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_expenses'],
+            '/private/locations/regularisations' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_regularizations'],
             '/private/locations/documents' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_documents'],
             '/private/locations/agence/imports' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_imports'],
             '/private/locations/agence/documents-a-classer' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_review'],
             '/private/locations/documents/{documentId:[A-Za-z0-9._-]+}' => ['methods' => ['GET'], 'handler' => 'private:rental_document_file'],
+            '/private/locations/regularisations/{documentId:[A-Za-z0-9._-]+}' => ['methods' => ['GET'], 'handler' => 'private:rental_regularization_file'],
             '/private/locations/summary' => ['methods' => ['GET'], 'handler' => 'private:rental_summary'],
             '/private/locations/export.csv' => ['methods' => ['GET'], 'handler' => 'private:rental_export_csv'],
             '/private/locations/export.pdf' => ['methods' => ['GET'], 'handler' => 'private:rental_export_pdf'],

@@ -37,6 +37,7 @@ final class PrivateRouteResolver
             'rental_payments' => $basePath . '/payments',
             'rental_rents' => $basePath . '/rents',
             'rental_expenses' => $basePath . '/charges',
+            'rental_regularizations' => $basePath . '/locations/regularisations',
             'rental_documents' => $basePath . '/locations/documents',
             'rental_agency_imports' => $basePath . '/locations/agence/imports',
             'rental_agency_review' => $basePath . '/locations/agence/documents-a-classer',
@@ -216,6 +217,11 @@ final class PrivateRouteResolver
             ],
             [
                 'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('rental_regularizations'),
+                'handler' => ['type' => 'private', 'page' => 'rental_regularizations'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('rental_documents'),
                 'handler' => ['type' => 'private', 'page' => 'rental_documents'],
             ],
@@ -233,6 +239,11 @@ final class PrivateRouteResolver
                 'methods' => ['GET'],
                 'path' => $this->canonicalPath('rental_documents') . '/{documentId:[A-Za-z0-9._-]+}',
                 'handler' => ['type' => 'private', 'page' => 'rental_document_file'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('rental_regularizations') . '/{documentId:[A-Za-z0-9._-]+}',
+                'handler' => ['type' => 'private', 'page' => 'rental_regularization_file'],
             ],
             [
                 'methods' => ['GET'],

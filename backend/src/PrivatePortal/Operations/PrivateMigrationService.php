@@ -56,6 +56,7 @@ final class PrivateMigrationService
             'rental_expenses',
             'rental_documents',
             'rental_generated_documents',
+            'rental_charge_regularizations',
             'rental_export_logs',
             'rental_agency_import_batches',
             'rental_agency_imported_documents',

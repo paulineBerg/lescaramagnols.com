@@ -13,6 +13,7 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionServic
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
+use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalExpenseCategoryCatalog;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
@@ -26,6 +27,7 @@ use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyImpor
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\AgencyImportService;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyTaxBridgeNormalizer;
+use Caramagnols\PrivateApps\RealEstateRental\Service\ChargeRegularizationService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentScheduleService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentPaymentStatusService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
@@ -82,7 +84,8 @@ final class PrivatePortalController
         private readonly ?RentScheduleService $rentScheduleService = null,
         private readonly ?RentPaymentStatusService $rentPaymentStatusService = null,
         private readonly ?RentalPaymentRequestService $rentalPaymentRequestService = null,
-        private readonly ?RentalReceiptService $rentalReceiptService = null
+        private readonly ?RentalReceiptService $rentalReceiptService = null,
+        private readonly ?ChargeRegularizationService $chargeRegularizationService = null
     ) {
     }
 
@@ -125,10 +128,15 @@ final class PrivatePortalController
             'rental_rents' => $this->handleRentalRents($request),
             'rental_payments' => $this->handleRentalPayments($request),
             'rental_expenses' => $this->handleRentalExpenses($request),
+            'rental_regularizations' => $this->handleRentalRegularizations($request),
             'rental_documents' => $this->handleRentalDocuments($request),
             'rental_agency_imports' => $this->handleRentalAgencyImports($request),
             'rental_agency_review' => $this->handleRentalAgencyReview($request),
             'rental_document_file' => $this->handleRentalDocumentFile(
+                $request,
+                (string) ($routeParams['documentId'] ?? '')
+            ),
+            'rental_regularization_file' => $this->handleRentalRegularizationFile(
                 $request,
                 (string) ($routeParams['documentId'] ?? '')
             ),
@@ -1650,10 +1658,20 @@ final class PrivatePortalController
             isset($body['is_deductible_candidate']) && (int) $body['is_deductible_candidate'] === 1,
             is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
             $userId,
-            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
+            is_string($body['expense_category'] ?? null) ? (string) $body['expense_category'] : RentalExpenseCategoryCatalog::DEFAULT,
+            is_numeric($body['tax_year'] ?? null) ? (int) $body['tax_year'] : null
         );
         if (!is_array($created)) {
             return $this->renderRentalExpenses($properties, $units, $expenses, '', 'rental_write_failed');
+        }
+
+        $uploadedFile = $this->optionalRentalUploadedFile($request);
+        if (is_array($uploadedFile)) {
+            $expenseId = is_numeric($created['id'] ?? null) ? (int) $created['id'] : 0;
+            if ($expenseId <= 0 || !$this->storeRentalSupportingDocument($uploadedFile, $propertyId, $unitId, null, $expenseId, $userId)) {
+                return $this->renderRentalExpenses($properties, $units, $expenses, '', 'upload_failed');
+            }
         }
 
         $this->logEvent('private.rental_expense.created', [
@@ -1663,6 +1681,81 @@ final class PrivatePortalController
         ]);
 
         return $this->redirect(private_portal_url('rental_expenses') . '?notice=expense_created');
+    }
+
+    private function handleRentalRegularizations(Request $request): Response
+    {
+        $userId = $this->requireRentalModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $propertyIds = $this->authorizedPropertyIds($userId);
+        $properties = $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
+        $units = $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
+        $regularizations = $this->rentalLifecycleRepository()->listChargeRegularizations($propertyIds, null, self::MAX_RENTAL_LIST);
+        $query = $request->query();
+        $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
+        $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
+
+        if ($request->method() !== self::METHOD_POST) {
+            return $this->renderRentalRegularizations($properties, $units, $regularizations, null, $notice, $error);
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
+            return $this->renderRentalRegularizations($properties, $units, $regularizations, null, '', 'rental_invalid_request');
+        }
+
+        $body = $request->body();
+        $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
+        $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
+        if (!$this->canWriteByPropertyId($propertyId, $userId)) {
+            return $this->renderRentalRegularizations($properties, $units, $regularizations, null, '', 'property_forbidden');
+        }
+        if ($unitId > 0 && !$this->unitBelongsToProperty($unitId, $propertyId)) {
+            return $this->renderRentalRegularizations($properties, $units, $regularizations, null, '', 'rental_invalid_request');
+        }
+
+        $year = is_numeric($body['year'] ?? null) ? (int) $body['year'] : (int) date('Y');
+        $share = is_numeric($body['tenant_share_percent'] ?? null) ? (float) $body['tenant_share_percent'] : 100.0;
+        $preview = $this->chargeRegularizationService()->preview(
+            $propertyId,
+            $unitId > 0 ? $unitId : null,
+            $year,
+            $share,
+            $propertyIds
+        );
+        if (!is_array($preview)) {
+            return $this->renderRentalRegularizations($properties, $units, $regularizations, null, '', 'rental_write_failed');
+        }
+
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'preview_regularization';
+        if ($action === 'preview_regularization') {
+            return $this->renderRentalRegularizations($properties, $units, $regularizations, $preview, '', '');
+        }
+        if ($action !== 'generate_regularization') {
+            return $this->renderRentalRegularizations($properties, $units, $regularizations, null, '', 'rental_invalid_request');
+        }
+
+        $regularization = $this->chargeRegularizationService()->generate(
+            $propertyId,
+            $unitId > 0 ? $unitId : null,
+            $year,
+            $share,
+            $propertyIds,
+            $userId
+        );
+        if (!is_array($regularization)) {
+            return $this->renderRentalRegularizations($properties, $units, $regularizations, $preview, '', 'rental_write_failed');
+        }
+
+        $this->logEvent('private.rental_charge_regularization.generated', [
+            'private_user_id' => $userId,
+            'rental_property_id' => $propertyId,
+            'rental_charge_regularization_id' => is_numeric($regularization['id'] ?? null) ? (int) $regularization['id'] : 0,
+        ]);
+
+        return $this->redirect(private_portal_url('rental_regularizations') . '?notice=regularization_generated');
     }
 
     private function handleRentalDocuments(Request $request): Response
@@ -2142,6 +2235,43 @@ final class PrivatePortalController
 
         return $this->withPrivateHeaders(new Response(200, [
             'Content-Type' => $mimeType,
+            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ], $body));
+    }
+
+    private function handleRentalRegularizationFile(Request $request, string $documentId): Response
+    {
+        $userId = $this->requireRentalModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $documentId = $this->normalizeDocumentId($documentId);
+        $propertyIds = $this->authorizedPropertyIds($userId);
+        $document = $documentId !== ''
+            ? $this->rentalLifecycleRepository()->findChargeRegularizationByDocumentId($documentId, $propertyIds)
+            : null;
+        if (!is_array($document)) {
+            return $this->handleModuleAccessDenied('real_estate_rental');
+        }
+
+        $body = $this->chargeRegularizationService()->content($document);
+        if (!is_string($body)) {
+            return $this->withPrivateHeaders(new Response(404, ['Content-Type' => 'text/plain; charset=UTF-8'], 'Not Found'));
+        }
+
+        $filename = $this->sanitizeDownloadFilename((string) ($document['originalName'] ?? 'regularisation-charges.pdf'));
+        $propertyId = is_numeric($document['rentalPropertyId'] ?? null) ? (int) $document['rentalPropertyId'] : 0;
+        $this->logEvent('private.rental_charge_regularization.downloaded', [
+            'private_user_id' => $userId,
+            'rental_property_id' => $propertyId,
+            'rental_charge_regularization_id' => is_numeric($document['id'] ?? null) ? (int) $document['id'] : 0,
+            'document_id' => $documentId,
+        ]);
+
+        return $this->withPrivateHeaders(new Response(200, [
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
             'X-Content-Type-Options' => 'nosniff',
         ], $body));
@@ -3666,6 +3796,34 @@ final class PrivatePortalController
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
                 'rentalExpenses' => $expenses,
+                'rentalExpenseCategories' => RentalExpenseCategoryCatalog::options(),
+            ]
+        ));
+    }
+
+    /**
+     * @param array<int, object> $properties
+     * @param array<int, object> $units
+     * @param array<int, array<string, mixed>> $regularizations
+     * @param array<string, mixed>|null $preview
+     */
+    private function renderRentalRegularizations(
+        array $properties,
+        array $units,
+        array $regularizations,
+        ?array $preview = null,
+        string $notice = '',
+        string $error = ''
+    ): Response {
+        return $this->render('modules/real-estate-rental/regularizations', array_merge(
+            $this->rentalBaseViewModel('Regularisations de charges', $notice, $error),
+            [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'regularizations',
+                'rentalProperties' => $this->objectsToArrays($properties),
+                'rentalUnits' => $this->objectsToArrays($units),
+                'rentalChargeRegularizations' => $regularizations,
+                'rentalChargeRegularizationPreview' => $preview,
             ]
         ));
     }
@@ -3896,6 +4054,71 @@ final class PrivatePortalController
         }
 
         return $ids;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function optionalRentalUploadedFile(Request $request): ?array
+    {
+        $files = $request->files();
+        $uploadedFile = is_array($files[self::RENTAL_DOCUMENT_UPLOAD_FIELD] ?? null)
+            ? $files[self::RENTAL_DOCUMENT_UPLOAD_FIELD]
+            : null;
+        if (!is_array($uploadedFile)) {
+            return null;
+        }
+
+        $error = is_numeric($uploadedFile['error'] ?? null) ? (int) $uploadedFile['error'] : UPLOAD_ERR_NO_FILE;
+
+        return $error === UPLOAD_ERR_NO_FILE ? null : $uploadedFile;
+    }
+
+    /**
+     * @param array<string, mixed> $uploadedFile
+     */
+    private function storeRentalSupportingDocument(
+        array $uploadedFile,
+        int $propertyId,
+        ?int $unitId,
+        ?int $leaseId,
+        ?int $expenseId,
+        int $userId
+    ): bool {
+        $storage = $this->privateDocumentStorage();
+        $metadata = $storage->validateUploadedFile($uploadedFile);
+        $documentId = $storage->generateDocumentId();
+        $stored = $metadata !== null && $documentId !== '' ? $storage->storeUploadedFile($metadata, $documentId) : null;
+        if (!is_array($stored)) {
+            return false;
+        }
+
+        $created = $this->rentalLifecycleRepository()->createDocument(
+            $propertyId,
+            $unitId !== null && $unitId > 0 ? $unitId : null,
+            $leaseId !== null && $leaseId > 0 ? $leaseId : null,
+            (string) $stored['documentId'],
+            (string) $stored['storagePath'],
+            (string) $stored['originalName'],
+            (string) $stored['extension'],
+            (string) $stored['mimeType'],
+            (int) $stored['sizeBytes'],
+            $userId,
+            $expenseId !== null && $expenseId > 0 ? $expenseId : null
+        );
+        if (!is_array($created)) {
+            $storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
+            return false;
+        }
+
+        $this->logEvent('private.rental_document.uploaded', [
+            'private_user_id' => $userId,
+            'rental_property_id' => $propertyId,
+            'rental_expense_id' => $expenseId ?? 0,
+            'document_id' => (string) $stored['documentId'],
+        ]);
+
+        return true;
     }
 
     /**
@@ -4539,6 +4762,7 @@ final class PrivatePortalController
                 'rents' => private_portal_url('rental_rents'),
                 'payments' => private_portal_url('rental_payments'),
                 'expenses' => private_portal_url('rental_expenses'),
+                'regularizations' => private_portal_url('rental_regularizations'),
                 'documents' => private_portal_url('rental_documents'),
                 'agencyImports' => private_portal_url('rental_agency_imports'),
                 'agencyReview' => private_portal_url('rental_agency_review'),
@@ -5097,6 +5321,7 @@ final class PrivatePortalController
             'receipt_emailed' => 'Quittance envoyée par email.',
             'expense_created' => 'Charge locative créée.',
             'expense_deleted' => 'Charge locative supprimée.',
+            'regularization_generated' => 'Régularisation de charges générée.',
             'document_uploaded' => 'Document locatif envoyé.',
             'document_deleted' => 'Document locatif supprimé.',
             'document_emailed' => 'Email locatif envoyé.',
@@ -5790,6 +6015,14 @@ final class PrivatePortalController
     private function rentalReceiptService(): RentalReceiptService
     {
         return $this->rentalReceiptService ?? new RentalReceiptService(
+            $this->rentalLifecycleRepository(),
+            $this->privateDocumentStorage()
+        );
+    }
+
+    private function chargeRegularizationService(): ChargeRegularizationService
+    {
+        return $this->chargeRegularizationService ?? new ChargeRegularizationService(
             $this->rentalLifecycleRepository(),
             $this->privateDocumentStorage()
         );

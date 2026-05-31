@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\PrivateApps\RealEstateRental\Repository;
 
 use Caramagnols\Database\EditorialDatabase;
+use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalExpenseCategoryCatalog;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use PDO;
 
@@ -57,6 +58,11 @@ final class RentalLifecycleRepository
     public function generatedDocumentsTable(): string
     {
         return $this->database->table('rental_generated_documents');
+    }
+
+    public function chargeRegularizationsTable(): string
+    {
+        return $this->database->table('rental_charge_regularizations');
     }
 
     public function paymentRequestsTable(): string
@@ -673,6 +679,7 @@ final class RentalLifecycleRepository
                             u.`label` AS `unit_label`,
                             l.`lease_type` AS `lease_type`,
                             l.`tax_category` AS `tax_category`,
+                            l.`charges_provision` AS `lease_charges_provision`,
                             l.`start_date` AS `lease_start_date`,
                             l.`end_date` AS `lease_end_date`,
                             t.`full_name` AS `tenant_name`,
@@ -774,6 +781,7 @@ final class RentalLifecycleRepository
                         u.`label` AS `unit_label`,
                         l.`lease_type` AS `lease_type`,
                         l.`tax_category` AS `tax_category`,
+                        l.`charges_provision` AS `lease_charges_provision`,
                         t.`full_name` AS `tenant_name`,
                         COALESCE(pmt_sum.`amount_paid`, 0) AS `amount_paid`,
                         COALESCE(pmt_sum.`payment_count`, 0) AS `payment_count`
@@ -1205,9 +1213,13 @@ final class RentalLifecycleRepository
         bool $deductibleCandidate,
         string $status,
         int $actorPrivateUserId,
-        ?string $notes = null
+        ?string $notes = null,
+        ?string $expenseCategory = null,
+        ?int $taxYear = null
     ): ?array {
         $expenseDate = $this->normalizeDate($expenseDate);
+        $expenseCategory = RentalExpenseCategoryCatalog::normalize((string) $expenseCategory);
+        $taxYear = $this->normalizeTaxYear($taxYear, $expenseDate);
         $label = $this->normalizeText($label, self::MAX_TEXT_LENGTH);
         $status = $this->normalizeStatus($status, self::VALID_STATUSES);
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
@@ -1218,6 +1230,7 @@ final class RentalLifecycleRepository
             $propertyId <= 0
             || $actorPrivateUserId <= 0
             || $expenseDate === ''
+            || $taxYear <= 0
             || $label === ''
             || $amount <= 0
             || $status === ''
@@ -1230,10 +1243,10 @@ final class RentalLifecycleRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`rental_property_id`, `rental_unit_id`, `expense_date`, `label`, `amount`, `is_recoverable`,
+                        (`rental_property_id`, `rental_unit_id`, `expense_date`, `expense_category`, `tax_year`, `label`, `amount`, `is_recoverable`,
                          `is_deductible_candidate`, `status`, `notes`, `created_by_private_user_id`)
                      VALUES
-                        (:property_id, :unit_id, :expense_date, :label, :amount, :is_recoverable,
+                        (:property_id, :unit_id, :expense_date, :expense_category, :tax_year, :label, :amount, :is_recoverable,
                          :is_deductible_candidate, :status, :notes, :created_by)',
                     $this->expensesTable()
                 )
@@ -1242,6 +1255,8 @@ final class RentalLifecycleRepository
                 'property_id' => $propertyId,
                 'unit_id' => $unitId,
                 'expense_date' => $expenseDate,
+                'expense_category' => $expenseCategory,
+                'tax_year' => $taxYear,
                 'label' => $label,
                 'amount' => $amount,
                 'is_recoverable' => $recoverable ? 1 : 0,
@@ -1296,20 +1311,29 @@ final class RentalLifecycleRepository
             $this->ensureSchema();
             $placeholders = $this->placeholders('property_id', $propertyIds);
             $sql = sprintf(
-                'SELECT exp.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`
+                'SELECT exp.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`,
+                        COALESCE(doc_count.`supporting_document_count`, 0) AS `supporting_document_count`
                  FROM `%s` exp
                  INNER JOIN `%s` prop ON prop.`id` = exp.`rental_property_id`
                  LEFT JOIN `%s` u ON u.`id` = exp.`rental_unit_id`
+                 LEFT JOIN (
+                    SELECT `rental_expense_id`, COUNT(`id`) AS `supporting_document_count`
+                    FROM `%s`
+                    WHERE `rental_expense_id` IS NOT NULL
+                      AND `is_active` = 1
+                    GROUP BY `rental_expense_id`
+                 ) doc_count ON doc_count.`rental_expense_id` = exp.`id`
                  WHERE exp.`rental_property_id` IN (%s)',
                 $this->expensesTable(),
                 $this->database->table('rental_properties'),
                 $this->database->table('rental_units'),
+                $this->documentsTable(),
                 implode(',', $placeholders)
             );
             if ($year !== null) {
-                $sql .= ' AND YEAR(exp.`expense_date`) = :year';
+                $sql .= ' AND exp.`tax_year` = :year';
             }
-            $sql .= ' ORDER BY exp.`expense_date` DESC, exp.`id` DESC LIMIT :limit';
+            $sql .= ' ORDER BY exp.`tax_year` DESC, exp.`expense_date` DESC, exp.`id` DESC LIMIT :limit';
             $statement = $this->database->pdo()->prepare($sql);
             $this->bindIds($statement, 'property_id', $propertyIds);
             if ($year !== null) {
@@ -1338,7 +1362,8 @@ final class RentalLifecycleRepository
         string $extension,
         string $mimeType,
         int $sizeBytes,
-        int $actorPrivateUserId
+        int $actorPrivateUserId,
+        ?int $expenseId = null
     ): ?array {
         $documentId = $this->normalizeIdentifier($documentId);
         $storagePath = trim(str_replace('\\', '/', $storagePath));
@@ -1347,6 +1372,7 @@ final class RentalLifecycleRepository
         $mimeType = strtolower($this->normalizeText($mimeType, 120));
         $unitId = $unitId !== null && $unitId > 0 ? $unitId : null;
         $leaseId = $leaseId !== null && $leaseId > 0 ? $leaseId : null;
+        $expenseId = $expenseId !== null && $expenseId > 0 ? $expenseId : null;
 
         if (
             $propertyId <= 0
@@ -1368,10 +1394,10 @@ final class RentalLifecycleRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`rental_property_id`, `rental_unit_id`, `rental_lease_id`, `document_id`, `storage_path`,
+                        (`rental_property_id`, `rental_unit_id`, `rental_lease_id`, `rental_expense_id`, `document_id`, `storage_path`,
                          `original_name`, `extension`, `mime_type`, `size_bytes`, `uploaded_by_private_user_id`)
                      VALUES
-                        (:property_id, :unit_id, :lease_id, :document_id, :storage_path,
+                        (:property_id, :unit_id, :lease_id, :expense_id, :document_id, :storage_path,
                          :original_name, :extension, :mime_type, :size_bytes, :uploaded_by)',
                     $this->documentsTable()
                 )
@@ -1380,6 +1406,7 @@ final class RentalLifecycleRepository
                 'property_id' => $propertyId,
                 'unit_id' => $unitId,
                 'lease_id' => $leaseId,
+                'expense_id' => $expenseId,
                 'document_id' => $documentId,
                 'storage_path' => $storagePath,
                 'original_name' => $originalName,
@@ -1436,10 +1463,12 @@ final class RentalLifecycleRepository
             $placeholders = $this->placeholders('property_id', $propertyIds);
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT doc.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`
+                    'SELECT doc.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`,
+                            exp.`label` AS `expense_label`, exp.`expense_category` AS `expense_category`
                      FROM `%s` doc
                      INNER JOIN `%s` prop ON prop.`id` = doc.`rental_property_id`
                      LEFT JOIN `%s` u ON u.`id` = doc.`rental_unit_id`
+                     LEFT JOIN `%s` exp ON exp.`id` = doc.`rental_expense_id`
                      WHERE doc.`rental_property_id` IN (%s)
                        AND doc.`is_active` = 1
                      ORDER BY doc.`uploaded_at` DESC, doc.`id` DESC
@@ -1447,6 +1476,7 @@ final class RentalLifecycleRepository
                     $this->documentsTable(),
                     $this->database->table('rental_properties'),
                     $this->database->table('rental_units'),
+                    $this->expensesTable(),
                     implode(',', $placeholders)
                 )
             );
@@ -1824,6 +1854,235 @@ final class RentalLifecycleRepository
     }
 
     /**
+     * @param array<string, mixed> $snapshot
+     * @return array<string, mixed>|null
+     */
+    public function createChargeRegularization(
+        int $propertyId,
+        ?int $unitId,
+        int $year,
+        string $periodStart,
+        string $periodEnd,
+        float $provisionsAmount,
+        float $recoverableExpensesAmount,
+        float $tenantSharePercent,
+        float $tenantRecoverableAmount,
+        float $balanceAmount,
+        string $documentId,
+        string $storagePath,
+        string $originalName,
+        string $mimeType,
+        int $sizeBytes,
+        string $sha256Hash,
+        string $idempotencyKey,
+        array $snapshot,
+        int $actorPrivateUserId
+    ): ?array {
+        $unitId = $unitId !== null && $unitId > 0 ? $unitId : null;
+        $year = $this->normalizeTaxYear($year, '');
+        $periodStart = $this->normalizeDate($periodStart);
+        $periodEnd = $this->normalizeDate($periodEnd);
+        $provisionsAmount = round($provisionsAmount, 2);
+        $recoverableExpensesAmount = round($recoverableExpensesAmount, 2);
+        $tenantSharePercent = round($tenantSharePercent, 2);
+        $tenantRecoverableAmount = round($tenantRecoverableAmount, 2);
+        $balanceAmount = round($balanceAmount, 2);
+        $documentId = $this->normalizeIdentifier($documentId);
+        $storagePath = trim(str_replace('\\', '/', $storagePath));
+        $originalName = $this->normalizeText($originalName, 255);
+        $mimeType = strtolower($this->normalizeText($mimeType, 120));
+        $sha256Hash = strtolower(trim($sha256Hash));
+        $idempotencyKey = strtolower(trim($idempotencyKey));
+
+        if (
+            $propertyId <= 0
+            || $actorPrivateUserId <= 0
+            || $year <= 0
+            || $periodStart === ''
+            || $periodEnd === ''
+            || $periodStart > $periodEnd
+            || $tenantSharePercent < 0.0
+            || $tenantSharePercent > 100.0
+            || $documentId === ''
+            || $storagePath === ''
+            || $originalName === ''
+            || $mimeType === ''
+            || $sizeBytes <= 0
+            || !str_starts_with($storagePath, 'uploads/')
+            || str_contains($storagePath, '..')
+            || preg_match('/\A[a-f0-9]{64}\z/', $sha256Hash) !== 1
+            || preg_match('/\A[a-f0-9]{64}\z/', $idempotencyKey) !== 1
+        ) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $existing = $this->findChargeRegularizationByIdempotencyKey($idempotencyKey);
+            if (is_array($existing)) {
+                return $existing;
+            }
+
+            $snapshotPayload = json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($snapshotPayload)) {
+                $snapshotPayload = '{}';
+            }
+
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'INSERT INTO `%s`
+                        (`rental_property_id`, `rental_unit_id`, `period_year`, `period_start`, `period_end`,
+                         `provisions_amount`, `recoverable_expenses_amount`, `tenant_share_percent`,
+                         `tenant_recoverable_amount`, `balance_amount`, `document_id`, `storage_path`,
+                         `original_name`, `mime_type`, `size_bytes`, `sha256_hash`, `idempotency_key`,
+                         `snapshot_payload`, `generated_by_private_user_id`)
+                     VALUES
+                        (:property_id, :unit_id, :period_year, :period_start, :period_end,
+                         :provisions_amount, :recoverable_expenses_amount, :tenant_share_percent,
+                         :tenant_recoverable_amount, :balance_amount, :document_id, :storage_path,
+                         :original_name, :mime_type, :size_bytes, :sha256_hash, :idempotency_key,
+                         :snapshot_payload, :generated_by)',
+                    $this->chargeRegularizationsTable()
+                )
+            );
+            $statement->execute([
+                'property_id' => $propertyId,
+                'unit_id' => $unitId,
+                'period_year' => $year,
+                'period_start' => $periodStart,
+                'period_end' => $periodEnd,
+                'provisions_amount' => $provisionsAmount,
+                'recoverable_expenses_amount' => $recoverableExpensesAmount,
+                'tenant_share_percent' => $tenantSharePercent,
+                'tenant_recoverable_amount' => $tenantRecoverableAmount,
+                'balance_amount' => $balanceAmount,
+                'document_id' => $documentId,
+                'storage_path' => $storagePath,
+                'original_name' => $originalName,
+                'mime_type' => $mimeType,
+                'size_bytes' => $sizeBytes,
+                'sha256_hash' => $sha256Hash,
+                'idempotency_key' => $idempotencyKey,
+                'snapshot_payload' => $snapshotPayload,
+                'generated_by' => $actorPrivateUserId,
+            ]);
+
+            return $this->findChargeRegularizationByDocumentId($documentId, [$propertyId]);
+        } catch (\Throwable) {
+            $existing = $this->findChargeRegularizationByIdempotencyKey($idempotencyKey);
+            return is_array($existing) ? $existing : null;
+        }
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function listChargeRegularizations(array $propertyIds, ?int $year = null, int $limit = 200): array
+    {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        $limit = $this->normalizeLimit($limit);
+        if ($propertyIds === [] || $limit <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $sql = sprintf(
+                'SELECT reg.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`
+                 FROM `%s` reg
+                 INNER JOIN `%s` prop ON prop.`id` = reg.`rental_property_id`
+                 LEFT JOIN `%s` u ON u.`id` = reg.`rental_unit_id`
+                 WHERE reg.`rental_property_id` IN (%s)
+                   AND reg.`is_active` = 1',
+                $this->chargeRegularizationsTable(),
+                $this->database->table('rental_properties'),
+                $this->database->table('rental_units'),
+                implode(',', $placeholders)
+            );
+            if ($year !== null) {
+                $sql .= ' AND reg.`period_year` = :year';
+            }
+            $sql .= ' ORDER BY reg.`period_year` DESC, reg.`generated_at` DESC, reg.`id` DESC LIMIT :limit';
+            $statement = $this->database->pdo()->prepare($sql);
+            $this->bindIds($statement, 'property_id', $propertyIds);
+            if ($year !== null) {
+                $statement->bindValue(':year', $year, PDO::PARAM_INT);
+            }
+            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->normalizeRows($rows);
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array<string, mixed>|null
+     */
+    public function findChargeRegularizationByDocumentId(string $documentId, array $propertyIds): ?array
+    {
+        $documentId = $this->normalizeIdentifier($documentId);
+        $propertyIds = $this->normalizeIds($propertyIds);
+        if ($documentId === '' || $propertyIds === []) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT *
+                     FROM `%s`
+                     WHERE `document_id` = :document_id
+                       AND `rental_property_id` IN (%s)
+                       AND `is_active` = 1
+                     LIMIT 1',
+                    $this->chargeRegularizationsTable(),
+                    implode(',', $placeholders)
+                )
+            );
+            $statement->bindValue(':document_id', $documentId, PDO::PARAM_STR);
+            $this->bindIds($statement, 'property_id', $propertyIds);
+            $statement->execute();
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findChargeRegularizationByIdempotencyKey(string $idempotencyKey): ?array
+    {
+        $idempotencyKey = strtolower(trim($idempotencyKey));
+        if (preg_match('/\A[a-f0-9]{64}\z/', $idempotencyKey) !== 1) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT * FROM `%s` WHERE `idempotency_key` = :idempotency_key AND `is_active` = 1 LIMIT 1', $this->chargeRegularizationsTable())
+            );
+            $statement->execute(['idempotency_key' => $idempotencyKey]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
      * @param array<int, int> $propertyIds
      */
     public function deleteTenant(int $tenantId, array $propertyIds): bool
@@ -1876,12 +2135,12 @@ final class RentalLifecycleRepository
 
     /**
      * @param array<int, int> $propertyIds
-     * @return array{tenants:int, leases:int, rents:int, payments:int, expenses:int, documents:int, generatedDocuments:int, paymentRequests:int}
+     * @return array{tenants:int, leases:int, rents:int, payments:int, expenses:int, documents:int, generatedDocuments:int, chargeRegularizations:int, paymentRequests:int}
      */
     public function deleteLifecycleDataByPropertyIds(array $propertyIds): array
     {
         $propertyIds = $this->normalizeIds($propertyIds);
-        $deleted = ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'generatedDocuments' => 0, 'paymentRequests' => 0];
+        $deleted = ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'generatedDocuments' => 0, 'chargeRegularizations' => 0, 'paymentRequests' => 0];
         if ($propertyIds === []) {
             return $deleted;
         }
@@ -1895,6 +2154,7 @@ final class RentalLifecycleRepository
             $deleteDefinitions = [
                 'documents' => ['table' => $this->documentsTable(), 'sql' => 'UPDATE `%s` SET `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
                 'generatedDocuments' => ['table' => $this->generatedDocumentsTable(), 'sql' => 'UPDATE `%s` SET `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
+                'chargeRegularizations' => ['table' => $this->chargeRegularizationsTable(), 'sql' => 'UPDATE `%s` SET `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
                 'paymentRequests' => ['table' => $this->paymentRequestsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'payments' => ['table' => $this->paymentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'rents' => ['table' => $this->rentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
@@ -1916,7 +2176,7 @@ final class RentalLifecycleRepository
                 $pdo->rollBack();
             }
 
-            return ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'generatedDocuments' => 0, 'paymentRequests' => 0];
+            return ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'generatedDocuments' => 0, 'chargeRegularizations' => 0, 'paymentRequests' => 0];
         }
 
         return $deleted;
@@ -1995,7 +2255,7 @@ final class RentalLifecycleRepository
                          FROM `%s`
                          WHERE `rental_property_id` IN (%s)
                            AND `status` = "draft"
-                           AND YEAR(`expense_date`) = :year',
+                           AND `tax_year` = :year',
                         $this->expensesTable(),
                         implode(',', $placeholders)
                     ),
@@ -2215,6 +2475,8 @@ final class RentalLifecycleRepository
                     `rental_property_id` INT NOT NULL,
                     `rental_unit_id` INT NULL,
                     `expense_date` DATE NOT NULL,
+                    `expense_category` VARCHAR(64) NOT NULL DEFAULT "autre",
+                    `tax_year` SMALLINT NOT NULL,
                     `label` VARCHAR(160) NOT NULL,
                     `amount` DECIMAL(10,2) NOT NULL,
                     `is_recoverable` TINYINT(1) NOT NULL DEFAULT 0,
@@ -2224,12 +2486,17 @@ final class RentalLifecycleRepository
                     `created_by_private_user_id` INT NOT NULL,
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                    KEY `idx_rental_expenses_property_date` (`rental_property_id`, `expense_date`, `status`),
+                    KEY `idx_rental_expenses_property_date` (`rental_property_id`, `tax_year`, `expense_date`, `status`),
+                    KEY `idx_rental_expenses_category` (`expense_category`, `tax_year`),
                     KEY `idx_rental_expenses_flags` (`is_recoverable`, `is_deductible_candidate`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->expensesTable()
             )
         );
+        $this->ensureColumn($pdo, $this->expensesTable(), 'expense_category', '`expense_category` VARCHAR(64) NOT NULL DEFAULT "autre" AFTER `expense_date`');
+        $this->ensureColumn($pdo, $this->expensesTable(), 'tax_year', '`tax_year` SMALLINT NOT NULL DEFAULT 0 AFTER `expense_category`');
+        $pdo->exec(sprintf('UPDATE `%s` SET `tax_year` = YEAR(`expense_date`) WHERE `tax_year` = 0', $this->expensesTable()));
+        $this->ensureIndex($pdo, $this->expensesTable(), 'idx_rental_expenses_category', '`expense_category`, `tax_year`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -2237,6 +2504,7 @@ final class RentalLifecycleRepository
                     `rental_property_id` INT NOT NULL,
                     `rental_unit_id` INT NULL,
                     `rental_lease_id` INT NULL,
+                    `rental_expense_id` INT NULL,
                     `document_id` VARCHAR(64) NOT NULL,
                     `storage_path` VARCHAR(255) NOT NULL,
                     `original_name` VARCHAR(255) NOT NULL,
@@ -2247,11 +2515,14 @@ final class RentalLifecycleRepository
                     `uploaded_by_private_user_id` INT NOT NULL,
                     `uploaded_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE KEY `uq_rental_documents_document_id` (`document_id`),
-                    KEY `idx_rental_documents_property` (`rental_property_id`, `is_active`)
+                    KEY `idx_rental_documents_property` (`rental_property_id`, `is_active`),
+                    KEY `idx_rental_documents_expense` (`rental_expense_id`, `is_active`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->documentsTable()
             )
         );
+        $this->ensureColumn($pdo, $this->documentsTable(), 'rental_expense_id', '`rental_expense_id` INT NULL AFTER `rental_lease_id`');
+        $this->ensureIndex($pdo, $this->documentsTable(), 'idx_rental_documents_expense', '`rental_expense_id`, `is_active`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -2279,6 +2550,39 @@ final class RentalLifecycleRepository
                     KEY `idx_rental_generated_documents_rent` (`rental_rent_id`, `document_type`, `is_active`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->generatedDocumentsTable()
+            )
+        );
+        $pdo->exec(
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS `%s` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `rental_property_id` INT NOT NULL,
+                    `rental_unit_id` INT NULL,
+                    `period_year` SMALLINT NOT NULL,
+                    `period_start` DATE NOT NULL,
+                    `period_end` DATE NOT NULL,
+                    `provisions_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    `recoverable_expenses_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    `tenant_share_percent` DECIMAL(5,2) NOT NULL DEFAULT 100,
+                    `tenant_recoverable_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    `balance_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    `document_id` VARCHAR(64) NOT NULL,
+                    `storage_path` VARCHAR(255) NOT NULL,
+                    `original_name` VARCHAR(255) NOT NULL,
+                    `mime_type` VARCHAR(120) NOT NULL,
+                    `size_bytes` INT NOT NULL,
+                    `sha256_hash` CHAR(64) NOT NULL,
+                    `idempotency_key` CHAR(64) NOT NULL,
+                    `snapshot_payload` JSON NULL,
+                    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                    `generated_by_private_user_id` INT NOT NULL,
+                    `generated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uq_rental_charge_regularizations_document_id` (`document_id`),
+                    UNIQUE KEY `uq_rental_charge_regularizations_idempotency` (`idempotency_key`),
+                    KEY `idx_rental_charge_regularizations_property_year` (`rental_property_id`, `period_year`, `is_active`),
+                    KEY `idx_rental_charge_regularizations_unit_year` (`rental_unit_id`, `period_year`, `is_active`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                $this->chargeRegularizationsTable()
             )
         );
         $pdo->exec(
@@ -2531,6 +2835,22 @@ final class RentalLifecycleRepository
 
         [$year, $month, $day] = array_map('intval', explode('-', $value));
         return checkdate($month, $day, $year) ? $value : '';
+    }
+
+    private function normalizeTaxYear(?int $year, string $fallbackDate): int
+    {
+        if ($year !== null && $year >= 2000 && $year <= 2100) {
+            return $year;
+        }
+
+        $fallbackDate = $this->normalizeDate($fallbackDate);
+        if ($fallbackDate === '') {
+            return 0;
+        }
+
+        $fallbackYear = (int) substr($fallbackDate, 0, 4);
+
+        return ($fallbackYear >= 2000 && $fallbackYear <= 2100) ? $fallbackYear : 0;
     }
 
     private function normalizeIdentifier(string $value): string

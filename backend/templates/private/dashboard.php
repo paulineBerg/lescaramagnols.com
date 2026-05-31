@@ -164,6 +164,7 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_tenants'), ENT_QUOTES, 'UTF-8'); ?>">Locataires</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_rents'), ENT_QUOTES, 'UTF-8'); ?>">Loyers</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_payments'), ENT_QUOTES, 'UTF-8'); ?>">Paiements</a>
+        <a href="<?php echo htmlspecialchars(private_portal_url('rental_regularizations'), ENT_QUOTES, 'UTF-8'); ?>">Régularisations</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_agency_imports'), ENT_QUOTES, 'UTF-8'); ?>">Agence</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_summary'), ENT_QUOTES, 'UTF-8'); ?>">Synthèse</a>
       </p>

@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS car_rental_expenses (
     rental_property_id INT NOT NULL,
     rental_unit_id INT NULL,
     expense_date DATE NOT NULL,
+    expense_category VARCHAR(64) NOT NULL DEFAULT 'autre',
+    tax_year SMALLINT NOT NULL,
     label VARCHAR(160) NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
     is_recoverable TINYINT(1) NOT NULL DEFAULT 0,
@@ -14,7 +16,8 @@ CREATE TABLE IF NOT EXISTS car_rental_expenses (
     created_by_private_user_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    KEY idx_rental_expenses_property_date (rental_property_id, expense_date, status),
+    KEY idx_rental_expenses_property_date (rental_property_id, tax_year, expense_date, status),
+    KEY idx_rental_expenses_category (expense_category, tax_year),
     KEY idx_rental_expenses_flags (is_recoverable, is_deductible_candidate),
     CONSTRAINT fk_rental_expenses_property
         FOREIGN KEY (rental_property_id)

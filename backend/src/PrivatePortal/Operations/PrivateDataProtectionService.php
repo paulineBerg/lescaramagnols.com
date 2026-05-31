@@ -80,6 +80,12 @@ final class PrivateDataProtectionService
                 ['private_user_id' => $privateUserId],
                 ['rental_rent_id', 'rental_lease_id', 'rental_payment_id', 'rental_property_id', 'document_type', 'document_id', 'original_name', 'mime_type', 'size_bytes', 'sha256_hash', 'is_active', 'generated_at']
             ),
+            'rentalChargeRegularizations' => $this->rows(
+                'rental_charge_regularizations',
+                '`generated_by_private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['rental_property_id', 'rental_unit_id', 'period_year', 'provisions_amount', 'recoverable_expenses_amount', 'tenant_share_percent', 'tenant_recoverable_amount', 'balance_amount', 'document_id', 'original_name', 'mime_type', 'size_bytes', 'sha256_hash', 'is_active', 'generated_at']
+            ),
             'taxYears' => $this->rows(
                 'tax_years',
                 '`private_user_id` = :private_user_id',
@@ -512,6 +518,12 @@ final class PrivateDataProtectionService
             '`generated_by_private_user_id` = :private_user_id',
             ['original_name' => 'document-genere-supprime', 'private_user_id' => $privateUserId]
         );
+        $this->safeUpdate(
+            'rental_charge_regularizations',
+            '`original_name` = :original_name, `snapshot_payload` = NULL, `is_active` = 0',
+            '`generated_by_private_user_id` = :private_user_id',
+            ['original_name' => 'regularisation-charges-supprimee', 'private_user_id' => $privateUserId]
+        );
         $this->safeDelete('rental_payments', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_payment_requests', '`sent_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_rents', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
@@ -916,6 +928,7 @@ final class PrivateDataProtectionService
             'rental_expenses' => '`created_by_private_user_id` = :private_user_id',
             'rental_documents' => '`uploaded_by_private_user_id` = :private_user_id',
             'rental_generated_documents' => '`generated_by_private_user_id` = :private_user_id',
+            'rental_charge_regularizations' => '`generated_by_private_user_id` = :private_user_id',
             'rental_export_logs' => '`private_user_id` = :private_user_id',
             'rental_agency_import_batches' => '`created_by_private_user_id` = :private_user_id',
             'rental_agency_imported_documents' => $agencyBatchDocumentIds,
@@ -954,6 +967,7 @@ final class PrivateDataProtectionService
             'rental_export_logs',
             'rental_documents',
             'rental_generated_documents',
+            'rental_charge_regularizations',
             'rental_payment_requests',
             'rental_agency_unit_mappings',
             'rental_agency_import_issues',
@@ -1005,6 +1019,7 @@ final class PrivateDataProtectionService
             'private_documents' => ['storagePath' => 'storagePath', 'name' => 'originalName', 'resolver' => $privateDocumentStorage],
             'rental_documents' => ['storagePath' => 'storagePath', 'name' => 'originalName', 'resolver' => $privateDocumentStorage],
             'rental_generated_documents' => ['storagePath' => 'storagePath', 'name' => 'originalName', 'resolver' => $privateDocumentStorage],
+            'rental_charge_regularizations' => ['storagePath' => 'storagePath', 'name' => 'originalName', 'resolver' => $privateDocumentStorage],
             'rental_agency_imported_documents' => ['storagePath' => 'storagePath', 'name' => 'filename', 'resolver' => $privateDocumentStorage],
             'discussion_message_attachments' => ['storagePath' => 'storagePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],
             'discussion_message_attachment_previews' => ['storagePath' => 'previewStoragePath', 'name' => 'originalFilename', 'resolver' => $discussionAttachmentStorage],

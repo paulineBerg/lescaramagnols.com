@@ -121,6 +121,7 @@ if ($privateHasModule('Locations immobilières')) {
         private_portal_url('rental_rents'),
         private_portal_url('rental_payments'),
         private_portal_url('rental_expenses'),
+        private_portal_url('rental_regularizations'),
         private_portal_url('rental_documents'),
         private_portal_url('rental_agency_imports'),
         private_portal_url('rental_agency_review'),
