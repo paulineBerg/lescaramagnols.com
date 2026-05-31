@@ -125,6 +125,7 @@ final class PrivateModuleMigrationPlanService
                 'tables' => [
                     'discussion_conversations',
                     'discussion_conversation_members',
+                    'discussion_notification_preferences',
                     'discussion_conversation_events',
                     'discussion_messages',
                     'discussion_message_reads',

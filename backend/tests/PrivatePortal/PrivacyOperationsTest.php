@@ -127,6 +127,7 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertIsArray($payload);
         $this->assertArrayHasKey('private_blocnote_notes', $payload['tables'] ?? []);
         $this->assertArrayHasKey('discussion_conversation_events', $payload['tables'] ?? []);
+        $this->assertArrayHasKey('discussion_notification_preferences', $payload['tables'] ?? []);
         $this->assertArrayHasKey('discussion_messages', $payload['tables'] ?? []);
         $this->assertArrayHasKey('summary', $payload);
         $files = is_array($payload['files'] ?? null) ? $payload['files'] : [];

@@ -13,6 +13,7 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
 use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionEventService;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionNotificationService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionTimelineService;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
@@ -2916,6 +2917,15 @@ final class PrivatePortalController
 
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deleted ? '?notice=deleted' : '?error=delete'));
             }
+            if ($action === 'update_notification_preference') {
+                $updated = $this->discussionRepository()->setNotificationPreference(
+                    $conversationId,
+                    $userId,
+                    is_string($body['notification_mode'] ?? null) ? (string) $body['notification_mode'] : 'notify'
+                );
+
+                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($updated ? '?notice=notifications_updated' : '?error=notification'));
+            }
             if ($action !== 'send_message') {
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=message');
             }
@@ -2948,6 +2958,7 @@ final class PrivatePortalController
             'messages' => $timeline['messages'],
             'discussionTimeline' => $timeline,
             'conversationMembers' => $this->discussionRepository()->listConversationMembers($conversationId),
+            'notificationPreference' => $this->discussionRepository()->notificationPreferenceForUser($conversationId, $userId),
             'members' => $this->discussionService()->listActiveMembers($userId),
             'error' => is_string($request->query()['error'] ?? null) ? (string) $request->query()['error'] : '',
             'notice' => is_string($request->query()['notice'] ?? null) ? (string) $request->query()['notice'] : '',
@@ -6522,7 +6533,8 @@ final class PrivatePortalController
             $this->privateUserRepository(),
             $this->discussionAttachmentStorage(),
             $this->eventLogger,
-            $this->modulePermissionRepository()
+            $this->modulePermissionRepository(),
+            notificationService: $this->discussionNotificationService()
         );
     }
 
@@ -6539,6 +6551,21 @@ final class PrivatePortalController
     private function discussionEventStream(): ConversationEventStream
     {
         return new ConversationEventStream($this->discussionEventService());
+    }
+
+    private function discussionNotificationService(): DiscussionNotificationService
+    {
+        return new DiscussionNotificationService(
+            $this->discussionRepository(),
+            $this->privateUserRepository(),
+            fn (string $to, string $subject, string $html, int $_recipientUserId): bool => $this->sendPrivateMail(
+                $to,
+                $subject,
+                $html,
+                [],
+                0
+            )
+        );
     }
 
     private function discussionRetentionService(): DiscussionRetentionService

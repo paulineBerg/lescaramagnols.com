@@ -142,6 +142,7 @@ Tables SQL du module :
 | `discussion_conversations` | conversations directes ou groupes |
 | `discussion_conversation_members` | participants, role, date d'ouverture, sortie |
 | `discussion_conversation_events` | journal append-only minimal pour sync, SSE et audit sans contenu clair |
+| `discussion_notification_preferences` | preferences neutres par conversation et membre |
 | `discussion_messages` | messages, contenu chiffre, statut de purge, expiration |
 | `discussion_message_attachments` | pieces jointes et metadonnees de stockage |
 | `discussion_message_reads` | lectures par utilisateur et message |
@@ -416,7 +417,9 @@ Regles :
 - pas d'email a un membre sorti de la conversation;
 - retries futurs via file d'attente, sans boucle d'envoi en cas d'erreur SMTP.
 
-Table cible possible : `discussion_notification_preferences`.
+Table ajoutee : `discussion_notification_preferences`.
+
+Les notifications immediates ne sont envoyees que pour le mode `notify`. Les modes `muted`, `digest` et `never` sont stockes des maintenant; `digest` reste une preference future tant qu'aucune file d'envoi groupee n'est active. Les emails ne contiennent ni corps de message, ni nom de fichier, ni extrait chiffre; ils indiquent seulement qu'une conversation privee a recu un nouveau message et pointent vers la conversation.
 
 ### Fichiers et medias
 
@@ -608,16 +611,16 @@ Objectif : informer sans fuite de contenu.
 
 Checklist :
 
-- [ ] ajouter `discussion_notification_preferences`;
-- [ ] creer `DiscussionNotificationService`;
-- [ ] ajouter templates mail prives configurables;
-- [ ] envoyer un email neutre de nouveau message;
-- [ ] ajouter preference conversation muette;
-- [ ] ajouter preference digest futur;
-- [ ] ne pas notifier un membre sorti;
-- [ ] ne pas envoyer le contenu du message;
-- [ ] ne pas envoyer le nom sensible d'un fichier;
-- [ ] tester erreur SMTP sans fuite utilisateur.
+- [x] ajouter `discussion_notification_preferences`;
+- [x] creer `DiscussionNotificationService`;
+- [x] ajouter templates mail prives configurables;
+- [x] envoyer un email neutre de nouveau message;
+- [x] ajouter preference conversation muette;
+- [x] ajouter preference digest futur;
+- [x] ne pas notifier un membre sorti;
+- [x] ne pas envoyer le contenu du message;
+- [x] ne pas envoyer le nom sensible d'un fichier;
+- [x] tester erreur SMTP sans fuite utilisateur.
 
 ### Phase D7 - Fichiers et medias renforces
 

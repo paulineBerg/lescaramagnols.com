@@ -23,7 +23,8 @@ final class DiscussionService
         private readonly DiscussionAttachmentStorage $attachmentStorage,
         private readonly ?AppEventLogger $eventLogger = null,
         private readonly ?PrivateModulePermissionRepository $modulePermissionRepository = null,
-        ?DiscussionEventService $eventService = null
+        ?DiscussionEventService $eventService = null,
+        private readonly ?DiscussionNotificationService $notificationService = null
     ) {
         $config = is_array(app_config('private.discussions', [])) ? (array) app_config('private.discussions') : [];
         $this->retentionDays = max(1, (int) ($config['retention_days'] ?? 60));
@@ -234,6 +235,7 @@ final class DiscussionService
             'attachments' => count($attachments),
             'encrypted' => ($message['encryptionMode'] ?? 'none') !== 'none',
         ]);
+        $this->notificationService?->notifyNewMessage($message, $actorId);
 
         return $message;
     }

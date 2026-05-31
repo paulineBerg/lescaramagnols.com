@@ -10,6 +10,7 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionServic
 use Caramagnols\PrivateApps\FamilyDiscussion\Realtime\ConversationEventStream;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionEventService;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionNotificationService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionTimelineService;
 use Caramagnols\Http\Request;
@@ -522,6 +523,82 @@ final class FamilyDiscussionModuleTest extends TestCase
             ['conversationId' => $conversationId]
         );
         $this->assertSame(403, $forbidden->status);
+    }
+
+    public function testDiscussionNotificationsAreNeutralAndRespectPreferences(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $sentEmails = [];
+        $notificationService = new DiscussionNotificationService(
+            $repository,
+            $userRepository,
+            static function (string $to, string $subject, string $html, int $recipientUserId) use (&$sentEmails): bool {
+                $sentEmails[] = [
+                    'to' => $to,
+                    'subject' => $subject,
+                    'html' => $html,
+                    'recipientUserId' => $recipientUserId,
+                ];
+
+                return true;
+            }
+        );
+        $service = new DiscussionService(
+            $repository,
+            $userRepository,
+            $this->storage(),
+            notificationService: $notificationService
+        );
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $this->assertTrue($repository->setNotificationPreference($conversationId, $bobId, 'muted'));
+        $mutedMessage = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Texte secret muet',
+            [],
+            $this->encryptedPayload(),
+            'notification-muted'
+        );
+        $this->assertIsArray($mutedMessage);
+        $this->assertSame([], $sentEmails);
+
+        $this->assertTrue($repository->setNotificationPreference($conversationId, $bobId, 'notify'));
+        $notifiedMessage = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Texte secret notifie',
+            [],
+            $this->encryptedPayload(),
+            'notification-sent'
+        );
+        $this->assertIsArray($notifiedMessage);
+        $this->assertCount(1, $sentEmails);
+        $this->assertSame('bob@example.com', $sentEmails[0]['to']);
+        $this->assertSame($bobId, $sentEmails[0]['recipientUserId']);
+        $encoded = json_encode($sentEmails[0], JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('Texte secret notifie', $encoded);
+        $this->assertStringContainsString('/private/discussions/' . $conversationId, (string) $sentEmails[0]['html']);
+
+        $this->assertTrue($repository->setNotificationPreference($conversationId, $bobId, 'digest'));
+        $digestMessage = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Texte secret digest',
+            [],
+            $this->encryptedPayload(),
+            'notification-digest'
+        );
+        $this->assertIsArray($digestMessage);
+        $this->assertCount(1, $sentEmails);
+        $this->assertSame('digest', $repository->notificationPreferenceForUser($conversationId, $bobId)['mode']);
     }
 
     public function testDashboardShowsDiscussionModuleOnlyWhenAssigned(): void

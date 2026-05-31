@@ -19,6 +19,7 @@ $messages = is_array($viewModel['messages'] ?? null) ? $viewModel['messages'] : 
 $conversationMembers = is_array($viewModel['conversationMembers'] ?? null) ? $viewModel['conversationMembers'] : [];
 $members = is_array($viewModel['members'] ?? null) ? $viewModel['members'] : [];
 $timeline = is_array($viewModel['discussionTimeline'] ?? null) ? $viewModel['discussionTimeline'] : [];
+$notificationPreference = is_array($viewModel['notificationPreference'] ?? null) ? $viewModel['notificationPreference'] : [];
 $currentUserId = is_numeric($viewModel['discussionCurrentUserId'] ?? null) ? (int) $viewModel['discussionCurrentUserId'] : 0;
 $csrfToken = is_string($viewModel['discussionCsrfToken'] ?? null) ? (string) $viewModel['discussionCsrfToken'] : '';
 $urls = is_array($viewModel['discussionUrls'] ?? null) ? $viewModel['discussionUrls'] : [];
@@ -115,6 +116,13 @@ $hasMoreBefore = (bool) ($timeline['hasMoreBefore'] ?? false);
 $title = $conversationTitle($conversation);
 $conversationType = is_string($conversation['type'] ?? null) ? (string) $conversation['type'] : 'direct';
 $conversationTypeLabel = $conversationType === 'group' ? 'Groupe' : 'Directe';
+$notificationMode = is_string($notificationPreference['mode'] ?? null) ? (string) $notificationPreference['mode'] : 'notify';
+$notificationLabels = [
+    'notify' => 'Notifier',
+    'muted' => 'Muet',
+    'digest' => 'Digest futur',
+    'never' => 'Jamais',
+];
 ?>
 <section
   class="private-discussion-module private-discussion-conversation"
@@ -145,6 +153,7 @@ $conversationTypeLabel = $conversationType === 'group' ? 'Groupe' : 'Directe';
     $noticeMessage = match ($notice) {
         'sent' => 'Message envoyé.',
         'deleted' => 'Suppression effectuée.',
+        'notifications_updated' => 'Préférence de notification enregistrée.',
         default => $notice,
     };
     $isToastNotice = $notice === 'sent';
@@ -160,6 +169,7 @@ $conversationTypeLabel = $conversationType === 'group' ? 'Groupe' : 'Directe';
           'csrf' => 'Session expiree, veuillez recommencer.',
           'rate_limited' => 'Trop de messages successifs, veuillez patienter.',
           'delete' => 'Suppression impossible.',
+          'notification' => 'Préférence de notification impossible.',
           default => 'Le message n\'a pas pu etre envoye.',
       };
       echo $h($errorMessage);
@@ -223,6 +233,17 @@ $conversationTypeLabel = $conversationType === 'group' ? 'Groupe' : 'Directe';
             <?php endforeach; ?>
           </ul>
         <?php endif; ?>
+        <form class="private-discussion-notification-form" method="post" action="<?php echo $h($conversationUrl); ?>">
+          <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+          <input type="hidden" name="action" value="update_notification_preference" />
+          <label for="discussion-notification-mode">Notifications</label>
+          <select id="discussion-notification-mode" name="notification_mode">
+            <?php foreach ($notificationLabels as $mode => $label): ?>
+              <option value="<?php echo $h($mode); ?>"<?php echo $notificationMode === $mode ? ' selected' : ''; ?>><?php echo $h($label); ?></option>
+            <?php endforeach; ?>
+          </select>
+          <button type="submit" class="private-button-secondary">Enregistrer</button>
+        </form>
       </section>
 
       <aside class="notice private-discussion-security" aria-label="<?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions')); ?>">

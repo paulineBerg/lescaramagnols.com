@@ -494,8 +494,14 @@ final class PrivateDataProtectionService
             ['left_at' => $now, 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
+            'discussion_notification_preferences',
+            '`mode` = \'never\', `updated_at` = :updated_at',
+            '`private_user_id` = :private_user_id',
+            ['updated_at' => $now, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
             'discussion_crypto_devices',
-            '`revoked_at` = COALESCE(`revoked_at`, :revoked_at)',
+            '`trust_status` = \'revoked\', `revoked_at` = COALESCE(`revoked_at`, :revoked_at)',
             '`private_user_id` = :private_user_id',
             ['revoked_at' => $now, 'private_user_id' => $privateUserId]
         );
@@ -940,6 +946,7 @@ final class PrivateDataProtectionService
             'private_blocnote_notes' => '`private_user_id` = :private_user_id',
             'private_blocnote_categories' => '`private_user_id` = :private_user_id',
             'discussion_conversation_events' => '`actor_user_id` = :private_user_id OR `conversation_id` IN (SELECT `conversation_id` FROM `' . $this->database->table('discussion_conversation_members') . '` WHERE `private_user_id` = :private_user_id)',
+            'discussion_notification_preferences' => '`private_user_id` = :private_user_id',
             'discussion_messages' => '`sender_private_user_id` = :private_user_id',
             'discussion_message_attachments' => $messageIds,
             'discussion_conversation_members' => '`private_user_id` = :private_user_id',
@@ -985,6 +992,7 @@ final class PrivateDataProtectionService
         $backupScopes = $this->deletionBackupScopes();
         $order = [
             'discussion_conversation_events',
+            'discussion_notification_preferences',
             'discussion_message_attachments',
             'discussion_messages',
             'discussion_conversation_keys',

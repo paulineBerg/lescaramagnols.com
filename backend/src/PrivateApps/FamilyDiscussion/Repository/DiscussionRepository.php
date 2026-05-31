@@ -80,6 +80,19 @@ final class DiscussionRepository
             "CREATE TABLE IF NOT EXISTS `%s` (
                 `id` INT AUTO_INCREMENT PRIMARY KEY,
                 `conversation_id` INT NOT NULL,
+                `private_user_id` INT NOT NULL,
+                `mode` VARCHAR(16) NOT NULL DEFAULT 'notify',
+                `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY `uq_discussion_notification_preference` (`conversation_id`, `private_user_id`),
+                KEY `idx_discussion_notification_user` (`private_user_id`, `mode`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+            $this->notificationPreferenceTable()
+        ));
+
+        $pdo->exec(sprintf(
+            "CREATE TABLE IF NOT EXISTS `%s` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `conversation_id` INT NOT NULL,
                 `sender_private_user_id` INT NOT NULL,
                 `client_message_id` VARCHAR(80) NULL,
                 `body` TEXT NULL,
@@ -1513,6 +1526,73 @@ final class DiscussionRepository
     }
 
     /**
+     * @return array{mode:string,updatedAt:string}
+     */
+    public function notificationPreferenceForUser(int $conversationId, int $userId): array
+    {
+        if ($conversationId <= 0 || $userId <= 0 || !$this->isParticipant($conversationId, $userId)) {
+            return ['mode' => 'notify', 'updatedAt' => ''];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT `mode`, `updated_at`
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `private_user_id` = :user_id
+                 LIMIT 1",
+                $this->notificationPreferenceTable()
+            ));
+            $statement->execute(['conversation_id' => $conversationId, 'user_id' => $userId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return ['mode' => 'notify', 'updatedAt' => ''];
+        }
+
+        if (!is_array($row)) {
+            return ['mode' => 'notify', 'updatedAt' => ''];
+        }
+
+        return [
+            'mode' => $this->normalizeNotificationMode(is_string($row['mode'] ?? null) ? (string) $row['mode'] : ''),
+            'updatedAt' => is_string($row['updated_at'] ?? null) ? (string) $row['updated_at'] : '',
+        ];
+    }
+
+    public function setNotificationPreference(int $conversationId, int $userId, string $mode): bool
+    {
+        $mode = $this->normalizeNotificationMode($mode);
+        if ($conversationId <= 0 || $userId <= 0 || !$this->isParticipant($conversationId, $userId)) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "INSERT INTO `%s`
+                    (`conversation_id`, `private_user_id`, `mode`, `updated_at`)
+                 VALUES
+                    (:conversation_id, :user_id, :mode, :updated_at)
+                 ON DUPLICATE KEY UPDATE
+                    `mode` = VALUES(`mode`),
+                    `updated_at` = VALUES(`updated_at`)",
+                $this->notificationPreferenceTable()
+            ));
+            $statement->execute([
+                'conversation_id' => $conversationId,
+                'user_id' => $userId,
+                'mode' => $mode,
+                'updated_at' => $this->now(),
+            ]);
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * @param array<int, int> $userIds
      * @return array<int, array<string, mixed>>
      */
@@ -1888,6 +1968,11 @@ final class DiscussionRepository
     private function memberTable(): string
     {
         return $this->database->table('discussion_conversation_members');
+    }
+
+    private function notificationPreferenceTable(): string
+    {
+        return $this->database->table('discussion_notification_preferences');
     }
 
     private function messageTable(): string
@@ -2508,6 +2593,13 @@ final class DiscussionRepository
         $status = strtolower(trim($status));
 
         return in_array($status, ['trusted', 'pending', 'revoked'], true) ? $status : 'pending';
+    }
+
+    private function normalizeNotificationMode(string $mode): string
+    {
+        $mode = strtolower(trim($mode));
+
+        return in_array($mode, ['notify', 'muted', 'digest', 'never'], true) ? $mode : 'notify';
     }
 
     private function normalizePublicKeyJwk(string $publicKeyJwk): string

@@ -83,6 +83,7 @@ trait EditorialSqlTestTrait
                     'tax_years',
                     'discussion_retention_runs',
                     'discussion_conversation_events',
+                    'discussion_notification_preferences',
                     'discussion_conversation_keys',
                     'discussion_crypto_devices',
                     'discussion_message_reads',
