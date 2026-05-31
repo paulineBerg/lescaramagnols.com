@@ -82,6 +82,7 @@ trait EditorialSqlTestTrait
                     'tax_income_sources',
                     'tax_years',
                     'discussion_retention_runs',
+                    'discussion_conversation_events',
                     'discussion_conversation_keys',
                     'discussion_crypto_devices',
                     'discussion_message_reads',

@@ -25,6 +25,7 @@ $conversationUrl = $conversationId > 0 ? rtrim($indexUrl, '/') . '/' . $conversa
 $isConversationOwner = is_numeric($conversation['createdByPrivateUserId'] ?? null)
     && (int) $conversation['createdByPrivateUserId'] === $currentUserId;
 $apiMessagesUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/messages';
+$apiEventsUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/events';
 $apiReadUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/read';
 $apiKeysUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/keys';
 $apiDevicesUrl = (string) ($urls['apiCryptoDevices'] ?? private_portal_url('discussion_api_crypto_devices'));
@@ -219,6 +220,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
     <form id="discussion-message-form" method="post" action="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
       <input type="hidden" name="action" value="send_message" />
+      <input type="hidden" name="client_message_id" value="" />
       <input type="hidden" name="encryption_mode" value="" />
       <input type="hidden" name="encrypted_payload" value="" />
       <input type="hidden" name="encryption_metadata" value="" />
@@ -240,6 +242,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
 
     let lastId = <?php echo (int) $lastMessageId; ?>;
     const apiUrl = <?php echo json_encode($apiMessagesUrl, JSON_UNESCAPED_SLASHES); ?>;
+    const eventsUrl = <?php echo json_encode($apiEventsUrl, JSON_UNESCAPED_SLASHES); ?>;
     const readUrl = <?php echo json_encode($apiReadUrl, JSON_UNESCAPED_SLASHES); ?>;
     const keysUrl = <?php echo json_encode($apiKeysUrl, JSON_UNESCAPED_SLASHES); ?>;
     const devicesUrl = <?php echo json_encode($apiDevicesUrl, JSON_UNESCAPED_SLASHES); ?>;
@@ -252,6 +255,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
     let lastMessageElement = document.querySelector('[data-discussion-last-message]');
     const cryptoOk = window.isSecureContext && window.crypto && window.crypto.subtle && window.indexedDB;
     let cryptoState = null;
+    let lastEventId = 0;
 
     const labelFor = (senderId) => senderId === currentUserId ? 'Moi' : `Membre #${senderId}`;
     const setStatus = (text, failure = false) => {
@@ -332,6 +336,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
         headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-CSRF-Token': csrfToken, Accept: 'application/json' },
         body: new URLSearchParams({
           csrf_token: csrfToken,
+          conversation_id: String(conversationId),
           device_id: id,
           device_label: navigator.userAgent.slice(0, 100),
           public_key_jwk: JSON.stringify(device.publicKeyJwk)
@@ -480,6 +485,11 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
         lastMessageElement.scrollIntoView({ block: 'center' });
       }
     };
+    const randomClientId = () => {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('');
+    };
     if (lastMessageElement instanceof HTMLElement) {
       window.requestAnimationFrame(scrollToLastMessage);
       window.setTimeout(scrollToLastMessage, 250);
@@ -586,6 +596,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
     if (form) {
       form.addEventListener('submit', async (event) => {
         const body = form.querySelector('textarea[name="body"]');
+        const clientMessage = form.querySelector('input[name="client_message_id"]');
         const mode = form.querySelector('input[name="encryption_mode"]');
         const payload = form.querySelector('input[name="encrypted_payload"]');
         const metadata = form.querySelector('input[name="encryption_metadata"]');
@@ -610,6 +621,9 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
           mode.value = 'client_aes_gcm_v1';
           payload.value = encrypted.payload;
           metadata.value = encrypted.metadata;
+          if (clientMessage && !clientMessage.value) {
+            clientMessage.value = randomClientId();
+          }
           body.value = '';
           form.submit();
         } catch (error) {
@@ -629,7 +643,30 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
         .catch(() => setStatus('Chiffrement local non initialise sur cet appareil.', true));
     }
 
-    window.setInterval(poll, 5000);
+    const connectEvents = () => {
+      if (!window.EventSource || !eventsUrl) {
+        return false;
+      }
+
+      const source = new EventSource(`${eventsUrl}?after_event_id=${lastEventId}`);
+      const refresh = (event) => {
+        lastEventId = Number(event.lastEventId || lastEventId || 0);
+        poll();
+      };
+      source.addEventListener('message.created', refresh);
+      source.addEventListener('message.deleted', refresh);
+      source.addEventListener('attachment.deleted', refresh);
+      source.addEventListener('member.added', refresh);
+      source.addEventListener('member.left', refresh);
+      source.onerror = () => {
+        source.close();
+        window.setTimeout(connectEvents, 10000);
+      };
+      return true;
+    };
+
+    const eventStreamActive = connectEvents();
+    window.setInterval(poll, eventStreamActive ? 15000 : 5000);
   })();
   </script>
 </section>

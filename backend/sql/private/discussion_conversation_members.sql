@@ -11,5 +11,6 @@ CREATE TABLE IF NOT EXISTS car_discussion_conversation_members (
     last_opened_at DATETIME NULL,
     UNIQUE KEY uq_discussion_members_user (conversation_id, private_user_id),
     KEY idx_discussion_members_user_active (private_user_id, left_at),
+    KEY idx_discussion_members_user_opened (private_user_id, left_at, last_opened_at, conversation_id),
     KEY idx_discussion_members_conversation (conversation_id, left_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

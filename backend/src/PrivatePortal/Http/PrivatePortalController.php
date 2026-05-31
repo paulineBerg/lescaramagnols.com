@@ -8,10 +8,13 @@ use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\PrivateApps\FamilyDiscussion\Attachment\DiscussionAttachmentStorage;
+use Caramagnols\PrivateApps\FamilyDiscussion\Realtime\ConversationEventStream;
 use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
 use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionEventService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionTimelineService;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalExpenseCategoryCatalog;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
@@ -170,6 +173,10 @@ final class PrivatePortalController
             ),
             'discussion_api_conversations' => $this->handleDiscussionApiConversations($request),
             'discussion_api_messages' => $this->handleDiscussionApiMessages(
+                $request,
+                (int) ($routeParams['conversationId'] ?? 0)
+            ),
+            'discussion_api_events' => $this->handleDiscussionApiEvents(
                 $request,
                 (int) ($routeParams['conversationId'] ?? 0)
             ),
@@ -2899,13 +2906,13 @@ final class PrivatePortalController
             $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'send_message';
             if ($action === 'delete_message') {
                 $messageId = $this->normalizeNumericId($body['message_id'] ?? null);
-                $deleted = $this->discussionService()->deleteMessage($userId, $messageId);
+                $deleted = $this->discussionService()->deleteMessage($userId, $messageId, $this->discussionRequestId($request));
 
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deleted ? '?notice=deleted' : '?error=delete'));
             }
             if ($action === 'delete_attachment') {
                 $attachmentId = is_string($body['attachment_id'] ?? null) ? (string) $body['attachment_id'] : '';
-                $deleted = $this->discussionService()->deleteAttachment($userId, $attachmentId);
+                $deleted = $this->discussionService()->deleteAttachment($userId, $attachmentId, $this->discussionRequestId($request));
 
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deleted ? '?notice=deleted' : '?error=delete'));
             }
@@ -2921,7 +2928,9 @@ final class PrivatePortalController
                 $conversationId,
                 is_string($body['body'] ?? null) ? (string) $body['body'] : '',
                 $request->files(),
-                $this->discussionEncryptionFromPayload($body)
+                $this->discussionEncryptionFromPayload($body),
+                $this->discussionClientMessageIdFromPayload($body),
+                $this->discussionRequestId($request)
             );
 
             return $this->redirect(
@@ -2929,8 +2938,8 @@ final class PrivatePortalController
             );
         }
 
-        $messages = $this->discussionService()->listMessages($conversationId, $userId);
-        $this->discussionService()->markRead($conversationId, $userId);
+        $messages = $this->discussionTimelineService()->timeline($conversationId, $userId)['messages'];
+        $this->discussionService()->markRead($conversationId, $userId, $this->discussionRequestId($request));
 
         return $this->render('modules/family-discussion/conversation', $this->discussionViewModel($userId, [
             'privatePageTitle' => 'Discussion',
@@ -2994,11 +3003,19 @@ final class PrivatePortalController
         }
 
         if ($request->method() === self::METHOD_GET) {
-            $after = is_numeric($request->query()['after_message_id'] ?? null) ? (int) $request->query()['after_message_id'] : 0;
-            $messages = $this->discussionService()->listMessages($conversationId, $userId, $after);
-            $this->discussionService()->markRead($conversationId, $userId);
+            $after = is_numeric($request->query()['after_id'] ?? $request->query()['after_message_id'] ?? null)
+                ? (int) ($request->query()['after_id'] ?? $request->query()['after_message_id'])
+                : 0;
+            $before = is_numeric($request->query()['before_id'] ?? $request->query()['before_message_id'] ?? null)
+                ? (int) ($request->query()['before_id'] ?? $request->query()['before_message_id'])
+                : 0;
+            $limit = is_numeric($request->query()['limit'] ?? null) ? (int) $request->query()['limit'] : 100;
+            $timeline = $this->discussionTimelineService()->timeline($conversationId, $userId, $before, $after, $limit);
+            if ($before <= 0) {
+                $this->discussionService()->markRead($conversationId, $userId, $this->discussionRequestId($request));
+            }
 
-            return $this->jsonPrivateResponse(['messages' => $messages]);
+            return $this->jsonPrivateResponse($timeline);
         }
 
         if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
@@ -3014,12 +3031,43 @@ final class PrivatePortalController
             $conversationId,
             is_string($body['body'] ?? null) ? (string) $body['body'] : '',
             $request->files(),
-            $this->discussionEncryptionFromPayload($body)
+            $this->discussionEncryptionFromPayload($body),
+            $this->discussionClientMessageIdFromPayload($body),
+            $this->discussionRequestId($request)
         );
 
         return is_array($message)
             ? $this->jsonPrivateResponse(['message' => $message], 201)
             : $this->jsonPrivateResponse(['error' => 'invalid_message'], 422);
+    }
+
+    private function handleDiscussionApiEvents(Request $request, int $conversationId): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if ($request->method() !== self::METHOD_GET) {
+            return $this->jsonPrivateResponse(['error' => 'method_not_allowed'], 405);
+        }
+
+        if (!$this->discussionRepository()->isParticipant($conversationId, $userId)) {
+            $this->logEvent('private.discussion.access.denied', ['private_user_id' => $userId, 'conversation_id' => $conversationId]);
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        $after = is_numeric($request->query()['after_event_id'] ?? $request->query()['last_event_id'] ?? null)
+            ? (int) ($request->query()['after_event_id'] ?? $request->query()['last_event_id'])
+            : 0;
+        $lastEventId = $request->header('Last-Event-ID');
+        if ($after <= 0 && is_string($lastEventId) && is_numeric($lastEventId)) {
+            $after = (int) $lastEventId;
+        }
+
+        return $this->withPrivateHeaders(
+            $this->discussionEventStream()->response($conversationId, $userId, $after, 100)
+        );
     }
 
     private function handleDiscussionApiCryptoDevices(Request $request): Response
@@ -3059,12 +3107,31 @@ final class PrivatePortalController
         }
 
         $body = $request->body();
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
+        $conversationId = is_numeric($body['conversation_id'] ?? null) ? (int) $body['conversation_id'] : 0;
+        if ($action === 'revoke_device') {
+            $revoked = $this->discussionRepository()->revokeCryptoDevice(
+                $userId,
+                is_string($body['device_id'] ?? null) ? (string) $body['device_id'] : ''
+            );
+            if ($revoked && $conversationId > 0 && $this->discussionRepository()->isParticipant($conversationId, $userId)) {
+                $this->discussionEventService()->cryptoDeviceRevoked($conversationId, $userId, $this->discussionRequestId($request));
+            }
+
+            return $revoked
+                ? $this->jsonPrivateResponse(['ok' => true])
+                : $this->jsonPrivateResponse(['error' => 'invalid_device'], 422);
+        }
+
         $device = $this->discussionRepository()->registerCryptoDevice(
             $userId,
             is_string($body['device_id'] ?? null) ? (string) $body['device_id'] : '',
             is_string($body['public_key_jwk'] ?? null) ? (string) $body['public_key_jwk'] : '',
             is_string($body['device_label'] ?? null) ? (string) $body['device_label'] : ''
         );
+        if (is_array($device) && $conversationId > 0 && $this->discussionRepository()->isParticipant($conversationId, $userId)) {
+            $this->discussionEventService()->cryptoDeviceAdded($conversationId, $userId, $this->discussionRequestId($request));
+        }
 
         return is_array($device)
             ? $this->jsonPrivateResponse(['device' => $device], 201)
@@ -3096,6 +3163,9 @@ final class PrivatePortalController
         $payload = $request->body() !== [] ? $request->body() : $request->json();
         $wrappers = $this->discussionKeyWrappersFromPayload($payload['keys'] ?? []);
         $count = $this->discussionRepository()->upsertConversationKeys($conversationId, $userId, $wrappers);
+        if ($count > 0) {
+            $this->discussionEventService()->conversationKeysUpdated($conversationId, $userId, $count, $this->discussionRequestId($request));
+        }
 
         return $count > 0
             ? $this->jsonPrivateResponse(['ok' => true, 'count' => $count])
@@ -3117,7 +3187,8 @@ final class PrivatePortalController
             $userId,
             $conversationId,
             $this->discussionMemberIdsFromPayload($request->body()['member_ids'] ?? []),
-            new DiscussionAccessPolicy($this->discussionRepository())
+            new DiscussionAccessPolicy($this->discussionRepository()),
+            $this->discussionRequestId($request)
         );
 
         return $added ? $this->jsonPrivateResponse(['ok' => true]) : $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
@@ -3134,7 +3205,7 @@ final class PrivatePortalController
             return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
         }
 
-        return $this->discussionService()->leaveConversation($conversationId, $userId)
+        return $this->discussionService()->leaveConversation($conversationId, $userId, $this->discussionRequestId($request))
             ? $this->jsonPrivateResponse(['ok' => true])
             : $this->jsonPrivateResponse(['error' => 'invalid_leave'], 422);
     }
@@ -3150,7 +3221,7 @@ final class PrivatePortalController
             return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
         }
 
-        return $this->discussionService()->markRead($conversationId, $userId)
+        return $this->discussionService()->markRead($conversationId, $userId, $this->discussionRequestId($request))
             ? $this->jsonPrivateResponse(['ok' => true])
             : $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
     }
@@ -5025,6 +5096,37 @@ final class PrivatePortalController
     }
 
     /**
+     * @param array<string, mixed> $payload
+     */
+    private function discussionClientMessageIdFromPayload(array $payload): ?string
+    {
+        $clientMessageId = is_string($payload['client_message_id'] ?? null)
+            ? trim((string) $payload['client_message_id'])
+            : '';
+        if ($clientMessageId === '') {
+            return null;
+        }
+
+        return preg_match('/\A[A-Za-z0-9._:-]{8,80}\z/', $clientMessageId) === 1 ? $clientMessageId : null;
+    }
+
+    private function discussionRequestId(Request $request): string
+    {
+        foreach ([$request->header('X-Request-Id'), $request->header('X-Correlation-Id')] as $candidate) {
+            if (!is_string($candidate)) {
+                continue;
+            }
+
+            $candidate = trim($candidate);
+            if ($candidate !== '' && strlen($candidate) <= 128 && preg_match('/\A[A-Za-z0-9._:-]+\z/', $candidate) === 1) {
+                return $candidate;
+            }
+        }
+
+        return app_generate_request_id();
+    }
+
+    /**
      * @return array<int, array{privateUserId:int,deviceId:string,encryptedKey:string}>
      */
     private function discussionKeyWrappersFromPayload(mixed $payload): array
@@ -6408,6 +6510,21 @@ final class PrivatePortalController
             $this->eventLogger,
             $this->modulePermissionRepository()
         );
+    }
+
+    private function discussionTimelineService(): DiscussionTimelineService
+    {
+        return new DiscussionTimelineService($this->discussionRepository());
+    }
+
+    private function discussionEventService(): DiscussionEventService
+    {
+        return new DiscussionEventService($this->discussionRepository());
+    }
+
+    private function discussionEventStream(): ConversationEventStream
+    {
+        return new ConversationEventStream($this->discussionEventService());
     }
 
     private function discussionRetentionService(): DiscussionRetentionService

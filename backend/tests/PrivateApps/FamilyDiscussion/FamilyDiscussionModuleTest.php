@@ -7,8 +7,11 @@ namespace LesCaramagnols\Tests\PrivateApps\FamilyDiscussion;
 use Caramagnols\PrivateApps\FamilyDiscussion\Attachment\DiscussionAttachmentStorage;
 use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
 use Caramagnols\PrivateApps\FamilyDiscussion\Retention\DiscussionRetentionService;
+use Caramagnols\PrivateApps\FamilyDiscussion\Realtime\ConversationEventStream;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionEventService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionTimelineService;
 use Caramagnols\Http\Request;
 use Caramagnols\PrivatePortal\Http\PrivatePortalController;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
@@ -347,6 +350,131 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertCount(1, $repository->listConversationKeysForUser($conversationId, $aliceId));
         $this->assertCount(1, $repository->listConversationKeysForUser($conversationId, $bobId));
         $this->assertSame([], $repository->listConversationKeysForUser($conversationId, $outsiderId));
+    }
+
+    public function testMessagesAreIdempotentAndTimelineUsesCursorPagination(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $service = new DiscussionService($repository, $userRepository, $this->storage());
+        $timeline = new DiscussionTimelineService($repository);
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $first = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Message stable',
+            [],
+            $this->encryptedPayload(),
+            'client-message-0001'
+        );
+        $second = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Message stable retry',
+            [],
+            $this->encryptedPayload(),
+            'client-message-0001'
+        );
+        $this->assertIsArray($first);
+        $this->assertIsArray($second);
+        $this->assertSame((int) $first['id'], (int) $second['id']);
+        $this->assertTrue((bool) ($second['idempotentReplay'] ?? false));
+
+        for ($index = 2; $index <= 60; ++$index) {
+            $message = $service->sendMessage(
+                $aliceId,
+                $conversationId,
+                'Message ' . $index,
+                [],
+                $this->encryptedPayload(),
+                sprintf('client-message-%04d', $index)
+            );
+            $this->assertIsArray($message);
+        }
+
+        $latest = $timeline->timeline($conversationId, $bobId, limit: 10);
+        $this->assertCount(10, $latest['messages']);
+        $this->assertTrue($latest['hasMoreBefore']);
+        $beforeCursor = (int) ($latest['cursors']['before'] ?? 0);
+        $older = $timeline->timeline($conversationId, $bobId, beforeMessageId: $beforeCursor, limit: 10);
+        $this->assertCount(10, $older['messages']);
+        $this->assertLessThan($beforeCursor, (int) $older['messages'][2]['id']);
+
+        $afterCursor = (int) ($older['cursors']['after'] ?? 0);
+        $newer = $timeline->timeline($conversationId, $bobId, afterMessageId: $afterCursor, limit: 10);
+        $this->assertNotEmpty($newer['messages']);
+        $this->assertGreaterThan($afterCursor, (int) $newer['messages'][0]['id']);
+    }
+
+    public function testConversationEventsAreMinimalAndStreamedOnlyToParticipants(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $eventService = new DiscussionEventService($repository);
+        $service = new DiscussionService($repository, $userRepository, $this->storage(), null, null, $eventService);
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $outsiderId = $this->createPrivateUser($userRepository, 'outsider@example.com');
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $message = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Texte non journalise',
+            [],
+            $this->encryptedPayload(),
+            'client-message-event-1',
+            'request-event-1'
+        );
+        $this->assertIsArray($message);
+
+        $events = $eventService->eventsAfter($conversationId, $bobId);
+        $this->assertCount(1, $events);
+        $this->assertSame('message.created', $events[0]['eventType']);
+        $this->assertSame(['messageId', 'attachmentCount', 'encrypted'], array_keys($events[0]['payload']));
+        $encodedEvent = json_encode($events[0], JSON_THROW_ON_ERROR);
+        $this->assertStringNotContainsString('Texte non journalise', $encodedEvent);
+        $this->assertSame([], $eventService->eventsAfter($conversationId, $outsiderId));
+
+        $stream = new ConversationEventStream($eventService);
+        $response = $stream->response($conversationId, $bobId);
+        $this->assertSame(200, $response->status);
+        $this->assertSame('text/event-stream; charset=UTF-8', $response->headers['Content-Type'] ?? null);
+        $this->assertStringContainsString('event: message.created', $response->body);
+        $this->assertStringNotContainsString('Texte non journalise', $response->body);
+
+        $resumeResponse = $stream->response($conversationId, $bobId, (int) $events[0]['id']);
+        $this->assertStringContainsString(': keepalive', $resumeResponse->body);
+        $this->assertStringNotContainsString('event: message.created', $resumeResponse->body);
+
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $this->assertTrue($moduleRepository->setUserModules($outsiderId, ['discussions'], 'admin@example.com'));
+        $controller = new PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'outsider@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            discussionRepository: $repository,
+            discussionAttachmentStorage: $this->storage(),
+            discussionService: $service,
+            discussionRetentionService: new DiscussionRetentionService($repository, $this->storage())
+        );
+        $forbidden = $controller->handle(
+            'discussion_api_events',
+            $this->request('GET', '/private/discussions/api/conversations/' . $conversationId . '/events'),
+            ['conversationId' => $conversationId]
+        );
+        $this->assertSame(403, $forbidden->status);
     }
 
     public function testDashboardShowsDiscussionModuleOnlyWhenAssigned(): void

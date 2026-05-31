@@ -15,18 +15,21 @@ final class DiscussionService
     private readonly int $retentionDays;
     private readonly int $maxMessageLength;
     private readonly int $maxAttachmentsPerMessage;
+    private readonly DiscussionEventService $eventService;
 
     public function __construct(
         private readonly DiscussionRepository $repository,
         private readonly PrivateUserRepository $userRepository,
         private readonly DiscussionAttachmentStorage $attachmentStorage,
         private readonly ?AppEventLogger $eventLogger = null,
-        private readonly ?PrivateModulePermissionRepository $modulePermissionRepository = null
+        private readonly ?PrivateModulePermissionRepository $modulePermissionRepository = null,
+        ?DiscussionEventService $eventService = null
     ) {
         $config = is_array(app_config('private.discussions', [])) ? (array) app_config('private.discussions') : [];
         $this->retentionDays = max(1, (int) ($config['retention_days'] ?? 60));
         $this->maxMessageLength = max(1, (int) ($config['max_message_length'] ?? 4000));
         $this->maxAttachmentsPerMessage = max(0, min(10, (int) ($config['max_attachments_per_message'] ?? 5)));
+        $this->eventService = $eventService ?? new DiscussionEventService($repository);
     }
 
     /**
@@ -109,7 +112,7 @@ final class DiscussionService
     /**
      * @param array<int, int> $memberIds
      */
-    public function addMembers(int $actorId, int $conversationId, array $memberIds, DiscussionAccessPolicy $policy): bool
+    public function addMembers(int $actorId, int $conversationId, array $memberIds, DiscussionAccessPolicy $policy, ?string $requestId = null): bool
     {
         if (!$this->hasDiscussionAccess($actorId) || !$policy->canManageMembers($conversationId, $actorId)) {
             $this->logAccessDenied($actorId, $conversationId);
@@ -125,6 +128,7 @@ final class DiscussionService
 
         $added = $this->repository->addMembers($conversationId, $memberIds);
         if ($added) {
+            $this->eventService->membersAdded($conversationId, $actorId, count($memberIds), $requestId);
             $this->log('private.discussion.group.member_added', [
                 'conversation_id' => $conversationId,
                 'count' => count($memberIds),
@@ -142,7 +146,9 @@ final class DiscussionService
         int $conversationId,
         string $body,
         array $uploadedFiles = [],
-        array $encryption = []
+        array $encryption = [],
+        ?string $clientMessageId = null,
+        ?string $requestId = null
     ): ?array {
         $policy = new DiscussionAccessPolicy($this->repository);
         if (!$policy->canSendMessage($conversationId, $actorId)) {
@@ -168,10 +174,14 @@ final class DiscussionService
             $expiresAt,
             is_array($encryptionPayload) ? (string) $encryptionPayload['mode'] : 'none',
             is_array($encryptionPayload) ? (string) $encryptionPayload['payload'] : null,
-            is_array($encryptionPayload) ? (string) $encryptionPayload['metadata'] : null
+            is_array($encryptionPayload) ? (string) $encryptionPayload['metadata'] : null,
+            $clientMessageId
         );
         if (!is_array($message)) {
             return null;
+        }
+        if (($message['idempotentReplay'] ?? false) === true) {
+            return $message;
         }
 
         $attachments = [];
@@ -217,6 +227,7 @@ final class DiscussionService
         }
 
         $message['attachments'] = $attachments;
+        $this->eventService->messageCreated($message, count($attachments), $requestId);
         $this->log('private.discussion.message.sent', [
             'conversation_id' => $conversationId,
             'message_id' => (int) $message['id'],
@@ -240,17 +251,27 @@ final class DiscussionService
         return $this->repository->listMessagesForUser($conversationId, $userId, $afterMessageId, 100);
     }
 
-    public function markRead(int $conversationId, int $userId): bool
+    public function markRead(int $conversationId, int $userId, ?string $requestId = null): bool
     {
-        return $this->repository->markConversationRead($conversationId, $userId);
+        $marked = $this->repository->markConversationRead($conversationId, $userId);
+        if ($marked) {
+            $this->eventService->read($conversationId, $userId, $requestId);
+        }
+
+        return $marked;
     }
 
-    public function leaveConversation(int $conversationId, int $userId): bool
+    public function leaveConversation(int $conversationId, int $userId, ?string $requestId = null): bool
     {
-        return $this->repository->leaveConversation($conversationId, $userId);
+        $left = $this->repository->leaveConversation($conversationId, $userId);
+        if ($left) {
+            $this->eventService->memberLeft($conversationId, $userId, $requestId);
+        }
+
+        return $left;
     }
 
-    public function deleteMessage(int $actorId, int $messageId): bool
+    public function deleteMessage(int $actorId, int $messageId, ?string $requestId = null): bool
     {
         $message = $this->repository->findMessageForUser($messageId, $actorId);
         if (!is_array($message)) {
@@ -266,11 +287,21 @@ final class DiscussionService
 
         foreach ($this->repository->listActiveAttachmentsForMessage($messageId) as $attachment) {
             $this->deleteAttachmentFiles($attachment);
-            $this->repository->purgeAttachment((int) ($attachment['id'] ?? 0));
+            $attachmentRowId = (int) ($attachment['id'] ?? 0);
+            if ($this->repository->redactAttachment($attachmentRowId, 'deleted')) {
+                $this->eventService->attachmentDeleted(
+                    $conversationId,
+                    $actorId,
+                    $attachmentRowId,
+                    (int) ($attachment['messageId'] ?? $messageId),
+                    $requestId
+                );
+            }
         }
 
-        $deleted = $this->repository->purgeMessageContent($messageId);
+        $deleted = $this->repository->redactMessageContent($messageId, 'deleted');
         if ($deleted) {
+            $this->eventService->messageDeleted($conversationId, $actorId, $messageId, $requestId);
             $this->log('private.discussion.message.deleted', [
                 'conversation_id' => $conversationId,
                 'message_id' => $messageId,
@@ -281,7 +312,7 @@ final class DiscussionService
         return $deleted;
     }
 
-    public function deleteAttachment(int $actorId, string $attachmentId): bool
+    public function deleteAttachment(int $actorId, string $attachmentId, ?string $requestId = null): bool
     {
         $attachment = $this->repository->findAttachmentForUser($attachmentId, $actorId);
         if (!is_array($attachment)) {
@@ -296,8 +327,16 @@ final class DiscussionService
         }
 
         $this->deleteAttachmentFiles($attachment);
-        $deleted = $this->repository->purgeAttachment((int) ($attachment['id'] ?? 0));
+        $attachmentRowId = (int) ($attachment['id'] ?? 0);
+        $deleted = $this->repository->redactAttachment($attachmentRowId, 'deleted');
         if ($deleted) {
+            $this->eventService->attachmentDeleted(
+                $conversationId,
+                $actorId,
+                $attachmentRowId,
+                (int) ($attachment['messageId'] ?? 0),
+                $requestId
+            );
             $this->log('private.discussion.attachment.deleted', [
                 'conversation_id' => $conversationId,
                 'attachment_id' => $attachmentId,

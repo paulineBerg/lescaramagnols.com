@@ -12,5 +12,6 @@ CREATE TABLE IF NOT EXISTS car_discussion_conversations (
     archived_at DATETIME NULL,
     UNIQUE KEY uq_discussion_conversations_direct_key (direct_key),
     KEY idx_discussion_conversations_last_message (last_message_at),
+    KEY idx_discussion_conversations_activity (archived_at, last_message_at, updated_at, id),
     KEY idx_discussion_conversations_created_by (created_by_private_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

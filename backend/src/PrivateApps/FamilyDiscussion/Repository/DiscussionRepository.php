@@ -9,6 +9,9 @@ use PDO;
 
 final class DiscussionRepository
 {
+    /** @var array<int, string> */
+    private const MESSAGE_PURGE_STATUSES = ['active', 'deleted', 'redacted', 'expired', 'purged'];
+
     private bool $schemaReady = false;
 
     public function __construct(private readonly EditorialDatabase $database)
@@ -37,10 +40,17 @@ final class DiscussionRepository
                 `archived_at` DATETIME NULL,
                 UNIQUE KEY `uq_discussion_conversations_direct_key` (`direct_key`),
                 KEY `idx_discussion_conversations_last_message` (`last_message_at`),
+                KEY `idx_discussion_conversations_activity` (`archived_at`, `last_message_at`, `updated_at`, `id`),
                 KEY `idx_discussion_conversations_created_by` (`created_by_private_user_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->conversationTable()
         ));
+        $this->ensureIndex(
+            $pdo,
+            $this->conversationTable(),
+            'idx_discussion_conversations_activity',
+            'ADD INDEX `idx_discussion_conversations_activity` (`archived_at`, `last_message_at`, `updated_at`, `id`)'
+        );
 
         $pdo->exec(sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (
@@ -54,16 +64,24 @@ final class DiscussionRepository
                 `last_opened_at` DATETIME NULL,
                 UNIQUE KEY `uq_discussion_members_user` (`conversation_id`, `private_user_id`),
                 KEY `idx_discussion_members_user_active` (`private_user_id`, `left_at`),
+                KEY `idx_discussion_members_user_opened` (`private_user_id`, `left_at`, `last_opened_at`, `conversation_id`),
                 KEY `idx_discussion_members_conversation` (`conversation_id`, `left_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->memberTable()
         ));
+        $this->ensureIndex(
+            $pdo,
+            $this->memberTable(),
+            'idx_discussion_members_user_opened',
+            'ADD INDEX `idx_discussion_members_user_opened` (`private_user_id`, `left_at`, `last_opened_at`, `conversation_id`)'
+        );
 
         $pdo->exec(sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (
                 `id` INT AUTO_INCREMENT PRIMARY KEY,
                 `conversation_id` INT NOT NULL,
                 `sender_private_user_id` INT NOT NULL,
+                `client_message_id` VARCHAR(80) NULL,
                 `body` TEXT NULL,
                 `body_format` VARCHAR(16) NOT NULL DEFAULT 'plain',
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -74,16 +92,31 @@ final class DiscussionRepository
                 `encryption_mode` VARCHAR(32) NOT NULL DEFAULT 'none',
                 `encrypted_payload` MEDIUMTEXT NULL,
                 `encryption_metadata` TEXT NULL,
+                UNIQUE KEY `uq_discussion_messages_client_message` (`conversation_id`, `sender_private_user_id`, `client_message_id`),
                 KEY `idx_discussion_messages_conversation` (`conversation_id`, `id`),
+                KEY `idx_discussion_messages_conversation_status` (`conversation_id`, `purge_status`, `deleted_at`, `id`),
                 KEY `idx_discussion_messages_sender` (`sender_private_user_id`),
                 KEY `idx_discussion_messages_expiry` (`expires_at`, `purge_status`),
                 KEY `idx_discussion_messages_encryption` (`encryption_mode`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->messageTable()
         ));
+        $this->ensureColumn($pdo, $this->messageTable(), 'client_message_id', '`client_message_id` VARCHAR(80) NULL');
         $this->ensureColumn($pdo, $this->messageTable(), 'encryption_mode', "`encryption_mode` VARCHAR(32) NOT NULL DEFAULT 'none'");
         $this->ensureColumn($pdo, $this->messageTable(), 'encrypted_payload', '`encrypted_payload` MEDIUMTEXT NULL');
         $this->ensureColumn($pdo, $this->messageTable(), 'encryption_metadata', '`encryption_metadata` TEXT NULL');
+        $this->ensureIndex(
+            $pdo,
+            $this->messageTable(),
+            'uq_discussion_messages_client_message',
+            'ADD UNIQUE KEY `uq_discussion_messages_client_message` (`conversation_id`, `sender_private_user_id`, `client_message_id`)'
+        );
+        $this->ensureIndex(
+            $pdo,
+            $this->messageTable(),
+            'idx_discussion_messages_conversation_status',
+            'ADD INDEX `idx_discussion_messages_conversation_status` (`conversation_id`, `purge_status`, `deleted_at`, `id`)'
+        );
 
         $pdo->exec(sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (
@@ -104,10 +137,17 @@ final class DiscussionRepository
                 UNIQUE KEY `uq_discussion_attachments_attachment_id` (`attachment_id`),
                 UNIQUE KEY `uq_discussion_attachments_storage_path` (`storage_path`),
                 KEY `idx_discussion_attachments_message` (`message_id`),
+                KEY `idx_discussion_attachments_status_message` (`message_id`, `purge_status`, `id`),
                 KEY `idx_discussion_attachments_expiry` (`expires_at`, `purge_status`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->attachmentTable()
         ));
+        $this->ensureIndex(
+            $pdo,
+            $this->attachmentTable(),
+            'idx_discussion_attachments_status_message',
+            'ADD INDEX `idx_discussion_attachments_status_message` (`message_id`, `purge_status`, `id`)'
+        );
 
         $pdo->exec(sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (
@@ -117,10 +157,17 @@ final class DiscussionRepository
                 `private_user_id` INT NOT NULL,
                 `read_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE KEY `uq_discussion_reads_user_message` (`message_id`, `private_user_id`),
+                KEY `idx_discussion_reads_unread` (`conversation_id`, `private_user_id`, `read_at`, `message_id`),
                 KEY `idx_discussion_reads_conversation_user` (`conversation_id`, `private_user_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->readTable()
         ));
+        $this->ensureIndex(
+            $pdo,
+            $this->readTable(),
+            'idx_discussion_reads_unread',
+            'ADD INDEX `idx_discussion_reads_unread` (`conversation_id`, `private_user_id`, `read_at`, `message_id`)'
+        );
 
         $pdo->exec(sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (
@@ -172,6 +219,24 @@ final class DiscussionRepository
                 KEY `idx_discussion_conversation_keys_conversation` (`conversation_id`, `revoked_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->conversationKeyTable()
+        ));
+
+        $pdo->exec(sprintf(
+            "CREATE TABLE IF NOT EXISTS `%s` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `conversation_id` INT NOT NULL,
+                `actor_user_id` INT NULL,
+                `event_type` VARCHAR(64) NOT NULL,
+                `event_payload_json` TEXT NULL,
+                `client_event_id` VARCHAR(120) NULL,
+                `request_id` VARCHAR(128) NULL,
+                `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY `uq_discussion_events_client` (`conversation_id`, `client_event_id`),
+                KEY `idx_discussion_events_conversation` (`conversation_id`, `id`),
+                KEY `idx_discussion_events_type` (`event_type`, `created_at`),
+                KEY `idx_discussion_events_actor` (`actor_user_id`, `created_at`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+            $this->eventTable()
         ));
 
         $this->schemaReady = true;
@@ -483,12 +548,14 @@ final class DiscussionRepository
         string $expiresAt,
         string $encryptionMode = 'none',
         ?string $encryptedPayload = null,
-        ?string $encryptionMetadata = null
+        ?string $encryptionMetadata = null,
+        ?string $clientMessageId = null
     ): ?array {
         $body = $this->normalizeBody($body);
         $encryptionMode = $this->normalizeEncryptionMode($encryptionMode);
         $encryptedPayload = $encryptedPayload !== null ? $this->normalizeEncryptedPayload($encryptedPayload) : null;
         $encryptionMetadata = $encryptionMetadata !== null ? $this->normalizeEncryptionMetadata($encryptionMetadata) : null;
+        $clientMessageId = $clientMessageId !== null ? $this->normalizeClientMessageId($clientMessageId) : null;
         if ($encryptionMode === 'none') {
             $encryptedPayload = null;
             $encryptionMetadata = null;
@@ -504,16 +571,26 @@ final class DiscussionRepository
             $this->ensureSchema();
             $now = $this->now();
             $pdo = $this->database->pdo();
+            if ($clientMessageId !== null) {
+                $existing = $this->findMessageByClientId($conversationId, $senderUserId, $clientMessageId);
+                if (is_array($existing)) {
+                    $existing['idempotentReplay'] = true;
+
+                    return $existing;
+                }
+            }
+
             $statement = $pdo->prepare(sprintf(
                 "INSERT INTO `%s`
-                    (`conversation_id`, `sender_private_user_id`, `body`, `body_format`, `created_at`, `expires_at`, `encryption_mode`, `encrypted_payload`, `encryption_metadata`)
+                    (`conversation_id`, `sender_private_user_id`, `client_message_id`, `body`, `body_format`, `created_at`, `expires_at`, `encryption_mode`, `encrypted_payload`, `encryption_metadata`)
                  VALUES
-                    (:conversation_id, :sender_id, :body, :body_format, :created_at, :expires_at, :encryption_mode, :encrypted_payload, :encryption_metadata)",
+                    (:conversation_id, :sender_id, :client_message_id, :body, :body_format, :created_at, :expires_at, :encryption_mode, :encrypted_payload, :encryption_metadata)",
                 $this->messageTable()
             ));
             $statement->execute([
                 'conversation_id' => $conversationId,
                 'sender_id' => $senderUserId,
+                'client_message_id' => $clientMessageId,
                 'body' => $encryptionMode === 'none' && $body !== '' ? $body : null,
                 'body_format' => $encryptionMode === 'none' ? 'plain' : 'encrypted',
                 'created_at' => $now,
@@ -525,6 +602,15 @@ final class DiscussionRepository
             $messageId = (int) $pdo->lastInsertId();
             $this->touchConversation($conversationId, $now);
         } catch (\Throwable) {
+            if ($clientMessageId !== null) {
+                $existing = $this->findMessageByClientId($conversationId, $senderUserId, $clientMessageId);
+                if (is_array($existing)) {
+                    $existing['idempotentReplay'] = true;
+
+                    return $existing;
+                }
+            }
+
             return null;
         }
 
@@ -535,6 +621,14 @@ final class DiscussionRepository
      * @return array<int, array<string, mixed>>
      */
     public function listMessagesForUser(int $conversationId, int $userId, int $afterMessageId = 0, int $limit = 100): array
+    {
+        return $this->findMessagesAfter($conversationId, $userId, $afterMessageId, $limit);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function findMessagesAfter(int $conversationId, int $userId, int $afterMessageId = 0, int $limit = 100): array
     {
         if ($conversationId <= 0 || $userId <= 0 || !$this->isParticipant($conversationId, $userId)) {
             return [];
@@ -580,6 +674,144 @@ final class DiscussionRepository
         return $messages;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function findMessagesBefore(int $conversationId, int $userId, int $beforeMessageId, int $limit = 100): array
+    {
+        if ($conversationId <= 0 || $userId <= 0 || $beforeMessageId <= 0 || !$this->isParticipant($conversationId, $userId)) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `id` < :before_message_id
+                   AND `purge_status` = 'active'
+                   AND `deleted_at` IS NULL
+                 ORDER BY `id` DESC
+                 LIMIT :limit",
+                $this->messageTable()
+            ));
+            $statement->bindValue(':conversation_id', $conversationId, PDO::PARAM_INT);
+            $statement->bindValue(':before_message_id', $beforeMessageId, PDO::PARAM_INT);
+            $statement->bindValue(':limit', max(1, min(200, $limit)), PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $messages = [];
+        foreach (array_reverse(is_array($rows) ? $rows : []) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $message = $this->hydrateMessage($row);
+            if (!is_array($message)) {
+                continue;
+            }
+
+            $message['attachments'] = $this->listAttachmentsForMessage((int) $message['id']);
+            $messages[] = $message;
+        }
+
+        return $messages;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function findConversationTimeline(int $conversationId, int $userId, int $limit = 100): array
+    {
+        if ($conversationId <= 0 || $userId <= 0 || !$this->isParticipant($conversationId, $userId)) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `purge_status` = 'active'
+                   AND `deleted_at` IS NULL
+                 ORDER BY `id` DESC
+                 LIMIT :limit",
+                $this->messageTable()
+            ));
+            $statement->bindValue(':conversation_id', $conversationId, PDO::PARAM_INT);
+            $statement->bindValue(':limit', max(1, min(200, $limit)), PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $messages = [];
+        foreach (array_reverse(is_array($rows) ? $rows : []) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $message = $this->hydrateMessage($row);
+            if (!is_array($message)) {
+                continue;
+            }
+
+            $message['attachments'] = $this->listAttachmentsForMessage((int) $message['id']);
+            $messages[] = $message;
+        }
+
+        return $messages;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function findUnreadCountsForUser(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT cm.`conversation_id`, COUNT(m.`id`) AS unread_count
+                 FROM `%s` cm
+                 INNER JOIN `%s` m ON m.`conversation_id` = cm.`conversation_id`
+                 WHERE cm.`private_user_id` = :user_id
+                   AND cm.`left_at` IS NULL
+                   AND m.`sender_private_user_id` <> :message_user_id
+                   AND m.`purge_status` = 'active'
+                   AND m.`deleted_at` IS NULL
+                   AND (cm.`last_opened_at` IS NULL OR m.`created_at` > cm.`last_opened_at`)
+                 GROUP BY cm.`conversation_id`",
+                $this->memberTable(),
+                $this->messageTable()
+            ));
+            $statement->execute(['user_id' => $userId, 'message_user_id' => $userId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $counts = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            $conversationId = is_numeric($row['conversation_id'] ?? null) ? (int) $row['conversation_id'] : 0;
+            if ($conversationId > 0) {
+                $counts[$conversationId] = max(0, (int) ($row['unread_count'] ?? 0));
+            }
+        }
+
+        return $counts;
+    }
+
     public function findMessageById(int $messageId): ?array
     {
         if ($messageId <= 0) {
@@ -599,6 +831,46 @@ final class DiscussionRepository
         }
 
         return is_array($row) ? $this->hydrateMessage($row) : null;
+    }
+
+    public function findMessageByClientId(int $conversationId, int $senderUserId, string $clientMessageId): ?array
+    {
+        $clientMessageId = $this->normalizeClientMessageId($clientMessageId);
+        if ($conversationId <= 0 || $senderUserId <= 0 || $clientMessageId === null) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `sender_private_user_id` = :sender_user_id
+                   AND `client_message_id` = :client_message_id
+                 LIMIT 1",
+                $this->messageTable()
+            ));
+            $statement->execute([
+                'conversation_id' => $conversationId,
+                'sender_user_id' => $senderUserId,
+                'client_message_id' => $clientMessageId,
+            ]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!is_array($row)) {
+            return null;
+        }
+
+        $message = $this->hydrateMessage($row);
+        if (is_array($message)) {
+            $message['attachments'] = $this->listAttachmentsForMessage((int) $message['id']);
+        }
+
+        return $message;
     }
 
     public function createAttachment(
@@ -793,7 +1065,7 @@ final class DiscussionRepository
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(sprintf(
                 "UPDATE `%s`
-                 SET `storage_path` = '',
+                 SET `storage_path` = CONCAT('purged/', `id`),
                      `preview_storage_path` = NULL,
                      `purge_status` = 'purged'
                  WHERE `id` = :id
@@ -801,6 +1073,36 @@ final class DiscussionRepository
                 $this->attachmentTable()
             ));
             $statement->execute(['id' => $attachmentRowId]);
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function redactAttachment(int $attachmentRowId, string $status = 'deleted'): bool
+    {
+        if ($attachmentRowId <= 0) {
+            return false;
+        }
+
+        $status = $this->normalizePurgeStatus($status, 'deleted');
+        if ($status === 'active' || $status === 'purged') {
+            $status = 'deleted';
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "UPDATE `%s`
+                 SET `storage_path` = CONCAT(:purge_status, '/', `id`),
+                     `preview_storage_path` = NULL,
+                     `purge_status` = :purge_status
+                 WHERE `id` = :id
+                   AND `purge_status` = 'active'",
+                $this->attachmentTable()
+            ));
+            $statement->execute(['purge_status' => $status, 'id' => $attachmentRowId]);
 
             return $statement->rowCount() > 0;
         } catch (\Throwable) {
@@ -828,6 +1130,38 @@ final class DiscussionRepository
                 $this->messageTable()
             ));
             $statement->execute(['deleted_at' => $this->now(), 'id' => $messageId]);
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function redactMessageContent(int $messageId, string $status = 'deleted'): bool
+    {
+        if ($messageId <= 0) {
+            return false;
+        }
+
+        $status = $this->normalizePurgeStatus($status, 'deleted');
+        if ($status === 'active' || $status === 'purged') {
+            $status = 'deleted';
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "UPDATE `%s`
+                 SET `body` = NULL,
+                     `encrypted_payload` = NULL,
+                     `encryption_metadata` = NULL,
+                     `deleted_at` = :deleted_at,
+                     `purge_status` = :purge_status
+                 WHERE `id` = :id
+                   AND `purge_status` = 'active'",
+                $this->messageTable()
+            ));
+            $statement->execute(['deleted_at' => $this->now(), 'purge_status' => $status, 'id' => $messageId]);
 
             return $statement->rowCount() > 0;
         } catch (\Throwable) {
@@ -1013,6 +1347,35 @@ final class DiscussionRepository
         }
 
         return is_array($row) ? $this->hydrateCryptoDevice($row) : null;
+    }
+
+    public function revokeCryptoDevice(int $userId, string $deviceId): bool
+    {
+        $deviceId = $this->normalizeDeviceId($deviceId);
+        if ($userId <= 0 || $deviceId === '') {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "UPDATE `%s`
+                 SET `revoked_at` = COALESCE(`revoked_at`, :revoked_at)
+                 WHERE `private_user_id` = :user_id
+                   AND `device_id` = :device_id
+                   AND `revoked_at` IS NULL",
+                $this->cryptoDeviceTable()
+            ));
+            $statement->execute([
+                'revoked_at' => $this->now(),
+                'user_id' => $userId,
+                'device_id' => $deviceId,
+            ]);
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -1279,6 +1642,147 @@ final class DiscussionRepository
         }
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function createConversationEvent(
+        int $conversationId,
+        ?int $actorUserId,
+        string $eventType,
+        array $payload = [],
+        ?string $clientEventId = null,
+        ?string $requestId = null
+    ): ?array {
+        $eventType = $this->normalizeEventType($eventType);
+        $clientEventId = $clientEventId !== null ? $this->normalizeClientEventId($clientEventId) : null;
+        $requestId = $requestId !== null ? $this->normalizeRequestId($requestId) : null;
+        $actorUserId = $actorUserId !== null && $actorUserId > 0 ? $actorUserId : null;
+        if ($conversationId <= 0 || $eventType === '') {
+            return null;
+        }
+
+        $payload = $this->normalizeEventPayload($payload);
+        $payloadJson = $payload !== [] ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null;
+        if ($payloadJson === false) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            if ($clientEventId !== null) {
+                $existing = $this->findConversationEventByClientId($conversationId, $clientEventId);
+                if (is_array($existing)) {
+                    return $existing;
+                }
+            }
+
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "INSERT INTO `%s`
+                    (`conversation_id`, `actor_user_id`, `event_type`, `event_payload_json`, `client_event_id`, `request_id`, `created_at`)
+                 VALUES
+                    (:conversation_id, :actor_user_id, :event_type, :event_payload_json, :client_event_id, :request_id, :created_at)",
+                $this->eventTable()
+            ));
+            $statement->execute([
+                'conversation_id' => $conversationId,
+                'actor_user_id' => $actorUserId,
+                'event_type' => $eventType,
+                'event_payload_json' => is_string($payloadJson) ? $payloadJson : null,
+                'client_event_id' => $clientEventId,
+                'request_id' => $requestId,
+                'created_at' => $this->now(),
+            ]);
+            $id = (int) $this->database->pdo()->lastInsertId();
+        } catch (\Throwable) {
+            if ($clientEventId !== null) {
+                return $this->findConversationEventByClientId($conversationId, $clientEventId);
+            }
+
+            return null;
+        }
+
+        return $id > 0 ? $this->findConversationEventById($id) : null;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listConversationEventsAfter(int $conversationId, int $userId, int $afterEventId = 0, int $limit = 100): array
+    {
+        if ($conversationId <= 0 || $userId <= 0 || !$this->isParticipant($conversationId, $userId)) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `id` > :after_event_id
+                 ORDER BY `id` ASC
+                 LIMIT :limit",
+                $this->eventTable()
+            ));
+            $statement->bindValue(':conversation_id', $conversationId, PDO::PARAM_INT);
+            $statement->bindValue(':after_event_id', max(0, $afterEventId), PDO::PARAM_INT);
+            $statement->bindValue(':limit', max(1, min(500, $limit)), PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->hydrateEvents(is_array($rows) ? $rows : []);
+    }
+
+    public function findConversationEventById(int $eventId): ?array
+    {
+        if ($eventId <= 0) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT * FROM `%s` WHERE `id` = :id LIMIT 1",
+                $this->eventTable()
+            ));
+            $statement->execute(['id' => $eventId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->hydrateEvent($row) : null;
+    }
+
+    public function findConversationEventByClientId(int $conversationId, string $clientEventId): ?array
+    {
+        $clientEventId = $this->normalizeClientEventId($clientEventId);
+        if ($conversationId <= 0 || $clientEventId === null) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT *
+                 FROM `%s`
+                 WHERE `conversation_id` = :conversation_id
+                   AND `client_event_id` = :client_event_id
+                 LIMIT 1",
+                $this->eventTable()
+            ));
+            $statement->execute(['conversation_id' => $conversationId, 'client_event_id' => $clientEventId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->hydrateEvent($row) : null;
+    }
+
     private function conversationTable(): string
     {
         return $this->database->table('discussion_conversations');
@@ -1322,6 +1826,11 @@ final class DiscussionRepository
     private function conversationKeyTable(): string
     {
         return $this->database->table('discussion_conversation_keys');
+    }
+
+    private function eventTable(): string
+    {
+        return $this->database->table('discussion_conversation_events');
     }
 
     private function conversationIdByDirectKey(PDO $pdo, string $directKey): ?int
@@ -1562,6 +2071,7 @@ final class DiscussionRepository
             'id' => $id,
             'conversationId' => $conversationId,
             'senderPrivateUserId' => $senderId,
+            'clientMessageId' => is_string($row['client_message_id'] ?? null) ? (string) $row['client_message_id'] : '',
             'body' => is_string($row['body'] ?? null) ? (string) $row['body'] : '',
             'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
             'expiresAt' => is_string($row['expires_at'] ?? null) ? (string) $row['expires_at'] : '',
@@ -1640,6 +2150,50 @@ final class DiscussionRepository
     }
 
     /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function hydrateEvents(array $rows): array
+    {
+        $events = [];
+        foreach ($rows as $row) {
+            $event = $this->hydrateEvent($row);
+            if (is_array($event)) {
+                $events[] = $event;
+            }
+        }
+
+        return $events;
+    }
+
+    private function hydrateEvent(array $row): ?array
+    {
+        $id = (int) ($row['id'] ?? 0);
+        $conversationId = (int) ($row['conversation_id'] ?? 0);
+        $eventType = is_string($row['event_type'] ?? null) ? (string) $row['event_type'] : '';
+        if ($id <= 0 || $conversationId <= 0 || $eventType === '') {
+            return null;
+        }
+
+        $payload = [];
+        if (is_string($row['event_payload_json'] ?? null) && trim((string) $row['event_payload_json']) !== '') {
+            $decoded = json_decode((string) $row['event_payload_json'], true);
+            $payload = is_array($decoded) ? $decoded : [];
+        }
+
+        return [
+            'id' => $id,
+            'conversationId' => $conversationId,
+            'actorUserId' => is_numeric($row['actor_user_id'] ?? null) ? (int) $row['actor_user_id'] : null,
+            'eventType' => $eventType,
+            'payload' => $payload,
+            'clientEventId' => is_string($row['client_event_id'] ?? null) ? (string) $row['client_event_id'] : '',
+            'requestId' => is_string($row['request_id'] ?? null) ? (string) $row['request_id'] : '',
+            'createdAt' => is_string($row['created_at'] ?? null) ? (string) $row['created_at'] : '',
+        ];
+    }
+
+    /**
      * @param array<int, int|string> $ids
      * @return array<int, int>
      */
@@ -1705,6 +2259,74 @@ final class DiscussionRepository
         $mode = strtolower(trim($mode));
 
         return in_array($mode, ['none', 'client_aes_gcm_v1'], true) ? $mode : 'none';
+    }
+
+    private function normalizePurgeStatus(string $status, string $fallback): string
+    {
+        $status = strtolower(trim($status));
+        $fallback = in_array($fallback, self::MESSAGE_PURGE_STATUSES, true) ? $fallback : 'active';
+
+        return in_array($status, self::MESSAGE_PURGE_STATUSES, true) ? $status : $fallback;
+    }
+
+    private function normalizeClientMessageId(string $clientMessageId): ?string
+    {
+        $clientMessageId = trim($clientMessageId);
+        if ($clientMessageId === '') {
+            return null;
+        }
+
+        return preg_match('/\A[A-Za-z0-9._:-]{8,80}\z/', $clientMessageId) === 1 ? $clientMessageId : null;
+    }
+
+    private function normalizeClientEventId(string $clientEventId): ?string
+    {
+        $clientEventId = trim($clientEventId);
+        if ($clientEventId === '') {
+            return null;
+        }
+
+        return preg_match('/\A[A-Za-z0-9._:-]{8,120}\z/', $clientEventId) === 1 ? $clientEventId : null;
+    }
+
+    private function normalizeRequestId(string $requestId): ?string
+    {
+        $requestId = trim($requestId);
+        if ($requestId === '') {
+            return null;
+        }
+
+        return preg_match('/\A[A-Za-z0-9._:-]{1,128}\z/', $requestId) === 1 ? $requestId : null;
+    }
+
+    private function normalizeEventType(string $eventType): string
+    {
+        $eventType = strtolower(trim($eventType));
+
+        return preg_match('/\A[a-z0-9_.-]{3,64}\z/', $eventType) === 1 ? $eventType : '';
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, scalar|null>
+     */
+    private function normalizeEventPayload(array $payload): array
+    {
+        $normalized = [];
+        foreach ($payload as $key => $value) {
+            if (!is_string($key) || preg_match('/\A[a-zA-Z0-9_]{1,48}\z/', $key) !== 1) {
+                continue;
+            }
+            if (is_bool($value) || is_int($value) || is_float($value) || $value === null) {
+                $normalized[$key] = $value;
+                continue;
+            }
+            if (is_string($value)) {
+                $normalized[$key] = mb_substr($value, 0, 190);
+            }
+        }
+
+        return $normalized;
     }
 
     private function normalizeEncryptedPayload(string $payload): string
@@ -1788,6 +2410,27 @@ final class DiscussionRepository
             }
 
             $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $table, $definition));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureIndex(PDO $pdo, string $table, string $index, string $definition): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                "SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND INDEX_NAME = :index_name"
+            );
+            $statement->execute(['table' => $table, 'index_name' => $index]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` %s', $table, $definition));
         } catch (\Throwable) {
             return;
         }

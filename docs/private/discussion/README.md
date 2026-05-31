@@ -83,6 +83,7 @@ Routes principales :
 | `discussion_conversation` | GET/POST | `/private/discussions/{conversationId}` | lecture et envoi dans un fil |
 | `discussion_api_conversations` | GET/POST | `/private/discussions/api/conversations` | liste ou creation API |
 | `discussion_api_messages` | GET/POST | `/private/discussions/api/conversations/{conversationId}/messages` | lecture incremental ou envoi API |
+| `discussion_api_events` | GET | `/private/discussions/api/conversations/{conversationId}/events` | flux SSE court depuis le journal d'evenements |
 | `discussion_api_crypto_devices` | GET/POST | `/private/discussions/api/crypto/devices` | appareils crypto du membre |
 | `discussion_api_conversation_keys` | GET/POST | `/private/discussions/api/conversations/{conversationId}/keys` | enveloppes de cles par conversation |
 | `discussion_api_members` | POST | `/private/discussions/api/conversations/{conversationId}/members` | ajout de membres a un groupe |
@@ -111,6 +112,9 @@ Responsabilites :
 |---|---|
 | `DiscussionService` | orchestration metier : conversations, messages, membres, suppressions, validation de payload chiffre |
 | `DiscussionAccessPolicy` | regles d'acces conversation : lecture, envoi, gestion des membres |
+| `DiscussionTimelineService` | timeline paginee par curseurs, sans `OFFSET` |
+| `DiscussionEventService` | journal append-only minimal, sans contenu clair |
+| `ConversationEventStream` | reponse SSE privee courte avec fallback polling cote navigateur |
 | `DiscussionAttachmentStorage` | validation, chiffrement, stockage, lecture et suppression des fichiers joints |
 | `DiscussionRetentionService` | purge des messages et pieces jointes expires |
 | `DiscussionRepository` | persistence SQL et hydratation des conversations, messages, pieces jointes, lectures, appareils et cles |
@@ -137,6 +141,7 @@ Tables SQL du module :
 |---|---|
 | `discussion_conversations` | conversations directes ou groupes |
 | `discussion_conversation_members` | participants, role, date d'ouverture, sortie |
+| `discussion_conversation_events` | journal append-only minimal pour sync, SSE et audit sans contenu clair |
 | `discussion_messages` | messages, contenu chiffre, statut de purge, expiration |
 | `discussion_message_attachments` | pieces jointes et metadonnees de stockage |
 | `discussion_message_reads` | lectures par utilisateur et message |
@@ -456,16 +461,16 @@ Objectif : rendre le fil scalable, robuste et rejouable.
 
 Checklist :
 
-- [ ] ajouter une migration SQL privee pour les index manquants;
-- [ ] ajouter `client_message_id` dans `discussion_messages`;
-- [ ] ajouter une contrainte d'unicite adaptee a `conversation_id + sender_private_user_id + client_message_id`;
-- [ ] ajouter pagination curseur `before_id` et `after_id`;
-- [ ] eviter toute pagination par `OFFSET`;
-- [ ] clarifier les statuts `deleted`, `redacted`, `expired`, `purged`;
-- [ ] adapter `DiscussionRepository`;
-- [ ] ajouter `DiscussionTimelineService`;
-- [ ] tester conversations longues et lots de messages;
-- [ ] verifier backup/export/purge apres changement de schema.
+- [x] ajouter une migration SQL privee pour les index manquants;
+- [x] ajouter `client_message_id` dans `discussion_messages`;
+- [x] ajouter une contrainte d'unicite adaptee a `conversation_id + sender_private_user_id + client_message_id`;
+- [x] ajouter pagination curseur `before_id` et `after_id`;
+- [x] eviter toute pagination par `OFFSET`;
+- [x] clarifier les statuts `deleted`, `redacted`, `expired`, `purged`;
+- [x] adapter `DiscussionRepository`;
+- [x] ajouter `DiscussionTimelineService`;
+- [x] tester conversations longues et lots de messages;
+- [x] verifier backup/export/purge apres changement de schema.
 
 Methodes utiles a prevoir :
 
@@ -486,16 +491,16 @@ Objectif : preparer temps reel, sync et notifications.
 
 Checklist :
 
-- [ ] creer `discussion_conversation_events`;
-- [ ] creer `DiscussionEventService`;
-- [ ] ecrire un evenement a chaque message cree;
-- [ ] ecrire un evenement a chaque message supprime/redige;
-- [ ] ecrire un evenement a chaque piece jointe supprimee;
-- [ ] ecrire un evenement a chaque lecture;
-- [ ] ecrire un evenement a chaque ajout/sortie membre;
-- [ ] ecrire un evenement a chaque appareil ajoute/revoque;
-- [ ] ne jamais stocker le contenu du message dans l'evenement;
-- [ ] ajouter tests d'idempotence et de payload minimal.
+- [x] creer `discussion_conversation_events`;
+- [x] creer `DiscussionEventService`;
+- [x] ecrire un evenement a chaque message cree;
+- [x] ecrire un evenement a chaque message supprime/redige;
+- [x] ecrire un evenement a chaque piece jointe supprimee;
+- [x] ecrire un evenement a chaque lecture;
+- [x] ecrire un evenement a chaque ajout/sortie membre;
+- [x] ecrire un evenement a chaque appareil ajoute/revoque;
+- [x] ne jamais stocker le contenu du message dans l'evenement;
+- [x] ajouter tests d'idempotence et de payload minimal.
 
 Pieges a eviter :
 
@@ -509,14 +514,14 @@ Objectif : remplacer le polling simple par SSE avec fallback.
 
 Checklist :
 
-- [ ] creer l'abstraction `ConversationEventStream`;
-- [ ] ajouter la route privee `/private/discussions/api/conversations/{conversationId}/events`;
-- [ ] verifier session, module et participation avant stream;
-- [ ] lire depuis `discussion_conversation_events`;
-- [ ] envoyer les evenements recents par curseur;
-- [ ] conserver fallback polling;
-- [ ] tester deconnexion, reprise et absence de droit;
-- [ ] documenter les limites hebergement si SSE est coupe.
+- [x] creer l'abstraction `ConversationEventStream`;
+- [x] ajouter la route privee `/private/discussions/api/conversations/{conversationId}/events`;
+- [x] verifier session, module et participation avant stream;
+- [x] lire depuis `discussion_conversation_events`;
+- [x] envoyer les evenements recents par curseur;
+- [x] conserver fallback polling;
+- [x] tester deconnexion, reprise et absence de droit;
+- [x] documenter les limites hebergement si SSE est coupe.
 
 Pieges a eviter :
 
@@ -524,6 +529,8 @@ Pieges a eviter :
 - exposition d'une conversation non autorisee;
 - envoi de contenu clair dans le flux;
 - dependance forte a SSE sans fallback.
+
+Limite hebergement retenue : le endpoint SSE renvoie un flux court des evenements recents puis laisse le navigateur se reconnecter avec `Last-Event-ID` ou `after_event_id`. Si un proxy OVH ou le navigateur coupe SSE, le polling existant reste actif et recharge les messages par `after_message_id`.
 
 ### Phase D4 - Interface messenger
 

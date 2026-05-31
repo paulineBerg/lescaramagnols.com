@@ -257,6 +257,7 @@ final class PrivateSecurityChecklistService
             'discussions' => [
                 'discussion_conversations',
                 'discussion_conversation_members',
+                'discussion_conversation_events',
                 'discussion_messages',
                 'discussion_message_attachments',
             ],

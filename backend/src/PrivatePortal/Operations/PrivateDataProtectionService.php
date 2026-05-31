@@ -476,6 +476,12 @@ final class PrivateDataProtectionService
             ['deleted_at' => $now, 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
+            'discussion_conversation_events',
+            '`actor_user_id` = NULL',
+            '`actor_user_id` = :private_user_id',
+            ['private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
             'discussion_message_attachments',
             '`original_filename` = :filename, `purge_status` = \'purged\'',
             '`message_id` IN (SELECT `id` FROM `' . $this->database->table('discussion_messages') . '` WHERE `sender_private_user_id` = :private_user_id)',
@@ -933,6 +939,7 @@ final class PrivateDataProtectionService
             'private_document_categories' => '`private_user_id` = :private_user_id',
             'private_blocnote_notes' => '`private_user_id` = :private_user_id',
             'private_blocnote_categories' => '`private_user_id` = :private_user_id',
+            'discussion_conversation_events' => '`actor_user_id` = :private_user_id OR `conversation_id` IN (SELECT `conversation_id` FROM `' . $this->database->table('discussion_conversation_members') . '` WHERE `private_user_id` = :private_user_id)',
             'discussion_messages' => '`sender_private_user_id` = :private_user_id',
             'discussion_message_attachments' => $messageIds,
             'discussion_conversation_members' => '`private_user_id` = :private_user_id',
@@ -977,6 +984,7 @@ final class PrivateDataProtectionService
     {
         $backupScopes = $this->deletionBackupScopes();
         $order = [
+            'discussion_conversation_events',
             'discussion_message_attachments',
             'discussion_messages',
             'discussion_conversation_keys',

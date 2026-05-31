@@ -328,6 +328,11 @@ final class PrivateRouteResolver
                 'handler' => ['type' => 'private', 'page' => 'discussion_api_messages'],
             ],
             [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('discussion_api_conversations') . '/{conversationId:[0-9]+}/events',
+                'handler' => ['type' => 'private', 'page' => 'discussion_api_events'],
+            ],
+            [
                 'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('discussion_api_crypto_devices'),
                 'handler' => ['type' => 'private', 'page' => 'discussion_api_crypto_devices'],

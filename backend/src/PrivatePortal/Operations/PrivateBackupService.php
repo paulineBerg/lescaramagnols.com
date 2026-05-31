@@ -29,6 +29,7 @@ final class PrivateBackupService
         'private_module_migrations',
         'discussion_conversations',
         'discussion_conversation_members',
+        'discussion_conversation_events',
         'discussion_messages',
         'discussion_message_reads',
         'discussion_message_attachments',

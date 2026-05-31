@@ -180,6 +180,7 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
             ['POST', '/private/discussions/api/crypto/devices'],
             ['GET', '/private/discussions/api/conversations/1/messages'],
             ['POST', '/private/discussions/api/conversations/1/messages'],
+            ['GET', '/private/discussions/api/conversations/1/events'],
             ['GET', '/private/discussions/api/conversations/1/keys'],
             ['POST', '/private/discussions/api/conversations/1/keys'],
             ['POST', '/private/discussions/api/conversations/1/members'],
