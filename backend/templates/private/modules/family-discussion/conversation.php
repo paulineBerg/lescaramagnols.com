@@ -249,6 +249,17 @@ $notificationLabels = [
         </form>
       </section>
 
+      <section class="private-discussion-sidebar-section" aria-label="État du chiffrement local">
+        <p class="notice" id="discussion-crypto-status" data-discussion-crypto-status>Initialisation du chiffrement local...</p>
+        <div class="private-discussion-device-panel" data-discussion-device-panel hidden>
+          <p class="muted" data-discussion-device-summary></p>
+          <div class="private-discussion-device-actions">
+            <button type="button" class="private-button-secondary" data-discussion-regenerate-keys>Régénérer les clés</button>
+            <button type="button" class="private-discussion-delete-button" data-discussion-revoke-device>Révoquer cet appareil</button>
+          </div>
+        </div>
+      </section>
+
       <?php if ($mediaGallery !== []): ?>
         <section class="private-discussion-sidebar-section">
           <div class="private-discussion-sidebar-heading">
@@ -399,14 +410,6 @@ $notificationLabels = [
         </div>
 
         <section class="private-discussion-composer" aria-label="Envoyer un message">
-          <p class="notice" id="discussion-crypto-status" data-discussion-crypto-status>Initialisation du chiffrement local...</p>
-          <div class="private-discussion-device-panel" data-discussion-device-panel hidden>
-            <p class="muted" data-discussion-device-summary></p>
-            <div class="private-discussion-device-actions">
-              <button type="button" class="private-button-secondary" data-discussion-regenerate-keys>Régénérer les clés</button>
-              <button type="button" class="private-discussion-delete-button" data-discussion-revoke-device>Révoquer cet appareil</button>
-            </div>
-          </div>
           <form id="discussion-message-form" class="private-discussion-message-form" method="post" action="<?php echo $h($conversationUrl); ?>" enctype="multipart/form-data" data-discussion-message-form>
             <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
             <input type="hidden" name="action" value="send_message" />

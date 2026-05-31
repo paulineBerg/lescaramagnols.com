@@ -188,6 +188,11 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-discussion-emoji-picker', $template);
         self::assertStringContainsString('>Fil actif</a>', $template);
         self::assertStringNotContainsString('>Conversation</a>', $template);
+        self::assertGreaterThan(
+            strpos($template, 'data-discussion-crypto-status'),
+            strpos($template, 'private-discussion-composer'),
+            'Le bloc chiffrement local doit rester dans la colonne gauche, avant le compositeur.'
+        );
         self::assertMatchesRegularExpression(
             '/<button[^>]+type="button"[^>]+data-discussion-emoji-toggle/s',
             $template
