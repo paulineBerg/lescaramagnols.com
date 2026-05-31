@@ -186,6 +186,13 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-discussion-emoji-toggle', $template);
         self::assertStringContainsString('aria-controls="discussion-emoji-picker"', $template);
         self::assertStringContainsString('data-discussion-emoji-picker', $template);
+        self::assertStringContainsString('private-discussion-textbar-actions', $template);
+        self::assertSame(1, substr_count($template, 'data-discussion-submit-button'));
+        self::assertLessThan(
+            strpos($template, 'data-discussion-submit-button'),
+            strpos($template, 'data-discussion-emoji-toggle'),
+            'Le bouton Envoyer doit suivre le bouton Emojis dans la barre du message.'
+        );
         self::assertStringContainsString('>Fil actif</a>', $template);
         self::assertStringNotContainsString('>Conversation</a>', $template);
         self::assertGreaterThan(
@@ -201,6 +208,8 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('.private-discussion-delete-button:focus-visible', $stylesheet);
         self::assertStringContainsString('.private-discussion-emoji-choice:focus-visible', $stylesheet);
         self::assertStringContainsString('.private-discussion-emoji-picker[hidden]', $stylesheet);
+        self::assertStringContainsString('.private-discussion-textbar-actions', $stylesheet);
+        self::assertStringContainsString('.private-discussion-send-button', $stylesheet);
         self::assertMatchesRegularExpression(
             '/\\.private-discussion-message\\s*\\{[^}]*align-self:\\s*stretch;[^}]*max-width:\\s*100%;[^}]*width:\\s*100%;/s',
             $stylesheet

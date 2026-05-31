@@ -341,10 +341,29 @@
   min-width: 0;
 }
 
+.private-discussion-textbar-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.private-discussion-textbar-actions button {
+  width: auto;
+}
+
 .private-discussion-emoji-toggle {
   flex: 0 0 auto;
   min-height: 2.15rem;
   padding: 0.35rem 0.65rem;
+}
+
+.private-discussion-send-button {
+  flex: 0 0 auto;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.8rem;
 }
 
 .private-discussion-emoji-picker {
@@ -485,6 +504,19 @@
 
   .private-discussion-message-header {
     flex-direction: column;
+  }
+
+  .private-discussion-textbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .private-discussion-textbar-actions {
+    justify-content: stretch;
+  }
+
+  .private-discussion-textbar-actions button {
+    flex: 1 1 auto;
   }
 
   .private-discussion-delete-form {

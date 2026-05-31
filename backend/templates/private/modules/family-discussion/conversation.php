@@ -420,13 +420,16 @@ $notificationLabels = [
             <div class="private-discussion-textbox">
               <div class="private-discussion-textbar">
                 <label for="discussion-message-body">Message</label>
-                <button
-                  type="button"
-                  class="private-button-secondary private-discussion-emoji-toggle"
-                  data-discussion-emoji-toggle
-                  aria-expanded="false"
-                  aria-controls="discussion-emoji-picker"
-                >Émojis</button>
+                <div class="private-discussion-textbar-actions">
+                  <button
+                    type="button"
+                    class="private-button-secondary private-discussion-emoji-toggle"
+                    data-discussion-emoji-toggle
+                    aria-expanded="false"
+                    aria-controls="discussion-emoji-picker"
+                  >Émojis</button>
+                  <button type="submit" class="private-discussion-send-button" data-discussion-submit-button>Envoyer</button>
+                </div>
               </div>
               <textarea id="discussion-message-body" name="body" rows="3" maxlength="4000" data-discussion-draft></textarea>
               <div
@@ -446,7 +449,6 @@ $notificationLabels = [
             </div>
             <p class="muted"><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP', 'Les messages texte sont chiffrés dans le navigateur. Les fichiers joints sont chiffrés sur disque et restent servis uniquement par contrôle d’accès serveur.')); ?></p>
             <p class="muted private-discussion-submit-status" data-discussion-submit-status role="status" aria-live="polite"></p>
-            <button type="submit" data-discussion-submit-button>Envoyer</button>
           </form>
         </section>
       </div>
