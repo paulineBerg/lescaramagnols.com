@@ -658,16 +658,18 @@ Objectif : stabiliser avant enrichissements visibles.
 
 Checklist :
 
-- [ ] ajouter tests PHPUnit idempotence;
-- [ ] ajouter tests PHPUnit pagination;
-- [ ] ajouter tests PHPUnit evenements;
-- [ ] ajouter tests PHPUnit crypto/appareils;
-- [ ] ajouter tests concurrence;
-- [ ] ajouter Playwright desktop/mobile;
-- [ ] tester compte sans droit Discussion;
-- [ ] tester conversations longues;
-- [ ] tester fichiers lourds/refuses;
-- [ ] tester accessibilite clavier et focus.
+- [x] ajouter tests PHPUnit idempotence;
+- [x] ajouter tests PHPUnit pagination;
+- [x] ajouter tests PHPUnit evenements;
+- [x] ajouter tests PHPUnit crypto/appareils;
+- [x] ajouter tests concurrence;
+- [x] ajouter Playwright desktop/mobile;
+- [x] tester compte sans droit Discussion;
+- [x] tester conversations longues;
+- [x] tester fichiers lourds/refuses;
+- [x] tester accessibilite clavier et focus.
+
+Validation D9 retenue : `FamilyDiscussionModuleTest` couvre idempotence, curseurs, evenements, crypto/appareils, doubles actions, compte sans droit, conversations longues et fichiers refuses; `PrivateUiGuardTest` couvre les contrats clavier/focus de l'interface discussion. La recette Playwright a ete executee sur fixture temporaire en desktop `1366x900` et mobile `390px`, sans conserver d'artefact dans le depot.
 
 ## 11. Ordre recommande de developpement
 

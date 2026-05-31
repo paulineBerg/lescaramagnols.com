@@ -165,6 +165,30 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringNotContainsString('rental_property_members', $template);
     }
 
+    public function testFamilyDiscussionInterfaceKeepsKeyboardAndFocusContracts(): void
+    {
+        $template = $this->readRepoFile('backend/templates/private/modules/family-discussion/conversation.php');
+        $stylesheet = $this->readRepoFile('frontend/src/scss/private-discussion.scss');
+
+        self::assertStringContainsString('aria-labelledby="private-discussion-thread-title"', $template);
+        self::assertStringContainsString('data-discussion-load-before', $template);
+        self::assertMatchesRegularExpression(
+            '/<button[^>]+type="button"[^>]+data-discussion-load-before/s',
+            $template
+        );
+        self::assertStringContainsString('data-discussion-file-preview aria-live="polite"', $template);
+        self::assertStringContainsString('data-discussion-submit-status role="status" aria-live="polite"', $template);
+        self::assertStringContainsString('data-discussion-revoke-device', $template);
+        self::assertMatchesRegularExpression(
+            '/<button[^>]+type="button"[^>]+data-discussion-revoke-device/s',
+            $template
+        );
+        self::assertStringContainsString('.private-discussion-conversation-list a:focus-visible', $stylesheet);
+        self::assertStringContainsString('.private-discussion-delete-button:focus-visible', $stylesheet);
+        self::assertStringContainsString('max-width: 100%;', $stylesheet);
+        self::assertStringContainsString('@media (width <= 900px)', $stylesheet);
+    }
+
     public function testAdminLayoutKeepsBackOfficeNavigationAndMessagesStable(): void
     {
         $layout = $this->readRepoFile('backend/templates/admin/layout.php');

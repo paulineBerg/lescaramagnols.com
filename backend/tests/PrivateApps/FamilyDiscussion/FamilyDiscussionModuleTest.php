@@ -734,6 +734,122 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertSame(403, $forbidden->status);
     }
 
+    public function testDiscussionApiRequiresAssignedModulePermission(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $repository = new DiscussionRepository($database);
+        $storage = $this->storage();
+
+        $this->createPrivateUser($userRepository, 'without-discussion@example.com');
+        $controller = new PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'without-discussion@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            discussionRepository: $repository,
+            discussionAttachmentStorage: $storage,
+            discussionService: new DiscussionService($repository, $userRepository, $storage, null, $moduleRepository),
+            discussionRetentionService: new DiscussionRetentionService($repository, $storage)
+        );
+
+        $response = $controller->handle(
+            'discussion_api_conversations',
+            $this->request('GET', '/private/discussions/api/conversations')
+        );
+
+        $this->assertSame(403, $response->status);
+        $this->assertStringContainsString('forbidden', $response->body);
+    }
+
+    public function testConcurrentRetriesDoNotDuplicateMessagesDeletesOrDeviceRevocations(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $eventService = new DiscussionEventService($repository);
+        $service = new DiscussionService($repository, $userRepository, $this->storage(), null, null, $eventService);
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $first = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Double envoi',
+            [],
+            $this->encryptedPayload(),
+            'concurrent-message-1',
+            'request-concurrent-message-1'
+        );
+        $retry = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Double envoi retry',
+            [],
+            $this->encryptedPayload(),
+            'concurrent-message-1',
+            'request-concurrent-message-1'
+        );
+        $this->assertIsArray($first);
+        $this->assertIsArray($retry);
+        $this->assertSame((int) $first['id'], (int) $retry['id']);
+        $this->assertTrue((bool) ($retry['idempotentReplay'] ?? false));
+
+        $this->assertTrue($service->deleteMessage($aliceId, (int) $first['id'], 'request-concurrent-delete-1'));
+        $this->assertFalse($service->deleteMessage($aliceId, (int) $first['id'], 'request-concurrent-delete-1'));
+        $events = $eventService->eventsAfter($conversationId, $bobId);
+        $eventTypes = array_map(static fn (array $event): string => (string) ($event['eventType'] ?? ''), $events);
+        $this->assertSame(1, count(array_filter($eventTypes, static fn (string $type): bool => $type === 'message.created')));
+        $this->assertSame(1, count(array_filter($eventTypes, static fn (string $type): bool => $type === 'message.deleted')));
+
+        $device = $repository->registerCryptoDevice($bobId, 'bob-device-concurrent', $this->publicKeyJwk('bob-concurrent'), 'Bob');
+        $this->assertIsArray($device);
+        $this->assertTrue($repository->revokeCryptoDevice($bobId, 'bob-device-concurrent'));
+        $this->assertFalse($repository->revokeCryptoDevice($bobId, 'bob-device-concurrent'));
+    }
+
+    public function testOversizedAndForbiddenAttachmentsAreRejectedWithoutStoredFiles(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $storage = $this->storage();
+        $service = new DiscussionService($repository, $userRepository, $storage);
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $largeUpload = $this->createUpload('large.txt', str_repeat('x', (1024 * 1024) + 1));
+        $forbiddenUpload = $this->createUpload('script.php', '<?php echo "refuse";');
+        $message = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Fichiers refuses',
+            [
+                'discussion_files' => [
+                    'name' => [$largeUpload['name'], $forbiddenUpload['name']],
+                    'tmp_name' => [$largeUpload['tmp_name'], $forbiddenUpload['tmp_name']],
+                    'size' => [$largeUpload['size'], $forbiddenUpload['size']],
+                    'error' => [UPLOAD_ERR_OK, UPLOAD_ERR_OK],
+                    'type' => ['text/plain', 'text/plain'],
+                ],
+            ],
+            $this->encryptedPayload(),
+            'rejected-attachments-message'
+        );
+
+        $this->assertIsArray($message);
+        $this->assertSame([], $message['attachments']);
+        $this->assertSame([], $storage->listStoredFiles());
+    }
+
     public function testDiscussionNotificationsAreNeutralAndRespectPreferences(): void
     {
         $database = $this->editorialSqlDatabase();
