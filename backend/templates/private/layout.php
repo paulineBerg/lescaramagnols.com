@@ -19,6 +19,9 @@ $language = is_string($privatePortalLanguage ?? null) && trim($privatePortalLang
 $isAuthenticated = (bool) ($privateIsAuthenticated ?? false);
 $privateLoginUrl = is_string($privateLoginUrl ?? null) ? (string) $privateLoginUrl : private_portal_url('login');
 $privateDashboardUrl = is_string($privateDashboardUrl ?? null) ? (string) $privateDashboardUrl : private_portal_url('dashboard');
+$privateMemberSettingsUrl = is_string($privateMemberSettingsUrl ?? null)
+    ? (string) $privateMemberSettingsUrl
+    : private_portal_url('member_settings');
 $privateLogoutUrl = is_string($privateDashboardLogoutUrl ?? null) ? (string) $privateDashboardLogoutUrl : private_portal_url('logout');
 $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null) ? (string) $privatePasswordForgotUrl : private_portal_url('password_forgot');
 $privateLogoutCsrfToken = is_string($privateLogoutCsrfToken ?? null) ? (string) $privateLogoutCsrfToken : '';
@@ -148,9 +151,9 @@ if ($privateHasModule('Aide impôts')) {
 if ($privateMemberSettingsEnabled) {
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_SETTINGS_NAV', 'Paramètres'),
-        'href' => private_portal_url('member_settings'),
+        'href' => $privateMemberSettingsUrl,
         'icon' => '⚙',
-        'active' => $privatePathIs(private_portal_url('member_settings')),
+        'active' => $privatePathIs($privateMemberSettingsUrl),
     ];
 }
 

@@ -6350,6 +6350,7 @@ final class PrivatePortalController
         $privateIsAuthenticated = $this->auth->isAuthenticated();
         $privateNavigationModules = $privateModules;
         $privateMemberSettingsEnabled = false;
+        $privateMemberSettingsUrl = private_portal_url('member_settings');
         if ($privateIsAuthenticated) {
             if ($privateLogoutCsrfToken === '') {
                 $privateLogoutCsrfToken = csrf_token('private_logout');

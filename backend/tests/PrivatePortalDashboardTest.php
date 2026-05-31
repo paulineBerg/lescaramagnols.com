@@ -74,6 +74,45 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertStringNotContainsString('Discussions', $dashboard->body);
     }
 
+    public function testSettingsNavigationOpensMemberSettingsPage(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+
+        $userId = $userRepository->create('family@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['dashboard'], 'admin@example.com'));
+
+        $session = new PrivateSession('_private_dashboard_test');
+        $auth = new PrivateAuth($session, null, $userRepository);
+        $controller = new PrivatePortalController($auth, null, null, $userRepository, $moduleRepository);
+
+        $login = $controller->handle('login', $this->request('POST', '/private/login', [
+            'identifier' => 'family@example.com',
+            'password' => 'StrongPassword1!',
+            'csrf_token' => $this->privateCsrfToken($session, 'private'),
+        ]));
+        $this->assertSame(302, $login->status);
+
+        $dashboard = $controller->handle('dashboard', $this->request('GET', '/private/dashboard'));
+        $this->assertSame(200, $dashboard->status);
+        preg_match_all(
+            '/<a[^>]+href="([^"]+)"[^>]*>\s*<span[^>]*>[^<]*<\/span>\s*<span>Paramètres<\/span>/u',
+            $dashboard->body,
+            $settingsLinks
+        );
+        $this->assertSame(['/private/parametres', '/private/parametres'], $settingsLinks[1] ?? []);
+        $this->assertStringNotContainsString('href="/private/dashboard"><span class="private-nav-icon" aria-hidden="true">⚙</span>', $dashboard->body);
+
+        $settings = $controller->handle('member_settings', $this->request('GET', '/private/parametres'));
+        $this->assertSame(200, $settings->status);
+        $this->assertStringContainsString('Paramètres membre', $settings->body);
+        $this->assertStringNotContainsString('Tableau de bord privé', $settings->body);
+    }
+
     public function testDashboardShowsDocumentManagementForDocumentsModule(): void
     {
         $database = $this->editorialSqlDatabase();
