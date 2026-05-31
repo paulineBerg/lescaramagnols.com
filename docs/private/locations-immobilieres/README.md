@@ -565,22 +565,39 @@ Validations L6 executees :
 
 ### Phase L7 - Exports et sauvegardes
 
-- [ ] Export CSV loyers.
-- [ ] Export CSV charges.
-- [ ] Export PDF annuel par bien.
-- [ ] Export PDF recapitulatif par locataire.
-- [ ] Export ZIP des documents d'un bien.
-- [ ] Stocker les exports temporaires hors webroot.
-- [ ] Journaliser chaque export.
-- [ ] Raccorder nouvelles tables et fichiers a `PrivateDataProtectionService`.
+- [x] Export CSV loyers.
+- [x] Export CSV charges.
+- [x] Export PDF annuel par bien.
+- [x] Export PDF recapitulatif par locataire.
+- [x] Export ZIP des documents d'un bien.
+- [x] Stocker les exports temporaires hors webroot.
+- [x] Journaliser chaque export.
+- [x] Raccorder nouvelles tables et fichiers a `PrivateDataProtectionService`.
 
 Tests minimum :
 
-- [ ] `RentalExportServiceTest`;
-- [ ] ZIP sans chemin serveur expose;
-- [ ] export refuse sans permission;
-- [ ] backup ZIP contient tables et fichiers attendus;
-- [ ] purge compte traite les nouvelles donnees.
+- [x] `RentalExportServiceTest`;
+- [x] ZIP sans chemin serveur expose;
+- [x] export refuse sans permission;
+- [x] backup ZIP contient tables et fichiers attendus;
+- [x] purge compte traite les nouvelles donnees.
+
+Decisions L7 :
+
+- les exports passent par `RentalExportService`, avec generation temporaire dans le stockage prive `exports/real-estate-rental`, jamais sous `backend/public`;
+- les routes existantes `export.csv` et `export.pdf` restent compatibles, et une route `export.zip` sert les archives de documents d'un bien;
+- chaque export reussi cree une ligne `rental_export_logs` avec `format`, `export_kind`, empreinte et metadonnees minimales dans le payload;
+- les exports financiers restent bloques si la synthese annuelle detecte des lignes brouillon; le ZIP documentaire reste soumis aux droits par bien;
+- l'export RGPD inclut les journaux d'exports locatifs, et la purge de compte les supprime avec les autres donnees locatives;
+- les ZIP embarquent un `manifest.json` sans chemin serveur ni `storage_path`, avec seulement les noms, types et tailles utiles.
+
+Validations L7 executees :
+
+- `php -l` sur `RentalExportService`, `RentalLifecycleRepository`, le controller, le template de synthese et `RentalExportServiceTest`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalExportServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental tests/PrivateRouteResolverTest.php tests/PrivatePortalPhaseCoverageTest.php tests/PrivatePortal/PrivateModuleMigrationPlanTest.php tests/PrivatePortal/PrivacyOperationsTest.php`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`.
 
 ### Phase L8 - Imports agence et rapprochements avances
 

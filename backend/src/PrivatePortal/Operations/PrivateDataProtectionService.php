@@ -86,6 +86,12 @@ final class PrivateDataProtectionService
                 ['private_user_id' => $privateUserId],
                 ['rental_property_id', 'rental_unit_id', 'period_year', 'provisions_amount', 'recoverable_expenses_amount', 'tenant_share_percent', 'tenant_recoverable_amount', 'balance_amount', 'document_id', 'original_name', 'mime_type', 'size_bytes', 'sha256_hash', 'is_active', 'generated_at']
             ),
+            'rentalExportLogs' => $this->rows(
+                'rental_export_logs',
+                '`private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['year', 'format', 'export_kind', 'created_at']
+            ),
             'taxYears' => $this->rows(
                 'tax_years',
                 '`private_user_id` = :private_user_id',

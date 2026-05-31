@@ -171,6 +171,7 @@ final class PrivateModuleMigrationPlanService
                     'rental_summary',
                     'rental_export_csv',
                     'rental_export_pdf',
+                    'rental_export_zip',
                 ],
                 'tables' => [
                     'rental_properties',
@@ -193,6 +194,7 @@ final class PrivateModuleMigrationPlanService
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalLifecycleRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalPropertyMemberRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalDashboardService',
+                    'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalExportService',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalAnnualSummaryService',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalPaymentRequestService',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalReceiptService',
@@ -207,6 +209,7 @@ final class PrivateModuleMigrationPlanService
                     'ChargeRegularizationServiceTest',
                     'RentalDashboardServiceTest',
                     'TaxSummaryServiceTest',
+                    'RentalExportServiceTest',
                     'PrivatePortalPhaseCoverageTest',
                 ],
                 'auditEvents' => [

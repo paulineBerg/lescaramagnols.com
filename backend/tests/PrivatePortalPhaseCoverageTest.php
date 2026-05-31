@@ -114,6 +114,9 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
             '/private/payments',
             '/private/charges',
             '/private/locations/regularisations',
+            '/private/locations/export.csv',
+            '/private/locations/export.pdf',
+            '/private/locations/export.zip',
         ];
 
         foreach ($phase6Routes as $route) {

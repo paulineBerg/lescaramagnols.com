@@ -87,6 +87,7 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/locations/summary' => ['methods' => ['GET'], 'handler' => 'private:rental_summary'],
             '/private/locations/export.csv' => ['methods' => ['GET'], 'handler' => 'private:rental_export_csv'],
             '/private/locations/export.pdf' => ['methods' => ['GET'], 'handler' => 'private:rental_export_pdf'],
+            '/private/locations/export.zip' => ['methods' => ['GET'], 'handler' => 'private:rental_export_zip'],
             '/private/impots' => ['methods' => ['GET'], 'handler' => 'private:tax_dashboard'],
             '/private/impots/{year:[0-9]{4}}' => ['methods' => ['GET', 'POST'], 'handler' => 'private:tax_year'],
             '/private/impots/{year:[0-9]{4}}/revenus-manuels' => ['methods' => ['GET', 'POST'], 'handler' => 'private:tax_manual_entries'],

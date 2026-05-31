@@ -44,6 +44,7 @@ final class PrivateRouteResolver
             'rental_summary' => $basePath . '/locations/summary',
             'rental_export_csv' => $basePath . '/locations/export.csv',
             'rental_export_pdf' => $basePath . '/locations/export.pdf',
+            'rental_export_zip' => $basePath . '/locations/export.zip',
             'tax_dashboard' => $basePath . '/impots',
             'tax_year' => $basePath . '/impots',
             'tax_manual_entries' => $basePath . '/impots',
@@ -259,6 +260,11 @@ final class PrivateRouteResolver
                 'methods' => ['GET'],
                 'path' => $this->canonicalPath('rental_export_pdf'),
                 'handler' => ['type' => 'private', 'page' => 'rental_export_pdf'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('rental_export_zip'),
+                'handler' => ['type' => 'private', 'page' => 'rental_export_zip'],
             ],
             [
                 'methods' => ['GET'],

@@ -2273,10 +2273,22 @@ final class RentalLifecycleRepository
     /**
      * @param array<string, mixed> $summary
      */
-    public function createExportLog(int $privateUserId, int $year, string $format, array $summary): bool
-    {
+    public function createExportLog(
+        int $privateUserId,
+        int $year,
+        string $format,
+        array $summary,
+        string $exportKind = 'summary'
+    ): bool {
         $format = strtolower(trim($format));
-        if ($privateUserId <= 0 || $year < 2000 || $year > 2100 || !in_array($format, ['csv', 'pdf'], true)) {
+        $exportKind = $this->normalizeText($exportKind, 64);
+        if (
+            $privateUserId <= 0
+            || $year < 2000
+            || $year > 2100
+            || !in_array($format, ['csv', 'pdf', 'zip'], true)
+            || $exportKind === ''
+        ) {
             return false;
         }
 
@@ -2289,8 +2301,8 @@ final class RentalLifecycleRepository
 
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'INSERT INTO `%s` (`private_user_id`, `year`, `format`, `summary_payload`)
-                     VALUES (:private_user_id, :year, :format, :summary_payload)',
+                    'INSERT INTO `%s` (`private_user_id`, `year`, `format`, `export_kind`, `summary_payload`)
+                     VALUES (:private_user_id, :year, :format, :export_kind, :summary_payload)',
                     $this->exportLogsTable()
                 )
             );
@@ -2299,6 +2311,7 @@ final class RentalLifecycleRepository
                 'private_user_id' => $privateUserId,
                 'year' => $year,
                 'format' => $format,
+                'export_kind' => $exportKind,
                 'summary_payload' => $payload,
             ]);
         } catch (\Throwable) {
@@ -2306,22 +2319,28 @@ final class RentalLifecycleRepository
         }
     }
 
-    public function countExportLogs(int $privateUserId, int $year, string $format): int
+    public function countExportLogs(int $privateUserId, int $year, string $format, ?string $exportKind = null): int
     {
         $format = strtolower(trim($format));
+        $exportKind = $exportKind !== null ? $this->normalizeText($exportKind, 64) : null;
         try {
             $this->ensureSchema();
+            $kindSql = $exportKind !== null && $exportKind !== '' ? ' AND `export_kind` = :export_kind' : '';
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT COUNT(*) FROM `%s` WHERE `private_user_id` = :private_user_id AND `year` = :year AND `format` = :format',
+                    'SELECT COUNT(*) FROM `%s` WHERE `private_user_id` = :private_user_id AND `year` = :year AND `format` = :format' . $kindSql,
                     $this->exportLogsTable()
                 )
             );
-            $statement->execute([
+            $params = [
                 'private_user_id' => $privateUserId,
                 'year' => $year,
                 'format' => $format,
-            ]);
+            ];
+            if ($kindSql !== '') {
+                $params['export_kind'] = (string) $exportKind;
+            }
+            $statement->execute($params);
 
             return (int) $statement->fetchColumn();
         } catch (\Throwable) {
@@ -2619,14 +2638,19 @@ final class RentalLifecycleRepository
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `private_user_id` INT NOT NULL,
                     `year` SMALLINT NOT NULL,
-                    `format` ENUM("csv", "pdf") NOT NULL,
+                    `format` ENUM("csv", "pdf", "zip") NOT NULL,
+                    `export_kind` VARCHAR(64) NOT NULL DEFAULT "summary",
                     `summary_payload` JSON NULL,
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    KEY `idx_rental_export_logs_user_year` (`private_user_id`, `year`, `format`)
+                    KEY `idx_rental_export_logs_user_year` (`private_user_id`, `year`, `format`),
+                    KEY `idx_rental_export_logs_kind` (`private_user_id`, `year`, `export_kind`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->exportLogsTable()
             )
         );
+        $this->ensureColumn($pdo, $this->exportLogsTable(), 'export_kind', '`export_kind` VARCHAR(64) NOT NULL DEFAULT "summary" AFTER `format`');
+        $this->ensureExportLogFormatSchema($pdo);
+        $this->ensureIndex($pdo, $this->exportLogsTable(), 'idx_rental_export_logs_kind', '`private_user_id`, `year`, `export_kind`');
 
         $this->schemaReady = true;
     }
@@ -2987,6 +3011,18 @@ final class RentalLifecycleRepository
             $pdo->exec(sprintf(
                 'ALTER TABLE `%s` MODIFY COLUMN `status` ENUM("pending", "partial", "paid", "late", "cancelled") NOT NULL DEFAULT "pending"',
                 $table
+            ));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureExportLogFormatSchema(PDO $pdo): void
+    {
+        try {
+            $pdo->exec(sprintf(
+                'ALTER TABLE `%s` MODIFY COLUMN `format` ENUM("csv", "pdf", "zip") NOT NULL',
+                $this->exportLogsTable()
             ));
         } catch (\Throwable) {
             return;

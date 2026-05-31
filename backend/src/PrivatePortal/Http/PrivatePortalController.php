@@ -32,6 +32,7 @@ use Caramagnols\PrivateApps\RealEstateRental\Service\RentScheduleService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentPaymentStatusService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalDashboardService;
+use Caramagnols\PrivateApps\RealEstateRental\Service\RentalExportService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalPaymentRequestService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalReceiptService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
@@ -87,7 +88,8 @@ final class PrivatePortalController
         private readonly ?RentalPaymentRequestService $rentalPaymentRequestService = null,
         private readonly ?RentalReceiptService $rentalReceiptService = null,
         private readonly ?ChargeRegularizationService $chargeRegularizationService = null,
-        private readonly ?RentalDashboardService $rentalDashboardService = null
+        private readonly ?RentalDashboardService $rentalDashboardService = null,
+        private readonly ?RentalExportService $rentalExportService = null
     ) {
     }
 
@@ -145,6 +147,7 @@ final class PrivatePortalController
             'rental_summary' => $this->handleRentalSummary($request),
             'rental_export_csv' => $this->handleRentalExport($request, 'csv'),
             'rental_export_pdf' => $this->handleRentalExport($request, 'pdf'),
+            'rental_export_zip' => $this->handleRentalExport($request, 'zip'),
             'tax_dashboard' => $this->handleTaxDashboard($request),
             'tax_year' => $this->handleTaxYear($request, (int) ($routeParams['year'] ?? 0)),
             'tax_manual_entries' => $this->handleTaxManualEntries($request, (int) ($routeParams['year'] ?? 0)),
@@ -2286,12 +2289,14 @@ final class PrivatePortalController
             return $userId;
         }
 
-        $summary = $this->rentalAnnualSummaryService()->build(
-            $this->yearFromRequest($request),
-            $this->authorizedPropertyIds($userId)
-        );
+        $propertyIds = $this->authorizedPropertyIds($userId);
+        $summary = $this->rentalAnnualSummaryService()->build($this->yearFromRequest($request), $propertyIds);
 
-        return $this->renderRentalSummary($summary);
+        return $this->renderRentalSummary(
+            $summary,
+            $this->objectsToArrays($this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST)),
+            $this->rentalLifecycleRepository()->listTenants($propertyIds, self::MAX_RENTAL_LIST)
+        );
     }
 
     private function handleRentalExport(Request $request, string $format): Response
@@ -2302,8 +2307,19 @@ final class PrivatePortalController
         }
 
         $year = $this->yearFromRequest($request);
-        $summary = $this->rentalAnnualSummaryService()->build($year, $this->authorizedPropertyIds($userId));
-        if (!empty($summary['blocked'])) {
+        $query = $request->query();
+        $kind = is_string($query['kind'] ?? null) ? (string) $query['kind'] : 'summary_' . $format;
+        $propertyId = $this->normalizeNumericId($query['property_id'] ?? null);
+        $tenantId = $this->normalizeNumericId($query['tenant_id'] ?? null);
+        $export = $this->rentalExportService()->create(
+            $userId,
+            $year,
+            $kind,
+            $this->authorizedPropertyIds($userId),
+            $propertyId > 0 ? $propertyId : null,
+            $tenantId > 0 ? $tenantId : null
+        );
+        if (($export['error'] ?? '') === 'draft_data') {
             $this->logEvent('private.rental_export.rejected', [
                 'private_user_id' => $userId,
                 'year' => $year,
@@ -2317,27 +2333,41 @@ final class PrivatePortalController
                 'Export bloque : donnees locatives brouillon.'
             ));
         }
+        if (!($export['success'] ?? false)) {
+            $this->logEvent('private.rental_export.rejected', [
+                'private_user_id' => $userId,
+                'year' => $year,
+                'format' => $format,
+                'kind' => $kind,
+                'reason' => (string) ($export['error'] ?? 'export_failed'),
+            ]);
 
-        $this->rentalLifecycleRepository()->createExportLog($userId, $year, $format, $summary);
+            $status = ($export['error'] ?? '') === 'forbidden' ? 403 : 422;
+
+            return $this->withPrivateHeaders(new Response(
+                $status,
+                ['Content-Type' => 'text/plain; charset=UTF-8'],
+                $status === 403 ? 'Export refuse.' : 'Export locatif impossible.'
+            ));
+        }
+
         $this->logEvent('private.rental_export.created', [
             'private_user_id' => $userId,
             'year' => $year,
-            'format' => $format,
+            'format' => (string) ($export['format'] ?? $format),
+            'kind' => (string) ($export['kind'] ?? $kind),
         ]);
 
-        if ($format === 'pdf') {
-            return $this->withPrivateHeaders(new Response(200, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => sprintf('attachment; filename="synthese-locative-%d.pdf"', $year),
-                'X-Content-Type-Options' => 'nosniff',
-            ], $this->rentalSummaryPdf($summary)));
-        }
+        $content = is_string($export['content'] ?? null) ? (string) $export['content'] : '';
+        $filename = $this->sanitizeDownloadFilename((string) ($export['filename'] ?? ('export-locatif.' . $format)));
+        $mimeType = is_string($export['mimeType'] ?? null) ? (string) $export['mimeType'] : 'application/octet-stream';
+        $this->rentalExportService()->cleanup($export);
 
         return $this->withPrivateHeaders(new Response(200, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => sprintf('attachment; filename="synthese-locative-%d.csv"', $year),
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
             'X-Content-Type-Options' => 'nosniff',
-        ], $this->rentalSummaryCsv($summary)));
+        ], $content));
     }
 
     private function handleTaxDashboard(Request $request): Response
@@ -3941,7 +3971,12 @@ final class PrivatePortalController
     /**
      * @param array<string, mixed> $summary
      */
-    private function renderRentalSummary(array $summary): Response
+    /**
+     * @param array<string, mixed> $summary
+     * @param array<int, array<string, mixed>> $properties
+     * @param array<int, array<string, mixed>> $tenants
+     */
+    private function renderRentalSummary(array $summary, array $properties = [], array $tenants = []): Response
     {
         return $this->render('modules/real-estate-rental/summary', array_merge(
             $this->rentalBaseViewModel('Synthèse annuelle locative', '', ''),
@@ -3949,6 +3984,8 @@ final class PrivatePortalController
                 'rentalCurrentSection' => 'reports',
                 'rentalCurrentSubsection' => 'summary',
                 'rentalSummary' => $summary,
+                'rentalProperties' => $properties,
+                'rentalTenants' => $tenants,
             ]
         ));
     }
@@ -4767,6 +4804,7 @@ final class PrivatePortalController
                 'summary' => private_portal_url('rental_summary'),
                 'exportCsv' => private_portal_url('rental_export_csv'),
                 'exportPdf' => private_portal_url('rental_export_pdf'),
+                'exportZip' => private_portal_url('rental_export_zip'),
             ],
             'rentalMailDefaults' => [
                 'subject' => $this->privateMailTemplate('rental_subject', 'Document locatif'),
@@ -5011,36 +5049,6 @@ final class PrivatePortalController
     }
 
     /**
-     * @param array<string, mixed> $summary
-     */
-    private function rentalSummaryCsv(array $summary): string
-    {
-        $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
-        $rows = [
-            ['annee', 'loyers_attendus', 'loyers_encaisses', 'impayes', 'charges_recuperables', 'charges_deductibles', 'charges_non_deductibles'],
-            [
-                (string) (int) ($summary['year'] ?? date('Y')),
-                (string) round((float) ($totals['rentDue'] ?? 0), 2),
-                (string) round((float) ($totals['rentPaid'] ?? 0), 2),
-                (string) round((float) ($totals['unpaidRent'] ?? 0), 2),
-                (string) round((float) ($totals['recoverableExpenses'] ?? 0), 2),
-                (string) round((float) ($totals['deductibleCandidateExpenses'] ?? 0), 2),
-                (string) round((float) ($totals['nonDeductibleExpenses'] ?? 0), 2),
-            ],
-        ];
-
-        $lines = [];
-        foreach ($rows as $row) {
-            $lines[] = implode(';', array_map(
-                static fn (string $cell): string => '"' . str_replace('"', '""', $cell) . '"',
-                $row
-            ));
-        }
-
-        return "\xEF\xBB\xBF" . implode("\n", $lines) . "\n";
-    }
-
-    /**
      * @param array<string, mixed> $body
      * @return array{0:int, 1:int}
      */
@@ -5220,27 +5228,6 @@ final class PrivatePortalController
         }
 
         return sanitize_text_field(trim((string) $existingNotes . "\n" . $line), 2000);
-    }
-
-    /**
-     * @param array<string, mixed> $summary
-     */
-    private function rentalSummaryPdf(array $summary): string
-    {
-        $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
-        $year = (int) ($summary['year'] ?? date('Y'));
-        $text = sprintf(
-            "Synthese locative %d\nLoyers attendus: %.2f EUR\nLoyers encaisses: %.2f EUR\nImpayes: %.2f EUR\nCharges recuperables: %.2f EUR\nCharges deductibles candidates: %.2f EUR\nCharges non deductibles: %.2f EUR",
-            $year,
-            (float) ($totals['rentDue'] ?? 0),
-            (float) ($totals['rentPaid'] ?? 0),
-            (float) ($totals['unpaidRent'] ?? 0),
-            (float) ($totals['recoverableExpenses'] ?? 0),
-            (float) ($totals['deductibleCandidateExpenses'] ?? 0),
-            (float) ($totals['nonDeductibleExpenses'] ?? 0)
-        );
-
-        return "%PDF-1.4\n% Caramagnols private rental export\n" . $text . "\n%%EOF\n";
     }
 
     /**
@@ -5989,6 +5976,15 @@ final class PrivatePortalController
             $this->rentalLifecycleRepository(),
             $this->rentalUnitRepository(),
             $this->rentalAnnualSummaryService()
+        );
+    }
+
+    private function rentalExportService(): RentalExportService
+    {
+        return $this->rentalExportService ?? new RentalExportService(
+            $this->rentalLifecycleRepository(),
+            $this->rentalAnnualSummaryService(),
+            $this->privateDocumentStorage()
         );
     }
 
