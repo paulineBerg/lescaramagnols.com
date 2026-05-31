@@ -409,26 +409,50 @@ Validations L2 executees :
 
 ### Phase L3 - Demandes de paiement et relances
 
-- [ ] Creer `rental_payment_requests`.
-- [ ] Ajouter un bouton `Demande de paiement` sur les loyers non soldes.
-- [ ] Generer le message depuis les donnees du loyer, du bail, du locataire et du logement.
-- [ ] Ajouter une previsualisation modifiable avant envoi : email, objet, courrier PDF et signature.
-- [ ] Brancher les textes par defaut sur un catalogue de modeles configurables.
-- [ ] Autoriser la modification ponctuelle du destinataire email.
-- [ ] Ajouter un envoi de test depuis la configuration SMTP privee.
-- [ ] Enregistrer le snapshot du message envoye.
-- [ ] Envoyer par email via SMTP prive.
-- [ ] Ajouter export PDF et copier-coller.
-- [ ] Journaliser succes et echec d'envoi.
+- [x] Creer `rental_payment_requests`.
+- [x] Ajouter un bouton `Demande de paiement` sur les loyers non soldes.
+- [x] Generer le message depuis les donnees du loyer, du bail, du locataire et du logement.
+- [x] Ajouter une previsualisation modifiable avant envoi : email, objet, courrier PDF et signature.
+- [x] Brancher les textes par defaut sur un catalogue de modeles configurables.
+- [x] Autoriser la modification ponctuelle du destinataire email.
+- [x] Ajouter un envoi de test depuis la configuration SMTP privee.
+- [x] Enregistrer le snapshot du message envoye.
+- [x] Envoyer par email via SMTP prive.
+- [x] Ajouter export PDF et copier-coller.
+- [x] Journaliser succes et echec d'envoi.
 
 Tests minimum :
 
-- [ ] `RentalPaymentRequestServiceTest`;
-- [ ] bouton absent si loyer `paid` ou `cancelled`;
-- [ ] email refuse sans destinataire valide;
-- [ ] contenu genere sans chemin serveur ni secret;
-- [ ] message SMTP de test avec succes/echec journalise et adresse masquee;
-- [ ] audit succes/echec.
+- [x] `RentalPaymentRequestServiceTest`;
+- [x] bouton absent si loyer `paid` ou `cancelled`;
+- [x] email refuse sans destinataire valide;
+- [x] contenu genere sans chemin serveur ni secret;
+- [x] message SMTP de test avec succes/echec journalise et adresse masquee;
+- [x] audit succes/echec.
+
+Decisions L3 :
+
+- les demandes de paiement sont historisees dans `rental_payment_requests`, avec destinataire, sujet, corps, signature, canal, statut, cle d'idempotence et snapshot JSON;
+- les relances ne sont disponibles que sur les loyers `pending`, `partial` ou `late` avec solde restant strictement positif;
+- le snapshot masque l'email dans le payload JSON, tandis que le destinataire exact reste en colonne SQL pour l'audit operationnel;
+- les textes par defaut `rental_payment_request_subject` et `rental_payment_request_body` sont exposes dans le catalogue des modeles email prives; la signature reste editable dans l'aperçu et surchargeable par configuration;
+- l'envoi email et le telechargement PDF journalisent l'action avec adresse masquee;
+- la configuration email privee permet maintenant un test SMTP ponctuel depuis l'onglet admin email.
+
+Validations L3 executees :
+
+- `php -l` sur `RentalLifecycleRepository`, `RentalPaymentRequestService`, `PrivatePortalController`, `AdminSettingsService`, `rents.php` et `private_members_list.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalPaymentRequestServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTransactionalEmailTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`;
+- `git diff --check`;
+- `cd frontend && npm run hygiene:docs`;
+- `cd frontend && npm run hygiene:repo`.
 
 ### Phase L4 - Quittances et documents generes
 

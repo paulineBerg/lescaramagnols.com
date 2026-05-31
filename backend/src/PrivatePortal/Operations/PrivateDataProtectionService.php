@@ -68,6 +68,12 @@ final class PrivateDataProtectionService
                 ['private_user_id' => $privateUserId],
                 ['rental_property_id', 'private_user_id', 'role', 'status', 'is_active', 'created_at', 'updated_at']
             ),
+            'rentalPaymentRequests' => $this->rows(
+                'rental_payment_requests',
+                '`sent_by_private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['rental_rent_id', 'rental_property_id', 'rental_unit_id', 'recipient_email', 'subject', 'channel', 'status', 'sent_at', 'created_at']
+            ),
             'taxYears' => $this->rows(
                 'tax_years',
                 '`private_user_id` = :private_user_id',
@@ -495,6 +501,7 @@ final class PrivateDataProtectionService
             ['original_name' => 'document-locatif-supprime', 'private_user_id' => $privateUserId]
         );
         $this->safeDelete('rental_payments', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('rental_payment_requests', '`sent_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_rents', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_expenses', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_leases', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
@@ -893,6 +900,7 @@ final class PrivateDataProtectionService
             'rental_leases' => '`created_by_private_user_id` = :private_user_id',
             'rental_rents' => '`created_by_private_user_id` = :private_user_id',
             'rental_payments' => '`created_by_private_user_id` = :private_user_id',
+            'rental_payment_requests' => '`sent_by_private_user_id` = :private_user_id',
             'rental_expenses' => '`created_by_private_user_id` = :private_user_id',
             'rental_documents' => '`uploaded_by_private_user_id` = :private_user_id',
             'rental_export_logs' => '`private_user_id` = :private_user_id',
@@ -932,6 +940,7 @@ final class PrivateDataProtectionService
             'private_blocnote_categories',
             'rental_export_logs',
             'rental_documents',
+            'rental_payment_requests',
             'rental_agency_unit_mappings',
             'rental_agency_import_issues',
             'rental_agency_statement_lines',

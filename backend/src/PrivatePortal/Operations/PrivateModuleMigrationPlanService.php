@@ -179,6 +179,7 @@ final class PrivateModuleMigrationPlanService
                     'rental_leases',
                     'rental_rents',
                     'rental_payments',
+                    'rental_payment_requests',
                     'rental_expenses',
                     'rental_documents',
                     'rental_export_logs',
@@ -189,10 +190,12 @@ final class PrivateModuleMigrationPlanService
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalLifecycleRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalPropertyMemberRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalAnnualSummaryService',
+                    'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalPaymentRequestService',
                 ],
                 'testClasses' => [
                     'RealEstateRentalModuleTest',
                     'RentalLifecycleTest',
+                    'RentalPaymentRequestServiceTest',
                     'PrivatePortalPhaseCoverageTest',
                 ],
                 'auditEvents' => [

@@ -78,7 +78,7 @@ final class PrivateTransactionalEmailTest extends TestCase
         $catalog = is_array($viewModel['templateCatalog'] ?? null) ? $viewModel['templateCatalog'] : [];
         $previews = is_array($viewModel['previews'] ?? null) ? $viewModel['previews'] : [];
 
-        self::assertCount(10, $catalog);
+        self::assertCount(11, $catalog);
         self::assertSame(['email', 'today', 'login_url', 'private_url', 'reply_to', 'site_name'], $viewModel['commonVariables']);
 
         $variablesByBodyKey = [];
@@ -95,6 +95,9 @@ final class PrivateTransactionalEmailTest extends TestCase
         self::assertContains('activation_url', $variablesByBodyKey['discussion_invite_body'] ?? []);
         self::assertContains('reset_url', $variablesByBodyKey['password_reset_body'] ?? []);
         self::assertContains('delete_after', $variablesByBodyKey['member_deletion_scheduled_body'] ?? []);
+        self::assertContains('tenant_name', $variablesByBodyKey['rental_payment_request_body'] ?? []);
+        self::assertContains('balance_due', $variablesByBodyKey['rental_payment_request_body'] ?? []);
+        self::assertStringContainsString('Locataire exemple', (string) ($previews['rental_payment_request_body']['body'] ?? ''));
         self::assertStringContainsString(
             'https://preprod.lescaramagnols.com/private/activate/preview-token',
             (string) ($previews['admin_invite_body']['body'] ?? '')
@@ -119,6 +122,50 @@ final class PrivateTransactionalEmailTest extends TestCase
         self::assertStringNotContainsString('member@example.com', $message);
         self::assertStringContainsString('[redacted]', $message);
         self::assertStringContainsString('[email redacted]', $message);
+    }
+
+    public function testPrivateMailSettingsCanSendMaskedSmtpTest(): void
+    {
+        $sentMessages = [];
+        $logger = new AppEventLogger(new LoggerFactory($this->tempDir . '/smtp-test-logs'));
+        $service = new AdminSettingsService(
+            $this->tempDir . '/database.override.php',
+            $this->tempDir . '/admin.override.php',
+            $logger,
+            $this->tempDir . '/site.override.php',
+            privateMailSender: static function (string $to, string $subject, string $html, array $attachments) use (&$sentMessages): bool {
+                $sentMessages[] = compact('to', 'subject', 'html', 'attachments');
+
+                return true;
+            }
+        );
+
+        $result = $service->savePrivateMail([
+            'private_mail' => [
+                'enabled' => '1',
+                'smtp_host' => 'ssl0.ovh.net',
+                'smtp_port' => '465',
+                'smtp_encryption' => 'ssl',
+                'smtp_user' => 'ne-pas-repondre@lescaramagnols.com',
+                'smtp_password' => 'smtp-secret',
+                'from_address' => 'ne-pas-repondre@lescaramagnols.com',
+                'from_name' => 'Les Caramagnols',
+                'reply_to' => 'private@lescaramagnols.com',
+                'test_recipient' => 'smtp-test@example.com',
+                'send_test' => '1',
+            ],
+        ], 'admin@example.com');
+
+        self::assertTrue($result['success']);
+        self::assertStringContainsString('Test SMTP envoyé.', (string) $result['message']);
+        self::assertCount(1, $sentMessages);
+        self::assertSame('smtp-test@example.com', $sentMessages[0]['to']);
+
+        $log = (string) file_get_contents($this->tempDir . '/smtp-test-logs/security.log');
+        self::assertStringContainsString('admin.private_mail.test_sent', $log);
+        self::assertStringNotContainsString('smtp-test@example.com', $log);
+        self::assertStringNotContainsString('admin@example.com', $log);
+        self::assertStringContainsString('@example.com', $log);
     }
 
     public function testPrivateMailDeliveryConfigsAddOvhNetworkFallbacks(): void

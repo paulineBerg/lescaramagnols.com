@@ -5,7 +5,10 @@ $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewMo
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
+$paymentRequestPreviews = is_array($viewModel['rentalPaymentRequestPreviews'] ?? null) ? $viewModel['rentalPaymentRequestPreviews'] : [];
+$paymentRequestHistory = is_array($viewModel['rentalPaymentRequestHistory'] ?? null) ? $viewModel['rentalPaymentRequestHistory'] : [];
 $rentStatuses = ['pending' => 'En attente', 'partial' => 'Partiel', 'paid' => 'Payé', 'late' => 'En retard', 'cancelled' => 'Annulé'];
+$paymentRequestStatuses = ['sent' => 'Envoyée', 'failed' => 'Échec', 'exported' => 'PDF'];
 $createDialogId = 'rental-rent-create-dialog';
 ?>
 <section>
@@ -90,6 +93,14 @@ $createDialogId = 'rental-rent-create-dialog';
                   <?php if ($paymentUrl !== '' && $balance > 0): ?>
                     <a class="private-row-action" href="<?php echo htmlspecialchars($paymentUrl . '?rent_id=' . rawurlencode((string) $rentId), ENT_QUOTES, 'UTF-8'); ?>">Payer</a>
                   <?php endif; ?>
+                  <?php if (isset($paymentRequestPreviews[$rentId]) && is_array($paymentRequestPreviews[$rentId])): ?>
+                    <?php $paymentRequestDialogId = 'rental-payment-request-dialog-' . $rentId; ?>
+                    <button type="button" class="button-small" data-private-dialog-open="<?php echo htmlspecialchars($paymentRequestDialogId, ENT_QUOTES, 'UTF-8'); ?>">Demande de paiement</button>
+                  <?php endif; ?>
+                  <?php $rentRequestHistory = is_array($paymentRequestHistory[$rentId] ?? null) ? $paymentRequestHistory[$rentId] : []; ?>
+                  <?php if ($rentRequestHistory !== []): ?>
+                    <span class="muted"><?php echo htmlspecialchars((string) count($rentRequestHistory), ENT_QUOTES, 'UTF-8'); ?> relance<?php echo count($rentRequestHistory) > 1 ? 's' : ''; ?></span>
+                  <?php endif; ?>
                   <form method="post" action="<?php echo htmlspecialchars((string) ($urls['rents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
                     <input type="hidden" name="action" value="delete_rent" />
@@ -106,6 +117,52 @@ $createDialogId = 'rental-rent-create-dialog';
       </div>
     <?php endif; ?>
   </section>
+
+  <?php foreach ($paymentRequestPreviews as $previewRentId => $preview): ?>
+    <?php if (!is_array($preview) || !is_numeric($previewRentId)) { continue; } ?>
+    <?php
+    $paymentRequestDialogId = 'rental-payment-request-dialog-' . (int) $previewRentId;
+    $history = is_array($paymentRequestHistory[(int) $previewRentId] ?? null) ? $paymentRequestHistory[(int) $previewRentId] : [];
+    ?>
+    <dialog class="private-dialog" id="<?php echo htmlspecialchars($paymentRequestDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($paymentRequestDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
+      <div class="private-dialog-panel">
+        <header class="private-dialog-header">
+          <h3 id="<?php echo htmlspecialchars($paymentRequestDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Demande de paiement</h3>
+          <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+        </header>
+        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['rents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+          <input type="hidden" name="rent_id" value="<?php echo htmlspecialchars((string) (int) $previewRentId, ENT_QUOTES, 'UTF-8'); ?>" />
+          <div class="private-form-grid">
+            <label>Email destinataire <input type="email" name="recipient_email" value="<?php echo htmlspecialchars((string) ($preview['recipientEmail'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+            <label>Sujet <input type="text" name="subject" value="<?php echo htmlspecialchars((string) ($preview['subject'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" maxlength="180" required /></label>
+          </div>
+          <p class="muted">
+            <?php echo htmlspecialchars((string) ($preview['tenantName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> -
+            <?php echo htmlspecialchars((string) ($preview['periodLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> -
+            solde <?php echo htmlspecialchars((string) ($preview['balanceDue'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> €
+          </p>
+          <label>Lettre <textarea name="message" maxlength="6000" rows="9" required><?php echo htmlspecialchars((string) ($preview['message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+          <label>Signature <textarea name="signature" maxlength="1000" rows="3"><?php echo htmlspecialchars((string) ($preview['signature'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+          <?php if ($history !== []): ?>
+            <div class="private-inline-list">
+              <?php foreach ($history as $request): ?>
+                <?php if (!is_array($request)) { continue; } ?>
+                <span>
+                  <?php echo htmlspecialchars((string) ($paymentRequestStatuses[(string) ($request['status'] ?? '')] ?? ($request['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>
+                  <?php echo htmlspecialchars((string) ($request['createdAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                </span>
+              <?php endforeach; ?>
+            </div>
+          <?php endif; ?>
+          <div class="private-dialog-actions">
+            <button type="submit" name="action" value="send_payment_request">Envoyer par email</button>
+            <button type="submit" name="action" value="download_payment_request_pdf" class="private-button-secondary">PDF</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+  <?php endforeach; ?>
 
   <dialog class="private-dialog" id="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($createDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
     <div class="private-dialog-panel">

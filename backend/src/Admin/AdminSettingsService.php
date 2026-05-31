@@ -28,7 +28,8 @@ final class AdminSettingsService
         private readonly string $siteOverridePath = ROOT_PATH . '/config/site.override.php',
         ?InstagramFeedService $instagramFeedService = null,
         ?AdminTranslationSettingsManager $translationSettingsManager = null,
-        ?AdminLogAlertsSettingsManager $logAlertsSettingsManager = null
+        ?AdminLogAlertsSettingsManager $logAlertsSettingsManager = null,
+        private readonly mixed $privateMailSender = null
     ) {
         $this->eventLogger = $eventLogger ?? app_event_logger();
         $this->instagramFeedService = $instagramFeedService;
@@ -106,6 +107,7 @@ final class AdminSettingsService
             'fromAddress' => (string) ($privateMail['fromAddress'] ?? 'ne-pas-repondre@lescaramagnols.com'),
             'fromName' => (string) ($privateMail['fromName'] ?? 'Les Caramagnols'),
             'replyTo' => (string) ($privateMail['replyTo'] ?? 'private@lescaramagnols.com'),
+            'testRecipient' => '',
             'templates' => array_merge($this->defaultPrivateMailTemplates(), $this->normalizePrivateMailTemplates($privateMail['templates'] ?? [])),
             'templateCatalog' => $this->privateMailTemplateCatalog(),
             'commonVariables' => $this->privateMailCommonVariables(),
@@ -596,6 +598,9 @@ final class AdminSettingsService
         return [
             'rental_subject' => 'Document locatif',
             'rental_body' => "Bonjour,\n\nVous trouverez le document locatif en pièce jointe.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.\n\n{{site_name}}",
+            'rental_payment_request_subject' => 'Demande de paiement - loyer {{period}}',
+            'rental_payment_request_body' => "Bonjour {{tenant_name}},\n\nSauf erreur de notre part, le loyer de {{period}} pour {{property_name}} - {{unit_label}} présente un solde restant de {{balance_due}} EUR.\n\nMontant attendu : {{amount_due}} EUR\nMontant encaissé : {{amount_paid}} EUR\nDate d'échéance : {{due_date}}\n\nMerci de régulariser ce paiement ou de nous signaler tout décalage.",
+            'rental_payment_request_signature' => "Gestion locative {{site_name}}\nContact : {{reply_to}}",
             'tax_subject' => 'Aide impôts - document PDF',
             'tax_body' => "Bonjour,\n\nVous trouverez le PDF d'aide à la déclaration en pièce jointe.\n\nPour toute question, vous pouvez écrire à {{reply_to}}.\n\n{{site_name}}",
             'discussion_invite_subject' => 'Invitation à rejoindre les discussions famille',
@@ -633,6 +638,7 @@ final class AdminSettingsService
         $templates = $this->defaultPrivateMailTemplates();
         $definitions = [
             ['rental_subject', 'Sujet document locatif', 'rental_body', 'Message document locatif', ['email', 'today', 'reply_to', 'site_name']],
+            ['rental_payment_request_subject', 'Sujet demande paiement loyer', 'rental_payment_request_body', 'Message demande paiement loyer', ['email', 'tenant_name', 'property_name', 'unit_label', 'period', 'due_date', 'amount_due', 'amount_paid', 'balance_due', 'today', 'reply_to', 'site_name']],
             ['tax_subject', 'Sujet PDF fiscal', 'tax_body', 'Message PDF fiscal', ['email', 'today', 'reply_to', 'site_name']],
             ['discussion_invite_subject', 'Sujet invitation discussion', 'discussion_invite_body', 'Message invitation discussion', ['email', 'today', 'activation_url', 'login_url', 'private_url', 'reply_to', 'site_name']],
             ['admin_invite_subject', 'Sujet invitation membre', 'admin_invite_body', 'Message invitation membre', ['email', 'today', 'activation_url', 'login_url', 'private_url', 'reply_to', 'site_name']],
@@ -705,6 +711,14 @@ final class AdminSettingsService
             'activation_url' => $activationUrl,
             'reset_url' => $resetUrl,
             'delete_after' => date('d/m/Y', time() + 30 * 86400),
+            'tenant_name' => 'Locataire exemple',
+            'property_name' => 'Maison exemple',
+            'unit_label' => 'Lot 1',
+            'period' => date('m/Y'),
+            'due_date' => date('Y-m-01'),
+            'amount_due' => '950.00',
+            'amount_paid' => '400.00',
+            'balance_due' => '550.00',
         ];
     }
 
@@ -1563,12 +1577,71 @@ final class AdminSettingsService
             ]
         );
 
+        $testMessage = '';
+        if (!empty($privateMailPayload['send_test'])) {
+            $testResult = $this->sendPrivateMailTest($privateMailPayload, $actorIdentifier);
+            $testMessage = ' ' . $testResult;
+        }
+
         return [
             'success' => true,
-            'message' => 'Configuration email privée sauvegardée.',
+            'message' => 'Configuration email privée sauvegardée.' . $testMessage,
             'error' => null,
             'view' => $this->privateMailViewModel(),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $privateMailPayload
+     */
+    private function sendPrivateMailTest(array $privateMailPayload, ?string $actorIdentifier): string
+    {
+        $recipient = strtolower(trim((string) ($privateMailPayload['test_recipient'] ?? '')));
+        if (filter_var($recipient, FILTER_VALIDATE_EMAIL) === false) {
+            $this->eventLogger->security('admin.private_mail.test_failed', [
+                'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                'recipient' => AppEventLogger::maskIdentifier($recipient),
+                'reason' => 'invalid_recipient',
+            ], 'warning');
+
+            return 'Test SMTP refusé : destinataire invalide.';
+        }
+
+        $sent = $this->sendPrivateMailTestMessage($recipient);
+        $this->eventLogger->security(
+            $sent ? 'admin.private_mail.test_sent' : 'admin.private_mail.test_failed',
+            [
+                'actor' => AppEventLogger::maskIdentifier($actorIdentifier),
+                'recipient' => AppEventLogger::maskIdentifier($recipient),
+                'reason' => $sent ? 'sent' : 'transport_failed',
+            ],
+            $sent ? 'info' : 'warning'
+        );
+
+        return $sent ? 'Test SMTP envoyé.' : 'Test SMTP impossible, configuration enregistrée.';
+    }
+
+    private function sendPrivateMailTestMessage(string $recipient): bool
+    {
+        if (is_callable($this->privateMailSender)) {
+            return (bool) ($this->privateMailSender)(
+                $recipient,
+                'Test SMTP espace privé',
+                '<p>Message de test SMTP de l’espace privé.</p>',
+                []
+            );
+        }
+
+        if (!function_exists('send_private_email')) {
+            $mailerPath = ROOT_PATH . '/core/mailer.php';
+            if (is_file($mailerPath)) {
+                require_once $mailerPath;
+            }
+        }
+
+        return function_exists('send_private_email')
+            ? send_private_email($recipient, 'Test SMTP espace privé', '<p>Message de test SMTP de l’espace privé.</p>', [])
+            : false;
     }
 
     /**

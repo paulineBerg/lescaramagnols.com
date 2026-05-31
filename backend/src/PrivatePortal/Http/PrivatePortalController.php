@@ -29,6 +29,7 @@ use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyTaxB
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentScheduleService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentPaymentStatusService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
+use Caramagnols\PrivateApps\RealEstateRental\Service\RentalPaymentRequestService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Service\TaxDeclarationSummaryService;
@@ -78,7 +79,8 @@ final class PrivatePortalController
         private readonly ?DiscussionService $discussionService = null,
         private readonly ?DiscussionRetentionService $discussionRetentionService = null,
         private readonly ?RentScheduleService $rentScheduleService = null,
-        private readonly ?RentPaymentStatusService $rentPaymentStatusService = null
+        private readonly ?RentPaymentStatusService $rentPaymentStatusService = null,
+        private readonly ?RentalPaymentRequestService $rentalPaymentRequestService = null
     ) {
     }
 
@@ -1220,6 +1222,24 @@ final class PrivatePortalController
 
         $body = $request->body();
         $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_rent';
+        if ($action === 'send_payment_request') {
+            $result = $this->sendRentalPaymentRequest($body, $propertyIds, $userId);
+            if ($result === 'sent' || $result === 'duplicate') {
+                return $this->redirect(private_portal_url('rental_rents') . '?notice=payment_request_sent');
+            }
+
+            return $this->redirect(private_portal_url('rental_rents') . '?error=' . $result);
+        }
+
+        if ($action === 'download_payment_request_pdf') {
+            $response = $this->downloadRentalPaymentRequestPdf($body, $propertyIds, $userId);
+            if ($response instanceof Response) {
+                return $response;
+            }
+
+            return $this->redirect(private_portal_url('rental_rents') . '?error=rental_write_failed');
+        }
+
         if ($action === 'delete_rent') {
             $rentId = $this->normalizeNumericId($body['rent_id'] ?? null);
             if ($rentId <= 0 || !$this->rentalLifecycleRepository()->deleteRent($rentId, $propertyIds)) {
@@ -3571,6 +3591,23 @@ final class PrivatePortalController
         string $notice = '',
         string $error = ''
     ): Response {
+        $propertyIds = [];
+        $rentIds = [];
+        foreach ($rents as $rent) {
+            if (!is_array($rent)) {
+                continue;
+            }
+            if (is_numeric($rent['rentalPropertyId'] ?? null)) {
+                $propertyIds[] = (int) $rent['rentalPropertyId'];
+            }
+            if (is_numeric($rent['id'] ?? null)) {
+                $rentIds[] = (int) $rent['id'];
+            }
+        }
+        $propertyIds = array_values(array_unique(array_filter($propertyIds, static fn (int $propertyId): bool => $propertyId > 0)));
+        $paymentRequestPreviews = $propertyIds !== [] ? $this->rentalPaymentRequestPreviews($rents, $propertyIds) : [];
+        $paymentRequestHistory = $this->rentalPaymentRequestHistory($rentIds);
+
         return $this->render('modules/real-estate-rental/rents', array_merge(
             $this->rentalBaseViewModel('Loyers locatifs', $notice, $error),
             [
@@ -3578,6 +3615,8 @@ final class PrivatePortalController
                 'rentalCurrentSubsection' => 'rents',
                 'rentalLeases' => $leases,
                 'rentalRents' => $rents,
+                'rentalPaymentRequestPreviews' => $paymentRequestPreviews,
+                'rentalPaymentRequestHistory' => $paymentRequestHistory,
             ]
         ));
     }
@@ -3944,6 +3983,103 @@ final class PrivatePortalController
         ]);
 
         return $sent;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @param array<int, int> $propertyIds
+     */
+    private function sendRentalPaymentRequest(array $body, array $propertyIds, int $userId): string
+    {
+        $rentId = $this->normalizeNumericId($body['rent_id'] ?? null);
+        $preview = $this->rentalPaymentRequestService()->previewForRent($rentId, $propertyIds);
+        $propertyId = is_array($preview) && is_numeric($preview['propertyId'] ?? null)
+            ? (int) $preview['propertyId']
+            : 0;
+        if (!is_array($preview) || !$this->canWriteByPropertyId($propertyId, $userId)) {
+            return 'property_forbidden';
+        }
+
+        $result = $this->rentalPaymentRequestService()->send(
+            $rentId,
+            $propertyIds,
+            is_string($body['recipient_email'] ?? null) ? (string) $body['recipient_email'] : '',
+            is_string($body['subject'] ?? null) ? (string) $body['subject'] : '',
+            is_string($body['message'] ?? null) ? (string) $body['message'] : '',
+            is_string($body['signature'] ?? null) ? (string) $body['signature'] : '',
+            $userId
+        );
+
+        $status = (string) ($result['status'] ?? 'failed');
+        $request = is_array($result['request'] ?? null) ? $result['request'] : null;
+        $recipient = is_string($result['recipient'] ?? null) ? (string) $result['recipient'] : '';
+        $this->logEvent(
+            in_array($status, ['sent', 'duplicate'], true) ? 'private.rental_payment_request.sent' : 'private.rental_payment_request.failed',
+            [
+                'private_user_id' => $userId,
+                'rental_property_id' => $propertyId,
+                'rental_rent_id' => $rentId,
+                'rental_payment_request_id' => is_array($request) && is_numeric($request['id'] ?? null) ? (int) $request['id'] : 0,
+                'recipient' => AppEventLogger::maskIdentifier($recipient),
+                'status' => $status,
+            ]
+        );
+
+        return match ($status) {
+            'sent', 'duplicate' => $status,
+            'invalid_email' => 'payment_request_invalid_email',
+            'invalid_content', 'invalid_rent' => 'rental_write_failed',
+            default => 'email_failed',
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @param array<int, int> $propertyIds
+     */
+    private function downloadRentalPaymentRequestPdf(array $body, array $propertyIds, int $userId): ?Response
+    {
+        $rentId = $this->normalizeNumericId($body['rent_id'] ?? null);
+        $preview = $this->rentalPaymentRequestService()->previewForRent($rentId, $propertyIds);
+        $propertyId = is_array($preview) && is_numeric($preview['propertyId'] ?? null)
+            ? (int) $preview['propertyId']
+            : 0;
+        if (!is_array($preview) || !$this->canWriteByPropertyId($propertyId, $userId)) {
+            return null;
+        }
+
+        $result = $this->rentalPaymentRequestService()->recordPdfExport(
+            $rentId,
+            $propertyIds,
+            is_string($body['recipient_email'] ?? null) ? (string) $body['recipient_email'] : '',
+            is_string($body['subject'] ?? null) ? (string) $body['subject'] : '',
+            is_string($body['message'] ?? null) ? (string) $body['message'] : '',
+            is_string($body['signature'] ?? null) ? (string) $body['signature'] : '',
+            $userId
+        );
+        $request = is_array($result['request'] ?? null) ? $result['request'] : null;
+        if ((string) ($result['status'] ?? '') !== 'exported' || !is_array($request)) {
+            return null;
+        }
+
+        $this->logEvent('private.rental_payment_request.pdf_downloaded', [
+            'private_user_id' => $userId,
+            'rental_property_id' => $propertyId,
+            'rental_rent_id' => $rentId,
+            'rental_payment_request_id' => is_numeric($request['id'] ?? null) ? (int) $request['id'] : 0,
+            'recipient' => AppEventLogger::maskIdentifier(is_string($result['recipient'] ?? null) ? (string) $result['recipient'] : ''),
+        ]);
+
+        $filename = sprintf(
+            'demande-paiement-%s.pdf',
+            preg_replace('/[^0-9-]+/', '-', str_replace('/', '-', (string) ($preview['periodLabel'] ?? date('m-Y')))) ?: date('m-Y')
+        );
+
+        return $this->withPrivateHeaders(new Response(200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ], $this->rentalPaymentRequestService()->pdf($request, $preview)));
     }
 
     /**
@@ -4361,9 +4497,62 @@ final class PrivatePortalController
                 'subject' => $this->privateMailTemplate('rental_subject', 'Document locatif'),
                 'message' => $this->privateMailTemplate('rental_body'),
             ],
+            'rentalPaymentRequestMailDefaults' => [
+                'subject' => $this->privateMailTemplate('rental_payment_request_subject', 'Demande de paiement - loyer {{period}}'),
+                'message' => $this->privateMailTemplate('rental_payment_request_body'),
+                'signature' => $this->privateMailTemplate('rental_payment_request_signature', "Gestion locative {{site_name}}\nContact : {{reply_to}}"),
+            ],
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rents
+     * @param array<int, int> $propertyIds
+     * @return array<int, array<string, mixed>>
+     */
+    private function rentalPaymentRequestPreviews(array $rents, array $propertyIds): array
+    {
+        $previews = [];
+        foreach ($rents as $rent) {
+            if (!is_array($rent) || !is_numeric($rent['id'] ?? null)) {
+                continue;
+            }
+            $rentId = (int) $rent['id'];
+            $preview = $this->rentalPaymentRequestService()->previewForRent($rentId, $propertyIds);
+            if (is_array($preview)) {
+                $previews[$rentId] = $preview;
+            }
+        }
+
+        return $previews;
+    }
+
+    /**
+     * @param array<int, int> $rentIds
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    private function rentalPaymentRequestHistory(array $rentIds): array
+    {
+        $rentIds = array_values(array_unique(array_filter($rentIds, static fn (int $rentId): bool => $rentId > 0)));
+        if ($rentIds === []) {
+            return [];
+        }
+
+        $history = [];
+        foreach ($this->rentalLifecycleRepository()->listPaymentRequestsForRents($rentIds) as $request) {
+            if (!is_array($request) || !is_numeric($request['rentalRentId'] ?? null)) {
+                continue;
+            }
+            $rentId = (int) $request['rentalRentId'];
+            $history[$rentId] ??= [];
+            if (count($history[$rentId]) < 3) {
+                $history[$rentId][] = $request;
+            }
+        }
+
+        return $history;
     }
 
     /**
@@ -5570,6 +5759,23 @@ final class PrivatePortalController
     private function rentPaymentStatusService(): RentPaymentStatusService
     {
         return $this->rentPaymentStatusService ?? new RentPaymentStatusService($this->rentalLifecycleRepository());
+    }
+
+    private function rentalPaymentRequestService(): RentalPaymentRequestService
+    {
+        return $this->rentalPaymentRequestService ?? new RentalPaymentRequestService(
+            $this->rentalLifecycleRepository(),
+            $this->privateMailTemplate('rental_payment_request_subject', 'Demande de paiement - loyer {{period}}'),
+            $this->privateMailTemplate(
+                'rental_payment_request_body',
+                "Bonjour {{tenant_name}},\n\nSauf erreur de notre part, le loyer de {{period}} pour {{property_name}} - {{unit_label}} presente un solde restant de {{balance_due}} EUR.\n\nMontant attendu : {{amount_due}} EUR\nMontant encaisse : {{amount_paid}} EUR\nDate d'echeance : {{due_date}}\n\nMerci de regulariser ce paiement ou de nous signaler tout decalage."
+            ),
+            $this->privateMailTemplate(
+                'rental_payment_request_signature',
+                "Gestion locative {{site_name}}\nContact : {{reply_to}}"
+            ),
+            fn (string $to, string $subject, string $html, array $attachments): bool => $this->sendPrivateMail($to, $subject, $html, $attachments)
+        );
     }
 
     private function taxDeclarationRepository(): TaxDeclarationRepository

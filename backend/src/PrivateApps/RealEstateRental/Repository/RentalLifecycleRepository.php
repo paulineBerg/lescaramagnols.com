@@ -54,6 +54,11 @@ final class RentalLifecycleRepository
         return $this->database->table('rental_documents');
     }
 
+    public function paymentRequestsTable(): string
+    {
+        return $this->database->table('rental_payment_requests');
+    }
+
     public function exportLogsTable(): string
     {
         return $this->database->table('rental_export_logs');
@@ -633,6 +638,74 @@ final class RentalLifecycleRepository
                 sprintf('SELECT * FROM `%s` WHERE `id` = :id LIMIT 1', $this->rentsTable())
             );
             $statement->execute(['id' => $rentId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array<string, mixed>|null
+     */
+    public function findRentDetailsById(int $rentId, array $propertyIds): ?array
+    {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        if ($rentId <= 0 || $propertyIds === []) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('property_id', $propertyIds);
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT rent.*,
+                            prop.`name` AS `property_name`,
+                            prop.`address` AS `property_address`,
+                            u.`label` AS `unit_label`,
+                            l.`lease_type` AS `lease_type`,
+                            l.`tax_category` AS `tax_category`,
+                            l.`start_date` AS `lease_start_date`,
+                            l.`end_date` AS `lease_end_date`,
+                            t.`full_name` AS `tenant_name`,
+                            t.`email` AS `tenant_email`,
+                            COALESCE(pmt_sum.`amount_paid`, 0) AS `amount_paid`,
+                            COALESCE(pmt_sum.`payment_count`, 0) AS `payment_count`
+                     FROM `%s` rent
+                     INNER JOIN `%s` prop ON prop.`id` = rent.`rental_property_id`
+                     INNER JOIN `%s` u ON u.`id` = rent.`rental_unit_id`
+                     INNER JOIN `%s` l ON l.`id` = rent.`rental_lease_id`
+                     INNER JOIN `%s` t ON t.`id` = l.`rental_tenant_id`
+                     LEFT JOIN (
+                        SELECT `rental_rent_id`,
+                               SUM(CASE
+                                    WHEN `status` = "validated" AND `payment_kind` = "refund" THEN -`amount_paid`
+                                    WHEN `status` = "validated" THEN `amount_paid`
+                                    ELSE 0
+                               END) AS `amount_paid`,
+                               COUNT(`id`) AS `payment_count`
+                        FROM `%s`
+                        WHERE `rental_rent_id` IS NOT NULL
+                        GROUP BY `rental_rent_id`
+                     ) pmt_sum ON pmt_sum.`rental_rent_id` = rent.`id`
+                     WHERE rent.`id` = :rent_id
+                       AND rent.`rental_property_id` IN (%s)
+                     LIMIT 1',
+                    $this->rentsTable(),
+                    $this->database->table('rental_properties'),
+                    $this->database->table('rental_units'),
+                    $this->leasesTable(),
+                    $this->tenantsTable(),
+                    $this->paymentsTable(),
+                    implode(',', $placeholders)
+                )
+            );
+            $statement->bindValue(':rent_id', $rentId, PDO::PARAM_INT);
+            $this->bindIds($statement, 'property_id', $propertyIds);
+            $statement->execute();
             $row = $statement->fetch(PDO::FETCH_ASSOC);
         } catch (\Throwable) {
             return null;
@@ -1419,6 +1492,185 @@ final class RentalLifecycleRepository
     }
 
     /**
+     * @param array<string, mixed> $snapshot
+     * @return array<string, mixed>|null
+     */
+    public function createPaymentRequestSnapshot(
+        int $rentId,
+        int $leaseId,
+        int $propertyId,
+        int $unitId,
+        string $recipientEmail,
+        string $subject,
+        string $body,
+        string $signature,
+        string $channel,
+        string $status,
+        string $idempotencyKey,
+        array $snapshot,
+        int $actorPrivateUserId,
+        ?string $failureReason = null
+    ): ?array {
+        $recipientEmail = strtolower($this->normalizeText($recipientEmail, 190));
+        $subject = $this->normalizeText($subject, 180);
+        $body = $this->normalizeText($body, 6000);
+        $signature = $this->normalizeText($signature, 1000);
+        $channel = strtolower(trim($channel));
+        $status = strtolower(trim($status));
+        $idempotencyKey = strtolower(trim($idempotencyKey));
+        $failureReason = $failureReason !== null ? $this->normalizeText($failureReason, 180) : null;
+
+        if (
+            $rentId <= 0
+            || $leaseId <= 0
+            || $propertyId <= 0
+            || $unitId <= 0
+            || $actorPrivateUserId <= 0
+            || filter_var($recipientEmail, FILTER_VALIDATE_EMAIL) === false
+            || $subject === ''
+            || $body === ''
+            || !in_array($channel, ['email', 'pdf', 'copy'], true)
+            || !in_array($status, ['sent', 'failed', 'exported'], true)
+            || preg_match('/\A[a-f0-9]{64}\z/', $idempotencyKey) !== 1
+        ) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $existing = $this->findPaymentRequestByIdempotencyKey($idempotencyKey);
+            if (is_array($existing)) {
+                return $existing;
+            }
+
+            $snapshotPayload = json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($snapshotPayload)) {
+                $snapshotPayload = '{}';
+            }
+
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'INSERT INTO `%s`
+                        (`rental_rent_id`, `rental_lease_id`, `rental_property_id`, `rental_unit_id`,
+                         `recipient_email`, `subject`, `body`, `signature`, `channel`, `status`,
+                         `idempotency_key`, `snapshot_payload`, `failure_reason`, `sent_by_private_user_id`, `sent_at`)
+                     VALUES
+                        (:rent_id, :lease_id, :property_id, :unit_id,
+                         :recipient_email, :subject, :body, :signature, :channel, :status,
+                         :idempotency_key, :snapshot_payload, :failure_reason, :sent_by, :sent_at)',
+                    $this->paymentRequestsTable()
+                )
+            );
+            $statement->execute([
+                'rent_id' => $rentId,
+                'lease_id' => $leaseId,
+                'property_id' => $propertyId,
+                'unit_id' => $unitId,
+                'recipient_email' => $recipientEmail,
+                'subject' => $subject,
+                'body' => $body,
+                'signature' => $signature !== '' ? $signature : null,
+                'channel' => $channel,
+                'status' => $status,
+                'idempotency_key' => $idempotencyKey,
+                'snapshot_payload' => $snapshotPayload,
+                'failure_reason' => $failureReason !== '' ? $failureReason : null,
+                'sent_by' => $actorPrivateUserId,
+                'sent_at' => $status === 'sent' ? date('Y-m-d H:i:s') : null,
+            ]);
+
+            return $this->findPaymentRequestById((int) $this->database->pdo()->lastInsertId());
+        } catch (\Throwable) {
+            $existing = $this->findPaymentRequestByIdempotencyKey($idempotencyKey);
+            return is_array($existing) ? $existing : null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findPaymentRequestById(int $paymentRequestId): ?array
+    {
+        if ($paymentRequestId <= 0) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT * FROM `%s` WHERE `id` = :id LIMIT 1', $this->paymentRequestsTable())
+            );
+            $statement->execute(['id' => $paymentRequestId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findPaymentRequestByIdempotencyKey(string $idempotencyKey): ?array
+    {
+        $idempotencyKey = strtolower(trim($idempotencyKey));
+        if (preg_match('/\A[a-f0-9]{64}\z/', $idempotencyKey) !== 1) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT * FROM `%s` WHERE `idempotency_key` = :idempotency_key LIMIT 1', $this->paymentRequestsTable())
+            );
+            $statement->execute(['idempotency_key' => $idempotencyKey]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * @param array<int, int> $rentIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function listPaymentRequestsForRents(array $rentIds, int $limit = 200): array
+    {
+        $rentIds = $this->normalizeIds($rentIds);
+        $limit = $this->normalizeLimit($limit);
+        if ($rentIds === [] || $limit <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $placeholders = $this->placeholders('rent_id', $rentIds);
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT *
+                     FROM `%s`
+                     WHERE `rental_rent_id` IN (%s)
+                     ORDER BY `created_at` DESC, `id` DESC
+                     LIMIT :limit',
+                    $this->paymentRequestsTable(),
+                    implode(',', $placeholders)
+                )
+            );
+            $this->bindIds($statement, 'rent_id', $rentIds);
+            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $statement->execute();
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->normalizeRows($rows);
+    }
+
+    /**
      * @param array<int, int> $propertyIds
      */
     public function deleteTenant(int $tenantId, array $propertyIds): bool
@@ -1471,12 +1723,12 @@ final class RentalLifecycleRepository
 
     /**
      * @param array<int, int> $propertyIds
-     * @return array{tenants:int, leases:int, payments:int, expenses:int, documents:int}
+     * @return array{tenants:int, leases:int, rents:int, payments:int, expenses:int, documents:int, paymentRequests:int}
      */
     public function deleteLifecycleDataByPropertyIds(array $propertyIds): array
     {
         $propertyIds = $this->normalizeIds($propertyIds);
-        $deleted = ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0];
+        $deleted = ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'paymentRequests' => 0];
         if ($propertyIds === []) {
             return $deleted;
         }
@@ -1489,6 +1741,7 @@ final class RentalLifecycleRepository
 
             $deleteDefinitions = [
                 'documents' => ['table' => $this->documentsTable(), 'sql' => 'UPDATE `%s` SET `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
+                'paymentRequests' => ['table' => $this->paymentRequestsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'payments' => ['table' => $this->paymentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'rents' => ['table' => $this->rentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'expenses' => ['table' => $this->expensesTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
@@ -1509,7 +1762,7 @@ final class RentalLifecycleRepository
                 $pdo->rollBack();
             }
 
-            return ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0];
+            return ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'paymentRequests' => 0];
         }
 
         return $deleted;
@@ -1843,6 +2096,34 @@ final class RentalLifecycleRepository
                     KEY `idx_rental_documents_property` (`rental_property_id`, `is_active`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->documentsTable()
+            )
+        );
+        $pdo->exec(
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS `%s` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `rental_rent_id` INT NOT NULL,
+                    `rental_lease_id` INT NOT NULL,
+                    `rental_property_id` INT NOT NULL,
+                    `rental_unit_id` INT NOT NULL,
+                    `recipient_email` VARCHAR(190) NOT NULL,
+                    `subject` VARCHAR(180) NOT NULL,
+                    `body` TEXT NOT NULL,
+                    `signature` TEXT NULL,
+                    `channel` ENUM("email", "pdf", "copy") NOT NULL DEFAULT "email",
+                    `status` ENUM("sent", "failed", "exported") NOT NULL DEFAULT "sent",
+                    `idempotency_key` CHAR(64) NOT NULL,
+                    `snapshot_payload` JSON NULL,
+                    `failure_reason` VARCHAR(180) NULL,
+                    `sent_by_private_user_id` INT NOT NULL,
+                    `sent_at` DATETIME NULL,
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uq_rental_payment_requests_idempotency` (`idempotency_key`),
+                    KEY `idx_rental_payment_requests_property_status` (`rental_property_id`, `status`, `created_at`),
+                    KEY `idx_rental_payment_requests_rent` (`rental_rent_id`, `channel`, `status`),
+                    KEY `idx_rental_payment_requests_due` (`rental_property_id`, `sent_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                $this->paymentRequestsTable()
             )
         );
         $pdo->exec(

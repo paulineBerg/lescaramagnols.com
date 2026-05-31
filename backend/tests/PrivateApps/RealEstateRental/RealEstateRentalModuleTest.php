@@ -379,6 +379,68 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertSame('pending', $rentsAfterCancel[0]['status'] ?? null);
     }
 
+    public function testPaymentRequestButtonIsOnlyDisplayedForUnpaidRents(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'rent-payment-request-ui@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
+        $property = $propertyRepository->create($ownerId, 'Maison relance UI', '19 rue du Rappel', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Lot relance UI', 38.0, false, 'available', null, $ownerId);
+        $this->assertNotNull($unit);
+        $tenant = $lifecycleRepository->createTenant($property->id, $unit->id, 'Locataire relance UI', 'relance-ui@example.com', null, 'validated', $ownerId, null);
+        $this->assertIsArray($tenant);
+        $lease = $lifecycleRepository->createLease($property->id, $unit->id, (int) $tenant['id'], '2026-01-01', null, 950.0, 50.0, 'validated', $ownerId, null);
+        $this->assertIsArray($lease);
+        $pendingRent = $lifecycleRepository->createRent((int) $lease['id'], $property->id, $unit->id, 2026, 8, '2026-08-01', 1000.0, 'pending', $ownerId, null);
+        $paidRent = $lifecycleRepository->createRent((int) $lease['id'], $property->id, $unit->id, 2026, 9, '2026-09-01', 1000.0, 'paid', $ownerId, null);
+        $cancelledRent = $lifecycleRepository->createRent((int) $lease['id'], $property->id, $unit->id, 2026, 10, '2026-10-01', 1000.0, 'cancelled', $ownerId, null);
+        $this->assertIsArray($pendingRent);
+        $this->assertIsArray($paidRent);
+        $this->assertIsArray($cancelledRent);
+        $this->assertIsArray($lifecycleRepository->createPayment(
+            (int) $lease['id'],
+            $property->id,
+            $unit->id,
+            '2026-09-02',
+            2026,
+            9,
+            0.0,
+            1000.0,
+            'validated',
+            $ownerId,
+            null,
+            (int) $paidRent['id']
+        ));
+
+        $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'rent-payment-request-ui@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            rentalPropertyRepository: $propertyRepository,
+            rentalPropertyMemberRepository: $memberRepository,
+            rentalUnitRepository: $unitRepository,
+            rentalLifecycleRepository: $lifecycleRepository
+        );
+
+        $response = $controller->handle('rental_rents', $this->request('GET', '/private/rents'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('data-private-dialog-open="rental-payment-request-dialog-' . (int) $pendingRent['id'] . '"', $response->body);
+        $this->assertStringContainsString('name="action" value="send_payment_request"', $response->body);
+        $this->assertStringContainsString('name="action" value="download_payment_request_pdf"', $response->body);
+        $this->assertStringNotContainsString('rental-payment-request-dialog-' . (int) $paidRent['id'], $response->body);
+        $this->assertStringNotContainsString('rental-payment-request-dialog-' . (int) $cancelledRent['id'], $response->body);
+    }
+
     public function testCreatingPropertyCanCreateWholeHouseRentalUnit(): void
     {
         $database = $this->editorialSqlDatabase();

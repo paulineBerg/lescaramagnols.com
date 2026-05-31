@@ -41,6 +41,7 @@ final class PrivateBackupService
         'rental_leases',
         'rental_rents',
         'rental_payments',
+        'rental_payment_requests',
         'rental_expenses',
         'rental_documents',
         'rental_export_logs',

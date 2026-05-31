@@ -163,6 +163,10 @@ $statusLabels = [
         <label for="private_mail_reply_to"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_REPLY_TO', 'Adresse de réponse')); ?></label>
         <input id="private_mail_reply_to" name="private_mail[reply_to]" type="email" value="<?php echo $escape((string) ($privateMail['replyTo'] ?? 'private@lescaramagnols.com')); ?>" />
       </div>
+      <div class="field">
+        <label for="private_mail_test_recipient"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_TEST_RECIPIENT', 'Email de test')); ?></label>
+        <input id="private_mail_test_recipient" name="private_mail[test_recipient]" type="email" value="<?php echo $escape((string) ($privateMail['testRecipient'] ?? '')); ?>" />
+      </div>
     </div>
 
     <details class="admin-private-mail-templates">
@@ -223,6 +227,7 @@ $statusLabels = [
 
     <div class="actions-inline">
       <button type="submit"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_SAVE', 'Enregistrer')); ?></button>
+      <button type="submit" name="private_mail[send_test]" value="1" class="button-link button-link-muted"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_TEST_SEND', 'Tester SMTP')); ?></button>
       <a class="button-link button-link-muted" href="<?php echo $escape($membersTabUrl); ?>"><?php echo $escape($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler')); ?></a>
     </div>
   </form>
