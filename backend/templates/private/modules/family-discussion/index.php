@@ -37,9 +37,14 @@ $conversationTitle = static function (array $conversation): string {
         return $title;
     }
 
-    $id = is_numeric($conversation['id'] ?? null) ? (int) $conversation['id'] : 0;
+    $directEmail = is_string($conversation['directMemberEmail'] ?? null)
+        ? trim((string) $conversation['directMemberEmail'])
+        : '';
+    if (($conversation['type'] ?? '') === 'direct' && $directEmail !== '') {
+        return $directEmail;
+    }
 
-    return $id > 0 ? 'Conversation directe #' . $id : 'Conversation directe';
+    return 'Conversation directe';
 };
 
 $shortText = static function (string $value, int $maxLength = 90): string {
@@ -64,68 +69,20 @@ $memberLabel = static function (array $member): string {
 
     return 'Membre #' . (int) ($member['id'] ?? 0);
 };
-$conversationCount = count($conversations);
-$memberCount = count($members);
-$unreadTotal = 0;
-$groupCount = 0;
-foreach ($conversations as $conversation) {
-    if (!is_array($conversation)) {
-        continue;
-    }
-
-    $unreadTotal += max(0, (int) ($conversation['unreadCount'] ?? 0));
-    if (($conversation['type'] ?? '') === 'group') {
-        ++$groupCount;
-    }
-}
-$directCount = max(0, $conversationCount - $groupCount);
 $directDialogId = 'discussion-direct-create-dialog';
 $groupDialogId = 'discussion-group-create-dialog';
 $inviteDialogId = 'discussion-invite-create-dialog';
 $conversationTypeLabel = static fn (string $type): string => $type === 'group' ? 'Groupe' : 'Directe';
 ?>
-<section class="private-dashboard private-discussion-module">
+<section class="private-discussion-module">
   <nav class="private-module-nav" aria-label="Navigation discussions">
     <div class="private-module-nav-row">
-      <a class="active" href="<?php echo $h($indexUrl); ?>">Tableau de bord</a>
-      <a href="#private-discussion-conversations">Conversations</a>
+      <a class="active" href="<?php echo $h($indexUrl); ?>">Conversations</a>
       <button type="button" data-private-dialog-open="<?php echo $h($directDialogId); ?>"<?php echo $members === [] ? ' disabled' : ''; ?>>Nouvelle discussion</button>
       <button type="button" data-private-dialog-open="<?php echo $h($groupDialogId); ?>"<?php echo $members === [] ? ' disabled' : ''; ?>>Nouveau groupe</button>
       <button type="button" data-private-dialog-open="<?php echo $h($inviteDialogId); ?>">Inviter</button>
     </div>
   </nav>
-
-  <section class="private-module-dashboard" id="private-discussion-dashboard">
-    <div class="private-list-header">
-      <div>
-        <span class="tag">Discussions</span>
-        <h2>Tableau de bord discussions</h2>
-        <p class="muted">Conversations directes, groupes, invitations et rétention courte des messages.</p>
-      </div>
-      <div class="private-list-filter-actions">
-        <button type="button" class="private-create-button" data-private-dialog-open="<?php echo $h($directDialogId); ?>"<?php echo $members === [] ? ' disabled' : ''; ?>>Nouvelle discussion</button>
-        <button type="button" class="private-button-secondary" data-private-dialog-open="<?php echo $h($groupDialogId); ?>"<?php echo $members === [] ? ' disabled' : ''; ?>>Nouveau groupe</button>
-        <button type="button" class="private-button-secondary" data-private-dialog-open="<?php echo $h($inviteDialogId); ?>">Inviter</button>
-      </div>
-    </div>
-    <div class="private-dashboard-summary">
-      <section class="private-dashboard-panel">
-        <h3>Conversations</h3>
-        <p><strong><?php echo $conversationCount; ?></strong></p>
-        <p class="muted"><?php echo $directCount; ?> directe(s), <?php echo $groupCount; ?> groupe(s)</p>
-      </section>
-      <section class="private-dashboard-panel">
-        <h3>Messages non lus</h3>
-        <p><strong><?php echo $unreadTotal; ?></strong></p>
-        <p class="muted">À traiter dans les fils actifs.</p>
-      </section>
-      <section class="private-dashboard-panel">
-        <h3>Membres disponibles</h3>
-        <p><strong><?php echo $memberCount; ?></strong></p>
-        <p class="muted">Invitations et groupes famille.</p>
-      </section>
-    </div>
-  </section>
 
   <?php if ($notice !== ''): ?>
     <p class="notice notice-success">
@@ -156,8 +113,14 @@ $conversationTypeLabel = static fn (string $type): string => $type === 'group' ?
   <section class="card private-card-wide private-list-section" id="private-discussion-conversations" data-private-filter-scope>
     <div class="private-list-header">
       <div>
+        <span class="tag">Messages</span>
         <h2>Conversations</h2>
         <p class="muted">Liste filtrable des échanges directs et des groupes.</p>
+      </div>
+      <div class="private-list-filter-actions">
+        <button type="button" class="private-create-button" data-private-dialog-open="<?php echo $h($directDialogId); ?>"<?php echo $members === [] ? ' disabled' : ''; ?>>Nouvelle discussion</button>
+        <button type="button" class="private-button-secondary" data-private-dialog-open="<?php echo $h($groupDialogId); ?>"<?php echo $members === [] ? ' disabled' : ''; ?>>Nouveau groupe</button>
+        <button type="button" class="private-button-secondary" data-private-dialog-open="<?php echo $h($inviteDialogId); ?>">Inviter</button>
       </div>
     </div>
     <?php if ($conversations === []): ?>
@@ -235,7 +198,7 @@ $conversationTypeLabel = static fn (string $type): string => $type === 'group' ?
       <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TEXT', 'Les nouveaux messages texte sont chiffrés dans le navigateur avant envoi: le serveur ne stocke pas leur corps en clair.')); ?></li>
       <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_FILES', 'Les images et fichiers joints sont chiffrés sur disque côté serveur, stockés hors webroot, puis déchiffrés seulement lors d’un téléchargement autorisé.')); ?></li>
       <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_METADATA', 'Les métadonnées techniques restent nécessaires au fonctionnement: participants, dates, titres de groupes, noms de fichiers, types et tailles.')); ?></li>
-      <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par conversation.')); ?></li>
+      <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par message.')); ?></li>
     </ul>
   </aside>
 

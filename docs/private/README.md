@@ -89,7 +89,7 @@ Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
 - les modules prives peuvent envoyer des emails via cette configuration : documents locatifs en pieces jointes, quittance de loyer PDF depuis un paiement, PDF fiscal annuel et invitations FamilyDiscussion;
 - RealEstateRental permet maintenant la suppression individuelle des locataires, baux, paiements, charges et documents, avec edition des baux depuis une popup `Modifier` qui conserve aussi l'action de suppression; la suppression globale des documents ou des donnees locatives reste protegee par confirmation explicite `SUPPRIMER`;
-- FamilyDiscussion permet l'invitation email d'un membre, la suppression d'un message, d'une piece jointe ou de tous les messages/fichiers envoyes par l'utilisateur dans une conversation;
+- FamilyDiscussion permet l'invitation email d'un membre, la suppression d'un message ou d'une piece jointe, avec une liste de conversations dediee et un fil qui se repositionne sur le dernier message;
 - dans le BO membres prives, un module deja affecte ne peut pas etre decoche tant que des informations rattachees existent; les comptes supprimes et neutralises peuvent etre reinvites sur une nouvelle adresse ou purges cote donnees, sans restaurer de donnees neutralisees;
 - aucune recuperation serveur des messages chiffres client n'est ajoutee : sans cle locale d'un appareil participant, le contenu chiffre reste illisible par conception.
 

@@ -210,7 +210,17 @@ final class DiscussionRepository
                           AND last_message.`deleted_at` IS NULL
                         ORDER BY last_message.`id` DESC
                         LIMIT 1
-                    ) AS last_body
+                    ) AS last_body,
+                    (
+                        SELECT other_user.`email`
+                        FROM `%s` other_cm
+                        INNER JOIN `%s` other_user ON other_user.`id` = other_cm.`private_user_id`
+                        WHERE other_cm.`conversation_id` = c.`id`
+                          AND other_cm.`private_user_id` <> :direct_user_id
+                          AND other_cm.`left_at` IS NULL
+                        ORDER BY other_cm.`private_user_id` ASC
+                        LIMIT 1
+                    ) AS direct_member_email
                  FROM `%s` c
                  INNER JOIN `%s` cm ON cm.`conversation_id` = c.`id`
                  WHERE cm.`private_user_id` = :user_id
@@ -220,10 +230,13 @@ final class DiscussionRepository
                  LIMIT :limit",
                 $this->messageTable(),
                 $this->messageTable(),
+                $this->memberTable(),
+                $this->privateUserTable(),
                 $this->conversationTable(),
                 $this->memberTable()
             ));
             $statement->bindValue(':unread_user_id', $userId, PDO::PARAM_INT);
+            $statement->bindValue(':direct_user_id', $userId, PDO::PARAM_INT);
             $statement->bindValue(':user_id', $userId, PDO::PARAM_INT);
             $statement->bindValue(':limit', max(1, min(200, $limit)), PDO::PARAM_INT);
             $statement->execute();
@@ -244,7 +257,17 @@ final class DiscussionRepository
         try {
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(sprintf(
-                "SELECT c.*, cm.`role`, cm.`last_opened_at`, 0 AS unread_count, NULL AS last_body
+                "SELECT c.*, cm.`role`, cm.`last_opened_at`, 0 AS unread_count, NULL AS last_body,
+                    (
+                        SELECT other_user.`email`
+                        FROM `%s` other_cm
+                        INNER JOIN `%s` other_user ON other_user.`id` = other_cm.`private_user_id`
+                        WHERE other_cm.`conversation_id` = c.`id`
+                          AND other_cm.`private_user_id` <> :direct_user_id
+                          AND other_cm.`left_at` IS NULL
+                        ORDER BY other_cm.`private_user_id` ASC
+                        LIMIT 1
+                    ) AS direct_member_email
                  FROM `%s` c
                  INNER JOIN `%s` cm ON cm.`conversation_id` = c.`id`
                  WHERE c.`id` = :conversation_id
@@ -252,10 +275,16 @@ final class DiscussionRepository
                    AND cm.`left_at` IS NULL
                    AND c.`archived_at` IS NULL
                  LIMIT 1",
+                $this->memberTable(),
+                $this->privateUserTable(),
                 $this->conversationTable(),
                 $this->memberTable()
             ));
-            $statement->execute(['conversation_id' => $conversationId, 'user_id' => $userId]);
+            $statement->execute([
+                'conversation_id' => $conversationId,
+                'direct_user_id' => $userId,
+                'user_id' => $userId,
+            ]);
             $row = $statement->fetch(PDO::FETCH_ASSOC);
         } catch (\Throwable) {
             return null;
@@ -1255,6 +1284,11 @@ final class DiscussionRepository
         return $this->database->table('discussion_conversations');
     }
 
+    private function privateUserTable(): string
+    {
+        return $this->database->table('private_users');
+    }
+
     private function memberTable(): string
     {
         return $this->database->table('discussion_conversation_members');
@@ -1509,6 +1543,9 @@ final class DiscussionRepository
             'lastOpenedAt' => is_string($row['last_opened_at'] ?? null) ? (string) $row['last_opened_at'] : '',
             'unreadCount' => max(0, (int) ($row['unread_count'] ?? 0)),
             'lastBody' => is_string($row['last_body'] ?? null) ? (string) $row['last_body'] : '',
+            'directMemberEmail' => is_string($row['direct_member_email'] ?? null)
+                ? strtolower(trim((string) $row['direct_member_email']))
+                : '',
         ];
     }
 

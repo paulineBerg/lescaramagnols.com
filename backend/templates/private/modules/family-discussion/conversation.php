@@ -39,9 +39,22 @@ foreach ($members as $member) {
     $memberEmails[(int) $member['id']] = (string) ($member['email'] ?? ('Membre #' . (int) $member['id']));
 }
 
-$title = is_string($conversation['title'] ?? null) && trim((string) $conversation['title']) !== ''
-    ? trim((string) $conversation['title'])
-    : 'Conversation directe';
+$conversationTitle = static function (array $conversation): string {
+    $title = is_string($conversation['title'] ?? null) ? trim((string) $conversation['title']) : '';
+    if ($title !== '') {
+        return $title;
+    }
+
+    $directEmail = is_string($conversation['directMemberEmail'] ?? null)
+        ? trim((string) $conversation['directMemberEmail'])
+        : '';
+    if (($conversation['type'] ?? '') === 'direct' && $directEmail !== '') {
+        return $directEmail;
+    }
+
+    return 'Conversation directe';
+};
+$title = $conversationTitle($conversation);
 
 $formatDate = static function (mixed $value): string {
     $raw = is_string($value) ? trim($value) : '';
@@ -82,20 +95,21 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
       <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TEXT', 'Les nouveaux messages texte sont chiffrés dans le navigateur avant envoi: le serveur ne stocke pas leur corps en clair.'), ENT_QUOTES, 'UTF-8'); ?></li>
       <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_FILES', 'Les images et fichiers joints sont chiffrés sur disque côté serveur, stockés hors webroot, puis déchiffrés seulement lors d’un téléchargement autorisé.'), ENT_QUOTES, 'UTF-8'); ?></li>
       <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_METADATA', 'Les métadonnées techniques restent nécessaires au fonctionnement: participants, dates, titres de groupes, noms de fichiers, types et tailles.'), ENT_QUOTES, 'UTF-8'); ?></li>
-      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par conversation.'), ENT_QUOTES, 'UTF-8'); ?></li>
+      <li><?php echo htmlspecialchars($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par message.'), ENT_QUOTES, 'UTF-8'); ?></li>
     </ul>
   </aside>
 
   <?php if ($notice !== ''): ?>
-    <p class="notice notice-success">
-      <?php
-      $noticeMessage = match ($notice) {
-          'sent' => 'Message envoye.',
-          'deleted' => 'Suppression effectuee.',
-          default => $notice,
-      };
-      echo htmlspecialchars($noticeMessage, ENT_QUOTES, 'UTF-8');
-      ?>
+    <?php
+    $noticeMessage = match ($notice) {
+        'sent' => 'Message envoyé.',
+        'deleted' => 'Suppression effectuée.',
+        default => $notice,
+    };
+    $isToastNotice = $notice === 'sent';
+    ?>
+    <p class="notice notice-success<?php echo $isToastNotice ? ' private-toast-notice' : ''; ?>"<?php echo $isToastNotice ? ' data-private-toast role="status" aria-live="polite"' : ''; ?>>
+      <?php echo htmlspecialchars($noticeMessage, ENT_QUOTES, 'UTF-8'); ?>
     </p>
   <?php endif; ?>
   <?php if ($error !== ''): ?>
@@ -105,7 +119,6 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
           'csrf' => 'Session expiree, veuillez recommencer.',
           'rate_limited' => 'Trop de messages successifs, veuillez patienter.',
           'delete' => 'Suppression impossible.',
-          'delete_confirmation' => 'Confirmez la suppression avec SUPPRIMER.',
           default => 'Le message n\'a pas pu etre envoye.',
       };
       echo htmlspecialchars($errorMessage, ENT_QUOTES, 'UTF-8');
@@ -130,9 +143,11 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
           $attachments = is_array($message['attachments'] ?? null) ? $message['attachments'] : [];
           $messageId = (int) $message['id'];
           $canDeleteMessage = $senderId === $currentUserId || $isConversationOwner;
+          $isLastMessage = $messageId === $lastMessageId;
           ?>
           <article
             class="notice"
+            <?php echo $isLastMessage ? 'id="discussion-message-last" data-discussion-last-message="1"' : ''; ?>
             data-message-id="<?php echo htmlspecialchars((string) $messageId, ENT_QUOTES, 'UTF-8'); ?>"
             data-encryption-mode="<?php echo htmlspecialchars($encryptionMode, ENT_QUOTES, 'UTF-8'); ?>"
             data-encrypted-payload="<?php echo htmlspecialchars($encryptedPayload, ENT_QUOTES, 'UTF-8'); ?>"
@@ -216,16 +231,6 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
     </form>
   </section>
 
-  <section class="card private-card-wide">
-    <h2>Supprimer mes messages</h2>
-    <form method="post" action="<?php echo htmlspecialchars($conversationUrl, ENT_QUOTES, 'UTF-8'); ?>">
-      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-      <input type="hidden" name="action" value="delete_my_conversation_data" />
-      <label>Confirmer avec SUPPRIMER <input type="text" name="confirm_delete" autocomplete="off" /></label>
-      <button class="button-danger" type="submit">Supprimer mes messages et fichiers de cette discussion</button>
-    </form>
-  </section>
-
   <script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
   (() => {
     const root = document.getElementById('discussion-messages');
@@ -244,6 +249,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
     const currentUserId = Number(root.dataset.currentUserId || 0);
     const status = document.getElementById('discussion-crypto-status');
     const form = document.getElementById('discussion-message-form');
+    let lastMessageElement = document.querySelector('[data-discussion-last-message]');
     const cryptoOk = window.isSecureContext && window.crypto && window.crypto.subtle && window.indexedDB;
     let cryptoState = null;
 
@@ -469,6 +475,26 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
       parent.appendChild(element);
       return element;
     };
+    const scrollToLastMessage = () => {
+      if (lastMessageElement instanceof HTMLElement) {
+        lastMessageElement.scrollIntoView({ block: 'center' });
+      }
+    };
+    if (lastMessageElement instanceof HTMLElement) {
+      window.requestAnimationFrame(scrollToLastMessage);
+      window.setTimeout(scrollToLastMessage, 250);
+    }
+    document.querySelectorAll('[data-private-toast]').forEach((toast) => {
+      window.setTimeout(() => {
+        if (!(toast instanceof HTMLElement)) {
+          return;
+        }
+        toast.classList.add('private-toast-notice-hidden');
+        window.setTimeout(() => {
+          toast.hidden = true;
+        }, 320);
+      }, 3200);
+    });
 
     const appendMessage = (message) => {
       const id = Number(message.id || 0);
@@ -487,6 +513,12 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
       article.dataset.encryptionMode = String(message.encryptionMode || 'none');
       article.dataset.encryptedPayload = String(message.encryptedPayload || '');
       article.dataset.encryptionMetadata = String(message.encryptionMetadata || '');
+      if (lastMessageElement instanceof HTMLElement) {
+        lastMessageElement.removeAttribute('id');
+        lastMessageElement.removeAttribute('data-discussion-last-message');
+      }
+      article.id = 'discussion-message-last';
+      article.dataset.discussionLastMessage = '1';
       const meta = appendText(article, 'p', `${labelFor(Number(message.senderPrivateUserId || 0))} · ${message.createdAt || ''}`, 'muted');
       meta.style.fontWeight = '600';
       if (article.dataset.encryptionMode !== 'none') {
@@ -526,6 +558,7 @@ $cspNonce = is_string($GLOBALS['csp_nonce'] ?? null) ? (string) $GLOBALS['csp_no
       }
 
       root.appendChild(article);
+      lastMessageElement = article;
       lastId = id;
       decryptArticle(article);
     };

@@ -1257,7 +1257,7 @@ return [
     'TXT_PRIVATE_DISCUSSION_SECURITY_TEXT' => 'Neue Textnachrichten werden vor dem Senden im Browser verschluesselt: Der Server speichert ihren Inhalt nicht im Klartext.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_FILES' => 'Bilder und Anhaenge werden serverseitig auf dem Datentraeger verschluesselt, ausserhalb des Webroots gespeichert und nur fuer einen autorisierten Download entschluesselt.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_METADATA' => 'Technische Metadaten bleiben fuer den Betrieb notwendig: Teilnehmer, Daten, Gruppentitel, Dateinamen, Typen und Groessen.',
-    'TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION' => 'Nachrichten und Dateien haben eine kurze Aufbewahrung von 60 Tagen, mit automatischer Bereinigung und manueller Loeschung pro Unterhaltung.',
+    'TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION' => 'Nachrichten und Dateien haben eine kurze Aufbewahrung von 60 Tagen, mit automatischer Bereinigung und manueller Loeschung pro Nachricht.',
     'TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP' => 'Textnachrichten werden im Browser verschluesselt. Anhaenge werden auf dem Datentraeger verschluesselt und nur ueber serverseitige Zugriffskontrolle ausgeliefert.',
 
     // Instagram

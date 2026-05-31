@@ -407,6 +407,8 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertStringNotContainsString('outsider@example.com', $index->body);
         $this->assertStringNotContainsString('pending@example.com', $index->body);
         $this->assertStringContainsString('Conversations', $index->body);
+        $this->assertStringNotContainsString('Tableau de bord discussions', $index->body);
+        $this->assertStringNotContainsString('Conversation directe #', $index->body);
 
         $post = $controller->handle(
             'discussion_index',
@@ -429,8 +431,40 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertSame(200, $detail->status);
         $this->assertStringContainsString('Chiffrement des discussions', $detail->body);
         $this->assertStringContainsString('Envoyer un message', $detail->body);
+        $this->assertStringContainsString('bob@example.com', $detail->body);
         $this->assertStringContainsString('data-encrypted-body', $detail->body);
+        $this->assertStringContainsString('data-discussion-last-message="1"', $detail->body);
+        $this->assertStringNotContainsString('Supprimer mes messages', $detail->body);
+        $this->assertStringNotContainsString('Confirmer avec SUPPRIMER', $detail->body);
         $this->assertStringContainsString('nonce="testnonce"', $detail->body);
+
+        $payload = $this->encryptedPayload();
+        $messagePost = $controller->handle(
+            'discussion_conversation',
+            $this->request('POST', '/private/discussions/' . (int) $conversation['id'], [
+                'csrf_token' => csrf_token('private_discussions'),
+                'action' => 'send_message',
+                'body' => 'Nouveau message',
+                'encryption_mode' => $payload['mode'],
+                'encrypted_payload' => $payload['payload'],
+                'encryption_metadata' => $payload['metadata'],
+            ]),
+            ['conversationId' => (int) $conversation['id']]
+        );
+        $this->assertSame(302, $messagePost->status);
+        $this->assertSame(
+            '/private/discussions/' . (int) $conversation['id'] . '?notice=sent#discussion-message-last',
+            $messagePost->headers['Location'] ?? null
+        );
+
+        $detailNotice = $controller->handle(
+            'discussion_conversation',
+            $this->request('GET', '/private/discussions/' . (int) $conversation['id'] . '?notice=sent', [], ['notice' => 'sent']),
+            ['conversationId' => (int) $conversation['id']]
+        );
+        $this->assertSame(200, $detailNotice->status);
+        $this->assertStringContainsString('data-private-toast', $detailNotice->body);
+        $this->assertStringContainsString('Message envoyé.', $detailNotice->body);
     }
 
     /**
@@ -512,7 +546,7 @@ final class FamilyDiscussionModuleTest extends TestCase
     /**
      * @param array<string, mixed> $post
      */
-    private function request(string $method, string $uri, array $post = []): Request
+    private function request(string $method, string $uri, array $post = [], array $query = []): Request
     {
         return new Request(
             [
@@ -520,7 +554,7 @@ final class FamilyDiscussionModuleTest extends TestCase
                 'REQUEST_URI' => $uri,
                 'REMOTE_ADDR' => '127.0.0.1',
             ],
-            [],
+            $query,
             $post,
             [],
             ['Host' => '127.0.0.1:8000']

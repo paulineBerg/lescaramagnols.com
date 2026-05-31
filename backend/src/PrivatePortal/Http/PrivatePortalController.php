@@ -2907,16 +2907,6 @@ final class PrivatePortalController
 
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deleted ? '?notice=deleted' : '?error=delete'));
             }
-            if ($action === 'delete_my_conversation_data') {
-                $confirmation = is_string($body['confirm_delete'] ?? null) ? trim((string) $body['confirm_delete']) : '';
-                if ($confirmation !== 'SUPPRIMER') {
-                    return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=delete_confirmation');
-                }
-
-                $deletedCount = $this->discussionService()->deleteOwnConversationData($userId, $conversationId);
-
-                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deletedCount > 0 ? '?notice=deleted' : '?error=delete'));
-            }
             if ($action !== 'send_message') {
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=message');
             }
@@ -2933,7 +2923,7 @@ final class PrivatePortalController
             );
 
             return $this->redirect(
-                private_portal_url('discussion_index') . '/' . $conversationId . (is_array($message) ? '?notice=sent' : '?error=message')
+                private_portal_url('discussion_index') . '/' . $conversationId . (is_array($message) ? '?notice=sent#discussion-message-last' : '?error=message')
             );
         }
 
