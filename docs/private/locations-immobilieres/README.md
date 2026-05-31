@@ -627,6 +627,7 @@ Decisions L8 :
 - les justificatifs agence restent dans le stockage prive via `private_document_id` / `storage_path`, jamais sous `backend/public`.
 - les agences sont conservees dans `rental_agencies` et peuvent etre enrichies depuis l'onglet `Agences` avec raison sociale, adresse, telephone, email, conseiller et notes;
 - la revue des lignes agence conserve les actions par ligne, mais permet aussi d'enregistrer toutes les corrections visibles en une seule soumission.
+- l'import agence respecte le statut du scanner documentaire avant toute extraction texte : un fichier `infected`, `pending_scan` ou `scan_unavailable` est refuse, supprime du stockage prive et n'est pas persiste comme document a revoir.
 
 ## 5. Optimisations possibles
 

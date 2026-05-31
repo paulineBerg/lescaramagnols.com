@@ -2140,6 +2140,22 @@ final class PrivatePortalController
             return $this->redirect($this->rentalAgencyImportsUrl('documents', '', 'agency_import_duplicate'));
         }
 
+        if ($result->error !== null && str_starts_with($result->error, 'scan_')) {
+            $this->logEvent('private.rental_agency_import.scan_blocked', [
+                'private_user_id' => $userId,
+                'agency_import_batch_id' => $result->batch?->id,
+                'scan_error' => $result->error,
+            ]);
+
+            return $this->redirect($this->rentalAgencyImportsUrl(
+                'documents',
+                '',
+                $result->error === 'scan_infected'
+                    ? 'agency_import_scan_infected'
+                    : 'agency_import_scan_unavailable'
+            ));
+        }
+
         return $this->renderRentalAgencyImports($userId, '', 'agency_import_failed');
     }
 
@@ -5810,6 +5826,8 @@ final class PrivatePortalController
             'rental_purge_confirmation_required' => 'Confirmez la suppression avec SUPPRIMER.',
             'agency_import_failed' => 'Import agence impossible.',
             'agency_import_duplicate' => 'Document agence déjà importé.',
+            'agency_import_scan_infected' => 'Document agence refusé par le contrôle antivirus.',
+            'agency_import_scan_unavailable' => 'Contrôle antivirus indisponible : import agence refusé.',
             'agency_document_delete_failed' => 'Suppression du document agence impossible.',
             'agency_create_failed' => 'Création de l’agence impossible.',
             'agency_update_failed' => 'Mise à jour de l’agence impossible.',

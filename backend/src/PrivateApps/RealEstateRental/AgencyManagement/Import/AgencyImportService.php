@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import;
 
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentScanResult;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 
 final class AgencyImportService
@@ -65,6 +66,25 @@ final class AgencyImportService
             return new AgencyImportResult('failed', $batch, error: $this->storage->uploadError() ?? 'storage_failed');
         }
 
+        $scanStatus = is_string($stored['scanStatus'] ?? null)
+            ? PrivateDocumentScanResult::normalizeStatus((string) $stored['scanStatus'])
+            : PrivateDocumentScanResult::STATUS_CLEAN;
+        if (!PrivateDocumentScanResult::isDownloadable($scanStatus)) {
+            $this->storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
+            $batch = $this->repository->createBatch(
+                $privateUserId,
+                $agencyName,
+                $sourceDirectory,
+                1,
+                0,
+                0,
+                'draft',
+                'Document refuse par le controle antivirus.'
+            );
+
+            return new AgencyImportResult('failed', $batch, error: $this->scanErrorForStatus($scanStatus));
+        }
+
         $absolutePath = $this->storage->absolutePath((string) $stored['storagePath']);
         if ($absolutePath === null || !is_file($absolutePath)) {
             $this->storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
@@ -103,6 +123,16 @@ final class AgencyImportService
     {
         $normalized = strtolower(str_replace('\\', '/', trim($originalName)));
         return $normalized !== '' && str_ends_with($normalized, ':zone.identifier');
+    }
+
+    private function scanErrorForStatus(string $scanStatus): string
+    {
+        return match (PrivateDocumentScanResult::normalizeStatus($scanStatus)) {
+            PrivateDocumentScanResult::STATUS_INFECTED => 'scan_infected',
+            PrivateDocumentScanResult::STATUS_PENDING_SCAN => 'scan_pending',
+            PrivateDocumentScanResult::STATUS_SCAN_UNAVAILABLE => 'scan_unavailable',
+            default => 'scan_blocked',
+        };
     }
 
     private function previewService(): AgencyImportPreviewService

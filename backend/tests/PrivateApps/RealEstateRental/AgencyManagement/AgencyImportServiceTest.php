@@ -7,6 +7,7 @@ use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\AgencyImpor
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Pdf\DocumentTextExtractorInterface;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Pdf\ExtractedTextResult;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
+use Caramagnols\PrivatePortal\Documents\PrivateDocumentScanner;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
@@ -71,6 +72,31 @@ final class AgencyImportServiceTest extends TestCase
         @unlink((string) $uploaded['tmp_name']);
     }
 
+    public function testBlocksAgencyImportWhenDocumentScannerRefusesFile(): void
+    {
+        $repository = new AgencyImportRepository($this->editorialSqlDatabase());
+        $storage = $this->storage(new PrivateDocumentScanner(PHP_BINARY . ' -r exit(1); {file}', 5));
+        $service = new AgencyImportService(
+            $repository,
+            $storage,
+            new AgencyImportPreviewService($this->textExtractorReturning($this->asgText()))
+        );
+
+        $uploaded = $this->uploadedFile('releve-agence.txt', 'infected agency statement bytes');
+        $sha256 = hash('sha256', 'infected agency statement bytes');
+
+        $result = $service->importUploadedFile(1, $uploaded, 'ASG IMMOBILIER');
+
+        $this->assertSame('failed', $result->status);
+        $this->assertSame('scan_infected', $result->error);
+        $this->assertNotNull($result->batch);
+        $this->assertNull($repository->findImportedDocumentBySha256($sha256));
+        $this->assertSame([], $repository->listRecentDocumentsForUser(1, 10));
+        $this->assertSame(0, $this->countStoredFiles());
+
+        @unlink((string) $uploaded['tmp_name']);
+    }
+
     /**
      * @return array{name:string,tmp_name:string,size:int,error:int,type:string}
      */
@@ -89,7 +115,7 @@ final class AgencyImportServiceTest extends TestCase
         ];
     }
 
-    private function storage(): PrivateDocumentStorage
+    private function storage(?PrivateDocumentScanner $scanner = null): PrivateDocumentStorage
     {
         if ($this->storageRoot === '') {
             $this->storageRoot = sys_get_temp_dir() . '/agency-import-storage-' . bin2hex(random_bytes(6));
@@ -102,7 +128,11 @@ final class AgencyImportServiceTest extends TestCase
             'exports',
             1024 * 1024,
             ['txt', 'pdf'],
-            ['text/plain', 'application/pdf']
+            ['text/plain', 'application/pdf'],
+            null,
+            0700,
+            0600,
+            $scanner
         );
     }
 
@@ -158,5 +188,24 @@ TEXT;
         }
         @rmdir($this->storageRoot);
         $this->storageRoot = '';
+    }
+
+    private function countStoredFiles(): int
+    {
+        if ($this->storageRoot === '' || !is_dir($this->storageRoot)) {
+            return 0;
+        }
+
+        $count = 0;
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($this->storageRoot, FilesystemIterator::SKIP_DOTS)
+        );
+        foreach ($iterator as $path) {
+            if ($path->isFile()) {
+                ++$count;
+            }
+        }
+
+        return $count;
     }
 }
