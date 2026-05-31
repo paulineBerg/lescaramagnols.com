@@ -33,6 +33,37 @@ type CryptoState = {
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
+const emojiChoices: Array<{ value: string; label: string }> = [
+  { value: '😀', label: 'sourire' },
+  { value: '😄', label: 'grand sourire' },
+  { value: '😉', label: 'clin d oeil' },
+  { value: '😍', label: 'coeurs dans les yeux' },
+  { value: '😘', label: 'bisou' },
+  { value: '🥰', label: 'tendresse' },
+  { value: '😂', label: 'rire' },
+  { value: '🤣', label: 'fou rire' },
+  { value: '😊', label: 'content' },
+  { value: '🙂', label: 'leger sourire' },
+  { value: '😎', label: 'lunettes' },
+  { value: '🤔', label: 'reflexion' },
+  { value: '😢', label: 'triste' },
+  { value: '😮', label: 'surpris' },
+  { value: '👍', label: 'pouce leve' },
+  { value: '👏', label: 'bravo' },
+  { value: '🙏', label: 'merci' },
+  { value: '👌', label: 'ok' },
+  { value: '❤️', label: 'coeur' },
+  { value: '💙', label: 'coeur bleu' },
+  { value: '🎉', label: 'fete' },
+  { value: '✨', label: 'etincelles' },
+  { value: '🔥', label: 'flamme' },
+  { value: '☀️', label: 'soleil' },
+  { value: '🌙', label: 'lune' },
+  { value: '🚗', label: 'voiture' },
+  { value: '🛠️', label: 'outil' },
+  { value: '📷', label: 'appareil photo' }
+];
+
 const normalize = (value: string): string => {
   return value
     .toLowerCase()
@@ -147,6 +178,8 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
   const dropzone = root.querySelector<HTMLElement>('[data-discussion-dropzone]');
   const previewList = root.querySelector<HTMLElement>('[data-discussion-file-preview]');
   const draftInput = root.querySelector<HTMLTextAreaElement>('[data-discussion-draft]');
+  const emojiToggle = root.querySelector<HTMLButtonElement>('[data-discussion-emoji-toggle]');
+  const emojiPicker = root.querySelector<HTMLElement>('[data-discussion-emoji-picker]');
   const searchInput = root.querySelector<HTMLInputElement>('[data-discussion-local-search]');
   const submitButton = root.querySelector<HTMLButtonElement>('[data-discussion-submit-button]');
   const submitStatus = root.querySelector<HTMLElement>('[data-discussion-submit-status]');
@@ -865,6 +898,88 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     renderFilePreviews();
   };
 
+  const persistDraft = (): void => {
+    if (!draftInput) {
+      return;
+    }
+    try {
+      window.sessionStorage.setItem(draftKey, draftInput.value);
+    } catch (_error) {
+      // Les brouillons restent optionnels.
+    }
+  };
+
+  const closeEmojiPicker = (): void => {
+    if (emojiPicker) {
+      emojiPicker.hidden = true;
+    }
+    if (emojiToggle) {
+      emojiToggle.setAttribute('aria-expanded', 'false');
+    }
+  };
+
+  const setEmojiPickerOpen = (open: boolean): void => {
+    if (!emojiPicker || !emojiToggle) {
+      return;
+    }
+    emojiPicker.hidden = !open;
+    emojiToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+
+  const insertEmoji = (emoji: string): void => {
+    if (!draftInput) {
+      return;
+    }
+
+    const value = draftInput.value;
+    const start = draftInput.selectionStart;
+    const end = draftInput.selectionEnd;
+    const maxLength = draftInput.maxLength > 0 ? draftInput.maxLength : 4000;
+    const nextValue = `${value.slice(0, start)}${emoji}${value.slice(end)}`;
+    if (nextValue.length > maxLength) {
+      setSubmitState('error', 'Message trop long pour ajouter cet émoji.');
+      return;
+    }
+
+    draftInput.value = nextValue;
+    const cursor = start + emoji.length;
+    draftInput.setSelectionRange(cursor, cursor);
+    draftInput.focus();
+    persistDraft();
+    setSubmitState('idle', '');
+  };
+
+  if (emojiToggle && emojiPicker && draftInput) {
+    emojiChoices.forEach((choice) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'private-discussion-emoji-choice';
+      button.textContent = choice.value;
+      button.setAttribute('aria-label', `Insérer ${choice.label}`);
+      button.addEventListener('click', () => {
+        insertEmoji(choice.value);
+      });
+      emojiPicker.appendChild(button);
+    });
+
+    emojiToggle.addEventListener('click', () => {
+      setEmojiPickerOpen(emojiPicker.hidden);
+    });
+    emojiPicker.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeEmojiPicker();
+        emojiToggle.focus();
+      }
+    });
+    document.addEventListener('click', (event) => {
+      const target = event.target instanceof Node ? event.target : null;
+      if (!target || emojiPicker.hidden || emojiPicker.contains(target) || emojiToggle.contains(target)) {
+        return;
+      }
+      closeEmojiPicker();
+    });
+  }
+
   if (fileInput) {
     fileInput.addEventListener('change', () => {
       selectedFiles = Array.from(fileInput.files || []);
@@ -896,13 +1011,7 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     } catch (_error) {
       // Les brouillons restent optionnels.
     }
-    draftInput.addEventListener('input', () => {
-      try {
-        window.sessionStorage.setItem(draftKey, draftInput.value);
-      } catch (_error) {
-        // Les brouillons restent optionnels.
-      }
-    });
+    draftInput.addEventListener('input', persistDraft);
     draftInput.addEventListener('paste', (event) => {
       const files = event.clipboardData?.files;
       if (files && files.length > 0) {

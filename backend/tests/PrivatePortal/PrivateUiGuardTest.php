@@ -183,8 +183,17 @@ final class PrivateUiGuardTest extends TestCase
             '/<button[^>]+type="button"[^>]+data-discussion-revoke-device/s',
             $template
         );
+        self::assertStringContainsString('data-discussion-emoji-toggle', $template);
+        self::assertStringContainsString('aria-controls="discussion-emoji-picker"', $template);
+        self::assertStringContainsString('data-discussion-emoji-picker', $template);
+        self::assertMatchesRegularExpression(
+            '/<button[^>]+type="button"[^>]+data-discussion-emoji-toggle/s',
+            $template
+        );
         self::assertStringContainsString('.private-discussion-conversation-list a:focus-visible', $stylesheet);
         self::assertStringContainsString('.private-discussion-delete-button:focus-visible', $stylesheet);
+        self::assertStringContainsString('.private-discussion-emoji-choice:focus-visible', $stylesheet);
+        self::assertStringContainsString('.private-discussion-emoji-picker[hidden]', $stylesheet);
         self::assertStringContainsString('max-width: 100%;', $stylesheet);
         self::assertStringContainsString('@media (width <= 900px)', $stylesheet);
     }

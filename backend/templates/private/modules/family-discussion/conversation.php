@@ -414,8 +414,27 @@ $notificationLabels = [
             <input type="hidden" name="encryption_mode" value="" />
             <input type="hidden" name="encrypted_payload" value="" />
             <input type="hidden" name="encryption_metadata" value="" />
-            <label for="discussion-message-body">Message</label>
-            <textarea id="discussion-message-body" name="body" rows="3" maxlength="4000" data-discussion-draft></textarea>
+            <div class="private-discussion-textbox">
+              <div class="private-discussion-textbar">
+                <label for="discussion-message-body">Message</label>
+                <button
+                  type="button"
+                  class="private-button-secondary private-discussion-emoji-toggle"
+                  data-discussion-emoji-toggle
+                  aria-expanded="false"
+                  aria-controls="discussion-emoji-picker"
+                >Émojis</button>
+              </div>
+              <textarea id="discussion-message-body" name="body" rows="3" maxlength="4000" data-discussion-draft></textarea>
+              <div
+                id="discussion-emoji-picker"
+                class="private-discussion-emoji-picker"
+                data-discussion-emoji-picker
+                role="group"
+                aria-label="Insérer un émoji"
+                hidden
+              ></div>
+            </div>
             <div class="private-discussion-upload" data-discussion-dropzone>
               <label for="discussion-message-files">Images ou fichiers</label>
               <input id="discussion-message-files" type="file" name="discussion_files[]" multiple data-discussion-file-input />

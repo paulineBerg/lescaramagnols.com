@@ -327,6 +327,66 @@
   gap: 0.5rem;
 }
 
+.private-discussion-textbox {
+  display: grid;
+  gap: 0.45rem;
+  max-width: 100%;
+}
+
+.private-discussion-textbar {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.private-discussion-emoji-toggle {
+  flex: 0 0 auto;
+  min-height: 2.15rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.private-discussion-emoji-picker {
+  background: var(--private-surface);
+  border: 1px solid var(--private-border);
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgb(19 41 75 / 10%);
+  display: grid;
+  gap: 0.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(2.15rem, 1fr));
+  max-width: min(100%, 23rem);
+  padding: 0.45rem;
+}
+
+.private-discussion-emoji-picker[hidden] {
+  display: none;
+}
+
+.private-discussion-emoji-choice {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  display: inline-flex;
+  font-size: 1.2rem;
+  height: 2.15rem;
+  justify-content: center;
+  line-height: 1;
+  min-width: 2.15rem;
+  padding: 0;
+}
+
+.private-discussion-emoji-choice:hover,
+.private-discussion-emoji-choice:focus-visible {
+  background: rgb(29 111 141 / 8%);
+  border-color: rgb(29 111 141 / 24%);
+  box-shadow: none;
+  outline: 2px solid rgb(29 111 141 / 26%);
+  outline-offset: 1px;
+  transform: none;
+}
+
 .private-discussion-message-form textarea {
   min-height: 5.2rem;
   resize: vertical;

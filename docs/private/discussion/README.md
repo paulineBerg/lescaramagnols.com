@@ -20,6 +20,7 @@ Fonctions disponibles :
 - affichage des conversations directes avec l'email de l'autre membre;
 - page de conversation sous `/private/discussions/{conversationId}`;
 - envoi de messages texte chiffres cote navigateur;
+- insertion d'emojis dans le texte via un selecteur local, sans service tiers;
 - ajout de fichiers joints limites par taille, extension et type MIME;
 - stockage des fichiers joints chiffre au repos cote serveur;
 - apercu image quand une piece jointe est une image;
@@ -131,7 +132,7 @@ Templates :
 Styles et interactions communes :
 
 - `frontend/src/scss/private.scss`;
-- JavaScript inline nonce dans le template conversation pour la crypto locale, le polling, la position sur le dernier message et la popup de confirmation.
+- `frontend/src/js/private-discussion.ts` pour la crypto locale, le polling, la position sur le dernier message, la popup de confirmation, les brouillons, les apercus de fichiers et le selecteur d'emojis.
 
 Les templates doivent rester minces : pas de calcul metier complexe, pas de contournement des helpers d'echappement, pas d'action JavaScript visible sur un element autre qu'un vrai bouton quand une action est attendue.
 
