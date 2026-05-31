@@ -25,6 +25,7 @@ References projet a garder alignees :
 - `docs/backend/logging.md`
 - `docs/security/README.md`
 - `docs/private/backlog-pvt01.md`
+- `docs/private/discussion/README.md`
 - `docs/private/locations-immobilieres/README.md`
 - `docs/deployment/README.md`
 
