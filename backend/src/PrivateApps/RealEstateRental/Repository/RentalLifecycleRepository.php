@@ -2402,7 +2402,8 @@ final class RentalLifecycleRepository
                     KEY `idx_rental_leases_type` (`lease_type`, `tax_category`),
                     KEY `idx_rental_leases_unit` (`rental_unit_id`),
                     KEY `idx_rental_leases_tenant` (`rental_tenant_id`),
-                    KEY `idx_rental_leases_period` (`start_date`, `end_date`)
+                    KEY `idx_rental_leases_period` (`start_date`, `end_date`),
+                    KEY `idx_rental_leases_property_end` (`rental_property_id`, `status`, `end_date`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->leasesTable()
             )
@@ -2420,6 +2421,7 @@ final class RentalLifecycleRepository
             '`tax_category` VARCHAR(64) NOT NULL DEFAULT "property_income" AFTER `lease_type`'
         );
         $this->ensureIndex($pdo, $this->leasesTable(), 'idx_rental_leases_type', '`lease_type`, `tax_category`');
+        $this->ensureIndex($pdo, $this->leasesTable(), 'idx_rental_leases_property_end', '`rental_property_id`, `status`, `end_date`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -2438,6 +2440,7 @@ final class RentalLifecycleRepository
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     UNIQUE KEY `uq_rental_rents_lease_period` (`rental_lease_id`, `period_year`, `period_month`),
                     KEY `idx_rental_rents_property_year` (`rental_property_id`, `period_year`, `status`),
+                    KEY `idx_rental_rents_property_due` (`rental_property_id`, `due_date`, `status`),
                     KEY `idx_rental_rents_lease` (`rental_lease_id`),
                     KEY `idx_rental_rents_unit` (`rental_unit_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
@@ -2450,6 +2453,7 @@ final class RentalLifecycleRepository
             'uq_rental_rents_lease_period',
             '`rental_lease_id`, `period_year`, `period_month`'
         );
+        $this->ensureIndex($pdo, $this->rentsTable(), 'idx_rental_rents_property_due', '`rental_property_id`, `due_date`, `status`');
         $this->ensureRentStatusSchema($pdo);
         $pdo->exec(
             sprintf(
@@ -2473,6 +2477,7 @@ final class RentalLifecycleRepository
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     KEY `idx_rental_payments_property_year` (`rental_property_id`, `period_year`, `status`),
+                    KEY `idx_rental_payments_property_period` (`rental_property_id`, `period_year`, `period_month`, `status`),
                     KEY `idx_rental_payments_kind` (`payment_kind`),
                     KEY `idx_rental_payments_rent` (`rental_rent_id`),
                     KEY `idx_rental_payments_lease` (`rental_lease_id`),
@@ -2487,6 +2492,7 @@ final class RentalLifecycleRepository
         $this->ensureColumn($pdo, $this->paymentsTable(), 'payment_reference', '`payment_reference` VARCHAR(160) NULL AFTER `payment_method`');
         $this->ensureIndex($pdo, $this->paymentsTable(), 'idx_rental_payments_rent', '`rental_rent_id`');
         $this->ensureIndex($pdo, $this->paymentsTable(), 'idx_rental_payments_kind', '`payment_kind`');
+        $this->ensureIndex($pdo, $this->paymentsTable(), 'idx_rental_payments_property_period', '`rental_property_id`, `period_year`, `period_month`, `status`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -2507,6 +2513,7 @@ final class RentalLifecycleRepository
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     KEY `idx_rental_expenses_property_date` (`rental_property_id`, `tax_year`, `expense_date`, `status`),
                     KEY `idx_rental_expenses_category` (`expense_category`, `tax_year`),
+                    KEY `idx_rental_expenses_status_tax` (`rental_property_id`, `status`, `tax_year`),
                     KEY `idx_rental_expenses_flags` (`is_recoverable`, `is_deductible_candidate`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->expensesTable()
@@ -2516,6 +2523,7 @@ final class RentalLifecycleRepository
         $this->ensureColumn($pdo, $this->expensesTable(), 'tax_year', '`tax_year` SMALLINT NOT NULL DEFAULT 0 AFTER `expense_category`');
         $pdo->exec(sprintf('UPDATE `%s` SET `tax_year` = YEAR(`expense_date`) WHERE `tax_year` = 0', $this->expensesTable()));
         $this->ensureIndex($pdo, $this->expensesTable(), 'idx_rental_expenses_category', '`expense_category`, `tax_year`');
+        $this->ensureIndex($pdo, $this->expensesTable(), 'idx_rental_expenses_status_tax', '`rental_property_id`, `status`, `tax_year`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -2535,6 +2543,7 @@ final class RentalLifecycleRepository
                     `uploaded_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE KEY `uq_rental_documents_document_id` (`document_id`),
                     KEY `idx_rental_documents_property` (`rental_property_id`, `is_active`),
+                    KEY `idx_rental_documents_property_uploaded` (`rental_property_id`, `is_active`, `uploaded_at`),
                     KEY `idx_rental_documents_expense` (`rental_expense_id`, `is_active`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->documentsTable()
@@ -2542,6 +2551,7 @@ final class RentalLifecycleRepository
         );
         $this->ensureColumn($pdo, $this->documentsTable(), 'rental_expense_id', '`rental_expense_id` INT NULL AFTER `rental_lease_id`');
         $this->ensureIndex($pdo, $this->documentsTable(), 'idx_rental_documents_expense', '`rental_expense_id`, `is_active`');
+        $this->ensureIndex($pdo, $this->documentsTable(), 'idx_rental_documents_property_uploaded', '`rental_property_id`, `is_active`, `uploaded_at`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (

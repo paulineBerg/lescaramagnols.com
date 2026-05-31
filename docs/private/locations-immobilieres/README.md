@@ -617,16 +617,32 @@ Tests minimum :
 
 ## 5. Optimisations possibles
 
-- Index SQL sur les requetes frequentes : `rental_property_id`, periode, statut de validation, statut paiement, echeance.
-- Vue ou service de lecture pour le tableau de bord, afin d'eviter de recalculer tous les totaux dans les templates.
-- Generation batch mensuelle avec dry-run JSON avant ecriture.
-- Idempotence stricte sur imports, generation de loyers, relances et exports.
-- Files d'attente futures pour OCR, envoi email volumineux et generation ZIP.
-- Cache court des KPIs par utilisateur et annee, invalide apres ecriture locative.
-- Composants UI plus compacts pour les tableaux longs, filtres persistants et actions groupées.
-- Versionnement des modeles de courriers et quittances.
-- Historique de corrections plutot que suppression sur les objets financiers.
-- API privee future uniquement apres stabilisation du rendu serveur, avec les memes controles CSRF, permissions et audit.
+- [x] Index SQL sur les requetes frequentes : `rental_property_id`, periode, statut de validation, statut paiement, echeance.
+- [x] Vue ou service de lecture pour le tableau de bord, afin d'eviter de recalculer tous les totaux dans les templates.
+- [x] Generation batch mensuelle avec dry-run JSON avant ecriture.
+- [x] Idempotence stricte sur imports, generation de loyers, relances et exports.
+- [ ] Files d'attente futures pour OCR, envoi email volumineux et generation ZIP.
+- [ ] Cache court des KPIs par utilisateur et annee, invalide apres ecriture locative.
+- [x] Composants UI plus compacts pour les tableaux longs, filtres persistants et actions groupees.
+- [x] Versionnement des modeles de courriers et quittances.
+- [ ] Historique de corrections plutot que suppression sur les objets financiers.
+- [ ] API privee future uniquement apres stabilisation du rendu serveur, avec les memes controles CSRF, permissions et audit.
+
+Optimisations appliquees apres L7 :
+
+- indexes ajoutes sur baux proches de fin, echeances de loyers, paiements par periode, charges par statut fiscal et documents par date d'envoi;
+- `RentalDashboardService` reste la couche de lecture du dashboard, sans recalcul metier dans le template;
+- `RentScheduleService::dryRunForMonth()` produit une previsualisation JSON sans ecriture avant generation mensuelle reelle;
+- les exports produisent un contenu stable pour un meme etat de donnees et les ZIP documentaires n'incluent plus d'horodatage variable dans le manifeste;
+- les filtres de longues listes privees sont conserves par onglet via `sessionStorage`, avec reinitialisation explicite;
+- les snapshots de demandes de paiement et de quittances portent `templateVersion`.
+
+Optimisations reportees :
+
+- files d'attente OCR/email/ZIP : a introduire avec un worker prive et une table de jobs dediee, pour eviter un pseudo-asynchrone web fragile;
+- cache KPI persistant : a ajouter seulement avec une strategie d'invalidation commune apres toutes les ecritures locatives;
+- historique financier de corrections : a traiter comme evolution de modele, avec table d'audit metier et migration de l'action `delete`;
+- API privee : a garder hors perimetre tant que le rendu serveur reste la surface canonique.
 
 ## 6. Interdits et controles de securite
 

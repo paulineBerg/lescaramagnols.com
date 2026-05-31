@@ -122,6 +122,36 @@ final class RentalLifecycleTest extends TestCase
         $this->assertSame(1, $totals['endedLeases'] ?? null);
     }
 
+    public function testLifecycleSchemaDeclaresFrequentQueryIndexes(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        (new RentalLifecycleRepository($database))->ensureSchema();
+
+        $expected = [
+            'rental_leases' => 'idx_rental_leases_property_end',
+            'rental_rents' => 'idx_rental_rents_property_due',
+            'rental_payments' => 'idx_rental_payments_property_period',
+            'rental_expenses' => 'idx_rental_expenses_status_tax',
+            'rental_documents' => 'idx_rental_documents_property_uploaded',
+        ];
+
+        foreach ($expected as $table => $index) {
+            $statement = $database->pdo()->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND INDEX_NAME = :index_name'
+            );
+            $statement->execute([
+                'table' => $database->table($table),
+                'index_name' => $index,
+            ]);
+
+            $this->assertGreaterThan(0, (int) $statement->fetchColumn(), $table . ':' . $index);
+        }
+    }
+
     public function testAnnualSummaryRejectsDraftFiscalSourceRows(): void
     {
         $database = $this->editorialSqlDatabase();

@@ -11,6 +11,7 @@ final class RentalReceiptService
 {
     public const DOCUMENT_RECEIPT = 'receipt';
     public const DOCUMENT_PARTIAL_RECEIPT = 'partial_receipt';
+    private const TEMPLATE_VERSION = 1;
 
     public function __construct(
         private readonly RentalLifecycleRepository $repository,
@@ -165,6 +166,7 @@ final class RentalReceiptService
         );
 
         return [
+            'templateVersion' => self::TEMPLATE_VERSION,
             'documentType' => $documentType,
             'title' => $documentType === self::DOCUMENT_RECEIPT ? 'Quittance de loyer' : 'Recu partiel de loyer',
             'rentId' => is_numeric($rent['id'] ?? null) ? (int) $rent['id'] : 0,

@@ -66,6 +66,8 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-private-filter-row', $layout);
         self::assertStringContainsString('data-private-filter-empty', $layout);
         self::assertStringContainsString("field instanceof HTMLSelectElement && key !== 'text'", $layout);
+        self::assertStringContainsString('caramagnols.private.filters.', $layout);
+        self::assertStringContainsString('sessionStorage.setItem(storageKey', $layout);
         self::assertStringContainsString('data-private-nav-toggle', $layout);
         self::assertStringContainsString('type="button"', $layout);
         self::assertStringContainsString('caramagnols.private.navCollapsed', $layout);

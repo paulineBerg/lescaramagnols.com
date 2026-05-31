@@ -69,6 +69,7 @@ final class RentalReceiptServiceTest extends TestCase
         $this->assertIsArray($document);
         $this->assertSame('receipt', $document['documentType']);
         $this->assertStringContainsString('Quittance de loyer', (string) $service->content($document));
+        $this->assertMatchesRegularExpression('/"templateVersion":\s*1/', (string) ($document['snapshotPayload'] ?? ''));
         $this->assertStringContainsString('"balanceDue": "0.00"', (string) ($document['snapshotPayload'] ?? ''));
 
         $again = $service->generateForPayment((int) $payment['id'], [$propertyId], $ownerId, RentalReceiptService::DOCUMENT_RECEIPT);

@@ -9,6 +9,8 @@ use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepositor
 
 final class RentalPaymentRequestService
 {
+    private const TEMPLATE_VERSION = 1;
+
     /** @var array<int, string> */
     private const REQUESTABLE_RENT_STATUSES = ['pending', 'partial', 'late'];
 
@@ -255,6 +257,7 @@ final class RentalPaymentRequestService
     private function snapshot(array $preview, string $recipientEmail, string $subject, string $message, string $signature, string $channel): array
     {
         return [
+            'templateVersion' => self::TEMPLATE_VERSION,
             'rentId' => (int) ($preview['rentId'] ?? 0),
             'leaseId' => (int) ($preview['leaseId'] ?? 0),
             'propertyId' => (int) ($preview['propertyId'] ?? 0),

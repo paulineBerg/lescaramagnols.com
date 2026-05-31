@@ -66,6 +66,46 @@ final class RentScheduleServiceTest extends TestCase
         $this->assertCount(1, $lifecycleRepository->listRents([$propertyId], 2026));
     }
 
+    public function testMonthlyDryRunDescribesRentsWithoutWritingRows(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+        $service = new RentScheduleService($lifecycleRepository);
+        $ownerId = $this->createPrivateUser($userRepository, 'schedule-dry-run@example.com');
+
+        [$propertyId, $unitId, $leaseId] = $this->createRentalSourceSet(
+            $propertyRepository,
+            $memberRepository,
+            $unitRepository,
+            $lifecycleRepository,
+            $ownerId,
+            'Maison dry-run',
+            'validated'
+        );
+
+        $dryRun = $service->dryRunForMonth([$propertyId], 2026, 5, $ownerId);
+
+        $this->assertTrue($dryRun['dryRun']);
+        $this->assertSame(0, $dryRun['created']);
+        $this->assertSame(1, $dryRun['wouldCreate']);
+        $this->assertSame(0, $dryRun['existing']);
+        $this->assertSame(0, $dryRun['skipped']);
+        $this->assertCount(1, $dryRun['rents']);
+        $this->assertSame($leaseId, (int) ($dryRun['rents'][0]['rentalLeaseId'] ?? 0));
+        $this->assertSame($unitId, (int) ($dryRun['rents'][0]['rentalUnitId'] ?? 0));
+        $this->assertSame('2026-05-01', $dryRun['rents'][0]['dueDate'] ?? null);
+        $this->assertSame(1080.0, (float) ($dryRun['rents'][0]['amountDue'] ?? 0));
+        $this->assertSame([], $lifecycleRepository->listRents([$propertyId], 2026));
+
+        $generated = $service->generateForMonth([$propertyId], 2026, 5, $ownerId);
+        $this->assertSame(1, $generated['created']);
+        $this->assertCount(1, $lifecycleRepository->listRents([$propertyId], 2026));
+    }
+
     public function testDuplicateRentForLeasePeriodIsRejectedAndPaymentLinksExistingRent(): void
     {
         $database = $this->editorialSqlDatabase();

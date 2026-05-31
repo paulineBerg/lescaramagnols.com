@@ -437,10 +437,45 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
           const dataKey = datasetKey(key);
           return normalizeFilterValue(row.dataset[dataKey] || row.dataset.filterText || row.textContent || '');
         };
-        document.querySelectorAll('[data-private-filter-scope]').forEach((scope) => {
+        document.querySelectorAll('[data-private-filter-scope]').forEach((scope, scopeIndex) => {
           const rows = Array.from(scope.querySelectorAll('[data-private-filter-row]'));
           const fields = Array.from(scope.querySelectorAll('[data-private-filter]'));
           const emptyState = scope.querySelector('[data-private-filter-empty]');
+          const storageKey = `caramagnols.private.filters.${window.location.pathname}.${scopeIndex}`;
+          const fieldStorageKey = (field, fieldIndex) => `${field.getAttribute('data-private-filter') || 'text'}:${field.name || field.id || fieldIndex}`;
+          const readPersistedFilters = () => {
+            try {
+              const value = sessionStorage.getItem(storageKey);
+              const decoded = value ? JSON.parse(value) : {};
+              return decoded && typeof decoded === 'object' ? decoded : {};
+            } catch (_error) {
+              return {};
+            }
+          };
+          const writePersistedFilters = () => {
+            try {
+              const values = {};
+              fields.forEach((field, fieldIndex) => {
+                if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
+                  values[fieldStorageKey(field, fieldIndex)] = field.value;
+                }
+              });
+              sessionStorage.setItem(storageKey, JSON.stringify(values));
+            } catch (_error) {
+              // Le filtrage doit rester utilisable meme si sessionStorage est indisponible.
+            }
+          };
+          const persistedFilters = readPersistedFilters();
+          fields.forEach((field, fieldIndex) => {
+            if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLSelectElement)) {
+              return;
+            }
+
+            const persistedValue = persistedFilters[fieldStorageKey(field, fieldIndex)];
+            if (typeof persistedValue === 'string') {
+              field.value = persistedValue;
+            }
+          });
           const applyFilters = () => {
             let visibleCount = 0;
             rows.forEach((row) => {
@@ -479,8 +514,14 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
           };
 
           fields.forEach((field) => {
-            field.addEventListener('input', applyFilters);
-            field.addEventListener('change', applyFilters);
+            field.addEventListener('input', () => {
+              writePersistedFilters();
+              applyFilters();
+            });
+            field.addEventListener('change', () => {
+              writePersistedFilters();
+              applyFilters();
+            });
           });
           scope.querySelectorAll('[data-private-filter-reset]').forEach((button) => {
             button.addEventListener('click', () => {
@@ -491,6 +532,11 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
                   field.value = 'all';
                 }
               });
+              try {
+                sessionStorage.removeItem(storageKey);
+              } catch (_error) {
+                // Rien a faire.
+              }
               applyFilters();
             });
           });

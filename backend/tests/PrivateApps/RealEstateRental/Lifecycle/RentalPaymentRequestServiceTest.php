@@ -60,6 +60,7 @@ final class RentalPaymentRequestServiceTest extends TestCase
         $this->assertSame('sent', $requests[0]['status']);
         $this->assertSame('email', $requests[0]['channel']);
         $this->assertStringContainsString('@example.com', (string) ($requests[0]['snapshotPayload'] ?? ''));
+        $this->assertMatchesRegularExpression('/"templateVersion":\s*1/', (string) ($requests[0]['snapshotPayload'] ?? ''));
         $this->assertStringNotContainsString('"recipientEmail":"locataire@example.com"', (string) ($requests[0]['snapshotPayload'] ?? ''));
 
         $duplicate = $service->send(

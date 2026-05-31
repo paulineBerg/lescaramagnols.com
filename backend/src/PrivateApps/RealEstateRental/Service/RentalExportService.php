@@ -395,7 +395,6 @@ final class RentalExportService
 
         $manifestJson = json_encode(
             [
-                'generatedAt' => date('c'),
                 'propertyId' => $propertyId,
                 'documentCount' => count($manifest),
                 'documents' => $manifest,

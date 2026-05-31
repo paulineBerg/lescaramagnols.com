@@ -16,11 +16,16 @@ final class RentScheduleService
     }
 
     /**
-     * @return array{created:int, existing:int, skipped:int, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
+     * @return array{created:int, existing:int, skipped:int, wouldCreate:int, dryRun:bool, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
      */
-    public function generateForLeasePeriod(int $leaseId, int $periodYear, int $periodMonth, int $actorPrivateUserId): array
-    {
-        $result = $this->emptyResult();
+    public function generateForLeasePeriod(
+        int $leaseId,
+        int $periodYear,
+        int $periodMonth,
+        int $actorPrivateUserId,
+        bool $dryRun = false
+    ): array {
+        $result = $this->emptyResult($dryRun);
         if ($actorPrivateUserId <= 0 || !$this->isValidPeriod($periodYear, $periodMonth)) {
             return $this->addSkipped($result, 'invalid_period');
         }
@@ -30,49 +35,71 @@ final class RentScheduleService
             return $this->addSkipped($result, 'lease_missing');
         }
 
-        return $this->generateFromLease($result, $lease, $periodYear, $periodMonth, $actorPrivateUserId);
+        return $this->generateFromLease($result, $lease, $periodYear, $periodMonth, $actorPrivateUserId, $dryRun);
     }
 
     /**
      * @param array<int, int> $propertyIds
-     * @return array{created:int, existing:int, skipped:int, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
+     * @return array{created:int, existing:int, skipped:int, wouldCreate:int, dryRun:bool, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
      */
-    public function generateForMonth(array $propertyIds, int $periodYear, int $periodMonth, int $actorPrivateUserId): array
-    {
-        $result = $this->emptyResult();
+    public function generateForMonth(
+        array $propertyIds,
+        int $periodYear,
+        int $periodMonth,
+        int $actorPrivateUserId,
+        bool $dryRun = false
+    ): array {
+        $result = $this->emptyResult($dryRun);
         $propertyIds = $this->normalizeIds($propertyIds);
         if ($propertyIds === [] || $actorPrivateUserId <= 0 || !$this->isValidPeriod($periodYear, $periodMonth)) {
             return $this->addSkipped($result, 'invalid_period');
         }
 
         foreach ($this->repository->listLeases($propertyIds, 1000) as $lease) {
-            $result = $this->generateFromLease($result, $lease, $periodYear, $periodMonth, $actorPrivateUserId);
+            $result = $this->generateFromLease($result, $lease, $periodYear, $periodMonth, $actorPrivateUserId, $dryRun);
         }
 
         return $result;
     }
 
     /**
-     * @return array{created:int, existing:int, skipped:int, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
+     * @param array<int, int> $propertyIds
+     * @return array{created:int, existing:int, skipped:int, wouldCreate:int, dryRun:bool, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
      */
-    private function emptyResult(): array
+    public function dryRunForMonth(array $propertyIds, int $periodYear, int $periodMonth, int $actorPrivateUserId): array
+    {
+        return $this->generateForMonth($propertyIds, $periodYear, $periodMonth, $actorPrivateUserId, true);
+    }
+
+    /**
+     * @return array{created:int, existing:int, skipped:int, wouldCreate:int, dryRun:bool, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
+     */
+    private function emptyResult(bool $dryRun = false): array
     {
         return [
             'created' => 0,
             'existing' => 0,
             'skipped' => 0,
+            'wouldCreate' => 0,
+            'dryRun' => $dryRun,
             'rents' => [],
             'reasons' => [],
         ];
     }
 
     /**
-     * @param array{created:int, existing:int, skipped:int, rents:array<int, array<string, mixed>>, reasons:array<string, int>} $result
+     * @param array{created:int, existing:int, skipped:int, wouldCreate:int, dryRun:bool, rents:array<int, array<string, mixed>>, reasons:array<string, int>} $result
      * @param array<string, mixed> $lease
-     * @return array{created:int, existing:int, skipped:int, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
+     * @return array{created:int, existing:int, skipped:int, wouldCreate:int, dryRun:bool, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
      */
-    private function generateFromLease(array $result, array $lease, int $periodYear, int $periodMonth, int $actorPrivateUserId): array
-    {
+    private function generateFromLease(
+        array $result,
+        array $lease,
+        int $periodYear,
+        int $periodMonth,
+        int $actorPrivateUserId,
+        bool $dryRun = false
+    ): array {
         $leaseId = is_numeric($lease['id'] ?? null) ? (int) $lease['id'] : 0;
         $propertyId = is_numeric($lease['rentalPropertyId'] ?? null) ? (int) $lease['rentalPropertyId'] : 0;
         $unitId = is_numeric($lease['rentalUnitId'] ?? null) ? (int) $lease['rentalUnitId'] : 0;
@@ -114,6 +141,24 @@ final class RentScheduleService
             $monthlyRent,
             $chargesProvision
         );
+
+        if ($dryRun) {
+            ++$result['wouldCreate'];
+            $result['rents'][] = [
+                'rentalLeaseId' => $leaseId,
+                'rentalPropertyId' => $propertyId,
+                'rentalUnitId' => $unitId,
+                'periodYear' => $periodYear,
+                'periodMonth' => $periodMonth,
+                'dueDate' => $dueDate,
+                'amountDue' => $amountDue,
+                'status' => 'pending',
+                'notes' => $notes,
+                'dryRun' => true,
+            ];
+
+            return $result;
+        }
 
         $rent = $this->repository->createRent(
             $leaseId,
@@ -185,8 +230,8 @@ final class RentScheduleService
     }
 
     /**
-     * @param array{created:int, existing:int, skipped:int, rents:array<int, array<string, mixed>>, reasons:array<string, int>} $result
-     * @return array{created:int, existing:int, skipped:int, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
+     * @param array{created:int, existing:int, skipped:int, wouldCreate:int, dryRun:bool, rents:array<int, array<string, mixed>>, reasons:array<string, int>} $result
+     * @return array{created:int, existing:int, skipped:int, wouldCreate:int, dryRun:bool, rents:array<int, array<string, mixed>>, reasons:array<string, int>}
      */
     private function addSkipped(array $result, string $reason): array
     {
