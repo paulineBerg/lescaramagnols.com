@@ -51,7 +51,9 @@ Description:
   Full release deploy of backend/ to remote host.
   - Keeps remote .env in place
   - Keeps remote config/*.override.php in place (admin runtime settings)
+  - Keeps runtime private storage under backend/private/
   - Keeps runtime editorial uploads under backend/public/uploads/editorial/
+  - Keeps OVH runtime config under backend/public/.ovhconfig
   - Preserves runtime/local artifact directories under backend/var/, backend/data/logs/ and backend/data/snapshots/
   - Excludes and cleans non-production dev/test/docs/temp files
   - Syncs backend/vendor/ by default (OVH without composer)
@@ -154,6 +156,7 @@ rsync "${RSYNC_FLAGS[@]}" \
   --exclude="tests/" \
   --exclude="docs/" \
   --exclude="README*" \
+  --exclude="private/" \
   --exclude="phpunit.xml" \
   --exclude="phpstan.neon*" \
   --exclude="phpstan.bootstrap.php" \
@@ -173,6 +176,7 @@ rsync "${RSYNC_FLAGS[@]}" \
   --exclude="data/snapshots/" \
   --exclude="data/*.bak" \
   --exclude="var/" \
+  --exclude="public/.ovhconfig" \
   --exclude="public/uploads/" \
   --exclude="public/dev-router.php" \
   "$LOCAL_BACKEND/" "$REMOTE_HOST:$REMOTE_BACKEND/"

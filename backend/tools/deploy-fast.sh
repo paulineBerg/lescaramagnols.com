@@ -19,7 +19,7 @@ ALL_CHANGES=0
 
 is_deploy_excluded_path() {
   case "$1" in
-    .env|.env.*|config/*.override.php|vendor|vendor/*|node_modules|node_modules/*|tests|tests/*|docs|docs/*|README*|var|var/*|phpunit.xml|phpstan.neon*|phpstan.bootstrap.php|phpcs.xml|package.json|package-lock.json|npm-shrinkwrap.json|replace_image_paths.php|data/snapshots|data/snapshots/*|data/logs|data/logs/*|*.bak|*.old|*.orig|*.tmp|*~|.DS_Store|Thumbs.db|public/uploads|public/uploads/*|public/dev-router.php)
+    .env|.env.*|config/*.override.php|vendor|vendor/*|node_modules|node_modules/*|tests|tests/*|docs|docs/*|README*|private|private/*|var|var/*|phpunit.xml|phpstan.neon*|phpstan.bootstrap.php|phpcs.xml|package.json|package-lock.json|npm-shrinkwrap.json|replace_image_paths.php|data/snapshots|data/snapshots/*|data/logs|data/logs/*|*.bak|*.old|*.orig|*.tmp|*~|.DS_Store|Thumbs.db|public/.ovhconfig|public/uploads|public/uploads/*|public/dev-router.php)
       return 0
       ;;
   esac
@@ -42,7 +42,9 @@ Description:
   Default scope is staged backend changes (safe mode).
   - Preserves remote .env
   - Preserves remote config/*.override.php (admin runtime settings)
+  - Preserves runtime private storage under backend/private/
   - Preserves runtime editorial uploads under backend/public/uploads/editorial/
+  - Preserves OVH runtime config under backend/public/.ovhconfig
   - Excludes and cleans non-production dev/test/docs/temp files
   - Checks Vite manifest assets locally before deploy and remotely after sync
   - Synchronises the full published frontend tree (.vite, assets, tarteaucitron)
