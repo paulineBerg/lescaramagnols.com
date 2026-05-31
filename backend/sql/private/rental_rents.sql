@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS car_rental_rents (
     created_by_private_user_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_rental_rents_lease_period (rental_lease_id, period_year, period_month),
     KEY idx_rental_rents_property_year (rental_property_id, period_year, status),
     KEY idx_rental_rents_lease (rental_lease_id),
     KEY idx_rental_rents_unit (rental_unit_id),

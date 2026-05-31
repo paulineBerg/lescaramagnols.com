@@ -581,6 +581,10 @@ final class RentalLifecycleRepository
 
         try {
             $this->ensureSchema();
+            if ($this->findRentByLeasePeriod($leaseId, $periodYear, $periodMonth) !== null) {
+                return null;
+            }
+
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
@@ -626,6 +630,40 @@ final class RentalLifecycleRepository
                 sprintf('SELECT * FROM `%s` WHERE `id` = :id LIMIT 1', $this->rentsTable())
             );
             $statement->execute(['id' => $rentId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findRentByLeasePeriod(int $leaseId, int $periodYear, int $periodMonth): ?array
+    {
+        if ($leaseId <= 0 || $periodYear < 2000 || $periodYear > 2100 || $periodMonth < 1 || $periodMonth > 12) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT * FROM `%s`
+                     WHERE `rental_lease_id` = :lease_id
+                       AND `period_year` = :period_year
+                       AND `period_month` = :period_month
+                     LIMIT 1',
+                    $this->rentsTable()
+                )
+            );
+            $statement->execute([
+                'lease_id' => $leaseId,
+                'period_year' => $periodYear,
+                'period_month' => $periodMonth,
+            ]);
             $row = $statement->fetch(PDO::FETCH_ASSOC);
         } catch (\Throwable) {
             return null;
@@ -775,18 +813,21 @@ final class RentalLifecycleRepository
         try {
             $this->ensureSchema();
             if ($rentId === null && $amountDue > 0) {
-                $rent = $this->createRent(
-                    $leaseId,
-                    $propertyId,
-                    $unitId,
-                    $periodYear,
-                    $periodMonth,
-                    sprintf('%04d-%02d-01', $periodYear, $periodMonth),
-                    $amountDue,
-                    $status,
-                    $actorPrivateUserId,
-                    null
-                );
+                $rent = $this->findRentByLeasePeriod($leaseId, $periodYear, $periodMonth);
+                if (!is_array($rent)) {
+                    $rent = $this->createRent(
+                        $leaseId,
+                        $propertyId,
+                        $unitId,
+                        $periodYear,
+                        $periodMonth,
+                        sprintf('%04d-%02d-01', $periodYear, $periodMonth),
+                        $amountDue,
+                        $status,
+                        $actorPrivateUserId,
+                        null
+                    );
+                }
                 $rentId = is_array($rent) && is_numeric($rent['id'] ?? null) ? (int) $rent['id'] : null;
             }
 
@@ -1540,12 +1581,19 @@ final class RentalLifecycleRepository
                     `created_by_private_user_id` INT NOT NULL,
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uq_rental_rents_lease_period` (`rental_lease_id`, `period_year`, `period_month`),
                     KEY `idx_rental_rents_property_year` (`rental_property_id`, `period_year`, `status`),
                     KEY `idx_rental_rents_lease` (`rental_lease_id`),
                     KEY `idx_rental_rents_unit` (`rental_unit_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->rentsTable()
             )
+        );
+        $this->ensureUniqueIndex(
+            $pdo,
+            $this->rentsTable(),
+            'uq_rental_rents_lease_period',
+            '`rental_lease_id`, `period_year`, `period_month`'
         );
         $pdo->exec(
             sprintf(
@@ -1924,6 +1972,27 @@ final class RentalLifecycleRepository
             }
 
             $pdo->exec(sprintf('ALTER TABLE `%s` ADD KEY `%s` (%s)', $table, $index, $columns));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureUniqueIndex(PDO $pdo, string $table, string $index, string $columns): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND INDEX_NAME = :index_name'
+            );
+            $statement->execute(['table' => $table, 'index_name' => $index]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD UNIQUE KEY `%s` (%s)', $table, $index, $columns));
         } catch (\Throwable) {
             return;
         }

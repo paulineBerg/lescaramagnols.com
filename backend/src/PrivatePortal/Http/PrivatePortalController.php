@@ -26,6 +26,7 @@ use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyImpor
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\AgencyImportService;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyTaxBridgeNormalizer;
+use Caramagnols\PrivateApps\RealEstateRental\Service\RentScheduleService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
@@ -74,7 +75,8 @@ final class PrivatePortalController
         private readonly ?DiscussionRepository $discussionRepository = null,
         private readonly ?DiscussionAttachmentStorage $discussionAttachmentStorage = null,
         private readonly ?DiscussionService $discussionService = null,
-        private readonly ?DiscussionRetentionService $discussionRetentionService = null
+        private readonly ?DiscussionRetentionService $discussionRetentionService = null,
+        private readonly ?RentScheduleService $rentScheduleService = null
     ) {
     }
 
@@ -1227,6 +1229,61 @@ final class PrivatePortalController
             ]);
 
             return $this->redirect(private_portal_url('rental_rents') . '?notice=rent_deleted');
+        }
+
+        if ($action === 'generate_rent_schedule') {
+            $leaseId = $this->normalizeNumericId($body['rental_lease_id'] ?? null);
+            $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
+            $propertyId = is_array($lease) && is_numeric($lease['rentalPropertyId'] ?? null)
+                ? (int) $lease['rentalPropertyId']
+                : 0;
+            if ($leaseId <= 0 || !in_array($propertyId, $propertyIds, true) || !$this->canWriteByPropertyId($propertyId, $userId)) {
+                return $this->renderRentalRents($leases, $rents, '', 'property_forbidden');
+            }
+
+            [$periodYear, $periodMonth] = $this->rentalPeriodFromBody($body);
+            if ($periodYear <= 0 || $periodMonth <= 0) {
+                return $this->renderRentalRents($leases, $rents, '', 'rental_write_failed');
+            }
+
+            $result = $this->rentScheduleService()->generateForLeasePeriod($leaseId, $periodYear, $periodMonth, $userId);
+            $this->logEvent('private.rental_rent_schedule.generated', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $propertyId,
+                'rental_lease_id' => $leaseId,
+                'period_year' => $periodYear,
+                'period_month' => $periodMonth,
+                'created' => (int) ($result['created'] ?? 0),
+                'existing' => (int) ($result['existing'] ?? 0),
+                'skipped' => (int) ($result['skipped'] ?? 0),
+            ]);
+
+            return $this->redirect(private_portal_url('rental_rents') . '?notice=' . $this->rentScheduleNotice($result));
+        }
+
+        if ($action === 'generate_month_schedule') {
+            $writablePropertyIds = $this->writableRentalPropertyIds($propertyIds, $userId);
+            if ($writablePropertyIds === []) {
+                return $this->renderRentalRents($leases, $rents, '', 'property_forbidden');
+            }
+
+            [$periodYear, $periodMonth] = $this->rentalPeriodFromBody($body);
+            if ($periodYear <= 0 || $periodMonth <= 0) {
+                return $this->renderRentalRents($leases, $rents, '', 'rental_write_failed');
+            }
+
+            $result = $this->rentScheduleService()->generateForMonth($writablePropertyIds, $periodYear, $periodMonth, $userId);
+            $this->logEvent('private.rental_rent_schedule.generated', [
+                'private_user_id' => $userId,
+                'period_year' => $periodYear,
+                'period_month' => $periodMonth,
+                'property_count' => count($writablePropertyIds),
+                'created' => (int) ($result['created'] ?? 0),
+                'existing' => (int) ($result['existing'] ?? 0),
+                'skipped' => (int) ($result['skipped'] ?? 0),
+            ]);
+
+            return $this->redirect(private_portal_url('rental_rents') . '?notice=' . $this->rentScheduleNotice($result));
         }
 
         if ($action !== 'create_rent') {
@@ -4248,6 +4305,22 @@ final class PrivatePortalController
         return $propertyId > 0 && $this->canWriteProperty($propertyId, $userId);
     }
 
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array<int, int>
+     */
+    private function writableRentalPropertyIds(array $propertyIds, int $userId): array
+    {
+        $writable = [];
+        foreach ($propertyIds as $propertyId) {
+            if ($this->canWriteByPropertyId((int) $propertyId, $userId)) {
+                $writable[] = (int) $propertyId;
+            }
+        }
+
+        return array_values(array_unique($writable));
+    }
+
     private function unitBelongsToProperty(int $unitId, int $propertyId): bool
     {
         if ($unitId <= 0 || $propertyId <= 0) {
@@ -4399,6 +4472,27 @@ final class PrivatePortalController
         $month = is_numeric($body['period_month'] ?? null) ? (int) $body['period_month'] : 0;
 
         return [$year >= 2000 && $year <= 2100 ? $year : 0, $month >= 1 && $month <= 12 ? $month : 0];
+    }
+
+    /**
+     * @param array{created?:int, existing?:int, skipped?:int} $result
+     */
+    private function rentScheduleNotice(array $result): string
+    {
+        $created = (int) ($result['created'] ?? 0);
+        $existing = (int) ($result['existing'] ?? 0);
+        $skipped = (int) ($result['skipped'] ?? 0);
+        if ($created > 0 && $skipped === 0) {
+            return 'rent_schedule_generated';
+        }
+        if ($created > 0) {
+            return 'rent_schedule_partial';
+        }
+        if ($existing > 0 && $skipped === 0) {
+            return 'rent_schedule_existing';
+        }
+
+        return 'rent_schedule_partial';
     }
 
     /**
@@ -4620,6 +4714,9 @@ final class PrivatePortalController
             'lease_adjusted' => 'Réajustement du bail appliqué.',
             'lease_deleted' => 'Bail supprimé.',
             'rent_created' => 'Loyer créé.',
+            'rent_schedule_generated' => 'Échéancier généré.',
+            'rent_schedule_existing' => 'Échéancier déjà à jour.',
+            'rent_schedule_partial' => 'Échéancier partiellement généré.',
             'rent_deleted' => 'Loyer supprimé.',
             'payment_created' => 'Paiement locatif créé.',
             'payment_deleted' => 'Paiement locatif supprimé.',
@@ -5286,6 +5383,11 @@ final class PrivatePortalController
     {
         return $this->rentalAnnualSummaryService
             ?? new RentalAnnualSummaryService($this->rentalLifecycleRepository());
+    }
+
+    private function rentScheduleService(): RentScheduleService
+    {
+        return $this->rentScheduleService ?? new RentScheduleService($this->rentalLifecycleRepository());
     }
 
     private function taxDeclarationRepository(): TaxDeclarationRepository

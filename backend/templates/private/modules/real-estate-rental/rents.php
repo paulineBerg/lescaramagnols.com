@@ -13,6 +13,25 @@ $createDialogId = 'rental-rent-create-dialog';
   <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
+  <section class="card private-list-section">
+    <div class="private-list-header">
+      <div>
+        <h2>Échéancier</h2>
+        <p class="muted">Génère les loyers attendus depuis les baux actifs, sans doublonner une période déjà créée.</p>
+      </div>
+    </div>
+    <?php if ($leases === []): ?>
+      <p class="muted">Créer d'abord un bail avant de générer un échéancier.</p>
+    <?php else: ?>
+      <form method="post" action="<?php echo htmlspecialchars((string) ($urls['rents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" class="private-inline-form">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+        <input type="hidden" name="action" value="generate_month_schedule" />
+        <label>Mois à générer <input type="month" name="period_month_picker" value="<?php echo htmlspecialchars(date('Y-m'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+        <button type="submit">Générer les loyers dus du mois</button>
+      </form>
+    <?php endif; ?>
+  </section>
+
   <section class="card private-list-section" data-private-filter-scope>
     <div class="private-list-header">
       <div>
@@ -97,6 +116,26 @@ $createDialogId = 'rental-rent-create-dialog';
       <?php if ($leases === []): ?>
         <p class="muted">Créer d'abord un bail.</p>
       <?php else: ?>
+        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['rents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+          <input type="hidden" name="action" value="generate_rent_schedule" />
+          <fieldset class="private-fieldset">
+            <legend>Génération depuis le bail</legend>
+            <label>Bail
+              <select name="rental_lease_id" required>
+                <?php foreach ($leases as $lease): ?>
+                  <?php if (!is_array($lease) || !is_numeric($lease['id'] ?? null)) { continue; } ?>
+                  <option value="<?php echo htmlspecialchars((string) (int) $lease['id'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php echo htmlspecialchars((string) ($lease['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> - <?php echo htmlspecialchars((string) ($lease['unitLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> - <?php echo htmlspecialchars((string) ($lease['tenantName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            </label>
+            <label>Période <input type="month" name="period_month_picker" value="<?php echo htmlspecialchars(date('Y-m'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+            <button type="submit">Générer l'échéance du bail</button>
+          </fieldset>
+        </form>
+        <hr />
         <form method="post" action="<?php echo htmlspecialchars((string) ($urls['rents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-rental-rent-form>
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
           <input type="hidden" name="action" value="create_rent" />

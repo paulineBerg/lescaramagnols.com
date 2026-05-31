@@ -183,6 +183,88 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertStringContainsString('data-rental-lease-start-date', $response->body);
     }
 
+    public function testRentScheduleActionGeneratesExpectedRentOnce(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'rent-schedule-ui@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
+        $property = $propertyRepository->create($ownerId, 'Maison echeancier UI', '14 rue du Loyer', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Lot echeancier', 39.0, false, 'available', null, $ownerId);
+        $this->assertNotNull($unit);
+        $tenant = $lifecycleRepository->createTenant($property->id, $unit->id, 'Locataire echeancier', null, null, 'validated', $ownerId, null);
+        $this->assertIsArray($tenant);
+        $lease = $lifecycleRepository->createLease(
+            $property->id,
+            $unit->id,
+            (int) $tenant['id'],
+            '2026-01-15',
+            '2026-12-31',
+            900.0,
+            75.0,
+            'validated',
+            $ownerId,
+            null
+        );
+        $this->assertIsArray($lease);
+
+        $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'rent-schedule-ui@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            rentalPropertyRepository: $propertyRepository,
+            rentalPropertyMemberRepository: $memberRepository,
+            rentalUnitRepository: $unitRepository,
+            rentalLifecycleRepository: $lifecycleRepository
+        );
+
+        $get = $controller->handle('rental_rents', $this->request('GET', '/private/rents'));
+        $this->assertSame(200, $get->status);
+        $this->assertStringContainsString('Générer les loyers dus du mois', $get->body);
+        $this->assertStringContainsString('value="generate_rent_schedule"', $get->body);
+        $this->assertStringContainsString('value="generate_month_schedule"', $get->body);
+
+        $post = $controller->handle(
+            'rental_rents',
+            $this->request('POST', '/private/rents', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'generate_rent_schedule',
+                'rental_lease_id' => (string) $lease['id'],
+                'period_month_picker' => '2026-01',
+            ])
+        );
+
+        $this->assertSame(302, $post->status);
+        $this->assertSame('/private/rents?notice=rent_schedule_generated', $post->headers['Location'] ?? null);
+
+        $rents = $lifecycleRepository->listRents([$property->id], 2026);
+        $this->assertCount(1, $rents);
+        $this->assertSame('2026-01-15', $rents[0]['dueDate']);
+        $this->assertSame(975.0, (float) $rents[0]['amountDue']);
+
+        $again = $controller->handle(
+            'rental_rents',
+            $this->request('POST', '/private/rents', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'generate_rent_schedule',
+                'rental_lease_id' => (string) $lease['id'],
+                'period_month_picker' => '2026-01',
+            ])
+        );
+
+        $this->assertSame(302, $again->status);
+        $this->assertSame('/private/rents?notice=rent_schedule_existing', $again->headers['Location'] ?? null);
+        $this->assertCount(1, $lifecycleRepository->listRents([$property->id], 2026));
+    }
+
     public function testCreatingPropertyCanCreateWholeHouseRentalUnit(): void
     {
         $database = $this->editorialSqlDatabase();

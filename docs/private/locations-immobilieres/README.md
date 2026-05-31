@@ -1,7 +1,7 @@
 # Locations immobilieres privees
 
 Date de mise a jour : 2026-05-31
-Statut : plan d'amelioration du module `RealEstateRental`, phase L0 terminee, consolide depuis le brouillon `docs/private/amelioration locations immobil.txt` et aligne sur l'existant du depot.
+Statut : plan d'amelioration du module `RealEstateRental`, phase L1 terminee, consolide depuis le brouillon `docs/private/amelioration locations immobil.txt` et aligne sur l'existant du depot.
 
 Ce README sert de feuille de route fonctionnelle et technique pour rendre le module de locations immobilieres plus complet, sans casser le socle prive deja livre.
 
@@ -31,9 +31,8 @@ Fonctions deja presentes :
 
 Ecarts importants :
 
-- les loyers attendus ne sont pas encore generes par un service d'echeancier idempotent;
+- les loyers attendus sont generes par `RentScheduleService`, avec idempotence applicative et contrainte unique `bail + mois`;
 - le statut `draft/validated/cancelled` sert aujourd'hui a la validation des donnees, pas au suivi `pending/partial/paid/late`;
-- la table des loyers ne bloque pas encore explicitement le doublon `bail + mois`;
 - les demandes de paiement et relances ne sont pas historisees dans une table dediee;
 - les quittances existent comme reponse PDF/email, mais pas encore comme document genere immuable rattache au loyer;
 - les charges n'ont pas encore de referentiel de categories complet, d'annee fiscale explicite ni de rattachement documentaire fin;
@@ -336,19 +335,38 @@ Validation L0 :
 
 ### Phase L1 - Echeancier durable des loyers
 
-- [ ] Creer `RentScheduleService`.
-- [ ] Ajouter une contrainte anti-doublon `bail + annee + mois`.
-- [ ] Ajouter une action `Generer les loyers dus` par bail ou par mois.
-- [ ] Refuser la generation si le bail est annule, termine hors periode ou si la periode existe deja.
-- [ ] Conserver le montant du au moment de la generation.
-- [ ] Auditer generation, correction et annulation.
+- [x] Creer `RentScheduleService`.
+- [x] Ajouter une contrainte anti-doublon `bail + annee + mois`.
+- [x] Ajouter une action `Generer les loyers dus` par bail ou par mois.
+- [x] Refuser la generation si le bail est annule, termine hors periode ou si la periode existe deja.
+- [x] Conserver le montant du au moment de la generation.
+- [x] Auditer generation, correction et annulation.
 
 Tests minimum :
 
-- [ ] `RentScheduleServiceTest`;
-- [ ] test doublon `bail + mois`;
-- [ ] test bail hors periode;
-- [ ] test generation depuis bail actif.
+- [x] `RentScheduleServiceTest`;
+- [x] test doublon `bail + mois`;
+- [x] test bail hors periode;
+- [x] test generation depuis bail actif.
+
+Decisions L1 :
+
+- le service cree le loyer attendu depuis `monthly_rent + charges_provision`, avec snapshot du montant dans `rental_rents.amount_due`;
+- une periode existante n'est jamais recreee : la generation retourne la ligne existante et le controleur affiche `Echeancier deja a jour`;
+- la date d'echeance est le premier jour du mois, sauf premier mois du bail ou elle reprend la date de debut si le bail commence en cours de mois;
+- les baux `draft`, `validated` et `ended` peuvent alimenter l'echeancier quand la periode est couverte par le bail; les baux `cancelled` et les periodes hors bail sont ignorees;
+- les paiements saisis sans `rental_rent_id` sur une periode deja generee sont rattaches au loyer existant au lieu de creer une seconde ligne;
+- la generation est journalisee via `private.rental_rent_schedule.generated` avec compteurs `created`, `existing` et `skipped`.
+
+Validations L1 executees :
+
+- `php -l` sur `RentScheduleService`, `RentalLifecycleRepository`, `PrivatePortalController`, `rents.php` et les tests modifies;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentScheduleServiceTest.php tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`;
+- `git diff --check`.
 
 ### Phase L2 - Statut de paiement et encaissements
 

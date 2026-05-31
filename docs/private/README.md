@@ -68,6 +68,11 @@ Mise a jour 2026-05-31 (locations immobilieres L0) :
 - la phase L0 confirme le maintien de l'architecture `PrivateApps/RealEstateRental`, l'absence de point d'entree public et le contrat minimal des champs necessaires aux futurs documents generes;
 - les envois et PDF locatifs futurs doivent s'appuyer sur bailleur, mode de paiement, reference logement, adresse exacte, civilite locataire si disponible, contenu modifiable avant envoi et snapshot conserve.
 
+Mise a jour 2026-05-31 (locations immobilieres L1) :
+- `RentScheduleService` genere les loyers attendus par bail ou par mois, sans doublonner une periode deja existante;
+- `rental_rents` porte maintenant une contrainte unique `rental_lease_id + period_year + period_month`, avec garde applicative pour conserver la compatibilite des paiements existants;
+- l'ecran prive `Loyers` expose la generation d'echeancier et journalise `private.rental_rent_schedule.generated`.
+
 Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
 - cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
