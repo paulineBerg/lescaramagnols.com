@@ -201,6 +201,10 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('.private-discussion-delete-button:focus-visible', $stylesheet);
         self::assertStringContainsString('.private-discussion-emoji-choice:focus-visible', $stylesheet);
         self::assertStringContainsString('.private-discussion-emoji-picker[hidden]', $stylesheet);
+        self::assertMatchesRegularExpression(
+            '/\\.private-discussion-message\\s*\\{[^}]*align-self:\\s*stretch;[^}]*max-width:\\s*100%;[^}]*width:\\s*100%;/s',
+            $stylesheet
+        );
         self::assertStringContainsString('max-width: 100%;', $stylesheet);
         self::assertStringContainsString('@media (width <= 900px)', $stylesheet);
     }

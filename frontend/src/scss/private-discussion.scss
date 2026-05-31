@@ -184,14 +184,14 @@
 }
 
 .private-discussion-message {
-  align-self: start;
-  max-width: min(720px, 92%);
+  align-self: stretch;
+  max-width: 100%;
   overflow-wrap: anywhere;
-  width: fit-content;
+  width: 100%;
 }
 
 .private-discussion-message-own {
-  align-self: end;
+  align-self: stretch;
   background: rgb(29 111 141 / 9%);
 }
 
