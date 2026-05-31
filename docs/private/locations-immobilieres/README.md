@@ -601,19 +601,28 @@ Validations L7 executees :
 
 ### Phase L8 - Imports agence et rapprochements avances
 
-- [ ] Conserver l'import agence comme sous-domaine de `RealEstateRental`.
-- [ ] Renforcer le mapping des lignes agence vers loyers, charges, honoraires, GLI et reversements.
-- [ ] Ajouter rapprochement avec virements et justificatifs.
-- [ ] Ajouter file OCR/saisie manuelle pour scans sans texte.
-- [ ] Signaler doublons, periodes manquantes et lignes non classees.
-- [ ] Ne jamais valider automatiquement une categorie fiscale sensible.
+- [x] Conserver l'import agence comme sous-domaine de `RealEstateRental`.
+- [x] Renforcer le mapping des lignes agence vers loyers, charges, honoraires, GLI et reversements.
+- [x] Ajouter rapprochement avec virements et justificatifs.
+- [x] Ajouter file OCR/saisie manuelle pour scans sans texte.
+- [x] Signaler doublons, periodes manquantes et lignes non classees.
+- [x] Ne jamais valider automatiquement une categorie fiscale sensible.
 
 Tests minimum :
 
-- [ ] parseurs ASG/ICS existants;
-- [ ] mapping fiscal avec revue humaine;
-- [ ] donnees sensibles masquees;
-- [ ] document source conserve.
+- [x] parseurs ASG/ICS existants;
+- [x] mapping fiscal avec revue humaine;
+- [x] donnees sensibles masquees;
+- [x] document source conserve.
+
+Decisions L8 :
+
+- les imports agence restent portes par le module prive `real_estate_rental`, avec readiness dediee `agency_imports`;
+- `AgencyFiscalReviewPolicy` centralise les categories fiscales sensibles : une ligne fiscale ne peut pas passer en `validated` sans confirmation humaine explicite;
+- les changements de propriete, lot ou categorie dans la revue agence ne declenchent plus de validation automatique par changement de champ;
+- `AgencyAdvancedReconciliationService` calcule la lecture de rapprochement hors template : recettes, charges, net avant virement, virements proprietaire, ecart, source conservee, file OCR/saisie et anomalies courantes;
+- les lignes non classees, les periodes manquantes, les doublons potentiels et les scans sans texte sont signales avant alimentation des syntheses;
+- les justificatifs agence restent dans le stockage prive via `private_document_id` / `storage_path`, jamais sous `backend/public`.
 
 ## 5. Optimisations possibles
 

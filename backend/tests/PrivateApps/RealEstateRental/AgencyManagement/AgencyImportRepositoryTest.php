@@ -201,7 +201,7 @@ final class AgencyImportRepositoryTest extends TestCase
             $this->assertSame('review', $corrected->mappingStatus);
             $this->assertSame(24.5, $corrected->debitAmount);
 
-            $validated = $repository->reviewStatementLine(1, $lines[0]->id, 'validate', [
+            $sensitiveValidation = [
                 'rental_property_id' => '84',
                 'rental_unit_id' => '12',
                 'mapped_category' => 'rent_income',
@@ -210,7 +210,15 @@ final class AgencyImportRepositoryTest extends TestCase
                 'amount' => '662,87',
                 'debit_amount' => '',
                 'credit_amount' => '662,87',
-            ]);
+            ];
+            $this->assertNull($repository->reviewStatementLine(1, $lines[0]->id, 'validate', $sensitiveValidation));
+
+            $validated = $repository->reviewStatementLine(
+                1,
+                $lines[0]->id,
+                'validate',
+                $sensitiveValidation + ['manual_fiscal_review_confirmed' => '1']
+            );
             $ignored = $repository->reviewStatementLine(1, $lines[1]->id, 'ignore');
             $this->assertNotNull($validated);
             $this->assertNotNull($ignored);

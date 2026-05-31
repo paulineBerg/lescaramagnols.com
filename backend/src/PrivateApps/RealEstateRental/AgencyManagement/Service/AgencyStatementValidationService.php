@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service;
 
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyFiscalReviewPolicy;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyImportIssue;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\ClassifiedAgencyDocument;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Parser\AgencyParserResult;
 
 final class AgencyStatementValidationService
 {
+    public function __construct(private readonly ?AgencyFiscalReviewPolicy $policy = null)
+    {
+    }
+
     /**
      * @return array<int, AgencyImportIssue>
      */
     public function validate(ClassifiedAgencyDocument $classification, AgencyParserResult $result): array
     {
         $issues = [];
+        $policy = $this->policy ?? new AgencyFiscalReviewPolicy();
 
         if (!$classification->isKnown()) {
             $issues[] = new AgencyImportIssue(
@@ -28,7 +34,16 @@ final class AgencyStatementValidationService
         }
 
         foreach ($result->statementLines as $line) {
-            if ($this->needsFiscalPeriod($line->mappedCategory) && !$this->hasPeriod($line->periodStart, $line->periodEnd, $line->lineDate)) {
+            if ($policy->isUnclassified($line->mappedCategory)) {
+                $issues[] = new AgencyImportIssue(
+                    'unclassified_statement_line',
+                    AgencyImportIssue::SEVERITY_WARNING,
+                    'Ligne agence non classee : revue humaine obligatoire.',
+                    $line->sourcePage
+                );
+            }
+
+            if ($policy->needsFiscalPeriod($line->mappedCategory) && !$this->hasPeriod($line->periodStart, $line->periodEnd, $line->lineDate)) {
                 $issues[] = new AgencyImportIssue(
                     'missing_fiscal_period',
                     AgencyImportIssue::SEVERITY_ERROR,
@@ -57,25 +72,6 @@ final class AgencyStatementValidationService
         }
 
         return $issues;
-    }
-
-    private function needsFiscalPeriod(string $category): bool
-    {
-        return in_array($category, [
-            'rent_income',
-            'charge_provision_income',
-            'recoverable_tax_income',
-            'recoverable_charge_adjustment',
-            'recoverable_utility_charge',
-            'agency_management_fee',
-            'agency_fee_vat',
-            'agency_letting_fee',
-            'insurance_unpaid_rent',
-            'property_tax_service_fee',
-            'works_expense',
-            'copro_work_fund',
-            'condominium_current_charge',
-        ], true);
     }
 
     private function hasPeriod(?string $periodStart, ?string $periodEnd, ?string $lineDate): bool

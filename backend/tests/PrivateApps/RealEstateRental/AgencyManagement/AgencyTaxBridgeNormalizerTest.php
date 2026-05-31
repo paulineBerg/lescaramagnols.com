@@ -46,8 +46,12 @@ final class AgencyTaxBridgeNormalizerTest extends TestCase
             $lines = $repository->listStatementLines($statement->id);
             $this->assertCount(3, $lines);
 
-            $this->assertNotNull($repository->reviewStatementLine(7, $lines[0]->id, 'validate'));
-            $this->assertNotNull($repository->reviewStatementLine(7, $lines[1]->id, 'validate'));
+            $this->assertNotNull($repository->reviewStatementLine(7, $lines[0]->id, 'validate', [
+                'manual_fiscal_review_confirmed' => '1',
+            ]));
+            $this->assertNotNull($repository->reviewStatementLine(7, $lines[1]->id, 'validate', [
+                'manual_fiscal_review_confirmed' => '1',
+            ]));
             $this->assertNotNull($repository->reviewStatementLine(7, $lines[2]->id, 'ignore'));
 
             $normalizer = new AgencyTaxBridgeNormalizer($repository);

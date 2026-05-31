@@ -24,6 +24,7 @@ final class AgencyStatementValidationServiceTest extends TestCase
                 new AgencyStatementLineDraft('Loyer', 'rent_income', 600.0, null, 600.0),
                 new AgencyStatementLineDraft('Depot garantie', 'security_deposit', 600.0, null, 600.0),
                 new AgencyStatementLineDraft('Solde crediteur', 'agency_balance', 50.0, null, 50.0),
+                new AgencyStatementLineDraft('Ligne inconnue', 'other', 12.0, null, 12.0),
             ]
         );
 
@@ -36,6 +37,7 @@ final class AgencyStatementValidationServiceTest extends TestCase
         $this->assertContains('missing_fiscal_period', $types);
         $this->assertContains('security_deposit_excluded_from_income', $types);
         $this->assertContains('agency_balance_not_source_line', $types);
+        $this->assertContains('unclassified_statement_line', $types);
     }
 
     public function testAcceptsFiscalLineWithStatementPeriod(): void

@@ -6,6 +6,7 @@ namespace Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository;
 
 use Caramagnols\Database\EditorialDatabase;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyDocumentType;
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyFiscalReviewPolicy;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyImportBatch;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyImportedDocument;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyImportIssue;
@@ -889,6 +890,15 @@ final class AgencyImportRepository
             if ($mappedCategory === '') {
                 return null;
             }
+        }
+
+        $policy = new AgencyFiscalReviewPolicy();
+        if (
+            $action === 'validate'
+            && $policy->requiresManualFiscalReview($mappedCategory)
+            && !$policy->isManualReviewConfirmed($corrections['manual_fiscal_review_confirmed'] ?? false)
+        ) {
+            return null;
         }
 
         try {

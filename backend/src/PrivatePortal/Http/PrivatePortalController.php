@@ -24,8 +24,10 @@ use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyMemberRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalUnitRepository;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyImportedDocument;
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyFiscalReviewPolicy;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\AgencyImportService;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyAdvancedReconciliationService;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyTaxBridgeNormalizer;
 use Caramagnols\PrivateApps\RealEstateRental\Service\ChargeRegularizationService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentScheduleService;
@@ -2168,6 +2170,31 @@ final class PrivatePortalController
                 return $this->redirect($this->rentalAgencyReviewUrl($documentId, '', 'property_forbidden'));
             }
 
+            $manualFiscalReviewConfirmed = $this->agencyFiscalReviewPolicy()->isManualReviewConfirmed(
+                $body['manual_fiscal_review_confirmed'] ?? false
+            );
+            if (
+                $lineAction === 'validate'
+                && $this->agencyFiscalReviewPolicy()->requiresManualFiscalReview($mappedCategory)
+                && !$manualFiscalReviewConfirmed
+            ) {
+                $this->logEvent('private.rental_agency_review.line_reviewed', [
+                    'private_user_id' => $userId,
+                    'agency_imported_document_id' => $documentId,
+                    'agency_statement_line_id' => $lineId,
+                    'action' => $lineAction,
+                    'success' => false,
+                    'reason' => 'manual_fiscal_review_required',
+                ]);
+
+                return $this->redirect($this->rentalAgencyReviewLineUrl(
+                    $documentId,
+                    $lineId,
+                    '',
+                    'agency_sensitive_review_required'
+                ));
+            }
+
             $corrections = [
                 'rental_property_id' => $linePropertyId > 0 ? (string) $linePropertyId : '',
                 'rental_unit_id' => $lineUnitId > 0 ? (string) $lineUnitId : '',
@@ -2177,6 +2204,7 @@ final class PrivatePortalController
                 'amount' => is_scalar($body['amount'] ?? null) ? (string) $body['amount'] : '',
                 'debit_amount' => is_scalar($body['debit_amount'] ?? null) ? (string) $body['debit_amount'] : '',
                 'credit_amount' => is_scalar($body['credit_amount'] ?? null) ? (string) $body['credit_amount'] : '',
+                'manual_fiscal_review_confirmed' => $manualFiscalReviewConfirmed ? '1' : '',
             ];
         }
         $line = $repository->reviewStatementLine($userId, $lineId, $lineAction, $corrections);
@@ -3958,9 +3986,13 @@ final class PrivatePortalController
                 'rentalCurrentSubsection' => 'agencyReview',
                 'agencyReviewDocuments' => $documents,
                 'agencyReviewSelectedDocument' => $selectedDocument,
+                'agencyReviewReconciliation' => is_array($selectedDocument)
+                    ? $this->agencyAdvancedReconciliationService()->summarizeDocument($selectedDocument)
+                    : [],
                 'agencyReviewProperties' => $this->objectsToArrays($properties),
                 'agencyReviewUnits' => $this->objectsToArrays($units),
                 'agencyReviewCategories' => $this->agencyReviewCategories(),
+                'agencyReviewSensitiveCategories' => $this->agencyFiscalReviewPolicy()->fiscalReviewCategories(),
                 'agencyReviewLineFeedbackId' => $lineFeedbackId,
                 'agencyReviewLineNotice' => $this->rentalNotice($lineNotice),
                 'agencyReviewLineError' => $this->rentalError($lineError),
@@ -4899,12 +4931,14 @@ final class PrivatePortalController
             'rent_income' => 'Loyer',
             'charge_provision_income' => 'Provision de charges',
             'recoverable_tax_income' => 'Taxe recuperable refacturee',
+            'recoverable_charge_adjustment' => 'Regularisation de charges recuperables',
             'agency_management_fee' => 'Honoraires de gestion',
             'agency_fee_vat' => 'TVA honoraires',
             'agency_letting_fee' => 'Honoraires de location',
             'insurance_unpaid_rent' => 'Assurance loyers impayes',
             'property_tax_service_fee' => 'Frais taxe fonciere',
             'works_expense' => 'Travaux',
+            'copro_work_fund' => 'Fonds travaux copropriete',
             'condominium_current_charge' => 'Charges de copropriete',
             'recoverable_utility_charge' => 'Charge recuperable',
             'owner_transfer' => 'Reversement proprietaire',
@@ -5358,6 +5392,7 @@ final class PrivatePortalController
             'agency_unit_mapping_delete_failed' => 'Suppression de la correspondance agence impossible.',
             'agency_review_failed' => 'Revue agence impossible.',
             'agency_review_forbidden' => 'Document agence introuvable ou non autorisé.',
+            'agency_sensitive_review_required' => 'Cochez la revue fiscale avant de valider cette catégorie sensible.',
             default => '',
         };
     }
@@ -5962,6 +5997,16 @@ final class PrivatePortalController
             $this->agencyImportRepository(),
             $this->privateDocumentStorage()
         );
+    }
+
+    private function agencyFiscalReviewPolicy(): AgencyFiscalReviewPolicy
+    {
+        return new AgencyFiscalReviewPolicy();
+    }
+
+    private function agencyAdvancedReconciliationService(): AgencyAdvancedReconciliationService
+    {
+        return new AgencyAdvancedReconciliationService($this->agencyFiscalReviewPolicy());
     }
 
     private function rentalAnnualSummaryService(): RentalAnnualSummaryService

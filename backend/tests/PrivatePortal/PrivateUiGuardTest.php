@@ -75,14 +75,15 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('form.requestSubmit(submitter);', $layout);
     }
 
-    public function testAgencyReviewLineFeedbackStaysNearReviewedLine(): void
+    public function testAgencyReviewLineFeedbackStaysNearReviewedLineWithoutAutoValidation(): void
     {
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/agency-review.php');
         $stylesheet = $this->readRepoFile('frontend/src/scss/private.scss');
 
         self::assertStringContainsString('agencyReviewLineFeedbackId', $template);
         self::assertStringContainsString('agency-review-line-feedback', $template);
-        self::assertStringContainsString('data-private-auto-submit="validate_line"', $template);
+        self::assertStringNotContainsString('data-private-auto-submit="validate_line"', $template);
+        self::assertStringContainsString('manual_fiscal_review_confirmed', $template);
         self::assertStringContainsString('.agency-review-line-feedback', $stylesheet);
         self::assertStringContainsString('scroll-margin-top: 6rem;', $stylesheet);
     }

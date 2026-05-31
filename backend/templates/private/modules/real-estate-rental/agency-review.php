@@ -4,6 +4,12 @@ $selectedDocument = is_array($viewModel['agencyReviewSelectedDocument'] ?? null)
 $properties = is_array($viewModel['agencyReviewProperties'] ?? null) ? $viewModel['agencyReviewProperties'] : [];
 $units = is_array($viewModel['agencyReviewUnits'] ?? null) ? $viewModel['agencyReviewUnits'] : [];
 $categories = is_array($viewModel['agencyReviewCategories'] ?? null) ? $viewModel['agencyReviewCategories'] : [];
+$sensitiveCategories = is_array($viewModel['agencyReviewSensitiveCategories'] ?? null)
+    ? array_values(array_filter($viewModel['agencyReviewSensitiveCategories'], 'is_string'))
+    : [];
+$reconciliation = is_array($viewModel['agencyReviewReconciliation'] ?? null)
+    ? $viewModel['agencyReviewReconciliation']
+    : [];
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
@@ -24,6 +30,9 @@ $summaryUrl = (string) ($urls['summary'] ?? private_portal_url('rental_summary')
 $h = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $amount = static function (mixed $value) use ($h): string {
     return is_numeric($value) ? $h(number_format((float) $value, 2, '.', '')) : '';
+};
+$money = static function (mixed $value) use ($h): string {
+    return is_numeric($value) ? $h(number_format((float) $value, 2, ',', ' ') . ' €') : '0,00 €';
 };
 $labelForProperty = static function (array $property): string {
     $name = is_scalar($property['name'] ?? null) ? trim((string) $property['name']) : '';
@@ -167,6 +176,75 @@ $labelForUnit = static function (array $unit): string {
         </form>
       </div>
 
+      <?php if ($reconciliation !== []): ?>
+        <?php
+        $reconciliationStatus = is_string($reconciliation['status'] ?? null) ? (string) $reconciliation['status'] : 'review_required';
+        $reconciliationLabels = [
+            'ready' => 'Pret pour synthese',
+            'review_required' => 'Revue requise',
+            'manual_entry_required' => 'OCR ou saisie manuelle',
+            'source_document_missing' => 'Source a verifier',
+        ];
+        $reconciliationAlerts = [];
+        if (!empty($reconciliation['manualEntryRequired'])) {
+            $reconciliationAlerts[] = 'Texte insuffisant : document a traiter par OCR ou saisie manuelle.';
+        }
+        if (empty($reconciliation['sourceDocumentRetained'])) {
+            $reconciliationAlerts[] = 'Justificatif source non rattache au stockage prive.';
+        }
+        if ((int) ($reconciliation['duplicateCandidateCount'] ?? 0) > 0) {
+            $reconciliationAlerts[] = (int) $reconciliation['duplicateCandidateCount'] . ' doublon potentiel de ligne.';
+        }
+        if ((int) ($reconciliation['missingPeriodLineCount'] ?? 0) > 0) {
+            $reconciliationAlerts[] = (int) $reconciliation['missingPeriodLineCount'] . ' ligne fiscale sans periode.';
+        }
+        if ((int) ($reconciliation['unclassifiedLineCount'] ?? 0) > 0) {
+            $reconciliationAlerts[] = (int) $reconciliation['unclassifiedLineCount'] . ' ligne non classee.';
+        }
+        if ((int) ($reconciliation['sensitiveAwaitingReviewCount'] ?? 0) > 0) {
+            $reconciliationAlerts[] = (int) $reconciliation['sensitiveAwaitingReviewCount'] . ' categorie fiscale sensible en attente de revue.';
+        }
+        if (abs((float) ($reconciliation['transferDelta'] ?? 0.0)) > 0.05) {
+            $reconciliationAlerts[] = 'Ecart entre virements et net rapproche : ' . number_format((float) $reconciliation['transferDelta'], 2, ',', ' ') . ' €.';
+        }
+        ?>
+        <div class="agency-reconciliation-panel">
+          <div class="agency-reconciliation-status">
+            <strong><?php echo $h($reconciliationLabels[$reconciliationStatus] ?? 'Revue requise'); ?></strong>
+            <span><?php echo !empty($reconciliation['sourceDocumentRetained']) ? 'Justificatif conserve' : 'Justificatif manquant'; ?></span>
+          </div>
+          <dl class="agency-reconciliation-metrics">
+            <div>
+              <dt>Recettes</dt>
+              <dd><?php echo $money($reconciliation['incomeAmount'] ?? 0.0); ?></dd>
+            </div>
+            <div>
+              <dt>Charges</dt>
+              <dd><?php echo $money($reconciliation['expenseAmount'] ?? 0.0); ?></dd>
+            </div>
+            <div>
+              <dt>Net avant virement</dt>
+              <dd><?php echo $money($reconciliation['netBeforeTransfer'] ?? 0.0); ?></dd>
+            </div>
+            <div>
+              <dt>Virements</dt>
+              <dd><?php echo $money($reconciliation['ownerTransferAmount'] ?? 0.0); ?></dd>
+            </div>
+            <div>
+              <dt>Ecart</dt>
+              <dd><?php echo $money($reconciliation['transferDelta'] ?? 0.0); ?></dd>
+            </div>
+          </dl>
+          <?php if ($reconciliationAlerts !== []): ?>
+            <ul class="agency-reconciliation-alerts">
+              <?php foreach ($reconciliationAlerts as $alert): ?>
+                <li><?php echo $h($alert); ?></li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
+
       <?php if ($issues !== []): ?>
         <h3>Anomalies</h3>
         <ul>
@@ -203,6 +281,7 @@ $labelForUnit = static function (array $unit): string {
               $lineId = (int) $line['id'];
               $formId = 'agency-review-line-' . $lineId;
               $currentCategory = is_scalar($line['mappedCategory'] ?? null) ? (string) $line['mappedCategory'] : 'other';
+              $requiresFiscalReview = in_array($currentCategory, $sensitiveCategories, true);
               $linePropertyId = is_numeric($line['rentalPropertyId'] ?? null) ? (int) $line['rentalPropertyId'] : 0;
               $lineUnitId = is_numeric($line['rentalUnitId'] ?? null) ? (int) $line['rentalUnitId'] : 0;
               $hasLineFeedback = $lineFeedbackId === $lineId && ($lineNotice !== '' || $lineError !== '');
@@ -224,12 +303,15 @@ $labelForUnit = static function (array $unit): string {
                 <div class="agency-review-line-main" role="cell">
                   <strong><?php echo $h($line['rawLabel'] ?? ''); ?></strong>
                   <span class="muted">Page <?php echo $h((int) ($line['sourcePage'] ?? 1)); ?>, statut <?php echo $h($line['mappingStatus'] ?? ''); ?></span>
+                  <?php if ($requiresFiscalReview): ?>
+                    <small class="agency-line-warning">Revue fiscale requise avant validation</small>
+                  <?php endif; ?>
                   <?php if ($detected !== []): ?>
                     <small><?php echo $h(implode(' | ', $detected)); ?></small>
                   <?php endif; ?>
                 </div>
                 <label role="cell"><span>Propriété</span>
-                  <select name="rental_property_id" data-private-auto-submit="validate_line">
+                  <select name="rental_property_id">
                     <option value="">Defaut</option>
                     <?php foreach ($properties as $property): ?>
                       <?php
@@ -245,7 +327,7 @@ $labelForUnit = static function (array $unit): string {
                   </select>
                 </label>
                 <label role="cell"><span>Bien locatif</span>
-                  <select name="rental_unit_id" data-private-auto-submit="validate_line">
+                  <select name="rental_unit_id">
                     <option value="">Non rattache</option>
                     <?php foreach ($unitsByPropertyId as $propertyId => $propertyUnits): ?>
                       <?php
@@ -270,7 +352,7 @@ $labelForUnit = static function (array $unit): string {
                   </select>
                 </label>
                 <label role="cell"><span>Categorie</span>
-                  <select name="mapped_category" data-private-auto-submit="validate_line">
+                  <select name="mapped_category">
                     <?php foreach ($categories as $category => $categoryLabel): ?>
                       <option value="<?php echo $h($category); ?>" <?php echo $currentCategory === (string) $category ? 'selected' : ''; ?>>
                         <?php echo $h($categoryLabel); ?>
@@ -292,6 +374,10 @@ $labelForUnit = static function (array $unit): string {
                       <?php echo $h($lineError !== '' ? $lineError : $lineNotice); ?>
                     </span>
                   <?php endif; ?>
+                  <label class="private-checkbox-inline agency-sensitive-confirm">
+                    <input type="checkbox" name="manual_fiscal_review_confirmed" value="1" />
+                    <span>Revue fiscale</span>
+                  </label>
                   <button type="submit" name="action" value="correct_line" class="private-row-action">Corriger</button>
                   <button type="submit" name="action" value="validate_line">Valider</button>
                   <button type="submit" name="action" value="ignore_line" class="private-row-action">Ignorer</button>
