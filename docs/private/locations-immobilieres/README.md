@@ -533,19 +533,35 @@ Validations L5 executees :
 
 ### Phase L6 - Dashboard et synthese fiscale provisoire
 
-- [ ] Ajouter biens vacants, biens indisponibles et baux proches de fin.
-- [ ] Ajouter loyers du mois attendus, encaisses, partiels et en retard.
-- [ ] Ajouter documents manquants par bail ou par bien.
-- [ ] Ajouter solde annuel par bien.
-- [ ] Afficher les donnees incertaines ou brouillon sans les integrer silencieusement.
-- [ ] Garder la liaison fiscale configuree dans `TaxDeclarationHelper`.
+- [x] Ajouter biens vacants, biens indisponibles et baux proches de fin.
+- [x] Ajouter loyers du mois attendus, encaisses, partiels et en retard.
+- [x] Ajouter documents manquants par bail ou par bien.
+- [x] Ajouter solde annuel par bien.
+- [x] Afficher les donnees incertaines ou brouillon sans les integrer silencieusement.
+- [x] Garder la liaison fiscale configuree dans `TaxDeclarationHelper`.
 
 Tests minimum :
 
-- [ ] `RentalDashboardServiceTest`;
-- [ ] `TaxSummaryServiceTest`;
-- [ ] brouillons bloquants;
-- [ ] charges non deductibles non additionnees aux deductions.
+- [x] `RentalDashboardServiceTest`;
+- [x] `TaxSummaryServiceTest`;
+- [x] brouillons bloquants;
+- [x] charges non deductibles non additionnees aux deductions.
+
+Decisions L6 :
+
+- le tableau de bord passe par `RentalDashboardService`, service de lecture dedie, afin de garder les templates sans recalcul metier;
+- les loyers du mois sont separes entre attendu, encaisse, paiements partiels et retards;
+- les documents manquants sont signales par bail et par bien, sans bloquer automatiquement la synthese fiscale;
+- les lignes brouillon restent des controles bloquants pour la synthese et le pont fiscal;
+- le lien vers `TaxDeclarationHelper` reste expose depuis le dashboard et les charges non deductibles ne sont pas ajoutees aux deductions.
+
+Validations L6 executees :
+
+- `php -l` sur `RentalDashboardService`, le controller, le template dashboard et les tests L6;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalDashboardServiceTest.php tests/PrivateApps/RealEstateRental/Lifecycle/TaxSummaryServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php tests/PrivatePortalTaxBridgeTest.php tests/PrivateApps/TaxDeclarationHelper/TaxDeclarationHelperModuleTest.php`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`.
 
 ### Phase L7 - Exports et sauvegardes
 

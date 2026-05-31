@@ -31,6 +31,7 @@ use Caramagnols\PrivateApps\RealEstateRental\Service\ChargeRegularizationService
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentScheduleService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentPaymentStatusService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
+use Caramagnols\PrivateApps\RealEstateRental\Service\RentalDashboardService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalPaymentRequestService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalReceiptService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
@@ -85,7 +86,8 @@ final class PrivatePortalController
         private readonly ?RentPaymentStatusService $rentPaymentStatusService = null,
         private readonly ?RentalPaymentRequestService $rentalPaymentRequestService = null,
         private readonly ?RentalReceiptService $rentalReceiptService = null,
-        private readonly ?ChargeRegularizationService $chargeRegularizationService = null
+        private readonly ?ChargeRegularizationService $chargeRegularizationService = null,
+        private readonly ?RentalDashboardService $rentalDashboardService = null
     ) {
     }
 
@@ -3553,7 +3555,8 @@ final class PrivatePortalController
         $tenants = $this->rentalLifecycleRepository()->listTenants($propertyIds, self::MAX_RENTAL_LIST);
         $leases = $this->rentalLifecycleRepository()->listLeases($propertyIds, self::MAX_RENTAL_LIST);
         $year = (int) date('Y');
-        $summary = $this->rentalAnnualSummaryService()->build($year, $propertyIds);
+        $month = (int) date('n');
+        $dashboardStats = $this->rentalDashboardService()->build($year, $month, $propertyIds);
         $documents = $this->rentalLifecycleRepository()->listDocuments($propertyIds, self::MAX_RENTAL_LIST);
         $agencyDocuments = $this->agencyImportRepository()->listRecentDocumentsForUser($userId, self::MAX_RENTAL_LIST);
 
@@ -3567,14 +3570,13 @@ final class PrivatePortalController
             }
         }
 
-        $totals = is_array($summary['totals'] ?? null) ? $summary['totals'] : [];
-
         return $this->render('modules/real-estate-rental/dashboard', array_merge(
             $this->rentalBaseViewModel('Tableau de bord locatif', '', ''),
             [
                 'rentalCurrentSection' => 'dashboard',
-                'rentalDashboardStats' => [
+                'rentalDashboardStats' => array_merge($dashboardStats, [
                     'year' => $year,
+                    'month' => $month,
                     'propertyCount' => count($properties),
                     'unitCount' => count($units),
                     'tenantCount' => count($tenants),
@@ -3585,12 +3587,8 @@ final class PrivatePortalController
                     'documentCount' => count($documents),
                     'agencyDocumentCount' => count($agencyDocuments),
                     'pendingAgencyDocumentCount' => $pendingAgencyDocuments,
-                    'rentDue' => (float) ($totals['rentDue'] ?? 0.0),
-                    'rentPaid' => (float) ($totals['rentPaid'] ?? 0.0),
-                    'unpaidRent' => (float) ($totals['unpaidRent'] ?? 0.0),
-                    'summaryBlocked' => !empty($summary['blocked']),
-                    'issueCount' => count(is_array($summary['issues'] ?? null) ? $summary['issues'] : []),
-                ],
+                    'taxSummaryUrl' => private_portal_url('tax_dashboard'),
+                ]),
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalRecentDocuments' => array_slice($documents, 0, 8),
                 'agencyImportDocuments' => array_slice($agencyDocuments, 0, 8),
@@ -5983,6 +5981,15 @@ final class PrivatePortalController
     {
         return $this->rentalAnnualSummaryService
             ?? new RentalAnnualSummaryService($this->rentalLifecycleRepository());
+    }
+
+    private function rentalDashboardService(): RentalDashboardService
+    {
+        return $this->rentalDashboardService ?? new RentalDashboardService(
+            $this->rentalLifecycleRepository(),
+            $this->rentalUnitRepository(),
+            $this->rentalAnnualSummaryService()
+        );
     }
 
     private function rentScheduleService(): RentScheduleService

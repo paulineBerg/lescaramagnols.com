@@ -192,6 +192,7 @@ final class PrivateModuleMigrationPlanService
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalUnitRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalLifecycleRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalPropertyMemberRepository',
+                    'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalDashboardService',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalAnnualSummaryService',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalPaymentRequestService',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalReceiptService',
@@ -204,6 +205,8 @@ final class PrivateModuleMigrationPlanService
                     'RentalReceiptServiceTest',
                     'RentalExpenseCategoryTest',
                     'ChargeRegularizationServiceTest',
+                    'RentalDashboardServiceTest',
+                    'TaxSummaryServiceTest',
                     'PrivatePortalPhaseCoverageTest',
                 ],
                 'auditEvents' => [
