@@ -56,7 +56,7 @@ final class RentScheduleServiceTest extends TestCase
         $this->assertSame(2, (int) $rents[0]['periodMonth']);
         $this->assertSame('2026-02-01', $rents[0]['dueDate']);
         $this->assertSame(1080.0, (float) $rents[0]['amountDue']);
-        $this->assertSame('validated', $rents[0]['status']);
+        $this->assertSame('pending', $rents[0]['status']);
         $this->assertStringContainsString('Echeancier automatique', (string) $rents[0]['notes']);
 
         $existing = $service->generateForLeasePeriod($leaseId, 2026, 2, $ownerId);

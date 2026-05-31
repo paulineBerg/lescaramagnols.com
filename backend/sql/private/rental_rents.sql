@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS car_rental_rents (
     period_month TINYINT NOT NULL,
     due_date DATE NOT NULL,
     amount_due DECIMAL(10,2) NOT NULL DEFAULT 0,
-    status ENUM('draft', 'validated', 'cancelled') NOT NULL DEFAULT 'draft',
+    status ENUM('pending', 'partial', 'paid', 'late', 'cancelled') NOT NULL DEFAULT 'pending',
     notes TEXT NULL,
     created_by_private_user_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

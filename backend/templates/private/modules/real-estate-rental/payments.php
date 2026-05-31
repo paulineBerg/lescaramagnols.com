@@ -7,6 +7,8 @@ $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['ren
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
 $prefillRentId = is_numeric($viewModel['rentalPaymentPrefillRentId'] ?? null) ? (int) $viewModel['rentalPaymentPrefillRentId'] : 0;
 $paymentStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled' => 'Annule'];
+$paymentKinds = ['tenant' => 'Locataire', 'caf' => 'CAF', 'refund' => 'Remboursement', 'adjustment' => 'Régularisation'];
+$paymentMethods = ['' => 'Non précisé', 'bank_transfer' => 'Virement', 'cash' => 'Espèces', 'cheque' => 'Chèque', 'card' => 'Carte', 'direct_debit' => 'Prélèvement', 'other' => 'Autre'];
 $createDialogId = 'rental-payment-create-dialog';
 ?>
 <section>
@@ -46,7 +48,7 @@ $createDialogId = 'rental-payment-create-dialog';
       </div>
       <div class="private-table-wrap">
       <table>
-        <thead><tr><th>Loyer</th><th>Propriété</th><th>Date paiement</th><th>Montant</th><th>Statut</th><th>Action</th></tr></thead>
+        <thead><tr><th>Loyer</th><th>Propriété</th><th>Date paiement</th><th>Montant</th><th>Type</th><th>Mode</th><th>Référence</th><th>Statut</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($payments as $payment): ?>
             <?php if (!is_array($payment)) { continue; } ?>
@@ -56,7 +58,7 @@ $createDialogId = 'rental-payment-create-dialog';
             $periodMonth = (string) (($payment['rentPeriodMonth'] ?? null) ?: ($payment['periodMonth'] ?? ''));
             $period = $periodYear . '-' . str_pad($periodMonth, 2, '0', STR_PAD_LEFT);
             ?>
-            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim($period . ' ' . (string) ($payment['propertyName'] ?? '') . ' ' . (string) ($payment['unitLabel'] ?? '') . ' ' . (string) ($payment['tenantName'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($payment['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim($period . ' ' . (string) ($payment['propertyName'] ?? '') . ' ' . (string) ($payment['unitLabel'] ?? '') . ' ' . (string) ($payment['tenantName'] ?? '') . ' ' . (string) ($payment['paymentKind'] ?? '') . ' ' . (string) ($payment['paymentReference'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($payment['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
               <td><?php echo htmlspecialchars($period, ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php echo htmlspecialchars((string) ($payment['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
@@ -64,9 +66,13 @@ $createDialogId = 'rental-payment-create-dialog';
               </td>
               <td><?php echo htmlspecialchars((string) ($payment['paymentDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars(number_format((float) ($payment['amountPaid'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</td>
+              <td><?php echo htmlspecialchars((string) ($paymentKinds[(string) ($payment['paymentKind'] ?? 'tenant')] ?? ($payment['paymentKind'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($paymentMethods[(string) ($payment['paymentMethod'] ?? '')] ?? ($payment['paymentMethod'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($payment['paymentReference'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($paymentStatuses[(string) ($payment['status'] ?? '')] ?? ($payment['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php if ($paymentId > 0): ?>
+                  <button class="button-small" type="button" data-private-dialog-open="rental-payment-edit-dialog-<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>">Corriger</button>
                   <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
                     <input type="hidden" name="action" value="download_receipt" />
@@ -81,6 +87,14 @@ $createDialogId = 'rental-payment-create-dialog';
                     <label>Email quittance <input type="email" name="recipient_email" maxlength="190" /></label>
                     <button class="button-small" type="submit">Envoyer quittance</button>
                   </form>
+                  <?php if (($payment['status'] ?? '') !== 'cancelled'): ?>
+                    <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="action" value="cancel_payment" />
+                      <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <button class="button-small button-danger" type="submit">Annuler</button>
+                    </form>
+                  <?php endif; ?>
                   <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
                     <input type="hidden" name="action" value="delete_payment" />
@@ -91,9 +105,53 @@ $createDialogId = 'rental-payment-create-dialog';
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucun paiement ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="9">Aucun paiement ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
+      <?php foreach ($payments as $payment): ?>
+        <?php if (!is_array($payment) || !is_numeric($payment['id'] ?? null)) { continue; } ?>
+        <?php $paymentId = (int) $payment['id']; ?>
+        <dialog class="private-dialog" id="rental-payment-edit-dialog-<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="rental-payment-edit-dialog-<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>-title">
+          <div class="private-dialog-panel">
+            <header class="private-dialog-header">
+              <h3 id="rental-payment-edit-dialog-<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>-title">Corriger un paiement</h3>
+              <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+            </header>
+            <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="update_payment" />
+              <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" />
+              <label>Date paiement <input type="date" name="payment_date" value="<?php echo htmlspecialchars((string) ($payment['paymentDate'] ?? date('Y-m-d')), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+              <label>Montant <input type="number" name="amount_paid" min="0.01" step="0.01" value="<?php echo htmlspecialchars(number_format((float) ($payment['amountPaid'] ?? 0), 2, '.', ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+              <label>Type
+                <select name="payment_kind">
+                  <?php foreach ($paymentKinds as $value => $label): ?>
+                    <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (string) ($payment['paymentKind'] ?? 'tenant') === $value ? ' selected' : ''; ?>><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Mode
+                <select name="payment_method">
+                  <?php foreach ($paymentMethods as $value => $label): ?>
+                    <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (string) ($payment['paymentMethod'] ?? '') === $value ? ' selected' : ''; ?>><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Référence <input type="text" name="payment_reference" maxlength="160" value="<?php echo htmlspecialchars((string) ($payment['paymentReference'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+              <label>Statut
+                <select name="status">
+                  <?php foreach ($paymentStatuses as $value => $label): ?>
+                    <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (string) ($payment['status'] ?? '') === $value ? ' selected' : ''; ?>><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label><input type="checkbox" name="confirm_overpayment" value="1" /> Confirmer le surpaiement si le montant dépasse le solde du loyer</label>
+              <label>Notes <textarea name="notes" maxlength="2000"><?php echo htmlspecialchars((string) ($payment['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+              <button type="submit">Enregistrer la correction</button>
+            </form>
+          </div>
+        </dialog>
+      <?php endforeach; ?>
       </div>
     <?php endif; ?>
   </section>
@@ -129,7 +187,22 @@ $createDialogId = 'rental-payment-create-dialog';
             </select>
           </label>
           <label>Date paiement <input type="date" name="payment_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required data-rental-payment-date data-rental-payment-date-auto="1" /></label>
-          <label>Montant encaissé <input type="number" name="amount_paid" min="0.01" step="0.01" required data-rental-amount-paid /></label>
+          <label>Montant <input type="number" name="amount_paid" min="0.01" step="0.01" required data-rental-amount-paid /></label>
+          <label>Type
+            <select name="payment_kind">
+              <?php foreach ($paymentKinds as $value => $label): ?>
+                <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <label>Mode
+            <select name="payment_method">
+              <?php foreach ($paymentMethods as $value => $label): ?>
+                <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <label>Référence <input type="text" name="payment_reference" maxlength="160" /></label>
           <label>Statut
             <select name="status">
               <?php foreach ($paymentStatuses as $value => $label): ?>
@@ -137,6 +210,7 @@ $createDialogId = 'rental-payment-create-dialog';
               <?php endforeach; ?>
             </select>
           </label>
+          <label><input type="checkbox" name="confirm_overpayment" value="1" /> Confirmer le surpaiement si le montant dépasse le solde du loyer</label>
           <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
           <button type="submit">Créer le paiement</button>
         </form>

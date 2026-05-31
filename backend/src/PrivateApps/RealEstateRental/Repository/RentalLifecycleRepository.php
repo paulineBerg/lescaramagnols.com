@@ -13,6 +13,9 @@ final class RentalLifecycleRepository
     private const VALID_STATUSES = ['draft', 'validated', 'cancelled'];
     private const LEASE_STATUSES = ['draft', 'validated', 'cancelled', 'ended'];
     private const ACTIVE_LEASE_STATUSES = ['draft', 'validated'];
+    private const RENT_STATUSES = ['pending', 'partial', 'paid', 'late', 'cancelled'];
+    private const PAYMENT_KINDS = ['tenant', 'caf', 'refund', 'adjustment'];
+    private const PAYMENT_METHODS = ['bank_transfer', 'cash', 'cheque', 'card', 'direct_debit', 'other'];
     private const MAX_TEXT_LENGTH = 160;
     private const MAX_NOTES_LENGTH = 2000;
     private bool $schemaReady = false;
@@ -559,7 +562,7 @@ final class RentalLifecycleRepository
         ?string $notes = null
     ): ?array {
         $dueDate = $this->normalizeDate($dueDate);
-        $status = $this->normalizeStatus($status, self::VALID_STATUSES);
+        $status = $this->normalizeRentStatus($status);
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
         $amountDue = round($amountDue, 2);
 
@@ -703,7 +706,11 @@ final class RentalLifecycleRepository
                  INNER JOIN `%s` t ON t.`id` = l.`rental_tenant_id`
                  LEFT JOIN (
                     SELECT `rental_rent_id`,
-                           SUM(CASE WHEN `status` = "validated" THEN `amount_paid` ELSE 0 END) AS `amount_paid`,
+                           SUM(CASE
+                                WHEN `status` = "validated" AND `payment_kind` = "refund" THEN -`amount_paid`
+                                WHEN `status` = "validated" THEN `amount_paid`
+                                ELSE 0
+                           END) AS `amount_paid`,
                            COUNT(`id`) AS `payment_count`
                     FROM `%s`
                     WHERE `rental_rent_id` IS NOT NULL
@@ -783,11 +790,17 @@ final class RentalLifecycleRepository
         string $status,
         int $actorPrivateUserId,
         ?string $notes = null,
-        ?int $rentId = null
+        ?int $rentId = null,
+        ?string $paymentKind = null,
+        ?string $paymentMethod = null,
+        ?string $paymentReference = null
     ): ?array {
         $paymentDate = $this->normalizeDate($paymentDate);
         $status = $this->normalizeStatus($status, self::VALID_STATUSES);
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
+        $paymentKind = $this->normalizePaymentKind($paymentKind);
+        $paymentMethod = $this->normalizePaymentMethod($paymentMethod);
+        $paymentReference = $paymentReference !== null ? $this->normalizeText($paymentReference, self::MAX_TEXT_LENGTH) : null;
         $amountDue = round($amountDue, 2);
         $amountPaid = round($amountPaid, 2);
         $rentId = $rentId !== null && $rentId > 0 ? $rentId : null;
@@ -823,7 +836,7 @@ final class RentalLifecycleRepository
                         $periodMonth,
                         sprintf('%04d-%02d-01', $periodYear, $periodMonth),
                         $amountDue,
-                        $status,
+                        'pending',
                         $actorPrivateUserId,
                         null
                     );
@@ -835,10 +848,12 @@ final class RentalLifecycleRepository
                 sprintf(
                     'INSERT INTO `%s`
                         (`rental_rent_id`, `rental_lease_id`, `rental_property_id`, `rental_unit_id`, `payment_date`, `period_year`,
-                         `period_month`, `amount_due`, `amount_paid`, `status`, `notes`, `created_by_private_user_id`)
+                         `period_month`, `amount_due`, `amount_paid`, `payment_kind`, `payment_method`, `payment_reference`, `status`, `notes`,
+                         `created_by_private_user_id`)
                      VALUES
                         (:rent_id, :lease_id, :property_id, :unit_id, :payment_date, :period_year,
-                         :period_month, :amount_due, :amount_paid, :status, :notes, :created_by)',
+                         :period_month, :amount_due, :amount_paid, :payment_kind, :payment_method, :payment_reference, :status, :notes,
+                         :created_by)',
                     $this->paymentsTable()
                 )
             );
@@ -852,6 +867,9 @@ final class RentalLifecycleRepository
                 'period_month' => $periodMonth,
                 'amount_due' => $amountDue,
                 'amount_paid' => $amountPaid,
+                'payment_kind' => $paymentKind,
+                'payment_method' => $paymentMethod,
+                'payment_reference' => $paymentReference !== '' ? $paymentReference : null,
                 'status' => $status,
                 'notes' => $notes !== '' ? $notes : null,
                 'created_by' => $actorPrivateUserId,
@@ -943,6 +961,157 @@ final class RentalLifecycleRepository
         }
 
         return $this->normalizeRows($rows);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function listPaymentsForRent(int $rentId): array
+    {
+        if ($rentId <= 0) {
+            return [];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT * FROM `%s` WHERE `rental_rent_id` = :rent_id ORDER BY `payment_date` ASC, `id` ASC',
+                    $this->paymentsTable()
+                )
+            );
+            $statement->execute(['rent_id' => $rentId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $this->normalizeRows($rows);
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array<string, mixed>|null
+     */
+    public function updatePayment(
+        int $paymentId,
+        array $propertyIds,
+        string $paymentDate,
+        float $amountPaid,
+        string $status,
+        int $actorPrivateUserId,
+        ?string $notes = null,
+        ?string $paymentKind = null,
+        ?string $paymentMethod = null,
+        ?string $paymentReference = null
+    ): ?array {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        $paymentDate = $this->normalizeDate($paymentDate);
+        $amountPaid = round($amountPaid, 2);
+        $status = $this->normalizeStatus($status, self::VALID_STATUSES);
+        $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
+        $paymentKind = $this->normalizePaymentKind($paymentKind);
+        $paymentMethod = $this->normalizePaymentMethod($paymentMethod);
+        $paymentReference = $paymentReference !== null ? $this->normalizeText($paymentReference, self::MAX_TEXT_LENGTH) : null;
+
+        if ($paymentId <= 0 || $propertyIds === [] || $actorPrivateUserId <= 0 || $paymentDate === '' || $amountPaid < 0 || $status === '') {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $payment = $this->findPaymentById($paymentId);
+            $propertyId = is_array($payment) && is_numeric($payment['rentalPropertyId'] ?? null)
+                ? (int) $payment['rentalPropertyId']
+                : 0;
+            if (!in_array($propertyId, $propertyIds, true)) {
+                return null;
+            }
+
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `payment_date` = :payment_date,
+                         `amount_paid` = :amount_paid,
+                         `payment_kind` = :payment_kind,
+                         `payment_method` = :payment_method,
+                         `payment_reference` = :payment_reference,
+                         `status` = :status,
+                         `notes` = :notes
+                     WHERE `id` = :id',
+                    $this->paymentsTable()
+                )
+            );
+            $statement->execute([
+                'payment_date' => $paymentDate,
+                'amount_paid' => $amountPaid,
+                'payment_kind' => $paymentKind,
+                'payment_method' => $paymentMethod,
+                'payment_reference' => $paymentReference !== '' ? $paymentReference : null,
+                'status' => $status,
+                'notes' => $notes !== '' ? $notes : null,
+                'id' => $paymentId,
+            ]);
+
+            return $this->findPaymentById($paymentId);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @param array<int, int> $propertyIds
+     * @return array<string, mixed>|null
+     */
+    public function cancelPayment(int $paymentId, array $propertyIds): ?array
+    {
+        $propertyIds = $this->normalizeIds($propertyIds);
+        if ($paymentId <= 0 || $propertyIds === []) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $payment = $this->findPaymentById($paymentId);
+            $propertyId = is_array($payment) && is_numeric($payment['rentalPropertyId'] ?? null)
+                ? (int) $payment['rentalPropertyId']
+                : 0;
+            if (!in_array($propertyId, $propertyIds, true)) {
+                return null;
+            }
+
+            $statement = $this->database->pdo()->prepare(
+                sprintf('UPDATE `%s` SET `status` = "cancelled" WHERE `id` = :id', $this->paymentsTable())
+            );
+            $statement->execute(['id' => $paymentId]);
+
+            return $this->findPaymentById($paymentId);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function updateRentStatus(int $rentId, string $status): ?array
+    {
+        $status = $this->normalizeRentStatus($status);
+        if ($rentId <= 0 || $status === '') {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('UPDATE `%s` SET `status` = :status WHERE `id` = :id', $this->rentsTable())
+            );
+            $statement->execute(['status' => $status, 'id' => $rentId]);
+
+            return $this->findRentById($rentId);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
@@ -1576,7 +1745,7 @@ final class RentalLifecycleRepository
                     `period_month` TINYINT NOT NULL,
                     `due_date` DATE NOT NULL,
                     `amount_due` DECIMAL(10,2) NOT NULL DEFAULT 0,
-                    `status` ENUM("draft", "validated", "cancelled") NOT NULL DEFAULT "draft",
+                    `status` ENUM("pending", "partial", "paid", "late", "cancelled") NOT NULL DEFAULT "pending",
                     `notes` TEXT NULL,
                     `created_by_private_user_id` INT NOT NULL,
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1595,6 +1764,7 @@ final class RentalLifecycleRepository
             'uq_rental_rents_lease_period',
             '`rental_lease_id`, `period_year`, `period_month`'
         );
+        $this->ensureRentStatusSchema($pdo);
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -1608,12 +1778,16 @@ final class RentalLifecycleRepository
                     `period_month` TINYINT NOT NULL,
                     `amount_due` DECIMAL(10,2) NOT NULL DEFAULT 0,
                     `amount_paid` DECIMAL(10,2) NOT NULL DEFAULT 0,
+                    `payment_kind` ENUM("tenant", "caf", "refund", "adjustment") NOT NULL DEFAULT "tenant",
+                    `payment_method` VARCHAR(64) NULL,
+                    `payment_reference` VARCHAR(160) NULL,
                     `status` ENUM("draft", "validated", "cancelled") NOT NULL DEFAULT "draft",
                     `notes` TEXT NULL,
                     `created_by_private_user_id` INT NOT NULL,
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     KEY `idx_rental_payments_property_year` (`rental_property_id`, `period_year`, `status`),
+                    KEY `idx_rental_payments_kind` (`payment_kind`),
                     KEY `idx_rental_payments_rent` (`rental_rent_id`),
                     KEY `idx_rental_payments_lease` (`rental_lease_id`),
                     KEY `idx_rental_payments_unit` (`rental_unit_id`)
@@ -1622,7 +1796,11 @@ final class RentalLifecycleRepository
             )
         );
         $this->ensureColumn($pdo, $this->paymentsTable(), 'rental_rent_id', '`rental_rent_id` INT NULL AFTER `id`');
+        $this->ensureColumn($pdo, $this->paymentsTable(), 'payment_kind', '`payment_kind` ENUM("tenant", "caf", "refund", "adjustment") NOT NULL DEFAULT "tenant" AFTER `amount_paid`');
+        $this->ensureColumn($pdo, $this->paymentsTable(), 'payment_method', '`payment_method` VARCHAR(64) NULL AFTER `payment_kind`');
+        $this->ensureColumn($pdo, $this->paymentsTable(), 'payment_reference', '`payment_reference` VARCHAR(160) NULL AFTER `payment_method`');
         $this->ensureIndex($pdo, $this->paymentsTable(), 'idx_rental_payments_rent', '`rental_rent_id`');
+        $this->ensureIndex($pdo, $this->paymentsTable(), 'idx_rental_payments_kind', '`payment_kind`');
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -1847,6 +2025,39 @@ final class RentalLifecycleRepository
         return in_array($status, $allowedStatuses, true) ? $status : '';
     }
 
+    private function normalizeRentStatus(string $status): string
+    {
+        $status = strtolower(trim($status));
+        if (in_array($status, ['draft', 'validated'], true)) {
+            return 'pending';
+        }
+
+        return in_array($status, self::RENT_STATUSES, true) ? $status : '';
+    }
+
+    private function normalizePaymentKind(?string $paymentKind): string
+    {
+        $paymentKind = strtolower(trim((string) $paymentKind));
+        if ($paymentKind === 'regularization') {
+            $paymentKind = 'adjustment';
+        }
+
+        return in_array($paymentKind, self::PAYMENT_KINDS, true) ? $paymentKind : 'tenant';
+    }
+
+    private function normalizePaymentMethod(?string $paymentMethod): ?string
+    {
+        $paymentMethod = strtolower(trim((string) $paymentMethod));
+        if ($paymentMethod === 'transfer') {
+            $paymentMethod = 'bank_transfer';
+        }
+        if ($paymentMethod === '') {
+            return null;
+        }
+
+        return in_array($paymentMethod, self::PAYMENT_METHODS, true) ? $paymentMethod : 'other';
+    }
+
     private function normalizeDate(string $value): string
     {
         $value = trim($value);
@@ -1972,6 +2183,27 @@ final class RentalLifecycleRepository
             }
 
             $pdo->exec(sprintf('ALTER TABLE `%s` ADD KEY `%s` (%s)', $table, $index, $columns));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureRentStatusSchema(PDO $pdo): void
+    {
+        try {
+            $table = $this->rentsTable();
+            $pdo->exec(sprintf(
+                'ALTER TABLE `%s` MODIFY COLUMN `status` ENUM("draft", "validated", "pending", "partial", "paid", "late", "cancelled") NOT NULL DEFAULT "pending"',
+                $table
+            ));
+            $pdo->exec(sprintf(
+                'UPDATE `%s` SET `status` = "pending" WHERE `status` IN ("draft", "validated")',
+                $table
+            ));
+            $pdo->exec(sprintf(
+                'ALTER TABLE `%s` MODIFY COLUMN `status` ENUM("pending", "partial", "paid", "late", "cancelled") NOT NULL DEFAULT "pending"',
+                $table
+            ));
         } catch (\Throwable) {
             return;
         }

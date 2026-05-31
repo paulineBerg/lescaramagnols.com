@@ -1,7 +1,7 @@
 # Locations immobilieres privees
 
 Date de mise a jour : 2026-05-31
-Statut : plan d'amelioration du module `RealEstateRental`, phase L1 terminee, consolide depuis le brouillon `docs/private/amelioration locations immobil.txt` et aligne sur l'existant du depot.
+Statut : plan d'amelioration du module `RealEstateRental`, phase L2 terminee, consolide depuis le brouillon `docs/private/amelioration locations immobil.txt` et aligne sur l'existant du depot.
 
 Ce README sert de feuille de route fonctionnelle et technique pour rendre le module de locations immobilieres plus complet, sans casser le socle prive deja livre.
 
@@ -32,7 +32,7 @@ Fonctions deja presentes :
 Ecarts importants :
 
 - les loyers attendus sont generes par `RentScheduleService`, avec idempotence applicative et contrainte unique `bail + mois`;
-- le statut `draft/validated/cancelled` sert aujourd'hui a la validation des donnees, pas au suivi `pending/partial/paid/late`;
+- les loyers portent maintenant un statut de paiement `pending/partial/paid/late/cancelled`, recalcule depuis les paiements valides;
 - les demandes de paiement et relances ne sont pas historisees dans une table dediee;
 - les quittances existent comme reponse PDF/email, mais pas encore comme document genere immuable rattache au loyer;
 - les charges n'ont pas encore de referentiel de categories complet, d'annee fiscale explicite ni de rattachement documentaire fin;
@@ -51,7 +51,7 @@ Ecarts importants :
    Aucun `backend/public/private/rental/`, aucun `backend/public/location.php`, aucun upload locatif public.
 
 4. Separer le statut de validation et le statut de paiement.
-   `draft/validated/cancelled` reste le statut de qualite des donnees. Le cycle de paiement doit etre calcule ou stocke a part : `pending`, `partial`, `paid`, `late`, `cancelled`.
+   `draft/validated/cancelled` reste le statut de validation des paiements, charges, baux et autres lignes de travail. Le cycle de paiement du loyer est porte par `rental_rents.status` : `pending`, `partial`, `paid`, `late`, `cancelled`.
 
 5. Ne pas recalculer brutalement les loyers a chaque affichage.
    Un service genere les lignes mensuelles attendues une seule fois, les conserve en base et les complete sans doublon.
@@ -370,21 +370,42 @@ Validations L1 executees :
 
 ### Phase L2 - Statut de paiement et encaissements
 
-- [ ] Creer `RentPaymentStatusService`.
-- [ ] Afficher `pending`, `partial`, `paid`, `late`, `cancelled` sur les loyers.
-- [ ] Recalculer le statut apres creation, correction ou annulation d'un paiement.
-- [ ] Distinguer paiements locataire, CAF, remboursement et regularisation.
-- [ ] Ajouter mode de paiement et reference.
-- [ ] Bloquer ou confirmer les surpaiements.
+- [x] Creer `RentPaymentStatusService`.
+- [x] Afficher `pending`, `partial`, `paid`, `late`, `cancelled` sur les loyers.
+- [x] Recalculer le statut apres creation, correction ou annulation d'un paiement.
+- [x] Distinguer paiements locataire, CAF, remboursement et regularisation.
+- [x] Ajouter mode de paiement et reference.
+- [x] Bloquer ou confirmer les surpaiements.
 
 Tests minimum :
 
-- [ ] `PaymentStatusServiceTest`;
-- [ ] paiement partiel;
-- [ ] paiement complet;
-- [ ] paiement annule;
-- [ ] retard apres echeance;
-- [ ] surpaiement controle.
+- [x] `RentPaymentStatusServiceTest`;
+- [x] paiement partiel;
+- [x] paiement complet;
+- [x] paiement annule;
+- [x] retard apres echeance;
+- [x] surpaiement controle.
+
+Decisions L2 :
+
+- `rental_rents.status` devient le statut de paiement durable du loyer : `pending`, `partial`, `paid`, `late`, `cancelled`;
+- `rental_payments.status` conserve le cycle de validation de l'encaissement : `draft`, `validated`, `cancelled`;
+- seuls les paiements `validated` modifient le solde d'un loyer; un remboursement diminue le montant paye effectif;
+- les paiements portent `payment_kind` (`tenant`, `caf`, `refund`, `adjustment`), `payment_method` et `payment_reference`;
+- une creation ou correction de paiement validee qui depasse le montant attendu est refusee tant que la case de confirmation de surpaiement n'est pas cochee;
+- l'ecran `Paiements` permet de corriger ou annuler un encaissement et recalcule le statut du loyer rattache.
+
+Validations L2 executees :
+
+- `php -l` sur `RentPaymentStatusService`, `RentalLifecycleRepository`, `PrivatePortalController`, `payments.php`, `rents.php` et les tests modifies;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentPaymentStatusServiceTest.php tests/PrivateApps/RealEstateRental/Lifecycle/RentScheduleServiceTest.php tests/PrivateApps/RealEstateRental/Lifecycle/RentalLifecycleTest.php tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`;
+- `git diff --check`;
+- `cd frontend && npm run hygiene:repo`, puis `cd frontend && npm run hygiene:docs` apres la derniere mise a jour documentaire.
 
 ### Phase L3 - Demandes de paiement et relances
 

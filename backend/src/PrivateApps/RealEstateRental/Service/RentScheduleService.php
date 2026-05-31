@@ -109,7 +109,6 @@ final class RentScheduleService
         }
 
         $dueDate = $this->dueDateForPeriod($periodStart, $startDate);
-        $rentStatus = $leaseStatus === 'draft' ? 'draft' : 'validated';
         $notes = sprintf(
             "Echeancier automatique:\n- Loyer du bail: %.2f EUR\n- Provision charges: %.2f EUR",
             $monthlyRent,
@@ -124,7 +123,7 @@ final class RentScheduleService
             $periodMonth,
             $dueDate,
             $amountDue,
-            $rentStatus,
+            'pending',
             $actorPrivateUserId,
             $notes
         );

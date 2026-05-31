@@ -265,6 +265,120 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertCount(1, $lifecycleRepository->listRents([$property->id], 2026));
     }
 
+    public function testPaymentActionsUpdateRentStatusAndControlOverpayment(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'rent-payment-status-ui@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
+        $property = $propertyRepository->create($ownerId, 'Maison paiement UI', '15 rue du Paiement', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Lot paiement', 37.0, false, 'available', null, $ownerId);
+        $this->assertNotNull($unit);
+        $tenant = $lifecycleRepository->createTenant($property->id, $unit->id, 'Locataire paiement', null, null, 'validated', $ownerId, null);
+        $this->assertIsArray($tenant);
+        $lease = $lifecycleRepository->createLease($property->id, $unit->id, (int) $tenant['id'], '2026-01-01', null, 950.0, 50.0, 'validated', $ownerId, null);
+        $this->assertIsArray($lease);
+        $rent = $lifecycleRepository->createRent((int) $lease['id'], $property->id, $unit->id, 2026, 12, '2026-12-01', 1000.0, 'pending', $ownerId, null);
+        $this->assertIsArray($rent);
+
+        $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'rent-payment-status-ui@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            rentalPropertyRepository: $propertyRepository,
+            rentalPropertyMemberRepository: $memberRepository,
+            rentalUnitRepository: $unitRepository,
+            rentalLifecycleRepository: $lifecycleRepository
+        );
+
+        $get = $controller->handle('rental_payments', $this->request('GET', '/private/payments'));
+        $this->assertSame(200, $get->status);
+        $this->assertStringContainsString('name="payment_kind"', $get->body);
+        $this->assertStringContainsString('name="payment_method"', $get->body);
+        $this->assertStringContainsString('name="payment_reference"', $get->body);
+
+        $overpay = $controller->handle(
+            'rental_payments',
+            $this->request('POST', '/private/payments', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'create_payment',
+                'rental_rent_id' => (string) $rent['id'],
+                'payment_date' => '2026-12-03',
+                'amount_paid' => '1200.00',
+                'payment_kind' => 'tenant',
+                'payment_method' => 'bank_transfer',
+                'payment_reference' => 'VIR-SURPLUS',
+                'status' => 'validated',
+            ])
+        );
+        $this->assertSame(200, $overpay->status);
+        $this->assertStringContainsString('Surpaiement détecté', $overpay->body);
+        $this->assertCount(0, $lifecycleRepository->listPayments([$property->id], 2026));
+
+        $created = $controller->handle(
+            'rental_payments',
+            $this->request('POST', '/private/payments', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'create_payment',
+                'rental_rent_id' => (string) $rent['id'],
+                'payment_date' => '2026-12-03',
+                'amount_paid' => '400.00',
+                'payment_kind' => 'tenant',
+                'payment_method' => 'bank_transfer',
+                'payment_reference' => 'VIR-400',
+                'status' => 'validated',
+            ])
+        );
+        $this->assertSame(302, $created->status);
+        $this->assertSame('/private/payments?notice=payment_created', $created->headers['Location'] ?? null);
+        $rentsAfterPartial = $lifecycleRepository->listRents([$property->id], 2026);
+        $this->assertSame('partial', $rentsAfterPartial[0]['status'] ?? null);
+        $payments = $lifecycleRepository->listPayments([$property->id], 2026);
+        $this->assertCount(1, $payments);
+        $paymentId = (int) $payments[0]['id'];
+        $this->assertSame('VIR-400', $payments[0]['paymentReference'] ?? null);
+
+        $updated = $controller->handle(
+            'rental_payments',
+            $this->request('POST', '/private/payments', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'update_payment',
+                'payment_id' => (string) $paymentId,
+                'payment_date' => '2026-12-03',
+                'amount_paid' => '1000.00',
+                'payment_kind' => 'tenant',
+                'payment_method' => 'bank_transfer',
+                'payment_reference' => 'VIR-1000',
+                'status' => 'validated',
+            ])
+        );
+        $this->assertSame(302, $updated->status);
+        $this->assertSame('/private/payments?notice=payment_updated', $updated->headers['Location'] ?? null);
+        $rentsAfterPaid = $lifecycleRepository->listRents([$property->id], 2026);
+        $this->assertSame('paid', $rentsAfterPaid[0]['status'] ?? null);
+
+        $cancelled = $controller->handle(
+            'rental_payments',
+            $this->request('POST', '/private/payments', [
+                'csrf_token' => csrf_token('private_rental'),
+                'action' => 'cancel_payment',
+                'payment_id' => (string) $paymentId,
+            ])
+        );
+        $this->assertSame(302, $cancelled->status);
+        $this->assertSame('/private/payments?notice=payment_cancelled', $cancelled->headers['Location'] ?? null);
+        $rentsAfterCancel = $lifecycleRepository->listRents([$property->id], 2026);
+        $this->assertSame('pending', $rentsAfterCancel[0]['status'] ?? null);
+    }
+
     public function testCreatingPropertyCanCreateWholeHouseRentalUnit(): void
     {
         $database = $this->editorialSqlDatabase();

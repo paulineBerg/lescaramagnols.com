@@ -5,7 +5,7 @@ $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewMo
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
-$rentStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled' => 'Annule'];
+$rentStatuses = ['pending' => 'En attente', 'partial' => 'Partiel', 'paid' => 'Payé', 'late' => 'En retard', 'cancelled' => 'Annulé'];
 $createDialogId = 'rental-rent-create-dialog';
 ?>
 <section>

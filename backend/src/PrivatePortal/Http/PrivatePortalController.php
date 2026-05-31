@@ -27,6 +27,7 @@ use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\AgencyImpor
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyTaxBridgeNormalizer;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentScheduleService;
+use Caramagnols\PrivateApps\RealEstateRental\Service\RentPaymentStatusService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
@@ -76,7 +77,8 @@ final class PrivatePortalController
         private readonly ?DiscussionAttachmentStorage $discussionAttachmentStorage = null,
         private readonly ?DiscussionService $discussionService = null,
         private readonly ?DiscussionRetentionService $discussionRetentionService = null,
-        private readonly ?RentScheduleService $rentScheduleService = null
+        private readonly ?RentScheduleService $rentScheduleService = null,
+        private readonly ?RentPaymentStatusService $rentPaymentStatusService = null
     ) {
     }
 
@@ -1201,6 +1203,7 @@ final class PrivatePortalController
         }
 
         $propertyIds = $this->authorizedPropertyIds($userId);
+        $this->rentPaymentStatusService()->refreshPropertyRents($propertyIds);
         $leases = $this->rentalLifecycleRepository()->listLeases($propertyIds, self::MAX_RENTAL_LIST);
         $rents = $this->rentalLifecycleRepository()->listRents($propertyIds, null, self::MAX_RENTAL_LIST);
         $query = $request->query();
@@ -1257,6 +1260,7 @@ final class PrivatePortalController
                 'existing' => (int) ($result['existing'] ?? 0),
                 'skipped' => (int) ($result['skipped'] ?? 0),
             ]);
+            $this->rentPaymentStatusService()->refreshPropertyRents([$propertyId]);
 
             return $this->redirect(private_portal_url('rental_rents') . '?notice=' . $this->rentScheduleNotice($result));
         }
@@ -1282,6 +1286,7 @@ final class PrivatePortalController
                 'existing' => (int) ($result['existing'] ?? 0),
                 'skipped' => (int) ($result['skipped'] ?? 0),
             ]);
+            $this->rentPaymentStatusService()->refreshPropertyRents($writablePropertyIds);
 
             return $this->redirect(private_portal_url('rental_rents') . '?notice=' . $this->rentScheduleNotice($result));
         }
@@ -1323,6 +1328,7 @@ final class PrivatePortalController
         if (!is_array($created)) {
             return $this->renderRentalRents($leases, $rents, '', 'rental_write_failed');
         }
+        $this->rentPaymentStatusService()->refreshRentStatus((int) ($created['id'] ?? 0));
 
         $this->logEvent('private.rental_rent.created', [
             'private_user_id' => $userId,
@@ -1341,6 +1347,7 @@ final class PrivatePortalController
         }
 
         $propertyIds = $this->authorizedPropertyIds($userId);
+        $this->rentPaymentStatusService()->refreshPropertyRents($propertyIds);
         $rents = $this->rentalLifecycleRepository()->listRents($propertyIds, null, self::MAX_RENTAL_LIST);
         $payments = $this->rentalLifecycleRepository()->listPayments($propertyIds, null, self::MAX_RENTAL_LIST);
         $query = $request->query();
@@ -1375,8 +1382,15 @@ final class PrivatePortalController
 
         if ($action === 'delete_payment') {
             $paymentId = $this->normalizeNumericId($body['payment_id'] ?? null);
+            $payment = $this->rentalLifecycleRepository()->findPaymentById($paymentId);
+            $rentId = is_array($payment) && is_numeric($payment['rentalRentId'] ?? null)
+                ? (int) $payment['rentalRentId']
+                : 0;
             if ($paymentId <= 0 || !$this->rentalLifecycleRepository()->deletePayment($paymentId, $propertyIds)) {
                 return $this->renderRentalPayments($rents, $payments, '', 'rental_delete_failed', $prefillRentId);
+            }
+            if ($rentId > 0) {
+                $this->rentPaymentStatusService()->refreshRentStatus($rentId);
             }
 
             $this->logEvent('private.rental_payment.deleted', [
@@ -1385,6 +1399,96 @@ final class PrivatePortalController
             ]);
 
             return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_deleted');
+        }
+
+        if ($action === 'cancel_payment') {
+            $paymentId = $this->normalizeNumericId($body['payment_id'] ?? null);
+            $payment = $this->rentalLifecycleRepository()->findPaymentById($paymentId);
+            $propertyId = is_array($payment) && is_numeric($payment['rentalPropertyId'] ?? null)
+                ? (int) $payment['rentalPropertyId']
+                : 0;
+            $rentId = is_array($payment) && is_numeric($payment['rentalRentId'] ?? null)
+                ? (int) $payment['rentalRentId']
+                : 0;
+            if ($paymentId <= 0 || !in_array($propertyId, $propertyIds, true) || !$this->canWriteByPropertyId($propertyId, $userId)) {
+                return $this->renderRentalPayments($rents, $payments, '', 'property_forbidden', $prefillRentId);
+            }
+
+            $cancelled = $this->rentalLifecycleRepository()->cancelPayment($paymentId, $propertyIds);
+            if (!is_array($cancelled)) {
+                return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
+            }
+            if ($rentId > 0) {
+                $this->rentPaymentStatusService()->refreshRentStatus($rentId);
+            }
+
+            $this->logEvent('private.rental_payment.cancelled', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $propertyId,
+                'rental_payment_id' => $paymentId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_cancelled');
+        }
+
+        if ($action === 'update_payment') {
+            $paymentId = $this->normalizeNumericId($body['payment_id'] ?? null);
+            $payment = $this->rentalLifecycleRepository()->findPaymentById($paymentId);
+            $propertyId = is_array($payment) && is_numeric($payment['rentalPropertyId'] ?? null)
+                ? (int) $payment['rentalPropertyId']
+                : 0;
+            $rentId = is_array($payment) && is_numeric($payment['rentalRentId'] ?? null)
+                ? (int) $payment['rentalRentId']
+                : 0;
+            $paymentData = $this->rentalPaymentDataFromBody($body);
+            if (
+                $paymentId <= 0
+                || $rentId <= 0
+                || $paymentData === null
+                || !in_array($propertyId, $propertyIds, true)
+                || !$this->canWriteByPropertyId($propertyId, $userId)
+            ) {
+                return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
+            }
+            if (
+                $paymentData['status'] === 'validated'
+                && !$paymentData['confirmOverpayment']
+                && $this->rentPaymentStatusService()->wouldOverpay(
+                    $rentId,
+                    $paymentData['amountPaid'],
+                    $paymentData['paymentKind'],
+                    $paymentId
+                )
+            ) {
+                return $this->renderRentalPayments($rents, $payments, '', 'rental_overpayment_requires_confirmation', $prefillRentId);
+            }
+
+            $updated = $this->rentalLifecycleRepository()->updatePayment(
+                $paymentId,
+                $propertyIds,
+                $paymentData['paymentDate'],
+                $paymentData['amountPaid'],
+                $paymentData['status'],
+                $userId,
+                $paymentData['notes'],
+                $paymentData['paymentKind'],
+                $paymentData['paymentMethod'],
+                $paymentData['paymentReference']
+            );
+            if (!is_array($updated)) {
+                return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
+            }
+            $this->rentPaymentStatusService()->refreshRentStatus($rentId);
+
+            $this->logEvent('private.rental_payment.updated', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $propertyId,
+                'rental_payment_id' => $paymentId,
+                'payment_kind' => $paymentData['paymentKind'],
+                'payment_method' => $paymentData['paymentMethod'],
+            ]);
+
+            return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_updated');
         }
 
         if ($action !== 'create_payment') {
@@ -1417,28 +1521,46 @@ final class PrivatePortalController
             return $this->renderRentalPayments($rents, $payments, '', 'property_forbidden', $prefillRentId);
         }
 
+        $paymentData = $this->rentalPaymentDataFromBody($body);
+        if ($paymentData === null) {
+            return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
+        }
+        if (
+            $paymentData['status'] === 'validated'
+            && !$paymentData['confirmOverpayment']
+            && $this->rentPaymentStatusService()->wouldOverpay($rentId, $paymentData['amountPaid'], $paymentData['paymentKind'])
+        ) {
+            return $this->renderRentalPayments($rents, $payments, '', 'rental_overpayment_requires_confirmation', $prefillRentId);
+        }
+
         $created = $this->rentalLifecycleRepository()->createPayment(
             $leaseId,
             $propertyId,
             $unitId,
-            (string) ($body['payment_date'] ?? ''),
+            $paymentData['paymentDate'],
             $periodYear,
             $periodMonth,
             0.0,
-            is_numeric($body['amount_paid'] ?? null) ? (float) $body['amount_paid'] : 0.0,
-            is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
+            $paymentData['amountPaid'],
+            $paymentData['status'],
             $userId,
-            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
-            $rentId
+            $paymentData['notes'],
+            $rentId,
+            $paymentData['paymentKind'],
+            $paymentData['paymentMethod'],
+            $paymentData['paymentReference']
         );
         if (!is_array($created)) {
             return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
         }
+        $this->rentPaymentStatusService()->refreshRentStatus($rentId);
 
         $this->logEvent('private.rental_payment.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_payment_id' => (int) ($created['id'] ?? 0),
+            'payment_kind' => $paymentData['paymentKind'],
+            'payment_method' => $paymentData['paymentMethod'],
         ]);
 
         return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_created');
@@ -4497,6 +4619,58 @@ final class PrivatePortalController
 
     /**
      * @param array<string, mixed> $body
+     * @return array{paymentDate:string, amountPaid:float, status:string, paymentKind:string, paymentMethod:?string, paymentReference:?string, notes:?string, confirmOverpayment:bool}|null
+     */
+    private function rentalPaymentDataFromBody(array $body): ?array
+    {
+        $paymentDate = is_string($body['payment_date'] ?? null) ? trim((string) $body['payment_date']) : '';
+        if (preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $paymentDate) !== 1) {
+            return null;
+        }
+
+        $amountPaid = is_numeric($body['amount_paid'] ?? null) ? round((float) $body['amount_paid'], 2) : 0.0;
+        if ($amountPaid <= 0) {
+            return null;
+        }
+
+        $status = is_string($body['status'] ?? null) ? strtolower(trim((string) $body['status'])) : 'draft';
+        if (!in_array($status, ['draft', 'validated', 'cancelled'], true)) {
+            return null;
+        }
+
+        $paymentKind = is_string($body['payment_kind'] ?? null) ? strtolower(trim((string) $body['payment_kind'])) : 'tenant';
+        if ($paymentKind === 'regularization') {
+            $paymentKind = 'adjustment';
+        }
+        if (!in_array($paymentKind, ['tenant', 'caf', 'refund', 'adjustment'], true)) {
+            $paymentKind = 'tenant';
+        }
+
+        $paymentMethod = is_string($body['payment_method'] ?? null) ? strtolower(trim((string) $body['payment_method'])) : '';
+        if ($paymentMethod === 'transfer') {
+            $paymentMethod = 'bank_transfer';
+        }
+        if ($paymentMethod !== '' && !in_array($paymentMethod, ['bank_transfer', 'cash', 'cheque', 'card', 'direct_debit', 'other'], true)) {
+            $paymentMethod = 'other';
+        }
+
+        $paymentReference = is_string($body['payment_reference'] ?? null) ? trim((string) $body['payment_reference']) : '';
+        $notes = is_string($body['notes'] ?? null) ? trim((string) $body['notes']) : '';
+
+        return [
+            'paymentDate' => $paymentDate,
+            'amountPaid' => $amountPaid,
+            'status' => $status,
+            'paymentKind' => $paymentKind,
+            'paymentMethod' => $paymentMethod !== '' ? $paymentMethod : null,
+            'paymentReference' => $paymentReference !== '' ? substr($paymentReference, 0, 160) : null,
+            'notes' => $notes !== '' ? $notes : null,
+            'confirmOverpayment' => isset($body['confirm_overpayment']) && (string) $body['confirm_overpayment'] === '1',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $body
      * @param array<string, mixed> $lease
      * @return array{amount: float, notes: string|null}|null
      */
@@ -4719,6 +4893,8 @@ final class PrivatePortalController
             'rent_schedule_partial' => 'Échéancier partiellement généré.',
             'rent_deleted' => 'Loyer supprimé.',
             'payment_created' => 'Paiement locatif créé.',
+            'payment_updated' => 'Paiement locatif corrigé.',
+            'payment_cancelled' => 'Paiement locatif annulé.',
             'payment_deleted' => 'Paiement locatif supprimé.',
             'receipt_emailed' => 'Quittance envoyée par email.',
             'expense_created' => 'Charge locative créée.',
@@ -4746,6 +4922,7 @@ final class PrivatePortalController
         return match ($key) {
             'rental_invalid_request' => 'Requête locative invalide.',
             'rental_write_failed' => 'Les données locatives sont invalides ou incomplètes.',
+            'rental_overpayment_requires_confirmation' => 'Surpaiement détecté : cochez la confirmation pour enregistrer.',
             'rental_archive_failed' => 'Archivage locatif impossible.',
             'property_forbidden' => 'Vous n’avez pas le droit de modifier cette propriété.',
             'unit_forbidden' => 'Vous n’avez pas le droit de modifier ce bien locatif.',
@@ -5388,6 +5565,11 @@ final class PrivatePortalController
     private function rentScheduleService(): RentScheduleService
     {
         return $this->rentScheduleService ?? new RentScheduleService($this->rentalLifecycleRepository());
+    }
+
+    private function rentPaymentStatusService(): RentPaymentStatusService
+    {
+        return $this->rentPaymentStatusService ?? new RentPaymentStatusService($this->rentalLifecycleRepository());
     }
 
     private function taxDeclarationRepository(): TaxDeclarationRepository

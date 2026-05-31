@@ -58,7 +58,7 @@ final class RentalAnnualSummaryService
         $leases = $this->leasesForYear($this->repository->listLeases($propertyIds, 1000), $year);
 
         foreach ($rents as $rent) {
-            if (($rent['status'] ?? '') !== 'validated') {
+            if (!in_array((string) ($rent['status'] ?? ''), ['pending', 'partial', 'paid', 'late', 'validated'], true)) {
                 continue;
             }
 
@@ -78,7 +78,7 @@ final class RentalAnnualSummaryService
             }
 
             $amountDue = $this->amount($payment['amountDue'] ?? 0);
-            $amountPaid = $this->amount($payment['amountPaid'] ?? 0);
+            $amountPaid = $this->paymentAmount($payment);
             $summary['totals']['rentPaid'] += $amountPaid;
             ++$summary['totals']['validatedPayments'];
             if ((int) ($payment['rentalRentId'] ?? 0) <= 0 && $amountDue > 0) {
@@ -167,6 +167,15 @@ final class RentalAnnualSummaryService
     private function amount(mixed $value): float
     {
         return is_numeric($value) ? round((float) $value, 2) : 0.0;
+    }
+
+    /**
+     * @param array<string, mixed> $payment
+     */
+    private function paymentAmount(array $payment): float
+    {
+        $amount = $this->amount($payment['amountPaid'] ?? 0);
+        return ($payment['paymentKind'] ?? '') === 'refund' ? -$amount : $amount;
     }
 
     private function normalizeYear(int $year): int

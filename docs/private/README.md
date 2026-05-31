@@ -73,6 +73,11 @@ Mise a jour 2026-05-31 (locations immobilieres L1) :
 - `rental_rents` porte maintenant une contrainte unique `rental_lease_id + period_year + period_month`, avec garde applicative pour conserver la compatibilite des paiements existants;
 - l'ecran prive `Loyers` expose la generation d'echeancier et journalise `private.rental_rent_schedule.generated`.
 
+Mise a jour 2026-05-31 (locations immobilieres L2) :
+- `RentPaymentStatusService` recalcule les loyers en `pending`, `partial`, `paid`, `late` ou `cancelled` depuis les paiements valides;
+- les paiements distinguent locataire, CAF, remboursement et regularisation, avec mode de paiement et reference;
+- l'ecran prive `Paiements` bloque les surpaiements sans confirmation explicite et permet correction ou annulation avec recalcul du loyer.
+
 Mise a jour 2026-05-27 (email prive, suppressions et BO membres) :
 - ajout d'une configuration SMTP dediee a l'espace prive dans le BO admin, avec expediteur `ne-pas-repondre@lescaramagnols.com`, serveur par defaut `ssl0.ovh.net`, adresse de reponse `private@lescaramagnols.com` et modeles de messages modifiables;
 - cette configuration est aussi accessible depuis le BO admin, section `Espace prive`, onglet `Email prive IMAP / SMTP`; elle s'applique uniquement a l'espace prive, l'envoi restant assure par SMTP et IMAP relevant de la reception;
