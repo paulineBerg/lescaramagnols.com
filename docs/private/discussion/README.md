@@ -235,70 +235,453 @@ cd backend
 composer check-log-alerts -- --json --strict --cron-failed-threshold=1 --private-rate-limit-threshold=3
 ```
 
-## 8. Optimisations et TODO vers un vrai messenger
+## 8. Optimisation strategique vers un vrai messenger
 
-### Priorite 1 - Robustesse conversationnelle
+### Diagnostic global
 
-- Ajouter une pagination curseur sur les messages : `before_id`, `after_id`, limite parametrable, chargement progressif depuis le haut du fil.
-- Introduire une table d'evenements de conversation append-only : message cree, message supprime, piece jointe supprimee, membre ajoute, lecture, sortie.
-- Rendre les actions d'envoi idempotentes avec une cle client `client_message_id` unique par conversation et appareil.
-- Distinguer clairement `deleted`, `purged`, `redacted` et `expired` pour eviter de perdre l'historique utile de moderation sans conserver le contenu.
-- Ajouter des index dedies aux lectures frequentes : conversations par utilisateur/date, messages par conversation/date, messages non lus par participant.
+Le module `FamilyDiscussion` est deja bien separe des discussions publiques du blog. Il est rattache a l'espace prive, protege par authentification, droits module et routes privees, et dispose deja des briques critiques : conversations directes, groupes, messages chiffres cote navigateur, fichiers joints chiffres cote serveur, lectures, invitations, retention et raccordement RGPD.
 
-### Priorite 2 - Temps reel progressif
+Le point faible principal n'est donc pas le socle de securite. Le vrai ecart avec un messenger fluide se situe dans l'experience et la scalabilite : fil limite, polling simple, absence de journal d'evenements, pas encore d'idempotence d'envoi, pas de presence, pas de saisie en cours, pas de brouillons, pas de recherche locale organisee et pas de notifications.
 
-- Remplacer le polling simple par Server-Sent Events pour les nouveaux messages, lectures et suppressions.
-- Garder le polling comme fallback navigateur ou hebergement.
-- Prevoir une abstraction `ConversationEventStream` pour pouvoir basculer plus tard vers WebSocket sans changer les services metier.
-- Ajouter des tests de concurrence : double envoi, double suppression, ouverture simultanee sur deux appareils.
+Strategie retenue :
 
-### Priorite 3 - Chiffrement multi-appareils
+1. solidifier le socle conversationnel;
+2. ajouter le temps reel progressif;
+3. ameliorer ensuite l'interface et les fonctions messenger visibles.
 
-- Formaliser le protocole crypto V2 : creation de cle de conversation, rotation, enveloppes par appareil, revocation.
-- Ajouter un parcours d'ajout d'appareil lisible : appareil connu, nouvel appareil, validation, regeneration des enveloppes.
-- Prevoir une strategie de recuperation explicite : aucune recuperation serveur, ou phrase de secours chiffree localement, mais pas de demi-mesure implicite.
-- Journaliser uniquement les metadonnees de securite necessaires : appareil ajoute, appareil revoque, rotation, echec de dechiffrement local.
+Cette trajectoire evite d'ajouter des fonctions agreables mais fragiles. Elle conserve les invariants du projet : rendu serveur PHP, logique metier dans `backend/src/`, donnees privees hors webroot, pas de contenu de message dans les logs, pas de SPA complete, ameliorations TypeScript ciblees et confidentialite non negociable.
 
-### Priorite 4 - Experience utilisateur
+### Problemes a corriger en priorite
 
-- Passer a une interface deux panneaux sur desktop : liste a gauche, fil actif a droite, retour simple sur mobile.
-- Rendre le composer sticky en bas du fil, avec hauteur stable et actions compactes.
-- Ajouter glisser-deposer, collage d'image, preview avant envoi et suppression locale avant upload.
-- Ajouter brouillon local par conversation dans le navigateur.
-- Ajouter recherche locale dans les messages dechiffres deja charges, sans indexer le contenu clair cote serveur.
-- Ajouter reactions, reponses citees, epingles et filtre pieces jointes seulement apres stabilisation de la couche temps reel.
+1. Le fil n'est pas encore scalable.
+   Il faut ajouter une pagination curseur avec `before_id`, `after_id`, limite parametrable et chargement progressif depuis le haut du fil. L'objectif est d'eviter `OFFSET` et de garder un fil performant avec conversations longues et nombreuses pieces jointes.
 
-### Priorite 5 - Notifications
+2. Il manque un journal d'evenements conversationnels.
+   Les tables metier actuelles stockent l'etat, mais un messenger a aussi besoin d'un flux append-only minimal : message cree, message supprime, piece jointe supprimee, lecture, membre ajoute, sortie, renommage, appareil ajoute ou revoque. Ce journal sert au temps reel, aux notifications, aux synchronisations multi-appareils et a l'audit sans contenu clair.
 
-- Ajouter notifications email de nouveau message avec contenu neutre par defaut.
-- Respecter les preferences par conversation : muet, digest, jamais notifier.
-- Utiliser la configuration SMTP membre ou privee selon le modele produit retenu, sans hardcoder d'expediteur.
-- Ajouter une file d'attente future pour gros volumes et retries SMTP.
-- Etudier les notifications navigateur seulement apres consentement explicite et sans dependance tierce inutile.
+3. L'envoi n'est pas encore idempotent.
+   Un double clic, une reconnexion reseau ou un retry peut creer deux messages. Il faut ajouter `client_message_id`, unique par conversation et appareil.
 
-### Priorite 6 - Fichiers et medias
+4. Le temps reel doit etre progressif.
+   WebSocket n'est pas la premiere cible. Pour le contexte PHP/OVH, Server-Sent Events est le meilleur premier palier : plus simple, suffisant pour nouveaux messages/lectures/suppressions, securisable via session privee, et compatible avec un fallback polling.
 
-- Ajouter antivirus ou file d'attente de scan pour les pieces jointes Discussion, avec blocage tant que le statut n'est pas sain.
-- Generer les miniatures en tache de fond pour les images lourdes.
-- Ajouter quotas par utilisateur et par conversation.
-- Ajouter nettoyage des fichiers orphelins avec dry-run JSON.
-- Ajouter galerie media et filtre par type de piece jointe.
+5. Le chiffrement multi-appareils doit etre clarifie.
+   Regle cible : le serveur ne recupere jamais le contenu texte en clair. Le protocole doit ensuite formaliser appareils connus, nouvel appareil, enveloppes de cles, revocation, rotation et strategie de secours explicite.
 
-### Priorite 7 - Observabilite et exploitation
+## 9. Modifications cibles par couche
 
-- Ajouter des metriques dediees : messages envoyes, echecs d'envoi, refus d'acces, temps de purge, erreurs de dechiffrement client remontees sans contenu.
-- Ajouter un tableau ops sans contenu prive : volumes, erreurs, files d'attente, retentions en retard.
-- Completer les alertes `check_log_alerts.php` avec erreurs de stream temps reel, echec de scan et volume anormal.
-- Ajouter tests de charge sur conversations longues et nombreuses pieces jointes.
+### Base de donnees
 
-### Priorite 8 - Qualite produit
+Ajouter ou completer :
 
-- Ajouter tests navigateur Playwright sur desktop/mobile : listing, ouverture, envoi, popup, scroll dernier message, suppression, upload.
-- Ajouter tests d'accessibilite clavier et lecteurs d'ecran sur le fil et le composer.
-- Ajouter tests de non-regression visuelle sur conversation vide, conversation longue, pieces jointes et erreurs.
-- Documenter un protocole de recette preprod avec deux comptes membres actifs et un compte sans droit Discussion.
+| Element | Objectif |
+|---|---|
+| `discussion_conversation_events` | journal append-only des evenements de conversation |
+| `discussion_messages.client_message_id` | idempotence d'envoi cote client |
+| index conversations par utilisateur/date | listing rapide |
+| index messages par conversation/id | pagination curseur |
+| index lectures non lues par participant | badges non lus |
+| index evenements par conversation/id | flux SSE et sync |
+| index pieces jointes par message | lecture et purge rapides |
+| index purges par expiration/statut | retention robuste |
 
-## 9. Regles de contribution
+Schema cible minimal pour `discussion_conversation_events` :
+
+| Champ | Role |
+|---|---|
+| `id` | curseur croissant |
+| `conversation_id` | conversation concernee |
+| `actor_user_id` | acteur prive, nullable si evenement systeme |
+| `event_type` | type normalise |
+| `event_payload_json` | metadonnees minimales, sans contenu de message |
+| `client_event_id` | idempotence des evenements client |
+| `request_id` | correlation technique sans secret |
+| `created_at` | date serveur |
+
+Statuts a clarifier :
+
+- `active` : contenu disponible;
+- `deleted` : suppression utilisateur visible, contenu potentiellement encore non purge selon regle produit;
+- `redacted` : contenu neutralise volontairement, trace conservee;
+- `expired` : contenu arrive a retention;
+- `purged` : contenu et fichiers neutralises/supprimes.
+
+### Backend
+
+Services a creer ou renforcer :
+
+| Service cible | Role |
+|---|---|
+| `DiscussionTimelineService` | chargement initial, pagination avant/apres, normalisation timeline |
+| `DiscussionEventService` | creation append-only, lecture incrementale, source SSE |
+| `ConversationEventStream` | abstraction SSE d'abord, WebSocket possible plus tard |
+| `DiscussionMessageCommandService` | envoi idempotent, suppression, redaction, validation payload chiffre |
+| `DiscussionNotificationService` | notifications email neutres, preferences, digest futur |
+| `DiscussionMediaService` | scan, miniatures, galerie, quotas, orphelins |
+| `DiscussionCryptoDeviceService` | appareils, rotation, revocation, enveloppes de cles |
+
+Regles backend :
+
+- aucune route publique directe;
+- aucun contenu de message dans `discussion_conversation_events`;
+- aucun contenu clair dans les logs;
+- toute nouvelle table/fichier doit entrer dans backup, export, purge immediate et suppression differee;
+- toute action destructive doit rester idempotente ou rejouable sans effet double.
+
+### Frontend
+
+Extraction progressive du JavaScript inline vers :
+
+- `frontend/src/js/private-discussion.ts`;
+- `frontend/src/scss/private-discussion.scss`.
+
+Le rendu initial doit rester cote PHP. Le JavaScript hydrate ensuite les interactions : pagination, SSE/fallback polling, etat d'envoi, brouillon local, drag and drop, collage image et preview avant envoi.
+
+Regles frontend :
+
+- ne pas transformer le module en SPA;
+- ne pas mettre de logique metier dans les templates;
+- ne pas stocker de secret ou cle dans `localStorage`;
+- ne pas indexer le contenu dechiffre cote serveur;
+- garder les actions visibles sur de vrais boutons.
+
+### Interface utilisateur
+
+Cible desktop :
+
+- liste des conversations a gauche;
+- fil actif a droite;
+- panneau de detail optionnel seulement quand utile;
+- composer sticky en bas du fil;
+- actions compactes et stables.
+
+Cible mobile :
+
+- liste en premier;
+- ouverture d'une conversation en vue simple;
+- retour explicite a la liste;
+- composer fixe ou sticky sans masquer les messages;
+- aucun debordement horizontal.
+
+Fonctions UI a ajouter apres le socle :
+
+- etat `envoi`, `envoye`, `erreur`;
+- drag and drop de fichiers;
+- collage image;
+- preview avant upload;
+- suppression locale avant envoi;
+- brouillon local par conversation;
+- recherche locale dans les messages deja dechiffres et charges;
+- filtre pieces jointes.
+
+Reactions, reponses citees et epingles ne viennent qu'apres stabilisation de la timeline, des evenements et du temps reel.
+
+### Notifications
+
+Priorite aux notifications email neutres, pas aux notifications navigateur.
+
+Regles :
+
+- sujet et corps via templates mail prives;
+- contenu neutre, sans message ni nom de fichier sensible;
+- lien vers la conversation;
+- preferences par conversation : notifier, muet, digest, jamais;
+- pas d'email a un membre sorti de la conversation;
+- retries futurs via file d'attente, sans boucle d'envoi en cas d'erreur SMTP.
+
+Table cible possible : `discussion_notification_preferences`.
+
+### Fichiers et medias
+
+Priorites :
+
+1. scan antivirus ou file d'attente de scan;
+2. blocage tant que le fichier n'est pas sain;
+3. miniatures asynchrones chiffrees hors webroot;
+4. quotas par utilisateur et par conversation;
+5. nettoyage des fichiers orphelins avec dry-run JSON;
+6. galerie media.
+
+Statuts fichiers cibles :
+
+- `pending_scan`;
+- `available`;
+- `blocked`;
+- `deleted`;
+- `purged`.
+
+Commandes CLI a prevoir :
+
+```bash
+php backend/core/tools/scan_private_discussion_attachments.php --dry-run --json
+php backend/core/tools/cleanup_private_discussion_orphans.php --dry-run --json
+```
+
+### Observabilite
+
+Ajouter une vue ops sans contenu prive, reservee aux profils autorises.
+
+Metriques utiles :
+
+- messages envoyes;
+- echecs d'envoi;
+- refus d'acces;
+- erreurs de dechiffrement client sans contenu;
+- temps de purge;
+- retards de retention;
+- erreurs de stream;
+- echecs de scan fichiers;
+- volume anormal de messages ou pieces jointes;
+- rate-limit.
+
+Les alertes `check_log_alerts.php` pourront ensuite couvrir les erreurs SSE, les echecs de scan et les retards de retention.
+
+### Tests
+
+Couverture cible :
+
+| Niveau | Cas |
+|---|---|
+| PHPUnit | idempotence, pagination, droits, lecture/suppression, evenements, fichiers, purge RGPD, cles/appareils |
+| Concurrence | double envoi, double suppression, ouverture sur deux appareils |
+| Playwright | listing, ouverture, envoi, popup, scroll dernier message, suppression, upload, mobile |
+| Accessibilite | navigation clavier, lecteur d'ecran, focus visible, vrais boutons |
+| Charge | conversations longues, nombreuses pieces jointes, fichiers lourds/refuses |
+
+## 10. Phases de developpement et checklists
+
+### Phase D1 - Socle conversationnel durable
+
+Objectif : rendre le fil scalable, robuste et rejouable.
+
+Checklist :
+
+- [ ] ajouter une migration SQL privee pour les index manquants;
+- [ ] ajouter `client_message_id` dans `discussion_messages`;
+- [ ] ajouter une contrainte d'unicite adaptee a `conversation_id + sender_private_user_id + client_message_id`;
+- [ ] ajouter pagination curseur `before_id` et `after_id`;
+- [ ] eviter toute pagination par `OFFSET`;
+- [ ] clarifier les statuts `deleted`, `redacted`, `expired`, `purged`;
+- [ ] adapter `DiscussionRepository`;
+- [ ] ajouter `DiscussionTimelineService`;
+- [ ] tester conversations longues et lots de messages;
+- [ ] verifier backup/export/purge apres changement de schema.
+
+Methodes utiles a prevoir :
+
+- `findMessagesBefore()`;
+- `findMessagesAfter()`;
+- `findConversationTimeline()`;
+- `findUnreadCountsForUser()`.
+
+Pieges a eviter :
+
+- suppression physique trop precoce;
+- confusion entre suppression utilisateur et purge RGPD;
+- perte de trace utile pour moderation ou audit sans contenu clair.
+
+### Phase D2 - Journal d'evenements append-only
+
+Objectif : preparer temps reel, sync et notifications.
+
+Checklist :
+
+- [ ] creer `discussion_conversation_events`;
+- [ ] creer `DiscussionEventService`;
+- [ ] ecrire un evenement a chaque message cree;
+- [ ] ecrire un evenement a chaque message supprime/redige;
+- [ ] ecrire un evenement a chaque piece jointe supprimee;
+- [ ] ecrire un evenement a chaque lecture;
+- [ ] ecrire un evenement a chaque ajout/sortie membre;
+- [ ] ecrire un evenement a chaque appareil ajoute/revoque;
+- [ ] ne jamais stocker le contenu du message dans l'evenement;
+- [ ] ajouter tests d'idempotence et de payload minimal.
+
+Pieges a eviter :
+
+- transformer cette table en log technique verbeux;
+- stocker des noms de fichiers sensibles sans necessite;
+- exposer les payloads bruts dans une vue ops.
+
+### Phase D3 - Temps reel progressif
+
+Objectif : remplacer le polling simple par SSE avec fallback.
+
+Checklist :
+
+- [ ] creer l'abstraction `ConversationEventStream`;
+- [ ] ajouter la route privee `/private/discussions/api/conversations/{conversationId}/events`;
+- [ ] verifier session, module et participation avant stream;
+- [ ] lire depuis `discussion_conversation_events`;
+- [ ] envoyer les evenements recents par curseur;
+- [ ] conserver fallback polling;
+- [ ] tester deconnexion, reprise et absence de droit;
+- [ ] documenter les limites hebergement si SSE est coupe.
+
+Pieges a eviter :
+
+- connexion ouverte sans controle de session;
+- exposition d'une conversation non autorisee;
+- envoi de contenu clair dans le flux;
+- dependance forte a SSE sans fallback.
+
+### Phase D4 - Interface messenger
+
+Objectif : rendre l'usage fluide sans transformer le module en SPA.
+
+Checklist :
+
+- [ ] creer `frontend/src/js/private-discussion.ts`;
+- [ ] creer `frontend/src/scss/private-discussion.scss` si necessaire;
+- [ ] garder le rendu initial PHP;
+- [ ] ajouter layout deux panneaux desktop;
+- [ ] ajouter vue mobile liste puis fil;
+- [ ] rendre le composer sticky;
+- [ ] ajouter etats d'envoi;
+- [ ] ajouter drag and drop;
+- [ ] ajouter collage image;
+- [ ] ajouter preview avant upload;
+- [ ] ajouter brouillon local sans secret;
+- [ ] ajouter recherche locale uniquement dans messages dechiffres charges;
+- [ ] tester 390px, 768px et desktop.
+
+Pieges a eviter :
+
+- logique metier dans le template;
+- secret crypto en `localStorage`;
+- action visible sur `<span>` ou `<a>` sans vraie navigation;
+- debordement horizontal.
+
+### Phase D5 - Crypto multi-appareils V2
+
+Objectif : rendre le chiffrement comprehensible et durable sur plusieurs appareils.
+
+Checklist :
+
+- [ ] formaliser le protocole crypto V2;
+- [ ] definir statuts appareil `trusted`, `pending`, `revoked`;
+- [ ] utiliser `discussion_crypto_devices`;
+- [ ] utiliser `discussion_conversation_keys`;
+- [ ] ajouter UI "cet appareil est connu";
+- [ ] ajouter UI "nouvel appareil detecte";
+- [ ] ajouter action "revoquer cet appareil";
+- [ ] ajouter action "regenerer les cles de conversation";
+- [ ] documenter la strategie de recuperation;
+- [ ] tester rotation et revocation.
+
+Regle centrale :
+
+Le serveur ne doit jamais promettre une recuperation du contenu texte si aucune cle locale autorisee ne peut le dechiffrer.
+
+### Phase D6 - Notifications email neutres
+
+Objectif : informer sans fuite de contenu.
+
+Checklist :
+
+- [ ] ajouter `discussion_notification_preferences`;
+- [ ] creer `DiscussionNotificationService`;
+- [ ] ajouter templates mail prives configurables;
+- [ ] envoyer un email neutre de nouveau message;
+- [ ] ajouter preference conversation muette;
+- [ ] ajouter preference digest futur;
+- [ ] ne pas notifier un membre sorti;
+- [ ] ne pas envoyer le contenu du message;
+- [ ] ne pas envoyer le nom sensible d'un fichier;
+- [ ] tester erreur SMTP sans fuite utilisateur.
+
+### Phase D7 - Fichiers et medias renforces
+
+Objectif : mieux controler les pieces jointes.
+
+Checklist :
+
+- [ ] ajouter statuts `pending_scan`, `available`, `blocked`, `deleted`, `purged`;
+- [ ] ne servir que les fichiers `available`;
+- [ ] ajouter scan antivirus ou file d'attente;
+- [ ] generer miniatures hors webroot;
+- [ ] chiffrer miniatures et fichiers;
+- [ ] ajouter quotas utilisateur/conversation;
+- [ ] ajouter cleanup orphelins avec dry-run JSON;
+- [ ] ajouter galerie media;
+- [ ] verifier scopes backup/export/purge.
+
+### Phase D8 - Observabilite sans contenu prive
+
+Objectif : suivre l'exploitation sans exposer les messages.
+
+Checklist :
+
+- [ ] creer une vue ops reservee;
+- [ ] afficher volumes et erreurs;
+- [ ] afficher retards de purge;
+- [ ] afficher erreurs de stream;
+- [ ] afficher echecs de scan;
+- [ ] afficher rate-limit;
+- [ ] afficher erreurs de dechiffrement client sans contenu;
+- [ ] enrichir `check_log_alerts.php`;
+- [ ] ne pas afficher de cles, messages ni noms sensibles inutiles.
+
+### Phase D9 - Recette et qualite produit
+
+Objectif : stabiliser avant enrichissements visibles.
+
+Checklist :
+
+- [ ] ajouter tests PHPUnit idempotence;
+- [ ] ajouter tests PHPUnit pagination;
+- [ ] ajouter tests PHPUnit evenements;
+- [ ] ajouter tests PHPUnit crypto/appareils;
+- [ ] ajouter tests concurrence;
+- [ ] ajouter Playwright desktop/mobile;
+- [ ] tester compte sans droit Discussion;
+- [ ] tester conversations longues;
+- [ ] tester fichiers lourds/refuses;
+- [ ] tester accessibilite clavier et focus.
+
+## 11. Ordre recommande de developpement
+
+1. Pagination + index SQL + statuts propres.
+2. Idempotence d'envoi avec `client_message_id`.
+3. Table append-only `discussion_conversation_events`.
+4. SSE avec fallback polling.
+5. Interface deux panneaux + composer sticky.
+6. Brouillons locaux + upload ameliore.
+7. Crypto multi-appareils V2.
+8. Notifications email neutres.
+9. Scan fichiers + quotas + galerie.
+10. Observabilite ops.
+11. Playwright + accessibilite + charge.
+
+## 12. Ce qu'il ne faut pas faire maintenant
+
+- ne pas commencer par reactions, epingles et reponses citees;
+- ne pas ajouter WebSocket avant d'avoir teste SSE;
+- ne pas indexer le contenu dechiffre cote serveur;
+- ne pas mettre le contenu des messages dans les notifications;
+- ne pas stocker de cles dans `localStorage`;
+- ne pas multiplier les routes publiques;
+- ne pas creer de fichiers hors scopes backup/export/RGPD;
+- ne pas mettre la logique de messagerie dans les templates.
+
+## 13. Vision finale attendue
+
+Le module cible doit devenir un vrai messenger prive familial :
+
+- affichage fluide meme avec de longues conversations;
+- nouveaux messages visibles presque en temps reel;
+- envoi fiable meme en cas de double clic ou reseau instable;
+- interface claire sur desktop et mobile;
+- fichiers mieux controles, scannes et organises;
+- notifications utiles mais discretes;
+- chiffrement compatible multi-appareils;
+- audit exploitable sans fuite de contenu prive;
+- RGPD, purge, sauvegarde et suppression toujours coherents;
+- tests solides avant chaque evolution.
+
+Le resultat final doit rester simple pour l'utilisateur, mais strict cote architecture : module prive, securise, tracable, evolutif, sans exposition publique directe et sans perte de confidentialite.
+
+## 14. Regles de contribution
 
 Toute evolution du module doit respecter ces invariants :
 
