@@ -147,7 +147,7 @@ $notificationLabels = [
   <nav class="private-module-nav" aria-label="Navigation discussions">
     <div class="private-module-nav-row">
       <a href="<?php echo $h($indexUrl); ?>">Conversations</a>
-      <a class="active" href="<?php echo $h($conversationUrl); ?>">Conversation</a>
+      <a class="active" href="<?php echo $h($conversationUrl); ?>">Fil actif</a>
     </div>
   </nav>
 

@@ -186,6 +186,8 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-discussion-emoji-toggle', $template);
         self::assertStringContainsString('aria-controls="discussion-emoji-picker"', $template);
         self::assertStringContainsString('data-discussion-emoji-picker', $template);
+        self::assertStringContainsString('>Fil actif</a>', $template);
+        self::assertStringNotContainsString('>Conversation</a>', $template);
         self::assertMatchesRegularExpression(
             '/<button[^>]+type="button"[^>]+data-discussion-emoji-toggle/s',
             $template
