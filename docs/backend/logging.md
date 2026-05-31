@@ -193,6 +193,15 @@ Configuration du canal ops dans `/etc/caramagnols/check-log-alerts.env` :
 - webhook : `LOG_ALERTS_WEBHOOK_URL=https://...`
 - email : `LOG_ALERTS_EMAIL_TO=ops@example.com,astreinte@example.com`
 - mode de notification : `LOG_ALERTS_NOTIFY_ON=alerts|always`
+- rappel d'une meme alerte persistante : `LOG_ALERTS_REPEAT_NOTIFY_MINUTES=180`
+- memoire anti-doublon : `LOG_ALERTS_STATE_FILE=/srv/caramagnols/backend/var/log/check-log-alerts-state.json`
+
+Anti-spam :
+
+- en mode `alerts`, une nouvelle alerte ou une nouvelle metrique en alerte notifie immediatement;
+- si le meme ensemble d'alertes reste present a chaque passage du timer, la notification est temporisee jusqu'au delai `LOG_ALERTS_REPEAT_NOTIFY_MINUTES`;
+- un retour a l'etat OK efface la memoire, donc une alerte ulterieure renotifie immediatement;
+- le mode `always` contourne cette temporisation et doit rester reserve aux tests de reception.
 
 Pilotage admin V2 (sans exposition des secrets) :
 

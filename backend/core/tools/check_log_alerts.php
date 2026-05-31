@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../bootstrap.php';
 
 use Caramagnols\Logging\LogAlertsNotifier;
+use Caramagnols\Logging\LogAlertsNotificationGate;
 
 if (PHP_SAPI !== 'cli') {
     fwrite(STDERR, "Cette commande doit être exécutée en CLI.\n");
@@ -21,6 +22,14 @@ $webhookTimeout = max(2, min(20, (int) ($options['webhook-timeout'] ?? env('LOG_
 $emailRecipients = parse_recipient_list((string) ($options['email-to'] ?? env('LOG_ALERTS_EMAIL_TO', '')));
 $emailSubjectPrefix = trim((string) ($options['email-subject-prefix'] ?? env('LOG_ALERTS_EMAIL_SUBJECT_PREFIX', '[caramagnols]')));
 $failOnNotifyError = to_bool($options['fail-on-notify-error'] ?? env('LOG_ALERTS_FAIL_ON_NOTIFY_ERROR', false), false);
+$repeatNotifyMinutes = max(
+    0,
+    min(10080, (int) ($options['repeat-notify-minutes'] ?? env('LOG_ALERTS_REPEAT_NOTIFY_MINUTES', 180)))
+);
+$notificationStateFile = trim((string) (
+    $options['notification-state-file']
+    ?? env('LOG_ALERTS_STATE_FILE', ROOT_PATH . '/var/log/check-log-alerts-state.json')
+));
 
 $thresholds = [
     'login_failed' => max(1, (int) ($options['login-fail-threshold'] ?? 10)),
@@ -125,6 +134,17 @@ $payload = [
     ],
 ];
 
+$hasNotificationChannel = $webhookUrl !== '' || $emailRecipients !== [];
+$notificationGateReport = [];
+if ($hasNotificationChannel) {
+    $notificationGate = new LogAlertsNotificationGate($notificationStateFile);
+    $notificationGateReport = $notificationGate->evaluate(
+        $alerts,
+        $notifyOn,
+        $repeatNotifyMinutes
+    );
+}
+
 $notifier = new LogAlertsNotifier(
     static function (string $recipient, string $subject, string $html): bool {
         require_once __DIR__ . '/../mailer.php';
@@ -139,16 +159,19 @@ $notifier = new LogAlertsNotifier(
     }
 );
 
-$notificationReport = $notifier->notify($payload, [
-    'notify_on' => $notifyOn,
-    'webhook_url' => $webhookUrl,
-    'webhook_timeout' => $webhookTimeout,
-    'email_recipients' => $emailRecipients,
-    'email_subject_prefix' => $emailSubjectPrefix,
-    'app_env' => (string) env('APP_ENV', ''),
-    'base_url' => (string) app_config('base_url', ''),
-]);
+$notificationReport = !empty($notificationGateReport['suppressed'])
+    ? suppressed_notification_report($notifyOn, $webhookUrl, $emailRecipients, $notificationGateReport)
+    : $notifier->notify($payload, [
+        'notify_on' => $notifyOn,
+        'webhook_url' => $webhookUrl,
+        'webhook_timeout' => $webhookTimeout,
+        'email_recipients' => $emailRecipients,
+        'email_subject_prefix' => $emailSubjectPrefix,
+        'app_env' => (string) env('APP_ENV', ''),
+        'base_url' => (string) app_config('base_url', ''),
+    ]);
 
+$payload['notification_gate'] = $notificationGateReport;
 $payload['notification'] = $notificationReport;
 
 if ($jsonOutput) {
@@ -468,6 +491,13 @@ function render_notification_report(array $notificationReport, string $notifyOn)
 {
     fwrite(STDOUT, sprintf("Canal ops (notify-on=%s)\n", $notifyOn));
 
+    if (!empty($notificationReport['suppressed'])) {
+        $gate = is_array($notificationReport['gate'] ?? null) ? $notificationReport['gate'] : [];
+        $nextNotifyAt = is_string($gate['next_notify_at'] ?? null) ? (string) $gate['next_notify_at'] : 'inconnu';
+        fwrite(STDOUT, sprintf("- notifications: temporisees (prochain rappel possible: %s)\n", $nextNotifyAt));
+        return;
+    }
+
     $triggered = (bool) ($notificationReport['triggered'] ?? false);
     if (!$triggered) {
         fwrite(STDOUT, "- notifications: non declenchees (aucune alerte)\n");
@@ -507,6 +537,44 @@ function render_notification_report(array $notificationReport, string $notifyOn)
     } else {
         fwrite(STDOUT, "- email: non configure\n");
     }
+}
+
+/**
+ * @param array<int, string> $emailRecipients
+ * @param array<string, mixed> $gateReport
+ * @return array<string, mixed>
+ */
+function suppressed_notification_report(
+    string $notifyOn,
+    string $webhookUrl,
+    array $emailRecipients,
+    array $gateReport
+): array {
+    return [
+        'enabled' => $webhookUrl !== '' || $emailRecipients !== [],
+        'notify_on' => $notifyOn,
+        'triggered' => false,
+        'suppressed' => true,
+        'suppression_reason' => is_string($gateReport['reason'] ?? null) ? (string) $gateReport['reason'] : 'repeat_window',
+        'has_error' => false,
+        'gate' => $gateReport,
+        'channels' => [
+            'webhook' => [
+                'configured' => $webhookUrl !== '',
+                'attempted' => false,
+                'success' => false,
+                'status' => 0,
+                'error' => null,
+            ],
+            'email' => [
+                'configured' => $emailRecipients !== [],
+                'attempted' => false,
+                'success' => false,
+                'sent' => [],
+                'failed' => [],
+            ],
+        ],
+    ];
 }
 
 /**
