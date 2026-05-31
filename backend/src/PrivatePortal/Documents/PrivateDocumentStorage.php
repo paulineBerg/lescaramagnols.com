@@ -375,6 +375,86 @@ final class PrivateDocumentStorage
         ];
     }
 
+    /**
+     * @return array{documentId:string,storagePath:string,originalName:string,extension:string,mimeType:string,sizeBytes:int,sha256Hash:string}|null
+     */
+    public function storeGeneratedDocument(
+        string $content,
+        string $documentId,
+        string $originalName,
+        string $extension = 'pdf',
+        string $mimeType = 'application/pdf'
+    ): ?array {
+        $this->uploadError = null;
+        $documentId = $this->normalizeDocumentId($documentId);
+        $originalName = $this->normalizeOriginalName($originalName);
+        $extension = strtolower(trim($extension));
+        $mimeType = strtolower(trim($mimeType));
+        $sizeBytes = strlen($content);
+
+        if ($documentId === '') {
+            $this->uploadError = 'invalid_document_id';
+            return null;
+        }
+        if ($originalName === '') {
+            $this->uploadError = 'invalid_original_name';
+            return null;
+        }
+        if ($extension === '' || !preg_match('/\A[a-z0-9]{1,' . self::MAX_EXTENSION_LENGTH . '}\z/', $extension)) {
+            $this->uploadError = 'invalid_extension';
+            return null;
+        }
+        if (!$this->isAllowedExtension($extension)) {
+            $this->uploadError = 'invalid_extension';
+            return null;
+        }
+        if (!$this->isAllowedMimeType($mimeType)) {
+            $this->uploadError = 'invalid_mime';
+            return null;
+        }
+        if ($sizeBytes <= 0 || $sizeBytes > $this->maxUploadBytes) {
+            $this->uploadError = 'invalid_size';
+            return null;
+        }
+
+        $storagePath = $this->buildStoragePath($documentId, $extension);
+        $absolutePath = $this->absolutePath($storagePath);
+        if ($absolutePath === null) {
+            $this->uploadError = 'invalid_storage_path';
+            return null;
+        }
+
+        $targetDir = dirname($absolutePath);
+        if (!is_dir($targetDir) && !@mkdir($targetDir, $this->directoryPermissions, true) && !is_dir($targetDir)) {
+            $this->uploadError = 'storage_unavailable';
+            return null;
+        }
+        @chmod($targetDir, $this->directoryPermissions);
+
+        if (@file_put_contents($absolutePath, $content, LOCK_EX) === false) {
+            $this->uploadError = 'write_failed';
+            return null;
+        }
+        @chmod($absolutePath, $this->filePermissions);
+        $sha256Hash = hash('sha256', $content);
+        $this->uploadError = null;
+        $this->logEvent('private.documents.generated', [
+            'document_id' => $documentId,
+            'size_bytes' => $sizeBytes,
+            'mime_type' => $mimeType,
+        ]);
+
+        return [
+            'documentId' => $documentId,
+            'storagePath' => $storagePath,
+            'originalName' => $originalName,
+            'extension' => $extension,
+            'mimeType' => $mimeType,
+            'sizeBytes' => $sizeBytes,
+            'sha256Hash' => $sha256Hash,
+        ];
+    }
+
     public function absolutePath(string $storagePath): ?string
     {
         $storagePath = trim(str_replace('\\', '/', (string) $storagePath));

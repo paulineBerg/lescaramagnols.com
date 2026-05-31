@@ -30,6 +30,7 @@ use Caramagnols\PrivateApps\RealEstateRental\Service\RentScheduleService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentPaymentStatusService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalPaymentRequestService;
+use Caramagnols\PrivateApps\RealEstateRental\Service\RentalReceiptService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Service\TaxDeclarationSummaryService;
@@ -80,7 +81,8 @@ final class PrivatePortalController
         private readonly ?DiscussionRetentionService $discussionRetentionService = null,
         private readonly ?RentScheduleService $rentScheduleService = null,
         private readonly ?RentPaymentStatusService $rentPaymentStatusService = null,
-        private readonly ?RentalPaymentRequestService $rentalPaymentRequestService = null
+        private readonly ?RentalPaymentRequestService $rentalPaymentRequestService = null,
+        private readonly ?RentalReceiptService $rentalReceiptService = null
     ) {
     }
 
@@ -4074,12 +4076,74 @@ final class PrivatePortalController
             'demande-paiement-%s.pdf',
             preg_replace('/[^0-9-]+/', '-', str_replace('/', '-', (string) ($preview['periodLabel'] ?? date('m-Y')))) ?: date('m-Y')
         );
+        $content = $this->rentalPaymentRequestService()->pdf($request, $preview);
+        $generatedDocument = $this->storeRentalGeneratedPaymentNotice($preview, $request, $content, $userId);
 
         return $this->withPrivateHeaders(new Response(200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
             'X-Content-Type-Options' => 'nosniff',
-        ], $this->rentalPaymentRequestService()->pdf($request, $preview)));
+            'X-Rental-Generated-Document' => is_array($generatedDocument) && is_string($generatedDocument['documentId'] ?? null) ? (string) $generatedDocument['documentId'] : '',
+        ], $content));
+    }
+
+    /**
+     * @param array<string, mixed> $preview
+     * @param array<string, mixed> $request
+     * @return array<string, mixed>|null
+     */
+    private function storeRentalGeneratedPaymentNotice(array $preview, array $request, string $content, int $userId): ?array
+    {
+        $snapshot = [
+            'documentType' => 'payment_notice',
+            'paymentRequestId' => is_numeric($request['id'] ?? null) ? (int) $request['id'] : 0,
+            'rentId' => is_numeric($preview['rentId'] ?? null) ? (int) $preview['rentId'] : 0,
+            'leaseId' => is_numeric($preview['leaseId'] ?? null) ? (int) $preview['leaseId'] : 0,
+            'propertyId' => is_numeric($preview['propertyId'] ?? null) ? (int) $preview['propertyId'] : 0,
+            'unitId' => is_numeric($preview['unitId'] ?? null) ? (int) $preview['unitId'] : 0,
+            'tenantName' => is_string($preview['tenantName'] ?? null) ? (string) $preview['tenantName'] : '',
+            'propertyName' => is_string($preview['propertyName'] ?? null) ? (string) $preview['propertyName'] : '',
+            'unitLabel' => is_string($preview['unitLabel'] ?? null) ? (string) $preview['unitLabel'] : '',
+            'periodLabel' => is_string($preview['periodLabel'] ?? null) ? (string) $preview['periodLabel'] : '',
+            'amountDue' => is_string($preview['amountDue'] ?? null) ? (string) $preview['amountDue'] : '',
+            'amountPaid' => is_string($preview['amountPaid'] ?? null) ? (string) $preview['amountPaid'] : '',
+            'balanceDue' => is_string($preview['balanceDue'] ?? null) ? (string) $preview['balanceDue'] : '',
+            'subject' => is_string($request['subject'] ?? null) ? (string) $request['subject'] : '',
+        ];
+        $idempotencySnapshot = $snapshot;
+        $idempotencyKey = hash('sha256', json_encode($idempotencySnapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: serialize($idempotencySnapshot));
+        $existing = $this->rentalLifecycleRepository()->findGeneratedDocumentByIdempotencyKey($idempotencyKey);
+        if (is_array($existing)) {
+            return $existing;
+        }
+
+        $documentId = $this->privateDocumentStorage()->generateDocumentId();
+        $filename = sprintf(
+            'avis-paiement-%s.pdf',
+            preg_replace('/[^0-9-]+/', '-', str_replace('/', '-', (string) $snapshot['periodLabel'])) ?: date('m-Y')
+        );
+        $stored = $documentId !== '' ? $this->privateDocumentStorage()->storeGeneratedDocument($content, $documentId, $filename) : null;
+        if (!is_array($stored)) {
+            return null;
+        }
+
+        return $this->rentalLifecycleRepository()->createGeneratedDocument(
+            (int) $snapshot['rentId'],
+            (int) $snapshot['leaseId'],
+            null,
+            (int) $snapshot['propertyId'],
+            (int) $snapshot['unitId'],
+            'payment_notice',
+            (string) $stored['documentId'],
+            (string) $stored['storagePath'],
+            (string) $stored['originalName'],
+            (string) $stored['mimeType'],
+            (int) $stored['sizeBytes'],
+            (string) $stored['sha256Hash'],
+            $idempotencyKey,
+            $snapshot,
+            $userId
+        );
     }
 
     /**
@@ -4097,16 +4161,18 @@ final class PrivatePortalController
             return false;
         }
 
+        $documentType = is_string($body['document_type'] ?? null) ? (string) $body['document_type'] : RentalReceiptService::DOCUMENT_RECEIPT;
+        $document = $this->rentalReceiptService()->generateForPayment($paymentId, $propertyIds, $userId, $documentType);
+        $content = is_array($document) ? $this->rentalReceiptService()->content($document) : null;
+        if (!is_array($document) || !is_string($content)) {
+            return false;
+        }
+
         $leaseId = is_numeric($payment['rentalLeaseId'] ?? null) ? (int) $payment['rentalLeaseId'] : 0;
         $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
         $tenantId = is_array($lease) && is_numeric($lease['rentalTenantId'] ?? null) ? (int) $lease['rentalTenantId'] : 0;
         $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
-        $property = $this->rentalPropertyRepository()->findById($propertyId);
-        $unitId = is_numeric($payment['rentalUnitId'] ?? null) ? (int) $payment['rentalUnitId'] : 0;
-        $unit = $this->rentalUnitRepository()->findById($unitId);
-        $rentId = is_numeric($payment['rentalRentId'] ?? null) ? (int) $payment['rentalRentId'] : 0;
-        $rent = $rentId > 0 ? $this->rentalLifecycleRepository()->findRentById($rentId) : null;
-        if (!is_array($lease) || !is_array($tenant) || $property === null) {
+        if (!is_array($lease) || !is_array($tenant)) {
             return false;
         }
 
@@ -4121,23 +4187,22 @@ final class PrivatePortalController
         $variables = [
             'email' => $to,
         ];
-        $subject = $this->mailSubjectFromBody($body, 'rental_subject', 'Quittance de loyer', $variables);
+        $isReceipt = (string) ($document['documentType'] ?? '') === RentalReceiptService::DOCUMENT_RECEIPT;
+        $subject = $this->mailSubjectFromBody($body, 'rental_subject', $isReceipt ? 'Quittance de loyer' : 'Reçu partiel de loyer', $variables);
         $html = $this->mailHtmlFromBody($body, 'rental_body', $variables);
-        $filename = sprintf(
-            'quittance-%04d-%02d.pdf',
-            (int) ($payment['periodYear'] ?? date('Y')),
-            (int) ($payment['periodMonth'] ?? date('n'))
-        );
+        $filename = $this->sanitizeDownloadFilename((string) ($document['originalName'] ?? ($isReceipt ? 'quittance.pdf' : 'recu-partiel.pdf')));
         $sent = $this->sendPrivateMail($to, $subject, $html, [[
-            'content' => $this->rentalReceiptPdf($payment, $lease, $tenant, $property->name, $unit?->label ?? '', is_array($rent) ? $rent : null),
+            'content' => $content,
             'name' => $filename,
-            'mime' => 'application/pdf',
+            'mime' => is_string($document['mimeType'] ?? null) ? (string) $document['mimeType'] : 'application/pdf',
         ]]);
 
         $this->logEvent($sent ? 'private.rental_receipt.email_sent' : 'private.rental_receipt.email_failed', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_payment_id' => $paymentId,
+            'rental_generated_document_id' => is_numeric($document['id'] ?? null) ? (int) $document['id'] : 0,
+            'document_type' => (string) ($document['documentType'] ?? ''),
             'recipient' => AppEventLogger::maskIdentifier($to),
         ]);
 
@@ -4151,44 +4216,32 @@ final class PrivatePortalController
     private function downloadRentalReceiptPdf(array $body, array $propertyIds, int $userId): ?Response
     {
         $paymentId = $this->normalizeNumericId($body['payment_id'] ?? null);
-        $payment = $this->rentalLifecycleRepository()->findPaymentById($paymentId);
-        $propertyId = is_array($payment) && is_numeric($payment['rentalPropertyId'] ?? null)
-            ? (int) $payment['rentalPropertyId']
+        $documentType = is_string($body['document_type'] ?? null) ? (string) $body['document_type'] : RentalReceiptService::DOCUMENT_RECEIPT;
+        $document = $this->rentalReceiptService()->generateForPayment($paymentId, $propertyIds, $userId, $documentType);
+        $propertyId = is_array($document) && is_numeric($document['rentalPropertyId'] ?? null)
+            ? (int) $document['rentalPropertyId']
             : 0;
-        if (!is_array($payment) || !in_array($propertyId, $propertyIds, true)) {
+        $content = is_array($document) ? $this->rentalReceiptService()->content($document) : null;
+        if (!is_array($document) || !is_string($content) || !in_array($propertyId, $propertyIds, true)) {
             return null;
         }
 
-        $leaseId = is_numeric($payment['rentalLeaseId'] ?? null) ? (int) $payment['rentalLeaseId'] : 0;
-        $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
-        $tenantId = is_array($lease) && is_numeric($lease['rentalTenantId'] ?? null) ? (int) $lease['rentalTenantId'] : 0;
-        $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
-        $property = $this->rentalPropertyRepository()->findById($propertyId);
-        $unitId = is_numeric($payment['rentalUnitId'] ?? null) ? (int) $payment['rentalUnitId'] : 0;
-        $unit = $this->rentalUnitRepository()->findById($unitId);
-        $rentId = is_numeric($payment['rentalRentId'] ?? null) ? (int) $payment['rentalRentId'] : 0;
-        $rent = $rentId > 0 ? $this->rentalLifecycleRepository()->findRentById($rentId) : null;
-        if (!is_array($lease) || !is_array($tenant) || $property === null) {
-            return null;
-        }
-
-        $filename = sprintf(
-            'quittance-%04d-%02d.pdf',
-            (int) ($payment['periodYear'] ?? date('Y')),
-            (int) ($payment['periodMonth'] ?? date('n'))
-        );
+        $filename = $this->sanitizeDownloadFilename((string) ($document['originalName'] ?? 'document-locatif.pdf'));
+        $mimeType = is_string($document['mimeType'] ?? null) ? (string) $document['mimeType'] : 'application/pdf';
 
         $this->logEvent('private.rental_receipt.downloaded', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_payment_id' => $paymentId,
+            'rental_generated_document_id' => is_numeric($document['id'] ?? null) ? (int) $document['id'] : 0,
+            'document_type' => (string) ($document['documentType'] ?? ''),
         ]);
 
         return $this->withPrivateHeaders(new Response(200, [
-            'Content-Type' => 'application/pdf',
+            'Content-Type' => $mimeType,
             'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
             'X-Content-Type-Options' => 'nosniff',
-        ], $this->rentalReceiptPdf($payment, $lease, $tenant, $property->name, $unit?->label ?? '', is_array($rent) ? $rent : null)));
+        ], $content));
     }
 
     /**
@@ -4969,50 +5022,6 @@ final class PrivatePortalController
     }
 
     /**
-     * @param array<string, mixed> $payment
-     * @param array<string, mixed> $lease
-     * @param array<string, mixed> $tenant
-     * @param array<string, mixed>|null $rent
-     */
-    private function rentalReceiptPdf(
-        array $payment,
-        array $lease,
-        array $tenant,
-        string $propertyName,
-        string $unitLabel,
-        ?array $rent = null
-    ): string {
-        $period = sprintf(
-            '%04d-%02d',
-            (int) ($payment['periodYear'] ?? date('Y')),
-            (int) ($payment['periodMonth'] ?? date('n'))
-        );
-        $amountDue = is_array($rent) && is_numeric($rent['amountDue'] ?? null)
-            ? (float) $rent['amountDue']
-            : (float) ($payment['amountDue'] ?? 0);
-        $amountPaid = (float) ($payment['amountPaid'] ?? 0);
-        $balance = max(0.0, $amountDue - $amountPaid);
-        $rentNotes = is_array($rent) && is_string($rent['notes'] ?? null) ? trim((string) $rent['notes']) : '';
-        $text = sprintf(
-            "Quittance de loyer\nPeriode: %s\nPropriete: %s\nBien locatif: %s\nLocataire: %s\nDate de paiement: %s\nMontant du loyer: %.2f EUR\nMontant encaisse: %.2f EUR\nSolde restant: %.2f EUR\nBail du: %s",
-            $period,
-            $propertyName,
-            $unitLabel !== '' ? $unitLabel : 'non precise',
-            (string) ($tenant['fullName'] ?? 'Locataire'),
-            (string) ($payment['paymentDate'] ?? ''),
-            $amountDue,
-            $amountPaid,
-            $balance,
-            (string) ($lease['startDate'] ?? '')
-        );
-        if ($rentNotes !== '') {
-            $text .= "\n\nDetail quittance:\n" . $rentNotes;
-        }
-
-        return "%PDF-1.4\n% Caramagnols private rental receipt\n" . $text . "\n%%EOF\n";
-    }
-
-    /**
      * @param array<string, mixed> $lease
      * @param array<string, mixed> $tenant
      */
@@ -5775,6 +5784,14 @@ final class PrivatePortalController
                 "Gestion locative {{site_name}}\nContact : {{reply_to}}"
             ),
             fn (string $to, string $subject, string $html, array $attachments): bool => $this->sendPrivateMail($to, $subject, $html, $attachments)
+        );
+    }
+
+    private function rentalReceiptService(): RentalReceiptService
+    {
+        return $this->rentalReceiptService ?? new RentalReceiptService(
+            $this->rentalLifecycleRepository(),
+            $this->privateDocumentStorage()
         );
     }
 

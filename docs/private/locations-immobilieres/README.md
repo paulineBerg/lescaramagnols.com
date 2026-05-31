@@ -456,20 +456,43 @@ Validations L3 executees :
 
 ### Phase L4 - Quittances et documents generes
 
-- [ ] Bloquer la quittance si le loyer n'est pas integralement paye.
-- [ ] Ajouter recu partiel pour paiement incomplet.
-- [ ] Stocker les PDF generes hors webroot avec hash, type MIME et taille.
-- [ ] Rattacher quittance, recu et avis au loyer et au bail.
-- [ ] Garder un snapshot immuable du document envoye.
-- [ ] Ajouter purge ou retention documentee pour exports temporaires.
+- [x] Bloquer la quittance si le loyer n'est pas integralement paye.
+- [x] Ajouter recu partiel pour paiement incomplet.
+- [x] Stocker les PDF generes hors webroot avec hash, type MIME et taille.
+- [x] Rattacher quittance, recu et avis au loyer et au bail.
+- [x] Garder un snapshot immuable du document envoye.
+- [x] Ajouter purge ou retention documentee pour exports temporaires.
 
 Tests minimum :
 
-- [ ] `RentalReceiptServiceTest`;
-- [ ] quittance interdite sur paiement partiel;
-- [ ] PDF stocke hors webroot;
-- [ ] telechargement refuse sans droit propriete;
-- [ ] audit telechargement/email.
+- [x] `RentalReceiptServiceTest`;
+- [x] quittance interdite sur paiement partiel;
+- [x] PDF stocke hors webroot;
+- [x] telechargement refuse sans droit propriete;
+- [x] audit telechargement/email.
+
+Decisions L4 :
+
+- les documents generes durablement sont historises dans `rental_generated_documents`, avec rattachement au loyer, bail, paiement, propriete et lot;
+- les fichiers PDF sont ecrits par `PrivateDocumentStorage::storeGeneratedDocument()` dans le stockage prive hors webroot, avec `sha256_hash`, type MIME et taille;
+- une quittance `receipt` est refusee tant que le solde du loyer reste positif; un `partial_receipt` est autorise uniquement si un paiement valide existe et que le solde n'est pas nul;
+- la generation est idempotente par document, paiement, periode et montants; une regeneration identique reutilise le document stocke;
+- les telechargements et envois email passent par `RentalReceiptService` et sont journalises avec type de document et identifiants locatifs;
+- la suppression de donnees privees sauvegarde, purge et supprime aussi les documents generes via le registre central de protection des donnees.
+
+Validations L4 executees :
+
+- `php -l` sur `PrivateDocumentStorage`, `RentalLifecycleRepository`, `RentalReceiptService`, `PrivatePortalController`, `payments.php` et `RentalReceiptServiceTest`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalReceiptServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`;
+- `git diff --check`;
+- `cd frontend && npm run hygiene:docs`;
+- `cd frontend && npm run hygiene:repo`.
 
 ### Phase L5 - Charges, justificatifs et regularisations
 

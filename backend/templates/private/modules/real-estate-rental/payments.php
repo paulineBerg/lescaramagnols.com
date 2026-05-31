@@ -73,20 +73,26 @@ $createDialogId = 'rental-payment-create-dialog';
               <td>
                 <?php if ($paymentId > 0): ?>
                   <button class="button-small" type="button" data-private-dialog-open="rental-payment-edit-dialog-<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>">Corriger</button>
-                  <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                    <input type="hidden" name="action" value="download_receipt" />
-                    <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" />
-                    <button class="button-small" type="submit">Télécharger quittance</button>
-                  </form>
-                  <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                    <input type="hidden" name="action" value="email_receipt" />
-                    <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" />
-                    <input type="hidden" name="subject" value="Quittance de loyer" />
-                    <label>Email quittance <input type="email" name="recipient_email" maxlength="190" /></label>
-                    <button class="button-small" type="submit">Envoyer quittance</button>
-                  </form>
+                  <?php if (($payment['status'] ?? '') === 'validated'): ?>
+                    <?php $documentType = (string) ($payment['rentStatus'] ?? '') === 'paid' ? 'receipt' : 'partial_receipt'; ?>
+                    <?php $documentLabel = $documentType === 'receipt' ? 'quittance' : 'reçu partiel'; ?>
+                    <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="action" value="download_receipt" />
+                      <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="document_type" value="<?php echo htmlspecialchars($documentType, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <button class="button-small" type="submit">Télécharger <?php echo htmlspecialchars($documentLabel, ENT_QUOTES, 'UTF-8'); ?></button>
+                    </form>
+                    <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="action" value="email_receipt" />
+                      <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="document_type" value="<?php echo htmlspecialchars($documentType, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="subject" value="<?php echo $documentType === 'receipt' ? 'Quittance de loyer' : 'Reçu partiel de loyer'; ?>" />
+                      <label>Email document <input type="email" name="recipient_email" maxlength="190" /></label>
+                      <button class="button-small" type="submit">Envoyer <?php echo htmlspecialchars($documentLabel, ENT_QUOTES, 'UTF-8'); ?></button>
+                    </form>
+                  <?php endif; ?>
                   <?php if (($payment['status'] ?? '') !== 'cancelled'): ?>
                     <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />

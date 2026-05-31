@@ -54,6 +54,11 @@ final class RentalLifecycleRepository
         return $this->database->table('rental_documents');
     }
 
+    public function generatedDocumentsTable(): string
+    {
+        return $this->database->table('rental_generated_documents');
+    }
+
     public function paymentRequestsTable(): string
     {
         return $this->database->table('rental_payment_requests');
@@ -1671,6 +1676,154 @@ final class RentalLifecycleRepository
     }
 
     /**
+     * @param array<string, mixed> $snapshot
+     * @return array<string, mixed>|null
+     */
+    public function createGeneratedDocument(
+        int $rentId,
+        int $leaseId,
+        ?int $paymentId,
+        int $propertyId,
+        int $unitId,
+        string $documentType,
+        string $documentId,
+        string $storagePath,
+        string $originalName,
+        string $mimeType,
+        int $sizeBytes,
+        string $sha256Hash,
+        string $idempotencyKey,
+        array $snapshot,
+        int $actorPrivateUserId
+    ): ?array {
+        $documentType = strtolower(trim($documentType));
+        $documentId = $this->normalizeIdentifier($documentId);
+        $storagePath = trim(str_replace('\\', '/', $storagePath));
+        $originalName = $this->normalizeText($originalName, 255);
+        $mimeType = strtolower($this->normalizeText($mimeType, 120));
+        $sha256Hash = strtolower(trim($sha256Hash));
+        $idempotencyKey = strtolower(trim($idempotencyKey));
+        $paymentId = $paymentId !== null && $paymentId > 0 ? $paymentId : null;
+
+        if (
+            $rentId <= 0
+            || $leaseId <= 0
+            || $propertyId <= 0
+            || $unitId <= 0
+            || $actorPrivateUserId <= 0
+            || !in_array($documentType, ['receipt', 'partial_receipt', 'payment_notice'], true)
+            || $documentId === ''
+            || $storagePath === ''
+            || $originalName === ''
+            || $mimeType === ''
+            || $sizeBytes <= 0
+            || !str_starts_with($storagePath, 'uploads/')
+            || str_contains($storagePath, '..')
+            || preg_match('/\A[a-f0-9]{64}\z/', $sha256Hash) !== 1
+            || preg_match('/\A[a-f0-9]{64}\z/', $idempotencyKey) !== 1
+        ) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $existing = $this->findGeneratedDocumentByIdempotencyKey($idempotencyKey);
+            if (is_array($existing)) {
+                return $existing;
+            }
+
+            $snapshotPayload = json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            if (!is_string($snapshotPayload)) {
+                $snapshotPayload = '{}';
+            }
+
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'INSERT INTO `%s`
+                        (`rental_rent_id`, `rental_lease_id`, `rental_payment_id`, `rental_property_id`, `rental_unit_id`,
+                         `document_type`, `document_id`, `storage_path`, `original_name`, `mime_type`, `size_bytes`,
+                         `sha256_hash`, `idempotency_key`, `snapshot_payload`, `generated_by_private_user_id`)
+                     VALUES
+                        (:rent_id, :lease_id, :payment_id, :property_id, :unit_id,
+                         :document_type, :document_id, :storage_path, :original_name, :mime_type, :size_bytes,
+                         :sha256_hash, :idempotency_key, :snapshot_payload, :generated_by)',
+                    $this->generatedDocumentsTable()
+                )
+            );
+            $statement->execute([
+                'rent_id' => $rentId,
+                'lease_id' => $leaseId,
+                'payment_id' => $paymentId,
+                'property_id' => $propertyId,
+                'unit_id' => $unitId,
+                'document_type' => $documentType,
+                'document_id' => $documentId,
+                'storage_path' => $storagePath,
+                'original_name' => $originalName,
+                'mime_type' => $mimeType,
+                'size_bytes' => $sizeBytes,
+                'sha256_hash' => $sha256Hash,
+                'idempotency_key' => $idempotencyKey,
+                'snapshot_payload' => $snapshotPayload,
+                'generated_by' => $actorPrivateUserId,
+            ]);
+
+            return $this->findGeneratedDocumentByDocumentId($documentId);
+        } catch (\Throwable) {
+            $existing = $this->findGeneratedDocumentByIdempotencyKey($idempotencyKey);
+            return is_array($existing) ? $existing : null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findGeneratedDocumentByDocumentId(string $documentId): ?array
+    {
+        $documentId = $this->normalizeIdentifier($documentId);
+        if ($documentId === '') {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT * FROM `%s` WHERE `document_id` = :document_id AND `is_active` = 1 LIMIT 1', $this->generatedDocumentsTable())
+            );
+            $statement->execute(['document_id' => $documentId]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findGeneratedDocumentByIdempotencyKey(string $idempotencyKey): ?array
+    {
+        $idempotencyKey = strtolower(trim($idempotencyKey));
+        if (preg_match('/\A[a-f0-9]{64}\z/', $idempotencyKey) !== 1) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('SELECT * FROM `%s` WHERE `idempotency_key` = :idempotency_key AND `is_active` = 1 LIMIT 1', $this->generatedDocumentsTable())
+            );
+            $statement->execute(['idempotency_key' => $idempotencyKey]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_array($row) ? $this->normalizeRow($row) : null;
+    }
+
+    /**
      * @param array<int, int> $propertyIds
      */
     public function deleteTenant(int $tenantId, array $propertyIds): bool
@@ -1723,12 +1876,12 @@ final class RentalLifecycleRepository
 
     /**
      * @param array<int, int> $propertyIds
-     * @return array{tenants:int, leases:int, rents:int, payments:int, expenses:int, documents:int, paymentRequests:int}
+     * @return array{tenants:int, leases:int, rents:int, payments:int, expenses:int, documents:int, generatedDocuments:int, paymentRequests:int}
      */
     public function deleteLifecycleDataByPropertyIds(array $propertyIds): array
     {
         $propertyIds = $this->normalizeIds($propertyIds);
-        $deleted = ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'paymentRequests' => 0];
+        $deleted = ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'generatedDocuments' => 0, 'paymentRequests' => 0];
         if ($propertyIds === []) {
             return $deleted;
         }
@@ -1741,6 +1894,7 @@ final class RentalLifecycleRepository
 
             $deleteDefinitions = [
                 'documents' => ['table' => $this->documentsTable(), 'sql' => 'UPDATE `%s` SET `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
+                'generatedDocuments' => ['table' => $this->generatedDocumentsTable(), 'sql' => 'UPDATE `%s` SET `is_active` = 0 WHERE `rental_property_id` IN (%s) AND `is_active` = 1'],
                 'paymentRequests' => ['table' => $this->paymentRequestsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'payments' => ['table' => $this->paymentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
                 'rents' => ['table' => $this->rentsTable(), 'sql' => 'DELETE FROM `%s` WHERE `rental_property_id` IN (%s)'],
@@ -1762,7 +1916,7 @@ final class RentalLifecycleRepository
                 $pdo->rollBack();
             }
 
-            return ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'paymentRequests' => 0];
+            return ['tenants' => 0, 'leases' => 0, 'rents' => 0, 'payments' => 0, 'expenses' => 0, 'documents' => 0, 'generatedDocuments' => 0, 'paymentRequests' => 0];
         }
 
         return $deleted;
@@ -2096,6 +2250,35 @@ final class RentalLifecycleRepository
                     KEY `idx_rental_documents_property` (`rental_property_id`, `is_active`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->documentsTable()
+            )
+        );
+        $pdo->exec(
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS `%s` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `rental_rent_id` INT NOT NULL,
+                    `rental_lease_id` INT NOT NULL,
+                    `rental_payment_id` INT NULL,
+                    `rental_property_id` INT NOT NULL,
+                    `rental_unit_id` INT NOT NULL,
+                    `document_type` ENUM("receipt", "partial_receipt", "payment_notice") NOT NULL,
+                    `document_id` VARCHAR(64) NOT NULL,
+                    `storage_path` VARCHAR(255) NOT NULL,
+                    `original_name` VARCHAR(255) NOT NULL,
+                    `mime_type` VARCHAR(120) NOT NULL,
+                    `size_bytes` INT NOT NULL,
+                    `sha256_hash` CHAR(64) NOT NULL,
+                    `idempotency_key` CHAR(64) NOT NULL,
+                    `snapshot_payload` JSON NULL,
+                    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                    `generated_by_private_user_id` INT NOT NULL,
+                    `generated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uq_rental_generated_documents_document_id` (`document_id`),
+                    UNIQUE KEY `uq_rental_generated_documents_idempotency` (`idempotency_key`),
+                    KEY `idx_rental_generated_documents_property` (`rental_property_id`, `document_type`, `is_active`),
+                    KEY `idx_rental_generated_documents_rent` (`rental_rent_id`, `document_type`, `is_active`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                $this->generatedDocumentsTable()
             )
         );
         $pdo->exec(
