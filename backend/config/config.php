@@ -53,6 +53,10 @@ $siteInstagramOverride = is_array($siteOverride['instagram'] ?? null) ? $siteOve
 $siteLogAlertsOverride = is_array($siteOverride['log_alerts'] ?? null) ? $siteOverride['log_alerts'] : [];
 $siteBackupOverride = is_array($siteOverride['backup'] ?? null) ? $siteOverride['backup'] : [];
 $sitePrivateOverride = is_array($siteOverride['private'] ?? null) ? $siteOverride['private'] : [];
+$sitePrivateDocumentsOverride = is_array($sitePrivateOverride['documents'] ?? null) ? $sitePrivateOverride['documents'] : [];
+$sitePrivateDocumentImageOptimizerOverride = is_array($sitePrivateDocumentsOverride['image_optimizer'] ?? null)
+    ? $sitePrivateDocumentsOverride['image_optimizer']
+    : [];
 $sitePrivateMailOverride = is_array($sitePrivateOverride['mail'] ?? null) ? $sitePrivateOverride['mail'] : [];
 $normalizeI18nOverrides = static function (mixed $overrides): array {
     if (!is_array($overrides)) {
@@ -484,6 +488,33 @@ $normalizePrivateDocumentMimeTypes = static function (mixed $values): array {
     return $normalized;
 };
 
+$normalizePrivateDocumentByteMap = static function (mixed $values): array {
+    $rawItems = is_array($values) ? $values : preg_split('/\s*,\s*/', (string) $values, -1, PREG_SPLIT_NO_EMPTY);
+    $rawItems = is_array($rawItems) ? $rawItems : [];
+
+    $normalized = [];
+    foreach ($rawItems as $key => $value) {
+        if (is_int($key)) {
+            $parts = explode(':', (string) $value, 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+
+            [$key, $value] = $parts;
+        }
+
+        $extension = strtolower(trim((string) $key));
+        $bytes = is_numeric($value) ? (int) $value : 0;
+        if ($extension === '' || preg_match('/\A[a-z0-9]{1,16}\z/', $extension) !== 1 || $bytes <= 0) {
+            continue;
+        }
+
+        $normalized[$extension] = $bytes;
+    }
+
+    return $normalized;
+};
+
 $privateDocumentStorageRootPath = trim((string) env('PRIVATE_DOCUMENT_STORAGE_ROOT_PATH', ROOT_PATH . '/private'));
 if ($privateDocumentStorageRootPath === '') {
     $privateDocumentStorageRootPath = ROOT_PATH . '/private';
@@ -508,6 +539,63 @@ $privateDocumentMaxUploadBytes = (int) env('PRIVATE_DOCUMENT_MAX_UPLOAD_BYTES', 
 if ($privateDocumentMaxUploadBytes < 1) {
     $privateDocumentMaxUploadBytes = 20 * 1024 * 1024;
 }
+
+$privateDocumentMaxUploadBytesByExtension = $normalizePrivateDocumentByteMap(
+    $sitePrivateDocumentsOverride['max_upload_bytes_by_extension']
+        ?? env(
+            'PRIVATE_DOCUMENT_MAX_UPLOAD_BYTES_BY_EXTENSION',
+            implode(',', [
+                'txt:' . (2 * 1024 * 1024),
+                'pdf:' . (20 * 1024 * 1024),
+                'doc:' . (20 * 1024 * 1024),
+                'docx:' . (20 * 1024 * 1024),
+                'xls:' . (20 * 1024 * 1024),
+                'xlsx:' . (20 * 1024 * 1024),
+                'jpg:' . (10 * 1024 * 1024),
+                'jpeg:' . (10 * 1024 * 1024),
+                'png:' . (10 * 1024 * 1024),
+                'gif:' . (10 * 1024 * 1024),
+                'webp:' . (10 * 1024 * 1024),
+            ])
+        )
+);
+$privateDocumentImageOptimizerEnabled = filter_var(
+    $sitePrivateDocumentImageOptimizerOverride['enabled']
+        ?? env('PRIVATE_DOCUMENT_IMAGE_OPTIMIZER_ENABLED', true),
+    FILTER_VALIDATE_BOOLEAN,
+    FILTER_NULL_ON_FAILURE
+) ?? true;
+$privateDocumentImageOptimizerMaxBytes = max(
+    1,
+    (int) ($sitePrivateDocumentImageOptimizerOverride['max_image_bytes']
+        ?? env('PRIVATE_DOCUMENT_IMAGE_OPTIMIZER_MAX_BYTES', 2 * 1024 * 1024))
+);
+$privateDocumentImageOptimizerMaxWidth = max(
+    1,
+    (int) ($sitePrivateDocumentImageOptimizerOverride['max_width']
+        ?? env('PRIVATE_DOCUMENT_IMAGE_OPTIMIZER_MAX_WIDTH', 2560))
+);
+$privateDocumentImageOptimizerMaxHeight = max(
+    1,
+    (int) ($sitePrivateDocumentImageOptimizerOverride['max_height']
+        ?? env('PRIVATE_DOCUMENT_IMAGE_OPTIMIZER_MAX_HEIGHT', 2560))
+);
+$privateDocumentImageOptimizerJpegQuality = max(
+    35,
+    min(
+        95,
+        (int) ($sitePrivateDocumentImageOptimizerOverride['jpeg_quality']
+            ?? env('PRIVATE_DOCUMENT_IMAGE_OPTIMIZER_JPEG_QUALITY', 82))
+    )
+);
+$privateDocumentImageOptimizerWebpQuality = max(
+    35,
+    min(
+        95,
+        (int) ($sitePrivateDocumentImageOptimizerOverride['webp_quality']
+            ?? env('PRIVATE_DOCUMENT_IMAGE_OPTIMIZER_WEBP_QUALITY', 82))
+    )
+);
 
 $parsePrivateDocumentPermission = static function (mixed $value, int $default, int $required): int {
     $rawValue = trim((string) $value);
@@ -666,10 +754,19 @@ $appConfig = [
             'uploads_directory' => $privateDocumentUploadsDirectory,
             'exports_directory' => $privateDocumentExportsDirectory,
             'max_upload_bytes' => $privateDocumentMaxUploadBytes,
+            'max_upload_bytes_by_extension' => $privateDocumentMaxUploadBytesByExtension,
             'directory_permissions' => $privateDocumentDirectoryPermissions,
             'file_permissions' => $privateDocumentFilePermissions,
             'allowed_extensions' => $privateDocumentAllowedExtensions,
             'allowed_mime_types' => $privateDocumentAllowedMimeTypes,
+            'image_optimizer' => [
+                'enabled' => $privateDocumentImageOptimizerEnabled,
+                'max_image_bytes' => $privateDocumentImageOptimizerMaxBytes,
+                'max_width' => $privateDocumentImageOptimizerMaxWidth,
+                'max_height' => $privateDocumentImageOptimizerMaxHeight,
+                'jpeg_quality' => $privateDocumentImageOptimizerJpegQuality,
+                'webp_quality' => $privateDocumentImageOptimizerWebpQuality,
+            ],
             'scan_command' => $privateDocumentScanCommand,
             'scan_timeout_seconds' => $privateDocumentScanTimeoutSeconds,
         ],

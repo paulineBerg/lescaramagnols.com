@@ -2526,6 +2526,7 @@ Checklist :
 - [x] Ajouter `private_documents` si le modele commun est retenu.
 - [x] Ajouter `private_document_categories` et l'affectation optionnelle d'une categorie a l'upload documentaire.
 - [x] Verifier extension, MIME, taille et nom original.
+- [x] Appliquer une limite globale et une limite par extension avant stockage ; borner les images pures avec redimensionnement/recompression contrôlés, sans transformer les PDF, fichiers Office ou justificatifs texte.
 - [x] Generer un chemin disque non devinable.
 - [x] Ajouter le garde d'accès serveur sur `/private/files/{documentId}` avant streaming réel.
 - [x] Servir les fichiers via `/private/files/{documentId}`.

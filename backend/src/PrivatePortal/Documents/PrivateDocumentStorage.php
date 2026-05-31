@@ -15,6 +15,11 @@ final class PrivateDocumentStorage
     private const DIRECTORY_PERMISSIONS = 0700;
     private const FILE_PERMISSIONS = 0600;
     private const DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+    private const DEFAULT_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+    private const DEFAULT_IMAGE_MAX_DIMENSION = 2560;
+    private const DEFAULT_IMAGE_JPEG_QUALITY = 82;
+    private const DEFAULT_IMAGE_WEBP_QUALITY = 82;
+    private const MAX_IMAGE_PIXELS = 32_000_000;
 
     private const DEFAULT_ALLOWED_EXTENSIONS = [
         'pdf',
@@ -54,7 +59,15 @@ final class PrivateDocumentStorage
     /** @var array<int, string> */
     private array $allowedMimeTypes;
     private readonly int $maxUploadBytes;
+    /** @var array<string, int> */
+    private array $maxUploadBytesByExtension;
     private ?string $uploadError = null;
+    private readonly bool $imageOptimizerEnabled;
+    private readonly int $maxOptimizedImageBytes;
+    private readonly int $maxImageWidth;
+    private readonly int $maxImageHeight;
+    private readonly int $imageJpegQuality;
+    private readonly int $imageWebpQuality;
 
     public function __construct(
         string $storageRootPath,
@@ -67,7 +80,9 @@ final class PrivateDocumentStorage
         private readonly ?AppEventLogger $eventLogger = null,
         int $directoryPermissions = self::DIRECTORY_PERMISSIONS,
         int $filePermissions = self::FILE_PERMISSIONS,
-        private readonly ?PrivateDocumentScanner $scanner = null
+        private readonly ?PrivateDocumentScanner $scanner = null,
+        array $maxUploadBytesByExtension = [],
+        array $imageOptimizerConfig = []
     ) {
         $storageRootPath = trim($storageRootPath);
         if ($storageRootPath === '') {
@@ -94,6 +109,28 @@ final class PrivateDocumentStorage
         );
         $this->allowedExtensions = $this->normalizeExtensions($allowedExtensions);
         $this->allowedMimeTypes = $this->normalizeMimeTypes($allowedMimeTypes);
+        $this->maxUploadBytesByExtension = $this->normalizeMaxUploadBytesByExtension($maxUploadBytesByExtension);
+        $this->imageOptimizerEnabled = (bool) ($imageOptimizerConfig['enabled'] ?? false);
+        $this->maxOptimizedImageBytes = $this->positiveInt(
+            $imageOptimizerConfig['max_image_bytes'] ?? self::DEFAULT_IMAGE_MAX_BYTES,
+            self::DEFAULT_IMAGE_MAX_BYTES
+        );
+        $this->maxImageWidth = $this->positiveInt(
+            $imageOptimizerConfig['max_width'] ?? self::DEFAULT_IMAGE_MAX_DIMENSION,
+            self::DEFAULT_IMAGE_MAX_DIMENSION
+        );
+        $this->maxImageHeight = $this->positiveInt(
+            $imageOptimizerConfig['max_height'] ?? self::DEFAULT_IMAGE_MAX_DIMENSION,
+            self::DEFAULT_IMAGE_MAX_DIMENSION
+        );
+        $this->imageJpegQuality = $this->boundedQuality(
+            $imageOptimizerConfig['jpeg_quality'] ?? self::DEFAULT_IMAGE_JPEG_QUALITY,
+            self::DEFAULT_IMAGE_JPEG_QUALITY
+        );
+        $this->imageWebpQuality = $this->boundedQuality(
+            $imageOptimizerConfig['webp_quality'] ?? self::DEFAULT_IMAGE_WEBP_QUALITY,
+            self::DEFAULT_IMAGE_WEBP_QUALITY
+        );
 
         if ($this->allowedExtensions === []) {
             $this->allowedExtensions = self::DEFAULT_ALLOWED_EXTENSIONS;
@@ -136,6 +173,12 @@ final class PrivateDocumentStorage
         $scanTimeoutSeconds = is_numeric($documentConfig['scan_timeout_seconds'] ?? null)
             ? (int) $documentConfig['scan_timeout_seconds']
             : 30;
+        $maxUploadBytesByExtension = is_array($documentConfig['max_upload_bytes_by_extension'] ?? null)
+            ? $documentConfig['max_upload_bytes_by_extension']
+            : [];
+        $imageOptimizerConfig = is_array($documentConfig['image_optimizer'] ?? null)
+            ? $documentConfig['image_optimizer']
+            : [];
 
         return new self(
             $storageRootPath,
@@ -148,7 +191,9 @@ final class PrivateDocumentStorage
             $eventLogger,
             $directoryPermissions,
             $filePermissions,
-            $scanCommand !== '' ? new PrivateDocumentScanner($scanCommand, $scanTimeoutSeconds) : null
+            $scanCommand !== '' ? new PrivateDocumentScanner($scanCommand, $scanTimeoutSeconds) : null,
+            $maxUploadBytesByExtension,
+            $imageOptimizerConfig
         );
     }
 
@@ -175,6 +220,14 @@ final class PrivateDocumentStorage
     public function maxUploadBytes(): int
     {
         return $this->maxUploadBytes;
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function maxUploadBytesByExtension(): array
+    {
+        return $this->maxUploadBytesByExtension;
     }
 
     public function allowedExtensions(): array
@@ -243,7 +296,7 @@ final class PrivateDocumentStorage
             $sizeBytes = $currentSize;
         }
 
-        if ($sizeBytes <= 0 || $sizeBytes > $this->maxUploadBytes) {
+        if ($sizeBytes <= 0 || $sizeBytes > $this->maxUploadBytesForExtension($extension)) {
             $this->uploadError = 'invalid_size';
             return null;
         }
@@ -309,7 +362,7 @@ final class PrivateDocumentStorage
         }
 
         $sizeBytes = is_numeric($metadata['sizeBytes'] ?? null) ? (int) $metadata['sizeBytes'] : 0;
-        if ($sizeBytes <= 0 || $sizeBytes > $this->maxUploadBytes) {
+        if ($sizeBytes <= 0 || $sizeBytes > $this->maxUploadBytesForExtension($extension)) {
             $this->uploadError = 'invalid_size';
             return null;
         }
@@ -353,6 +406,22 @@ final class PrivateDocumentStorage
 
         @chmod($absolutePath, $this->filePermissions);
         $scanResult = $this->scanStoredFile($absolutePath, $originalName, $mimeType);
+        if (PrivateDocumentScanResult::isDownloadable($scanResult->status())) {
+            $optimizedSizeBytes = $this->optimizeStoredImageIfNeeded($absolutePath, $extension, $mimeType, $sizeBytes);
+            if ($optimizedSizeBytes === null) {
+                @unlink($absolutePath);
+                $this->uploadError = 'image_optimization_failed';
+                return null;
+            }
+
+            if ($optimizedSizeBytes !== $sizeBytes) {
+                $sizeBytes = $optimizedSizeBytes;
+                @chmod($absolutePath, $this->filePermissions);
+                $scanResult = $this->scanStoredFile($absolutePath, $originalName, $mimeType);
+            } else {
+                $sizeBytes = $optimizedSizeBytes;
+            }
+        }
         $this->uploadError = null;
         $this->logEvent('private.documents.uploaded', [
             'document_id' => $documentId,
@@ -651,6 +720,37 @@ final class PrivateDocumentStorage
         return $normalized;
     }
 
+    /**
+     * @param array<string, mixed> $limits
+     * @return array<string, int>
+     */
+    private function normalizeMaxUploadBytesByExtension(array $limits): array
+    {
+        $normalized = [];
+        foreach ($limits as $extension => $bytes) {
+            $extension = strtolower(trim((string) $extension));
+            if (!preg_match('/\A[a-z0-9]{1,' . self::MAX_EXTENSION_LENGTH . '}\z/', $extension)) {
+                continue;
+            }
+
+            $bytes = is_numeric($bytes) ? (int) $bytes : 0;
+            if ($bytes <= 0) {
+                continue;
+            }
+
+            $normalized[$extension] = min($bytes, $this->maxUploadBytes);
+        }
+
+        return $normalized;
+    }
+
+    private function maxUploadBytesForExtension(string $extension): int
+    {
+        $extension = strtolower(trim($extension));
+
+        return $this->maxUploadBytesByExtension[$extension] ?? $this->maxUploadBytes;
+    }
+
     private function isAllowedExtension(string $extension): bool
     {
         return in_array(strtolower($extension), $this->allowedExtensions, true);
@@ -687,6 +787,190 @@ final class PrivateDocumentStorage
         }
 
         return $mimeType;
+    }
+
+    private function optimizeStoredImageIfNeeded(
+        string $absolutePath,
+        string $extension,
+        string $mimeType,
+        int $sizeBytes
+    ): ?int {
+        if (
+            !$this->imageOptimizerEnabled
+            || $sizeBytes <= $this->maxOptimizedImageBytes
+            || !$this->isImageFile($extension, $mimeType)
+        ) {
+            return $sizeBytes;
+        }
+
+        if (!$this->isOptimizableImage($extension, $mimeType)) {
+            return null;
+        }
+
+        $imageInfo = @getimagesize($absolutePath);
+        if (!is_array($imageInfo)) {
+            return null;
+        }
+
+        $width = (int) $imageInfo[0];
+        $height = (int) $imageInfo[1];
+        if ($width <= 0 || $height <= 0 || ($width * $height) > self::MAX_IMAGE_PIXELS) {
+            return null;
+        }
+
+        $source = $this->createImageResource($absolutePath, $extension, $mimeType);
+        if (!$source instanceof \GdImage) {
+            return null;
+        }
+
+        try {
+            $target = $this->resampleImage($source, $width, $height);
+            $content = $this->encodeImage($target, $extension, $mimeType);
+        } finally {
+            if (isset($target) && $target instanceof \GdImage && $target !== $source) {
+                imagedestroy($target);
+            }
+            imagedestroy($source);
+        }
+
+        if ($content === null) {
+            return null;
+        }
+
+        $optimizedSize = strlen($content);
+        if ($optimizedSize <= 0 || $optimizedSize > $this->maxOptimizedImageBytes || $optimizedSize >= $sizeBytes) {
+            return null;
+        }
+
+        if (@file_put_contents($absolutePath, $content, LOCK_EX) === false) {
+            return null;
+        }
+
+        $this->logEvent('private.documents.image_optimized', [
+            'original_size_bytes' => $sizeBytes,
+            'optimized_size_bytes' => $optimizedSize,
+            'mime_type' => $mimeType,
+        ]);
+
+        return $optimizedSize;
+    }
+
+    private function isOptimizableImage(string $extension, string $mimeType): bool
+    {
+        $extension = strtolower(trim($extension));
+        $mimeType = strtolower(trim($mimeType));
+        if (!in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            return false;
+        }
+
+        if (!in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+            return false;
+        }
+
+        return extension_loaded('gd');
+    }
+
+    private function isImageFile(string $extension, string $mimeType): bool
+    {
+        return str_starts_with(strtolower(trim($mimeType)), 'image/')
+            || in_array(strtolower(trim($extension)), ['jpg', 'jpeg', 'png', 'gif', 'webp'], true);
+    }
+
+    private function createImageResource(string $path, string $extension, string $mimeType): ?\GdImage
+    {
+        $extension = strtolower(trim($extension));
+        $mimeType = strtolower(trim($mimeType));
+
+        try {
+            $image = match (true) {
+                $mimeType === 'image/jpeg' || in_array($extension, ['jpg', 'jpeg'], true) => @imagecreatefromjpeg($path),
+                $mimeType === 'image/png' || $extension === 'png' => @imagecreatefrompng($path),
+                $mimeType === 'image/webp' || $extension === 'webp' => function_exists('imagecreatefromwebp')
+                    ? @imagecreatefromwebp($path)
+                    : false,
+                default => false,
+            };
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $image instanceof \GdImage ? $image : null;
+    }
+
+    private function resampleImage(\GdImage $source, int $width, int $height): \GdImage
+    {
+        $ratio = min(1.0, $this->maxImageWidth / $width, $this->maxImageHeight / $height);
+        $targetWidth = max(1, (int) floor($width * $ratio));
+        $targetHeight = max(1, (int) floor($height * $ratio));
+        if ($targetWidth === $width && $targetHeight === $height) {
+            return $source;
+        }
+
+        $target = imagecreatetruecolor($targetWidth, $targetHeight);
+        if (!$target instanceof \GdImage) {
+            return $source;
+        }
+
+        imagealphablending($target, false);
+        imagesavealpha($target, true);
+        $transparent = imagecolorallocatealpha($target, 0, 0, 0, 127);
+        if ($transparent !== false) {
+            imagefilledrectangle($target, 0, 0, $targetWidth, $targetHeight, $transparent);
+        }
+
+        $resampled = imagecopyresampled(
+            $target,
+            $source,
+            0,
+            0,
+            0,
+            0,
+            $targetWidth,
+            $targetHeight,
+            $width,
+            $height
+        );
+
+        return $resampled ? $target : $source;
+    }
+
+    private function encodeImage(\GdImage $image, string $extension, string $mimeType): ?string
+    {
+        $extension = strtolower(trim($extension));
+        $mimeType = strtolower(trim($mimeType));
+        ob_start();
+        $encoded = match (true) {
+            $mimeType === 'image/jpeg' || in_array($extension, ['jpg', 'jpeg'], true) => imagejpeg(
+                $image,
+                null,
+                $this->imageJpegQuality
+            ),
+            $mimeType === 'image/png' || $extension === 'png' => imagepng($image, null, 7),
+            $mimeType === 'image/webp' || $extension === 'webp' => function_exists('imagewebp')
+                ? imagewebp($image, null, $this->imageWebpQuality)
+                : false,
+            default => false,
+        };
+        $content = ob_get_clean();
+
+        return $encoded && is_string($content) && $content !== '' ? $content : null;
+    }
+
+    private function positiveInt(mixed $value, int $default): int
+    {
+        $value = is_numeric($value) ? (int) $value : 0;
+
+        return $value > 0 ? $value : $default;
+    }
+
+    private function boundedQuality(mixed $value, int $default): int
+    {
+        $value = is_numeric($value) ? (int) $value : 0;
+        if ($value <= 0) {
+            return $default;
+        }
+
+        return max(35, min(95, $value));
     }
 
     private function normalizeDocumentId(string $documentId): string

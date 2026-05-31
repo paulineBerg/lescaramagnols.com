@@ -742,6 +742,67 @@ final class PrivatePortalStorageTest extends TestCase
         $this->assertFileDoesNotExist($absolutePath);
     }
 
+    public function testStorageHonorsPerExtensionUploadLimits(): void
+    {
+        global $appConfig;
+        $appConfig['private']['documents']['max_upload_bytes'] = 1024;
+        $appConfig['private']['documents']['max_upload_bytes_by_extension'] = [
+            'txt' => 8,
+            'pdf' => 1024,
+        ];
+
+        $storage = PrivateDocumentStorage::fromAppConfig();
+
+        $oversizedText = $this->createUploadFixture('too-long.txt', 'text/plain', str_repeat('a', 12));
+        $this->assertNull($storage->validateUploadedFile($oversizedText));
+        $this->assertSame('invalid_size', $storage->uploadError());
+        $this->cleanupUploadFixture($oversizedText['tmp_name']);
+
+        $acceptedText = $this->createUploadFixture('short.txt', 'text/plain', 'short');
+        $this->assertNotNull($storage->validateUploadedFile($acceptedText));
+        $this->cleanupUploadFixture($acceptedText['tmp_name']);
+    }
+
+    public function testStorageOptimizesLargeImagesWhenConfigured(): void
+    {
+        if (!extension_loaded('gd') || !function_exists('imagejpeg')) {
+            $this->markTestSkipped('GD JPEG support is required for image optimization.');
+        }
+
+        global $appConfig;
+        $appConfig['private']['documents']['allowed_extensions'] = ['txt', 'pdf', 'jpg', 'jpeg'];
+        $appConfig['private']['documents']['allowed_mime_types'] = ['text/plain', 'application/pdf', 'image/jpeg'];
+        $appConfig['private']['documents']['max_upload_bytes'] = 512 * 1024;
+        $appConfig['private']['documents']['max_upload_bytes_by_extension'] = [
+            'jpg' => 512 * 1024,
+            'jpeg' => 512 * 1024,
+        ];
+        $appConfig['private']['documents']['image_optimizer'] = [
+            'enabled' => true,
+            'max_image_bytes' => 24 * 1024,
+            'max_width' => 128,
+            'max_height' => 128,
+            'jpeg_quality' => 70,
+        ];
+
+        $storage = PrivateDocumentStorage::fromAppConfig();
+        $upload = $this->createJpegUploadFixture('photo.jpg', 420, 420);
+        $originalSize = is_numeric($upload['size'] ?? null) ? (int) $upload['size'] : 0;
+        $this->assertGreaterThan(24 * 1024, $originalSize);
+
+        $validated = $storage->validateUploadedFile($upload);
+        $this->assertNotNull($validated);
+        $stored = $storage->storeUploadedFile($validated, $storage->generateDocumentId());
+        $this->cleanupUploadFixture($upload['tmp_name']);
+
+        $this->assertIsArray($stored);
+        $this->assertLessThan($originalSize, (int) $stored['sizeBytes']);
+        $this->assertLessThanOrEqual(24 * 1024, (int) $stored['sizeBytes']);
+        $absolutePath = $storage->absolutePath((string) $stored['storagePath']);
+        $this->assertIsString($absolutePath);
+        $this->assertSame((int) $stored['sizeBytes'], filesize($absolutePath));
+    }
+
     private function seedDocument(
         PrivateDocumentStorage $storage,
         PrivateDocumentRepository $documentRepository,
@@ -807,6 +868,34 @@ final class PrivatePortalStorageTest extends TestCase
             'size' => strlen($content),
             'error' => UPLOAD_ERR_OK,
             'type' => $mimeType,
+        ];
+    }
+
+    private function createJpegUploadFixture(string $name, int $width, int $height): array
+    {
+        $tmpName = tempnam(sys_get_temp_dir(), 'private-doc-image-');
+        $this->assertIsString($tmpName);
+        $image = imagecreatetruecolor($width, $height);
+        $this->assertInstanceOf(\GdImage::class, $image);
+
+        for ($y = 0; $y < $height; ++$y) {
+            for ($x = 0; $x < $width; ++$x) {
+                $color = imagecolorallocate($image, ($x * 13) % 256, ($y * 17) % 256, (($x + $y) * 7) % 256);
+                imagesetpixel($image, $x, $y, $color);
+            }
+        }
+
+        $this->assertTrue(imagejpeg($image, $tmpName, 100));
+        imagedestroy($image);
+        $size = filesize($tmpName);
+        $this->assertIsInt($size);
+
+        return [
+            'name' => $name,
+            'tmp_name' => $tmpName,
+            'size' => $size,
+            'error' => UPLOAD_ERR_OK,
+            'type' => 'image/jpeg',
         ];
     }
 

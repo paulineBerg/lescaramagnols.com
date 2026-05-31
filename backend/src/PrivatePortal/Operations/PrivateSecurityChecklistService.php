@@ -414,14 +414,48 @@ final class PrivateSecurityChecklistService
             static fn (string $mimeType): bool => trim($mimeType) !== ''
         ));
         $maxUploadBytes = (int) ($documents['max_upload_bytes'] ?? 0);
+        $maxUploadBytesByExtension = array_filter(
+            array_map('intval', (array) ($documents['max_upload_bytes_by_extension'] ?? [])),
+            static fn (int $bytes): bool => $bytes > 0
+        );
+        $imageOptimizer = (array) ($documents['image_optimizer'] ?? []);
+        $optimizerEnabled = filter_var(
+            $imageOptimizer['enabled'] ?? false,
+            FILTER_VALIDATE_BOOLEAN,
+            FILTER_NULL_ON_FAILURE
+        ) === true;
+        $optimizerLimits = [
+            'maxImageBytes' => (int) ($imageOptimizer['max_image_bytes'] ?? 0),
+            'maxWidth' => (int) ($imageOptimizer['max_width'] ?? 0),
+            'maxHeight' => (int) ($imageOptimizer['max_height'] ?? 0),
+            'jpegQuality' => (int) ($imageOptimizer['jpeg_quality'] ?? 0),
+            'webpQuality' => (int) ($imageOptimizer['webp_quality'] ?? 0),
+        ];
+        $optimizerConfigured = $optimizerEnabled
+            && $optimizerLimits['maxImageBytes'] > 0
+            && $optimizerLimits['maxWidth'] > 0
+            && $optimizerLimits['maxHeight'] > 0
+            && $optimizerLimits['jpegQuality'] >= 35
+            && $optimizerLimits['jpegQuality'] <= 95
+            && $optimizerLimits['webpQuality'] >= 35
+            && $optimizerLimits['webpQuality'] <= 95;
 
         return $this->result(
-            $maxUploadBytes > 0 && $allowedExtensions !== [] && $allowedMimeTypes !== [],
-            'Limites de taille, type MIME detecte serveur et extension controlee',
+            $maxUploadBytes > 0
+                && $maxUploadBytesByExtension !== []
+                && $optimizerConfigured
+                && $allowedExtensions !== []
+                && $allowedMimeTypes !== [],
+            'Limites globales/par format, optimisation image, MIME serveur et extension controlee',
             [
                 'maxUploadBytes' => $maxUploadBytes,
+                'maxUploadBytesByExtension' => $maxUploadBytesByExtension,
                 'allowedExtensions' => $allowedExtensions,
                 'allowedMimeTypes' => $allowedMimeTypes,
+                'imageOptimizer' => [
+                    'enabled' => $optimizerEnabled,
+                    ...$optimizerLimits,
+                ],
                 'serverDetection' => 'finfo/private storage validation',
             ]
         );
@@ -451,6 +485,27 @@ final class PrivateSecurityChecklistService
             'login_rate_limit_window' => 900,
             'documents' => [
                 'max_upload_bytes' => 20971520,
+                'max_upload_bytes_by_extension' => [
+                    'txt' => 2097152,
+                    'pdf' => 20971520,
+                    'doc' => 20971520,
+                    'docx' => 20971520,
+                    'xls' => 20971520,
+                    'xlsx' => 20971520,
+                    'jpg' => 10485760,
+                    'jpeg' => 10485760,
+                    'png' => 10485760,
+                    'gif' => 10485760,
+                    'webp' => 10485760,
+                ],
+                'image_optimizer' => [
+                    'enabled' => true,
+                    'max_image_bytes' => 2097152,
+                    'max_width' => 2560,
+                    'max_height' => 2560,
+                    'jpeg_quality' => 82,
+                    'webp_quality' => 82,
+                ],
                 'scan_command' => '',
                 'scan_timeout_seconds' => 30,
                 'allowed_extensions' => ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'],

@@ -52,22 +52,25 @@ Ecarts importants :
 3. Ne pas mettre les documents, exports ou justificatifs sous `backend/public`.
    Aucun `backend/public/private/rental/`, aucun `backend/public/location.php`, aucun upload locatif public.
 
-4. Separer le statut de validation et le statut de paiement.
+4. Limiter les imports par format avant toute extraction.
+   Le stockage prive applique une limite globale, une limite par extension et un controle MIME serveur. Les images pures (`jpg`, `jpeg`, `png`, `webp`) peuvent etre redimensionnees et recompressees pour respecter un plafond de stockage; les PDF, fichiers Office et justificatifs texte restent conserves tels quels pour garder leur valeur probatoire.
+
+5. Separer le statut de validation et le statut de paiement.
    `draft/validated/cancelled` reste le statut de validation des paiements, charges, baux et autres lignes de travail. Le cycle de paiement du loyer est porte par `rental_rents.status` : `pending`, `partial`, `paid`, `late`, `cancelled`.
 
-5. Ne pas recalculer brutalement les loyers a chaque affichage.
+6. Ne pas recalculer brutalement les loyers a chaque affichage.
    Un service genere les lignes mensuelles attendues une seule fois, les conserve en base et les complete sans doublon.
 
-6. Garder la fiscalite comme preparation, pas comme declaration.
+7. Garder la fiscalite comme preparation, pas comme declaration.
    Les montants locatifs alimentent le module fiscal, mais les cases declaratives et rulesets par annee restent configurables dans `TaxDeclarationHelper`.
 
-7. Traiter les demandes de paiement comme des courriers historises.
+8. Traiter les demandes de paiement comme des courriers historises.
    Une demande n'est pas un texte libre : elle est liee au loyer, au bail, au locataire, au logement, au canal, au contenu envoye et a l'utilisateur emetteur.
 
-8. Rendre les emails et courriers modifiables.
+9. Rendre les emails et courriers modifiables.
    Les textes par defaut doivent venir d'un modele configurable. L'utilisateur peut corriger l'objet, le destinataire et le corps avant envoi. Le contenu reellement envoye est conserve en snapshot.
 
-9. Raccorder toute nouvelle table et tout nouveau fichier au registre RGPD.
+10. Raccorder toute nouvelle table et tout nouveau fichier au registre RGPD.
    Les ajouts doivent etre declares dans `PrivateDataProtectionService`, dans les sauvegardes ZIP et dans les purges de compte.
 
 ## 3. Modele cible prioritaire
