@@ -62,6 +62,11 @@ final class PrivateUiGuardTest extends TestCase
             strpos($layout, "TXT_PRIVATE_SETTINGS_NAV"),
             'Le menu Paramètres doit rester le dernier item privé.'
         );
+        self::assertMatchesRegularExpression(
+            '/TXT_PRIVATE_NAV_DISCUSSIONS.*TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE/s',
+            $layout,
+            'Le menu Documents doit venir apres Discussions.'
+        );
         self::assertStringContainsString('data-private-filter-scope', $layout);
         self::assertStringContainsString('data-private-filter-row', $layout);
         self::assertStringContainsString('data-private-filter-empty', $layout);

@@ -82,15 +82,6 @@ $privateNavItems = [
     ],
 ];
 
-if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)) {
-    $privateNavItems[] = [
-        'label' => $translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'),
-        'href' => private_portal_url('documents'),
-        'icon' => '🗂️',
-        'active' => $privatePathIs(private_portal_url('documents')),
-    ];
-}
-
 if ($privateHasModule('Bloc-note')) {
     $privateNavItems[] = [
         'label' => 'Bloc-note',
@@ -107,6 +98,15 @@ if ($privateHasModule('Discussions')) {
         'icon' => '✉',
         'active' => $privateCurrentPath !== ''
             && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('discussion_index'))),
+    ];
+}
+
+if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)) {
+    $privateNavItems[] = [
+        'label' => $translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'),
+        'href' => private_portal_url('documents'),
+        'icon' => '🗂️',
+        'active' => $privatePathIs(private_portal_url('documents')),
     ];
 }
 
