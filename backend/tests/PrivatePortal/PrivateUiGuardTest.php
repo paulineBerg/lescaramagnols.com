@@ -127,6 +127,14 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('<?php if ($subItems !== []): ?>', $template);
     }
 
+    public function testRentalSingleAccessModeHidesPropertyMembersMenu(): void
+    {
+        $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');
+
+        self::assertStringNotContainsString('Accès aux propriétés', $template);
+        self::assertStringNotContainsString('rental_property_members', $template);
+    }
+
     public function testAdminLayoutKeepsBackOfficeNavigationAndMessagesStable(): void
     {
         $layout = $this->readRepoFile('backend/templates/admin/layout.php');
