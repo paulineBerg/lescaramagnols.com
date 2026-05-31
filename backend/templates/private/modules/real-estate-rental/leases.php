@@ -123,7 +123,7 @@ $createDialogId = 'rental-lease-create-dialog';
       </div>
       <div class="private-table-wrap">
       <table>
-        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Type</th><th>Periode</th><th>Loyer</th><th>Statut</th><th>Action</th></tr></thead>
+        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Type</th><th>Periode</th><th>Loyer</th><th>Charges</th><th>Statut</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($leases as $lease): ?>
             <?php if (!is_array($lease)) { continue; } ?>
@@ -142,6 +142,7 @@ $createDialogId = 'rental-lease-create-dialog';
               </td>
               <td><?php echo htmlspecialchars((string) ($lease['startDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> → <?php echo htmlspecialchars((string) ($lease['endDate'] ?? 'en cours'), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars(number_format((float) ($lease['monthlyRent'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</td>
+              <td><?php echo htmlspecialchars(number_format((float) ($lease['chargesProvision'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</td>
               <td><?php echo htmlspecialchars((string) ($leaseStatuses[(string) ($lease['status'] ?? '')] ?? ($lease['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php if ($leaseId > 0): ?>
@@ -150,7 +151,7 @@ $createDialogId = 'rental-lease-create-dialog';
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="8">Aucun bail ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="9">Aucun bail ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -253,6 +254,25 @@ $createDialogId = 'rental-lease-create-dialog';
               </label>
               <label>Notes <textarea name="notes" maxlength="2000"><?php echo htmlspecialchars((string) ($lease['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
               <button type="submit" data-rental-lease-submit>Mettre à jour</button>
+            </form>
+            <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="download_lease" />
+              <input type="hidden" name="lease_id" value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>" />
+              <button type="submit" class="private-button-secondary">Éditer le bail selon le type choisi</button>
+            </form>
+            <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="adjust_lease" />
+              <input type="hidden" name="lease_id" value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>" />
+              <fieldset class="private-fieldset">
+                <legend>Réajustement annuel</legend>
+                <label>Mois d'effet <input type="month" name="adjustment_month" value="<?php echo htmlspecialchars(date('Y-m'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+                <label>Nouveau loyer mensuel <input type="number" name="adjusted_monthly_rent" min="0.01" step="0.01" value="<?php echo htmlspecialchars($monthlyRent, ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+                <label>Nouvelle provision charges <input type="number" name="adjusted_charges_provision" min="0" step="0.01" value="<?php echo htmlspecialchars($chargesProvision, ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Note d'ajustement <textarea name="adjustment_note" maxlength="500" placeholder="Indice IRL, regularisation de charges, accord locataire..."></textarea></label>
+                <button type="submit">Appliquer le réajustement</button>
+              </fieldset>
             </form>
             <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
               <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />

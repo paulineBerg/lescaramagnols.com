@@ -96,6 +96,26 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('Texte détecté dans le document', $template);
     }
 
+    public function testRentalLeaseRentAndPaymentTemplatesExposeOperationalShortcuts(): void
+    {
+        $leases = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/leases.php');
+        $rents = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/rents.php');
+        $payments = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/payments.php');
+
+        self::assertStringContainsString('download_lease', $leases);
+        self::assertStringContainsString('Réajustement annuel', $leases);
+        self::assertStringContainsString('name="adjustment_month"', $leases);
+
+        self::assertStringContainsString('period_month_picker', $rents);
+        self::assertStringContainsString('data-rental-extra-lines', $rents);
+        self::assertStringContainsString('Ajouter une ligne diverse', $rents);
+        self::assertStringContainsString('?rent_id=', $rents);
+
+        self::assertStringContainsString('download_receipt', $payments);
+        self::assertStringContainsString('data-rental-payment-auto-open', $payments);
+        self::assertStringContainsString('data-due-date=', $payments);
+    }
+
     public function testRentalDashboardNavigationDoesNotExposeSubmenu(): void
     {
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');

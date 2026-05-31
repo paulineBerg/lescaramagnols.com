@@ -5,6 +5,7 @@ $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewMo
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
+$prefillRentId = is_numeric($viewModel['rentalPaymentPrefillRentId'] ?? null) ? (int) $viewModel['rentalPaymentPrefillRentId'] : 0;
 $paymentStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled' => 'Annule'];
 $createDialogId = 'rental-payment-create-dialog';
 ?>
@@ -68,6 +69,12 @@ $createDialogId = 'rental-payment-create-dialog';
                 <?php if ($paymentId > 0): ?>
                   <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                    <input type="hidden" name="action" value="download_receipt" />
+                    <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" />
+                    <button class="button-small" type="submit">Télécharger quittance</button>
+                  </form>
+                  <form method="post" action="<?php echo htmlspecialchars((string) ($urls['payments'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
                     <input type="hidden" name="action" value="email_receipt" />
                     <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string) $paymentId, ENT_QUOTES, 'UTF-8'); ?>" />
                     <input type="hidden" name="subject" value="Quittance de loyer" />
@@ -91,7 +98,7 @@ $createDialogId = 'rental-payment-create-dialog';
     <?php endif; ?>
   </section>
 
-  <dialog class="private-dialog" id="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($createDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
+  <dialog class="private-dialog" id="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($createDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>" data-rental-payment-auto-open="<?php echo $prefillRentId > 0 ? '1' : '0'; ?>">
     <div class="private-dialog-panel">
       <header class="private-dialog-header">
         <h3 id="<?php echo htmlspecialchars($createDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Créer un paiement</h3>
@@ -112,14 +119,16 @@ $createDialogId = 'rental-payment-create-dialog';
                 $amountPaid = (float) ($rent['amountPaid'] ?? 0);
                 $balance = number_format(max(0.0, $amountDue - $amountPaid), 2, '.', '');
                 $period = (string) ($rent['periodYear'] ?? '') . '-' . str_pad((string) ($rent['periodMonth'] ?? ''), 2, '0', STR_PAD_LEFT);
+                $rentId = (int) $rent['id'];
+                $dueDate = is_string($rent['dueDate'] ?? null) ? (string) $rent['dueDate'] : '';
                 ?>
-                <option value="<?php echo htmlspecialchars((string) (int) $rent['id'], ENT_QUOTES, 'UTF-8'); ?>" data-balance="<?php echo htmlspecialchars($balance, ENT_QUOTES, 'UTF-8'); ?>">
+                <option value="<?php echo htmlspecialchars((string) $rentId, ENT_QUOTES, 'UTF-8'); ?>" data-balance="<?php echo htmlspecialchars($balance, ENT_QUOTES, 'UTF-8'); ?>" data-due-date="<?php echo htmlspecialchars($dueDate, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $prefillRentId === $rentId ? 'selected' : ''; ?>>
                   <?php echo htmlspecialchars($period . ' - ' . (string) ($rent['propertyName'] ?? '') . ' - ' . (string) ($rent['unitLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
                 </option>
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Date paiement <input type="date" name="payment_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+          <label>Date paiement <input type="date" name="payment_date" value="<?php echo htmlspecialchars(date('Y-m-d'), ENT_QUOTES, 'UTF-8'); ?>" required data-rental-payment-date data-rental-payment-date-auto="1" /></label>
           <label>Montant encaissé <input type="number" name="amount_paid" min="0.01" step="0.01" required data-rental-amount-paid /></label>
           <label>Statut
             <select name="status">
@@ -139,6 +148,7 @@ $createDialogId = 'rental-payment-create-dialog';
       document.querySelectorAll('[data-rental-payment-form]').forEach((form) => {
         const rentSelect = form.querySelector('[data-rental-rent-select]');
         const amountPaid = form.querySelector('[data-rental-amount-paid]');
+        const paymentDate = form.querySelector('[data-rental-payment-date]');
         if (!(rentSelect instanceof HTMLSelectElement) || !(amountPaid instanceof HTMLInputElement)) {
           return;
         }
@@ -148,11 +158,30 @@ $createDialogId = 'rental-payment-create-dialog';
           if (selectedOption instanceof HTMLOptionElement && (selectedOption.dataset.balance ?? '') !== '') {
             amountPaid.value = selectedOption.dataset.balance ?? '';
           }
+          if (
+            paymentDate instanceof HTMLInputElement
+            && selectedOption instanceof HTMLOptionElement
+            && (paymentDate.value === '' || paymentDate.dataset.rentalPaymentDateAuto === '1')
+            && (selectedOption.dataset.dueDate ?? '') !== ''
+          ) {
+            paymentDate.value = selectedOption.dataset.dueDate ?? '';
+            paymentDate.dataset.rentalPaymentDateAuto = '1';
+          }
         };
 
         rentSelect.addEventListener('change', fillAmountPaid);
+        if (paymentDate instanceof HTMLInputElement) {
+          paymentDate.addEventListener('input', () => {
+            paymentDate.dataset.rentalPaymentDateAuto = '0';
+          });
+        }
         fillAmountPaid();
       });
+
+      const autoDialog = document.querySelector('[data-rental-payment-auto-open="1"]');
+      if (autoDialog instanceof HTMLDialogElement && !autoDialog.open) {
+        autoDialog.showModal();
+      }
     })();
   </script>
 </section>

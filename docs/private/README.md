@@ -1529,6 +1529,9 @@ Implementation actuelle :
 6. `Disponible` signifie qu'un bail peut etre cree ; `Indisponible` bloque la creation de bail, par exemple pendant des travaux ; un bien locatif qui possede deja un bail actif (`draft` ou `validated`) n'est pas propose dans la creation d'un nouveau bail ;
 7. une maison louee en entier peut etre saisie comme une propriete avec un bien locatif `Maison entiere` cree automatiquement ;
 8. les pages historiques gardent leurs routes techniques actuelles (`/private/rental-properties`, `/private/rental-units`, `/private/rental-property-members`, `/private/locations/locataires`, `/private/leases`, `/private/payments`, `/private/charges`) tant que les shims propres ne sont pas migres.
+9. les baux exposent une edition PDF selon le type choisi et un reajustement annuel qui met a jour le loyer et la provision de charges tout en conservant une trace dans les notes du bail ;
+10. la creation d'un loyer calcule le montant cote serveur depuis le loyer du bail, la provision de charges et les lignes diverses saisies ; la quittance reprend ce detail ;
+11. un loyer non solde propose un bouton `Payer` qui ouvre l'ecran Paiements avec le loyer, le solde et la date d'echeance preselectionnes.
 
 Les ecrans doivent etre denses, lisibles et utilisables sur mobile, sans effet marketing ni decoration inutile. Les actions sensibles utilisent confirmation, CSRF, permission serveur et audit.
 

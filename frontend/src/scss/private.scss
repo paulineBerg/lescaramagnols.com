@@ -793,7 +793,24 @@
     color: var(--private-primary-dark);
     font: inherit;
     font-weight: 700;
+    text-decoration: none;
     white-space: nowrap;
+  }
+
+  .rental-extra-lines {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .rental-extra-line {
+    align-items: end;
+    display: grid;
+    gap: 0.55rem;
+    grid-template-columns: minmax(0, 1.3fr) minmax(110px, 0.7fr) auto;
+  }
+
+  .rental-extra-line button {
+    min-height: 2.3rem;
   }
 
   .private-dialog {
@@ -1240,6 +1257,10 @@
     .private-main > .private-screen-notice,
     .private-module-nav {
       top: 0.5rem;
+    }
+
+    .rental-extra-line {
+      grid-template-columns: 1fr;
     }
 
     table {

@@ -67,6 +67,10 @@ $createDialogId = 'rental-rent-create-dialog';
               <td><?php echo htmlspecialchars((string) ($rentStatuses[(string) ($rent['status'] ?? '')] ?? ($rent['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php if ($rentId > 0): ?>
+                  <?php $paymentUrl = (string) ($urls['payments'] ?? ''); ?>
+                  <?php if ($paymentUrl !== '' && $balance > 0): ?>
+                    <a class="private-row-action" href="<?php echo htmlspecialchars($paymentUrl . '?rent_id=' . rawurlencode((string) $rentId), ENT_QUOTES, 'UTF-8'); ?>">Payer</a>
+                  <?php endif; ?>
                   <form method="post" action="<?php echo htmlspecialchars((string) ($urls['rents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
                     <input type="hidden" name="action" value="delete_rent" />
@@ -101,16 +105,25 @@ $createDialogId = 'rental-rent-create-dialog';
               <?php foreach ($leases as $lease): ?>
                 <?php if (!is_array($lease) || !is_numeric($lease['id'] ?? null)) { continue; } ?>
                 <?php $monthlyRent = is_numeric($lease['monthlyRent'] ?? null) ? number_format((float) $lease['monthlyRent'], 2, '.', '') : ''; ?>
-                <option value="<?php echo htmlspecialchars((string) (int) $lease['id'], ENT_QUOTES, 'UTF-8'); ?>" data-monthly-rent="<?php echo htmlspecialchars($monthlyRent, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php $chargesProvision = is_numeric($lease['chargesProvision'] ?? null) ? number_format((float) $lease['chargesProvision'], 2, '.', '') : '0.00'; ?>
+                <option value="<?php echo htmlspecialchars((string) (int) $lease['id'], ENT_QUOTES, 'UTF-8'); ?>" data-monthly-rent="<?php echo htmlspecialchars($monthlyRent, ENT_QUOTES, 'UTF-8'); ?>" data-charges-provision="<?php echo htmlspecialchars($chargesProvision, ENT_QUOTES, 'UTF-8'); ?>">
                   <?php echo htmlspecialchars((string) ($lease['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> - <?php echo htmlspecialchars((string) ($lease['unitLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> - <?php echo htmlspecialchars((string) ($lease['tenantName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
                 </option>
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Date d'échéance <input type="date" name="due_date" value="<?php echo htmlspecialchars(date('Y-m-01'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
-          <label>Année <input type="number" name="period_year" min="2000" max="2100" value="<?php echo htmlspecialchars(date('Y'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
-          <label>Mois <input type="number" name="period_month" min="1" max="12" value="<?php echo htmlspecialchars(date('n'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
-          <label>Montant attendu <input type="number" name="amount_due" min="0.01" step="0.01" required data-rental-amount-due /></label>
+          <label>Période <input type="month" name="period_month_picker" value="<?php echo htmlspecialchars(date('Y-m'), ENT_QUOTES, 'UTF-8'); ?>" required data-rental-period-picker /></label>
+          <input type="hidden" name="period_year" value="<?php echo htmlspecialchars(date('Y'), ENT_QUOTES, 'UTF-8'); ?>" data-rental-period-year />
+          <input type="hidden" name="period_month" value="<?php echo htmlspecialchars(date('n'), ENT_QUOTES, 'UTF-8'); ?>" data-rental-period-month />
+          <label>Date d'échéance <input type="date" name="due_date" value="<?php echo htmlspecialchars(date('Y-m-01'), ENT_QUOTES, 'UTF-8'); ?>" required data-rental-due-date data-rental-due-date-auto="1" /></label>
+          <fieldset class="private-fieldset" data-rental-amount-breakdown>
+            <legend>Montant du loyer</legend>
+            <label><input type="checkbox" name="include_lease_rent" value="1" checked data-rental-component-toggle="rent" /> Loyer du bail <span data-rental-component-label="rent"></span></label>
+            <label><input type="checkbox" name="include_lease_charges" value="1" checked data-rental-component-toggle="charges" /> Provision charges <span data-rental-component-label="charges"></span></label>
+            <div class="rental-extra-lines" data-rental-extra-lines></div>
+            <button type="button" class="private-button-secondary" data-rental-extra-add>Ajouter une ligne diverse</button>
+            <label>Total attendu <input type="number" name="amount_due" min="0.01" step="0.01" readonly required data-rental-amount-due /></label>
+          </fieldset>
           <label>Statut
             <select name="status">
               <?php foreach ($rentStatuses as $value => $label): ?>
@@ -118,7 +131,8 @@ $createDialogId = 'rental-rent-create-dialog';
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
+          <label>Notes internes <textarea name="notes" maxlength="900"></textarea></label>
+          <label>Texte quittance <textarea name="receipt_text" maxlength="700" placeholder="Mention visible dans la quittance si besoin."></textarea></label>
           <button type="submit">Créer le loyer</button>
         </form>
       <?php endif; ?>
@@ -129,19 +143,145 @@ $createDialogId = 'rental-rent-create-dialog';
       document.querySelectorAll('[data-rental-rent-form]').forEach((form) => {
         const leaseSelect = form.querySelector('[data-rental-lease-select]');
         const amountDue = form.querySelector('[data-rental-amount-due]');
+        const periodPicker = form.querySelector('[data-rental-period-picker]');
+        const periodYear = form.querySelector('[data-rental-period-year]');
+        const periodMonth = form.querySelector('[data-rental-period-month]');
+        const dueDate = form.querySelector('[data-rental-due-date]');
+        const rentToggle = form.querySelector('[data-rental-component-toggle="rent"]');
+        const chargesToggle = form.querySelector('[data-rental-component-toggle="charges"]');
+        const rentLabel = form.querySelector('[data-rental-component-label="rent"]');
+        const chargesLabel = form.querySelector('[data-rental-component-label="charges"]');
+        const extraLines = form.querySelector('[data-rental-extra-lines]');
+        const extraAdd = form.querySelector('[data-rental-extra-add]');
         if (!(leaseSelect instanceof HTMLSelectElement) || !(amountDue instanceof HTMLInputElement)) {
           return;
         }
 
-        const fillAmountDue = () => {
+        const parseAmount = (value) => {
+          const amount = Number.parseFloat(String(value ?? '').replace(',', '.'));
+
+          return Number.isFinite(amount) ? amount : 0;
+        };
+
+        const formatAmount = (amount) => amount.toFixed(2);
+
+        const selectedAmounts = () => {
           const selectedOption = leaseSelect.selectedOptions[0] ?? null;
-          if (selectedOption instanceof HTMLOptionElement && (selectedOption.dataset.monthlyRent ?? '') !== '') {
-            amountDue.value = selectedOption.dataset.monthlyRent ?? '';
+          if (!(selectedOption instanceof HTMLOptionElement)) {
+            return {rent: 0, charges: 0};
+          }
+
+          return {
+            rent: parseAmount(selectedOption.dataset.monthlyRent ?? '0'),
+            charges: parseAmount(selectedOption.dataset.chargesProvision ?? '0'),
+          };
+        };
+
+        const updateTotal = () => {
+          const amounts = selectedAmounts();
+          if (rentLabel instanceof HTMLElement) {
+            rentLabel.textContent = `(${formatAmount(amounts.rent)} €)`;
+          }
+          if (chargesLabel instanceof HTMLElement) {
+            chargesLabel.textContent = `(${formatAmount(amounts.charges)} €)`;
+          }
+
+          let total = 0;
+          if (rentToggle instanceof HTMLInputElement && rentToggle.checked) {
+            total += amounts.rent;
+          }
+          if (chargesToggle instanceof HTMLInputElement && chargesToggle.checked) {
+            total += amounts.charges;
+          }
+
+          form.querySelectorAll('[data-rental-extra-amount]').forEach((input) => {
+            if (input instanceof HTMLInputElement) {
+              total += parseAmount(input.value);
+            }
+          });
+          amountDue.value = formatAmount(Math.max(0, total));
+        };
+
+        const syncPeriod = () => {
+          if (!(periodPicker instanceof HTMLInputElement) || !/^(\d{4})-(\d{2})$/.test(periodPicker.value)) {
+            return;
+          }
+
+          const [year, month] = periodPicker.value.split('-');
+          if (periodYear instanceof HTMLInputElement) {
+            periodYear.value = year;
+          }
+          if (periodMonth instanceof HTMLInputElement) {
+            periodMonth.value = String(Number(month));
+          }
+          if (dueDate instanceof HTMLInputElement && (dueDate.value === '' || dueDate.dataset.rentalDueDateAuto === '1')) {
+            dueDate.value = `${periodPicker.value}-01`;
+            dueDate.dataset.rentalDueDateAuto = '1';
           }
         };
 
-        leaseSelect.addEventListener('change', fillAmountDue);
-        fillAmountDue();
+        const createExtraLine = () => {
+          if (!(extraLines instanceof HTMLElement)) {
+            return;
+          }
+
+          const row = document.createElement('div');
+          row.className = 'rental-extra-line';
+
+          const labelWrap = document.createElement('label');
+          labelWrap.textContent = 'Libellé';
+          const labelInput = document.createElement('input');
+          labelInput.name = 'extra_label[]';
+          labelInput.type = 'text';
+          labelInput.maxLength = 80;
+          labelInput.placeholder = 'Eau, EDF, taxe...';
+          labelWrap.append(labelInput);
+
+          const amountWrap = document.createElement('label');
+          amountWrap.textContent = 'Montant';
+          const amountInput = document.createElement('input');
+          amountInput.name = 'extra_amount[]';
+          amountInput.type = 'number';
+          amountInput.min = '0';
+          amountInput.step = '0.01';
+          amountInput.dataset.rentalExtraAmount = '1';
+          amountInput.addEventListener('input', updateTotal);
+          amountWrap.append(amountInput);
+
+          const removeButton = document.createElement('button');
+          removeButton.type = 'button';
+          removeButton.className = 'private-button-secondary';
+          removeButton.textContent = 'Retirer';
+          removeButton.addEventListener('click', () => {
+            row.remove();
+            updateTotal();
+          });
+
+          row.append(labelWrap, amountWrap, removeButton);
+          extraLines.append(row);
+          labelInput.focus();
+        };
+
+        leaseSelect.addEventListener('change', updateTotal);
+        if (rentToggle instanceof HTMLInputElement) {
+          rentToggle.addEventListener('change', updateTotal);
+        }
+        if (chargesToggle instanceof HTMLInputElement) {
+          chargesToggle.addEventListener('change', updateTotal);
+        }
+        if (periodPicker instanceof HTMLInputElement) {
+          periodPicker.addEventListener('change', syncPeriod);
+        }
+        if (dueDate instanceof HTMLInputElement) {
+          dueDate.addEventListener('input', () => {
+            dueDate.dataset.rentalDueDateAuto = '0';
+          });
+        }
+        if (extraAdd instanceof HTMLButtonElement) {
+          extraAdd.addEventListener('click', createExtraLine);
+        }
+        syncPeriod();
+        updateTotal();
       });
     })();
   </script>

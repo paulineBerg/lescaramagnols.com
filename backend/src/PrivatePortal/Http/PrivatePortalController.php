@@ -1026,6 +1026,15 @@ final class PrivatePortalController
 
         $body = $request->body();
         $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_lease';
+        if ($action === 'download_lease') {
+            $response = $this->downloadRentalLeasePdf($body, $propertyIds, $userId);
+            if ($response instanceof Response) {
+                return $response;
+            }
+
+            return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_write_failed');
+        }
+
         if ($action === 'delete_lease') {
             $leaseId = $this->normalizeNumericId($body['lease_id'] ?? null);
             if ($leaseId <= 0 || !$this->rentalLifecycleRepository()->deleteLease($leaseId, $propertyIds)) {
@@ -1038,6 +1047,57 @@ final class PrivatePortalController
             ]);
 
             return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_deleted');
+        }
+
+        if ($action === 'adjust_lease') {
+            $leaseId = $this->normalizeNumericId($body['lease_id'] ?? null);
+            $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
+            $leasePropertyId = is_array($lease) && is_numeric($lease['rentalPropertyId'] ?? null)
+                ? (int) $lease['rentalPropertyId']
+                : 0;
+            if ($leaseId <= 0 || !in_array($leasePropertyId, $propertyIds, true) || !$this->canWriteByPropertyId($leasePropertyId, $userId)) {
+                return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'property_forbidden');
+            }
+
+            $monthlyRent = is_numeric($body['adjusted_monthly_rent'] ?? null)
+                ? (float) $body['adjusted_monthly_rent']
+                : (float) ($lease['monthlyRent'] ?? 0);
+            $chargesProvision = is_numeric($body['adjusted_charges_provision'] ?? null)
+                ? (float) $body['adjusted_charges_provision']
+                : (float) ($lease['chargesProvision'] ?? 0);
+            $notes = $this->appendRentalLeaseAdjustmentNote(
+                is_string($lease['notes'] ?? null) ? (string) $lease['notes'] : null,
+                is_string($body['adjustment_month'] ?? null) ? (string) $body['adjustment_month'] : '',
+                $monthlyRent,
+                $chargesProvision,
+                is_string($body['adjustment_note'] ?? null) ? (string) $body['adjustment_note'] : ''
+            );
+
+            $updated = $this->rentalLifecycleRepository()->updateLease(
+                $leaseId,
+                $propertyIds,
+                $leasePropertyId,
+                is_numeric($lease['rentalUnitId'] ?? null) ? (int) $lease['rentalUnitId'] : 0,
+                is_numeric($lease['rentalTenantId'] ?? null) ? (int) $lease['rentalTenantId'] : 0,
+                is_string($lease['startDate'] ?? null) ? (string) $lease['startDate'] : '',
+                is_string($lease['endDate'] ?? null) ? (string) $lease['endDate'] : null,
+                $monthlyRent,
+                $chargesProvision,
+                is_string($lease['status'] ?? null) ? (string) $lease['status'] : 'draft',
+                $notes,
+                is_string($lease['leaseType'] ?? null) ? (string) $lease['leaseType'] : RentalLeaseTypeCatalog::DEFAULT
+            );
+            if (!is_array($updated)) {
+                return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_write_failed');
+            }
+
+            $this->logEvent('private.rental_lease.adjusted', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $leasePropertyId,
+                'rental_lease_id' => $leaseId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_adjusted');
         }
 
         if ($action === 'update_lease') {
@@ -1185,17 +1245,23 @@ final class PrivatePortalController
             return $this->renderRentalRents($leases, $rents, '', 'property_forbidden');
         }
 
+        [$periodYear, $periodMonth] = $this->rentalPeriodFromBody($body);
+        $amountDetails = $this->rentalRentAmountDetailsFromBody($body, $lease);
+        if ($periodYear <= 0 || $periodMonth <= 0 || $amountDetails === null) {
+            return $this->renderRentalRents($leases, $rents, '', 'rental_write_failed');
+        }
+
         $created = $this->rentalLifecycleRepository()->createRent(
             $leaseId,
             $propertyId,
             $unitId,
-            is_numeric($body['period_year'] ?? null) ? (int) $body['period_year'] : 0,
-            is_numeric($body['period_month'] ?? null) ? (int) $body['period_month'] : 0,
+            $periodYear,
+            $periodMonth,
             (string) ($body['due_date'] ?? ''),
-            is_numeric($body['amount_due'] ?? null) ? (float) $body['amount_due'] : 0.0,
+            (float) $amountDetails['amount'],
             is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
             $userId,
-            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+            $amountDetails['notes']
         );
         if (!is_array($created)) {
             return $this->renderRentalRents($leases, $rents, '', 'rental_write_failed');
@@ -1223,17 +1289,27 @@ final class PrivatePortalController
         $query = $request->query();
         $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
         $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
+        $prefillRentId = $this->normalizeNumericId($query['rent_id'] ?? null);
 
         if ($request->method() !== self::METHOD_POST) {
-            return $this->renderRentalPayments($rents, $payments, $notice, $error);
+            return $this->renderRentalPayments($rents, $payments, $notice, $error, $prefillRentId);
         }
 
         if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
-            return $this->renderRentalPayments($rents, $payments, '', 'rental_invalid_request');
+            return $this->renderRentalPayments($rents, $payments, '', 'rental_invalid_request', $prefillRentId);
         }
 
         $body = $request->body();
         $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_payment';
+        if ($action === 'download_receipt') {
+            $response = $this->downloadRentalReceiptPdf($body, $propertyIds, $userId);
+            if ($response instanceof Response) {
+                return $response;
+            }
+
+            return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
+        }
+
         if ($action === 'email_receipt') {
             $sent = $this->sendRentalReceiptByEmail($body, $propertyIds, $userId);
 
@@ -1243,7 +1319,7 @@ final class PrivatePortalController
         if ($action === 'delete_payment') {
             $paymentId = $this->normalizeNumericId($body['payment_id'] ?? null);
             if ($paymentId <= 0 || !$this->rentalLifecycleRepository()->deletePayment($paymentId, $propertyIds)) {
-                return $this->renderRentalPayments($rents, $payments, '', 'rental_delete_failed');
+                return $this->renderRentalPayments($rents, $payments, '', 'rental_delete_failed', $prefillRentId);
             }
 
             $this->logEvent('private.rental_payment.deleted', [
@@ -1255,7 +1331,7 @@ final class PrivatePortalController
         }
 
         if ($action !== 'create_payment') {
-            return $this->renderRentalPayments($rents, $payments, '', 'rental_invalid_request');
+            return $this->renderRentalPayments($rents, $payments, '', 'rental_invalid_request', $prefillRentId);
         }
 
         $rentId = $this->normalizeNumericId($body['rental_rent_id'] ?? null);
@@ -1281,7 +1357,7 @@ final class PrivatePortalController
             || !in_array($propertyId, $propertyIds, true)
             || (is_array($rent) && ($rent['status'] ?? '') === 'cancelled')
         ) {
-            return $this->renderRentalPayments($rents, $payments, '', 'property_forbidden');
+            return $this->renderRentalPayments($rents, $payments, '', 'property_forbidden', $prefillRentId);
         }
 
         $created = $this->rentalLifecycleRepository()->createPayment(
@@ -1299,7 +1375,7 @@ final class PrivatePortalController
             $rentId
         );
         if (!is_array($created)) {
-            return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed');
+            return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
         }
 
         $this->logEvent('private.rental_payment.created', [
@@ -3335,7 +3411,8 @@ final class PrivatePortalController
         array $rents,
         array $payments,
         string $notice = '',
-        string $error = ''
+        string $error = '',
+        int $prefillRentId = 0
     ): Response {
         return $this->render('modules/real-estate-rental/payments', array_merge(
             $this->rentalBaseViewModel('Paiements locatifs', $notice, $error),
@@ -3344,6 +3421,7 @@ final class PrivatePortalController
                 'rentalCurrentSubsection' => 'payments',
                 'rentalRents' => $rents,
                 'rentalPayments' => $payments,
+                'rentalPaymentPrefillRentId' => $prefillRentId,
             ]
         ));
     }
@@ -3711,6 +3789,8 @@ final class PrivatePortalController
         $property = $this->rentalPropertyRepository()->findById($propertyId);
         $unitId = is_numeric($payment['rentalUnitId'] ?? null) ? (int) $payment['rentalUnitId'] : 0;
         $unit = $this->rentalUnitRepository()->findById($unitId);
+        $rentId = is_numeric($payment['rentalRentId'] ?? null) ? (int) $payment['rentalRentId'] : 0;
+        $rent = $rentId > 0 ? $this->rentalLifecycleRepository()->findRentById($rentId) : null;
         if (!is_array($lease) || !is_array($tenant) || $property === null) {
             return false;
         }
@@ -3734,7 +3814,7 @@ final class PrivatePortalController
             (int) ($payment['periodMonth'] ?? date('n'))
         );
         $sent = $this->sendPrivateMail($to, $subject, $html, [[
-            'content' => $this->rentalReceiptPdf($payment, $lease, $tenant, $property->name, $unit?->label ?? ''),
+            'content' => $this->rentalReceiptPdf($payment, $lease, $tenant, $property->name, $unit?->label ?? '', is_array($rent) ? $rent : null),
             'name' => $filename,
             'mime' => 'application/pdf',
         ]]);
@@ -3747,6 +3827,91 @@ final class PrivatePortalController
         ]);
 
         return $sent;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @param array<int, int> $propertyIds
+     */
+    private function downloadRentalReceiptPdf(array $body, array $propertyIds, int $userId): ?Response
+    {
+        $paymentId = $this->normalizeNumericId($body['payment_id'] ?? null);
+        $payment = $this->rentalLifecycleRepository()->findPaymentById($paymentId);
+        $propertyId = is_array($payment) && is_numeric($payment['rentalPropertyId'] ?? null)
+            ? (int) $payment['rentalPropertyId']
+            : 0;
+        if (!is_array($payment) || !in_array($propertyId, $propertyIds, true)) {
+            return null;
+        }
+
+        $leaseId = is_numeric($payment['rentalLeaseId'] ?? null) ? (int) $payment['rentalLeaseId'] : 0;
+        $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
+        $tenantId = is_array($lease) && is_numeric($lease['rentalTenantId'] ?? null) ? (int) $lease['rentalTenantId'] : 0;
+        $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
+        $property = $this->rentalPropertyRepository()->findById($propertyId);
+        $unitId = is_numeric($payment['rentalUnitId'] ?? null) ? (int) $payment['rentalUnitId'] : 0;
+        $unit = $this->rentalUnitRepository()->findById($unitId);
+        $rentId = is_numeric($payment['rentalRentId'] ?? null) ? (int) $payment['rentalRentId'] : 0;
+        $rent = $rentId > 0 ? $this->rentalLifecycleRepository()->findRentById($rentId) : null;
+        if (!is_array($lease) || !is_array($tenant) || $property === null) {
+            return null;
+        }
+
+        $filename = sprintf(
+            'quittance-%04d-%02d.pdf',
+            (int) ($payment['periodYear'] ?? date('Y')),
+            (int) ($payment['periodMonth'] ?? date('n'))
+        );
+
+        $this->logEvent('private.rental_receipt.downloaded', [
+            'private_user_id' => $userId,
+            'rental_property_id' => $propertyId,
+            'rental_payment_id' => $paymentId,
+        ]);
+
+        return $this->withPrivateHeaders(new Response(200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ], $this->rentalReceiptPdf($payment, $lease, $tenant, $property->name, $unit?->label ?? '', is_array($rent) ? $rent : null)));
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @param array<int, int> $propertyIds
+     */
+    private function downloadRentalLeasePdf(array $body, array $propertyIds, int $userId): ?Response
+    {
+        $leaseId = $this->normalizeNumericId($body['lease_id'] ?? null);
+        $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
+        $propertyId = is_array($lease) && is_numeric($lease['rentalPropertyId'] ?? null)
+            ? (int) $lease['rentalPropertyId']
+            : 0;
+        if (!is_array($lease) || !in_array($propertyId, $propertyIds, true)) {
+            return null;
+        }
+
+        $tenantId = is_numeric($lease['rentalTenantId'] ?? null) ? (int) $lease['rentalTenantId'] : 0;
+        $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
+        $property = $this->rentalPropertyRepository()->findById($propertyId);
+        $unitId = is_numeric($lease['rentalUnitId'] ?? null) ? (int) $lease['rentalUnitId'] : 0;
+        $unit = $this->rentalUnitRepository()->findById($unitId);
+        if (!is_array($tenant) || $property === null) {
+            return null;
+        }
+
+        $filename = sprintf('bail-%d.pdf', $leaseId);
+        $this->logEvent('private.rental_lease.downloaded', [
+            'private_user_id' => $userId,
+            'rental_property_id' => $propertyId,
+            'rental_lease_id' => $leaseId,
+        ]);
+
+        return $this->withPrivateHeaders(new Response(200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ], $this->rentalLeasePdf($lease, $tenant, $property->name, $unit?->label ?? '')));
     }
 
     /**
@@ -4217,6 +4382,115 @@ final class PrivatePortalController
     }
 
     /**
+     * @param array<string, mixed> $body
+     * @return array{0:int, 1:int}
+     */
+    private function rentalPeriodFromBody(array $body): array
+    {
+        $monthPicker = is_string($body['period_month_picker'] ?? null) ? trim((string) $body['period_month_picker']) : '';
+        if (preg_match('/\A(\d{4})-(\d{2})\z/', $monthPicker, $matches) === 1) {
+            $year = (int) $matches[1];
+            $month = (int) $matches[2];
+
+            return [$year >= 2000 && $year <= 2100 ? $year : 0, $month >= 1 && $month <= 12 ? $month : 0];
+        }
+
+        $year = is_numeric($body['period_year'] ?? null) ? (int) $body['period_year'] : 0;
+        $month = is_numeric($body['period_month'] ?? null) ? (int) $body['period_month'] : 0;
+
+        return [$year >= 2000 && $year <= 2100 ? $year : 0, $month >= 1 && $month <= 12 ? $month : 0];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @param array<string, mixed> $lease
+     * @return array{amount: float, notes: string|null}|null
+     */
+    private function rentalRentAmountDetailsFromBody(array $body, array $lease): ?array
+    {
+        /** @var array<int, array{0:string, 1:float}> $items */
+        $items = [];
+        $amount = 0.0;
+        if (($body['include_lease_rent'] ?? null) !== null) {
+            $rent = round((float) ($lease['monthlyRent'] ?? 0), 2);
+            if ($rent > 0) {
+                $items[] = ['Loyer du bail', $rent];
+                $amount += $rent;
+            }
+        }
+
+        if (($body['include_lease_charges'] ?? null) !== null) {
+            $charges = round((float) ($lease['chargesProvision'] ?? 0), 2);
+            if ($charges > 0) {
+                $items[] = ['Provision charges du bail', $charges];
+                $amount += $charges;
+            }
+        }
+
+        $labels = is_array($body['extra_label'] ?? null) ? $body['extra_label'] : [];
+        $amounts = is_array($body['extra_amount'] ?? null) ? $body['extra_amount'] : [];
+        $count = min(max(count($labels), count($amounts)), 20);
+        for ($index = 0; $index < $count; ++$index) {
+            $label = sanitize_text_field((string) ($labels[$index] ?? ''), 80);
+            $extraAmount = is_numeric($amounts[$index] ?? null) ? round((float) $amounts[$index], 2) : 0.0;
+            if ($label === '' || $extraAmount <= 0) {
+                continue;
+            }
+
+            $items[] = [$label, $extraAmount];
+            $amount += $extraAmount;
+        }
+
+        $amount = round($amount, 2);
+        if ($amount <= 0 || $items === []) {
+            return null;
+        }
+
+        $notes = [];
+        $manualNotes = is_string($body['notes'] ?? null) ? sanitize_text_field((string) $body['notes'], 900) : '';
+        if ($manualNotes !== '') {
+            $notes[] = $manualNotes;
+        }
+
+        $breakdownLines = [];
+        foreach ($items as $item) {
+            $breakdownLines[] = sprintf('- %s: %.2f EUR', (string) $item[0], (float) $item[1]);
+        }
+        $notes[] = "Detail quittance:\n" . implode("\n", $breakdownLines);
+        $receiptText = is_string($body['receipt_text'] ?? null) ? sanitize_text_field((string) $body['receipt_text'], 700) : '';
+        if ($receiptText !== '') {
+            $notes[] = "Mention quittance:\n" . $receiptText;
+        }
+
+        return [
+            'amount' => $amount,
+            'notes' => sanitize_text_field(implode("\n\n", $notes), 2000),
+        ];
+    }
+
+    private function appendRentalLeaseAdjustmentNote(
+        ?string $existingNotes,
+        string $month,
+        float $monthlyRent,
+        float $chargesProvision,
+        string $freeNote
+    ): string {
+        $month = preg_match('/\A\d{4}-\d{2}\z/', trim($month)) === 1 ? trim($month) : date('Y-m');
+        $freeNote = sanitize_text_field($freeNote, 500);
+        $line = sprintf(
+            '[%s] Reajustement annuel: loyer %.2f EUR, provision charges %.2f EUR.',
+            $month,
+            round($monthlyRent, 2),
+            round($chargesProvision, 2)
+        );
+        if ($freeNote !== '') {
+            $line .= ' ' . $freeNote;
+        }
+
+        return sanitize_text_field(trim((string) $existingNotes . "\n" . $line), 2000);
+    }
+
+    /**
      * @param array<string, mixed> $summary
      */
     private function rentalSummaryPdf(array $summary): string
@@ -4241,26 +4515,79 @@ final class PrivatePortalController
      * @param array<string, mixed> $payment
      * @param array<string, mixed> $lease
      * @param array<string, mixed> $tenant
+     * @param array<string, mixed>|null $rent
      */
-    private function rentalReceiptPdf(array $payment, array $lease, array $tenant, string $propertyName, string $unitLabel): string
-    {
+    private function rentalReceiptPdf(
+        array $payment,
+        array $lease,
+        array $tenant,
+        string $propertyName,
+        string $unitLabel,
+        ?array $rent = null
+    ): string {
         $period = sprintf(
             '%04d-%02d',
             (int) ($payment['periodYear'] ?? date('Y')),
             (int) ($payment['periodMonth'] ?? date('n'))
         );
+        $amountDue = is_array($rent) && is_numeric($rent['amountDue'] ?? null)
+            ? (float) $rent['amountDue']
+            : (float) ($payment['amountDue'] ?? 0);
+        $amountPaid = (float) ($payment['amountPaid'] ?? 0);
+        $balance = max(0.0, $amountDue - $amountPaid);
+        $rentNotes = is_array($rent) && is_string($rent['notes'] ?? null) ? trim((string) $rent['notes']) : '';
         $text = sprintf(
-            "Quittance de loyer\nPeriode: %s\nPropriete: %s\nBien locatif: %s\nLocataire: %s\nDate de paiement: %s\nMontant encaisse: %.2f EUR\nBail du: %s",
+            "Quittance de loyer\nPeriode: %s\nPropriete: %s\nBien locatif: %s\nLocataire: %s\nDate de paiement: %s\nMontant du loyer: %.2f EUR\nMontant encaisse: %.2f EUR\nSolde restant: %.2f EUR\nBail du: %s",
             $period,
             $propertyName,
             $unitLabel !== '' ? $unitLabel : 'non precise',
             (string) ($tenant['fullName'] ?? 'Locataire'),
             (string) ($payment['paymentDate'] ?? ''),
-            (float) ($payment['amountPaid'] ?? 0),
+            $amountDue,
+            $amountPaid,
+            $balance,
             (string) ($lease['startDate'] ?? '')
         );
+        if ($rentNotes !== '') {
+            $text .= "\n\nDetail quittance:\n" . $rentNotes;
+        }
 
         return "%PDF-1.4\n% Caramagnols private rental receipt\n" . $text . "\n%%EOF\n";
+    }
+
+    /**
+     * @param array<string, mixed> $lease
+     * @param array<string, mixed> $tenant
+     */
+    private function rentalLeasePdf(array $lease, array $tenant, string $propertyName, string $unitLabel): string
+    {
+        $leaseType = is_string($lease['leaseType'] ?? null) ? (string) $lease['leaseType'] : RentalLeaseTypeCatalog::DEFAULT;
+        $typeLabel = RentalLeaseTypeCatalog::label($leaseType);
+        $taxLabel = RentalLeaseTypeCatalog::taxLabel($leaseType);
+        $templateNotice = match (RentalLeaseTypeCatalog::normalize($leaseType)) {
+            'residential_furnished' => 'Modele de bail meuble a completer avec les annexes obligatoires.',
+            'student_furnished' => 'Modele de bail etudiant meuble a completer avec les annexes obligatoires.',
+            'mobility_furnished' => 'Modele de bail mobilite a completer avec la duree et les justificatifs requis.',
+            'other' => 'Modele libre a verifier avant signature.',
+            default => 'Modele de bail habitation vide a completer avec les annexes obligatoires.',
+        };
+
+        $text = sprintf(
+            "Edition du bail\nType: %s\nTraitement fiscal indicatif: %s\nPropriete: %s\nBien locatif: %s\nLocataire: %s\nDebut: %s\nFin: %s\nLoyer mensuel: %.2f EUR\nProvision charges: %.2f EUR\n\n%s\n\nNotes:\n%s",
+            $typeLabel,
+            $taxLabel,
+            $propertyName,
+            $unitLabel !== '' ? $unitLabel : 'non precise',
+            (string) ($tenant['fullName'] ?? 'Locataire'),
+            (string) ($lease['startDate'] ?? ''),
+            (string) ($lease['endDate'] ?? 'non precisee'),
+            (float) ($lease['monthlyRent'] ?? 0),
+            (float) ($lease['chargesProvision'] ?? 0),
+            $templateNotice,
+            trim((string) ($lease['notes'] ?? ''))
+        );
+
+        return "%PDF-1.4\n% Caramagnols private rental lease\n" . $text . "\n%%EOF\n";
     }
 
     private function normalizeNumericId(mixed $value): int
@@ -4290,6 +4617,7 @@ final class PrivatePortalController
             'tenant_deleted' => 'Locataire supprimé.',
             'lease_created' => 'Bail créé.',
             'lease_updated' => 'Bail mis à jour.',
+            'lease_adjusted' => 'Réajustement du bail appliqué.',
             'lease_deleted' => 'Bail supprimé.',
             'rent_created' => 'Loyer créé.',
             'rent_deleted' => 'Loyer supprimé.',
