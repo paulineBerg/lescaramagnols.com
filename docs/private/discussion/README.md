@@ -84,6 +84,7 @@ Routes principales :
 | `discussion_api_conversations` | GET/POST | `/private/discussions/api/conversations` | liste ou creation API |
 | `discussion_api_messages` | GET/POST | `/private/discussions/api/conversations/{conversationId}/messages` | lecture incremental ou envoi API |
 | `discussion_api_events` | GET | `/private/discussions/api/conversations/{conversationId}/events` | flux SSE court depuis le journal d'evenements |
+| `discussion_api_client_events` | POST | `/private/discussions/api/client-events` | signalements client minimaux sans contenu |
 | `discussion_api_crypto_devices` | GET/POST | `/private/discussions/api/crypto/devices` | appareils crypto du membre |
 | `discussion_api_conversation_keys` | GET/POST | `/private/discussions/api/conversations/{conversationId}/keys` | enveloppes de cles par conversation |
 | `discussion_api_members` | POST | `/private/discussions/api/conversations/{conversationId}/members` | ajout de membres a un groupe |
@@ -117,6 +118,7 @@ Responsabilites :
 | `ConversationEventStream` | reponse SSE privee courte avec fallback polling cote navigateur |
 | `DiscussionAttachmentStorage` | validation, chiffrement, stockage, lecture et suppression des fichiers joints |
 | `DiscussionRetentionService` | purge des messages et pieces jointes expires |
+| `DiscussionObservabilityService` | compteurs ops agreges sans message, cle ni nom de fichier sensible |
 | `DiscussionRepository` | persistence SQL et hydratation des conversations, messages, pieces jointes, lectures, appareils et cles |
 
 ### Templates et assets
@@ -265,7 +267,7 @@ Controle d'exploitation :
 
 ```bash
 cd backend
-composer check-log-alerts -- --json --strict --cron-failed-threshold=1 --private-rate-limit-threshold=3
+composer check-log-alerts -- --json --strict --cron-failed-threshold=1 --private-rate-limit-threshold=3 --private-discussion-scan-threshold=1 --private-discussion-retention-threshold=1
 ```
 
 ## 8. Optimisation strategique vers un vrai messenger
@@ -456,22 +458,11 @@ Les pieces jointes conservent `purge_status` pour la retention et les operations
 
 ### Observabilite
 
-Ajouter une vue ops sans contenu prive, reservee aux profils autorises.
+La vue ops est integree a la section admin `Parametres > Observabilite ops`. Elle affiche uniquement des compteurs agreges : volumes de messages et pieces jointes sur 24 h, statuts de disponibilite des fichiers, retards de retention, dernier run de purge, erreurs de stream, echecs de scan, rate-limit et erreurs de dechiffrement client. Elle ne lit ni message clair, ni cle, ni nom original de fichier.
 
-Metriques utiles :
+Le navigateur peut signaler deux evenements techniques via `POST /private/discussions/api/client-events` : `stream_failed` et `decrypt_failed`. La route exige session privee, droit module, CSRF, rate-limit dedie et participation a la conversation; le contexte journalise se limite a `private_user_id`, `conversation_id` et `message_id` quand il existe.
 
-- messages envoyes;
-- echecs d'envoi;
-- refus d'acces;
-- erreurs de dechiffrement client sans contenu;
-- temps de purge;
-- retards de retention;
-- erreurs de stream;
-- echecs de scan fichiers;
-- volume anormal de messages ou pieces jointes;
-- rate-limit.
-
-Les alertes `check_log_alerts.php` pourront ensuite couvrir les erreurs SSE, les echecs de scan et les retards de retention.
+Les alertes `check_log_alerts.php` couvrent maintenant les metriques dediees `private_discussion_stream_failed`, `private_discussion_scan_failed`, `private_discussion_retention_failed`, `private_discussion_decrypt_failed` et `private_discussion_rate_limited`.
 
 ### Tests
 
@@ -651,15 +642,15 @@ Objectif : suivre l'exploitation sans exposer les messages.
 
 Checklist :
 
-- [ ] creer une vue ops reservee;
-- [ ] afficher volumes et erreurs;
-- [ ] afficher retards de purge;
-- [ ] afficher erreurs de stream;
-- [ ] afficher echecs de scan;
-- [ ] afficher rate-limit;
-- [ ] afficher erreurs de dechiffrement client sans contenu;
-- [ ] enrichir `check_log_alerts.php`;
-- [ ] ne pas afficher de cles, messages ni noms sensibles inutiles.
+- [x] creer une vue ops reservee;
+- [x] afficher volumes et erreurs;
+- [x] afficher retards de purge;
+- [x] afficher erreurs de stream;
+- [x] afficher echecs de scan;
+- [x] afficher rate-limit;
+- [x] afficher erreurs de dechiffrement client sans contenu;
+- [x] enrichir `check_log_alerts.php`;
+- [x] ne pas afficher de cles, messages ni noms sensibles inutiles.
 
 ### Phase D9 - Recette et qualite produit
 

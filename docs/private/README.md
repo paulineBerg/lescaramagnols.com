@@ -224,12 +224,17 @@ Evenements critiques suivis par `composer check-log-alerts` :
 | `ops.backup.failed` ou `private.backup.failed` | `private_backup_failed` | `critical` | `1` |
 | `backup_recommended_size_exceeded` | `private_backup_warning` | `warning` | `1` |
 | `private.account_deletion_backups_purge.failed` | `private_purge_failed` | `critical` | `1` |
+| `private.discussion.stream_failed` | `private_discussion_stream_failed` | `warning` | `5` |
+| `private.discussion.media_scan.completed` avec blocage | `private_discussion_scan_failed` | `error` | `1` |
+| `private.discussion.retention.failed` | `private_discussion_retention_failed` | `critical` | `1` |
+| `private.discussion.client_decrypt_failed` | `private_discussion_decrypt_failed` | `warning` | `10` |
+| `private.discussion.rate_limited` | `private_discussion_rate_limited` | `error` | `3` |
 | `cron.job.failed` ou `cron.scheduler.failed` | `cron_failed` | `error` | `1` |
 
 Commande de controle periodique recommandee :
 
 ```bash
-composer check-log-alerts -- --json --strict --since-minutes=30 --private-email-failed-threshold=1 --private-backup-failed-threshold=1 --private-purge-failed-threshold=1 --cron-failed-threshold=1
+composer check-log-alerts -- --json --strict --since-minutes=30 --private-email-failed-threshold=1 --private-backup-failed-threshold=1 --private-purge-failed-threshold=1 --private-discussion-scan-threshold=1 --private-discussion-retention-threshold=1 --cron-failed-threshold=1
 ```
 
 Regles d'exploitation :
@@ -3289,6 +3294,8 @@ Routes privees PHP actuelles :
 | Discussions | GET, POST | `/{private}/discussions/{conversationId}` | `discussion_conversation` | membre conversation | forbidden, not_found |
 | Discussions API | GET, POST | `/{private}/discussions/api/conversations` | `discussion_api_conversations` | module `discussions` | validation, csrf, rate limit |
 | Discussions API | GET, POST | `/{private}/discussions/api/conversations/{conversationId}/messages` | `discussion_api_messages` | membre conversation | validation, csrf, rate limit |
+| Discussions API | GET | `/{private}/discussions/api/conversations/{conversationId}/events` | `discussion_api_events` | membre conversation | SSE court, forbidden |
+| Discussions API | POST | `/{private}/discussions/api/client-events` | `discussion_api_client_events` | membre conversation | CSRF, signalement sans contenu |
 | Discussions API | GET, POST | `/{private}/discussions/api/crypto/devices` | `discussion_api_crypto_devices` | module `discussions` | validation, csrf |
 | Discussions API | GET, POST | `/{private}/discussions/api/conversations/{conversationId}/keys` | `discussion_api_conversation_keys` | membre conversation | validation, csrf |
 | Discussions API | POST | `/{private}/discussions/api/conversations/{conversationId}/members` | `discussion_api_members` | membre autorise | validation, csrf, forbidden |
@@ -3342,7 +3349,7 @@ Evenements d'audit existants :
 - Locations : `private.rental_property.*`, `private.rental_unit.*`, `private.rental_property_member.*`, `private.rental_tenant.*`, `private.rental_lease.*`, `private.rental_payment.*`, `private.rental_expense.*`, `private.rental_document.*`, `private.rental_export.*`.
 - Imports agence : `private.rental_agency_import.imported`, `private.rental_agency_review.property_updated`, `private.rental_agency_review.line_reviewed`.
 - Impots : `private.tax_source_activation.updated`, `private.tax_summary.generated`, `private.tax_year.locked`, `private.tax_year.unlocked`, `private.tax_manual_income.created`, `private.tax_export.created`.
-- Discussions : `private.discussion.access.denied`, `private.discussion.attachment.downloaded`, `private.discussion.rate_limited`, `private.discussion.invite_email_sent`, `private.discussion.invite_email_failed`.
+- Discussions : `private.discussion.access.denied`, `private.discussion.attachment.downloaded`, `private.discussion.rate_limited`, `private.discussion.invite_email_sent`, `private.discussion.invite_email_failed`, `private.discussion.stream_failed`, `private.discussion.client_decrypt_failed`, `private.discussion.media_scan.completed`.
 - Vie privee et operations : `private.privacy.exported`, `private.ops.backup_created`, `private.module.access_denied`.
 
 Evenements a ajouter quand les API seront extraites :

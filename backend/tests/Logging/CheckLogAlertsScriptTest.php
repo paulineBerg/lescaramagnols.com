@@ -34,15 +34,21 @@ final class CheckLogAlertsScriptTest extends TestCase
                 'security.WARNING: private.login.rejected {"identifier":"f***@example.com"}',
                 'security.WARNING: private.csrf.rejected {"csrf_token":"raw-secret-token"}',
                 'security.WARNING: private.discussion.rate_limited {"ip":"127.0.0.1"}',
+                'security.WARNING: private.discussion.stream_failed {"conversation_id":12}',
+                'security.WARNING: private.discussion.client_decrypt_failed {"message_id":34}',
                 'security.ERROR: private.discussion.invite_email_failed {"recipient":"f***@example.com"}',
                 'security.ERROR: ops.backup.failed {"password":"raw-db-password"}',
                 'security.WARNING: private.backup.completed {"warning":"backup_recommended_size_exceeded"}',
+                'security.CRITICAL: private.discussion.retention.failed {"error":"fixture"}',
                 'security.ERROR: private.account_deletion_backups_purge.failed {"error":"fixture"}',
             ]) . PHP_EOL
         );
         file_put_contents(
             $this->logDir . '/content.log',
-            'content.ERROR: cron.job.failed {"job":"purge_private_discussions"}' . PHP_EOL
+            implode(PHP_EOL, [
+                'content.WARNING: private.discussion.media_scan.completed {"blocked":1}',
+                'content.ERROR: cron.job.failed {"job":"purge_private_discussions"}',
+            ]) . PHP_EOL
         );
 
         $script = dirname(__DIR__, 2) . '/core/tools/check_log_alerts.php';
@@ -51,7 +57,10 @@ final class CheckLogAlertsScriptTest extends TestCase
             . '--private-login-fail-threshold=1 --private-csrf-threshold=1 '
             . '--private-rate-limit-threshold=1 --private-email-failed-threshold=1 '
             . '--private-backup-failed-threshold=1 --private-backup-warning-threshold=1 '
-            . '--private-purge-failed-threshold=1 --cron-failed-threshold=1 2>&1',
+            . '--private-purge-failed-threshold=1 --private-discussion-stream-threshold=1 '
+            . '--private-discussion-scan-threshold=1 --private-discussion-retention-threshold=1 '
+            . '--private-discussion-decrypt-threshold=1 --private-discussion-rate-limit-threshold=1 '
+            . '--cron-failed-threshold=1 2>&1',
             escapeshellarg(PHP_BINARY),
             escapeshellarg($script),
             escapeshellarg($this->logDir)
@@ -73,6 +82,12 @@ final class CheckLogAlertsScriptTest extends TestCase
         self::assertSame(1, $payload['counts']['private_backup_failed'] ?? null);
         self::assertSame(1, $payload['counts']['private_backup_warning'] ?? null);
         self::assertSame(1, $payload['counts']['private_purge_failed'] ?? null);
+        self::assertSame(1, $payload['counts']['private_discussion_stream_failed'] ?? null);
+        self::assertSame(1, $payload['counts']['private_discussion_scan_failed'] ?? null);
+        self::assertSame(1, $payload['counts']['private_discussion_retention_failed'] ?? null);
+        self::assertSame(1, $payload['counts']['private_discussion_decrypt_failed'] ?? null);
+        self::assertSame(1, $payload['counts']['private_discussion_rate_limited'] ?? null);
+        self::assertSame(1, $payload['summary']['private']['discussion']['stream_failed'] ?? null);
         self::assertSame(1, $payload['counts']['cron_failed'] ?? null);
         self::assertStringNotContainsString('raw-secret-token', $rawOutput);
         self::assertStringNotContainsString('raw-db-password', $rawOutput);

@@ -41,6 +41,11 @@ $thresholds = [
     'private_backup_failed' => max(1, (int) ($options['private-backup-failed-threshold'] ?? 1)),
     'private_backup_warning' => max(1, (int) ($options['private-backup-warning-threshold'] ?? 1)),
     'private_purge_failed' => max(1, (int) ($options['private-purge-failed-threshold'] ?? 1)),
+    'private_discussion_stream_failed' => max(1, (int) ($options['private-discussion-stream-threshold'] ?? 5)),
+    'private_discussion_scan_failed' => max(1, (int) ($options['private-discussion-scan-threshold'] ?? 1)),
+    'private_discussion_retention_failed' => max(1, (int) ($options['private-discussion-retention-threshold'] ?? 1)),
+    'private_discussion_decrypt_failed' => max(1, (int) ($options['private-discussion-decrypt-threshold'] ?? 10)),
+    'private_discussion_rate_limited' => max(1, (int) ($options['private-discussion-rate-limit-threshold'] ?? 3)),
     'http_403' => max(1, (int) ($options['http-403-threshold'] ?? 30)),
     'http_429' => max(1, (int) ($options['http-429-threshold'] ?? 10)),
     'cron_failed' => max(1, (int) ($options['cron-failed-threshold'] ?? 1)),
@@ -56,6 +61,11 @@ $severities = [
     'private_backup_failed' => 'critical',
     'private_backup_warning' => 'warning',
     'private_purge_failed' => 'critical',
+    'private_discussion_stream_failed' => 'warning',
+    'private_discussion_scan_failed' => 'error',
+    'private_discussion_retention_failed' => 'critical',
+    'private_discussion_decrypt_failed' => 'warning',
+    'private_discussion_rate_limited' => 'error',
     'http_403' => 'warning',
     'http_429' => 'warning',
     'cron_failed' => 'error',
@@ -127,6 +137,13 @@ $payload = [
             'backup_failed' => $counts['private_backup_failed'],
             'backup_warning' => $counts['private_backup_warning'],
             'purge_failed' => $counts['private_purge_failed'],
+            'discussion' => [
+                'stream_failed' => $counts['private_discussion_stream_failed'],
+                'scan_failed' => $counts['private_discussion_scan_failed'],
+                'retention_failed' => $counts['private_discussion_retention_failed'],
+                'decrypt_failed' => $counts['private_discussion_decrypt_failed'],
+                'rate_limited' => $counts['private_discussion_rate_limited'],
+            ],
         ],
         'cron' => [
             'failed' => $counts['cron_failed'],
@@ -236,6 +253,46 @@ if ($jsonOutput) {
             $thresholds['private_purge_failed']
         )
     );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.discussion.stream_failed: %d (seuil=%d)\n",
+            $counts['private_discussion_stream_failed'],
+            $thresholds['private_discussion_stream_failed']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.discussion.scan_failed: %d (seuil=%d)\n",
+            $counts['private_discussion_scan_failed'],
+            $thresholds['private_discussion_scan_failed']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.discussion.retention_failed: %d (seuil=%d)\n",
+            $counts['private_discussion_retention_failed'],
+            $thresholds['private_discussion_retention_failed']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.discussion.decrypt_failed: %d (seuil=%d)\n",
+            $counts['private_discussion_decrypt_failed'],
+            $thresholds['private_discussion_decrypt_failed']
+        )
+    );
+    fwrite(
+        STDOUT,
+        sprintf(
+            "- private.discussion.rate_limited: %d (seuil=%d)\n",
+            $counts['private_discussion_rate_limited'],
+            $thresholds['private_discussion_rate_limited']
+        )
+    );
     fwrite(STDOUT, sprintf("- http 403: %d (seuil=%d)\n", $counts['http_403'], $thresholds['http_403']));
     fwrite(STDOUT, sprintf("- http 429: %d (seuil=%d)\n", $counts['http_429'], $thresholds['http_429']));
     fwrite(STDOUT, sprintf("- cron failed: %d (seuil=%d)\n", $counts['cron_failed'], $thresholds['cron_failed']));
@@ -331,6 +388,32 @@ function collect_private_observability_counts(string $line, array &$counts): voi
 
     if (str_contains($line, 'private.discussion.rate_limited') || str_contains($line, 'private.rate_limited')) {
         $counts['private_rate_limited']++;
+    }
+
+    if (str_contains($line, 'private.discussion.rate_limited')) {
+        $counts['private_discussion_rate_limited']++;
+    }
+
+    if (str_contains($line, 'private.discussion.stream_failed')) {
+        $counts['private_discussion_stream_failed']++;
+    }
+
+    if (str_contains($line, 'private.discussion.client_decrypt_failed')) {
+        $counts['private_discussion_decrypt_failed']++;
+    }
+
+    if (str_contains($line, 'private.discussion.retention.failed')) {
+        $counts['private_discussion_retention_failed']++;
+    }
+
+    if (
+        str_contains($line, 'private.discussion.media_scan.completed')
+        && (
+            preg_match('/\bWARNING\b|\bERROR\b|\bCRITICAL\b/i', $line) === 1
+            || preg_match('/"blocked"\s*:\s*[1-9][0-9]*/', $line) === 1
+        )
+    ) {
+        $counts['private_discussion_scan_failed']++;
     }
 
     if (preg_match('/private\.[a-z0-9_\.]+(?:\.|_)email_failed\b/', $line) === 1) {

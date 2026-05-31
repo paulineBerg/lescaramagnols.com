@@ -102,6 +102,7 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/discussions/api/conversations' => ['methods' => ['GET', 'POST'], 'handler' => 'private:discussion_api_conversations'],
             '/private/discussions/api/conversations/{conversationId:[0-9]+}/messages' => ['methods' => ['GET', 'POST'], 'handler' => 'private:discussion_api_messages'],
             '/private/discussions/api/conversations/{conversationId:[0-9]+}/events' => ['methods' => ['GET'], 'handler' => 'private:discussion_api_events'],
+            '/private/discussions/api/client-events' => ['methods' => ['POST'], 'handler' => 'private:discussion_api_client_events'],
             '/private/discussions/api/crypto/devices' => ['methods' => ['GET', 'POST'], 'handler' => 'private:discussion_api_crypto_devices'],
             '/private/discussions/api/conversations/{conversationId:[0-9]+}/keys' => ['methods' => ['GET', 'POST'], 'handler' => 'private:discussion_api_conversation_keys'],
             '/private/discussions/api/conversations/{conversationId:[0-9]+}/members' => ['methods' => ['POST'], 'handler' => 'private:discussion_api_members'],

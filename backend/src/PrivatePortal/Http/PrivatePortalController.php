@@ -182,6 +182,7 @@ final class PrivatePortalController
                 $request,
                 (int) ($routeParams['conversationId'] ?? 0)
             ),
+            'discussion_api_client_events' => $this->handleDiscussionApiClientEvents($request),
             'discussion_api_crypto_devices' => $this->handleDiscussionApiCryptoDevices($request),
             'discussion_api_conversation_keys' => $this->handleDiscussionApiConversationKeys(
                 $request,
@@ -3086,6 +3087,53 @@ final class PrivatePortalController
         );
     }
 
+    private function handleDiscussionApiClientEvents(Request $request): Response
+    {
+        $userId = $this->requireDiscussionModuleUser($request);
+        if ($userId instanceof Response) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        if ($request->method() !== self::METHOD_POST) {
+            return $this->jsonPrivateResponse(['error' => 'method_not_allowed'], 405);
+        }
+        if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
+            return $this->jsonPrivateResponse(['error' => 'csrf'], 403);
+        }
+        if (!$this->discussionRateLimitHit($request, $userId, 'client_event')) {
+            return $this->jsonPrivateResponse(['error' => 'rate_limited'], 429);
+        }
+
+        $payload = $request->json();
+        if ($payload === []) {
+            $payload = $request->body();
+        }
+
+        $type = is_string($payload['type'] ?? null) ? strtolower(trim((string) $payload['type'])) : '';
+        $conversationId = $this->normalizeNumericId($payload['conversation_id'] ?? $payload['conversationId'] ?? null);
+        $messageId = $this->normalizeNumericId($payload['message_id'] ?? $payload['messageId'] ?? null);
+        if ($conversationId <= 0 || !$this->discussionRepository()->isParticipant($conversationId, $userId)) {
+            return $this->jsonPrivateResponse(['error' => 'forbidden'], 403);
+        }
+
+        $eventName = match ($type) {
+            'decrypt_failed' => 'private.discussion.client_decrypt_failed',
+            'stream_failed' => 'private.discussion.stream_failed',
+            default => '',
+        };
+        if ($eventName === '') {
+            return $this->jsonPrivateResponse(['error' => 'invalid_event'], 422);
+        }
+
+        $this->logEvent($eventName, [
+            'private_user_id' => $userId,
+            'conversation_id' => $conversationId,
+            'message_id' => $messageId > 0 ? $messageId : null,
+        ]);
+
+        return $this->jsonPrivateResponse(['ok' => true]);
+    }
+
     private function handleDiscussionApiCryptoDevices(Request $request): Response
     {
         $userId = $this->requireDiscussionModuleUser($request);
@@ -4418,6 +4466,7 @@ final class PrivatePortalController
                 'new' => private_portal_url('discussion_new'),
                 'apiConversations' => private_portal_url('discussion_api_conversations'),
                 'apiCryptoDevices' => private_portal_url('discussion_api_crypto_devices'),
+                'apiClientEvents' => private_portal_url('discussion_api_client_events'),
                 'files' => private_portal_url('discussion_files'),
             ],
             'discussionInviteDefaults' => [
@@ -6151,11 +6200,29 @@ final class PrivatePortalController
     private function discussionRateLimitHit(Request $request, int $userId, string $action): bool
     {
         $config = is_array(app_config('private.discussions', [])) ? (array) app_config('private.discussions') : [];
-        $action = $action === 'conversation' ? 'conversation' : 'message';
-        $attemptsKey = $action === 'conversation' ? 'conversation_rate_limit_attempts' : 'message_rate_limit_attempts';
-        $windowKey = $action === 'conversation' ? 'conversation_rate_limit_window' : 'message_rate_limit_window';
-        $attempts = max(1, (int) ($config[$attemptsKey] ?? ($action === 'conversation' ? 10 : 30)));
-        $window = max(30, (int) ($config[$windowKey] ?? ($action === 'conversation' ? 300 : 60)));
+        $action = match ($action) {
+            'conversation' => 'conversation',
+            'client_event' => 'client_event',
+            default => 'message',
+        };
+        $attemptsKey = match ($action) {
+            'conversation' => 'conversation_rate_limit_attempts',
+            'client_event' => 'client_event_rate_limit_attempts',
+            default => 'message_rate_limit_attempts',
+        };
+        $windowKey = match ($action) {
+            'conversation' => 'conversation_rate_limit_window',
+            'client_event' => 'client_event_rate_limit_window',
+            default => 'message_rate_limit_window',
+        };
+        $defaultAttempts = match ($action) {
+            'conversation' => 10,
+            'client_event' => 20,
+            default => 30,
+        };
+        $defaultWindow = $action === 'conversation' ? 300 : 60;
+        $attempts = max(1, (int) ($config[$attemptsKey] ?? $defaultAttempts));
+        $window = max(30, (int) ($config[$windowKey] ?? $defaultWindow));
         $ip = $request->clientIp((bool) app_config('private.trust_proxy_headers', false)) ?? 'unknown';
         $limiter = new \FileRateLimiter(
             'private_discussion_' . $action . '_' . $userId . '_' . hash('sha256', $ip),

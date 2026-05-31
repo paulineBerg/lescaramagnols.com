@@ -162,9 +162,11 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
 
   const apiUrl = root.dataset.apiMessagesUrl || '';
   const eventsUrl = root.dataset.apiEventsUrl || '';
+  const clientEventsUrl = root.dataset.apiClientEventsUrl || '';
   const readUrl = root.dataset.apiReadUrl || '';
   const keysUrl = root.dataset.apiKeysUrl || '';
   const devicesUrl = root.dataset.apiDevicesUrl || '';
+  const reportedClientEvents = new Map<string, number>();
   const csrfToken = root.dataset.csrfToken || '';
   const filesUrl = root.dataset.filesUrl || '';
   const conversationId = Number(root.dataset.conversationId || 0);
@@ -189,6 +191,31 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     }
 
     return memberLabels[String(senderId)] || `Membre #${senderId}`;
+  };
+
+  const reportClientEvent = (type: 'decrypt_failed' | 'stream_failed', messageId = 0): void => {
+    if (!clientEventsUrl || conversationId <= 0 || !csrfToken) {
+      return;
+    }
+
+    const reportKey = `${type}:${messageId > 0 ? messageId : 0}`;
+    const now = Date.now();
+    if (now - (reportedClientEvents.get(reportKey) || 0) < 60000) {
+      return;
+    }
+    reportedClientEvents.set(reportKey, now);
+
+    void fetch(clientEventsUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-CSRF-Token': csrfToken, Accept: 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        csrf_token: csrfToken,
+        conversation_id: conversationId,
+        message_id: messageId > 0 ? messageId : null,
+        type
+      })
+    }).catch(() => undefined);
   };
 
   const setStatus = (text: string, failure = false): void => {
@@ -550,6 +577,7 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     } catch (_error) {
       target.textContent = 'Message chiffre illisible sur cet appareil.';
       article.dataset.searchText = '';
+      reportClientEvent('decrypt_failed', Number(article.dataset.messageId || 0));
     }
     applySearch();
   };
@@ -767,6 +795,7 @@ const initPrivateDiscussion = (root: HTMLElement): void => {
     source.addEventListener('member.added', refresh as EventListener);
     source.addEventListener('member.left', refresh as EventListener);
     source.onerror = () => {
+      reportClientEvent('stream_failed');
       source.close();
       window.setTimeout(connectEvents, 10000);
     };

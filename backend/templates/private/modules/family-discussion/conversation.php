@@ -32,6 +32,7 @@ $isConversationOwner = is_numeric($conversation['createdByPrivateUserId'] ?? nul
     && (int) $conversation['createdByPrivateUserId'] === $currentUserId;
 $apiMessagesUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/messages';
 $apiEventsUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/events';
+$apiClientEventsUrl = (string) ($urls['apiClientEvents'] ?? private_portal_url('discussion_api_client_events'));
 $apiReadUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/read';
 $apiKeysUrl = rtrim((string) ($urls['apiConversations'] ?? private_portal_url('discussion_api_conversations')), '/') . '/' . $conversationId . '/keys';
 $apiDevicesUrl = (string) ($urls['apiCryptoDevices'] ?? private_portal_url('discussion_api_crypto_devices'));
@@ -130,6 +131,7 @@ $notificationLabels = [
   data-private-discussion-app
   data-api-messages-url="<?php echo $h($apiMessagesUrl); ?>"
   data-api-events-url="<?php echo $h($apiEventsUrl); ?>"
+  data-api-client-events-url="<?php echo $h($apiClientEventsUrl); ?>"
   data-api-read-url="<?php echo $h($apiReadUrl); ?>"
   data-api-keys-url="<?php echo $h($apiKeysUrl); ?>"
   data-api-devices-url="<?php echo $h($apiDevicesUrl); ?>"

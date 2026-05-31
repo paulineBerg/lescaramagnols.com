@@ -9,6 +9,7 @@ use Caramagnols\Admin\Settings\AdminTranslationSettingsManager;
 use Caramagnols\Backup\ProductionBackupService;
 use Caramagnols\Blog\DiscussionRecaptchaMode;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionObservabilityService;
 use Caramagnols\Social\InstagramFeedService;
 use Caramagnols\Support\PhpCliBinary;
 
@@ -2193,6 +2194,7 @@ final class AdminSettingsService
                 'blogPublishScriptPath' => $this->scheduledBlogPublishScriptPath(),
                 'blogPublishCronCommand' => $this->scheduledBlogPublishCronCommand(),
             ],
+            'discussionOps' => $this->discussionOpsSummary(),
             'privateMail' => $this->privateMailView($privateMail),
             'backup' => $this->configuredBackupSettings(),
             'translations' => [
@@ -2212,6 +2214,22 @@ final class AdminSettingsService
                     && $this->isOutsideWebroot($this->siteOverridePath),
             ],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function discussionOpsSummary(): array
+    {
+        if (!function_exists('editorial_database')) {
+            return [];
+        }
+
+        try {
+            return (new DiscussionObservabilityService(editorial_database()))->summary();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /**

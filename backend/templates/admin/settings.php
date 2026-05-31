@@ -9,6 +9,7 @@ $discussions = is_array($view['discussions'] ?? null) ? $view['discussions'] : [
 $instagram = is_array($view['instagram'] ?? null) ? $view['instagram'] : [];
 $privateMail = is_array($view['privateMail'] ?? null) ? $view['privateMail'] : [];
 $logAlerts = is_array($view['logAlerts'] ?? null) ? $view['logAlerts'] : [];
+$discussionOps = is_array($view['discussionOps'] ?? null) ? $view['discussionOps'] : [];
 $backup = is_array($view['backup'] ?? null) ? $view['backup'] : [];
 $cronCenter = is_array($view['cronCenter'] ?? null) ? $view['cronCenter'] : [];
 $translations = is_array($view['translations'] ?? null) ? $view['translations'] : [];
@@ -121,6 +122,12 @@ if (!in_array($logAlertsNotifyOn, ['alerts', 'always'], true)) {
 $scheduledBlogPublishPhpBinary = trim((string) ($logAlerts['blogPublishPhpBinary'] ?? 'php'));
 $scheduledBlogPublishScriptPath = trim((string) ($logAlerts['blogPublishScriptPath'] ?? ''));
 $scheduledBlogPublishCronCommand = trim((string) ($logAlerts['blogPublishCronCommand'] ?? ''));
+$discussionOpsVolumes = is_array($discussionOps['volumes'] ?? null) ? $discussionOps['volumes'] : [];
+$discussionOpsAttachments = is_array($discussionOps['attachments'] ?? null) ? $discussionOps['attachments'] : [];
+$discussionOpsRetention = is_array($discussionOps['retention'] ?? null) ? $discussionOps['retention'] : [];
+$discussionOpsLatestRetention = is_array($discussionOpsRetention['latestRun'] ?? null) ? $discussionOpsRetention['latestRun'] : [];
+$discussionOpsLogs = is_array($discussionOps['logs'] ?? null) ? $discussionOps['logs'] : [];
+$discussionOpsQueries = is_array($discussionOps['logQueries'] ?? null) ? $discussionOps['logQueries'] : [];
 $backupDatabase = is_array($backup['database'] ?? null) ? $backup['database'] : [];
 $backupRoot = trim((string) ($backup['backupRoot'] ?? ''));
 $backupRetentionDays = max(1, (int) ($backup['retentionDays'] ?? 14));
@@ -1210,6 +1217,41 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
         <p class="settings-dialog__summary">
           <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_LOG_ALERTS_MODE_NOTE', 'Configuration système associée : /etc/caramagnols/check-log-alerts.env (webhook, emails, timeout).'), ENT_QUOTES, 'UTF-8'); ?>
         </p>
+        <div class="settings-dialog__summary">
+          <strong>Discussions privées - vue ops</strong>
+          <dl class="admin-definition-list">
+            <dt>Volumes 24 h</dt>
+            <dd>
+              <?php echo htmlspecialchars((string) ($discussionOpsVolumes['messagesLast24h'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> message(s),
+              <?php echo htmlspecialchars((string) ($discussionOpsVolumes['attachmentsLast24h'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> pièce(s) jointe(s)
+            </dd>
+            <dt>Pièces jointes</dt>
+            <dd>
+              pending <?php echo htmlspecialchars((string) ($discussionOpsAttachments['pending_scan'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>,
+              disponibles <?php echo htmlspecialchars((string) ($discussionOpsAttachments['available'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>,
+              bloquées <?php echo htmlspecialchars((string) ($discussionOpsAttachments['blocked'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>
+            </dd>
+            <dt>Rétention</dt>
+            <dd>
+              <?php echo htmlspecialchars((string) ($discussionOpsRetention['expiredMessagesPending'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> message(s) expiré(s),
+              <?php echo htmlspecialchars((string) ($discussionOpsRetention['expiredAttachmentsPending'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> fichier(s) expiré(s),
+              dernier run <?php echo htmlspecialchars((string) ($discussionOpsLatestRetention['status'] ?? 'aucun'), ENT_QUOTES, 'UTF-8'); ?>
+            </dd>
+            <dt>Erreurs suivies</dt>
+            <dd>
+              stream <?php echo htmlspecialchars((string) ($discussionOpsLogs['streamErrorsLast24h'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>,
+              scan <?php echo htmlspecialchars((string) ($discussionOpsLogs['scanFailuresLast24h'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>,
+              rate-limit <?php echo htmlspecialchars((string) ($discussionOpsLogs['rateLimitedLast24h'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>,
+              déchiffrement <?php echo htmlspecialchars((string) ($discussionOpsLogs['decryptFailuresLast24h'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>
+            </dd>
+          </dl>
+          <p>
+            <a href="<?php echo htmlspecialchars(admin_url('logs') . '?q=' . rawurlencode((string) ($discussionOpsQueries['stream'] ?? 'private.discussion.stream_failed')), ENT_QUOTES, 'UTF-8'); ?>">Logs stream</a>
+            · <a href="<?php echo htmlspecialchars(admin_url('logs') . '?q=' . rawurlencode((string) ($discussionOpsQueries['scan'] ?? 'private.discussion.media_scan.completed')), ENT_QUOTES, 'UTF-8'); ?>">Logs scan</a>
+            · <a href="<?php echo htmlspecialchars(admin_url('logs') . '?q=' . rawurlencode((string) ($discussionOpsQueries['rateLimit'] ?? 'private.discussion.rate_limited')), ENT_QUOTES, 'UTF-8'); ?>">Logs rate-limit</a>
+            · <a href="<?php echo htmlspecialchars(admin_url('logs') . '?q=' . rawurlencode((string) ($discussionOpsQueries['decrypt'] ?? 'private.discussion.client_decrypt_failed')), ENT_QUOTES, 'UTF-8'); ?>">Logs déchiffrement</a>
+          </p>
+        </div>
         <div class="field">
           <label for="blog-publish-php-binary"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_BLOG_PUBLISH_PHP_BINARY_LABEL', 'Binaire PHP détecté'), ENT_QUOTES, 'UTF-8'); ?></label>
           <input id="blog-publish-php-binary" type="text" value="<?php echo htmlspecialchars($scheduledBlogPublishPhpBinary, ENT_QUOTES, 'UTF-8'); ?>" readonly />

@@ -15,6 +15,9 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionNotificationServi
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionTimelineService;
 use Caramagnols\Http\Request;
+use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\Logging\LoggerFactory;
+use Caramagnols\Logging\SqlLogStore;
 use Caramagnols\PrivatePortal\Http\PrivatePortalController;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
@@ -620,6 +623,114 @@ final class FamilyDiscussionModuleTest extends TestCase
             $this->request('GET', '/private/discussions/api/conversations/' . $conversationId . '/events'),
             ['conversationId' => $conversationId]
         );
+        $this->assertSame(403, $forbidden->status);
+    }
+
+    public function testClientObservationEventsAreLoggedWithoutContentOnlyForParticipants(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $logStore = new SqlLogStore($database);
+        $logger = new AppEventLogger(new LoggerFactory($this->storageRoot . '/logs', 'development', $logStore));
+        $service = new DiscussionService($repository, $userRepository, $this->storage(), null, $moduleRepository);
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $outsiderId = $this->createPrivateUser($userRepository, 'outsider@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($aliceId, ['discussions'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($bobId, ['discussions'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($outsiderId, ['discussions'], 'admin@example.com'));
+
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+        $message = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Texte clair interdit aux logs',
+            [],
+            $this->encryptedPayload(),
+            'client-observability-1'
+        );
+        $this->assertIsArray($message);
+
+        $controller = new PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'alice@example.com'),
+            eventLogger: $logger,
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            discussionRepository: $repository,
+            discussionAttachmentStorage: $this->storage(),
+            discussionService: $service,
+            discussionRetentionService: new DiscussionRetentionService($repository, $this->storage())
+        );
+        $csrfToken = csrf_token('private_discussions');
+        $request = new Request(
+            [
+                'REQUEST_METHOD' => 'POST',
+                'REQUEST_URI' => '/private/discussions/api/client-events',
+                'REMOTE_ADDR' => '127.0.0.1',
+            ],
+            [],
+            [],
+            [],
+            [
+                'Host' => '127.0.0.1:8000',
+                'X-CSRF-Token' => $csrfToken,
+                'Content-Type' => 'application/json',
+            ],
+            json_encode([
+                'conversation_id' => $conversationId,
+                'message_id' => (int) $message['id'],
+                'type' => 'decrypt_failed',
+                'body' => 'Texte clair interdit aux logs',
+            ], JSON_THROW_ON_ERROR)
+        );
+
+        $response = $controller->handle('discussion_api_client_events', $request);
+        $this->assertSame(200, $response->status);
+
+        $entries = $logStore->listEntries(['q' => 'private.discussion.client_decrypt_failed'], 10);
+        $this->assertCount(1, $entries);
+        $encodedEntries = json_encode($entries, JSON_THROW_ON_ERROR);
+        $this->assertStringContainsString('private.discussion.client_decrypt_failed', $encodedEntries);
+        $this->assertStringNotContainsString('Texte clair interdit aux logs', $encodedEntries);
+
+        $outsiderAuth = $this->privateAuth($userRepository, 'outsider@example.com');
+        $outsiderToken = csrf_token('private_discussions');
+        $outsiderRequest = new Request(
+            [
+                'REQUEST_METHOD' => 'POST',
+                'REQUEST_URI' => '/private/discussions/api/client-events',
+                'REMOTE_ADDR' => '127.0.0.1',
+            ],
+            [],
+            [],
+            [],
+            [
+                'Host' => '127.0.0.1:8000',
+                'X-CSRF-Token' => $outsiderToken,
+                'Content-Type' => 'application/json',
+            ],
+            json_encode([
+                'conversation_id' => $conversationId,
+                'message_id' => (int) $message['id'],
+                'type' => 'stream_failed',
+            ], JSON_THROW_ON_ERROR)
+        );
+        $outsiderController = new PrivatePortalController(
+            auth: $outsiderAuth,
+            eventLogger: $logger,
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            discussionRepository: $repository,
+            discussionAttachmentStorage: $this->storage(),
+            discussionService: $service,
+            discussionRetentionService: new DiscussionRetentionService($repository, $this->storage())
+        );
+        $forbidden = $outsiderController->handle('discussion_api_client_events', $outsiderRequest);
         $this->assertSame(403, $forbidden->status);
     }
 

@@ -118,6 +118,11 @@ Seuils par defaut :
 - `ops.backup.failed` ou `private.backup.failed >= 1`
 - `backup_recommended_size_exceeded >= 1`
 - `private.account_deletion_backups_purge.failed >= 1`
+- `private.discussion.stream_failed >= 5`
+- `private.discussion.media_scan.completed` avec fichier bloque `>= 1`
+- `private.discussion.retention.failed >= 1`
+- `private.discussion.client_decrypt_failed >= 10`
+- `private.discussion.rate_limited >= 3`
 - `http 403 >= 30`
 - `http 429 >= 10`
 - `cron.job.failed` ou `cron.scheduler.failed >= 1`
@@ -126,9 +131,9 @@ Severites par defaut :
 
 | Metrique | Severite |
 |---|---|
-| `login_failed`, `private_login_failed`, `rate_limited`, `private_csrf_rejected`, `http_403`, `http_429`, `private_backup_warning` | `warning` |
-| `private_rate_limited`, `private_email_failed`, `cron_failed` | `error` |
-| `private_backup_failed`, `private_purge_failed` | `critical` |
+| `login_failed`, `private_login_failed`, `rate_limited`, `private_csrf_rejected`, `http_403`, `http_429`, `private_backup_warning`, `private_discussion_stream_failed`, `private_discussion_decrypt_failed` | `warning` |
+| `private_rate_limited`, `private_email_failed`, `cron_failed`, `private_discussion_scan_failed`, `private_discussion_rate_limited` | `error` |
+| `private_backup_failed`, `private_purge_failed`, `private_discussion_retention_failed` | `critical` |
 
 Options privees utiles :
 
@@ -137,6 +142,7 @@ composer check-log-alerts -- --json --strict --private-email-failed-threshold=1
 composer check-log-alerts -- --json --strict --private-backup-failed-threshold=1
 composer check-log-alerts -- --json --strict --private-purge-failed-threshold=1
 composer check-log-alerts -- --json --strict --private-csrf-threshold=3 --private-rate-limit-threshold=3
+composer check-log-alerts -- --json --strict --private-discussion-scan-threshold=1 --private-discussion-retention-threshold=1
 ```
 
 ## Regles D Evolution
