@@ -45,6 +45,7 @@ use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
+use Caramagnols\PrivatePortal\Repository\PrivateUserMailSettingsRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use Caramagnols\PrivatePortal\TaxDeclarationHelper\Source\RentalTaxDataSource;
 
@@ -63,6 +64,8 @@ final class PrivatePortalController
     private const CSRF_DISCUSSIONS = 'private_discussions';
     private const CSRF_BLOCNOTE = 'private_blocnote';
     private const CSRF_MEMBER_SETTINGS = 'private_member_settings';
+
+    private ?string $lastPrivateMailFailure = null;
 
     public function __construct(
         private readonly PrivateAuth $auth,
@@ -91,7 +94,8 @@ final class PrivatePortalController
         private readonly ?RentalReceiptService $rentalReceiptService = null,
         private readonly ?ChargeRegularizationService $chargeRegularizationService = null,
         private readonly ?RentalDashboardService $rentalDashboardService = null,
-        private readonly ?RentalExportService $rentalExportService = null
+        private readonly ?RentalExportService $rentalExportService = null,
+        private readonly ?PrivateUserMailSettingsRepository $privateUserMailSettingsRepository = null
     ) {
     }
 
@@ -319,22 +323,70 @@ final class PrivatePortalController
 
         $query = $request->query();
         $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
+        $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
+        $tab = is_string($query['tab'] ?? null) ? (string) $query['tab'] : 'profile';
         $formValues = [
             'email' => (string) $profile['email'],
             'fullName' => (string) $profile['fullName'],
             'postalAddress' => (string) $profile['postalAddress'],
             'phone' => (string) $profile['phone'],
         ];
+        $smtpSettings = $this->privateUserMailSettingsRepository()->settingsForUser($userId);
+        if ((string) ($smtpSettings['fromAddress'] ?? '') === '') {
+            $smtpSettings['fromAddress'] = (string) $profile['email'];
+        }
+        if ((string) ($smtpSettings['replyTo'] ?? '') === '') {
+            $smtpSettings['replyTo'] = (string) $profile['email'];
+        }
 
         if ($request->method() !== self::METHOD_POST) {
-            return $this->renderMemberSettings($userId, $formValues, $notice, '');
+            return $this->renderMemberSettings($userId, $formValues, $smtpSettings, $notice, $error, $tab);
         }
 
         if (!$this->guard()->validateCsrf($request, self::CSRF_MEMBER_SETTINGS)) {
-            return $this->renderMemberSettings($userId, $formValues, '', 'invalid_request');
+            return $this->renderMemberSettings($userId, $formValues, $smtpSettings, '', 'invalid_request', $tab);
         }
 
         $body = $request->body();
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'profile';
+        if ($action === 'smtp_settings') {
+            $result = $this->privateUserMailSettingsRepository()->saveForUser($userId, $body);
+            $settings = is_array($result['settings'] ?? null) ? $result['settings'] : $smtpSettings;
+            if ((string) ($settings['fromAddress'] ?? '') === '') {
+                $settings['fromAddress'] = (string) $profile['email'];
+            }
+            if ((string) ($settings['replyTo'] ?? '') === '') {
+                $settings['replyTo'] = (string) $profile['email'];
+            }
+            if (empty($result['success'])) {
+                return $this->renderMemberSettings($userId, $formValues, $settings, '', (string) ($result['error'] ?? 'save_failed'), 'smtp');
+            }
+
+            $noticeKey = 'smtp_saved';
+            if (!empty($body['send_test'])) {
+                $recipient = $this->normalizeEmailInput($body['test_recipient'] ?? null);
+                if ($recipient === '') {
+                    $recipient = (string) $profile['email'];
+                }
+                $sent = $this->sendPrivateMail(
+                    $recipient,
+                    'Test SMTP espace privé',
+                    '<p>Message de test SMTP de l’espace privé.</p>',
+                    [],
+                    $userId,
+                    true
+                );
+                $noticeKey = $sent ? 'smtp_test_sent' : '';
+                if (!$sent) {
+                    return $this->renderMemberSettings($userId, $formValues, $settings, '', 'smtp_test_failed', 'smtp');
+                }
+            }
+
+            $this->logEvent('private.member_settings.smtp_saved', ['private_user_id' => $userId]);
+
+            return $this->redirect(private_portal_url('member_settings') . '?tab=smtp&notice=' . $noticeKey);
+        }
+
         $normalized = $repository->normalizeProfile(
             is_string($body['full_name'] ?? null) ? (string) $body['full_name'] : '',
             is_string($body['postal_address'] ?? null) ? (string) $body['postal_address'] : '',
@@ -350,16 +402,16 @@ final class PrivatePortalController
         if ($normalized['errors'] !== []) {
             $error = in_array('phone_invalid', $normalized['errors'], true) ? 'phone_invalid' : 'invalid_request';
 
-            return $this->renderMemberSettings($userId, $formValues, '', $error);
+            return $this->renderMemberSettings($userId, $formValues, $smtpSettings, '', $error, 'profile');
         }
 
         if (!$repository->updateMemberProfile($userId, $formValues['fullName'], $formValues['postalAddress'], $formValues['phone'])) {
-            return $this->renderMemberSettings($userId, $formValues, '', 'save_failed');
+            return $this->renderMemberSettings($userId, $formValues, $smtpSettings, '', 'save_failed', 'profile');
         }
 
         $this->logEvent('private.member_settings.saved', ['private_user_id' => $userId]);
 
-        return $this->redirect(private_portal_url('member_settings') . '?notice=profile_saved');
+        return $this->redirect(private_portal_url('member_settings') . '?tab=profile&notice=profile_saved');
     }
 
     private function handleDocuments(Request $request): Response
@@ -1244,6 +1296,9 @@ final class PrivatePortalController
             if ($result === 'sent' || $result === 'duplicate') {
                 return $this->redirect(private_portal_url('rental_rents') . '?notice=payment_request_sent');
             }
+            if ($result === 'smtp_required') {
+                return $this->redirect($this->privateSmtpSettingsRequiredUrl());
+            }
 
             return $this->redirect(private_portal_url('rental_rents') . '?error=' . $result);
         }
@@ -1413,6 +1468,9 @@ final class PrivatePortalController
 
         if ($action === 'email_receipt') {
             $sent = $this->sendRentalReceiptByEmail($body, $propertyIds, $userId);
+            if (!$sent && $this->lastPrivateMailFailure === 'smtp_required') {
+                return $this->redirect($this->privateSmtpSettingsRequiredUrl());
+            }
 
             return $this->redirect(private_portal_url('rental_payments') . ($sent ? '?notice=receipt_emailed' : '?error=email_failed'));
         }
@@ -1820,6 +1878,10 @@ final class PrivatePortalController
 
         if ($action === 'email_documents') {
             $sent = $this->sendRentalDocumentsByEmail($body, $propertyIds, $userId);
+            if (!$sent && $this->lastPrivateMailFailure === 'smtp_required') {
+                return $this->redirect($this->privateSmtpSettingsRequiredUrl());
+            }
+
             return $this->redirect(private_portal_url('rental_documents') . ($sent ? '?notice=document_emailed' : '?error=email_failed'));
         }
 
@@ -1935,7 +1997,7 @@ final class PrivatePortalController
         $action = is_string($body['action'] ?? null) ? trim((string) $body['action']) : 'agency_import';
         if ($action === 'create_agency') {
             $agencyName = is_string($body['agency_name'] ?? null) ? trim((string) $body['agency_name']) : '';
-            $created = $this->agencyImportRepository()->createAgency($userId, $agencyName);
+            $created = $this->agencyImportRepository()->createAgency($userId, $agencyName, $this->agencyDetailsFromBody($body));
             $this->logEvent('private.rental_agency_import.agency_created', [
                 'private_user_id' => $userId,
                 'agency_name' => $agencyName,
@@ -1946,6 +2008,29 @@ final class PrivatePortalController
                 'agencies',
                 $created ? 'agency_created' : '',
                 $created ? '' : 'agency_create_failed'
+            ));
+        }
+
+        if ($action === 'update_agency') {
+            $agencyId = $this->normalizeNumericId($body['agency_id'] ?? null);
+            $agencyName = is_string($body['agency_name'] ?? null) ? trim((string) $body['agency_name']) : '';
+            $updated = $this->agencyImportRepository()->updateAgencyForUser(
+                $userId,
+                $agencyId,
+                $agencyName,
+                $this->agencyDetailsFromBody($body)
+            );
+            $this->logEvent('private.rental_agency_import.agency_updated', [
+                'private_user_id' => $userId,
+                'agency_id' => $agencyId,
+                'agency_name' => $agencyName,
+                'success' => $updated,
+            ]);
+
+            return $this->redirect($this->rentalAgencyImportsUrl(
+                'agencies',
+                $updated ? 'agency_updated' : '',
+                $updated ? '' : 'agency_update_failed'
             ));
         }
 
@@ -2020,6 +2105,9 @@ final class PrivatePortalController
         }
 
         $agencyName = is_string($body['agency_name'] ?? null) ? trim((string) $body['agency_name']) : null;
+        if ($agencyName !== null && $agencyName !== '') {
+            $this->agencyImportRepository()->createAgency($userId, $agencyName);
+        }
         $result = $this->agencyImportService()->importUploadedFile($userId, $uploadedFile, $agencyName);
         if ($result->isImported()) {
             $this->logEvent('private.rental_agency_import.imported', [
@@ -2047,6 +2135,120 @@ final class PrivatePortalController
     {
         $tab = is_scalar($value) ? trim((string) $value) : '';
         return in_array($tab, ['documents', 'imports', 'agencies'], true) ? $tab : 'documents';
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    private function agencyDetailsFromBody(array $body): array
+    {
+        return [
+            'legal_name' => $body['legal_name'] ?? '',
+            'contact_title' => $body['contact_title'] ?? '',
+            'postal_address' => $body['postal_address'] ?? '',
+            'phone' => $body['phone'] ?? '',
+            'email' => $body['email'] ?? '',
+            'advisor_name' => $body['advisor_name'] ?? '',
+            'advisor_title' => $body['advisor_title'] ?? '',
+            'advisor_phone' => $body['advisor_phone'] ?? '',
+            'advisor_email' => $body['advisor_email'] ?? '',
+            'notes' => $body['notes'] ?? '',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array{lineId: int, action: string, payload: array<string, mixed>}|null
+     */
+    private function submittedAgencyReviewLineAction(array $body): ?array
+    {
+        $actions = is_array($body['line_action'] ?? null) ? $body['line_action'] : [];
+        $lines = is_array($body['lines'] ?? null) ? $body['lines'] : [];
+        foreach ($actions as $lineIdKey => $submittedAction) {
+            $lineId = $this->normalizeNumericId($lineIdKey);
+            $action = is_scalar($submittedAction) ? strtolower(trim((string) $submittedAction)) : '';
+            if ($lineId <= 0 || $action === '') {
+                continue;
+            }
+
+            $linePayload = [];
+            if (isset($lines[$lineIdKey]) && is_array($lines[$lineIdKey])) {
+                $linePayload = $lines[$lineIdKey];
+            } elseif (isset($lines[(string) $lineId]) && is_array($lines[(string) $lineId])) {
+                $linePayload = $lines[(string) $lineId];
+            }
+
+            return [
+                'lineId' => $lineId,
+                'action' => $action,
+                'payload' => $linePayload,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{corrections: array<string, string>, error: string}
+     */
+    private function agencyReviewLineCorrectionsFromBody(array $payload, string $lineAction, int $userId): array
+    {
+        if (!in_array($lineAction, ['correct', 'validate'], true)) {
+            return ['corrections' => [], 'error' => ''];
+        }
+
+        $mappedCategory = is_string($payload['mapped_category'] ?? null) ? (string) $payload['mapped_category'] : '';
+        if (!array_key_exists($mappedCategory, $this->agencyReviewCategories())) {
+            return ['corrections' => [], 'error' => 'rental_invalid_request'];
+        }
+
+        $linePropertyId = $this->normalizeNumericId($payload['rental_property_id'] ?? null);
+        $lineUnitId = $this->normalizeNumericId($payload['rental_unit_id'] ?? null);
+        if ($lineUnitId > 0) {
+            $unit = $this->rentalUnitRepository()->findById($lineUnitId);
+            $unitPropertyId = $unit !== null ? $unit->rentalPropertyId : 0;
+            if (
+                $unit === null
+                || ($linePropertyId > 0 && $linePropertyId !== $unitPropertyId)
+                || !$this->canWriteByPropertyId($unitPropertyId, $userId)
+            ) {
+                return ['corrections' => [], 'error' => 'rental_invalid_request'];
+            }
+
+            $linePropertyId = $unitPropertyId;
+        }
+
+        if ($linePropertyId > 0 && !$this->canWriteByPropertyId($linePropertyId, $userId)) {
+            return ['corrections' => [], 'error' => 'property_forbidden'];
+        }
+
+        $manualFiscalReviewConfirmed = $this->agencyFiscalReviewPolicy()->isManualReviewConfirmed(
+            $payload['manual_fiscal_review_confirmed'] ?? false
+        );
+        if (
+            $lineAction === 'validate'
+            && $this->agencyFiscalReviewPolicy()->requiresManualFiscalReview($mappedCategory)
+            && !$manualFiscalReviewConfirmed
+        ) {
+            return ['corrections' => [], 'error' => 'manual_fiscal_review_required'];
+        }
+
+        return [
+            'corrections' => [
+                'rental_property_id' => $linePropertyId > 0 ? (string) $linePropertyId : '',
+                'rental_unit_id' => $lineUnitId > 0 ? (string) $lineUnitId : '',
+                'mapped_category' => $mappedCategory,
+                'period_start' => is_string($payload['period_start'] ?? null) ? (string) $payload['period_start'] : '',
+                'period_end' => is_string($payload['period_end'] ?? null) ? (string) $payload['period_end'] : '',
+                'amount' => is_scalar($payload['amount'] ?? null) ? (string) $payload['amount'] : '',
+                'debit_amount' => is_scalar($payload['debit_amount'] ?? null) ? (string) $payload['debit_amount'] : '',
+                'credit_amount' => is_scalar($payload['credit_amount'] ?? null) ? (string) $payload['credit_amount'] : '',
+                'manual_fiscal_review_confirmed' => $manualFiscalReviewConfirmed ? '1' : '',
+            ],
+            'error' => '',
+        ];
     }
 
     private function rentalAgencyImportsUrl(string $tab = 'documents', string $notice = '', string $error = ''): string
@@ -2132,7 +2334,54 @@ final class PrivatePortalController
             ));
         }
 
-        $lineId = $this->normalizeNumericId($body['line_id'] ?? null);
+        if ($action === 'bulk_update_lines') {
+            $linesPayload = is_array($body['lines'] ?? null) ? $body['lines'] : [];
+            $updatedCount = 0;
+            $failedCount = 0;
+            foreach ($linesPayload as $lineIdKey => $linePayload) {
+                $lineId = $this->normalizeNumericId($lineIdKey);
+                if ($lineId <= 0 || !is_array($linePayload)) {
+                    continue;
+                }
+
+                $lineCorrections = $this->agencyReviewLineCorrectionsFromBody($linePayload, 'correct', $userId);
+                if ($lineCorrections['error'] !== '') {
+                    $failedCount++;
+                    continue;
+                }
+
+                $line = $repository->reviewStatementLine($userId, $lineId, 'correct', $lineCorrections['corrections']);
+                if ($line !== null) {
+                    $updatedCount++;
+                } else {
+                    $failedCount++;
+                }
+            }
+
+            $this->logEvent('private.rental_agency_review.lines_bulk_saved', [
+                'private_user_id' => $userId,
+                'agency_imported_document_id' => $documentId,
+                'updated_count' => $updatedCount,
+                'failed_count' => $failedCount,
+            ]);
+
+            return $this->redirect($this->rentalAgencyReviewUrl(
+                $documentId,
+                $updatedCount > 0 ? 'agency_lines_saved' : '',
+                $updatedCount > 0 ? ($failedCount > 0 ? 'agency_lines_partial' : '') : 'agency_review_failed'
+            ));
+        }
+
+        $lineSubmit = $this->submittedAgencyReviewLineAction($body);
+        if ($lineSubmit !== null) {
+            $lineId = (int) $lineSubmit['lineId'];
+            $action = (string) $lineSubmit['action'];
+            $lineBody = array_merge($body, is_array($lineSubmit['payload']) ? $lineSubmit['payload'] : []);
+        } else {
+            $lineId = $this->normalizeNumericId($body['line_id'] ?? null);
+            $lineBody = $body;
+        }
+
         $lineAction = match ($action) {
             'validate_line' => 'validate',
             'correct_line' => 'correct',
@@ -2143,41 +2392,9 @@ final class PrivatePortalController
             return $this->redirect($this->rentalAgencyReviewUrl($documentId, '', 'rental_invalid_request'));
         }
 
-        $corrections = [];
-        if (in_array($lineAction, ['correct', 'validate'], true)) {
-            $mappedCategory = is_string($body['mapped_category'] ?? null) ? (string) $body['mapped_category'] : '';
-            if (!array_key_exists($mappedCategory, $this->agencyReviewCategories())) {
-                return $this->redirect($this->rentalAgencyReviewUrl($documentId, '', 'rental_invalid_request'));
-            }
-
-            $linePropertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
-            $lineUnitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
-            if ($lineUnitId > 0) {
-                $unit = $this->rentalUnitRepository()->findById($lineUnitId);
-                $unitPropertyId = $unit !== null ? $unit->rentalPropertyId : 0;
-                if (
-                    $unit === null
-                    || ($linePropertyId > 0 && $linePropertyId !== $unitPropertyId)
-                    || !$this->canWriteByPropertyId($unitPropertyId, $userId)
-                ) {
-                    return $this->redirect($this->rentalAgencyReviewUrl($documentId, '', 'rental_invalid_request'));
-                }
-
-                $linePropertyId = $unitPropertyId;
-            }
-
-            if ($linePropertyId > 0 && !$this->canWriteByPropertyId($linePropertyId, $userId)) {
-                return $this->redirect($this->rentalAgencyReviewUrl($documentId, '', 'property_forbidden'));
-            }
-
-            $manualFiscalReviewConfirmed = $this->agencyFiscalReviewPolicy()->isManualReviewConfirmed(
-                $body['manual_fiscal_review_confirmed'] ?? false
-            );
-            if (
-                $lineAction === 'validate'
-                && $this->agencyFiscalReviewPolicy()->requiresManualFiscalReview($mappedCategory)
-                && !$manualFiscalReviewConfirmed
-            ) {
+        $lineCorrections = $this->agencyReviewLineCorrectionsFromBody($lineBody, $lineAction, $userId);
+        if ($lineCorrections['error'] !== '') {
+            if ($lineCorrections['error'] === 'manual_fiscal_review_required') {
                 $this->logEvent('private.rental_agency_review.line_reviewed', [
                     'private_user_id' => $userId,
                     'agency_imported_document_id' => $documentId,
@@ -2195,19 +2412,9 @@ final class PrivatePortalController
                 ));
             }
 
-            $corrections = [
-                'rental_property_id' => $linePropertyId > 0 ? (string) $linePropertyId : '',
-                'rental_unit_id' => $lineUnitId > 0 ? (string) $lineUnitId : '',
-                'mapped_category' => $mappedCategory,
-                'period_start' => is_string($body['period_start'] ?? null) ? (string) $body['period_start'] : '',
-                'period_end' => is_string($body['period_end'] ?? null) ? (string) $body['period_end'] : '',
-                'amount' => is_scalar($body['amount'] ?? null) ? (string) $body['amount'] : '',
-                'debit_amount' => is_scalar($body['debit_amount'] ?? null) ? (string) $body['debit_amount'] : '',
-                'credit_amount' => is_scalar($body['credit_amount'] ?? null) ? (string) $body['credit_amount'] : '',
-                'manual_fiscal_review_confirmed' => $manualFiscalReviewConfirmed ? '1' : '',
-            ];
+            return $this->redirect($this->rentalAgencyReviewUrl($documentId, '', $lineCorrections['error']));
         }
-        $line = $repository->reviewStatementLine($userId, $lineId, $lineAction, $corrections);
+        $line = $repository->reviewStatementLine($userId, $lineId, $lineAction, $lineCorrections['corrections']);
         $this->logEvent('private.rental_agency_review.line_reviewed', [
             'private_user_id' => $userId,
             'agency_imported_document_id' => $documentId,
@@ -4267,7 +4474,7 @@ final class PrivatePortalController
         ];
         $subject = $this->mailSubjectFromBody($body, 'rental_subject', 'Document locatif', $variables);
         $html = $this->mailHtmlFromBody($body, 'rental_body', $variables);
-        $sent = $this->sendPrivateMail($to, $subject, $html, $attachments);
+        $sent = $this->sendPrivateMail($to, $subject, $html, $attachments, $userId, true);
         $this->logEvent($sent ? 'private.rental_document.email_sent' : 'private.rental_document.email_failed', [
             'private_user_id' => $userId,
             'recipient' => AppEventLogger::maskIdentifier($to),
@@ -4321,6 +4528,7 @@ final class PrivatePortalController
             'sent', 'duplicate' => $status,
             'invalid_email' => 'payment_request_invalid_email',
             'invalid_content', 'invalid_rent' => 'rental_write_failed',
+            'failed' => $this->lastPrivateMailFailure === 'smtp_required' ? 'smtp_required' : 'email_failed',
             default => 'email_failed',
         };
     }
@@ -4485,7 +4693,7 @@ final class PrivatePortalController
             'content' => $content,
             'name' => $filename,
             'mime' => is_string($document['mimeType'] ?? null) ? (string) $document['mimeType'] : 'application/pdf',
-        ]]);
+        ]], $userId, true);
 
         $this->logEvent($sent ? 'private.rental_receipt.email_sent' : 'private.rental_receipt.email_failed', [
             'private_user_id' => $userId,
@@ -4592,7 +4800,7 @@ final class PrivatePortalController
             'content' => $this->taxDeclarationSummaryService()->pdf($summary),
             'name' => sprintf('aide-impots-%d.pdf', $year),
             'mime' => 'application/pdf',
-        ]]);
+        ]], $userId);
 
         $this->logEvent($sent ? 'private.tax_pdf.email_sent' : 'private.tax_pdf.email_failed', [
             'private_user_id' => $userId,
@@ -4649,7 +4857,7 @@ final class PrivatePortalController
             ? (string) $body['message']
             : $this->privateMailTemplate('discussion_invite_body');
         $message = $this->renderPrivateMailTemplate($message, $variables);
-        $sent = $this->sendPrivateMail($email, $subject, $this->plainTextToHtml($message), []);
+        $sent = $this->sendPrivateMail($email, $subject, $this->plainTextToHtml($message), [], $actorUserId);
         $this->logEvent($sent ? 'private.discussion.invite_email_sent' : 'private.discussion.invite_email_failed', [
             'private_user_id' => $actorUserId,
             'invited_private_user_id' => $userId,
@@ -4662,8 +4870,15 @@ final class PrivatePortalController
     /**
      * @param array<int, array{path?: string, content?: string, name?: string, mime?: string}> $attachments
      */
-    private function sendPrivateMail(string $to, string $subject, string $html, array $attachments): bool
-    {
+    private function sendPrivateMail(
+        string $to,
+        string $subject,
+        string $html,
+        array $attachments,
+        ?int $privateUserId = null,
+        bool $requireUserSmtp = false
+    ): bool {
+        $this->lastPrivateMailFailure = null;
         if (!function_exists('send_private_email')) {
             $mailerPath = ROOT_PATH . '/core/mailer.php';
             if (is_file($mailerPath)) {
@@ -4671,9 +4886,20 @@ final class PrivatePortalController
             }
         }
 
-        return function_exists('send_private_email')
-            ? send_private_email($to, $subject, $html, $attachments)
-            : false;
+        $privateUserId ??= $this->currentPrivateUserId();
+        if ($privateUserId !== null && $privateUserId > 0) {
+            $userMailConfig = $this->privateUserMailSettingsRepository()->mailConfigForUser($privateUserId);
+            if (is_array($userMailConfig) && function_exists('send_private_email_with_config')) {
+                return send_private_email_with_config($to, $subject, $html, $attachments, $userMailConfig);
+            }
+
+            if ($requireUserSmtp) {
+                $this->lastPrivateMailFailure = 'smtp_required';
+                return false;
+            }
+        }
+
+        return function_exists('send_private_email') ? send_private_email($to, $subject, $html, $attachments) : false;
     }
 
     /**
@@ -5349,12 +5575,14 @@ final class PrivatePortalController
             'agency_import_ignored' => 'Fichier annexe ignoré.',
             'agency_document_deleted' => 'Document agence supprimé.',
             'agency_created' => 'Agence créée.',
+            'agency_updated' => 'Agence mise à jour.',
             'agency_unit_mapping_created' => 'Correspondance agence créée.',
             'agency_unit_mapping_deleted' => 'Correspondance agence supprimée.',
             'agency_statement_property_updated' => 'Rattachement du relevé mis à jour.',
             'agency_line_validated' => 'Ligne agence validée.',
             'agency_line_corrected' => 'Ligne agence corrigée.',
             'agency_line_ignored' => 'Ligne agence ignorée.',
+            'agency_lines_saved' => 'Lignes agence enregistrées.',
             default => '',
         };
     }
@@ -5388,11 +5616,13 @@ final class PrivatePortalController
             'agency_import_duplicate' => 'Document agence déjà importé.',
             'agency_document_delete_failed' => 'Suppression du document agence impossible.',
             'agency_create_failed' => 'Création de l’agence impossible.',
+            'agency_update_failed' => 'Mise à jour de l’agence impossible.',
             'agency_unit_mapping_failed' => 'Création de la correspondance agence impossible.',
             'agency_unit_mapping_delete_failed' => 'Suppression de la correspondance agence impossible.',
             'agency_review_failed' => 'Revue agence impossible.',
             'agency_review_forbidden' => 'Document agence introuvable ou non autorisé.',
             'agency_sensitive_review_required' => 'Cochez la revue fiscale avant de valider cette catégorie sensible.',
+            'agency_lines_partial' => 'Certaines lignes n’ont pas pu être enregistrées.',
             default => '',
         };
     }
@@ -5567,26 +5797,49 @@ final class PrivatePortalController
 
     /**
      * @param array{email: string, fullName: string, postalAddress: string, phone: string} $formValues
+     * @param array<string, mixed> $smtpSettings
      */
-    private function renderMemberSettings(int $userId, array $formValues, string $notice, string $error): Response
-    {
+    private function renderMemberSettings(
+        int $userId,
+        array $formValues,
+        array $smtpSettings,
+        string $notice,
+        string $error,
+        string $tab = 'profile'
+    ): Response {
+        $tab = in_array($tab, ['profile', 'smtp'], true) ? $tab : 'profile';
+
         return $this->render('settings', [
             'privatePageTitle' => $this->translate('TXT_PRIVATE_SETTINGS_PAGE_TITLE', 'Paramètres membre'),
             'privateUserIdentifier' => is_string($this->auth->currentIdentifier()) ? (string) $this->auth->currentIdentifier() : '',
             'privateModules' => $this->privateModuleNamesForUser($userId),
             'privateMemberProfile' => $formValues,
+            'privateMemberSmtpSettings' => $smtpSettings,
+            'privateMemberSmtpConfigured' => $this->privateUserMailSettingsRepository()->isConfiguredForUser($userId),
+            'privateSettingsActiveTab' => $tab,
             'privateSettingsFormAction' => private_portal_url('member_settings'),
             'privateSettingsCsrfToken' => csrf_token(self::CSRF_MEMBER_SETTINGS),
             'notice' => match ($notice) {
                 'profile_saved' => $this->translate('TXT_PRIVATE_SETTINGS_SAVED', 'Paramètres enregistrés.'),
+                'smtp_saved' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_SAVED', 'Paramètres SMTP enregistrés.'),
+                'smtp_test_sent' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_TEST_SENT', 'Paramètres SMTP enregistrés et email de test envoyé.'),
                 default => null,
             },
             'errorMessage' => match ($error) {
                 'phone_invalid' => $this->translate('TXT_PRIVATE_SETTINGS_ERROR_PHONE', 'Le téléphone contient des caractères non autorisés.'),
                 'save_failed' => $this->translate('TXT_PRIVATE_SETTINGS_ERROR_SAVE', 'Les paramètres n’ont pas pu être enregistrés.'),
+                'smtp_required' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_REQUIRED', 'Veuillez remplir vos paramètres SMTP avant d’envoyer un email.'),
+                'invalid_host' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_INVALID_HOST', 'Le serveur SMTP est invalide.'),
+                'invalid_port' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_INVALID_PORT', 'Le port SMTP est invalide.'),
+                'invalid_encryption' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_INVALID_SECURITY', 'La sécurité SMTP est invalide.'),
+                'invalid_from_email' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_INVALID_FROM', 'L’adresse expéditeur est invalide.'),
+                'invalid_reply_to' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_INVALID_REPLY_TO', 'L’adresse de réponse est invalide.'),
+                'encryption_unavailable' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_ENCRYPTION_UNAVAILABLE', 'La clé de chiffrement SMTP privée est manquante.'),
+                'smtp_test_failed' => $this->translate('TXT_PRIVATE_SETTINGS_SMTP_TEST_FAILED', 'Le test SMTP a échoué. Vérifiez vos paramètres.'),
                 'invalid_request' => $this->translate('TXT_PRIVATE_ERROR_CSRF', 'Requête invalide.'),
                 default => null,
             },
+            'privateSettingsSmtpPopup' => $error === 'smtp_required',
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ]);
@@ -5897,6 +6150,11 @@ final class PrivatePortalController
         return $this->withPrivateHeaders(new Response(302, ['Location' => $url], ''));
     }
 
+    private function privateSmtpSettingsRequiredUrl(): string
+    {
+        return private_portal_url('member_settings') . '?tab=smtp&error=smtp_required';
+    }
+
     private function withPrivateHeaders(Response $response): Response
     {
         return PrivateResponseHeaders::apply($response);
@@ -5931,6 +6189,12 @@ final class PrivatePortalController
     private function privateUserRepository(): PrivateUserRepository
     {
         return $this->privateUserRepository ?? new PrivateUserRepository(editorial_database());
+    }
+
+    private function privateUserMailSettingsRepository(): PrivateUserMailSettingsRepository
+    {
+        return $this->privateUserMailSettingsRepository
+            ?? new PrivateUserMailSettingsRepository($this->privateUserRepository()->database());
     }
 
     private function documentUploadNoticeForScanStatus(string $scanStatus): string
@@ -6056,7 +6320,14 @@ final class PrivatePortalController
                 'rental_payment_request_signature',
                 "Gestion locative {{site_name}}\nContact : {{reply_to}}"
             ),
-            fn (string $to, string $subject, string $html, array $attachments): bool => $this->sendPrivateMail($to, $subject, $html, $attachments)
+            fn (string $to, string $subject, string $html, array $attachments): bool => $this->sendPrivateMail(
+                $to,
+                $subject,
+                $html,
+                $attachments,
+                $this->currentPrivateUserId(),
+                true
+            )
         );
     }
 

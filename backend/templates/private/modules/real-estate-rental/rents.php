@@ -89,24 +89,26 @@ $createDialogId = 'rental-rent-create-dialog';
               <td><?php echo htmlspecialchars((string) ($rentStatuses[(string) ($rent['status'] ?? '')] ?? ($rent['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php if ($rentId > 0): ?>
-                  <?php $paymentUrl = (string) ($urls['payments'] ?? ''); ?>
-                  <?php if ($paymentUrl !== '' && $balance > 0): ?>
-                    <a class="private-row-action" href="<?php echo htmlspecialchars($paymentUrl . '?rent_id=' . rawurlencode((string) $rentId), ENT_QUOTES, 'UTF-8'); ?>">Payer</a>
-                  <?php endif; ?>
-                  <?php if (isset($paymentRequestPreviews[$rentId]) && is_array($paymentRequestPreviews[$rentId])): ?>
-                    <?php $paymentRequestDialogId = 'rental-payment-request-dialog-' . $rentId; ?>
-                    <button type="button" class="button-small" data-private-dialog-open="<?php echo htmlspecialchars($paymentRequestDialogId, ENT_QUOTES, 'UTF-8'); ?>">Demande de paiement</button>
-                  <?php endif; ?>
-                  <?php $rentRequestHistory = is_array($paymentRequestHistory[$rentId] ?? null) ? $paymentRequestHistory[$rentId] : []; ?>
-                  <?php if ($rentRequestHistory !== []): ?>
-                    <span class="muted"><?php echo htmlspecialchars((string) count($rentRequestHistory), ENT_QUOTES, 'UTF-8'); ?> relance<?php echo count($rentRequestHistory) > 1 ? 's' : ''; ?></span>
-                  <?php endif; ?>
-                  <form method="post" action="<?php echo htmlspecialchars((string) ($urls['rents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-                    <input type="hidden" name="action" value="delete_rent" />
-                    <input type="hidden" name="rent_id" value="<?php echo htmlspecialchars((string) $rentId, ENT_QUOTES, 'UTF-8'); ?>" />
-                    <button class="button-small button-danger" type="submit">Supprimer</button>
-                  </form>
+                  <div class="rental-rent-actions">
+                    <?php $paymentUrl = (string) ($urls['payments'] ?? ''); ?>
+                    <?php if ($paymentUrl !== '' && $balance > 0): ?>
+                      <a class="private-row-action" href="<?php echo htmlspecialchars($paymentUrl . '?rent_id=' . rawurlencode((string) $rentId), ENT_QUOTES, 'UTF-8'); ?>">Payer</a>
+                    <?php endif; ?>
+                    <?php if (isset($paymentRequestPreviews[$rentId]) && is_array($paymentRequestPreviews[$rentId])): ?>
+                      <?php $paymentRequestDialogId = 'rental-payment-request-dialog-' . $rentId; ?>
+                      <button type="button" class="button-small" data-private-dialog-open="<?php echo htmlspecialchars($paymentRequestDialogId, ENT_QUOTES, 'UTF-8'); ?>">Demande de paiement</button>
+                    <?php endif; ?>
+                    <?php $rentRequestHistory = is_array($paymentRequestHistory[$rentId] ?? null) ? $paymentRequestHistory[$rentId] : []; ?>
+                    <?php if ($rentRequestHistory !== []): ?>
+                      <span class="muted"><?php echo htmlspecialchars((string) count($rentRequestHistory), ENT_QUOTES, 'UTF-8'); ?> relance<?php echo count($rentRequestHistory) > 1 ? 's' : ''; ?></span>
+                    <?php endif; ?>
+                    <form method="post" action="<?php echo htmlspecialchars((string) ($urls['rents'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" class="rental-rent-action-form">
+                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="action" value="delete_rent" />
+                      <input type="hidden" name="rent_id" value="<?php echo htmlspecialchars((string) $rentId, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <button class="button-small button-danger" type="submit">Supprimer</button>
+                    </form>
+                  </div>
                 <?php endif; ?>
               </td>
             </tr>

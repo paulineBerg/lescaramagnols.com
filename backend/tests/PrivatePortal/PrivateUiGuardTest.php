@@ -78,6 +78,7 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('caramagnols.private.navCollapsed', $layout);
         self::assertStringContainsString('data-private-auto-submit', $layout);
         self::assertStringContainsString('form.requestSubmit(submitter);', $layout);
+        self::assertStringContainsString('data-private-dialog-auto-open', $layout);
     }
 
     public function testAgencyReviewLineFeedbackStaysNearReviewedLineWithoutAutoValidation(): void
@@ -89,8 +90,12 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('agency-review-line-feedback', $template);
         self::assertStringNotContainsString('data-private-auto-submit="validate_line"', $template);
         self::assertStringContainsString('manual_fiscal_review_confirmed', $template);
+        self::assertStringContainsString('bulk_update_lines', $template);
+        self::assertStringContainsString('line_action[', $template);
+        self::assertStringContainsString('lines[<?php echo $h($lineId); ?>][mapped_category]', $template);
         self::assertStringContainsString('.agency-review-line-feedback', $stylesheet);
         self::assertStringContainsString('scroll-margin-top: 6rem;', $stylesheet);
+        self::assertStringContainsString('.agency-review-bulk-actions', $stylesheet);
     }
 
     public function testAgencyImportsExposeAgencyAndMappingControls(): void
@@ -99,9 +104,24 @@ final class PrivateUiGuardTest extends TestCase
 
         self::assertStringContainsString('Créer une agence', $template);
         self::assertStringContainsString('Correspondances par agence', $template);
+        self::assertStringContainsString('update_agency', $template);
+        self::assertStringContainsString('advisor_name', $template);
+        self::assertStringContainsString('postal_address', $template);
         self::assertStringContainsString('create_agency_unit_mapping', $template);
         self::assertStringContainsString('delete_agency_unit_mapping', $template);
         self::assertStringContainsString('Texte détecté dans le document', $template);
+    }
+
+    public function testPrivateSettingsExposeSmtpConfiguration(): void
+    {
+        $template = $this->readRepoFile('backend/templates/private/settings.php');
+
+        self::assertStringContainsString('TXT_PRIVATE_SETTINGS_SMTP_TAB', $template);
+        self::assertStringContainsString('name="smtp_host"', $template);
+        self::assertStringContainsString('name="smtp_password"', $template);
+        self::assertStringContainsString('name="send_test"', $template);
+        self::assertStringContainsString('private-settings-smtp-required-dialog', $template);
+        self::assertStringContainsString('data-private-dialog-auto-open="1"', $template);
     }
 
     public function testRentalLeaseRentAndPaymentTemplatesExposeOperationalShortcuts(): void
@@ -118,6 +138,7 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-rental-extra-lines', $rents);
         self::assertStringContainsString('Ajouter une ligne diverse', $rents);
         self::assertStringContainsString('?rent_id=', $rents);
+        self::assertStringContainsString('rental-rent-actions', $rents);
 
         self::assertStringContainsString('download_receipt', $payments);
         self::assertStringContainsString('data-rental-payment-auto-open', $payments);

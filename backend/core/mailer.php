@@ -50,9 +50,28 @@ function sanitize_mailer_error_message(string $message): string
  */
 function send_private_email(string $to, string $subject, string $message, array $attachments = []): bool
 {
-    private_mail_set_last_error(null);
     $privateMailConfig = app_config('private.mail', []);
-    if (!is_array($privateMailConfig) || empty($privateMailConfig['enabled'])) {
+
+    return is_array($privateMailConfig)
+        ? send_private_email_with_config($to, $subject, $message, $attachments, $privateMailConfig)
+        : false;
+}
+
+/**
+ * Envoi SMTP prive avec une configuration fournie explicitement.
+ *
+ * @param array<int, array{path?: string, content?: string, name?: string, mime?: string}> $attachments
+ * @param array<string, mixed> $privateMailConfig
+ */
+function send_private_email_with_config(
+    string $to,
+    string $subject,
+    string $message,
+    array $attachments,
+    array $privateMailConfig
+): bool {
+    private_mail_set_last_error(null);
+    if (empty($privateMailConfig['enabled'])) {
         private_mail_set_last_error('private mail disabled');
         return false;
     }

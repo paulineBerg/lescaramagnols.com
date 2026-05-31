@@ -408,6 +408,12 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
           });
         });
 
+        document.querySelectorAll('[data-private-dialog-auto-open="1"]').forEach((dialog) => {
+          if (dialog instanceof HTMLDialogElement && !dialog.open) {
+            openDialog(dialog);
+          }
+        });
+
         document.querySelectorAll('[data-private-dialog-close]').forEach((button) => {
           button.addEventListener('click', () => {
             button.closest('dialog')?.close();

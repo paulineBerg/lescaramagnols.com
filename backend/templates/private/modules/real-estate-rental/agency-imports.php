@@ -40,6 +40,9 @@ foreach ($units as $unit) {
         'label' => trim($propertyLabel . ' - ' . $unitLabel . ($type !== '' ? ' (' . $type . ')' : '')),
     ];
 }
+$agencyValue = static function (array $agency, string $key): string {
+    return is_scalar($agency[$key] ?? null) ? trim((string) $agency[$key]) : '';
+};
 ?>
 <section>
   <?php include __DIR__ . '/_nav.php'; ?>
@@ -161,30 +164,97 @@ foreach ($units as $unit) {
         <thead>
           <tr>
             <th>Agence</th>
+            <th>Contact</th>
+            <th>Conseiller</th>
             <th>Imports</th>
             <th>Fichiers</th>
-            <th>Ignorés</th>
-            <th>Doublons</th>
             <th>Dernière activité</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($agencies as $agency): ?>
             <?php if (!is_array($agency)) { continue; } ?>
-            <?php $agencyName = trim((string) ($agency['name'] ?? '')); ?>
-            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower($agencyName), ENT_QUOTES, 'UTF-8'); ?>">
-              <td><strong><?php echo htmlspecialchars($agencyName, ENT_QUOTES, 'UTF-8'); ?></strong></td>
+            <?php
+            $agencyId = is_numeric($agency['id'] ?? null) ? (int) $agency['id'] : 0;
+            $agencyName = trim((string) ($agency['name'] ?? ''));
+            $legalName = $agencyValue($agency, 'legalName');
+            $contactSummary = trim(implode(' - ', array_filter([
+                $agencyValue($agency, 'contactTitle'),
+                $agencyValue($agency, 'email'),
+                $agencyValue($agency, 'phone'),
+            ], static fn (string $value): bool => $value !== '')));
+            $advisorSummary = trim(implode(' - ', array_filter([
+                $agencyValue($agency, 'advisorName'),
+                $agencyValue($agency, 'advisorTitle'),
+                $agencyValue($agency, 'advisorEmail'),
+                $agencyValue($agency, 'advisorPhone'),
+            ], static fn (string $value): bool => $value !== '')));
+            $agencySearch = strtolower(trim(
+                $agencyName . ' ' . $legalName . ' ' . $contactSummary . ' ' . $advisorSummary . ' '
+                . $agencyValue($agency, 'postalAddress') . ' ' . $agencyValue($agency, 'notes')
+            ));
+            $editDialogId = 'rental-agency-edit-dialog-' . $agencyId;
+            ?>
+            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars($agencySearch, ENT_QUOTES, 'UTF-8'); ?>">
+              <td>
+                <strong><?php echo htmlspecialchars($agencyName, ENT_QUOTES, 'UTF-8'); ?></strong>
+                <?php if ($legalName !== ''): ?><br /><span class="muted"><?php echo htmlspecialchars($legalName, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
+              </td>
+              <td><?php echo htmlspecialchars($contactSummary !== '' ? $contactSummary : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars($advisorSummary !== '' ? $advisorSummary : '-', ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) (int) ($agency['batchCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) (int) ($agency['fileCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars((string) (int) ($agency['ignoredFileCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars((string) (int) ($agency['duplicateFileCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($agency['lastActivityAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td>
+                <?php if ($agencyId > 0): ?>
+                  <button type="button" class="private-row-action" data-private-dialog-open="<?php echo htmlspecialchars($editDialogId, ENT_QUOTES, 'UTF-8'); ?>">Modifier</button>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucune agence ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="7">Aucune agence ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
+      <?php foreach ($agencies as $agency): ?>
+        <?php if (!is_array($agency) || !is_numeric($agency['id'] ?? null) || (int) $agency['id'] <= 0) { continue; } ?>
+        <?php
+        $agencyId = (int) $agency['id'];
+        $editDialogId = 'rental-agency-edit-dialog-' . $agencyId;
+        ?>
+        <dialog class="private-dialog" id="<?php echo htmlspecialchars($editDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($editDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
+          <div class="private-dialog-panel">
+            <header class="private-dialog-header">
+              <h3 id="<?php echo htmlspecialchars($editDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Modifier l'agence</h3>
+              <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+            </header>
+            <form method="post" action="<?php echo htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8'); ?>?tab=agencies">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="update_agency" />
+              <input type="hidden" name="agency_id" value="<?php echo htmlspecialchars((string) $agencyId, ENT_QUOTES, 'UTF-8'); ?>" />
+              <div class="private-form-grid">
+                <label>Nom de l'agence <input type="text" name="agency_name" maxlength="120" value="<?php echo htmlspecialchars((string) ($agency['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+                <label>Raison sociale <input type="text" name="legal_name" maxlength="190" value="<?php echo htmlspecialchars($agencyValue($agency, 'legalName'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Titre / service <input type="text" name="contact_title" maxlength="120" value="<?php echo htmlspecialchars($agencyValue($agency, 'contactTitle'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Téléphone agence <input type="tel" name="phone" maxlength="80" value="<?php echo htmlspecialchars($agencyValue($agency, 'phone'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Email agence <input type="email" name="email" maxlength="254" value="<?php echo htmlspecialchars($agencyValue($agency, 'email'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Conseiller <input type="text" name="advisor_name" maxlength="160" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorName'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Titre conseiller <input type="text" name="advisor_title" maxlength="120" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorTitle'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Téléphone conseiller <input type="tel" name="advisor_phone" maxlength="80" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorPhone'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Email conseiller <input type="email" name="advisor_email" maxlength="254" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorEmail'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+              </div>
+              <label>Adresse
+                <textarea name="postal_address" rows="3" maxlength="500"><?php echo htmlspecialchars($agencyValue($agency, 'postalAddress'), ENT_QUOTES, 'UTF-8'); ?></textarea>
+              </label>
+              <label>Notes
+                <textarea name="notes" rows="3" maxlength="2000"><?php echo htmlspecialchars($agencyValue($agency, 'notes'), ENT_QUOTES, 'UTF-8'); ?></textarea>
+              </label>
+              <button type="submit">Enregistrer l'agence</button>
+            </form>
+          </div>
+        </dialog>
+      <?php endforeach; ?>
     <?php endif; ?>
   </section>
 
@@ -292,8 +362,22 @@ foreach ($units as $unit) {
       <form method="post" action="<?php echo htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8'); ?>?tab=agencies">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
         <input type="hidden" name="action" value="create_agency" />
-        <label>Nom de l'agence
-          <input type="text" name="agency_name" maxlength="120" placeholder="ASG IMMOBILIER" required />
+        <div class="private-form-grid">
+          <label>Nom de l'agence <input type="text" name="agency_name" maxlength="120" placeholder="ASG IMMOBILIER" required /></label>
+          <label>Raison sociale <input type="text" name="legal_name" maxlength="190" /></label>
+          <label>Titre / service <input type="text" name="contact_title" maxlength="120" /></label>
+          <label>Téléphone agence <input type="tel" name="phone" maxlength="80" /></label>
+          <label>Email agence <input type="email" name="email" maxlength="254" /></label>
+          <label>Conseiller <input type="text" name="advisor_name" maxlength="160" /></label>
+          <label>Titre conseiller <input type="text" name="advisor_title" maxlength="120" /></label>
+          <label>Téléphone conseiller <input type="tel" name="advisor_phone" maxlength="80" /></label>
+          <label>Email conseiller <input type="email" name="advisor_email" maxlength="254" /></label>
+        </div>
+        <label>Adresse
+          <textarea name="postal_address" rows="3" maxlength="500"></textarea>
+        </label>
+        <label>Notes
+          <textarea name="notes" rows="3" maxlength="2000"></textarea>
         </label>
         <button type="submit">Créer l'agence</button>
       </form>

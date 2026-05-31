@@ -797,6 +797,31 @@
     white-space: nowrap;
   }
 
+  .rental-rent-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.28rem;
+    white-space: nowrap;
+  }
+
+  .rental-rent-actions .private-row-action,
+  .rental-rent-actions .button-small {
+    font-size: 0.78rem;
+    line-height: 1.1;
+    min-height: 1.75rem;
+    padding: 0.25rem 0.42rem;
+  }
+
+  .rental-rent-actions .muted {
+    font-size: 0.76rem;
+  }
+
+  .rental-rent-action-form {
+    display: inline-flex;
+    margin: 0;
+  }
+
   .rental-extra-lines {
     display: grid;
     gap: 0.55rem;
@@ -1136,6 +1161,11 @@
     font-size: 0.76rem;
     justify-content: flex-end;
     margin: 0;
+  }
+
+  .agency-review-bulk-actions {
+    justify-content: flex-end;
+    margin-top: 0.75rem;
   }
 
   .agency-review-line-row .agency-sensitive-confirm > span {

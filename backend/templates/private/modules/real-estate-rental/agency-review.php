@@ -259,20 +259,23 @@ $labelForUnit = static function (array $unit): string {
         <p class="muted">Aucune ligne exploitable dans ce document.</p>
       <?php else: ?>
         <h3>Lignes a traiter</h3>
-        <div class="private-table-wrap agency-review-lines-wrap">
-          <div class="agency-review-lines" role="table" aria-label="Lignes agence a traiter">
-            <div class="agency-review-lines-head" role="row">
-              <span>Libelle</span>
-              <span>Propriété</span>
-              <span>Bien locatif</span>
-              <span>Categorie</span>
-              <span>Debut</span>
-              <span>Fin</span>
-              <span>Montant</span>
-              <span>Debit</span>
-              <span>Credit</span>
-              <span>Actions</span>
-            </div>
+        <form method="post" action="<?php echo $h($reviewUrl); ?>" class="agency-review-bulk-form">
+          <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+          <input type="hidden" name="document_id" value="<?php echo $h($selectedDocumentId); ?>" />
+          <div class="private-table-wrap agency-review-lines-wrap">
+            <div class="agency-review-lines" role="table" aria-label="Lignes agence a traiter">
+              <div class="agency-review-lines-head" role="row">
+                <span>Libelle</span>
+                <span>Propriété</span>
+                <span>Bien locatif</span>
+                <span>Categorie</span>
+                <span>Debut</span>
+                <span>Fin</span>
+                <span>Montant</span>
+                <span>Debit</span>
+                <span>Credit</span>
+                <span>Actions</span>
+              </div>
             <?php foreach ($lines as $line): ?>
               <?php
               if (!is_array($line) || !is_numeric($line['id'] ?? null)) {
@@ -296,10 +299,7 @@ $labelForUnit = static function (array $unit): string {
                   $detected[] = 'Locataire: ' . trim((string) $line['tenantName']);
               }
               ?>
-              <form id="<?php echo $h($formId); ?>" method="post" action="<?php echo $h($reviewUrl); ?>" class="agency-review-line-row" role="row">
-                <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
-                <input type="hidden" name="document_id" value="<?php echo $h($selectedDocumentId); ?>" />
-                <input type="hidden" name="line_id" value="<?php echo $h($lineId); ?>" />
+              <div id="<?php echo $h($formId); ?>" class="agency-review-line-row" role="row">
                 <div class="agency-review-line-main" role="cell">
                   <strong><?php echo $h($line['rawLabel'] ?? ''); ?></strong>
                   <span class="muted">Page <?php echo $h((int) ($line['sourcePage'] ?? 1)); ?>, statut <?php echo $h($line['mappingStatus'] ?? ''); ?></span>
@@ -311,7 +311,7 @@ $labelForUnit = static function (array $unit): string {
                   <?php endif; ?>
                 </div>
                 <label role="cell"><span>Propriété</span>
-                  <select name="rental_property_id">
+                  <select name="lines[<?php echo $h($lineId); ?>][rental_property_id]">
                     <option value="">Defaut</option>
                     <?php foreach ($properties as $property): ?>
                       <?php
@@ -327,7 +327,7 @@ $labelForUnit = static function (array $unit): string {
                   </select>
                 </label>
                 <label role="cell"><span>Bien locatif</span>
-                  <select name="rental_unit_id">
+                  <select name="lines[<?php echo $h($lineId); ?>][rental_unit_id]">
                     <option value="">Non rattache</option>
                     <?php foreach ($unitsByPropertyId as $propertyId => $propertyUnits): ?>
                       <?php
@@ -352,7 +352,7 @@ $labelForUnit = static function (array $unit): string {
                   </select>
                 </label>
                 <label role="cell"><span>Categorie</span>
-                  <select name="mapped_category">
+                  <select name="lines[<?php echo $h($lineId); ?>][mapped_category]">
                     <?php foreach ($categories as $category => $categoryLabel): ?>
                       <option value="<?php echo $h($category); ?>" <?php echo $currentCategory === (string) $category ? 'selected' : ''; ?>>
                         <?php echo $h($categoryLabel); ?>
@@ -360,11 +360,11 @@ $labelForUnit = static function (array $unit): string {
                     <?php endforeach; ?>
                   </select>
                 </label>
-                <label role="cell"><span>Debut</span><input type="date" name="period_start" value="<?php echo $h($line['periodStart'] ?? ''); ?>" /></label>
-                <label role="cell"><span>Fin</span><input type="date" name="period_end" value="<?php echo $h($line['periodEnd'] ?? ''); ?>" /></label>
-                <label role="cell"><span>Montant</span><input type="number" step="0.01" name="amount" value="<?php echo $amount($line['amount'] ?? null); ?>" /></label>
-                <label role="cell"><span>Debit</span><input type="number" step="0.01" name="debit_amount" value="<?php echo $amount($line['debitAmount'] ?? null); ?>" /></label>
-                <label role="cell"><span>Credit</span><input type="number" step="0.01" name="credit_amount" value="<?php echo $amount($line['creditAmount'] ?? null); ?>" /></label>
+                <label role="cell"><span>Debut</span><input type="date" name="lines[<?php echo $h($lineId); ?>][period_start]" value="<?php echo $h($line['periodStart'] ?? ''); ?>" /></label>
+                <label role="cell"><span>Fin</span><input type="date" name="lines[<?php echo $h($lineId); ?>][period_end]" value="<?php echo $h($line['periodEnd'] ?? ''); ?>" /></label>
+                <label role="cell"><span>Montant</span><input type="number" step="0.01" name="lines[<?php echo $h($lineId); ?>][amount]" value="<?php echo $amount($line['amount'] ?? null); ?>" /></label>
+                <label role="cell"><span>Debit</span><input type="number" step="0.01" name="lines[<?php echo $h($lineId); ?>][debit_amount]" value="<?php echo $amount($line['debitAmount'] ?? null); ?>" /></label>
+                <label role="cell"><span>Credit</span><input type="number" step="0.01" name="lines[<?php echo $h($lineId); ?>][credit_amount]" value="<?php echo $amount($line['creditAmount'] ?? null); ?>" /></label>
                 <div class="agency-review-line-actions" role="cell">
                   <?php if ($hasLineFeedback): ?>
                     <span
@@ -375,17 +375,21 @@ $labelForUnit = static function (array $unit): string {
                     </span>
                   <?php endif; ?>
                   <label class="private-checkbox-inline agency-sensitive-confirm">
-                    <input type="checkbox" name="manual_fiscal_review_confirmed" value="1" />
+                    <input type="checkbox" name="lines[<?php echo $h($lineId); ?>][manual_fiscal_review_confirmed]" value="1" />
                     <span>Revue fiscale</span>
                   </label>
-                  <button type="submit" name="action" value="correct_line" class="private-row-action">Corriger</button>
-                  <button type="submit" name="action" value="validate_line">Valider</button>
-                  <button type="submit" name="action" value="ignore_line" class="private-row-action">Ignorer</button>
+                  <button type="submit" name="line_action[<?php echo $h($lineId); ?>]" value="correct_line" class="private-row-action">Corriger</button>
+                  <button type="submit" name="line_action[<?php echo $h($lineId); ?>]" value="validate_line">Valider</button>
+                  <button type="submit" name="line_action[<?php echo $h($lineId); ?>]" value="ignore_line" class="private-row-action">Ignorer</button>
                 </div>
-              </form>
+              </div>
             <?php endforeach; ?>
+            </div>
           </div>
-        </div>
+          <div class="private-actions agency-review-bulk-actions">
+            <button type="submit" name="action" value="bulk_update_lines">Enregistrer toutes les lignes</button>
+          </div>
+        </form>
       <?php endif; ?>
 
       <?php if (is_string($selectedDocument['maskedTextPreview'] ?? null) && trim((string) $selectedDocument['maskedTextPreview']) !== ''): ?>

@@ -56,6 +56,11 @@ final class AgencyImportRepository
         return $this->database->table('rental_agency_unit_mappings');
     }
 
+    public function agenciesTable(): string
+    {
+        return $this->database->table('rental_agencies');
+    }
+
     public function createBatch(
         int $createdByPrivateUserId,
         ?string $agencyName = null,
@@ -101,27 +106,104 @@ final class AgencyImportRepository
         }
     }
 
-    public function createAgency(int $createdByPrivateUserId, string $agencyName, ?string $notes = null): bool
+    /**
+     * @param array<string, mixed> $details
+     */
+    public function createAgency(int $createdByPrivateUserId, string $agencyName, array $details = []): bool
     {
         $agencyName = $this->requiredText($agencyName, 120);
+        $agencyDetails = $this->normalizeAgencyDetails($details);
         if ($createdByPrivateUserId <= 0 || $agencyName === '') {
             return false;
         }
-
-        if ($this->agencyNameExists($createdByPrivateUserId, $agencyName)) {
-            return true;
+        if ($agencyDetails === null) {
+            return false;
         }
 
-        return $this->createBatch(
-            $createdByPrivateUserId,
-            $agencyName,
-            null,
-            0,
-            0,
-            0,
-            'draft',
-            $notes ?? 'Agence creee manuellement.'
-        ) instanceof AgencyImportBatch;
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'INSERT INTO `%s`
+                        (`created_by_private_user_id`, `name`, `legal_name`, `contact_title`, `postal_address`,
+                         `phone`, `email`, `advisor_name`, `advisor_title`, `advisor_phone`, `advisor_email`,
+                         `notes`, `updated_at`)
+                     VALUES
+                        (:created_by, :name, :legal_name, :contact_title, :postal_address,
+                         :phone, :email, :advisor_name, :advisor_title, :advisor_phone, :advisor_email,
+                         :notes, :updated_at)
+                     ON DUPLICATE KEY UPDATE
+                        `legal_name` = COALESCE(VALUES(`legal_name`), `legal_name`),
+                        `contact_title` = COALESCE(VALUES(`contact_title`), `contact_title`),
+                        `postal_address` = COALESCE(VALUES(`postal_address`), `postal_address`),
+                        `phone` = COALESCE(VALUES(`phone`), `phone`),
+                        `email` = COALESCE(VALUES(`email`), `email`),
+                        `advisor_name` = COALESCE(VALUES(`advisor_name`), `advisor_name`),
+                        `advisor_title` = COALESCE(VALUES(`advisor_title`), `advisor_title`),
+                        `advisor_phone` = COALESCE(VALUES(`advisor_phone`), `advisor_phone`),
+                        `advisor_email` = COALESCE(VALUES(`advisor_email`), `advisor_email`),
+                        `notes` = COALESCE(VALUES(`notes`), `notes`),
+                        `updated_at` = VALUES(`updated_at`)',
+                    $this->agenciesTable()
+                )
+            );
+
+            return $statement->execute($this->agencyStatementPayload($createdByPrivateUserId, $agencyName, $agencyDetails));
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     */
+    public function updateAgencyForUser(int $createdByPrivateUserId, int $agencyId, string $agencyName, array $details): bool
+    {
+        $agencyName = $this->requiredText($agencyName, 120);
+        $agencyDetails = $this->normalizeAgencyDetails($details);
+        if ($createdByPrivateUserId <= 0 || $agencyId <= 0 || $agencyName === '' || $agencyDetails === null) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $previousName = $this->agencyNameForUser($createdByPrivateUserId, $agencyId);
+            if ($previousName === null) {
+                return false;
+            }
+
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `name` = :name,
+                         `legal_name` = :legal_name,
+                         `contact_title` = :contact_title,
+                         `postal_address` = :postal_address,
+                         `phone` = :phone,
+                         `email` = :email,
+                         `advisor_name` = :advisor_name,
+                         `advisor_title` = :advisor_title,
+                         `advisor_phone` = :advisor_phone,
+                         `advisor_email` = :advisor_email,
+                         `notes` = :notes,
+                         `updated_at` = :updated_at
+                     WHERE `id` = :id
+                       AND `created_by_private_user_id` = :created_by',
+                    $this->agenciesTable()
+                )
+            );
+            $payload = $this->agencyStatementPayload($createdByPrivateUserId, $agencyName, $agencyDetails);
+            $payload['id'] = $agencyId;
+            $statement->execute($payload);
+
+            if (strcasecmp($previousName, $agencyName) !== 0) {
+                $this->renameAgencyReferences($createdByPrivateUserId, $previousName, $agencyName);
+            }
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -133,58 +215,34 @@ final class AgencyImportRepository
             return [];
         }
 
-        try {
-            $this->ensureSchema();
-            $statement = $this->database->pdo()->prepare(
-                sprintf(
-                    'SELECT `agency_name`,
-                            COUNT(*) AS `batch_count`,
-                            COALESCE(SUM(`file_count`), 0) AS `file_count`,
-                            COALESCE(SUM(`ignored_file_count`), 0) AS `ignored_file_count`,
-                            COALESCE(SUM(`duplicate_file_count`), 0) AS `duplicate_file_count`,
-                            MIN(`created_at`) AS `created_at`,
-                            MAX(`created_at`) AS `last_activity_at`
-                     FROM `%s`
-                     WHERE `created_by_private_user_id` = :created_by
-                       AND `agency_name` IS NOT NULL
-                       AND TRIM(`agency_name`) <> ""
-                     GROUP BY `agency_name`
-                     ORDER BY `agency_name` ASC
-                     LIMIT :limit',
-                    $this->batchesTable()
-                )
-            );
-            $statement->bindValue(':created_by', $createdByPrivateUserId, PDO::PARAM_INT);
-            $statement->bindValue(':limit', max(1, min(300, $limit)), PDO::PARAM_INT);
-            $statement->execute();
-            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\Throwable) {
-            return [];
+        $agencies = [];
+        foreach ($this->listAgencyRows($createdByPrivateUserId) as $row) {
+            $agency = $this->agencyFromRow($row);
+            $name = (string) ($agency['name'] ?? '');
+            if ($name === '') {
+                continue;
+            }
+
+            $agencies[mb_strtolower($name, 'UTF-8')] = array_merge($agency, $this->emptyAgencyStats());
         }
 
-        $agencies = [];
-        foreach ($this->normalizeRows($rows) as $row) {
+        foreach ($this->listAgencyBatchStats($createdByPrivateUserId) as $row) {
             $name = $this->nullableText($row['agency_name'] ?? null, 120);
             if ($name === null) {
                 continue;
             }
-
-            $agencies[] = [
-                'name' => $name,
-                'batchCount' => is_numeric($row['batch_count'] ?? null) ? (int) $row['batch_count'] : 0,
-                'fileCount' => is_numeric($row['file_count'] ?? null) ? (int) $row['file_count'] : 0,
-                'ignoredFileCount' => is_numeric($row['ignored_file_count'] ?? null)
-                    ? (int) $row['ignored_file_count']
-                    : 0,
-                'duplicateFileCount' => is_numeric($row['duplicate_file_count'] ?? null)
-                    ? (int) $row['duplicate_file_count']
-                    : 0,
-                'createdAt' => $this->nullableStringFromRow($row['created_at'] ?? null),
-                'lastActivityAt' => $this->nullableStringFromRow($row['last_activity_at'] ?? null),
-            ];
+            $key = mb_strtolower($name, 'UTF-8');
+            $stats = $this->agencyStatsFromRow($row);
+            $agencies[$key] = array_merge(
+                $agencies[$key] ?? array_merge(['id' => null, 'name' => $name], $this->emptyAgencyDetails()),
+                $stats
+            );
         }
 
-        return $agencies;
+        $result = array_values($agencies);
+        usort($result, static fn (array $left, array $right): int => strcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? '')));
+
+        return array_slice($result, 0, max(1, min(300, $limit)));
     }
 
     public function createUnitMapping(
@@ -305,31 +363,250 @@ final class AgencyImportRepository
         );
     }
 
-    private function agencyNameExists(int $createdByPrivateUserId, string $agencyName): bool
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function listAgencyRows(int $createdByPrivateUserId): array
     {
-        if ($createdByPrivateUserId <= 0 || trim($agencyName) === '') {
-            return false;
-        }
-
         try {
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT 1 FROM `%s`
+                    'SELECT *
+                     FROM `%s`
                      WHERE `created_by_private_user_id` = :created_by
-                       AND LOWER(TRIM(`agency_name`)) = LOWER(:agency_name)
-                     LIMIT 1',
+                     ORDER BY `name` ASC
+                     LIMIT 300',
+                    $this->agenciesTable()
+                )
+            );
+            $statement->execute(['created_by' => $createdByPrivateUserId]);
+
+            return $this->normalizeRows($statement->fetchAll(PDO::FETCH_ASSOC));
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function listAgencyBatchStats(int $createdByPrivateUserId): array
+    {
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT `agency_name`,
+                            COUNT(*) AS `batch_count`,
+                            COALESCE(SUM(`file_count`), 0) AS `file_count`,
+                            COALESCE(SUM(`ignored_file_count`), 0) AS `ignored_file_count`,
+                            COALESCE(SUM(`duplicate_file_count`), 0) AS `duplicate_file_count`,
+                            MIN(`created_at`) AS `created_at`,
+                            MAX(`created_at`) AS `last_activity_at`
+                     FROM `%s`
+                     WHERE `created_by_private_user_id` = :created_by
+                       AND `agency_name` IS NOT NULL
+                       AND TRIM(`agency_name`) <> ""
+                     GROUP BY `agency_name`
+                     ORDER BY `agency_name` ASC
+                     LIMIT 300',
                     $this->batchesTable()
                 )
             );
-            $statement->execute([
-                'created_by' => $createdByPrivateUserId,
-                'agency_name' => $agencyName,
-            ]);
+            $statement->execute(['created_by' => $createdByPrivateUserId]);
 
-            return $statement->fetchColumn() !== false;
+            return $this->normalizeRows($statement->fetchAll(PDO::FETCH_ASSOC));
         } catch (\Throwable) {
-            return false;
+            return [];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function agencyFromRow(array $row): array
+    {
+        return [
+            'id' => is_numeric($row['id'] ?? null) ? (int) $row['id'] : null,
+            'name' => $this->nullableStringFromRow($row['name'] ?? null) ?? '',
+            'legalName' => $this->nullableStringFromRow($row['legal_name'] ?? null),
+            'contactTitle' => $this->nullableStringFromRow($row['contact_title'] ?? null),
+            'postalAddress' => $this->nullableStringFromRow($row['postal_address'] ?? null),
+            'phone' => $this->nullableStringFromRow($row['phone'] ?? null),
+            'email' => $this->nullableStringFromRow($row['email'] ?? null),
+            'advisorName' => $this->nullableStringFromRow($row['advisor_name'] ?? null),
+            'advisorTitle' => $this->nullableStringFromRow($row['advisor_title'] ?? null),
+            'advisorPhone' => $this->nullableStringFromRow($row['advisor_phone'] ?? null),
+            'advisorEmail' => $this->nullableStringFromRow($row['advisor_email'] ?? null),
+            'notes' => $this->nullableStringFromRow($row['notes'] ?? null),
+            'createdAt' => $this->nullableStringFromRow($row['created_at'] ?? null),
+            'updatedAt' => $this->nullableStringFromRow($row['updated_at'] ?? null),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyAgencyDetails(): array
+    {
+        return [
+            'legalName' => null,
+            'contactTitle' => null,
+            'postalAddress' => null,
+            'phone' => null,
+            'email' => null,
+            'advisorName' => null,
+            'advisorTitle' => null,
+            'advisorPhone' => null,
+            'advisorEmail' => null,
+            'notes' => null,
+            'createdAt' => null,
+            'updatedAt' => null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function emptyAgencyStats(): array
+    {
+        return [
+            'batchCount' => 0,
+            'fileCount' => 0,
+            'ignoredFileCount' => 0,
+            'duplicateFileCount' => 0,
+            'lastActivityAt' => null,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function agencyStatsFromRow(array $row): array
+    {
+        return [
+            'batchCount' => is_numeric($row['batch_count'] ?? null) ? (int) $row['batch_count'] : 0,
+            'fileCount' => is_numeric($row['file_count'] ?? null) ? (int) $row['file_count'] : 0,
+            'ignoredFileCount' => is_numeric($row['ignored_file_count'] ?? null)
+                ? (int) $row['ignored_file_count']
+                : 0,
+            'duplicateFileCount' => is_numeric($row['duplicate_file_count'] ?? null)
+                ? (int) $row['duplicate_file_count']
+                : 0,
+            'createdAt' => $this->nullableStringFromRow($row['created_at'] ?? null),
+            'lastActivityAt' => $this->nullableStringFromRow($row['last_activity_at'] ?? null),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     * @return array<string, string|null>|null
+     */
+    private function normalizeAgencyDetails(array $details): ?array
+    {
+        $email = $this->emailOrNull($details['email'] ?? null);
+        $advisorEmail = $this->emailOrNull($details['advisor_email'] ?? null);
+        if ($email === false || $advisorEmail === false) {
+            return null;
+        }
+
+        return [
+            'legal_name' => $this->nullableText($details['legal_name'] ?? null, 190),
+            'contact_title' => $this->nullableText($details['contact_title'] ?? null, 120),
+            'postal_address' => $this->nullableText($details['postal_address'] ?? null, 500),
+            'phone' => $this->nullableText($details['phone'] ?? null, 80),
+            'email' => $email,
+            'advisor_name' => $this->nullableText($details['advisor_name'] ?? null, 160),
+            'advisor_title' => $this->nullableText($details['advisor_title'] ?? null, 120),
+            'advisor_phone' => $this->nullableText($details['advisor_phone'] ?? null, 80),
+            'advisor_email' => $advisorEmail,
+            'notes' => $this->nullableText($details['notes'] ?? null, 2000),
+        ];
+    }
+
+    /**
+     * @param array<string, string|null> $agencyDetails
+     * @return array<string, mixed>
+     */
+    private function agencyStatementPayload(int $createdByPrivateUserId, string $agencyName, array $agencyDetails): array
+    {
+        return [
+            'created_by' => $createdByPrivateUserId,
+            'name' => $agencyName,
+            'legal_name' => $agencyDetails['legal_name'] ?? null,
+            'contact_title' => $agencyDetails['contact_title'] ?? null,
+            'postal_address' => $agencyDetails['postal_address'] ?? null,
+            'phone' => $agencyDetails['phone'] ?? null,
+            'email' => $agencyDetails['email'] ?? null,
+            'advisor_name' => $agencyDetails['advisor_name'] ?? null,
+            'advisor_title' => $agencyDetails['advisor_title'] ?? null,
+            'advisor_phone' => $agencyDetails['advisor_phone'] ?? null,
+            'advisor_email' => $agencyDetails['advisor_email'] ?? null,
+            'notes' => $agencyDetails['notes'] ?? null,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+    }
+
+    private function emailOrNull(mixed $value): string|false|null
+    {
+        $email = $this->nullableText($value, 254);
+        if ($email === null) {
+            return null;
+        }
+
+        $email = strtolower($email);
+        return filter_var($email, FILTER_VALIDATE_EMAIL) === false ? false : $email;
+    }
+
+    private function agencyNameForUser(int $createdByPrivateUserId, int $agencyId): ?string
+    {
+        if ($createdByPrivateUserId <= 0 || $agencyId <= 0) {
+            return null;
+        }
+
+        $statement = $this->database->pdo()->prepare(
+            sprintf(
+                'SELECT `name`
+                 FROM `%s`
+                 WHERE `id` = :id
+                   AND `created_by_private_user_id` = :created_by
+                 LIMIT 1',
+                $this->agenciesTable()
+            )
+        );
+        $statement->execute([
+            'id' => $agencyId,
+            'created_by' => $createdByPrivateUserId,
+        ]);
+        $name = $statement->fetchColumn();
+
+        return is_scalar($name) && trim((string) $name) !== '' ? (string) $name : null;
+    }
+
+    private function renameAgencyReferences(int $createdByPrivateUserId, string $previousName, string $newName): void
+    {
+        foreach ([$this->batchesTable(), $this->unitMappingsTable()] as $table) {
+            try {
+                $statement = $this->database->pdo()->prepare(
+                    sprintf(
+                        'UPDATE `%s`
+                         SET `agency_name` = :new_name
+                         WHERE `created_by_private_user_id` = :created_by
+                           AND LOWER(TRIM(`agency_name`)) = LOWER(:previous_name)',
+                        $table
+                    )
+                );
+                $statement->execute([
+                    'new_name' => $newName,
+                    'created_by' => $createdByPrivateUserId,
+                    'previous_name' => $previousName,
+                ]);
+            } catch (\Throwable) {
+                continue;
+            }
         }
     }
 
@@ -1068,6 +1345,30 @@ final class AgencyImportRepository
 
         $this->database->ensureReady();
         $pdo = $this->database->pdo();
+        $pdo->exec(
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS `%s` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `created_by_private_user_id` INT NOT NULL,
+                    `name` VARCHAR(120) NOT NULL,
+                    `legal_name` VARCHAR(190) NULL,
+                    `contact_title` VARCHAR(120) NULL,
+                    `postal_address` VARCHAR(500) NULL,
+                    `phone` VARCHAR(80) NULL,
+                    `email` VARCHAR(254) NULL,
+                    `advisor_name` VARCHAR(160) NULL,
+                    `advisor_title` VARCHAR(120) NULL,
+                    `advisor_phone` VARCHAR(80) NULL,
+                    `advisor_email` VARCHAR(254) NULL,
+                    `notes` TEXT NULL,
+                    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uq_rental_agencies_user_name` (`created_by_private_user_id`, `name`),
+                    KEY `idx_rental_agencies_user_updated` (`created_by_private_user_id`, `updated_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                $this->agenciesTable()
+            )
+        );
         $pdo->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (

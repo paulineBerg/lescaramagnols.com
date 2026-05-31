@@ -28,24 +28,51 @@ final class AgencyImportRepositoryTest extends TestCase
 
     public function testCreatesAndListsAgenciesWithoutImportedDocument(): void
     {
-        $repository = new AgencyImportRepository($this->editorialSqlDatabase());
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $ownerId = $this->createPrivateUser($userRepository, 'agency-owner@example.com');
+        $otherOwnerId = $this->createPrivateUser($userRepository, 'agency-other@example.com');
+        $repository = new AgencyImportRepository($database);
 
-        $this->assertTrue($repository->createAgency(1, 'ASG IMMOBILIER'));
-        $this->assertTrue($repository->createAgency(1, 'ASG IMMOBILIER'));
-        $this->assertTrue($repository->createAgency(2, 'Autre agence'));
+        $this->assertTrue($repository->createAgency($ownerId, 'ASG IMMOBILIER', [
+            'legal_name' => 'ASG Immobilier SARL',
+            'email' => 'contact@asg.example',
+            'advisor_name' => 'Claire Martin',
+            'advisor_email' => 'claire.martin@asg.example',
+        ]));
+        $this->assertTrue($repository->createAgency($ownerId, 'ASG IMMOBILIER'));
+        $this->assertTrue($repository->createAgency($otherOwnerId, 'Autre agence'));
 
-        $agencies = $repository->listAgencies(1);
+        $agencies = $repository->listAgencies($ownerId);
         $this->assertCount(1, $agencies);
         $this->assertSame('ASG IMMOBILIER', $agencies[0]['name'] ?? null);
-        $this->assertSame(1, $agencies[0]['batchCount'] ?? null);
+        $this->assertSame('ASG Immobilier SARL', $agencies[0]['legalName'] ?? null);
+        $this->assertSame('Claire Martin', $agencies[0]['advisorName'] ?? null);
+        $this->assertSame(0, $agencies[0]['batchCount'] ?? null);
         $this->assertSame(0, $agencies[0]['fileCount'] ?? null);
+        $agencyId = is_int($agencies[0]['id'] ?? null) ? $agencies[0]['id'] : 0;
+        $this->assertTrue($repository->updateAgencyForUser($ownerId, $agencyId, 'ASG IMMOBILIER GOLFE', [
+            'legal_name' => 'ASG Gestion',
+            'contact_title' => 'Gestion locative',
+            'postal_address' => '1 rue du Port',
+            'phone' => '0494000000',
+            'email' => 'gestion@asg.example',
+            'advisor_name' => 'Claire Martin',
+            'advisor_title' => 'Conseillère',
+            'advisor_phone' => '0494000001',
+            'advisor_email' => 'claire@asg.example',
+            'notes' => 'Agence principale',
+        ]));
 
-        $batch = $repository->createBatch(1, 'ASG IMMOBILIER', '/tmp/agence', 1, 0, 0, 'review');
+        $batch = $repository->createBatch($ownerId, 'ASG IMMOBILIER GOLFE', '/tmp/agence', 1, 0, 0, 'review');
         $this->assertNotNull($batch);
 
-        $agencies = $repository->listAgencies(1);
+        $agencies = $repository->listAgencies($ownerId);
         $this->assertCount(1, $agencies);
-        $this->assertSame(2, $agencies[0]['batchCount'] ?? null);
+        $this->assertSame('ASG IMMOBILIER GOLFE', $agencies[0]['name'] ?? null);
+        $this->assertSame('Gestion locative', $agencies[0]['contactTitle'] ?? null);
+        $this->assertSame('Agence principale', $agencies[0]['notes'] ?? null);
+        $this->assertSame(1, $agencies[0]['batchCount'] ?? null);
         $this->assertSame(1, $agencies[0]['fileCount'] ?? null);
         $this->assertSame(0, $agencies[0]['ignoredFileCount'] ?? null);
         $this->assertSame(0, $agencies[0]['duplicateFileCount'] ?? null);

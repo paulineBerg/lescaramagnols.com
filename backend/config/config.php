@@ -704,6 +704,7 @@ $appConfig = [
             'from_address' => trim((string) ($sitePrivateMailOverride['from_address'] ?? env('PRIVATE_MAIL_FROM_ADDRESS', 'ne-pas-repondre@lescaramagnols.com'))),
             'from_name' => trim((string) ($sitePrivateMailOverride['from_name'] ?? env('PRIVATE_MAIL_FROM_NAME', 'Les Caramagnols'))),
             'reply_to' => trim((string) ($sitePrivateMailOverride['reply_to'] ?? env('PRIVATE_MAIL_REPLY_TO', 'private@lescaramagnols.com'))),
+            'user_settings_encryption_key' => trim((string) env('PRIVATE_MAIL_SETTINGS_ENCRYPTION_KEY', $privateDiscussionAttachmentEncryptionKey)),
             'templates' => is_array($sitePrivateMailOverride['templates'] ?? null) ? $sitePrivateMailOverride['templates'] : [],
         ],
         'trust_proxy_headers' => filter_var(

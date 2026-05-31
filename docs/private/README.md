@@ -3,6 +3,12 @@
 Date de mise a jour : 2026-05-31
 Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, chiffrement serveur au repos des fichiers joints, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
 
+Mise a jour 2026-05-31 (SMTP membre et fiches agences) :
+- les membres peuvent renseigner leur propre configuration SMTP depuis `Parametres > SMTP`; les envois locatifs sensibles utilisent cette configuration et redirigent vers cet onglet si elle est absente;
+- les mots de passe SMTP membre sont stockes chiffres dans `private_user_mail_settings` et exclus des exports lisibles RGPD;
+- les agences importees disposent d'une fiche modifiable (`rental_agencies`) avec raison sociale, adresse, telephone, email, conseiller et notes;
+- la revue des documents agence permet d'enregistrer toutes les corrections de lignes en une seule action, tout en conservant les actions rapides par ligne.
+
 Ce document est le point d'entree dedie au futur espace prive famille du projet `caramagnols`.
 Il remplace l'ancien cadrage generique du portail prive par une vision plus precise : un socle `PrivatePortal`, des comptes famille separes de l'administration, des webapps privees activables au cas par cas, puis trois modules metier prioritaires :
 
@@ -1432,6 +1438,7 @@ rental_tenant_ledger_entries
 rental_correspondence
 rental_agency_statements
 rental_agency_statement_lines
+rental_agencies
 rental_agency_import_batches
 rental_agency_imported_documents
 rental_agency_parser_profiles
@@ -3287,13 +3294,13 @@ Tables privees et proprietaires fonctionnels :
 
 | Domaine | Tables | Proprietaire fonctionnel |
 |---|---|---|
-| Identite et acces | `private_users`, `private_user_invites`, `private_password_resets`, `private_sessions`, `private_mfa_backup_codes` | Socle securite prive |
+| Identite et acces | `private_users`, `private_user_invites`, `private_password_resets`, `private_sessions`, `private_mfa_backup_codes`, `private_user_mail_settings` | Socle securite prive |
 | Modules | `private_modules`, `private_user_module_permissions` | Admin technique, attribution par compte |
 | Documents | `private_document_categories`, `private_documents` | Module `documents`, proprietaire `private_user_id` |
 | Bloc-note | `private_blocnote_categories`, `private_blocnote_notes` | Module `blocnote`, proprietaire `private_user_id` |
 | Discussions chiffrees | `discussion_conversations`, `discussion_conversation_members`, `discussion_messages`, `discussion_message_reads`, `discussion_message_attachments`, `discussion_crypto_devices`, `discussion_conversation_keys`, `discussion_retention_runs` | Module `discussions`, acces par membre conversation |
 | Locations socle | `rental_properties`, `rental_units`, `rental_property_members`, `rental_tenants`, `rental_leases`, `rental_rents`, `rental_payments`, `rental_expenses`, `rental_documents`, `rental_export_logs` | Module `real_estate_rental`, acces par membre de propriete |
-| Imports agence | `rental_agency_import_batches`, `rental_agency_imported_documents`, `rental_agency_import_issues`, `rental_agency_statements`, `rental_agency_statement_lines`, `rental_agency_line_mappings` | Sous-domaine agence du module locations |
+| Imports agence | `rental_agencies`, `rental_agency_import_batches`, `rental_agency_imported_documents`, `rental_agency_import_issues`, `rental_agency_statements`, `rental_agency_statement_lines`, `rental_agency_line_mappings`, `rental_agency_unit_mappings` | Sous-domaine agence du module locations |
 | Aide impots | `tax_years`, `tax_income_sources`, `tax_source_activations`, `tax_manual_income_entries`, `tax_annual_summaries`, `tax_summary_lines`, `tax_export_logs` | Module `tax_declaration_helper`, proprietaire `private_user_id` |
 
 Chemins de fichiers prives :

@@ -1,7 +1,7 @@
 # Locations immobilieres privees
 
 Date de mise a jour : 2026-05-31
-Statut : plan d'amelioration du module `RealEstateRental`, phase L2 terminee, consolide depuis le brouillon `docs/private/amelioration locations immobil.txt` et aligne sur l'existant du depot.
+Statut : plan d'amelioration du module `RealEstateRental`, phases L3 a L8 livrees avec raccord SMTP membre, fiches agences modifiables et revue agence en enregistrement groupé.
 
 Ce README sert de feuille de route fonctionnelle et technique pour rendre le module de locations immobilieres plus complet, sans casser le socle prive deja livre.
 
@@ -27,6 +27,8 @@ Fonctions deja presentes :
 - telechargement et envoi email d'une quittance PDF depuis un paiement;
 - synthese annuelle, export CSV/PDF et journalisation d'export;
 - imports agence, classification, revue humaine et pont fiscal;
+- fiches agences modifiables avec coordonnees et conseiller;
+- envois locatifs raccordes aux parametres SMTP du membre connecte;
 - bridge vers `TaxDeclarationHelper`.
 
 Ecarts importants :
@@ -219,7 +221,7 @@ Regles :
 - l'email du locataire reste pre-rempli depuis sa fiche, mais peut etre corrige pour l'envoi en cours;
 - les courriers PDF doivent reprendre le contenu valide dans la previsualisation;
 - le snapshot envoye ne doit plus changer apres modification du modele source;
-- la configuration SMTP privee doit proposer un bouton `Envoyer un message de test` vers une adresse saisie et validee;
+- la configuration SMTP du membre dans `Parametres > SMTP` doit proposer un bouton `Envoyer un message de test` vers une adresse saisie et validee;
 - l'envoi de test SMTP doit journaliser succes ou echec avec adresse masquee, sans stocker mot de passe, token, DSN ni erreur brute sensible.
 
 ### 3.6 Charges et regularisations
@@ -623,6 +625,8 @@ Decisions L8 :
 - `AgencyAdvancedReconciliationService` calcule la lecture de rapprochement hors template : recettes, charges, net avant virement, virements proprietaire, ecart, source conservee, file OCR/saisie et anomalies courantes;
 - les lignes non classees, les periodes manquantes, les doublons potentiels et les scans sans texte sont signales avant alimentation des syntheses;
 - les justificatifs agence restent dans le stockage prive via `private_document_id` / `storage_path`, jamais sous `backend/public`.
+- les agences sont conservees dans `rental_agencies` et peuvent etre enrichies depuis l'onglet `Agences` avec raison sociale, adresse, telephone, email, conseiller et notes;
+- la revue des lignes agence conserve les actions par ligne, mais permet aussi d'enregistrer toutes les corrections visibles en une seule soumission.
 
 ## 5. Optimisations possibles
 

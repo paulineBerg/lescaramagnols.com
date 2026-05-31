@@ -207,7 +207,8 @@ final class PrivateMigrationDefinitionOfDoneService
         $auditEvents = array_values(array_map('strval', (array) ($agencyPlan['auditEvents'] ?? [])));
 
         return $this->result(
-            in_array('rental_agency_import_batches', $tables, true)
+            in_array('rental_agencies', $tables, true)
+                && in_array('rental_agency_import_batches', $tables, true)
                 && in_array('rental_agency_imported_documents', $tables, true)
                 && in_array('rental_agency_import_issues', $tables, true)
                 && in_array('rental_agency_unit_mappings', $tables, true)

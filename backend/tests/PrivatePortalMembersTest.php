@@ -6,6 +6,7 @@ use Caramagnols\Admin\AdminPrivateMembersService;
 use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
+use Caramagnols\PrivatePortal\Repository\PrivateUserMailSettingsRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use Caramagnols\PrivatePortal\Security\PrivateMfaVerifier;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
@@ -184,6 +185,58 @@ final class PrivatePortalMembersTest extends TestCase
         $this->assertIsArray($unchanged);
         $this->assertSame('member@example.com', $unchanged['email']);
         $this->assertSame('+33 6 12 34 56 78', $unchanged['phone']);
+    }
+
+    public function testMemberSmtpSettingsEncryptPasswordAndBuildMailConfig(): void
+    {
+        global $appConfig;
+
+        $previousPrivateMail = is_array($appConfig['private']['mail'] ?? null) ? $appConfig['private']['mail'] : null;
+        $appConfig['private']['mail']['user_settings_encryption_key'] = 'base64:' . base64_encode(str_repeat('m', 32));
+
+        try {
+            $database = $this->editorialSqlDatabase();
+            $userRepository = new PrivateUserRepository($database);
+            $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+            $this->assertIsString($passwordHash);
+            $userId = $userRepository->create('smtp-member@example.com', $passwordHash, 'active');
+            $this->assertIsInt($userId);
+
+            $repository = new PrivateUserMailSettingsRepository($database);
+            $result = $repository->saveForUser($userId, [
+                'enabled' => '1',
+                'smtp_host' => 'smtp.example.com',
+                'smtp_port' => '587',
+                'smtp_user' => 'smtp-member@example.com',
+                'smtp_password' => 'smtp-secret',
+                'smtp_encryption' => 'tls',
+                'from_address' => 'smtp-member@example.com',
+                'from_name' => 'Membre SMTP',
+                'reply_to' => 'reply@example.com',
+            ]);
+
+            $this->assertTrue($result['success']);
+            $this->assertTrue($repository->isConfiguredForUser($userId));
+            $ciphertext = $database->pdo()
+                ->query(sprintf('SELECT `smtp_password_ciphertext` FROM `%s` LIMIT 1', $database->table('private_user_mail_settings')))
+                ->fetchColumn();
+            $this->assertIsString($ciphertext);
+            $this->assertStringNotContainsString('smtp-secret', $ciphertext);
+
+            $mailConfig = $repository->mailConfigForUser($userId);
+            $this->assertIsArray($mailConfig);
+            $this->assertSame('smtp.example.com', $mailConfig['smtp_host'] ?? null);
+            $this->assertSame(587, $mailConfig['smtp_port'] ?? null);
+            $this->assertSame('smtp-member@example.com', $mailConfig['smtp_user'] ?? null);
+            $this->assertSame('smtp-secret', $mailConfig['smtp_password'] ?? null);
+            $this->assertSame('reply@example.com', $mailConfig['reply_to'] ?? null);
+        } finally {
+            if ($previousPrivateMail === null) {
+                unset($appConfig['private']['mail']);
+            } else {
+                $appConfig['private']['mail'] = $previousPrivateMail;
+            }
+        }
     }
 
     public function testModuleCannotBeRevokedWhileUserDataExists(): void

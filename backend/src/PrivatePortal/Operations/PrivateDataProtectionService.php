@@ -38,6 +38,12 @@ final class PrivateDataProtectionService
                 ['private_user_id' => $privateUserId],
                 ['id', 'private_user_id', 'private_module_id', 'is_active', 'granted_by_admin_email', 'granted_at', 'revoked_at', 'revoked_by_admin_email']
             ),
+            'mailSettings' => $this->rows(
+                'private_user_mail_settings',
+                '`private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['private_user_id', 'is_enabled', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_encryption', 'from_address', 'from_name', 'reply_to', 'created_at', 'updated_at']
+            ),
             'documents' => $this->rows(
                 'private_documents',
                 '`private_user_id` = :private_user_id',
@@ -91,6 +97,12 @@ final class PrivateDataProtectionService
                 '`private_user_id` = :private_user_id',
                 ['private_user_id' => $privateUserId],
                 ['year', 'format', 'export_kind', 'created_at']
+            ),
+            'rentalAgencies' => $this->rows(
+                'rental_agencies',
+                '`created_by_private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['name', 'legal_name', 'contact_title', 'postal_address', 'phone', 'email', 'advisor_name', 'advisor_title', 'advisor_phone', 'advisor_email', 'notes', 'created_at', 'updated_at']
             ),
             'taxYears' => $this->rows(
                 'tax_years',
@@ -487,6 +499,7 @@ final class PrivateDataProtectionService
             '`private_user_id` = :private_user_id OR `created_by_private_user_id` = :private_user_id',
             ['revoked_at' => $now, 'private_user_id' => $privateUserId]
         );
+        $this->safeDelete('private_user_mail_settings', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
 
         $this->safeUpdate(
             'rental_property_members',
@@ -536,6 +549,7 @@ final class PrivateDataProtectionService
         $this->safeDelete('rental_expenses', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_leases', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_export_logs', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('rental_agencies', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
 
         $this->safeDelete('tax_export_logs', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('tax_summary_lines', '`tax_annual_summary_id` IN (SELECT `id` FROM `' . $this->database->table('tax_annual_summaries') . '` WHERE `private_user_id` = :private_user_id)', ['private_user_id' => $privateUserId]);
@@ -914,6 +928,7 @@ final class PrivateDataProtectionService
             'private_user_invites' => '`private_user_id` = :private_user_id',
             'private_password_resets' => '`private_user_id` = :private_user_id',
             'private_mfa_backup_codes' => '`private_user_id` = :private_user_id',
+            'private_user_mail_settings' => '`private_user_id` = :private_user_id',
             'private_documents' => '`private_user_id` = :private_user_id OR `uploaded_by_private_user_id` = :private_user_id OR `deleted_by_private_user_id` = :private_user_id',
             'private_document_categories' => '`private_user_id` = :private_user_id',
             'private_blocnote_notes' => '`private_user_id` = :private_user_id',
@@ -941,6 +956,7 @@ final class PrivateDataProtectionService
             'rental_agency_statements' => $agencyDocumentIds,
             'rental_agency_statement_lines' => $agencyDocumentIds,
             'rental_agency_import_issues' => $agencyDocumentIds,
+            'rental_agencies' => '`created_by_private_user_id` = :private_user_id',
             'rental_agency_unit_mappings' => '`created_by_private_user_id` = :private_user_id',
             'tax_years' => '`private_user_id` = :private_user_id OR `locked_by_private_user_id` = :private_user_id OR `unlocked_by_private_user_id` = :private_user_id',
             'tax_source_activations' => '`private_user_id` = :private_user_id OR `enabled_by_private_user_id` = :private_user_id OR `disabled_by_private_user_id` = :private_user_id',
@@ -981,6 +997,7 @@ final class PrivateDataProtectionService
             'rental_agency_statements',
             'rental_agency_imported_documents',
             'rental_agency_import_batches',
+            'rental_agencies',
             'rental_payments',
             'rental_rents',
             'rental_expenses',
@@ -996,6 +1013,7 @@ final class PrivateDataProtectionService
             'tax_source_activations',
             'tax_years',
             'private_user_module_permissions',
+            'private_user_mail_settings',
             'private_mfa_backup_codes',
             'private_password_resets',
             'private_user_invites',
