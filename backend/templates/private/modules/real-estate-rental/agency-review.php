@@ -315,8 +315,6 @@ $labelForUnit = static function (array $unit) use ($unitTypeLabels): string {
                 <span>Propriété</span>
                 <span>Bien locatif</span>
                 <span>Catégorie</span>
-                <span>Début</span>
-                <span>Fin</span>
                 <span>Montant</span>
                 <span>Débit</span>
                 <span>Crédit</span>
@@ -331,6 +329,10 @@ $labelForUnit = static function (array $unit) use ($unitTypeLabels): string {
               $formId = 'agency-review-line-' . $lineId;
               $currentCategory = is_scalar($line['mappedCategory'] ?? null) ? (string) $line['mappedCategory'] : 'other';
               $requiresFiscalReview = in_array($currentCategory, $sensitiveCategories, true);
+              $isLineValidated = (string) ($line['mappingStatus'] ?? '') === 'validated';
+              $bulkValidationLabel = $requiresFiscalReview
+                  ? 'Contrôle fiscal confirmé'
+                  : 'Valider avec l’enregistrement';
               $linePropertyId = is_numeric($line['rentalPropertyId'] ?? null) ? (int) $line['rentalPropertyId'] : 0;
               $lineUnitId = is_numeric($line['rentalUnitId'] ?? null) ? (int) $line['rentalUnitId'] : 0;
               $hasLineFeedback = $lineFeedbackId === $lineId && ($lineNotice !== '' || $lineError !== '');
@@ -350,7 +352,7 @@ $labelForUnit = static function (array $unit) use ($unitTypeLabels): string {
                   <strong><?php echo $h($line['rawLabel'] ?? ''); ?></strong>
                   <span class="muted">Page <?php echo $h((int) ($line['sourcePage'] ?? 1)); ?>, statut <?php echo $h($labelFromMap($line['mappingStatus'] ?? '', $mappingStatusLabels)); ?></span>
                   <?php if ($requiresFiscalReview): ?>
-                    <small class="agency-line-warning">Contrôle fiscal à confirmer avant validation</small>
+                    <small class="agency-line-warning">Controle fiscal à confirmer</small>
                   <?php endif; ?>
                   <?php if ($detected !== []): ?>
                     <small><?php echo $h(implode(' | ', $detected)); ?></small>
@@ -406,8 +408,8 @@ $labelForUnit = static function (array $unit) use ($unitTypeLabels): string {
                     <?php endforeach; ?>
                   </select>
                 </label>
-                <label role="cell"><span>Début</span><input type="date" name="lines[<?php echo $h($lineId); ?>][period_start]" value="<?php echo $h($line['periodStart'] ?? ''); ?>" /></label>
-                <label role="cell"><span>Fin</span><input type="date" name="lines[<?php echo $h($lineId); ?>][period_end]" value="<?php echo $h($line['periodEnd'] ?? ''); ?>" /></label>
+                <input type="hidden" name="lines[<?php echo $h($lineId); ?>][period_start]" value="<?php echo $h($line['periodStart'] ?? ''); ?>" />
+                <input type="hidden" name="lines[<?php echo $h($lineId); ?>][period_end]" value="<?php echo $h($line['periodEnd'] ?? ''); ?>" />
                 <label role="cell"><span>Montant</span><input type="number" step="0.01" name="lines[<?php echo $h($lineId); ?>][amount]" value="<?php echo $amount($line['amount'] ?? null); ?>" /></label>
                 <label role="cell"><span>Débit</span><input type="number" step="0.01" name="lines[<?php echo $h($lineId); ?>][debit_amount]" value="<?php echo $amount($line['debitAmount'] ?? null); ?>" /></label>
                 <label role="cell"><span>Crédit</span><input type="number" step="0.01" name="lines[<?php echo $h($lineId); ?>][credit_amount]" value="<?php echo $amount($line['creditAmount'] ?? null); ?>" /></label>
@@ -420,9 +422,9 @@ $labelForUnit = static function (array $unit) use ($unitTypeLabels): string {
                       <?php echo $h($lineError !== '' ? $lineError : $lineNotice); ?>
                     </span>
                   <?php endif; ?>
-                  <label class="private-checkbox-inline agency-sensitive-confirm">
-                    <input type="checkbox" name="lines[<?php echo $h($lineId); ?>][manual_fiscal_review_confirmed]" value="1" />
-                    <span>Contrôle fiscal confirmé</span>
+                  <label class="private-checkbox-inline agency-bulk-select">
+                    <input type="checkbox" name="lines[<?php echo $h($lineId); ?>][bulk_validate]" value="1" <?php echo $isLineValidated ? 'checked' : ''; ?> />
+                    <span><?php echo $h($bulkValidationLabel); ?></span>
                   </label>
                   <button type="submit" name="line_action[<?php echo $h($lineId); ?>]" value="correct_line" class="private-row-action">Corriger</button>
                   <button type="submit" name="line_action[<?php echo $h($lineId); ?>]" value="validate_line">Valider</button>
@@ -433,7 +435,7 @@ $labelForUnit = static function (array $unit) use ($unitTypeLabels): string {
             </div>
           </div>
           <div class="private-actions agency-review-bulk-actions">
-            <button type="submit" name="action" value="bulk_update_lines">Enregistrer toutes les lignes</button>
+            <button type="submit" name="action" value="bulk_update_lines">Enregistrer et valider les lignes cochées</button>
           </div>
         </form>
       <?php endif; ?>

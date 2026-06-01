@@ -92,24 +92,40 @@ final class PrivateUiGuardTest extends TestCase
     {
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/agency-review.php');
         $stylesheet = $this->readRepoFile('frontend/src/scss/private.scss');
+        $controller = $this->readRepoFile('backend/src/PrivatePortal/Http/PrivatePortalController.php');
 
         self::assertStringContainsString('agencyReviewLineFeedbackId', $template);
         self::assertStringContainsString('agency-review-line-feedback', $template);
         self::assertStringNotContainsString('data-private-auto-submit="validate_line"', $template);
-        self::assertStringContainsString('manual_fiscal_review_confirmed', $template);
-        self::assertStringContainsString('Contrôle fiscal à confirmer avant validation', $template);
+        self::assertStringContainsString('bulk_validate', $template);
+        self::assertSame(1, substr_count($template, 'name="lines[<?php echo $h($lineId); ?>][bulk_validate]"'));
+        self::assertStringNotContainsString('manual_fiscal_review_confirmed', $template);
+        self::assertStringNotContainsString('agency-sensitive-confirm', $template);
+        self::assertStringContainsString('Controle fiscal à confirmer', $template);
+        self::assertStringContainsString('$isLineValidated ? \'checked\' : \'\'', $template);
+        self::assertStringContainsString('Valider avec l’enregistrement', $template);
         self::assertStringContainsString('Contrôle fiscal confirmé', $template);
         self::assertStringContainsString('$labelFromMap($line[\'mappingStatus\'] ?? \'\', $mappingStatusLabels)', $template);
+        self::assertStringNotContainsString('Contrôle fiscal à confirmer avant validation', $template);
         self::assertStringNotContainsString('Revue fiscale requise avant validation', $template);
         self::assertStringContainsString('bulk_update_lines', $template);
+        self::assertStringContainsString('Enregistrer et valider les lignes cochées', $template);
         self::assertStringContainsString('line_action[', $template);
         self::assertStringContainsString('lines[<?php echo $h($lineId); ?>][mapped_category]', $template);
+        self::assertStringContainsString('type="hidden" name="lines[<?php echo $h($lineId); ?>][period_start]"', $template);
+        self::assertStringContainsString('type="hidden" name="lines[<?php echo $h($lineId); ?>][period_end]"', $template);
+        self::assertStringNotContainsString('<span>Début</span>', $template);
+        self::assertStringNotContainsString('<span>Fin</span>', $template);
         self::assertStringContainsString('.agency-review-line-feedback', $stylesheet);
         self::assertStringContainsString('.agency-review-lines-wrap', $stylesheet);
+        self::assertStringContainsString('.agency-bulk-select', $stylesheet);
+        self::assertStringNotContainsString('.agency-sensitive-confirm', $stylesheet);
         self::assertStringContainsString('width: 100%;', $stylesheet);
         self::assertStringContainsString('grid-template-columns:', $stylesheet);
         self::assertStringContainsString('scroll-margin-top: 6rem;', $stylesheet);
         self::assertStringContainsString('.agency-review-bulk-actions', $stylesheet);
+        self::assertStringContainsString('$payload[\'manual_fiscal_review_confirmed\'] ?? ($payload[\'bulk_validate\'] ?? false)', $controller);
+        self::assertStringContainsString('$lineAction = $shouldValidate ? \'validate\' : \'correct\';', $controller);
     }
 
     public function testAgencyImportsExposeAgencyAndMappingControls(): void

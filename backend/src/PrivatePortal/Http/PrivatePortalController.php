@@ -2704,7 +2704,7 @@ final class PrivatePortalController
         }
 
         $manualFiscalReviewConfirmed = $this->agencyFiscalReviewPolicy()->isManualReviewConfirmed(
-            $payload['manual_fiscal_review_confirmed'] ?? false
+            $payload['manual_fiscal_review_confirmed'] ?? ($payload['bulk_validate'] ?? false)
         );
         if (
             $lineAction === 'validate'
@@ -2828,7 +2828,22 @@ final class PrivatePortalController
 
         if ($action === 'bulk_update_lines') {
             $linesPayload = is_array($body['lines'] ?? null) ? $body['lines'] : [];
+            $reviewDocument = $repository->reviewDocumentForUser($userId, $documentId);
+            $currentLineStatuses = [];
+            if (is_array($reviewDocument) && is_array($reviewDocument['lines'] ?? null)) {
+                foreach ($reviewDocument['lines'] as $currentLine) {
+                    if (!is_array($currentLine) || !is_int($currentLine['id'] ?? null)) {
+                        continue;
+                    }
+
+                    $currentLineStatuses[(int) $currentLine['id']] = is_string($currentLine['mappingStatus'] ?? null)
+                        ? (string) $currentLine['mappingStatus']
+                        : '';
+                }
+            }
+
             $updatedCount = 0;
+            $validatedCount = 0;
             $failedCount = 0;
             foreach ($linesPayload as $lineIdKey => $linePayload) {
                 $lineId = $this->normalizeNumericId($lineIdKey);
@@ -2836,15 +2851,27 @@ final class PrivatePortalController
                     continue;
                 }
 
-                $lineCorrections = $this->agencyReviewLineCorrectionsFromBody($linePayload, 'correct', $userId);
+                $shouldValidate = $this->agencyFiscalReviewPolicy()->isManualReviewConfirmed(
+                    $linePayload['bulk_validate'] ?? false
+                );
+                $currentLineStatus = $currentLineStatuses[$lineId] ?? '';
+                if (!$shouldValidate && $currentLineStatus === 'ignored') {
+                    continue;
+                }
+
+                $lineAction = $shouldValidate ? 'validate' : 'correct';
+                $lineCorrections = $this->agencyReviewLineCorrectionsFromBody($linePayload, $lineAction, $userId);
                 if ($lineCorrections['error'] !== '') {
                     $failedCount++;
                     continue;
                 }
 
-                $line = $repository->reviewStatementLine($userId, $lineId, 'correct', $lineCorrections['corrections']);
+                $line = $repository->reviewStatementLine($userId, $lineId, $lineAction, $lineCorrections['corrections']);
                 if ($line !== null) {
                     $updatedCount++;
+                    if ($lineAction === 'validate') {
+                        $validatedCount++;
+                    }
                 } else {
                     $failedCount++;
                 }
@@ -2854,12 +2881,13 @@ final class PrivatePortalController
                 'private_user_id' => $userId,
                 'agency_imported_document_id' => $documentId,
                 'updated_count' => $updatedCount,
+                'validated_count' => $validatedCount,
                 'failed_count' => $failedCount,
             ]);
 
             return $this->redirect($this->rentalAgencyReviewUrl(
                 $documentId,
-                $updatedCount > 0 ? 'agency_lines_saved' : '',
+                $updatedCount > 0 ? ($validatedCount > 0 ? 'agency_lines_validated' : 'agency_lines_saved') : '',
                 $updatedCount > 0 ? ($failedCount > 0 ? 'agency_lines_partial' : '') : 'agency_review_failed'
             ));
         }
@@ -6412,6 +6440,7 @@ final class PrivatePortalController
             'agency_line_corrected' => 'Ligne agence corrigée.',
             'agency_line_ignored' => 'Ligne agence ignorée.',
             'agency_lines_saved' => 'Lignes agence enregistrées.',
+            'agency_lines_validated' => 'Lignes agence enregistrées et lignes cochées validées.',
             default => '',
         };
     }
@@ -6457,7 +6486,7 @@ final class PrivatePortalController
             'agency_review_failed' => 'Revue agence impossible.',
             'agency_review_forbidden' => 'Document agence introuvable ou non autorisé.',
             'agency_sensitive_review_required' => 'Cochez la revue fiscale avant de valider cette catégorie sensible.',
-            'agency_lines_partial' => 'Certaines lignes n’ont pas pu être enregistrées.',
+            'agency_lines_partial' => 'Certaines lignes n’ont pas pu être enregistrées ou validées.',
             default => '',
         };
     }
