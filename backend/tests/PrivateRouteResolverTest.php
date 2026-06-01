@@ -27,6 +27,15 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c/locations/agence/imports', $resolver->canonicalPath('rental_agency_imports'));
     }
 
+    public function testMemberSettingsPathStaysDistinctFromDashboard(): void
+    {
+        $resolver = new PrivateRouteResolver('private');
+
+        $this->assertSame('/private/dashboard', $resolver->canonicalPath('dashboard'));
+        $this->assertSame('/private/parametres', $resolver->canonicalPath('member_settings'));
+        $this->assertNotSame($resolver->canonicalPath('dashboard'), $resolver->canonicalPath('member_settings'));
+    }
+
     public function testPhaseM1RouteDefinitionsMatchDocumentedContracts(): void
     {
         $resolver = new PrivateRouteResolver('private');

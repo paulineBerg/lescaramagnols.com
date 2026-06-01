@@ -72,6 +72,7 @@ final class PrivatePortalController
     private const CSRF_SESSION = 'private_session';
 
     private ?string $lastPrivateMailFailure = null;
+    private ?string $currentPrivatePage = null;
 
     public function __construct(
         private readonly PrivateAuth $auth,
@@ -107,6 +108,8 @@ final class PrivatePortalController
 
     public function handle(string $page, Request $request, array $routeParams = []): Response
     {
+        $this->currentPrivatePage = $page;
+
         $response = match ($page) {
             'login' => $this->handleLogin($request),
             'dashboard' => $this->handleDashboard($request),
@@ -6341,6 +6344,9 @@ final class PrivatePortalController
             : null;
         $privateDashboardNotice = is_string($viewModel['notice'] ?? null) ? (string) $viewModel['notice'] : '';
         $privateDashboardErrorMessage = is_string($viewModel['errorMessage'] ?? null) ? (string) $viewModel['errorMessage'] : '';
+        $privateCurrentPage = is_string($viewModel['privateCurrentPage'] ?? null)
+            ? trim((string) $viewModel['privateCurrentPage'])
+            : ($this->currentPrivatePage ?? $this->privateCurrentPageFromTemplate($template));
 
         ob_start();
         include $contentTemplate;
@@ -6381,6 +6387,38 @@ final class PrivatePortalController
         $body = (string) ob_get_clean();
 
         return $this->withPrivateHeaders(new Response(200, ['Content-Type' => 'text/html; charset=UTF-8'], $body));
+    }
+
+    private function privateCurrentPageFromTemplate(string $template): string
+    {
+        return match ($template) {
+            'dashboard' => 'dashboard',
+            'settings' => 'member_settings',
+            'modules/documents/index' => 'documents',
+            'modules/blocnote/index' => 'blocnote',
+            'modules/real-estate-rental/dashboard' => 'rental_dashboard',
+            'modules/real-estate-rental/properties' => 'rental_properties',
+            'modules/real-estate-rental/units' => 'rental_units',
+            'modules/real-estate-rental/property-members' => 'rental_property_members',
+            'modules/real-estate-rental/tenants' => 'rental_tenants',
+            'modules/real-estate-rental/leases' => 'rental_leases',
+            'modules/real-estate-rental/rents' => 'rental_rents',
+            'modules/real-estate-rental/payments' => 'rental_payments',
+            'modules/real-estate-rental/expenses' => 'rental_expenses',
+            'modules/real-estate-rental/regularizations' => 'rental_regularizations',
+            'modules/real-estate-rental/documents' => 'rental_documents',
+            'modules/real-estate-rental/agency-imports' => 'rental_agency_imports',
+            'modules/real-estate-rental/agency-review' => 'rental_agency_review',
+            'modules/real-estate-rental/summary' => 'rental_summary',
+            'modules/tax-declaration-helper/dashboard' => 'tax_dashboard',
+            'modules/tax-declaration-helper/year' => 'tax_year',
+            'modules/tax-declaration-helper/manual' => 'tax_manual_entries',
+            'modules/tax-declaration-helper/controls' => 'tax_controls',
+            'modules/tax-declaration-helper/documents' => 'tax_documents',
+            'modules/family-discussion/index' => 'discussion_index',
+            'modules/family-discussion/conversation' => 'discussion_conversation',
+            default => '',
+        };
     }
 
     private function redirect(string $url): Response

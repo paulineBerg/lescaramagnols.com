@@ -205,8 +205,9 @@ function parse_keys_from_content(string $content): array
 
     $keys = [];
     foreach ($matches as $index => $match) {
-        $label = is_string($match[1] ?? null) && trim((string) $match[1]) !== ''
-            ? trim((string) $match[1])
+        $rawLabel = trim((string) $match[1]);
+        $label = $rawLabel !== ''
+            ? $rawLabel
             : 'recovery-' . str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
         $keys[] = [
             'label' => $label,

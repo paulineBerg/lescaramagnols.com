@@ -3,6 +3,17 @@
 Date de mise a jour : 2026-06-01
 Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, chiffrement serveur au repos des fichiers joints, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
 
+Mise a jour 2026-06-01 (navigation privee robuste) :
+- le layout prive recoit maintenant la route privee courante depuis `PrivatePortalController`; l'etat actif du menu ne depend plus uniquement de `$_SERVER['REQUEST_URI']`;
+- chaque entree de menu porte une route canonique et `Parametres` reste force sur `private_portal_url('member_settings')`, soit `/private/parametres`, distinct de `/private/dashboard`;
+- les groupes `Discussions`, `Locations immobilieres` et `Aide impots` restent actifs sur leurs sous-pages par liste de routes, avec fallback URL seulement si aucun contexte de route n'est fourni;
+- `PrivatePortalDashboardTest` verrouille les deux liens `Parametres` et leur etat actif sur la page parametres; `PrivateRouteResolverTest` verrouille la separation entre dashboard et parametres.
+
+Mise a jour 2026-06-01 (recuperation admin et TOTP) :
+- le BO admin peut generer et installer `10` cles de recuperation uniques; seules leurs empreintes sont stockees cote serveur, le fichier clair reste sur le poste local hors depot;
+- une recuperation valide consomme la cle, remplace le mot de passe admin et desactive le TOTP pour permettre une reconnexion controlee;
+- la generation du secret TOTP affiche un QR code `otpauth://` dans une popup locale, sans service externe, afin de distinguer la cle secrete longue du code TOTP a `6` chiffres.
+
 Mise a jour 2026-06-01 (retours SMTP membre) :
 - dans `Parametres > SMTP`, un mot de passe SMTP deja enregistre s'affiche sous la forme `******`; ce masque est aussi reconnu cote serveur comme une valeur inchangee afin de ne pas rechiffrer le masque comme secret;
 - le bouton `Afficher` / `Masquer` du mot de passe SMTP est integre dans le champ, comme les autres champs mot de passe de l'espace prive;

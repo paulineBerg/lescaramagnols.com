@@ -110,10 +110,6 @@ final class AdminRecoveryService
             }
 
             $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            if (!is_string($passwordHash) || $passwordHash === '') {
-                return ['success' => false, 'error' => 'write_failed'];
-            }
-
             $entries[$index]['used_at'] = date('c');
             $override['password_hash'] = $passwordHash;
             $override['totp_enabled'] = false;

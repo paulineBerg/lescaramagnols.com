@@ -111,6 +111,15 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertSame(200, $settings->status);
         $this->assertStringContainsString('Paramètres membre', $settings->body);
         $this->assertStringNotContainsString('Tableau de bord privé', $settings->body);
+        preg_match_all(
+            '/<a[^>]+href="([^"]+)"[^>]*>\s*<span[^>]*>[^<]*<\/span>\s*<span>Paramètres<\/span>/u',
+            $settings->body,
+            $settingsPageLinks
+        );
+        $this->assertSame(['/private/parametres', '/private/parametres'], $settingsPageLinks[1] ?? []);
+        $this->assertSame(2, substr_count($settings->body, 'href="/private/parametres" aria-current="page"'));
+        $this->assertStringNotContainsString('class="active" href="/private/dashboard"', $settings->body);
+        $this->assertStringNotContainsString('href="/private/dashboard"><span class="private-nav-icon" aria-hidden="true">⚙</span>', $settings->body);
     }
 
     public function testDashboardShowsDocumentManagementForDocumentsModule(): void

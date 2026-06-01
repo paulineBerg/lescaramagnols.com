@@ -34,6 +34,7 @@ $privateNavigationModules = is_array($privateNavigationModules ?? null)
     ? $privateNavigationModules
     : (is_array($privateModules ?? null) ? $privateModules : []);
 $privateMemberSettingsEnabled = (bool) ($privateMemberSettingsEnabled ?? false);
+$privateCurrentPage = is_string($privateCurrentPage ?? null) ? trim((string) $privateCurrentPage) : '';
 $privateNavigationModuleNames = [];
 foreach ($privateNavigationModules as $moduleName) {
     if (!is_string($moduleName) || trim($moduleName) === '') {
@@ -62,13 +63,51 @@ $privatePathIs = static function (string $url) use ($privateNormalizePath, $priv
 
     return $privateCurrentPath === $privateNormalizePath($url);
 };
-$privatePathIsOneOf = static function (array $urls) use ($privateNormalizePath, $privateCurrentPath): bool {
+$privateRouteIs = static function (
+    string $route,
+    string $url
+) use (
+    $privateCurrentPage,
+    $privateCurrentPath,
+    $privatePathIs
+): bool {
+    if ($privateCurrentPage !== '') {
+        return $privateCurrentPage === $route;
+    }
+
+    if ($privatePathIs($url)) {
+        return true;
+    }
+
+    return $route === 'dashboard' && $privateCurrentPath === '';
+};
+$privateRouteIsOneOf = static function (
+    array $routes,
+    array $urls,
+    bool $allowPrefix = false
+) use (
+    $privateCurrentPage,
+    $privateCurrentPath,
+    $privateNormalizePath
+): bool {
+    if ($privateCurrentPage !== '') {
+        return in_array($privateCurrentPage, $routes, true);
+    }
+
     if ($privateCurrentPath === '') {
         return false;
     }
 
     foreach ($urls as $url) {
-        if (is_string($url) && $privateCurrentPath === $privateNormalizePath($url)) {
+        if (!is_string($url)) {
+            continue;
+        }
+
+        $normalizedPath = $privateNormalizePath($url);
+        if (
+            $privateCurrentPath === $normalizedPath
+            || ($allowPrefix && str_starts_with($privateCurrentPath, $normalizedPath . '/'))
+        ) {
             return true;
         }
     }
@@ -76,40 +115,53 @@ $privatePathIsOneOf = static function (array $urls) use ($privateNormalizePath, 
     return false;
 };
 
+if ($privateNormalizePath($privateMemberSettingsUrl) === $privateNormalizePath($privateDashboardUrl)) {
+    $privateMemberSettingsUrl = private_portal_url('member_settings');
+}
+
 $privateNavItems = [
     [
+        'route' => 'dashboard',
         'label' => $translate('TXT_PRIVATE_DASHBOARD_LINK', 'Tableau de bord'),
         'href' => $privateDashboardUrl,
         'icon' => '📊',
-        'active' => $privatePathIs($privateDashboardUrl) || $privateCurrentPath === '',
+        'active' => $privateRouteIs('dashboard', $privateDashboardUrl),
     ],
 ];
 
 if ($privateHasModule('Bloc-note')) {
     $privateNavItems[] = [
+        'route' => 'blocnote',
         'label' => 'Bloc-note',
         'href' => private_portal_url('blocnote'),
         'icon' => '📝',
-        'active' => $privatePathIs(private_portal_url('blocnote')),
+        'active' => $privateRouteIs('blocnote', private_portal_url('blocnote')),
     ];
 }
 
 if ($privateHasModule('Discussions')) {
+    $privateDiscussionPaths = [private_portal_url('discussion_index')];
+    $privateDiscussionRoutes = [
+        'discussion_index',
+        'discussion_new',
+        'discussion_conversation',
+    ];
     $privateNavItems[] = [
+        'route' => 'discussion_index',
         'label' => $translate('TXT_PRIVATE_NAV_DISCUSSIONS', 'Discussions'),
         'href' => private_portal_url('discussion_index'),
         'icon' => '✉',
-        'active' => $privateCurrentPath !== ''
-            && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('discussion_index'))),
+        'active' => $privateRouteIsOneOf($privateDiscussionRoutes, $privateDiscussionPaths, true),
     ];
 }
 
 if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)) {
     $privateNavItems[] = [
+        'route' => 'documents',
         'label' => $translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'),
         'href' => private_portal_url('documents'),
         'icon' => '🗂️',
-        'active' => $privatePathIs(private_portal_url('documents')),
+        'active' => $privateRouteIs('documents', private_portal_url('documents')),
     ];
 }
 
@@ -130,30 +182,57 @@ if ($privateHasModule('Locations immobilières')) {
         private_portal_url('rental_agency_review'),
         private_portal_url('rental_summary'),
     ];
+    $privateRentalRoutes = [
+        'rental_dashboard',
+        'rental_properties',
+        'rental_units',
+        'rental_property_members',
+        'rental_tenants',
+        'rental_leases',
+        'rental_rents',
+        'rental_payments',
+        'rental_expenses',
+        'rental_regularizations',
+        'rental_documents',
+        'rental_agency_imports',
+        'rental_agency_review',
+        'rental_summary',
+    ];
     $privateNavItems[] = [
+        'route' => 'rental_dashboard',
         'label' => $translate('TXT_PRIVATE_NAV_RENTAL', 'Locations immobilières'),
         'href' => private_portal_url('rental_dashboard'),
         'icon' => '🏠',
-        'active' => $privatePathIsOneOf($privateRentalPaths),
+        'active' => $privateRouteIsOneOf($privateRentalRoutes, $privateRentalPaths),
     ];
 }
 
 if ($privateHasModule('Aide impôts')) {
+    $privateTaxPaths = [private_portal_url('tax_dashboard')];
+    $privateTaxRoutes = [
+        'tax_dashboard',
+        'tax_year',
+        'tax_manual_entries',
+        'tax_controls',
+        'tax_documents',
+        'tax_export',
+    ];
     $privateNavItems[] = [
+        'route' => 'tax_dashboard',
         'label' => $translate('TXT_PRIVATE_NAV_TAX', 'Aide impôts'),
         'href' => private_portal_url('tax_dashboard'),
         'icon' => '€',
-        'active' => $privateCurrentPath !== ''
-            && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('tax_dashboard'))),
+        'active' => $privateRouteIsOneOf($privateTaxRoutes, $privateTaxPaths, true),
     ];
 }
 
 if ($privateMemberSettingsEnabled) {
     $privateNavItems[] = [
+        'route' => 'member_settings',
         'label' => $translate('TXT_PRIVATE_SETTINGS_NAV', 'Paramètres'),
         'href' => $privateMemberSettingsUrl,
         'icon' => '⚙',
-        'active' => $privatePathIs($privateMemberSettingsUrl),
+        'active' => $privateRouteIs('member_settings', $privateMemberSettingsUrl),
     ];
 }
 
@@ -182,7 +261,7 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,nofollow,noarchive" />
     <title><?php echo htmlspecialchars((string) ($privatePageTitle ?? 'Espace privé'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <?php foreach (vite_css('src/scss/private.scss') as $privateStylesheetUrl): ?>
+    <?php foreach (vite_css('src/scss/private.scss') as $privateStylesheetUrl) : ?>
       <link rel="stylesheet" href="<?php echo htmlspecialchars($privateStylesheetUrl, ENT_QUOTES, 'UTF-8'); ?>" />
     <?php endforeach; ?>
   </head>
@@ -250,7 +329,7 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
                 }
                 ?>
               <li>
-                <a class="<?php echo $navIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>">
+                <a class="<?php echo $navIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $navIsActive ? ' aria-current="page"' : ''; ?>>
                   <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($navIcon, ENT_QUOTES, 'UTF-8'); ?></span>
                   <span><?php echo htmlspecialchars($navLabel, ENT_QUOTES, 'UTF-8'); ?></span>
                 </a>
