@@ -28,7 +28,6 @@ $subItems = match ($currentSection) {
     'personal' => [
         'properties' => ['Propriétés', $url('properties', 'rental_properties')],
         'units' => ['Biens locatifs', $url('units', 'rental_units')],
-        'members' => ['Accès aux propriétés', $url('members', 'rental_property_members')],
         'tenants' => ['Locataires', $url('tenants', 'rental_tenants')],
         'leases' => ['Baux', $url('leases', 'rental_leases')],
         'rents' => ['Loyers', $url('rents', 'rental_rents')],

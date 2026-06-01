@@ -161,12 +161,12 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('<?php if ($subItems !== []): ?>', $template);
     }
 
-    public function testRentalPersonalNavigationExposesPropertyMembersMenu(): void
+    public function testRentalPersonalNavigationDoesNotExposePropertyMembersMenu(): void
     {
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');
 
-        self::assertStringContainsString('Accès aux propriétés', $template);
-        self::assertStringContainsString('rental_property_members', $template);
+        self::assertStringNotContainsString('Accès aux propriétés', $template);
+        self::assertStringNotContainsString('rental_property_members', $template);
     }
 
     public function testFamilyDiscussionInterfaceKeepsKeyboardAndFocusContracts(): void

@@ -323,7 +323,6 @@ Portail prive famille
 +-- Module RealEstateRental
 |   +-- Proprietes
 |   +-- Biens locatifs
-|   +-- Acces aux proprietes
 |   +-- Locataires
 |   +-- Baux
 |   +-- Loyers
@@ -1590,7 +1589,7 @@ Implementation actuelle :
 1. `/private/locations` est le tableau de bord locatif et le point d'entree du module ;
 2. le menu haut sticky separe `Tableau de bord`, `Biens et locations`, `Documents agence` et `Rapports`, sans sous-menu sur le tableau de bord ;
 3. le sous-menu depend de la section active pour eviter le melange entre saisie proprietaire et imports agence, avec des onglets actifs discrets sans bandeau colore dominant ;
-4. le vocabulaire fonctionnel est `Proprietes` pour `rental_properties`, `Biens locatifs` pour `rental_units` et `Acces aux proprietes` pour `rental_property_members` ;
+4. le vocabulaire fonctionnel visible est `Proprietes` pour `rental_properties` et `Biens locatifs` pour `rental_units`; `rental_property_members` reste une route technique, non exposee dans le sous-menu ;
 5. un bien locatif porte son type (`apartment`, `house`, `garage`, `parking`, `commercial_space`, `room`, `storage`, `other`), une surface, le statut meuble ou non, sa disponibilite (`available` ou `unavailable`) et des reperes optionnels d'adresse, batiment, etage ou porte ;
 6. `Disponible` signifie qu'un bail peut etre cree ; `Indisponible` bloque la creation de bail, par exemple pendant des travaux ; un bien locatif qui possede deja un bail actif (`draft` ou `validated`) n'est pas propose dans la creation d'un nouveau bail ;
 7. une maison louee en entier peut etre saisie comme une propriete avec un bien locatif `Maison entiere` cree automatiquement ;
