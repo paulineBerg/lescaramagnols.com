@@ -1064,6 +1064,13 @@
     padding-left: 1rem;
   }
 
+  .agency-review-bulk-form {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
   .agency-review-lines {
     display: grid;
     gap: 0.4rem;
