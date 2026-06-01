@@ -215,7 +215,7 @@ final class PrivatePortalMembersTest extends TestCase
                 'reply_to' => 'reply@example.com',
             ]);
 
-            $this->assertTrue($result['success']);
+            $this->assertTrue($result['success'], (string) ($result['error'] ?? ''));
             $this->assertTrue($repository->isConfiguredForUser($userId));
             $ciphertext = $database->pdo()
                 ->query(sprintf('SELECT `smtp_password_ciphertext` FROM `%s` LIMIT 1', $database->table('private_user_mail_settings')))
@@ -230,6 +230,28 @@ final class PrivatePortalMembersTest extends TestCase
             $this->assertSame('smtp-member@example.com', $mailConfig['smtp_user'] ?? null);
             $this->assertSame('smtp-secret', $mailConfig['smtp_password'] ?? null);
             $this->assertSame('reply@example.com', $mailConfig['reply_to'] ?? null);
+
+            $preserved = $repository->saveForUser($userId, [
+                'enabled' => '1',
+                'smtp_host' => 'smtp.example.com',
+                'smtp_port' => '587',
+                'smtp_user' => 'smtp-member@example.com',
+                'smtp_password' => '******',
+                'smtp_encryption' => 'tls',
+                'from_address' => 'smtp-member@example.com',
+                'from_name' => 'Membre SMTP modifie',
+                'reply_to' => 'reply@example.com',
+            ]);
+            $this->assertTrue($preserved['success']);
+            $preservedCiphertext = $database->pdo()
+                ->query(sprintf('SELECT `smtp_password_ciphertext` FROM `%s` LIMIT 1', $database->table('private_user_mail_settings')))
+                ->fetchColumn();
+            $this->assertSame($ciphertext, $preservedCiphertext);
+
+            $mailConfig = $repository->mailConfigForUser($userId);
+            $this->assertIsArray($mailConfig);
+            $this->assertSame('smtp-secret', $mailConfig['smtp_password'] ?? null);
+            $this->assertSame('Membre SMTP modifie', $mailConfig['from_name'] ?? null);
         } finally {
             if ($previousPrivateMail === null) {
                 unset($appConfig['private']['mail']);

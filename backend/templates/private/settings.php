@@ -27,6 +27,8 @@ $smtpConfigured = !empty($viewModel['privateMemberSmtpConfigured']);
 $activeTab = is_string($viewModel['privateSettingsActiveTab'] ?? null) ? (string) $viewModel['privateSettingsActiveTab'] : 'profile';
 $activeTab = in_array($activeTab, ['profile', 'smtp'], true) ? $activeTab : 'profile';
 $smtpPopup = !empty($viewModel['privateSettingsSmtpPopup']);
+$settingsNotice = is_string($viewModel['notice'] ?? null) ? (string) $viewModel['notice'] : '';
+$settingsError = is_string($viewModel['errorMessage'] ?? null) ? (string) $viewModel['errorMessage'] : '';
 $changeEmailAddress = 'private@lescaramagnols.com';
 $completedProfileFields = 0;
 foreach ([$fullName, $postalAddress, $phone] as $profileField) {
@@ -48,6 +50,18 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
     </a>
   </div>
 </nav>
+
+<?php if ($settingsNotice !== ''): ?>
+  <p class="notice notice-success private-screen-notice" role="status" aria-live="polite">
+    <?php echo $escape($settingsNotice); ?>
+  </p>
+<?php endif; ?>
+
+<?php if ($settingsError !== ''): ?>
+  <p class="notice notice-error private-screen-notice" role="alert">
+    <?php echo $escape($settingsError); ?>
+  </p>
+<?php endif; ?>
 
 <?php if ($activeTab === 'profile'): ?>
 <section class="private-module-dashboard">
@@ -176,8 +190,18 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
         <label>
           <?php echo $escape($translate('TXT_PRIVATE_SETTINGS_SMTP_PASSWORD', 'Mot de passe SMTP')); ?>
           <span class="private-password-field">
-            <input id="private-member-smtp-password" type="password" name="smtp_password" maxlength="512" value="<?php echo !empty($smtp['smtpPasswordConfigured']) ? '**********' : ''; ?>" autocomplete="new-password" />
-            <button type="button" class="private-button-secondary" data-private-password-toggle aria-controls="private-member-smtp-password" data-private-password-show="Afficher" data-private-password-hide="Masquer">Afficher</button>
+            <input id="private-member-smtp-password" type="password" name="smtp_password" maxlength="512" value="<?php echo !empty($smtp['smtpPasswordConfigured']) ? '******' : ''; ?>" autocomplete="new-password" />
+            <button
+              type="button"
+              class="private-password-toggle"
+              data-private-password-toggle
+              aria-controls="private-member-smtp-password"
+              aria-pressed="false"
+              data-private-password-show="<?php echo $escape($translate('TXT_PRIVATE_PASSWORD_SHOW', 'Afficher')); ?>"
+              data-private-password-hide="<?php echo $escape($translate('TXT_PRIVATE_PASSWORD_HIDE', 'Masquer')); ?>"
+            >
+              <?php echo $escape($translate('TXT_PRIVATE_PASSWORD_SHOW', 'Afficher')); ?>
+            </button>
           </span>
         </label>
         <label class="private-checkbox-inline">

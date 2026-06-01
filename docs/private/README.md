@@ -1,7 +1,12 @@
 # Portail prive famille, locations et aide impots
 
-Date de mise a jour : 2026-05-31
+Date de mise a jour : 2026-06-01
 Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, chiffrement serveur au repos des fichiers joints, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
+
+Mise a jour 2026-06-01 (retours SMTP membre) :
+- dans `Parametres > SMTP`, un mot de passe SMTP deja enregistre s'affiche sous la forme `******`; ce masque est aussi reconnu cote serveur comme une valeur inchangee afin de ne pas rechiffrer le masque comme secret;
+- le bouton `Afficher` / `Masquer` du mot de passe SMTP est integre dans le champ, comme les autres champs mot de passe de l'espace prive;
+- les actions `Enregistrer SMTP` et `Enregistrer et tester` affichent un message visible de succes ou d'erreur sur la page `Parametres`.
 
 Mise a jour 2026-05-31 (SMTP membre et fiches agences) :
 - les membres peuvent renseigner leur propre configuration SMTP depuis `Parametres > SMTP`; les envois locatifs sensibles utilisent cette configuration et redirigent vers cet onglet si elle est absente;

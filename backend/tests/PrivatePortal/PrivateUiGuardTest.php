@@ -124,6 +124,10 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('name="smtp_host"', $template);
         self::assertStringContainsString('name="smtp_password"', $template);
         self::assertStringContainsString('name="send_test"', $template);
+        self::assertStringContainsString('private-password-toggle', $template);
+        self::assertStringContainsString(" ? '******' : ''", $template);
+        self::assertStringContainsString('notice notice-success private-screen-notice', $template);
+        self::assertStringContainsString('notice notice-error private-screen-notice', $template);
         self::assertStringContainsString('private-settings-smtp-required-dialog', $template);
         self::assertStringContainsString('data-private-dialog-auto-open="1"', $template);
     }
@@ -157,12 +161,12 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('<?php if ($subItems !== []): ?>', $template);
     }
 
-    public function testRentalSingleAccessModeHidesPropertyMembersMenu(): void
+    public function testRentalPersonalNavigationExposesPropertyMembersMenu(): void
     {
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');
 
-        self::assertStringNotContainsString('Accès aux propriétés', $template);
-        self::assertStringNotContainsString('rental_property_members', $template);
+        self::assertStringContainsString('Accès aux propriétés', $template);
+        self::assertStringContainsString('rental_property_members', $template);
     }
 
     public function testFamilyDiscussionInterfaceKeepsKeyboardAndFocusContracts(): void

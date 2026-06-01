@@ -9,7 +9,7 @@ use PDO;
 
 final class PrivateUserMailSettingsRepository
 {
-    private const SECRET_MASK = '**********';
+    private const SECRET_MASK = '******';
     private const ENCRYPTION_CIPHER = 'aes-256-gcm';
     private const ALLOWED_ENCRYPTIONS = ['', 'ssl', 'tls', 'starttls'];
 
@@ -408,6 +408,7 @@ final class PrivateUserMailSettingsRepository
         }
 
         $this->database->ensureReady();
+        $foreignKeyName = $this->schemaIdentifier('fk_' . $this->table() . '_user');
         $this->database->pdo()->exec(
             sprintf(
                 'CREATE TABLE IF NOT EXISTS `%s` (
@@ -426,16 +427,25 @@ final class PrivateUserMailSettingsRepository
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     UNIQUE KEY `uq_private_user_mail_settings_user` (`private_user_id`),
                     KEY `idx_private_user_mail_settings_updated` (`updated_at`),
-                    CONSTRAINT `fk_private_user_mail_settings_user`
+                    CONSTRAINT `%s`
                         FOREIGN KEY (`private_user_id`)
                         REFERENCES `%s` (`id`)
                         ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->table(),
+                $foreignKeyName,
                 $this->database->table('private_users')
             )
         );
 
         $this->schemaReady = true;
+    }
+
+    private function schemaIdentifier(string $value): string
+    {
+        $value = preg_replace('/[^A-Za-z0-9_]+/', '_', $value) ?? $value;
+        $value = trim($value, '_');
+
+        return substr($value !== '' ? $value : 'fk_private_user_mail_settings_user', 0, 64);
     }
 }

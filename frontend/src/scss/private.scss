@@ -359,6 +359,8 @@
   }
 
   .private-password-field {
+    display: block;
+    max-width: 100%;
     position: relative;
   }
 
@@ -376,6 +378,7 @@
     background: rgb(19 41 75 / 8%);
     color: var(--private-primary-dark);
     font-size: 0.82rem;
+    white-space: nowrap;
     transform: translateY(-50%);
   }
 
