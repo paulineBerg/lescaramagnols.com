@@ -76,6 +76,9 @@ final class AgencyImportRepositoryTest extends TestCase
         $this->assertSame(1, $agencies[0]['fileCount'] ?? null);
         $this->assertSame(0, $agencies[0]['ignoredFileCount'] ?? null);
         $this->assertSame(0, $agencies[0]['duplicateFileCount'] ?? null);
+        $this->assertFalse($repository->deleteAgencyForUser($otherOwnerId, $agencyId));
+        $this->assertTrue($repository->deleteAgencyForUser($ownerId, $agencyId));
+        $this->assertSame([], $repository->listAgencies($ownerId));
     }
 
     public function testAgencyUnitMappingAutoAssignsImportedLinesPerAgency(): void

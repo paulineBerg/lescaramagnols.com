@@ -10,13 +10,14 @@ $url = static function (string $key, string $fallback) use ($urls): string {
 $mainItems = [
     'dashboard' => ['Tableau de bord', $url('dashboard', 'rental_dashboard')],
     'personal' => ['Biens et locations', $url('properties', 'rental_properties')],
-    'agency' => ['Documents agence', $url('agencyImports', 'rental_agency_imports')],
+    'agency' => ['Documents agence', $url('agencies', 'rental_agencies')],
     'reports' => ['Rapports', $url('summary', 'rental_summary')],
 ];
 
 $subItems = match ($currentSection) {
     'agency' => [
         'properties' => ['Propriétés', $url('properties', 'rental_properties')],
+        'agencies' => ['Agences', $url('agencies', 'rental_agencies')],
         'agencyImports' => ['Importer agence', $url('agencyImports', 'rental_agency_imports')],
         'agencyReview' => ['Classer les documents', $url('agencyReview', 'rental_agency_review')],
     ],

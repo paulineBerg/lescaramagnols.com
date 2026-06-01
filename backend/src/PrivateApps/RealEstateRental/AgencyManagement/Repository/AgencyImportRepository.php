@@ -232,11 +232,11 @@ final class AgencyImportRepository
                 continue;
             }
             $key = mb_strtolower($name, 'UTF-8');
-            $stats = $this->agencyStatsFromRow($row);
-            $agencies[$key] = array_merge(
-                $agencies[$key] ?? array_merge(['id' => null, 'name' => $name], $this->emptyAgencyDetails()),
-                $stats
-            );
+            if (!isset($agencies[$key])) {
+                continue;
+            }
+
+            $agencies[$key] = array_merge($agencies[$key], $this->agencyStatsFromRow($row));
         }
 
         $result = array_values($agencies);
@@ -315,6 +315,63 @@ final class AgencyImportRepository
 
             return $statement->rowCount() > 0;
         } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function deleteAgencyForUser(int $createdByPrivateUserId, int $agencyId): bool
+    {
+        if ($createdByPrivateUserId <= 0 || $agencyId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $agencyName = $this->agencyNameForUser($createdByPrivateUserId, $agencyId);
+            if ($agencyName === null) {
+                return false;
+            }
+
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+
+            $statement = $pdo->prepare(
+                sprintf(
+                    'DELETE FROM `%s`
+                     WHERE `id` = :id
+                       AND `created_by_private_user_id` = :created_by',
+                    $this->agenciesTable()
+                )
+            );
+            $statement->execute([
+                'id' => $agencyId,
+                'created_by' => $createdByPrivateUserId,
+            ]);
+            $deleted = $statement->rowCount() > 0;
+
+            if ($deleted) {
+                $statement = $pdo->prepare(
+                    sprintf(
+                        'DELETE FROM `%s`
+                         WHERE `created_by_private_user_id` = :created_by
+                           AND LOWER(TRIM(`agency_name`)) = LOWER(:agency_name)',
+                        $this->unitMappingsTable()
+                    )
+                );
+                $statement->execute([
+                    'created_by' => $createdByPrivateUserId,
+                    'agency_name' => $agencyName,
+                ]);
+            }
+
+            $pdo->commit();
+
+            return $deleted;
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             return false;
         }
     }

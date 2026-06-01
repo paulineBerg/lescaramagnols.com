@@ -76,6 +76,7 @@ final class PrivateModuleMigrationPlanTest extends TestCase
         $agency = is_array($modules['agency_imports'] ?? null) ? $modules['agency_imports'] : [];
         $this->assertSame('real_estate_rental', $agency['permissionModule'] ?? null);
         $this->assertSame('real_estate_rental', $agency['migrationStatusModule'] ?? null);
+        $this->assertContains('/private/locations/agence', $agency['routes'] ?? []);
         $this->assertContains('/private/locations/agence/imports', $agency['routes'] ?? []);
         $this->assertContains('rental_agencies', $agency['tables'] ?? []);
         $this->assertContains('rental_agency_imported_documents', $agency['tables'] ?? []);

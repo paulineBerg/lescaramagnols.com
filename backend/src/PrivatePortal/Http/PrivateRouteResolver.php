@@ -40,6 +40,7 @@ final class PrivateRouteResolver
             'rental_expenses' => $basePath . '/charges',
             'rental_regularizations' => $basePath . '/locations/regularisations',
             'rental_documents' => $basePath . '/locations/documents',
+            'rental_agencies' => $basePath . '/locations/agence',
             'rental_agency_imports' => $basePath . '/locations/agence/imports',
             'rental_agency_review' => $basePath . '/locations/agence/documents-a-classer',
             'rental_summary' => $basePath . '/locations/summary',
@@ -232,6 +233,11 @@ final class PrivateRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('rental_documents'),
                 'handler' => ['type' => 'private', 'page' => 'rental_documents'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('rental_agencies'),
+                'handler' => ['type' => 'private', 'page' => 'rental_agencies'],
             ],
             [
                 'methods' => ['GET', 'POST'],

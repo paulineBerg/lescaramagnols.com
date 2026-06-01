@@ -107,6 +107,7 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
             '/private/locations',
             '/private/locations/locataires',
             '/private/locations/documents',
+            '/private/locations/agence',
             '/private/locations/agence/imports',
             '/private/locations/agence/documents-a-classer',
             '/private/rents',

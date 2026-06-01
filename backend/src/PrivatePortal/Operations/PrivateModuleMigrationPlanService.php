@@ -242,6 +242,7 @@ final class PrivateModuleMigrationPlanService
                 'migrationStatusModule' => 'real_estate_rental',
                 'description' => 'Imports agence, documents detectes, lignes, anomalies, mapping et revue humaine.',
                 'routeNames' => [
+                    'rental_agencies',
                     'rental_agency_imports',
                     'rental_agency_review',
                 ],

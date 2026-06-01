@@ -37,6 +37,11 @@ Mise a jour 2026-05-31 (SMTP membre et fiches agences) :
 - les agences importees disposent d'une fiche modifiable (`rental_agencies`) avec raison sociale, adresse, telephone, email, conseiller et notes;
 - la revue des documents agence permet d'enregistrer toutes les corrections de lignes en une seule action, tout en conservant les actions rapides par ligne.
 
+Mise a jour 2026-06-01 (page agences) :
+- le menu haut `Documents agence` ouvre la page dediee `/private/locations/agence` (`rental_agencies`), et non plus directement l'import de documents;
+- cette page centralise creation, modification et suppression des fiches agence, ainsi que les correspondances agence -> bien locatif;
+- la suppression d'une agence retire la fiche et ses correspondances, mais conserve les imports deja archives pour garder l'historique documentaire auditable.
+
 Mise a jour 2026-05-31 (session privee active) :
 - la session privee n'est plus invalidee par le seul depassement du delai de re-authentification lorsque l'utilisateur travaille encore; ce delai reste disponible pour les actions sensibles qui demandent explicitement une session fraiche;
 - un endpoint `POST /private/session/ping`, protege par CSRF, prolonge le timeout d'inactivite lorsque l'interface privee detecte une activite utilisateur recente;
@@ -1092,7 +1097,8 @@ Progression codee au 2026-05-27 :
 7. [x] creer `AgencyImportRepository` et migrations import batch/documents/issues/statements/lines ;
 8. [x] creer `AgencyStatementValidationService` pour bloquer les lignes fiscales sans periode et separer depot de garantie / solde agence ;
 9. [x] creer `AgencyImportService` pour ignorer `Zone.Identifier`, bloquer les doublons `sha256`, conserver l'original hors webroot, previsualiser et persister ;
-10. [x] creer l'ecran `/private/locations/agence/imports` pour uploader, lister, dedoublonner et classifier ;
+10. [x] creer l'ecran `/private/locations/agence` pour gerer les fiches agences et leurs correspondances ;
+10bis. [x] creer l'ecran `/private/locations/agence/imports` pour uploader, lister, dedoublonner et classifier ;
 11. [x] creer l'ecran `/private/locations/agence/documents-a-classer` pour revue et validation humaine detaillee ;
 12. [x] ajouter les actions de revue humaine minimales : valider, corriger, ignorer ;
 12bis. [x] separer les documents a revoir et les imports recents en deux onglets, puis permettre la suppression d'un document agence avec nettoyage des lignes, anomalies et fichier stocke ; un lot d'import vide est annule et n'apparait plus dans les imports recents ;
@@ -1114,7 +1120,7 @@ Tests obligatoires pour coder :
 8. `AgencyImportRepositoryTest` : persiste lot, document, releve, lignes, bloque un doublon `sha256` et couvre la revue ligne par ligne ;
 9. `AgencyImportServiceTest` : ignore `Zone.Identifier`, bloque doublon `sha256`, conserve original hors webroot ;
 10. `AgencyValidationServiceTest` : refuse une ligne fiscale sans periode, depot de garantie en revenu et solde agence non source ;
-11. `PrivatePortalPhaseCoverageTest` : expose `/private/locations/agence/imports` et `/private/locations/agence/documents-a-classer` derriere la garde privee ;
+11. `PrivatePortalPhaseCoverageTest` : expose `/private/locations/agence`, `/private/locations/agence/imports` et `/private/locations/agence/documents-a-classer` derriere la garde privee ;
 12. `AgencyTaxBridgeNormalizerTest` : n'exporte que les lignes validees, avec source document, page et categorie.
 
 ### 6.4 Entites principales
@@ -1589,14 +1595,15 @@ Implementation actuelle :
 1. `/private/locations` est le tableau de bord locatif et le point d'entree du module ;
 2. le menu haut sticky separe `Tableau de bord`, `Biens et locations`, `Documents agence` et `Rapports`, sans sous-menu sur le tableau de bord ;
 3. le sous-menu depend de la section active pour eviter le melange entre saisie proprietaire et imports agence, avec des onglets actifs discrets sans bandeau colore dominant ;
-4. le vocabulaire fonctionnel visible est `Proprietes` pour `rental_properties` et `Biens locatifs` pour `rental_units`; `rental_property_members` reste une route technique, non exposee dans le sous-menu ;
-5. un bien locatif porte son type (`apartment`, `house`, `garage`, `parking`, `commercial_space`, `room`, `storage`, `other`), une surface, le statut meuble ou non, sa disponibilite (`available` ou `unavailable`) et des reperes optionnels d'adresse, batiment, etage ou porte ;
-6. `Disponible` signifie qu'un bail peut etre cree ; `Indisponible` bloque la creation de bail, par exemple pendant des travaux ; un bien locatif qui possede deja un bail actif (`draft` ou `validated`) n'est pas propose dans la creation d'un nouveau bail ;
-7. une maison louee en entier peut etre saisie comme une propriete avec un bien locatif `Maison entiere` cree automatiquement ;
-8. les pages historiques gardent leurs routes techniques actuelles (`/private/rental-properties`, `/private/rental-units`, `/private/rental-property-members`, `/private/locations/locataires`, `/private/leases`, `/private/payments`, `/private/charges`) tant que les shims propres ne sont pas migres.
-9. les baux exposent une edition PDF selon le type choisi et un reajustement annuel qui met a jour le loyer et la provision de charges tout en conservant une trace dans les notes du bail ;
-10. la creation d'un loyer calcule le montant cote serveur depuis le loyer du bail, la provision de charges et les lignes diverses saisies ; la quittance reprend ce detail ;
-11. un loyer non solde propose un bouton `Payer` qui ouvre l'ecran Paiements avec le loyer, le solde et la date d'echeance preselectionnes.
+4. la section `Documents agence` ouvre d'abord `Agences` (`rental_agencies`), page dediee aux fiches agences et aux correspondances; `Importer agence` reste reserve a l'upload et aux imports recents ;
+5. le vocabulaire fonctionnel visible est `Proprietes` pour `rental_properties` et `Biens locatifs` pour `rental_units`; `rental_property_members` reste une route technique, non exposee dans le sous-menu ;
+6. un bien locatif porte son type (`apartment`, `house`, `garage`, `parking`, `commercial_space`, `room`, `storage`, `other`), une surface, le statut meuble ou non, sa disponibilite (`available` ou `unavailable`) et des reperes optionnels d'adresse, batiment, etage ou porte ;
+7. `Disponible` signifie qu'un bail peut etre cree ; `Indisponible` bloque la creation de bail, par exemple pendant des travaux ; un bien locatif qui possede deja un bail actif (`draft` ou `validated`) n'est pas propose dans la creation d'un nouveau bail ;
+8. une maison louee en entier peut etre saisie comme une propriete avec un bien locatif `Maison entiere` cree automatiquement ;
+9. les pages historiques gardent leurs routes techniques actuelles (`/private/rental-properties`, `/private/rental-units`, `/private/rental-property-members`, `/private/locations/locataires`, `/private/leases`, `/private/payments`, `/private/charges`) tant que les shims propres ne sont pas migres.
+10. les baux exposent une edition PDF selon le type choisi et un reajustement annuel qui met a jour le loyer et la provision de charges tout en conservant une trace dans les notes du bail ;
+11. la creation d'un loyer calcule le montant cote serveur depuis le loyer du bail, la provision de charges et les lignes diverses saisies ; la quittance reprend ce detail ;
+12. un loyer non solde propose un bouton `Payer` qui ouvre l'ecran Paiements avec le loyer, le solde et la date d'echeance preselectionnes.
 
 Les ecrans doivent etre denses, lisibles et utilisables sur mobile, sans effet marketing ni decoration inutile. Les actions sensibles utilisent confirmation, CSRF, permission serveur et audit.
 
@@ -3307,6 +3314,7 @@ Routes privees PHP actuelles :
 | Locations | GET, POST | `/{private}/payments` | `rental_payments` | acces loyer/propriete | validation, csrf |
 | Locations | GET, POST | `/{private}/charges` | `rental_expenses` | acces propriete et bien locatif optionnel | validation, csrf |
 | Locations | GET, POST | `/{private}/locations/documents` | `rental_documents` | acces propriete et bien locatif optionnel | validation, csrf, storage |
+| Agence | GET, POST | `/{private}/locations/agence` | `rental_agencies` | module `real_estate_rental` | validation, csrf |
 | Agence | GET, POST | `/{private}/locations/agence/imports` | `rental_agency_imports` | module `real_estate_rental` | validation, csrf, storage |
 | Agence | GET, POST | `/{private}/locations/agence/documents-a-classer` | `rental_agency_review` | module `real_estate_rental` | validation, csrf |
 | Locations | GET | `/{private}/locations/documents/{documentId}` | `rental_document_file` | acces propriete/document | not_found, forbidden |

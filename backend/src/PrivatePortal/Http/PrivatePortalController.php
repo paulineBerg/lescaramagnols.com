@@ -150,6 +150,7 @@ final class PrivatePortalController
             'rental_expenses' => $this->handleRentalExpenses($request),
             'rental_regularizations' => $this->handleRentalRegularizations($request),
             'rental_documents' => $this->handleRentalDocuments($request),
+            'rental_agencies' => $this->handleRentalAgencies($request),
             'rental_agency_imports' => $this->handleRentalAgencyImports($request),
             'rental_agency_review' => $this->handleRentalAgencyReview($request),
             'rental_document_file' => $this->handleRentalDocumentFile(
@@ -1999,6 +2000,121 @@ final class PrivatePortalController
         return $this->redirect(private_portal_url('rental_documents') . '?notice=document_uploaded');
     }
 
+    private function handleRentalAgencies(Request $request): Response
+    {
+        $userId = $this->requireRentalModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $query = $request->query();
+        $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
+        $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
+
+        if ($request->method() !== self::METHOD_POST) {
+            return $this->renderRentalAgencies($userId, $notice, $error);
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
+            return $this->renderRentalAgencies($userId, '', 'rental_invalid_request');
+        }
+
+        $body = $request->body();
+        $action = is_string($body['action'] ?? null) ? trim((string) $body['action']) : '';
+        if ($action === 'create_agency') {
+            $agencyName = is_string($body['agency_name'] ?? null) ? trim((string) $body['agency_name']) : '';
+            $created = $this->agencyImportRepository()->createAgency($userId, $agencyName, $this->agencyDetailsFromBody($body));
+            $this->logEvent('private.rental_agency.agency_created', [
+                'private_user_id' => $userId,
+                'agency_name' => $agencyName,
+                'success' => $created,
+            ]);
+
+            return $this->redirect($this->rentalAgenciesUrl(
+                $created ? 'agency_created' : '',
+                $created ? '' : 'agency_create_failed'
+            ));
+        }
+
+        if ($action === 'update_agency') {
+            $agencyId = $this->normalizeNumericId($body['agency_id'] ?? null);
+            $agencyName = is_string($body['agency_name'] ?? null) ? trim((string) $body['agency_name']) : '';
+            $updated = $this->agencyImportRepository()->updateAgencyForUser(
+                $userId,
+                $agencyId,
+                $agencyName,
+                $this->agencyDetailsFromBody($body)
+            );
+            $this->logEvent('private.rental_agency.agency_updated', [
+                'private_user_id' => $userId,
+                'agency_id' => $agencyId,
+                'agency_name' => $agencyName,
+                'success' => $updated,
+            ]);
+
+            return $this->redirect($this->rentalAgenciesUrl(
+                $updated ? 'agency_updated' : '',
+                $updated ? '' : 'agency_update_failed'
+            ));
+        }
+
+        if ($action === 'delete_agency') {
+            $agencyId = $this->normalizeNumericId($body['agency_id'] ?? null);
+            $deleted = $this->agencyImportRepository()->deleteAgencyForUser($userId, $agencyId);
+            $this->logEvent('private.rental_agency.agency_deleted', [
+                'private_user_id' => $userId,
+                'agency_id' => $agencyId,
+                'success' => $deleted,
+            ]);
+
+            return $this->redirect($this->rentalAgenciesUrl(
+                $deleted ? 'agency_deleted' : '',
+                $deleted ? '' : 'agency_delete_failed'
+            ));
+        }
+
+        if ($action === 'create_agency_unit_mapping') {
+            $agencyName = is_string($body['agency_name'] ?? null) ? trim((string) $body['agency_name']) : '';
+            $matchText = is_string($body['match_text'] ?? null) ? trim((string) $body['match_text']) : '';
+            $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
+            $unit = $unitId > 0 ? $this->rentalUnitRepository()->findById($unitId) : null;
+            $propertyId = $unit !== null ? $unit->rentalPropertyId : 0;
+            $created = $unit !== null
+                && $this->canWriteByPropertyId($propertyId, $userId)
+                && $this->agencyImportRepository()->createUnitMapping($userId, $agencyName, $matchText, $propertyId, $unitId);
+            $this->logEvent('private.rental_agency.unit_mapping_created', [
+                'private_user_id' => $userId,
+                'agency_name' => $agencyName,
+                'match_text' => $matchText,
+                'rental_property_id' => $propertyId,
+                'rental_unit_id' => $unitId,
+                'success' => $created,
+            ]);
+
+            return $this->redirect($this->rentalAgenciesUrl(
+                $created ? 'agency_unit_mapping_created' : '',
+                $created ? '' : 'agency_unit_mapping_failed'
+            ));
+        }
+
+        if ($action === 'delete_agency_unit_mapping') {
+            $mappingId = $this->normalizeNumericId($body['agency_unit_mapping_id'] ?? null);
+            $deleted = $this->agencyImportRepository()->deleteUnitMappingForUser($userId, $mappingId);
+            $this->logEvent('private.rental_agency.unit_mapping_deleted', [
+                'private_user_id' => $userId,
+                'agency_unit_mapping_id' => $mappingId,
+                'success' => $deleted,
+            ]);
+
+            return $this->redirect($this->rentalAgenciesUrl(
+                $deleted ? 'agency_unit_mapping_deleted' : '',
+                $deleted ? '' : 'agency_unit_mapping_delete_failed'
+            ));
+        }
+
+        return $this->renderRentalAgencies($userId, '', 'rental_invalid_request');
+    }
+
     private function handleRentalAgencyImports(Request $request): Response
     {
         $userId = $this->requireRentalModuleUser($request);
@@ -2030,8 +2146,7 @@ final class PrivatePortalController
                 'success' => $created,
             ]);
 
-            return $this->redirect($this->rentalAgencyImportsUrl(
-                'agencies',
+            return $this->redirect($this->rentalAgenciesUrl(
                 $created ? 'agency_created' : '',
                 $created ? '' : 'agency_create_failed'
             ));
@@ -2053,8 +2168,7 @@ final class PrivatePortalController
                 'success' => $updated,
             ]);
 
-            return $this->redirect($this->rentalAgencyImportsUrl(
-                'agencies',
+            return $this->redirect($this->rentalAgenciesUrl(
                 $updated ? 'agency_updated' : '',
                 $updated ? '' : 'agency_update_failed'
             ));
@@ -2078,8 +2192,7 @@ final class PrivatePortalController
                 'success' => $created,
             ]);
 
-            return $this->redirect($this->rentalAgencyImportsUrl(
-                'agencies',
+            return $this->redirect($this->rentalAgenciesUrl(
                 $created ? 'agency_unit_mapping_created' : '',
                 $created ? '' : 'agency_unit_mapping_failed'
             ));
@@ -2094,8 +2207,7 @@ final class PrivatePortalController
                 'success' => $deleted,
             ]);
 
-            return $this->redirect($this->rentalAgencyImportsUrl(
-                'agencies',
+            return $this->redirect($this->rentalAgenciesUrl(
                 $deleted ? 'agency_unit_mapping_deleted' : '',
                 $deleted ? '' : 'agency_unit_mapping_delete_failed'
             ));
@@ -2176,7 +2288,7 @@ final class PrivatePortalController
     private function agencyImportTab(mixed $value): string
     {
         $tab = is_scalar($value) ? trim((string) $value) : '';
-        return in_array($tab, ['documents', 'imports', 'agencies'], true) ? $tab : 'documents';
+        return in_array($tab, ['documents', 'imports'], true) ? $tab : 'documents';
     }
 
     /**
@@ -2304,6 +2416,19 @@ final class PrivatePortalController
         }
 
         return private_portal_url('rental_agency_imports') . '?' . http_build_query($query);
+    }
+
+    private function rentalAgenciesUrl(string $notice = '', string $error = ''): string
+    {
+        $query = [];
+        if ($notice !== '') {
+            $query['notice'] = $notice;
+        }
+        if ($error !== '') {
+            $query['error'] = $error;
+        }
+
+        return private_portal_url('rental_agencies') . ($query === [] ? '' : '?' . http_build_query($query));
     }
 
     private function deleteAgencyImportedDocumentFile(AgencyImportedDocument $document): void
@@ -4348,6 +4473,29 @@ final class PrivatePortalController
         ));
     }
 
+    private function renderRentalAgencies(int $userId, string $notice = '', string $error = ''): Response
+    {
+        $propertyIds = $this->authorizedPropertyIds($userId);
+        $properties = $propertyIds === []
+            ? []
+            : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
+        $units = $propertyIds === []
+            ? []
+            : $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
+
+        return $this->render('modules/real-estate-rental/agencies', array_merge(
+            $this->rentalBaseViewModel('Agences', $notice, $error),
+            [
+                'rentalCurrentSection' => 'agency',
+                'rentalCurrentSubsection' => 'agencies',
+                'agencyImportAgencies' => $this->agencyImportRepository()->listAgencies($userId, 100),
+                'agencyImportUnitMappings' => $this->agencyImportRepository()->listUnitMappings($userId, 200),
+                'agencyImportProperties' => $this->objectsToArrays($properties),
+                'agencyImportUnits' => $this->objectsToArrays($units),
+            ]
+        ));
+    }
+
     private function renderRentalAgencyReview(
         int $userId,
         int $documentId = 0,
@@ -5283,6 +5431,7 @@ final class PrivatePortalController
                 'expenses' => private_portal_url('rental_expenses'),
                 'regularizations' => private_portal_url('rental_regularizations'),
                 'documents' => private_portal_url('rental_documents'),
+                'agencies' => private_portal_url('rental_agencies'),
                 'agencyImports' => private_portal_url('rental_agency_imports'),
                 'agencyReview' => private_portal_url('rental_agency_review'),
                 'summary' => private_portal_url('rental_summary'),
@@ -5802,6 +5951,7 @@ final class PrivatePortalController
             'agency_document_deleted' => 'Document agence supprimé.',
             'agency_created' => 'Agence créée.',
             'agency_updated' => 'Agence mise à jour.',
+            'agency_deleted' => 'Agence supprimée.',
             'agency_unit_mapping_created' => 'Correspondance agence créée.',
             'agency_unit_mapping_deleted' => 'Correspondance agence supprimée.',
             'agency_statement_property_updated' => 'Rattachement du relevé mis à jour.',
@@ -5845,6 +5995,7 @@ final class PrivatePortalController
             'agency_document_delete_failed' => 'Suppression du document agence impossible.',
             'agency_create_failed' => 'Création de l’agence impossible.',
             'agency_update_failed' => 'Mise à jour de l’agence impossible.',
+            'agency_delete_failed' => 'Suppression de l’agence impossible.',
             'agency_unit_mapping_failed' => 'Création de la correspondance agence impossible.',
             'agency_unit_mapping_delete_failed' => 'Suppression de la correspondance agence impossible.',
             'agency_review_failed' => 'Revue agence impossible.',
@@ -6418,6 +6569,7 @@ final class PrivatePortalController
             'modules/real-estate-rental/expenses' => 'rental_expenses',
             'modules/real-estate-rental/regularizations' => 'rental_regularizations',
             'modules/real-estate-rental/documents' => 'rental_documents',
+            'modules/real-estate-rental/agencies' => 'rental_agencies',
             'modules/real-estate-rental/agency-imports' => 'rental_agency_imports',
             'modules/real-estate-rental/agency-review' => 'rental_agency_review',
             'modules/real-estate-rental/summary' => 'rental_summary',

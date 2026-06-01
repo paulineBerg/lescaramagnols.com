@@ -103,6 +103,13 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertStringContainsString('Maison A', $dashboard->body);
         $this->assertStringNotContainsString('Maison B', $dashboard->body);
 
+        $agencies = $controller->handle('rental_agencies', $this->request('GET', '/private/locations/agence'));
+        $this->assertSame(200, $agencies->status);
+        $this->assertStringContainsString('Agences', $agencies->body);
+        $this->assertStringContainsString('Créer une agence', $agencies->body);
+        $this->assertStringContainsString('Importer agence', $agencies->body);
+        $this->assertStringNotContainsString('Importer des documents agence', $agencies->body);
+
         $regularizations = $controller->handle('rental_regularizations', $this->request('GET', '/private/locations/regularisations'));
         $this->assertSame(200, $regularizations->status);
         $this->assertStringContainsString('Regularisations', $regularizations->body);
