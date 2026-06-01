@@ -84,6 +84,7 @@ foreach ($leaseTypes as $leaseType) {
     $leaseTypeTaxLabels[(string) $leaseType['code']] = (string) ($leaseType['taxLabel'] ?? '');
 }
 $createDialogId = 'rental-lease-create-dialog';
+$importDialogId = 'rental-lease-import-dialog';
 ?>
 <section>
   <?php include __DIR__ . '/_nav.php'; ?>
@@ -101,7 +102,10 @@ $createDialogId = 'rental-lease-create-dialog';
         <h2>Baux</h2>
         <p class="muted">Contrats classés par propriété, bien locatif, locataire, type et statut.</p>
       </div>
-      <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$canCreateLease ? ' disabled' : ''; ?>>Créer un bail</button>
+      <div class="private-actions">
+        <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$canCreateLease ? ' disabled' : ''; ?>>Créer un bail</button>
+        <button type="button" class="private-button-secondary" data-private-dialog-open="<?php echo htmlspecialchars($importDialogId, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $leases === [] ? ' disabled' : ''; ?>>Importer un bail</button>
+      </div>
     </div>
     <?php if (!$canCreateLease) : ?>
       <p class="muted">Un bail exige une propriété, un bien locatif disponible sans bail actif et un locataire rattaché au bien locatif.</p>
@@ -378,6 +382,46 @@ $createDialogId = 'rental-lease-create-dialog';
           </label>
           <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
           <button type="submit" data-rental-lease-submit>Créer le bail</button>
+        </form>
+      <?php endif; ?>
+    </div>
+  </dialog>
+  <dialog class="private-dialog" id="<?php echo htmlspecialchars($importDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($importDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
+    <div class="private-dialog-panel">
+      <header class="private-dialog-header">
+        <h3 id="<?php echo htmlspecialchars($importDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Importer un bail</h3>
+        <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+      </header>
+      <?php if ($leases === []) : ?>
+        <p class="muted">Créer d’abord un bail.</p>
+      <?php else : ?>
+        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+          <input type="hidden" name="action" value="upload_lease_document" />
+          <label>Bail
+            <select name="lease_id" required>
+              <?php foreach ($leases as $lease) : ?>
+                    <?php if (!is_array($lease) || !is_numeric($lease['id'] ?? null)) {
+                        continue;
+                    } ?>
+                    <?php
+                    $leaseId = (int) $lease['id'];
+                    $leaseLabel = trim(implode(' - ', array_filter([
+                        (string) ($lease['propertyName'] ?? ''),
+                        (string) ($lease['unitLabel'] ?? ''),
+                        (string) ($lease['tenantName'] ?? ''),
+                    ])));
+                    if ($leaseLabel === '') {
+                        $leaseLabel = 'Bail #' . $leaseId;
+                    }
+                    ?>
+                <option value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($leaseLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <label>Nom du document <input type="text" name="document_name" maxlength="255" placeholder="Bail signé" /></label>
+          <label>Fichier <input type="file" name="rental_document_file" required /></label>
+          <button type="submit">Importer le bail</button>
         </form>
       <?php endif; ?>
     </div>

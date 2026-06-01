@@ -747,7 +747,9 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertSame(200, $leasesResponse->status);
         $dialogStart = strpos($leasesResponse->body, 'id="rental-lease-create-dialog"');
         $this->assertIsInt($dialogStart);
-        $createDialogHtml = substr($leasesResponse->body, $dialogStart);
+        $dialogEnd = strpos($leasesResponse->body, 'id="rental-lease-import-dialog"', $dialogStart);
+        $this->assertIsInt($dialogEnd);
+        $createDialogHtml = substr($leasesResponse->body, $dialogStart, $dialogEnd - $dialogStart);
         $this->assertStringContainsString('Lot libre', $createDialogHtml);
         $this->assertStringContainsString('Locataire libre', $createDialogHtml);
         $this->assertStringContainsString('Lot debloque', $createDialogHtml);

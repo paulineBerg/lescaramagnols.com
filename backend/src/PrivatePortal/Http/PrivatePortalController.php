@@ -469,6 +469,7 @@ final class PrivatePortalController
             'privateModules' => $privateModules,
             'privateDocumentsEnabled' => true,
             'privateDocuments' => $this->privateDocumentRepository()->listActiveByUser($userId, self::MAX_DOCUMENT_LIST),
+            'privateRentalDocumentsEnabled' => in_array('real_estate_rental', $privateModules, true),
             'privateRentalDocuments' => $rentalDocuments,
             'privateDocumentCategories' => $this->privateDocumentRepository()->listCategoriesForUser($userId),
             'privateDocumentCategoryColors' => PrivateDocumentRepository::CATEGORY_COLORS,

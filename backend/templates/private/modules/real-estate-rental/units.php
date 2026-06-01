@@ -74,7 +74,7 @@ foreach ($properties as $property) {
           <tr>
             <th>Bien locatif</th>
             <th>Propriété</th>
-                <th>Type</th>
+                <th>Type appartement</th>
                 <th>Adresse / repère</th>
                 <th>Fiscal / pièces</th>
                 <th>Surface</th>
@@ -188,7 +188,7 @@ foreach ($properties as $property) {
               <label>Bâtiment <input type="text" name="building" maxlength="120" value="<?php echo htmlspecialchars((string) ($unit['building'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                   <label>Étage <input type="text" name="floor" maxlength="64" value="<?php echo htmlspecialchars((string) ($unit['floor'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                   <label>Porte / repère <input type="text" name="door" maxlength="64" value="<?php echo htmlspecialchars((string) ($unit['door'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
-              <label>Type
+              <label>Type appartement
                 <select name="unit_type" required>
                   <?php foreach ($unitTypes as $value => $label) : ?>
                     <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $unitType === $value ? 'selected' : ''; ?>>
@@ -254,7 +254,7 @@ foreach ($properties as $property) {
           <label>Bâtiment <input type="text" name="building" maxlength="120" /></label>
               <label>Étage <input type="text" name="floor" maxlength="64" /></label>
               <label>Porte / repère <input type="text" name="door" maxlength="64" /></label>
-          <label>Type
+          <label>Type appartement
             <select name="unit_type" required>
               <?php foreach ($unitTypes as $value => $label) : ?>
                 <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>

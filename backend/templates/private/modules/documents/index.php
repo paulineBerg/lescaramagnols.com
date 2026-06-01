@@ -15,6 +15,7 @@ $translate = static function (string $key, string $fallback): string {
 $h = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $privateDocumentsEnabled = is_bool($privateDocumentsEnabled ?? null) ? (bool) $privateDocumentsEnabled : false;
 $privateDocuments = is_array($privateDocuments ?? null) ? $privateDocuments : [];
+$privateRentalDocumentsEnabled = is_bool($privateRentalDocumentsEnabled ?? null) ? (bool) $privateRentalDocumentsEnabled : false;
 $privateRentalDocuments = is_array($privateRentalDocuments ?? null) ? $privateRentalDocuments : [];
 $privateDocumentCategories = is_array($privateDocumentCategories ?? null) ? $privateDocumentCategories : [];
 $privateDocumentsUploadUrl = is_string($privateDocumentsUploadUrl ?? null) ? (string) $privateDocumentsUploadUrl : private_portal_url('files_upload');
@@ -284,51 +285,54 @@ $privateDocumentCategoryDialogId = 'private-document-category-dialog';
       </div>
     <?php endif; ?>
 
-    <?php if ($privateRentalDocuments !== []) : ?>
+    <?php if ($privateRentalDocumentsEnabled) : ?>
       <section class="private-documents-panel private-block-spaced">
         <h3>Documents locatifs</h3>
-        <p class="muted">Documents importés depuis le module Locations immobilières, dont les baux.</p>
-        <div class="private-documents-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Catégorie</th>
-                <th>Propriété</th>
-                <th>Rattachement</th>
-                <th>Ajouté le</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($privateRentalDocuments as $document) : ?>
-                    <?php if (!is_array($document)) {
-                        continue;
-                    } ?>
-                    <?php
-                    $documentId = is_string($document['documentId'] ?? null) ? trim((string) $document['documentId']) : '';
-                    if ($documentId === '') {
-                        continue;
-                    }
-                    $title = is_string($document['displayName'] ?? null) && trim((string) $document['displayName']) !== ''
-                    ? trim((string) $document['displayName'])
-                    : (string) ($document['originalName'] ?? $documentId);
-                    $category = is_string($document['category'] ?? null) ? (string) $document['category'] : 'Document';
-                    $attachment = (string) (($document['expenseLabel'] ?? '') ?: ($document['leaseTenantName'] ?? '') ?: ($document['unitLabel'] ?? ''));
-                    $downloadUrl = rtrim($privateRentalFilesBaseUrl, '/') . '/' . rawurlencode($documentId);
-                    ?>
+        <?php if ($privateRentalDocuments === []) : ?>
+          <p class="muted">Aucun document locatif enregistré.</p>
+        <?php else : ?>
+          <div class="private-documents-table-wrap">
+            <table>
+              <thead>
                 <tr>
-                  <td><a href="<?php echo $h($downloadUrl); ?>"><?php echo $h($title); ?></a></td>
-                  <td><span class="tag"><?php echo $h($category); ?></span></td>
-                  <td><?php echo $h($document['propertyName'] ?? ''); ?></td>
-                  <td><?php echo $h($attachment); ?></td>
-                  <td><?php echo $h($document['uploadedAt'] ?? ''); ?></td>
-                  <td><a class="private-row-action" href="<?php echo $h($downloadUrl); ?>">Télécharger</a></td>
+                  <th>Nom</th>
+                  <th>Catégorie</th>
+                  <th>Propriété</th>
+                  <th>Rattachement</th>
+                  <th>Ajouté le</th>
+                  <th>Actions</th>
                 </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                <?php foreach ($privateRentalDocuments as $document) : ?>
+                        <?php if (!is_array($document)) {
+                            continue;
+                        } ?>
+                        <?php
+                        $documentId = is_string($document['documentId'] ?? null) ? trim((string) $document['documentId']) : '';
+                        if ($documentId === '') {
+                            continue;
+                        }
+                        $title = is_string($document['displayName'] ?? null) && trim((string) $document['displayName']) !== ''
+                        ? trim((string) $document['displayName'])
+                        : (string) ($document['originalName'] ?? $documentId);
+                        $category = is_string($document['category'] ?? null) ? (string) $document['category'] : 'Document';
+                        $attachment = (string) (($document['expenseLabel'] ?? '') ?: ($document['leaseTenantName'] ?? '') ?: ($document['unitLabel'] ?? ''));
+                        $downloadUrl = rtrim($privateRentalFilesBaseUrl, '/') . '/' . rawurlencode($documentId);
+                        ?>
+                  <tr>
+                    <td><a href="<?php echo $h($downloadUrl); ?>"><?php echo $h($title); ?></a></td>
+                    <td><span class="tag"><?php echo $h($category); ?></span></td>
+                    <td><?php echo $h($document['propertyName'] ?? ''); ?></td>
+                    <td><?php echo $h($attachment); ?></td>
+                    <td><?php echo $h($document['uploadedAt'] ?? ''); ?></td>
+                    <td><a class="private-row-action" href="<?php echo $h($downloadUrl); ?>">Télécharger</a></td>
+                  </tr>
+                <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+        <?php endif; ?>
       </section>
     <?php endif; ?>
 
