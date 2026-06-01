@@ -15,7 +15,7 @@ use Caramagnols\Support\PhpCliBinary;
 
 final class AdminSettingsService
 {
-    private const SECRET_FIELD_MASK = '**********';
+    private const SECRET_FIELD_MASK = '*****';
 
     private AppEventLogger $eventLogger;
     private ?InstagramFeedService $instagramFeedService;
@@ -368,7 +368,7 @@ final class AdminSettingsService
 
     private function isSecretFieldMask(string $value): bool
     {
-        return preg_match('/^\*{6,}$/', trim($value)) === 1;
+        return preg_match('/^\*{5,}$/', trim($value)) === 1;
     }
 
     private function normalizeBooleanValue(mixed $value, bool $fallback): bool

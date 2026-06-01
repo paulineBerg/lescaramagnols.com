@@ -762,7 +762,7 @@ Minimum utile :
   - edition des parametres BDD : adresse, port, nom de base, identifiant, mot de passe, prefixe
   - edition de la connexion admin : identifiant, mot de passe
   - sauvegarde securisee hors webroot
-  - affichage masque des secrets
+  - affichage masque des secrets avec le masque standard `*****`, interprete comme valeur inchangee cote serveur lorsqu'un secret existe deja
   - journalisation des modifications sensibles
 
 Choix ergonomique recommande :

@@ -125,7 +125,7 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('name="smtp_password"', $template);
         self::assertStringContainsString('name="send_test"', $template);
         self::assertStringContainsString('private-password-toggle', $template);
-        self::assertStringContainsString(" ? '******' : ''", $template);
+        self::assertStringContainsString(" ? '*****' : ''", $template);
         self::assertStringContainsString('notice notice-success private-screen-notice', $template);
         self::assertStringContainsString('notice notice-error private-screen-notice', $template);
         self::assertStringContainsString('private-settings-smtp-required-dialog', $template);

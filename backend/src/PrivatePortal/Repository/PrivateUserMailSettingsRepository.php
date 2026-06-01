@@ -9,7 +9,7 @@ use PDO;
 
 final class PrivateUserMailSettingsRepository
 {
-    private const SECRET_MASK = '******';
+    private const SECRET_MASK = '*****';
     private const ENCRYPTION_CIPHER = 'aes-256-gcm';
     private const ALLOWED_ENCRYPTIONS = ['', 'ssl', 'tls', 'starttls'];
 
@@ -102,7 +102,7 @@ final class PrivateUserMailSettingsRepository
         $clearPassword = $this->booleanValue($payload['clear_smtp_password'] ?? false);
         if ($clearPassword) {
             $passwordCiphertext = null;
-        } elseif ($password !== '' && $password !== self::SECRET_MASK) {
+        } elseif ($password !== '' && !$this->isSubmittedSecretMask($password, (bool) ($existingSettings['smtpPasswordConfigured'] ?? false))) {
             $passwordCiphertext = $this->encryptSecret($password);
             if ($passwordCiphertext === null) {
                 return $this->saveResult(false, 'encryption_unavailable', $settings['data']);
@@ -376,6 +376,11 @@ final class PrivateUserMailSettingsRepository
         $value = is_scalar($value) ? trim((string) $value) : '';
 
         return strlen($value) > 512 ? substr($value, 0, 512) : $value;
+    }
+
+    private function isSubmittedSecretMask(string $value, bool $secretConfigured): bool
+    {
+        return $secretConfigured && preg_match('/^\*{5,}$/', trim($value)) === 1;
     }
 
     private function booleanValue(mixed $value): bool

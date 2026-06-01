@@ -394,7 +394,7 @@ final class AdminControllerTest extends TestCase
                         'smtp_port' => '465',
                         'smtp_encryption' => 'ssl',
                         'smtp_user' => 'ne-pas-repondre@lescaramagnols.com',
-                        'smtp_password' => '**********',
+                        'smtp_password' => '*****',
                         'from_address' => 'ne-pas-repondre@lescaramagnols.com',
                         'from_name' => 'Les Caramagnols',
                         'reply_to' => 'private@lescaramagnols.com',
@@ -720,7 +720,7 @@ final class AdminControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Identifiants invalides.', $response->body);
-        $this->assertStringContainsString('Saisis le code temporaire à 6 chiffres généré par l’application TOTP', $response->body);
+        $this->assertStringNotContainsString('Saisis le code temporaire à 6 chiffres généré par l’application TOTP', $response->body);
         $this->assertStringNotContainsString('inconnu', $response->body);
 
         $securityLogPath = $this->logDir . '/security.log';
@@ -2755,18 +2755,18 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('name="backup[database_user]"', $response->body);
         $this->assertStringContainsString('name="backup[database_password]"', $response->body);
         $this->assertStringContainsString('Connexion SQL utilisee par le site et par le dump mysqldump', $response->body);
-        $this->assertStringContainsString('id="database_password" name="database[password]" type="password" value="**********"', $response->body);
-        $this->assertStringContainsString('id="admin_password" name="admin[password]" type="password" value="**********"', $response->body);
-        $this->assertStringContainsString('id="admin_totp_secret" name="admin[totp_secret]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('id="database_password" name="database[password]" type="password" value="*****"', $response->body);
+        $this->assertStringContainsString('id="admin_password" name="admin[password]" type="password" value="*****"', $response->body);
+        $this->assertStringContainsString('id="admin_totp_secret" name="admin[totp_secret]" type="password" value="*****"', $response->body);
         $this->assertStringContainsString('data-admin-totp-generate', $response->body);
         $this->assertStringContainsString('data-admin-totp-open-qr="true"', $response->body);
         $this->assertStringContainsString('Générer le secret et afficher le QR code', $response->body);
         $this->assertDoesNotMatchRegularExpression('/<button\b(?=[^>]*data-admin-totp-qr(?:\s|>|=))/s', $response->body);
         $this->assertStringNotContainsString('Afficher le QR code', $response->body);
         $this->assertStringContainsString('Cette clé longue sert à inscrire le compte dans l’application TOTP', $response->body);
-        $this->assertStringContainsString('id="discussion_recaptcha_secret_key" name="discussions[recaptcha_secret_key]" type="password" value="**********"', $response->body);
-        $this->assertStringContainsString('id="instagram_access_token" name="instagram[access_token]" type="password" value="**********"', $response->body);
-        $this->assertStringContainsString('id="backup-database-password" name="backup[database_password]" type="password" value="**********"', $response->body);
+        $this->assertStringContainsString('id="discussion_recaptcha_secret_key" name="discussions[recaptcha_secret_key]" type="password" value="*****"', $response->body);
+        $this->assertStringContainsString('id="instagram_access_token" name="instagram[access_token]" type="password" value="*****"', $response->body);
+        $this->assertStringContainsString('id="backup-database-password" name="backup[database_password]" type="password" value="*****"', $response->body);
         $this->assertStringContainsString('data-admin-secret-mask="true"', $response->body);
         $this->assertStringContainsString('data-admin-password-toggle', $response->body);
         $this->assertStringNotContainsString('configured-database-secret', $response->body);
@@ -2988,7 +2988,7 @@ final class AdminControllerTest extends TestCase
                         'database_port' => '35987',
                         'database_name' => 'CarBDbase',
                         'database_user' => 'db_user_example',
-                        'database_password' => '**********',
+                        'database_password' => '*****',
                     ],
                 ]
             )
@@ -3333,15 +3333,15 @@ final class AdminControllerTest extends TestCase
                         'port' => '3306',
                         'name' => 'existing_db',
                         'user' => 'existing_user',
-                        'password' => '**********',
+                        'password' => '*****',
                         'prefix' => 'car_',
                     ],
                     'admin' => [
                         'identifier' => 'admin@example.com',
-                        'password' => '**********',
+                        'password' => '*****',
                         'allowed_ips' => '',
                         'totp_enabled' => '1',
-                        'totp_secret' => '**********',
+                        'totp_secret' => '*****',
                         'inactivity_timeout_seconds' => '1200',
                         'reauth_timeout_seconds' => '600',
                     ],
@@ -3349,13 +3349,13 @@ final class AdminControllerTest extends TestCase
                         'recaptcha_enabled' => '1',
                         'recaptcha_mode' => 'v2_checkbox',
                         'recaptcha_site_key' => 'existing-site-key',
-                        'recaptcha_secret_key' => '**********',
+                        'recaptcha_secret_key' => '*****',
                     ],
                     'instagram' => [
                         'enabled' => '1',
                         'username' => 'paulineetnoel',
                         'user_id' => '17841400011122233',
-                        'access_token' => '**********',
+                        'access_token' => '*****',
                         'limit' => '6',
                         'rotation_interval_ms' => '5500',
                         'cache_ttl_seconds' => '1800',
@@ -3377,7 +3377,7 @@ final class AdminControllerTest extends TestCase
 
         $this->assertSame('existing-db-secret', $databaseOverride['password'] ?? null);
         $this->assertTrue(password_verify('topsecret', (string) ($adminOverride['password_hash'] ?? '')));
-        $this->assertFalse(password_verify('**********', (string) ($adminOverride['password_hash'] ?? '')));
+        $this->assertFalse(password_verify('*****', (string) ($adminOverride['password_hash'] ?? '')));
         $this->assertSame('JBSWY3DPEHPK3PXP', $adminOverride['totp_secret'] ?? null);
         $this->assertSame('existing-recaptcha-secret', $siteOverride['discussions']['recaptcha']['secret_key'] ?? null);
         $this->assertSame('existing-instagram-token', $siteOverride['instagram']['access_token'] ?? null);

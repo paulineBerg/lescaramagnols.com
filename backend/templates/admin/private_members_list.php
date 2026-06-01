@@ -149,7 +149,7 @@ $statusLabels = [
           <input id="private_mail_smtp_password" name="private_mail[smtp_password]" type="password" value="<?php echo $escape((string) ($privateMail['smtpPassword'] ?? '')); ?>" autocomplete="new-password"<?php echo $secretMaskAttribute(!empty($privateMail['smtpPasswordConfigured'])); ?> />
           <?php echo $renderSecretToggleButton('private_mail_smtp_password'); ?>
         </div>
-        <small><?php echo $escape(!empty($privateMail['smtpPasswordConfigured']) ? $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_SET', 'Laisser les ********** ou vider le champ pour conserver le mot de passe enregistré.') : $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_EMPTY', 'Renseigner le mot de passe avant activation en production.')); ?></small>
+        <small><?php echo $escape(!empty($privateMail['smtpPasswordConfigured']) ? $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_SET', 'Laisser les ***** ou vider le champ pour conserver le mot de passe enregistré.') : $translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_PASSWORD_EMPTY', 'Renseigner le mot de passe avant activation en production.')); ?></small>
       </div>
       <div class="field">
         <label for="private_mail_from_address"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_PRIVATE_MAIL_FROM', 'Adresse expéditeur')); ?></label>

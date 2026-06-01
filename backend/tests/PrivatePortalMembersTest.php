@@ -302,7 +302,7 @@ final class PrivatePortalMembersTest extends TestCase
                 'smtp_host' => 'smtp.example.com',
                 'smtp_port' => '587',
                 'smtp_user' => 'smtp-member@example.com',
-                'smtp_password' => '******',
+                'smtp_password' => '*****',
                 'smtp_encryption' => 'tls',
                 'from_address' => 'smtp-member@example.com',
                 'from_name' => 'Membre SMTP modifie',

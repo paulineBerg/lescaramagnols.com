@@ -190,7 +190,7 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
         <label>
           <?php echo $escape($translate('TXT_PRIVATE_SETTINGS_SMTP_PASSWORD', 'Mot de passe SMTP')); ?>
           <span class="private-password-field">
-            <input id="private-member-smtp-password" type="password" name="smtp_password" maxlength="512" value="<?php echo !empty($smtp['smtpPasswordConfigured']) ? '******' : ''; ?>" autocomplete="new-password" />
+            <input id="private-member-smtp-password" type="password" name="smtp_password" maxlength="512" value="<?php echo !empty($smtp['smtpPasswordConfigured']) ? '*****' : ''; ?>" autocomplete="new-password" />
             <button
               type="button"
               class="private-password-toggle"

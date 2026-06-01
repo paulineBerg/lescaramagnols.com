@@ -20,11 +20,16 @@ Mise a jour 2026-06-01 (recuperation admin et TOTP) :
 - la generation du secret TOTP se fait avec un seul bouton qui genere la cle et affiche le QR code `otpauth://` dans une popup locale, sans service externe, afin de distinguer la cle secrete longue du code TOTP a `6` chiffres.
 
 Mise a jour 2026-06-01 (retours SMTP membre) :
-- dans `Parametres > SMTP`, un mot de passe SMTP deja enregistre s'affiche sous la forme `******`; ce masque est aussi reconnu cote serveur comme une valeur inchangee afin de ne pas rechiffrer le masque comme secret;
+- dans `Parametres > SMTP`, un mot de passe SMTP deja enregistre s'affiche sous la forme `*****`; ce masque est aussi reconnu cote serveur comme une valeur inchangee afin de ne pas rechiffrer le masque comme secret;
 - le bouton `Afficher` / `Masquer` du mot de passe SMTP est integre dans le champ, comme les autres champs mot de passe de l'espace prive;
 - les actions `Enregistrer SMTP` et `Enregistrer et tester` affichent un message visible de succes ou d'erreur sur la page `Parametres`.
 - l'adresse `Email de test` soumise reste affichee apres une erreur de sauvegarde ou d'envoi; une configuration membre absente affiche l'erreur SMTP requise au lieu d'un echec de test generique.
 - `PRIVATE_MAIL_SETTINGS_ENCRYPTION_KEY` doit etre renseignee hors depot sur chaque environnement qui sauvegarde un mot de passe SMTP membre; sans cette cle, la page affiche l'erreur de chiffrement manquante et refuse d'enregistrer un nouveau secret.
+
+Regle projet pour les champs secrets :
+- tout champ secret deja renseigne doit afficher le masque standard `*****`, jamais la valeur reelle;
+- cote serveur, `*****` et les anciens masques composes uniquement d'asterisques restent interpretes comme `valeur inchangee` lorsqu'un secret existe deja;
+- si le champ est vide, la valeur existante est conservee sauf action explicite de suppression; si une nouvelle valeur non masquee est saisie, elle est stockee par le mecanisme protege du domaine concerne.
 
 Mise a jour 2026-05-31 (SMTP membre et fiches agences) :
 - les membres peuvent renseigner leur propre configuration SMTP depuis `Parametres > SMTP`; les envois locatifs sensibles utilisent cette configuration et redirigent vers cet onglet si elle est absente;

@@ -46,7 +46,7 @@ $renderSecretToggleButton = static function (string $inputId) use ($translate): 
         $showLabel
     );
 };
-$secretMask = '**********';
+$secretMask = '*****';
 $secretMaskAttribute = static fn (bool $configured): string => $configured ? ' data-admin-secret-mask="true"' : '';
 $adminInterfaceLanguage = function_exists('admin_interface_language') ? admin_interface_language() : 'fr';
 $settingChoiceLabels = [
@@ -656,7 +656,7 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
               <input id="database_password" name="database[password]" type="password" value="<?php echo htmlspecialchars((string) ($database['password'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" autocomplete="new-password"<?php echo $secretMaskAttribute(!empty($database['passwordConfigured'])); ?> />
               <?php echo $renderSecretToggleButton('database_password'); ?>
             </div>
-            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_DATABASE_PASSWORD_HELP', 'Masqué côté interface. Laisser vide pour conserver la valeur enregistrée'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($database['passwordConfigured']) ? ' (' . htmlspecialchars((string) ($database['passwordMask'] ?? '********'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>.</small>
+            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_DATABASE_PASSWORD_HELP', 'Masqué côté interface. Laisser vide pour conserver la valeur enregistrée'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($database['passwordConfigured']) ? ' (' . htmlspecialchars((string) ($database['passwordMask'] ?? $secretMask), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>.</small>
           </div>
           <div class="field">
             <label for="database_prefix"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_DATABASE_PREFIX_LABEL', 'Préfixe des tables'), ENT_QUOTES, 'UTF-8'); ?></label>
