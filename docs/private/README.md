@@ -36,11 +36,12 @@ Mise a jour 2026-06-01 (retours SMTP membre) :
 - l'adresse `Email de test` soumise reste affichee apres une erreur de sauvegarde ou d'envoi;
 - le SMTP admin prive reste la configuration par defaut pour les envois du BO prive; le SMTP membre est un override optionnel utilise seulement quand sa configuration est complete;
 - si aucun SMTP membre complet n'existe, `Enregistrer et tester` et les envois locatifs utilisent le SMTP admin prive au lieu de bloquer sur `Parametres > SMTP`;
+- quand le SMTP admin prive est la configuration effective et qu'il contient deja un mot de passe, `Parametres > SMTP` affiche aussi le masque `*****`; ce masque indique un secret disponible hors depot et ne doit jamais etre sauvegarde comme un nouveau mot de passe membre;
 - `PRIVATE_MAIL_SETTINGS_ENCRYPTION_KEY` doit etre renseignee hors depot uniquement sur les environnements qui sauvegardent un nouveau mot de passe SMTP membre; son absence ne doit pas bloquer l'usage du SMTP admin prive existant.
 
 Regle projet pour les champs secrets :
 - tout champ secret deja renseigne doit afficher le masque standard `*****`, jamais la valeur reelle;
-- cote serveur, `*****` et les anciens masques composes uniquement d'asterisques restent interpretes comme `valeur inchangee` lorsqu'un secret existe deja;
+- cote serveur, `*****` et les anciens masques composes uniquement d'asterisques restent interpretes comme `valeur inchangee`, y compris lorsque le masque provient d'un secret herite d'une configuration admin;
 - si le champ est vide, la valeur existante est conservee sauf action explicite de suppression; si une nouvelle valeur non masquee est saisie, elle est stockee par le mecanisme protege du domaine concerne.
 
 Mise a jour 2026-05-31 (SMTP membre et fiches agences) :

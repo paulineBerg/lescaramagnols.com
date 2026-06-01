@@ -102,7 +102,7 @@ final class PrivateUserMailSettingsRepository
         $clearPassword = $this->booleanValue($payload['clear_smtp_password'] ?? false);
         if ($clearPassword) {
             $passwordCiphertext = null;
-        } elseif ($password !== '' && !$this->isSubmittedSecretMask($password, (bool) ($existingSettings['smtpPasswordConfigured'] ?? false))) {
+        } elseif ($password !== '' && !$this->isSubmittedSecretMask($password)) {
             $passwordCiphertext = $this->encryptSecret($password);
             if ($passwordCiphertext === null) {
                 return $this->saveResult(false, 'encryption_unavailable', $settings['data']);
@@ -378,9 +378,9 @@ final class PrivateUserMailSettingsRepository
         return strlen($value) > 512 ? substr($value, 0, 512) : $value;
     }
 
-    private function isSubmittedSecretMask(string $value, bool $secretConfigured): bool
+    private function isSubmittedSecretMask(string $value): bool
     {
-        return $secretConfigured && preg_match('/^\*{5,}$/', trim($value)) === 1;
+        return preg_match('/^\*{' . strlen(self::SECRET_MASK) . ',}$/', trim($value)) === 1;
     }
 
     private function booleanValue(mixed $value): bool

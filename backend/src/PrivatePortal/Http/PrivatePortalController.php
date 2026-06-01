@@ -5516,6 +5516,71 @@ final class PrivatePortalController
     }
 
     /**
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    private function memberSmtpSettingsWithGlobalFallback(array $settings): array
+    {
+        $global = $this->privateGlobalMailDisplaySettings();
+        if ($global === [] || !$this->privateGlobalMailConfigAvailable()) {
+            return $settings;
+        }
+
+        $hasOwnSettings = !empty($settings['configured']);
+        if (!$hasOwnSettings) {
+            foreach (['enabled', 'smtpHost', 'smtpPort', 'smtpUser', 'smtpEncryption', 'fromAddress', 'fromName', 'replyTo'] as $key) {
+                $settings[$key] = $global[$key] ?? ($settings[$key] ?? null);
+            }
+        } else {
+            foreach (['smtpHost', 'smtpUser', 'smtpEncryption', 'fromAddress', 'fromName', 'replyTo'] as $key) {
+                if (trim((string) ($settings[$key] ?? '')) === '' && isset($global[$key])) {
+                    $settings[$key] = $global[$key];
+                }
+            }
+
+            if ((int) ($settings['smtpPort'] ?? 0) <= 0 && isset($global['smtpPort'])) {
+                $settings['smtpPort'] = $global['smtpPort'];
+            }
+        }
+
+        if (empty($settings['smtpPasswordConfigured']) && !empty($global['smtpPasswordConfigured'])) {
+            $settings['smtpPasswordDisplayConfigured'] = true;
+        }
+
+        return $settings;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function privateGlobalMailDisplaySettings(): array
+    {
+        if (!function_exists('app_config')) {
+            return [];
+        }
+
+        $config = app_config('private.mail', []);
+        if (!is_array($config)) {
+            return [];
+        }
+
+        return [
+            'enabled' => !empty($config['enabled']),
+            'smtpHost' => is_scalar($config['smtp_host'] ?? null) ? trim((string) $config['smtp_host']) : '',
+            'smtpPort' => is_numeric($config['smtp_port'] ?? null) ? (int) $config['smtp_port'] : 587,
+            'smtpUser' => is_scalar($config['smtp_user'] ?? null) ? trim((string) $config['smtp_user']) : '',
+            'smtpPasswordConfigured' => is_scalar($config['smtp_password'] ?? null)
+                && trim((string) $config['smtp_password']) !== '',
+            'smtpEncryption' => is_scalar($config['smtp_encryption'] ?? null)
+                ? strtolower(trim((string) $config['smtp_encryption']))
+                : 'tls',
+            'fromAddress' => is_scalar($config['from_address'] ?? null) ? trim((string) $config['from_address']) : '',
+            'fromName' => is_scalar($config['from_name'] ?? null) ? trim((string) $config['from_name']) : 'Les Caramagnols',
+            'replyTo' => is_scalar($config['reply_to'] ?? null) ? trim((string) $config['reply_to']) : '',
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $body
      * @param array<string, scalar|null> $variables
      */
@@ -6465,6 +6530,9 @@ final class PrivatePortalController
         string $tab = 'profile'
     ): Response {
         $tab = in_array($tab, ['profile', 'smtp'], true) ? $tab : 'profile';
+        $smtpSettings = $this->memberSmtpSettingsWithGlobalFallback($smtpSettings);
+        $memberSmtpConfigured = $this->privateUserMailSettingsRepository()->isConfiguredForUser($userId);
+        $effectiveSmtpConfigured = $memberSmtpConfigured || $this->privateGlobalMailConfigAvailable();
 
         return $this->render('settings', [
             'privatePageTitle' => $this->translate('TXT_PRIVATE_SETTINGS_PAGE_TITLE', 'Paramètres membre'),
@@ -6472,7 +6540,7 @@ final class PrivatePortalController
             'privateModules' => $this->privateModuleNamesForUser($userId),
             'privateMemberProfile' => $formValues,
             'privateMemberSmtpSettings' => $smtpSettings,
-            'privateMemberSmtpConfigured' => $this->privateUserMailSettingsRepository()->isConfiguredForUser($userId),
+            'privateMemberSmtpConfigured' => $effectiveSmtpConfigured,
             'privateSettingsActiveTab' => $tab,
             'privateSettingsFormAction' => private_portal_url('member_settings'),
             'privateSettingsCsrfToken' => csrf_token(self::CSRF_MEMBER_SETTINGS),

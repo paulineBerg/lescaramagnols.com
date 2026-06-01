@@ -24,6 +24,7 @@ $postalAddress = is_string($profile['postalAddress'] ?? null) ? (string) $profil
 $phone = is_string($profile['phone'] ?? null) ? (string) $profile['phone'] : '';
 $smtp = is_array($viewModel['privateMemberSmtpSettings'] ?? null) ? $viewModel['privateMemberSmtpSettings'] : [];
 $smtpConfigured = !empty($viewModel['privateMemberSmtpConfigured']);
+$smtpPasswordDisplayConfigured = !empty($smtp['smtpPasswordConfigured']) || !empty($smtp['smtpPasswordDisplayConfigured']);
 $activeTab = is_string($viewModel['privateSettingsActiveTab'] ?? null) ? (string) $viewModel['privateSettingsActiveTab'] : 'profile';
 $activeTab = in_array($activeTab, ['profile', 'smtp'], true) ? $activeTab : 'profile';
 $smtpPopup = !empty($viewModel['privateSettingsSmtpPopup']);
@@ -51,19 +52,19 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
   </div>
 </nav>
 
-<?php if ($settingsNotice !== ''): ?>
+<?php if ($settingsNotice !== '') : ?>
   <p class="notice notice-success private-screen-notice" role="status" aria-live="polite">
     <?php echo $escape($settingsNotice); ?>
   </p>
 <?php endif; ?>
 
-<?php if ($settingsError !== ''): ?>
+<?php if ($settingsError !== '') : ?>
   <p class="notice notice-error private-screen-notice" role="alert">
     <?php echo $escape($settingsError); ?>
   </p>
 <?php endif; ?>
 
-<?php if ($activeTab === 'profile'): ?>
+<?php if ($activeTab === 'profile') : ?>
 <section class="private-module-dashboard">
   <div class="private-list-header">
     <div>
@@ -139,7 +140,7 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
 </dialog>
 <?php endif; ?>
 
-<?php if ($activeTab === 'smtp'): ?>
+<?php if ($activeTab === 'smtp') : ?>
 <section class="private-module-dashboard">
   <div class="private-list-header">
     <div>
@@ -175,7 +176,7 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
         <label>
           <?php echo $escape($translate('TXT_PRIVATE_SETTINGS_SMTP_SECURITY', 'Sécurité')); ?>
           <select name="smtp_encryption">
-            <?php foreach (['tls' => 'TLS / STARTTLS', 'ssl' => 'SSL', '' => 'Aucune'] as $value => $label): ?>
+            <?php foreach (['tls' => 'TLS / STARTTLS', 'ssl' => 'SSL', '' => 'Aucune'] as $value => $label) : ?>
               <option value="<?php echo $escape($value); ?>"<?php echo (string) ($smtp['smtpEncryption'] ?? 'tls') === $value ? ' selected' : ''; ?>><?php echo $escape($label); ?></option>
             <?php endforeach; ?>
           </select>
@@ -190,7 +191,7 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
         <label>
           <?php echo $escape($translate('TXT_PRIVATE_SETTINGS_SMTP_PASSWORD', 'Mot de passe SMTP')); ?>
           <span class="private-password-field">
-            <input id="private-member-smtp-password" type="password" name="smtp_password" maxlength="512" value="<?php echo !empty($smtp['smtpPasswordConfigured']) ? '*****' : ''; ?>" autocomplete="new-password" />
+            <input id="private-member-smtp-password" type="password" name="smtp_password" maxlength="512" value="<?php echo $smtpPasswordDisplayConfigured ? '*****' : ''; ?>" autocomplete="new-password" />
             <button
               type="button"
               class="private-password-toggle"
@@ -241,7 +242,7 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
 </section>
 <?php endif; ?>
 
-<?php if ($smtpPopup): ?>
+<?php if ($smtpPopup) : ?>
 <dialog class="private-dialog private-confirm-dialog" id="private-settings-smtp-required-dialog" aria-labelledby="private-settings-smtp-required-title" data-private-dialog-auto-open="1">
   <div class="private-dialog-panel">
     <header class="private-dialog-header">

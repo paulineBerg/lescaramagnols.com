@@ -277,6 +277,70 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertStringContainsString('name="test_recipient" maxlength="254" value="alt-test@example.com"', $response->body);
     }
 
+    public function testMemberSmtpFormDisplaysAdminFallbackPasswordMask(): void
+    {
+        global $appConfig;
+
+        $appConfig['private']['mail'] = [
+            'enabled' => true,
+            'transport' => 'smtp',
+            'smtp_host' => 'smtp.admin.example.com',
+            'smtp_port' => 465,
+            'smtp_user' => 'smtp-admin@example.com',
+            'smtp_password' => 'admin-secret',
+            'smtp_encryption' => 'ssl',
+            'from_address' => 'ne-pas-repondre@example.com',
+            'from_name' => 'Les Caramagnols',
+            'reply_to' => 'private@example.com',
+            'templates' => [],
+            'user_settings_encryption_key' => '',
+        ];
+
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+
+        $userId = $userRepository->create('family@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['dashboard'], 'admin@example.com'));
+
+        $session = new PrivateSession('_private_dashboard_test');
+        $auth = new PrivateAuth($session, null, $userRepository);
+        $controller = new PrivatePortalController($auth, null, null, $userRepository, $moduleRepository);
+
+        $login = $controller->handle('login', $this->request('POST', '/private/login', [
+            'identifier' => 'family@example.com',
+            'password' => 'StrongPassword1!',
+            'csrf_token' => $this->privateCsrfToken($session, 'private'),
+        ]));
+        $this->assertSame(302, $login->status);
+
+        $settings = $controller->handle('member_settings', $this->request('GET', '/private/parametres?tab=smtp', [], ['tab' => 'smtp']));
+        $this->assertSame(200, $settings->status);
+        $this->assertStringContainsString('SMTP prêt', $settings->body);
+        $this->assertStringContainsString('name="smtp_host" maxlength="190" value="smtp.admin.example.com"', $settings->body);
+        $this->assertStringContainsString('name="smtp_password" maxlength="512" value="*****"', $settings->body);
+
+        $response = $controller->handle('member_settings', $this->request('POST', '/private/parametres?tab=smtp', [
+            'csrf_token' => $this->privateCsrfToken($session, 'private_member_settings'),
+            'action' => 'smtp_settings',
+            'enabled' => '1',
+            'smtp_host' => 'smtp.admin.example.com',
+            'smtp_port' => '465',
+            'smtp_user' => 'smtp-admin@example.com',
+            'smtp_password' => '*****',
+            'smtp_encryption' => 'ssl',
+            'from_address' => 'ne-pas-repondre@example.com',
+            'from_name' => 'Les Caramagnols',
+            'reply_to' => 'private@example.com',
+        ]));
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/private/parametres?tab=smtp&notice=smtp_saved', $response->headers['Location'] ?? null);
+    }
+
     public function testDashboardShowsDocumentManagementForDocumentsModule(): void
     {
         $database = $this->editorialSqlDatabase();
@@ -446,7 +510,7 @@ final class PrivatePortalDashboardTest extends TestCase
     /**
      * @param array<string, mixed> $post
      */
-    private function request(string $method, string $uri, array $post = []): Request
+    private function request(string $method, string $uri, array $post = [], array $query = []): Request
     {
         return new Request(
             [
@@ -454,7 +518,7 @@ final class PrivatePortalDashboardTest extends TestCase
                 'REQUEST_URI' => $uri,
                 'REMOTE_ADDR' => '127.0.0.1',
             ],
-            [],
+            $query,
             $post,
             [],
             ['Host' => '127.0.0.1:8000']
