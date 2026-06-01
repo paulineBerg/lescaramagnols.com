@@ -12,7 +12,7 @@ $currentTab = is_string($viewModel['agencyImportCurrentTab'] ?? null) ? (string)
 $currentTab = in_array($currentTab, ['documents', 'imports'], true) ? $currentTab : 'documents';
 $tabUrl = static fn (string $tab): string => $actionUrl . '?' . http_build_query(['tab' => $tab], '', '&', PHP_QUERY_RFC3986);
 $reviewStatusLabels = [
-    'pending' => 'À classer',
+    'pending' => 'À valider',
     'review' => 'À revoir',
     'validated' => 'Validé',
     'ignored' => 'Ignoré',
@@ -26,6 +26,9 @@ $batchStatusLabels = [
 ];
 $documentTypeLabels = [
     'unknown' => 'Non reconnu',
+    'rent_receipt' => 'Quittance',
+    'management_statement' => 'Relevé de gestion',
+    'other_agency_document' => 'Autres',
     'asg_management_statement' => 'Relevé de gestion ASG',
     'ics_management_report' => 'Compte rendu de gestion ICS',
     'copro_fund_call' => 'Appel de fonds copropriété',
@@ -67,11 +70,11 @@ $createDialogId = 'rental-agency-import-create-dialog';
     <div class="private-list-header">
       <div>
 	        <h2>Documents à revoir</h2>
-        <p class="muted">Imports agence à classer ou contrôler.</p>
+        <p class="muted">Imports agence à valider ou contrôler.</p>
       </div>
       <div class="private-actions">
         <a class="private-button-secondary" href="<?php echo htmlspecialchars($agenciesUrl, ENT_QUOTES, 'UTF-8'); ?>">Gérer les agences</a>
-        <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>">Importer un document</button>
+        <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $agencies === [] ? ' disabled' : ''; ?>>Importer un document</button>
       </div>
     </div>
     <?php if ($documents === []): ?>
@@ -149,20 +152,28 @@ $createDialogId = 'rental-agency-import-create-dialog';
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
         <input type="hidden" name="action" value="agency_import" />
         <label>Agence
-          <input type="text" name="agency_name" maxlength="120" placeholder="ASG IMMOBILIER" list="rental-agency-name-options" />
-        </label>
-        <?php if ($agencies !== []): ?>
-          <datalist id="rental-agency-name-options">
+          <select name="agency_name" required>
+            <option value="">Choisir une agence</option>
             <?php foreach ($agencies as $agency): ?>
               <?php if (!is_array($agency) || trim((string) ($agency['name'] ?? '')) === '') { continue; } ?>
-              <option value="<?php echo htmlspecialchars((string) $agency['name'], ENT_QUOTES, 'UTF-8'); ?>"></option>
+              <option value="<?php echo htmlspecialchars((string) $agency['name'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $agency['name'], ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
-          </datalist>
+          </select>
+        </label>
+        <?php if ($agencies === []): ?>
+          <p class="muted">Créer une agence avant d'importer un document.</p>
         <?php endif; ?>
+        <label>Type du document
+          <select name="document_type" required>
+            <option value="management_statement">Relevé de gestion</option>
+            <option value="rent_receipt">Quittance</option>
+            <option value="other_agency_document">Autres</option>
+          </select>
+        </label>
         <label>Fichier agence
           <input type="file" name="agency_import_file" accept=".pdf,.txt,application/pdf,text/plain" required />
         </label>
-        <button type="submit">Importer</button>
+        <button type="submit"<?php echo $agencies === [] ? ' disabled' : ''; ?>>Importer</button>
       </form>
     </div>
   </dialog>

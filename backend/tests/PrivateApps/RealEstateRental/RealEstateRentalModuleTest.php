@@ -210,6 +210,9 @@ final class RealEstateRentalModuleTest extends TestCase
 
         $unitsResponse = $controller->handle('rental_units', $this->request('GET', '/private/locations/biens-locatifs'));
         $this->assertSame(200, $unitsResponse->status);
+        $this->assertStringContainsString('<th>Id</th>', $unitsResponse->body);
+        $this->assertStringContainsString('<th>Bailleur</th>', $unitsResponse->body);
+        $this->assertStringContainsString('<th>Ville</th>', $unitsResponse->body);
         $this->assertStringContainsString('Identifiant fiscal', $unitsResponse->body);
         $this->assertStringContainsString('Nombre de pièces', $unitsResponse->body);
         $this->assertStringContainsString('Désignation', $unitsResponse->body);
@@ -220,6 +223,10 @@ final class RealEstateRentalModuleTest extends TestCase
 
         $tenantsResponse = $controller->handle('rental_tenants', $this->request('GET', '/private/locations/locataires'));
         $this->assertSame(200, $tenantsResponse->status);
+        $this->assertStringContainsString('Locataires', $tenantsResponse->body);
+        $this->assertStringNotContainsString('Locataires locatifs', $tenantsResponse->body);
+        $this->assertStringContainsString('name="rental_property_id"', $tenantsResponse->body);
+        $this->assertStringNotContainsString('name="rental_unit_id"', $tenantsResponse->body);
         $this->assertStringContainsString('Nom', $tenantsResponse->body);
         $this->assertStringContainsString('Prénoms', $tenantsResponse->body);
         $this->assertStringContainsString('Date de naissance', $tenantsResponse->body);
@@ -706,7 +713,7 @@ final class RealEstateRentalModuleTest extends TestCase
         $leasedTenant = $lifecycleRepository->createTenant($property->id, $leasedUnit->id, 'Locataire bail actif', null, null, 'validated', $ownerId, null);
         $unavailableTenant = $lifecycleRepository->createTenant($property->id, $unavailableUnit->id, 'Locataire travaux', null, null, 'validated', $ownerId, null);
         $expiredUnavailableTenant = $lifecycleRepository->createTenant($property->id, $expiredUnavailableUnit->id, 'Locataire debloque', null, null, 'validated', $ownerId, null);
-        $freeTenant = $lifecycleRepository->createTenant($property->id, $freeUnit->id, 'Locataire libre', null, null, 'validated', $ownerId, null);
+        $freeTenant = $lifecycleRepository->createTenant($property->id, null, 'Locataire libre', null, null, 'validated', $ownerId, null);
         $this->assertIsArray($leasedTenant);
         $this->assertIsArray($unavailableTenant);
         $this->assertIsArray($expiredUnavailableTenant);

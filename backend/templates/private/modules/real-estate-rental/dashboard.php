@@ -70,14 +70,14 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
       <h2>Agence</h2>
       <p class="muted">
         <?php echo htmlspecialchars((string) (int) ($stats['pendingAgencyDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>
-        document(s) à classer sur
+        document(s) à valider sur
         <?php echo htmlspecialchars((string) (int) ($stats['agencyDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> import(s).
       </p>
       <p class="muted">Le classement agence se rattache aux propriétés créées dans le menu Biens et locations.</p>
       <p class="private-actions">
         <a href="<?php echo htmlspecialchars((string) ($urls['properties'] ?? private_portal_url('rental_properties')), ENT_QUOTES, 'UTF-8'); ?>">Propriétés</a>
         <a href="<?php echo htmlspecialchars((string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports')), ENT_QUOTES, 'UTF-8'); ?>">Importer document</a>
-        <a href="<?php echo htmlspecialchars((string) ($urls['agencyReview'] ?? private_portal_url('rental_agency_review')), ENT_QUOTES, 'UTF-8'); ?>">Classer</a>
+        <a href="<?php echo htmlspecialchars((string) ($urls['agencyReview'] ?? private_portal_url('rental_agency_review')), ENT_QUOTES, 'UTF-8'); ?>">Valider</a>
       </p>
     </section>
 

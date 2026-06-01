@@ -10,7 +10,7 @@ if (PHP_SAPI !== 'cli') {
 $options = parse_cli_options(array_slice($argv, 1));
 
 if (isset($options['help']) || isset($options['h'])) {
-    fwrite(STDOUT, usage());
+    fwrite(STDOUT, vite_assets_usage());
     exit(0);
 }
 
@@ -88,7 +88,7 @@ fwrite(
 
 exit(0);
 
-function usage(): string
+function vite_assets_usage(): string
 {
     return <<<USAGE
 Usage:

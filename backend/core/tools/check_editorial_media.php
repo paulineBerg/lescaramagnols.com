@@ -14,7 +14,7 @@ require_once __DIR__ . '/../bootstrap.php';
 $options = parse_cli_options(array_slice($argv, 1));
 
 if (isset($options['help']) || isset($options['h'])) {
-    fwrite(STDOUT, usage());
+    fwrite(STDOUT, editorial_media_usage());
     exit(0);
 }
 
@@ -94,7 +94,7 @@ fwrite(
 
 exit(0);
 
-function usage(): string
+function editorial_media_usage(): string
 {
     return <<<USAGE
 Usage:

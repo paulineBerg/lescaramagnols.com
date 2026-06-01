@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\AgencyImportPreviewService;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import\AgencyImportService;
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyDocumentType;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Pdf\DocumentTextExtractorInterface;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Pdf\ExtractedTextResult;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
@@ -68,6 +69,31 @@ final class AgencyImportServiceTest extends TestCase
         $this->assertSame('ignored', $result->status);
         $this->assertNotNull($result->batch);
         $this->assertSame(1, $result->batch->ignoredFileCount);
+
+        @unlink((string) $uploaded['tmp_name']);
+    }
+
+    public function testManualDocumentTypeChoiceIsStoredOnImport(): void
+    {
+        $repository = new AgencyImportRepository($this->editorialSqlDatabase());
+        $service = new AgencyImportService(
+            $repository,
+            $this->storage(),
+            new AgencyImportPreviewService($this->textExtractorReturning($this->asgText()))
+        );
+
+        $uploaded = $this->uploadedFile('quittance-agence.txt', 'manual rent receipt bytes');
+        $result = $service->importUploadedFile(
+            1,
+            $uploaded,
+            'ASG IMMOBILIER',
+            null,
+            AgencyDocumentType::RENT_RECEIPT
+        );
+
+        $this->assertTrue($result->isImported());
+        $this->assertNotNull($result->document);
+        $this->assertSame(AgencyDocumentType::RENT_RECEIPT, $result->document->detectedDocumentType);
 
         @unlink((string) $uploaded['tmp_name']);
     }

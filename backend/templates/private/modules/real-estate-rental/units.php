@@ -1,6 +1,7 @@
 <?php
 $properties = is_array($viewModel['rentalProperties'] ?? null) ? $viewModel['rentalProperties'] : [];
 $units = is_array($viewModel['rentalUnits'] ?? null) ? $viewModel['rentalUnits'] : [];
+$lessors = is_array($viewModel['rentalLessors'] ?? null) ? $viewModel['rentalLessors'] : [];
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
@@ -22,11 +23,38 @@ $unitValue = static function (array $unit, string $key): string {
 };
 $createDialogId = 'rental-unit-create-dialog';
 $propertyNames = [];
+$propertyAddresses = [];
+$propertyLessorIds = [];
 foreach ($properties as $property) {
     if (is_array($property) && is_numeric($property['id'] ?? null)) {
-        $propertyNames[(int) $property['id']] = (string) ($property['name'] ?? ('Propriété #' . (int) $property['id']));
+        $propertyId = (int) $property['id'];
+        $propertyNames[$propertyId] = (string) ($property['name'] ?? ('Propriété #' . $propertyId));
+        $propertyAddresses[$propertyId] = is_scalar($property['address'] ?? null) ? trim((string) $property['address']) : '';
+        $propertyLessorIds[$propertyId] = is_numeric($property['rentalLessorId'] ?? null) ? (int) $property['rentalLessorId'] : 0;
     }
 }
+$lessorNames = [];
+foreach ($lessors as $lessor) {
+    if (!is_array($lessor) || !is_numeric($lessor['id'] ?? null)) {
+        continue;
+    }
+
+    $lastName = is_scalar($lessor['lastName'] ?? null) ? trim((string) $lessor['lastName']) : '';
+    $firstName = is_scalar($lessor['firstName'] ?? null) ? trim((string) $lessor['firstName']) : '';
+    $lessorNames[(int) $lessor['id']] = trim($lastName . ' ' . $firstName);
+}
+$cityFromAddress = static function (string $address): string {
+    if ($address === '') {
+        return '-';
+    }
+
+    if (preg_match('/\b\d{5}\s+([^,]+)$/u', $address, $matches) === 1) {
+        return trim((string) $matches[1]);
+    }
+
+    $parts = array_values(array_filter(array_map('trim', explode(',', $address)), static fn (string $part): bool => $part !== ''));
+    return $parts !== [] ? (string) end($parts) : '-';
+};
 ?>
 <section>
   <?php include __DIR__ . '/_nav.php'; ?>
@@ -72,14 +100,14 @@ foreach ($properties as $property) {
       <table class="private-click-table">
         <thead>
           <tr>
-            <th>Bien locatif</th>
+            <th>Id</th>
+            <th>Bailleur</th>
             <th>Propriété</th>
-                <th>Type appartement</th>
-                <th>Adresse / repère</th>
-                <th>Fiscal / pièces</th>
-                <th>Surface</th>
-                <th>Meublé</th>
-                <th>Disponibilité</th>
+            <th>Bien</th>
+            <th>Ville</th>
+            <th>Type</th>
+            <th>Meublé</th>
+            <th>Disponibilité</th>
             <th></th>
           </tr>
         </thead>
@@ -103,40 +131,21 @@ foreach ($properties as $property) {
                 }
                 $unitType = is_string($unit['unitType'] ?? null) ? (string) $unit['unitType'] : 'other';
                 $typeLabel = $unitTypes[$unitType] ?? $unitTypes['other'];
-                $address = is_string($unit['address'] ?? null) ? trim((string) $unit['address']) : '';
-                $building = is_string($unit['building'] ?? null) ? trim((string) $unit['building']) : '';
-                $floor = is_string($unit['floor'] ?? null) ? trim((string) $unit['floor']) : '';
-                $door = is_string($unit['door'] ?? null) ? trim((string) $unit['door']) : '';
-                $taxIdentifier = $unitValue($unit, 'taxIdentifier');
-                $roomCount = is_numeric($unit['roomCount'] ?? null) ? (int) $unit['roomCount'] : null;
-                $designation = $unitValue($unit, 'designation');
-                $otherDetails = $unitValue($unit, 'otherDetails');
-                $equipmentElements = $unitValue($unit, 'equipmentElements');
-                $heatingMode = $unitValue($unit, 'heatingProductionMode');
-                $hotWaterMode = $unitValue($unit, 'hotWaterProductionMode');
-                $sanitation = $unitValue($unit, 'sanitation');
-                $locationParts = array_filter([
-                    $address,
-                $building !== '' ? 'Bât. ' . $building : '',
-                $floor !== '' ? 'Étage ' . $floor : '',
-                $door !== '' ? 'Porte ' . $door : '',
-                ]);
-                $locationLabel = $locationParts !== [] ? implode(' - ', $locationParts) : 'Adresse de la propriété';
-                $fiscalParts = array_filter([
-                    $taxIdentifier !== '' ? 'Fiscal ' . $taxIdentifier : '',
-                    $roomCount !== null ? $roomCount . ' pièce' . ($roomCount > 1 ? 's' : '') : '',
-                    $designation,
-                ]);
-                $fiscalLabel = $fiscalParts !== [] ? implode(' - ', $fiscalParts) : '-';
+                $address = is_string($unit['address'] ?? null) && trim((string) $unit['address']) !== ''
+                    ? trim((string) $unit['address'])
+                    : (string) ($propertyAddresses[$propertyId] ?? '');
+                $city = $cityFromAddress($address);
+                $lessorId = $propertyLessorIds[$propertyId] ?? 0;
+                $lessorLabel = $lessorId > 0 && ($lessorNames[$lessorId] ?? '') !== '' ? $lessorNames[$lessorId] : '-';
                 $dialogId = 'rental-unit-dialog-' . $id;
                 ?>
-                <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($unit['label'] ?? '') . ' ' . (string) ($propertyNames[$propertyId] ?? '') . ' ' . $typeLabel . ' ' . $locationLabel . ' ' . $fiscalLabel . ' ' . $otherDetails . ' ' . $equipmentElements . ' ' . $heatingMode . ' ' . $hotWaterMode . ' ' . $sanitation . ' ' . (empty($unit['furnished']) ? 'non meuble' : 'meuble'))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>">
-                  <td><strong><?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+                <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) $id . ' ' . $lessorLabel . ' ' . (string) ($unit['label'] ?? '') . ' ' . (string) ($propertyNames[$propertyId] ?? '') . ' ' . $city . ' ' . $typeLabel . ' ' . (empty($unit['furnished']) ? 'non meuble' : 'meuble'))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>">
+                  <td><?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?></td>
+                  <td><?php echo htmlspecialchars($lessorLabel, ENT_QUOTES, 'UTF-8'); ?></td>
                   <td><?php echo htmlspecialchars((string) ($propertyNames[$propertyId] ?? ('Propriété #' . $propertyId)), ENT_QUOTES, 'UTF-8'); ?></td>
+                  <td><strong><?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+                  <td><?php echo htmlspecialchars($city, ENT_QUOTES, 'UTF-8'); ?></td>
                   <td><?php echo htmlspecialchars($typeLabel, ENT_QUOTES, 'UTF-8'); ?></td>
-                  <td><?php echo htmlspecialchars($locationLabel, ENT_QUOTES, 'UTF-8'); ?></td>
-                  <td><?php echo htmlspecialchars($fiscalLabel, ENT_QUOTES, 'UTF-8'); ?></td>
-                  <td><?php echo htmlspecialchars((string) ($unit['surface'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> m²</td>
               <td><?php echo !empty($unit['furnished']) ? 'Oui' : 'Non'; ?></td>
               <td><?php echo htmlspecialchars($statusLabel, ENT_QUOTES, 'UTF-8'); ?></td>
               <td>

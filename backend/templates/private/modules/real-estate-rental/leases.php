@@ -16,18 +16,18 @@ foreach ($properties as $property) {
 }
 $tenantOptions = [];
 foreach ($tenants as $tenant) {
-    if (!is_array($tenant) || !is_numeric($tenant['id'] ?? null) || !is_numeric($tenant['rentalUnitId'] ?? null)) {
+    if (!is_array($tenant) || !is_numeric($tenant['id'] ?? null) || !is_numeric($tenant['rentalPropertyId'] ?? null)) {
         continue;
     }
 
-    $unitId = (int) $tenant['rentalUnitId'];
-    if ($unitId <= 0) {
+    $propertyId = (int) $tenant['rentalPropertyId'];
+    if ($propertyId <= 0) {
         continue;
     }
 
     $tenantOptions[] = [
         'id' => (int) $tenant['id'],
-        'unitId' => $unitId,
+        'propertyId' => $propertyId,
         'name' => (string) ($tenant['fullName'] ?? ''),
     ];
 }
@@ -43,7 +43,7 @@ foreach ($leases as $lease) {
     }
 }
 $leaseCreateUnits = [];
-$leaseCreateUnitIds = [];
+$leaseCreatePropertyIds = [];
 foreach ($units as $unit) {
     if (!is_array($unit) || !is_numeric($unit['id'] ?? null)) {
         continue;
@@ -53,13 +53,15 @@ foreach ($units as $unit) {
     $unitStatus = is_string($unit['status'] ?? null) ? (string) $unit['status'] : '';
     if ($unitStatus === 'available' && !isset($activeLeaseUnitIds[$unitId])) {
         $leaseCreateUnits[] = $unit;
-        $leaseCreateUnitIds[$unitId] = true;
+        if (is_numeric($unit['rentalPropertyId'] ?? null)) {
+            $leaseCreatePropertyIds[(int) $unit['rentalPropertyId']] = true;
+        }
     }
 }
 $leaseCreateTenantOptions = [];
 foreach ($tenantOptions as $tenant) {
-    $tenantUnitId = is_numeric($tenant['unitId'] ?? null) ? (int) $tenant['unitId'] : 0;
-    if (isset($leaseCreateUnitIds[$tenantUnitId])) {
+    $tenantPropertyId = is_numeric($tenant['propertyId'] ?? null) ? (int) $tenant['propertyId'] : 0;
+    if (isset($leaseCreatePropertyIds[$tenantPropertyId])) {
         $leaseCreateTenantOptions[] = $tenant;
     }
 }
@@ -108,7 +110,7 @@ $importDialogId = 'rental-lease-import-dialog';
       </div>
     </div>
     <?php if (!$canCreateLease) : ?>
-      <p class="muted">Un bail exige une propriété, un bien locatif disponible sans bail actif et un locataire rattaché au bien locatif.</p>
+      <p class="muted">Un bail exige une propriété, un bien locatif disponible sans bail actif et un locataire rattaché à cette propriété.</p>
     <?php endif; ?>
     <?php if ($leases === []) : ?>
       <p class="muted">Aucun bail enregistre.</p>
@@ -221,13 +223,13 @@ $importDialogId = 'rental-lease-import-dialog';
                 <select name="rental_tenant_id" required data-rental-tenant-select>
                   <option value="">Choisir un locataire</option>
                   <?php foreach ($tenantOptions as $tenant) : ?>
-                    <option value="<?php echo htmlspecialchars((string) $tenant['id'], ENT_QUOTES, 'UTF-8'); ?>" data-unit-id="<?php echo htmlspecialchars((string) $tenant['unitId'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedTenantId === (int) $tenant['id'] ? 'selected' : ''; ?>>
+                    <option value="<?php echo htmlspecialchars((string) $tenant['id'], ENT_QUOTES, 'UTF-8'); ?>" data-property-id="<?php echo htmlspecialchars((string) $tenant['propertyId'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedTenantId === (int) $tenant['id'] ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($tenant['name'], ENT_QUOTES, 'UTF-8'); ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
               </label>
-              <p class="notice notice-error" hidden data-rental-tenant-empty>Il faut créer un locataire pour ce bien locatif avant de modifier ce bail.</p>
+              <p class="notice notice-error" hidden data-rental-tenant-empty>Il faut créer un locataire pour cette propriété avant de modifier ce bail.</p>
               <label>Type de bail
                 <select name="lease_type" required data-rental-lease-type-select>
                   <?php foreach ($leaseTypes as $leaseTypeOption) : ?>
@@ -316,9 +318,9 @@ $importDialogId = 'rental-lease-import-dialog';
         <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
       </header>
       <?php if (!$canCreateLease) : ?>
-        <p class="muted">Un bail exige une propriété, un bien locatif disponible sans bail actif et un locataire rattaché au bien locatif.</p>
+        <p class="muted">Un bail exige une propriété, un bien locatif disponible sans bail actif et un locataire rattaché à cette propriété.</p>
       <?php else : ?>
-        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-rental-lease-form>
+        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" data-rental-lease-form>
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
           <input type="hidden" name="action" value="create_lease" />
           <label>Propriété
@@ -343,11 +345,11 @@ $importDialogId = 'rental-lease-import-dialog';
             <select name="rental_tenant_id" required data-rental-tenant-select>
               <option value="">Choisir un locataire</option>
               <?php foreach ($leaseCreateTenantOptions as $tenant) : ?>
-                <option value="<?php echo htmlspecialchars((string) $tenant['id'], ENT_QUOTES, 'UTF-8'); ?>" data-unit-id="<?php echo htmlspecialchars((string) $tenant['unitId'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tenant['name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="<?php echo htmlspecialchars((string) $tenant['id'], ENT_QUOTES, 'UTF-8'); ?>" data-property-id="<?php echo htmlspecialchars((string) $tenant['propertyId'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tenant['name'], ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
           </label>
-          <p class="notice notice-error" hidden data-rental-tenant-empty>Il faut créer un locataire pour ce bien locatif avant de créer un bail.</p>
+          <p class="notice notice-error" hidden data-rental-tenant-empty>Il faut créer un locataire pour cette propriété avant de créer un bail.</p>
           <label>Type de bail
             <select name="lease_type" required data-rental-lease-type-select>
               <?php foreach ($leaseTypes as $leaseType) : ?>
@@ -381,6 +383,11 @@ $importDialogId = 'rental-lease-import-dialog';
             </select>
           </label>
           <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
+          <fieldset class="private-fieldset">
+            <legend>Importer un document bail</legend>
+            <label>Nom du document <input type="text" name="document_name" maxlength="255" placeholder="Bail signé" /></label>
+            <label>Fichier <input type="file" name="rental_document_file" /></label>
+          </fieldset>
           <button type="submit" data-rental-lease-submit>Créer le bail</button>
         </form>
       <?php endif; ?>
@@ -445,13 +452,16 @@ $importDialogId = 'rental-lease-import-dialog';
         const unitOptions = Array.from(unitSelect.options);
         const tenantOptions = Array.from(tenantSelect.options);
         const refreshTenants = () => {
-          const selectedUnitId = unitSelect.value;
+          const selectedUnit = unitSelect.selectedOptions[0] ?? null;
+          const selectedPropertyId = propertySelect instanceof HTMLSelectElement
+            ? propertySelect.value
+            : selectedUnit instanceof HTMLOptionElement ? selectedUnit.dataset.propertyId ?? '' : '';
           let firstMatchingValue = '';
           let matchingCount = 0;
 
           tenantOptions.forEach((option) => {
             const isPlaceholder = option.value === '';
-            const matches = !isPlaceholder && option.dataset.unitId === selectedUnitId;
+            const matches = !isPlaceholder && option.dataset.propertyId === selectedPropertyId;
             option.hidden = !isPlaceholder && !matches;
             option.disabled = isPlaceholder || !matches;
 
@@ -476,7 +486,7 @@ $importDialogId = 'rental-lease-import-dialog';
           }
 
           const selectedOption = tenantSelect.selectedOptions[0] ?? null;
-          if (!(selectedOption instanceof HTMLOptionElement) || selectedOption.dataset.unitId !== selectedUnitId) {
+          if (!(selectedOption instanceof HTMLOptionElement) || selectedOption.dataset.propertyId !== selectedPropertyId) {
             tenantSelect.value = firstMatchingValue;
           }
           tenantSelect.disabled = false;

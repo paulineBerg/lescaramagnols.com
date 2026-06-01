@@ -35,7 +35,8 @@ Fonctions deja presentes :
 
 Regles d'interface livrees le 2026-06-01 :
 
-- les statuts et types visibles dans l'interface de locations immobilieres sont affiches avec des libelles francais (`A revoir`, `Validé`, `Ignoré`, etc.);
+- les statuts, types de documents, types de biens et autres termes visibles dans l'interface de locations immobilieres sont toujours affiches en francais (`À revoir`, `Validé`, `Appartement`, `Relevé de gestion`, etc.);
+- aucun code technique ne doit apparaitre tel quel dans le BO prive ou admin : utiliser une table de libelles francais pour `review`, `validated`, `apartment`, `commercial_space`, `management_statement` et les valeurs comparables;
 - le controle fiscal des categories sensibles signifie qu'une ligne importee ayant un impact fiscal doit etre confirmee manuellement avant validation, pour eviter une synthese fiscale incorrecte;
 - les lignes de classement agence doivent remplir la largeur disponible du contenu prive, avec scroll local seulement si le viewport devient trop etroit;
 - le menu haut visible s'appelle `Agence`; son sous-menu d'import s'appelle `Importer document`;

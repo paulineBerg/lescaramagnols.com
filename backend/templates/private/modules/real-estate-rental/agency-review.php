@@ -35,7 +35,7 @@ $money = static function (mixed $value) use ($h): string {
     return is_numeric($value) ? $h(number_format((float) $value, 2, ',', ' ') . ' €') : '0,00 €';
 };
 $reviewStatusLabels = [
-    'pending' => 'À classer',
+    'pending' => 'À valider',
     'review' => 'À revoir',
     'validated' => 'Validé',
     'ignored' => 'Ignoré',
@@ -49,6 +49,9 @@ $mappingStatusLabels = [
 ];
 $documentTypeLabels = [
     'unknown' => 'Non reconnu',
+    'rent_receipt' => 'Quittance',
+    'management_statement' => 'Relevé de gestion',
+    'other_agency_document' => 'Autres',
     'asg_management_statement' => 'Relevé de gestion ASG',
     'ics_management_report' => 'Compte rendu de gestion ICS',
     'copro_fund_call' => 'Appel de fonds copropriété',
@@ -60,6 +63,16 @@ $documentTypeLabels = [
     'tax_notice' => 'Avis fiscal',
     'occupancy_declaration' => 'Déclaration d’occupation',
     'complete_dossier' => 'Dossier complet',
+];
+$unitTypeLabels = [
+    'apartment' => 'Appartement',
+    'house' => 'Maison',
+    'garage' => 'Garage',
+    'parking' => 'Parking',
+    'commercial_space' => 'Local commercial',
+    'room' => 'Chambre',
+    'storage' => 'Cave / stockage',
+    'other' => 'Autre',
 ];
 $labelFromMap = static function (mixed $value, array $labels): string {
     $key = is_scalar($value) ? trim((string) $value) : '';
@@ -86,10 +99,11 @@ foreach ($units as $unit) {
     $unitsByPropertyId[$propertyId] ??= [];
     $unitsByPropertyId[$propertyId][] = $unit;
 }
-$labelForUnit = static function (array $unit): string {
+$labelForUnit = static function (array $unit) use ($unitTypeLabels): string {
     $label = is_scalar($unit['label'] ?? null) ? trim((string) $unit['label']) : '';
     $type = is_scalar($unit['unitType'] ?? null) ? trim((string) $unit['unitType']) : '';
-    return trim($label . ($type !== '' ? ' - ' . $type : ''));
+    $typeLabel = $type !== '' ? (string) ($unitTypeLabels[$type] ?? 'Autre') : '';
+    return trim($label . ($typeLabel !== '' ? ' - ' . $typeLabel : ''));
 };
 ?>
 <section>
@@ -99,7 +113,7 @@ $labelForUnit = static function (array $unit): string {
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo $h($error); ?></p><?php endif; ?>
 
   <section class="card">
-    <h2>Documents agence à classer</h2>
+    <h2>Documents agence à valider</h2>
     <p class="muted">Avant de rattacher un relevé agence, la propriété doit exister dans Biens et locations.</p>
     <p class="private-actions">
       <a href="<?php echo $h($propertiesUrl); ?>">Créer ou modifier une propriété</a>
@@ -198,7 +212,7 @@ $labelForUnit = static function (array $unit): string {
             </select>
           </label>
           <?php if ($properties === []): ?>
-            <p class="notice notice-error">Aucune propriété disponible pour ce compte. Créez d'abord une propriété, puis revenez classer ce document.</p>
+            <p class="notice notice-error">Aucune propriété disponible pour ce compte. Créez d'abord une propriété, puis revenez valider ce document.</p>
             <p class="private-actions"><a href="<?php echo $h($propertiesUrl); ?>">Créer une propriété</a></p>
           <?php else: ?>
             <p class="muted">Applique aux lignes sans choix manuel.</p>

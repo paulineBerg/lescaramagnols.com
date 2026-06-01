@@ -80,7 +80,7 @@ final class RentalLifecycleRepository
      */
     public function createTenant(
         int $propertyId,
-        int $unitId,
+        ?int $unitId,
         string $fullName,
         ?string $email,
         ?string $phone,
@@ -102,10 +102,10 @@ final class RentalLifecycleRepository
         $phone = $phone !== null ? $this->normalizeText($phone, 64) : null;
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
         $status = $this->normalizeStatus($status, self::VALID_STATUSES);
+        $unitId = $unitId !== null && $unitId > 0 ? $unitId : null;
 
         if (
             $propertyId <= 0
-            || $unitId <= 0
             || $actorPrivateUserId <= 0
             || $fullName === ''
             || $status === ''
@@ -183,7 +183,7 @@ final class RentalLifecycleRepository
     public function updateTenant(
         int $tenantId,
         int $propertyId,
-        int $unitId,
+        ?int $unitId,
         string $fullName,
         ?string $email,
         ?string $phone,
@@ -204,11 +204,11 @@ final class RentalLifecycleRepository
         $phone = $phone !== null ? $this->normalizeText($phone, 64) : null;
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
         $status = $this->normalizeStatus($status, self::VALID_STATUSES);
+        $unitId = $unitId !== null && $unitId > 0 ? $unitId : null;
 
         if (
             $tenantId <= 0
             || $propertyId <= 0
-            || $unitId <= 0
             || $fullName === ''
             || $status === ''
             || ($email !== null && $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false)
@@ -2438,6 +2438,7 @@ final class RentalLifecycleRepository
             )
         );
         $this->ensureColumn($pdo, $this->tenantsTable(), 'rental_unit_id', '`rental_unit_id` INT NULL AFTER `rental_property_id`');
+        $this->ensureTenantUnitIsNullable($pdo);
         $this->ensureColumn($pdo, $this->tenantsTable(), 'last_name', '`last_name` VARCHAR(120) NULL AFTER `full_name`');
         $this->ensureColumn($pdo, $this->tenantsTable(), 'first_names', '`first_names` VARCHAR(160) NULL AFTER `last_name`');
         $this->ensureColumn($pdo, $this->tenantsTable(), 'birth_date', '`birth_date` DATE NULL AFTER `first_names`');
@@ -3142,6 +3143,18 @@ final class RentalLifecycleRepository
             }
 
             $pdo->exec(sprintf('ALTER TABLE `%s` ADD KEY `%s` (%s)', $table, $index, $columns));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureTenantUnitIsNullable(PDO $pdo): void
+    {
+        try {
+            $pdo->exec(sprintf(
+                'ALTER TABLE `%s` MODIFY COLUMN `rental_unit_id` INT NULL',
+                $this->tenantsTable()
+            ));
         } catch (\Throwable) {
             return;
         }

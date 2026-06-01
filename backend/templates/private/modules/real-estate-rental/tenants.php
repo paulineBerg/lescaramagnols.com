@@ -12,18 +12,7 @@ foreach ($properties as $property) {
         $propertyNames[(int) $property['id']] = (string) ($property['name'] ?? ('Propriété #' . (int) $property['id']));
     }
 }
-$unitLabels = [];
-foreach ($units as $unit) {
-    if (!is_array($unit) || !is_numeric($unit['id'] ?? null) || !is_numeric($unit['rentalPropertyId'] ?? null)) {
-        continue;
-    }
-    $propertyId = (int) $unit['rentalPropertyId'];
-    $unitLabels[(int) $unit['id']] = trim(
-        (string) ($propertyNames[$propertyId] ?? ('Propriété #' . $propertyId))
-        . ' - '
-        . (string) ($unit['label'] ?? ('Bien locatif #' . (int) $unit['id']))
-    );
-}
+unset($units);
 $statuses = ['draft' => 'Brouillon', 'validated' => 'Validé', 'cancelled' => 'Annulé'];
 $tenantValue = static function (array $tenant, string $key): string {
     return is_scalar($tenant[$key] ?? null) ? trim((string) $tenant[$key]) : '';
@@ -49,12 +38,12 @@ $createDialogId = 'rental-tenant-create-dialog';
     <div class="private-list-header">
       <div>
         <h2>Locataires</h2>
-        <p class="muted">Recherche par propriété, bien locatif, nom ou email.</p>
+        <p class="muted">Recherche par propriété, nom ou email.</p>
       </div>
-      <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $unitLabels === [] ? ' disabled' : ''; ?>>Créer un locataire</button>
+      <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $propertyNames === [] ? ' disabled' : ''; ?>>Créer un locataire</button>
     </div>
-    <?php if ($unitLabels === []): ?>
-      <p class="muted">Créer d'abord une propriété, puis un bien locatif avant d'ajouter un locataire.</p>
+    <?php if ($propertyNames === []): ?>
+      <p class="muted">Créer d'abord une propriété avant d'ajouter un locataire.</p>
     <?php endif; ?>
     <?php if ($tenants === []): ?>
       <p class="muted">Aucun locataire enregistré.</p>
@@ -77,7 +66,7 @@ $createDialogId = 'rental-tenant-create-dialog';
       </div>
       <div class="private-table-wrap">
 	      <table>
-	        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Contact</th><th>Naissance</th><th>Statut</th><th>Action</th></tr></thead>
+	        <thead><tr><th>Propriété</th><th>Locataire</th><th>Contact</th><th>Naissance</th><th>Statut</th><th>Action</th></tr></thead>
 	        <tbody>
 	          <?php foreach ($tenants as $tenant): ?>
 	            <?php if (!is_array($tenant)) { continue; } ?>
@@ -95,7 +84,6 @@ $createDialogId = 'rental-tenant-create-dialog';
 	            ], static fn (string $value): bool => $value !== '')));
 	            $tenantSearch = strtolower(trim(
 	                (string) ($tenant['propertyName'] ?? '') . ' '
-	                . (string) ($tenant['unitLabel'] ?? '') . ' '
 	                . (string) ($tenant['fullName'] ?? '') . ' '
 	                . $tenantLastName . ' '
 	                . $tenantFirstNames . ' '
@@ -111,7 +99,6 @@ $createDialogId = 'rental-tenant-create-dialog';
 	            ?>
 	            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars($tenantSearch, ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($tenant['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
 	              <td><?php echo htmlspecialchars((string) ($tenant['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-	              <td><?php echo htmlspecialchars((string) ($tenant['unitLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
 	              <td>
 	                <strong><?php echo htmlspecialchars(trim($tenantLastName . ' ' . $tenantFirstNames), ENT_QUOTES, 'UTF-8'); ?></strong>
 	                <?php if ($tenantValue($tenant, 'nationality') !== '' || $tenantValue($tenant, 'occupation') !== ''): ?>
@@ -131,7 +118,7 @@ $createDialogId = 'rental-tenant-create-dialog';
               </td>
             </tr>
           <?php endforeach; ?>
-	          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="7">Aucun locataire ne correspond aux filtres.</td></tr>
+	          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucun locataire ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -145,7 +132,7 @@ $createDialogId = 'rental-tenant-create-dialog';
         if ($tenantId <= 0) {
             continue;
         }
-	        $selectedUnitId = is_numeric($tenant['rentalUnitId'] ?? null) ? (int) $tenant['rentalUnitId'] : 0;
+	        $selectedPropertyId = is_numeric($tenant['rentalPropertyId'] ?? null) ? (int) $tenant['rentalPropertyId'] : 0;
 	        $tenantStatus = is_string($tenant['status'] ?? null) ? (string) $tenant['status'] : 'draft';
 	        [$tenantLastName, $tenantFirstNames] = $tenantNameParts($tenant);
 	        $dialogId = 'rental-tenant-dialog-' . $tenantId;
@@ -160,11 +147,11 @@ $createDialogId = 'rental-tenant-create-dialog';
               <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
               <input type="hidden" name="action" value="update_tenant" />
               <input type="hidden" name="tenant_id" value="<?php echo htmlspecialchars((string) $tenantId, ENT_QUOTES, 'UTF-8'); ?>" />
-              <label>Bien locatif
-                <select name="rental_unit_id" required>
-                  <option value="">Choisir un bien locatif</option>
-                  <?php foreach ($unitLabels as $id => $label): ?>
-                    <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedUnitId === $id ? 'selected' : ''; ?>>
+              <label>Propriété
+                <select name="rental_property_id" required>
+                  <option value="">Choisir une propriété</option>
+                  <?php foreach ($propertyNames as $id => $label): ?>
+                    <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedPropertyId === $id ? 'selected' : ''; ?>>
                       <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
                     </option>
                   <?php endforeach; ?>
@@ -210,16 +197,16 @@ $createDialogId = 'rental-tenant-create-dialog';
         <h3 id="<?php echo htmlspecialchars($createDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Créer un locataire</h3>
         <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
       </header>
-      <?php if ($unitLabels === []): ?>
-        <p class="muted">Créer d'abord une propriété, puis un bien locatif avant d'ajouter un locataire.</p>
+      <?php if ($propertyNames === []): ?>
+        <p class="muted">Créer d'abord une propriété avant d'ajouter un locataire.</p>
       <?php else: ?>
         <form method="post" action="<?php echo htmlspecialchars((string) ($urls['tenants'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
           <input type="hidden" name="action" value="create_tenant" />
-          <label>Bien locatif
-            <select name="rental_unit_id" required>
-              <option value="">Choisir un bien locatif</option>
-              <?php foreach ($unitLabels as $id => $label): ?>
+          <label>Propriété
+            <select name="rental_property_id" required>
+              <option value="">Choisir une propriété</option>
+              <?php foreach ($propertyNames as $id => $label): ?>
                 <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>

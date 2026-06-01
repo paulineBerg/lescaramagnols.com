@@ -15,7 +15,7 @@ if (PHP_SAPI !== 'cli') {
 $command = $argv[1] ?? '';
 
 if (!is_string($command) || $command === '') {
-    fwrite(STDERR, usage());
+    fwrite(STDERR, editorial_backup_restore_usage());
     exit(1);
 }
 
@@ -23,7 +23,7 @@ try {
     $storageOverride = parseStorageOverride(array_slice($argv, 2));
 } catch (RuntimeException $exception) {
     fwrite(STDERR, $exception->getMessage() . PHP_EOL);
-    fwrite(STDERR, usage());
+    fwrite(STDERR, editorial_backup_restore_usage());
     exit(1);
 }
 
@@ -58,7 +58,7 @@ if ($command === 'restore') {
 
     if (!is_string($backupPath) || trim($backupPath) === '') {
         fwrite(STDERR, "Chemin du backup manquant.\n");
-        fwrite(STDERR, usage());
+        fwrite(STDERR, editorial_backup_restore_usage());
         exit(1);
     }
 
@@ -89,7 +89,7 @@ if ($command === 'diff') {
 
     if (!is_string($sourcePath) || trim($sourcePath) === '' || !is_string($targetPath) || trim($targetPath) === '') {
         fwrite(STDERR, "Chemins source et cible manquants.\n");
-        fwrite(STDERR, usage());
+        fwrite(STDERR, editorial_backup_restore_usage());
         exit(1);
     }
 
@@ -117,7 +117,7 @@ if ($command === 'compare') {
 
     if (!is_string($sourcePath) || trim($sourcePath) === '' || !is_string($targetPath) || trim($targetPath) === '') {
         fwrite(STDERR, "Chemins source et cible manquants.\n");
-        fwrite(STDERR, usage());
+        fwrite(STDERR, editorial_backup_restore_usage());
         exit(1);
     }
 
@@ -138,10 +138,10 @@ if ($command === 'compare') {
 }
 
 fwrite(STDERR, sprintf("Commande inconnue: %s\n", $command));
-fwrite(STDERR, usage());
+fwrite(STDERR, editorial_backup_restore_usage());
 exit(1);
 
-function usage(): string
+function editorial_backup_restore_usage(): string
 {
     return <<<TXT
 Usage:

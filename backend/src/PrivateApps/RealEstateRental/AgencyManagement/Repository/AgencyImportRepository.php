@@ -506,27 +506,6 @@ final class AgencyImportRepository
     /**
      * @return array<string, mixed>
      */
-    private function emptyAgencyDetails(): array
-    {
-        return [
-            'legalName' => null,
-            'contactTitle' => null,
-            'postalAddress' => null,
-            'phone' => null,
-            'email' => null,
-            'advisorName' => null,
-            'advisorTitle' => null,
-            'advisorPhone' => null,
-            'advisorEmail' => null,
-            'notes' => null,
-            'createdAt' => null,
-            'updatedAt' => null,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
     private function emptyAgencyStats(): array
     {
         return [

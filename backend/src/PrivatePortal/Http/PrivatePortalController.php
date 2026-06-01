@@ -1130,17 +1130,15 @@ final class PrivatePortalController
                 return $this->renderRentalTenants($properties, $units, $tenants, '', 'property_forbidden');
             }
 
-            $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
-            $unit = $this->rentalUnitRepository()->findById($unitId);
-            $propertyId = $unit !== null ? $unit->rentalPropertyId : 0;
-            if ($unit === null || !in_array($propertyId, $propertyIds, true) || !$this->canWriteByPropertyId($propertyId, $userId)) {
-                return $this->renderRentalTenants($properties, $units, $tenants, '', 'unit_forbidden');
+            $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
+            if (!in_array($propertyId, $propertyIds, true) || !$this->canWriteByPropertyId($propertyId, $userId)) {
+                return $this->renderRentalTenants($properties, $units, $tenants, '', 'property_forbidden');
             }
 
             $updated = $this->rentalLifecycleRepository()->updateTenant(
                 $tenantId,
                 $propertyId,
-                $unitId,
+                null,
                 $this->rentalTenantFullNameFromBody($body),
                 is_string($body['email'] ?? null) ? (string) $body['email'] : null,
                 is_string($body['phone'] ?? null) ? (string) $body['phone'] : null,
@@ -1155,7 +1153,6 @@ final class PrivatePortalController
             $this->logEvent('private.rental_tenant.updated', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
-                'rental_unit_id' => $unitId,
                 'rental_tenant_id' => $tenantId,
             ]);
 
@@ -1180,19 +1177,14 @@ final class PrivatePortalController
             return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_invalid_request');
         }
 
-        $unitId = $this->normalizeNumericId($body['rental_unit_id'] ?? null);
-        $unit = $this->rentalUnitRepository()->findById($unitId);
-        $propertyId = $unit !== null ? $unit->rentalPropertyId : 0;
-        if ($unit === null || !in_array($propertyId, $propertyIds, true)) {
-            return $this->renderRentalTenants($properties, $units, $tenants, '', 'unit_forbidden');
-        }
-        if (!$this->canWriteByPropertyId($propertyId, $userId)) {
+        $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
+        if (!in_array($propertyId, $propertyIds, true) || !$this->canWriteByPropertyId($propertyId, $userId)) {
             return $this->renderRentalTenants($properties, $units, $tenants, '', 'property_forbidden');
         }
 
         $created = $this->rentalLifecycleRepository()->createTenant(
             $propertyId,
-            $unitId,
+            null,
             $this->rentalTenantFullNameFromBody($body),
             is_string($body['email'] ?? null) ? (string) $body['email'] : null,
             is_string($body['phone'] ?? null) ? (string) $body['phone'] : null,
@@ -1208,7 +1200,6 @@ final class PrivatePortalController
         $this->logEvent('private.rental_tenant.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
-            'rental_unit_id' => $unitId,
             'rental_tenant_id' => (int) ($created['id'] ?? 0),
         ]);
 
@@ -1328,31 +1319,7 @@ final class PrivatePortalController
                 return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'missing_file');
             }
 
-            $storage = $this->privateDocumentStorage();
-            $metadata = $storage->validateUploadedFile($uploadedFile);
-            $documentId = $storage->generateDocumentId();
-            $stored = $metadata !== null && $documentId !== '' ? $storage->storeUploadedFile($metadata, $documentId) : null;
-            if (!is_array($stored)) {
-                return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'upload_failed');
-            }
-
-            $created = $this->rentalLifecycleRepository()->createDocument(
-                $leasePropertyId,
-                $leaseUnitId,
-                $leaseId,
-                (string) $stored['documentId'],
-                (string) $stored['storagePath'],
-                (string) $stored['originalName'],
-                (string) $stored['extension'],
-                (string) $stored['mimeType'],
-                (int) $stored['sizeBytes'],
-                $userId,
-                null,
-                is_string($body['document_name'] ?? null) ? (string) $body['document_name'] : null,
-                'Baux'
-            );
-            if (!is_array($created)) {
-                $storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
+            if (!$this->storeRentalLeaseDocumentUpload($request, $body, $userId, $leaseId, $leasePropertyId, $leaseUnitId)) {
                 return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'upload_failed');
             }
 
@@ -1360,7 +1327,6 @@ final class PrivatePortalController
                 'private_user_id' => $userId,
                 'rental_property_id' => $leasePropertyId,
                 'rental_lease_id' => $leaseId,
-                'document_id' => (string) $stored['documentId'],
             ]);
 
             return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_document_uploaded');
@@ -1447,7 +1413,7 @@ final class PrivatePortalController
             if (!$this->canWriteByPropertyId($propertyId, $userId)) {
                 return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'property_forbidden');
             }
-            if (!$this->unitBelongsToProperty($unitId, $propertyId) || !$this->tenantBelongsToUnit($tenantId, $unitId, $propertyId)) {
+            if (!$this->unitBelongsToProperty($unitId, $propertyId) || !$this->tenantBelongsToProperty($tenantId, $propertyId)) {
                 return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'tenant_required_for_unit');
             }
 
@@ -1488,7 +1454,7 @@ final class PrivatePortalController
         if (!$this->canWriteByPropertyId($propertyId, $userId)) {
             return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'property_forbidden');
         }
-        if (!$this->unitBelongsToProperty($unitId, $propertyId) || !$this->tenantBelongsToUnit($tenantId, $unitId, $propertyId)) {
+        if (!$this->unitBelongsToProperty($unitId, $propertyId) || !$this->tenantBelongsToProperty($tenantId, $propertyId)) {
             return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'tenant_required_for_unit');
         }
         $unit = $this->rentalUnitRepository()->findById($unitId);
@@ -1512,14 +1478,95 @@ final class PrivatePortalController
         if (!is_array($created)) {
             return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_write_failed');
         }
+        $createdLeaseId = is_numeric($created['id'] ?? null) ? (int) $created['id'] : 0;
+        if ($this->hasRentalLeaseDocumentUpload($request)) {
+            if (!$this->storeRentalLeaseDocumentUpload($request, $body, $userId, $createdLeaseId, $propertyId, $unitId)) {
+                $this->rentalLifecycleRepository()->deleteLease($createdLeaseId, [$propertyId]);
+                return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'upload_failed');
+            }
+
+            $this->logEvent('private.rental_lease.document_uploaded', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $propertyId,
+                'rental_lease_id' => $createdLeaseId,
+            ]);
+        }
 
         $this->logEvent('private.rental_lease.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
-            'rental_lease_id' => (int) ($created['id'] ?? 0),
+            'rental_lease_id' => $createdLeaseId,
         ]);
 
         return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_created');
+    }
+
+    private function hasRentalLeaseDocumentUpload(Request $request): bool
+    {
+        $files = $request->files();
+        $uploadedFile = is_array($files[self::RENTAL_DOCUMENT_UPLOAD_FIELD] ?? null)
+            ? $files[self::RENTAL_DOCUMENT_UPLOAD_FIELD]
+            : null;
+        if (!is_array($uploadedFile)) {
+            return false;
+        }
+
+        $errorCode = is_numeric($uploadedFile['error'] ?? null) ? (int) $uploadedFile['error'] : UPLOAD_ERR_NO_FILE;
+        return $errorCode !== UPLOAD_ERR_NO_FILE;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function storeRentalLeaseDocumentUpload(
+        Request $request,
+        array $body,
+        int $userId,
+        int $leaseId,
+        int $propertyId,
+        int $unitId
+    ): bool {
+        if ($userId <= 0 || $leaseId <= 0 || $propertyId <= 0 || $unitId <= 0) {
+            return false;
+        }
+
+        $files = $request->files();
+        $uploadedFile = is_array($files[self::RENTAL_DOCUMENT_UPLOAD_FIELD] ?? null)
+            ? $files[self::RENTAL_DOCUMENT_UPLOAD_FIELD]
+            : null;
+        if (!is_array($uploadedFile)) {
+            return false;
+        }
+
+        $storage = $this->privateDocumentStorage();
+        $metadata = $storage->validateUploadedFile($uploadedFile);
+        $documentId = $storage->generateDocumentId();
+        $stored = $metadata !== null && $documentId !== '' ? $storage->storeUploadedFile($metadata, $documentId) : null;
+        if (!is_array($stored)) {
+            return false;
+        }
+
+        $created = $this->rentalLifecycleRepository()->createDocument(
+            $propertyId,
+            $unitId,
+            $leaseId,
+            (string) $stored['documentId'],
+            (string) $stored['storagePath'],
+            (string) $stored['originalName'],
+            (string) $stored['extension'],
+            (string) $stored['mimeType'],
+            (int) $stored['sizeBytes'],
+            $userId,
+            null,
+            is_string($body['document_name'] ?? null) ? (string) $body['document_name'] : null,
+            'Baux'
+        );
+        if (!is_array($created)) {
+            $storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
+            return false;
+        }
+
+        return true;
     }
 
     private function handleRentalRents(Request $request): Response
@@ -2479,7 +2526,8 @@ final class PrivatePortalController
         if ($agencyName !== null && $agencyName !== '') {
             $this->agencyImportRepository()->createAgency($userId, $agencyName);
         }
-        $result = $this->agencyImportService()->importUploadedFile($userId, $uploadedFile, $agencyName);
+        $documentType = is_string($body['document_type'] ?? null) ? trim((string) $body['document_type']) : null;
+        $result = $this->agencyImportService()->importUploadedFile($userId, $uploadedFile, $agencyName, null, $documentType);
         if ($result->isImported()) {
             $this->logEvent('private.rental_agency_import.imported', [
                 'private_user_id' => $userId,
@@ -4455,8 +4503,6 @@ final class PrivatePortalController
         string $notice = '',
         string $error = ''
     ): Response {
-        unset($userId);
-
         return $this->render('modules/real-estate-rental/units', array_merge(
             $this->rentalBaseViewModel('Biens locatifs', $notice, $error),
             [
@@ -4464,6 +4510,7 @@ final class PrivatePortalController
                 'rentalCurrentSubsection' => 'units',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
+                'rentalLessors' => $this->rentalLessorRepository()->listForUser($userId, self::MAX_RENTAL_LIST),
             ]
         ));
     }
@@ -4503,7 +4550,7 @@ final class PrivatePortalController
         string $error = ''
     ): Response {
         return $this->render('modules/real-estate-rental/tenants', array_merge(
-            $this->rentalBaseViewModel('Locataires locatifs', $notice, $error),
+            $this->rentalBaseViewModel('Locataires', $notice, $error),
             [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'tenants',
@@ -4776,7 +4823,7 @@ final class PrivatePortalController
             : $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
 
         return $this->render('modules/real-estate-rental/agency-review', array_merge(
-            $this->rentalBaseViewModel('Documents agence à classer', $notice, $error),
+            $this->rentalBaseViewModel('Documents agence à valider', $notice, $error),
             [
                 'rentalCurrentSection' => 'agency',
                 'rentalCurrentSubsection' => 'agencyReview',
@@ -5926,18 +5973,16 @@ final class PrivatePortalController
         return $unit !== null && $unit->rentalPropertyId === $propertyId;
     }
 
-    private function tenantBelongsToUnit(int $tenantId, int $unitId, int $propertyId): bool
+    private function tenantBelongsToProperty(int $tenantId, int $propertyId): bool
     {
-        if ($tenantId <= 0 || $unitId <= 0 || $propertyId <= 0) {
+        if ($tenantId <= 0 || $propertyId <= 0) {
             return false;
         }
 
         $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
         return is_array($tenant)
             && is_numeric($tenant['rentalPropertyId'] ?? null)
-            && is_numeric($tenant['rentalUnitId'] ?? null)
-            && (int) $tenant['rentalPropertyId'] === $propertyId
-            && (int) $tenant['rentalUnitId'] === $unitId;
+            && (int) $tenant['rentalPropertyId'] === $propertyId;
     }
 
     private function leaseBelongsToProperty(int $leaseId, int $propertyId): bool
@@ -6327,7 +6372,7 @@ final class PrivatePortalController
             'upload_failed' => 'Envoi du document locatif impossible.',
             'email_failed' => 'Envoi email impossible.',
             'tenant_update_failed' => 'Mise à jour du locataire impossible.',
-            'tenant_required_for_unit' => 'Il faut créer un locataire pour ce bien locatif avant de créer un bail.',
+            'tenant_required_for_unit' => 'Il faut créer un locataire pour cette propriété avant de créer un bail.',
             'lease_unit_unavailable' => 'Ce bien locatif est indisponible ou possède déjà un bail actif.',
             'rental_delete_failed' => 'Suppression locative impossible.',
             'rental_purge_confirmation_required' => 'Confirmez la suppression avec SUPPRIMER.',

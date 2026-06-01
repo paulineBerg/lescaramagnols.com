@@ -16,7 +16,7 @@ $apply = in_array('--apply', $arguments, true);
 $help = in_array('--help', $arguments, true) || in_array('-h', $arguments, true);
 
 if ($help) {
-    fwrite(STDOUT, usage());
+    fwrite(STDOUT, legacy_page_tiles_usage());
     exit(0);
 }
 
@@ -80,7 +80,7 @@ fwrite(
 
 exit(0);
 
-function usage(): string
+function legacy_page_tiles_usage(): string
 {
     return <<<TXT
 Usage:

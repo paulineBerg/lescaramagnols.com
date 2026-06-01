@@ -29,14 +29,14 @@ foreach (array_slice($argv, 1) as $argument) {
         $storageMode = trim((string) substr($argument, 10));
         if (!in_array($storageMode, ['json', 'active'], true)) {
             fwrite(STDERR, "Stockage inconnu: {$storageMode}\n");
-            fwrite(STDERR, usage());
+            fwrite(STDERR, auto_retro_internal_links_usage());
             exit(1);
         }
         continue;
     }
 
     fwrite(STDERR, "Argument inconnu: {$argument}\n");
-    fwrite(STDERR, usage());
+    fwrite(STDERR, auto_retro_internal_links_usage());
     exit(1);
 }
 
@@ -179,7 +179,7 @@ if ($storageMode === 'active') {
 
 echo "{$updatedPages} page(s), {$updatedTranslations} traduction(s) mises a jour.\n";
 
-function usage(): string
+function auto_retro_internal_links_usage(): string
 {
     return <<<TXT
 Usage:

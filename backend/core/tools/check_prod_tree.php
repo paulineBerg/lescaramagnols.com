@@ -10,7 +10,7 @@ if (PHP_SAPI !== 'cli') {
 $options = parse_cli_options(array_slice($argv, 1));
 
 if (isset($options['help']) || isset($options['h'])) {
-    fwrite(STDOUT, usage());
+    fwrite(STDOUT, prod_tree_usage());
     exit(0);
 }
 
@@ -57,7 +57,7 @@ if ($remainingPaths !== []) {
 fwrite(STDOUT, sprintf("[prod-tree] OK: %d chemin(s) non-prod nettoye(s).\n", $removed));
 exit(0);
 
-function usage(): string
+function prod_tree_usage(): string
 {
     return <<<USAGE
 Usage:

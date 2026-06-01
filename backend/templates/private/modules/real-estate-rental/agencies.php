@@ -10,6 +10,16 @@ $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : 
 $actionUrl = (string) ($urls['agencies'] ?? private_portal_url('rental_agencies'));
 $agencyDialogId = 'rental-agency-create-dialog';
 $mappingDialogId = 'rental-agency-unit-mapping-create-dialog';
+$unitTypes = [
+    'apartment' => 'Appartement',
+    'house' => 'Maison',
+    'garage' => 'Garage',
+    'parking' => 'Parking',
+    'commercial_space' => 'Local commercial',
+    'room' => 'Chambre',
+    'storage' => 'Cave / stockage',
+    'other' => 'Autre',
+];
 $propertyNames = [];
 foreach ($properties as $property) {
     if (!is_array($property) || !is_numeric($property['id'] ?? null)) {
@@ -27,11 +37,12 @@ foreach ($units as $unit) {
     $propertyId = (int) $unit['rentalPropertyId'];
     $unitLabel = trim((string) ($unit['label'] ?? ''));
     $type = trim((string) ($unit['unitType'] ?? ''));
+    $typeLabel = $unitTypes[$type] ?? '';
     $propertyLabel = $propertyNames[$propertyId] ?? ('Propriété #' . $propertyId);
     $unitOptions[] = [
         'id' => (int) $unit['id'],
         'propertyId' => $propertyId,
-        'label' => trim($propertyLabel . ' - ' . $unitLabel . ($type !== '' ? ' (' . $type . ')' : '')),
+        'label' => trim($propertyLabel . ' - ' . $unitLabel . ($typeLabel !== '' ? ' (' . $typeLabel . ')' : '')),
     ];
 }
 $agencyValue = static function (array $agency, string $key): string {
@@ -220,7 +231,9 @@ $agencyValue = static function (array $agency, string $key): string {
               <td><?php echo htmlspecialchars((string) ($mapping['agencyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><strong><?php echo htmlspecialchars((string) ($mapping['matchText'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
               <td><?php echo htmlspecialchars((string) ($mapping['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars(trim((string) ($mapping['unitLabel'] ?? '') . ' ' . (string) ($mapping['unitType'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+              <?php $mappingUnitType = is_scalar($mapping['unitType'] ?? null) ? trim((string) $mapping['unitType']) : ''; ?>
+              <?php $mappingUnitTypeLabel = $mappingUnitType !== '' ? (string) ($unitTypes[$mappingUnitType] ?? 'Autre') : ''; ?>
+              <td><?php echo htmlspecialchars(trim((string) ($mapping['unitLabel'] ?? '') . ($mappingUnitTypeLabel !== '' ? ' - ' . $mappingUnitTypeLabel : '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php if ($mappingId > 0): ?>
                   <form method="post" action="<?php echo htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8'); ?>">

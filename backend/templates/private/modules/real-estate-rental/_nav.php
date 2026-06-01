@@ -18,7 +18,7 @@ $subItems = match ($currentSection) {
     'agency' => [
         'agencies' => ['Agences', $url('agencies', 'rental_agencies')],
         'agencyImports' => ['Importer document', $url('agencyImports', 'rental_agency_imports')],
-        'agencyReview' => ['Classer les documents', $url('agencyReview', 'rental_agency_review')],
+        'agencyReview' => ['Valider les documents', $url('agencyReview', 'rental_agency_review')],
     ],
     'reports' => [
         'summary' => ['Synthèse', $url('summary', 'rental_summary')],
