@@ -15,6 +15,7 @@ final class AdminRouteResolverTest extends TestCase
 
         $this->assertSame('admin-moderne', $resolver->loginPath());
         $this->assertSame('/admin-moderne', $resolver->canonicalPath());
+        $this->assertSame('/admin-moderne/recovery', $resolver->canonicalPath('recovery'));
         $this->assertSame('/admin-moderne/dashboard', $resolver->canonicalPath('dashboard'));
         $this->assertSame('/admin-moderne/pages', $resolver->canonicalPath('pages'));
         $this->assertSame('/admin-moderne/menus', $resolver->canonicalPath('menus'));
@@ -50,6 +51,7 @@ final class AdminRouteResolverTest extends TestCase
         $this->assertNotContains('/legacy-admin/index.php', $paths);
         $this->assertNotContains('/legacy-admin/dashboard.php', $paths);
         $this->assertContains('/admin/pages', $paths);
+        $this->assertContains('/admin/recovery', $paths);
         $this->assertContains('/admin/pages/new', $paths);
         $this->assertContains('/admin/pages/{slug:[A-Za-z0-9_-]+}', $paths);
         $this->assertContains('/admin/discussions', $paths);

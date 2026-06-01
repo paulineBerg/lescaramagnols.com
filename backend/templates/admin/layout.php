@@ -1,5 +1,5 @@
 <?php
-$isLoginPage = ($contentTemplate ?? '') === 'login.php';
+$isLoginPage = in_array((string) ($contentTemplate ?? ''), ['login.php', 'admin_recovery.php'], true);
 $adminInterfaceLanguage = is_string($adminInterfaceLanguage ?? null) && trim((string) $adminInterfaceLanguage) !== ''
     ? strtolower(trim((string) $adminInterfaceLanguage))
     : (function_exists('admin_interface_language') ? admin_interface_language() : 'fr');

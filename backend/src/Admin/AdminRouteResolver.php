@@ -23,6 +23,7 @@ final class AdminRouteResolver
 
         return match ($page) {
             'login' => $basePath,
+            'recovery' => $basePath . '/recovery',
             'dashboard' => $basePath . '/dashboard',
             'pages' => $basePath . '/pages',
             'articles' => $basePath . '/articles',
@@ -90,6 +91,7 @@ final class AdminRouteResolver
     {
         $loginPath = $this->canonicalPath('login');
         $dashboardPath = $this->canonicalPath('dashboard');
+        $recoveryPath = $this->canonicalPath('recovery');
         $pagesPath = $this->canonicalPath('pages');
         $pageCreatePath = $this->pageCreatePath();
         $articlesPath = $this->canonicalPath('articles');
@@ -116,6 +118,11 @@ final class AdminRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $loginPath . '/index.php',
                 'handler' => ['type' => 'admin', 'page' => 'login'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $recoveryPath,
+                'handler' => ['type' => 'admin', 'page' => 'recovery'],
             ],
             [
                 'methods' => ['GET'],

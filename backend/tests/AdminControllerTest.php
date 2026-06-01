@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Caramagnols\Admin\AdminController;
 use Caramagnols\Admin\AdminCronCenterService;
+use Caramagnols\Admin\AdminRecoveryService;
 use Caramagnols\Admin\AdminRouteResolver;
 use Caramagnols\Admin\AdminSettingsService;
 use Caramagnols\Cron\CronJobRepository;
@@ -169,6 +170,69 @@ final class AdminControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Connexion Admin', $response->body);
+    }
+
+    public function testRecoveryRouteResetsPasswordWithOneTimeKey(): void
+    {
+        global $appConfig;
+
+        file_put_contents($this->adminOverrideFile, "<?php\n\nreturn [\n    'identifier' => 'admin@example.com',\n    'password_hash' => '" . password_hash('topsecret', PASSWORD_DEFAULT) . "',\n    'totp_enabled' => true,\n    'totp_secret' => 'JBSWY3DPEHPK3PXP',\n];\n");
+        $recoveryService = new AdminRecoveryService($this->adminOverrideFile);
+        $keys = $recoveryService->generatePlainKeys();
+        $recoveryService->installPlainKeys($keys);
+
+        $controller = $this->controller(null, null, null, $recoveryService);
+        $token = admin_csrf_token();
+        $response = $controller->handle(
+            'recovery',
+            $this->request(
+                'POST',
+                '/admin/recovery',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'identifier' => 'admin@example.com',
+                    'recovery_key' => $keys[0]['key'],
+                    'password' => 'RecoveredPassword123!',
+                    'password_confirm' => 'RecoveredPassword123!',
+                ],
+                '203.0.113.77'
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/admin', $response->headers['Location']);
+
+        $override = require $this->adminOverrideFile;
+        $this->assertIsArray($override);
+        $this->assertTrue(password_verify('RecoveredPassword123!', (string) ($override['password_hash'] ?? '')));
+        $this->assertFalse((bool) ($override['totp_enabled'] ?? true));
+        $this->assertNotEmpty($override['recovery_keys'][0]['used_at'] ?? '');
+
+        $appConfig['admin']['password_hash'] = (string) ($override['password_hash'] ?? '');
+        $appConfig['admin']['totp_enabled'] = false;
+        $this->assertTrue(admin_login('admin@example.com', 'RecoveredPassword123!'));
+        admin_logout();
+
+        $reuse = $controller->handle(
+            'recovery',
+            $this->request(
+                'POST',
+                '/admin/recovery',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'identifier' => 'admin@example.com',
+                    'recovery_key' => $keys[0]['key'],
+                    'password' => 'OtherPassword123!',
+                    'password_confirm' => 'OtherPassword123!',
+                ],
+                '203.0.113.77'
+            )
+        );
+
+        $this->assertSame(200, $reuse->status);
+        $this->assertStringContainsString('Identifiant ou clé de récupération invalide.', $reuse->body);
     }
 
     public function testDashboardRedirectsWhenUnauthenticated(): void
@@ -3679,7 +3743,8 @@ final class AdminControllerTest extends TestCase
     private function controller(
         ?AdminSettingsService $settingsService = null,
         ?AppEventLogger $logger = null,
-        ?AdminCronCenterService $cronCenterService = null
+        ?AdminCronCenterService $cronCenterService = null,
+        ?AdminRecoveryService $recoveryService = null
     ): AdminController {
         $logger = $logger ?? new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
         $settingsService = $settingsService ?? new AdminSettingsService(
@@ -3703,7 +3768,8 @@ final class AdminControllerTest extends TestCase
             null,
             null,
             null,
-            $cronCenterService
+            $cronCenterService,
+            $recoveryService
         );
     }
 

@@ -710,10 +710,19 @@ Regles de securite :
 - l'ecran doit etre reserve a un niveau d'acces super-admin
 - chaque changement de parametre sensible doit etre journalise
 
+Recuperation admin par cles de secours :
+- le projet expose une route `/<base_path>/<ADMIN_LOGIN_PATH>/recovery` quand au moins une cle de recuperation admin est encore utilisable;
+- les cles sont creees par `php backend/core/tools/admin_recovery_keys.php create --key-file=~/.caramagnols/admin-local.keys`;
+- la creation genere `10` cles uniques a usage unique, conservees en clair uniquement dans le fichier local indique;
+- `config/admin.override.php` ne stocke que les hashes `password_hash()` des cles, avec `used_at` apres utilisation;
+- une recuperation reinitialise le mot de passe admin, consomme la cle utilisee et desactive le Code 2FA admin afin de le recreer apres connexion;
+- pour la preprod, creer un fichier de cles distinct sur le PC avec `--no-install`, puis installer seulement les hashes via SSH avec `php backend/core/tools/admin_recovery_keys.php install --key-file=-`.
+
 Ce qu il faut eviter :
 - stocker le mot de passe admin dans `pages.json`, `menus.json` ou une table editoriale
 - rendre les secrets modifiables sans re-authentification
 - afficher ou renvoyer les secrets dans le HTML ou dans les logs applicatifs
+- copier le fichier de cles de recuperation dans le depot, sur le serveur web ou dans un ticket
 - melanger les parametres systeme avec l'edition des pages et des menus
 
 ## 5. Admin : Ecrans Cibles

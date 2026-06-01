@@ -31,6 +31,7 @@ final class AdminController
     private AdminSerializedFormNormalizer $serializedFormNormalizer;
     private AdminEditorialImageService $editorialImageService;
     private AdminPrivateMembersService $privateMembersService;
+    private AdminRecoveryService $recoveryService;
 
     public function __construct(
         private readonly AdminRouteResolver $routeResolver,
@@ -46,7 +47,8 @@ final class AdminController
         ?AdminEditorialImageService $editorialImageService = null,
         ?AdminTileService $tileService = null,
         ?AdminPrivateMembersService $privateMembersService = null,
-        ?AdminCronCenterService $cronCenterService = null
+        ?AdminCronCenterService $cronCenterService = null,
+        ?AdminRecoveryService $recoveryService = null
     ) {
         require_once ROOT_PATH . '/core/auth/admin.php';
         require_once ROOT_PATH . '/core/menu_loader.php';
@@ -111,6 +113,7 @@ final class AdminController
             new PrivateModulePermissionRepository(editorial_database(), new PrivateModuleRegistry()),
             $this->eventLogger
         );
+        $this->recoveryService = $recoveryService ?? new AdminRecoveryService(ROOT_PATH . '/config/admin.override.php');
     }
 
     private function adminInterfaceLanguage(): string
@@ -310,6 +313,7 @@ final class AdminController
     {
         $response = match ($page) {
             'login' => $this->login($request),
+            'recovery' => $this->recovery($request),
             'dashboard' => $this->dashboard($request),
             'pages' => $this->pages($request),
             'pages_new' => $this->pageEditor($request),
@@ -363,6 +367,7 @@ final class AdminController
         $submittedIdentifier = admin_configured_identifier();
         $totpRequired = admin_totp_should_challenge();
         $passwordRequired = !admin_local_passwordless_localhost_allowed();
+        $recoveryConfigured = $this->recoveryService->hasUsableRecoveryKey();
 
         if ($request->method() === 'POST') {
             $body = $request->body();
@@ -418,6 +423,8 @@ final class AdminController
                             'submittedIdentifier' => $submittedIdentifier,
                             'passwordRequired' => $passwordRequired,
                             'loginPath' => $this->routeResolver->loginPath(),
+                            'recoveryConfigured' => $recoveryConfigured,
+                            'adminRecoveryUrl' => $this->routeResolver->canonicalPath('recovery'),
                             'contentTemplate' => 'login.php',
                         ]
                     );
@@ -461,6 +468,105 @@ final class AdminController
                 'passwordRequired' => $passwordRequired,
                 'loginPath' => $this->routeResolver->loginPath(),
                 'totpRequired' => $totpRequired,
+                'recoveryConfigured' => $recoveryConfigured,
+                'adminRecoveryUrl' => $this->routeResolver->canonicalPath('recovery'),
+            ]
+        );
+    }
+
+    private function recovery(Request $request): Response
+    {
+        $networkGuard = $this->guardAdminNetwork($request, 'recovery');
+        if ($networkGuard !== null) {
+            return $networkGuard;
+        }
+
+        if (admin_is_authenticated()) {
+            return $this->redirect($this->routeResolver->canonicalPath('dashboard'));
+        }
+
+        $error = null;
+        $submittedIdentifier = admin_configured_identifier();
+        if (!$this->recoveryService->hasUsableRecoveryKey()) {
+            $error = $this->adminText(
+                'TXT_ADMIN_RECOVERY_UNAVAILABLE',
+                'Aucune clé de récupération admin utilisable n’est configurée.'
+            );
+        }
+
+        if ($request->method() === 'POST' && $error === null) {
+            $body = $request->body();
+            $token = is_string($body['csrf_token'] ?? null) ? (string) $body['csrf_token'] : '';
+            $identifier = is_string($body['identifier'] ?? null) ? (string) $body['identifier'] : '';
+            $recoveryKey = is_string($body['recovery_key'] ?? null) ? (string) $body['recovery_key'] : '';
+            $password = is_string($body['password'] ?? null) ? (string) $body['password'] : '';
+            $passwordConfirm = is_string($body['password_confirm'] ?? null) ? (string) $body['password_confirm'] : '';
+            $submittedIdentifier = $identifier;
+            $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false)) ?? 'unknown';
+            $requestContext = [
+                'identifier' => AppEventLogger::maskIdentifier($identifier),
+                'ip' => $clientIp,
+                'uri' => $request->uri(),
+                'method' => $request->method(),
+                'user_agent' => (string) ($request->header('User-Agent') ?? ''),
+                'referer' => (string) ($request->header('Referer') ?? $request->header('Referrer') ?? ''),
+            ];
+
+            if (!admin_validate_csrf_token($token)) {
+                $this->eventLogger->security('admin.recovery.invalid_csrf', $requestContext, 'warning');
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
+            } elseif ($password !== $passwordConfirm) {
+                $error = $this->adminText('TXT_ADMIN_RECOVERY_PASSWORD_MISMATCH', 'Les deux mots de passe ne correspondent pas.');
+            } else {
+                $limiter = new \FileRateLimiter(
+                    'admin-recovery:' . $clientIp,
+                    (int) app_config('admin.login_rate_limit_attempts', 5),
+                    (int) app_config('admin.login_rate_limit_window', 900)
+                );
+
+                if (!$limiter->allow()) {
+                    $retryAfter = $limiter->retryAfter();
+                    $this->eventLogger->security(
+                        'admin.recovery.rate_limited',
+                        array_merge($requestContext, ['retry_after' => $retryAfter]),
+                        'warning'
+                    );
+                    $error = $this->adminTextf(
+                        'TXT_ADMIN_LOGIN_RATE_LIMITED',
+                        'Trop de tentatives de connexion. Merci de réessayer dans %d secondes.',
+                        $retryAfter
+                    );
+                } else {
+                    $result = $this->recoveryService->recover($identifier, $recoveryKey, $password);
+                    if ($result['success']) {
+                        $limiter->clear();
+                        $this->eventLogger->security('admin.recovery.completed', $requestContext);
+                        admin_set_notice_code('admin_recovery_completed');
+
+                        return $this->redirect($this->routeResolver->canonicalPath('login'));
+                    }
+
+                    $limiter->hit();
+                    $this->eventLogger->security(
+                        'admin.recovery.failed',
+                        array_merge($requestContext, ['reason' => $result['error']]),
+                        'warning'
+                    );
+                    $error = $this->adminRecoveryErrorMessage($result['error']);
+                }
+            }
+        }
+
+        return $this->renderPage(
+            'admin_recovery.php',
+            [
+                'pageTitle' => $this->adminText('TXT_ADMIN_RECOVERY_PAGE_TITLE', 'Récupération admin · Les Caramagnols'),
+                'error' => $error,
+                'csrfToken' => admin_csrf_token(),
+                'submittedIdentifier' => $submittedIdentifier,
+                'adminLoginUrl' => $this->routeResolver->canonicalPath('login'),
+                'adminRecoveryUrl' => $this->routeResolver->canonicalPath('recovery'),
+                'loginPath' => $this->routeResolver->loginPath(),
             ]
         );
     }
@@ -2267,7 +2373,29 @@ final class AdminController
                 (int) floor(admin_inactivity_timeout_seconds() / 60)
             ),
             'reauth_required' => $this->adminText('TXT_ADMIN_NOTICE_REAUTH_REQUIRED', 'Veuillez vous reconnecter pour valider une action sensible.'),
+            'admin_recovery_completed' => $this->adminText(
+                'TXT_ADMIN_NOTICE_RECOVERY_COMPLETED',
+                'Mot de passe admin réinitialisé. Le Code 2FA admin a été désactivé, recrée-le après connexion.'
+            ),
             default => null,
+        };
+    }
+
+    private function adminRecoveryErrorMessage(string $error): string
+    {
+        return match ($error) {
+            'weak_password' => $this->adminText(
+                'TXT_ADMIN_RECOVERY_WEAK_PASSWORD',
+                'Le nouveau mot de passe doit contenir au moins 12 caractères.'
+            ),
+            'write_failed' => $this->adminText(
+                'TXT_ADMIN_RECOVERY_WRITE_FAILED',
+                'La configuration admin n’a pas pu être mise à jour.'
+            ),
+            default => $this->adminText(
+                'TXT_ADMIN_RECOVERY_INVALID',
+                'Identifiant ou clé de récupération invalide.'
+            ),
         };
     }
 

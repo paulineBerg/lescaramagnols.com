@@ -72,3 +72,10 @@ $translate = static function (string $key, string $fallback): string {
 <p class="hint">
   <?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_CANONICAL_PATH', 'Route canonique admin :'), ENT_QUOTES, 'UTF-8'); ?> <code><?php echo htmlspecialchars((string) ($loginPath ?? ''), ENT_QUOTES, 'UTF-8'); ?></code>
 </p>
+<?php if (!empty($recoveryConfigured)): ?>
+<p class="hint">
+  <a href="<?php echo htmlspecialchars((string) ($adminRecoveryUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+    <?php echo htmlspecialchars($translate('TXT_ADMIN_RECOVERY_LINK', 'Récupération admin par clé de secours'), ENT_QUOTES, 'UTF-8'); ?>
+  </a>
+</p>
+<?php endif; ?>
