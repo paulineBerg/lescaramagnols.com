@@ -60,6 +60,46 @@ bash backend/tools/sync-published-frontend-tree.sh
 
 Apres deploy, rejouer les controles du domaine touche puis un smoke HTTP sur les URLs modifiees.
 
+Controle rapide d'alignement applicatif local -> preprod, hors secrets et runtime:
+
+```bash
+REMOTE_HOST=ovh-boutique
+REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend
+LOCAL_BACKEND="$PWD/backend"
+rsync -rlnc --delete --itemize-changes \
+  --no-perms --no-owner --no-group --omit-dir-times \
+  --exclude=".env" --exclude=".env.*" \
+  --exclude="config/*.override.php" \
+  --exclude="/node_modules/" --exclude="/tests/" --exclude="/docs/" \
+  --exclude="README*" --exclude="/private/" --exclude="/var/" \
+  --exclude="phpunit.xml" --exclude="phpstan.neon*" \
+  --exclude="phpstan.bootstrap.php" --exclude="phpcs.xml" \
+  --exclude="package.json" --exclude="package-lock.json" \
+  --exclude="npm-shrinkwrap.json" --exclude="replace_image_paths.php" \
+  --exclude="/data/logs/" --exclude="/data/snapshots/" \
+  --exclude="data/*.bak" --exclude="*.bak" --exclude="*.old" \
+  --exclude="*.orig" --exclude="*.tmp" --exclude="*~" \
+  --exclude=".DS_Store" --exclude="Thumbs.db" \
+  --exclude="public/.ovhconfig" --exclude="public/uploads/" \
+  --exclude="public/dev-router.php" \
+  "$LOCAL_BACKEND/" "$REMOTE_HOST:$REMOTE_BACKEND/"
+```
+
+Si la sortie liste un template, une classe PHP, un fichier public ou un asset publie attendu en preprod, corriger l'environnement divergent dans le meme passage. Les ecarts limites a `public/sitemap.xml` sont normaux quand le fichier local a ete genere avec une URL de base locale ou de test differente de `https://preprod.lescaramagnols.com`.
+
+Controle des donnees privees runtime, sans afficher les contenus:
+
+```bash
+LOCAL_SNAPSHOT="$(mktemp)"
+REMOTE_SNAPSHOT="$(mktemp)"
+php backend/core/tools/private_migration_reconcile.php snapshot --output="$LOCAL_SNAPSHOT"
+ssh ovh-boutique 'cd /home/lescaramgl-ssh/caramagnols-preprod/backend && php core/tools/private_migration_reconcile.php snapshot' > "$REMOTE_SNAPSHOT"
+php backend/core/tools/private_migration_reconcile.php compare "$LOCAL_SNAPSHOT" "$REMOTE_SNAPSHOT"
+rm -f "$LOCAL_SNAPSHOT" "$REMOTE_SNAPSHOT"
+```
+
+Si `equal` vaut `false`, la couche applicative peut etre alignee mais les donnees privees ne le sont pas. Ne jamais ecraser automatiquement ces donnees: choisir explicitement le sens de synchronisation (`local -> preprod` ou `preprod -> local`), generer une sauvegarde verifiee de la cible, puis restaurer/importer uniquement le perimetre valide.
+
 Si une correction a ete faite directement en preprod:
 - identifier le ou les fichiers ou donnees touches
 - reconstruire la correction en local ou rapatrier seulement les fichiers cibles hors secrets/runtime
