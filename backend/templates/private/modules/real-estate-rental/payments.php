@@ -6,7 +6,7 @@ $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['r
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
 $prefillRentId = is_numeric($viewModel['rentalPaymentPrefillRentId'] ?? null) ? (int) $viewModel['rentalPaymentPrefillRentId'] : 0;
-$paymentStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled' => 'Annule'];
+$paymentStatuses = ['draft' => 'Brouillon', 'validated' => 'Validé', 'cancelled' => 'Annulé'];
 $paymentKinds = ['tenant' => 'Locataire', 'caf' => 'CAF', 'refund' => 'Remboursement', 'adjustment' => 'Régularisation'];
 $paymentMethods = ['' => 'Non précisé', 'bank_transfer' => 'Virement', 'cash' => 'Espèces', 'cheque' => 'Chèque', 'card' => 'Carte', 'direct_debit' => 'Prélèvement', 'other' => 'Autre'];
 $createDialogId = 'rental-payment-create-dialog';

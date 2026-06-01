@@ -103,7 +103,7 @@ foreach ($properties as $property) {
           </label>
           <label>Bien locatif optionnel
             <select name="rental_unit_id" data-rental-document-unit-select>
-              <option value="">Non rattache</option>
+              <option value="">Non rattaché</option>
               <?php foreach ($units as $unit): ?>
                 <?php if (!is_array($unit) || !is_numeric($unit['id'] ?? null)) { continue; } ?>
                 <?php $unitPropertyId = is_numeric($unit['rentalPropertyId'] ?? null) ? (int) $unit['rentalPropertyId'] : 0; ?>
@@ -113,7 +113,7 @@ foreach ($properties as $property) {
           </label>
           <label>Bail optionnel
             <select name="rental_lease_id" data-rental-document-lease-select>
-              <option value="">Non rattache</option>
+              <option value="">Non rattaché</option>
               <?php foreach ($leases as $lease): ?>
                 <?php if (!is_array($lease) || !is_numeric($lease['id'] ?? null)) { continue; } ?>
                 <option value="<?php echo htmlspecialchars((string) (int) $lease['id'], ENT_QUOTES, 'UTF-8'); ?>" data-unit-id="<?php echo htmlspecialchars((string) (int) ($lease['rentalUnitId'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) ($lease['tenantName'] ?? 'Bail'), ENT_QUOTES, 'UTF-8'); ?></option>

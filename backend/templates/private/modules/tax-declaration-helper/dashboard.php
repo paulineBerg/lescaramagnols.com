@@ -4,17 +4,22 @@ $currentYear = is_numeric($viewModel['taxCurrentYear'] ?? null) ? (int) $viewMod
 $baseUrl = is_string($viewModel['taxBaseUrl'] ?? null) ? (string) $viewModel['taxBaseUrl'] : private_portal_url('tax_dashboard');
 $year = $currentYear;
 $taxCurrentSubsection = 'dashboard';
+$statusLabels = [
+    'draft' => 'Brouillon',
+    'generated' => 'Générée',
+    'locked' => 'Verrouillée',
+];
 ?>
 <section>
   <?php include __DIR__ . '/_nav.php'; ?>
-  <p class="notice">Aide non officielle : cette synthese ne remplace pas une declaration fiscale ni un conseil professionnel.</p>
+  <p class="notice">Aide non officielle : cette synthèse ne remplace pas une déclaration fiscale ni un conseil professionnel.</p>
   <section class="card">
     <h2>Années fiscales</h2>
     <p class="private-actions">
       <a href="<?php echo htmlspecialchars(rtrim($baseUrl, '/') . '/' . $currentYear, ENT_QUOTES, 'UTF-8'); ?>">Ouvrir <?php echo htmlspecialchars((string) $currentYear, ENT_QUOTES, 'UTF-8'); ?></a>
     </p>
     <?php if ($years === []): ?>
-      <p class="muted">Aucune annee fiscale preparee.</p>
+      <p class="muted">Aucune année fiscale préparée.</p>
     <?php else: ?>
       <ul>
         <?php foreach ($years as $yearRow): ?>
@@ -22,7 +27,8 @@ $taxCurrentSubsection = 'dashboard';
           <?php $year = (int) $yearRow['year']; ?>
           <li>
             <a href="<?php echo htmlspecialchars(rtrim($baseUrl, '/') . '/' . $year, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $year, ENT_QUOTES, 'UTF-8'); ?></a>
-            — <?php echo htmlspecialchars((string) ($yearRow['status'] ?? 'draft'), ENT_QUOTES, 'UTF-8'); ?>
+            <?php $status = is_string($yearRow['status'] ?? null) ? (string) $yearRow['status'] : 'draft'; ?>
+            - <?php echo htmlspecialchars($statusLabels[$status] ?? $status, ENT_QUOTES, 'UTF-8'); ?>
           </li>
         <?php endforeach; ?>
       </ul>

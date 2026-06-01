@@ -326,6 +326,92 @@ final class RentalLifecycleTest extends TestCase
         $this->assertSame('2026-12-04', RentalLeaseTypeCatalog::defaultEndDate('student_furnished', '2026-03-05'));
     }
 
+    public function testTenantDetailsArePersistedAndCanBuildFullName(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+        $ownerId = $this->createPrivateUser($userRepository, 'owner-tenant-details@example.com');
+
+        $property = $propertyRepository->create($ownerId, 'Maison locataire', '7 rue du Locataire', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Lot locataire', 44.0, false, 'available', null, $ownerId);
+        $this->assertNotNull($unit);
+
+        $tenant = $lifecycleRepository->createTenant(
+            $property->id,
+            $unit->id,
+            '',
+            'tenant-details@example.com',
+            '0600000000',
+            'validated',
+            $ownerId,
+            'Dossier complet.',
+            [
+                'last_name' => 'DUPONT',
+                'first_names' => 'Jeanne Marie',
+                'birth_date' => '1990-04-12',
+                'birth_city' => 'Cogolin',
+                'birth_country' => 'France',
+                'nationality' => 'Française',
+                'occupation' => 'Infirmière',
+                'postal_address' => '5 avenue du Port, 83310 Cogolin',
+            ]
+        );
+
+        $this->assertIsArray($tenant);
+        $this->assertSame('DUPONT Jeanne Marie', $tenant['fullName'] ?? null);
+        $this->assertSame('DUPONT', $tenant['lastName'] ?? null);
+        $this->assertSame('Jeanne Marie', $tenant['firstNames'] ?? null);
+        $this->assertSame('1990-04-12', $tenant['birthDate'] ?? null);
+        $this->assertSame('Cogolin', $tenant['birthCity'] ?? null);
+        $this->assertSame('France', $tenant['birthCountry'] ?? null);
+        $this->assertSame('Française', $tenant['nationality'] ?? null);
+        $this->assertSame('Infirmière', $tenant['occupation'] ?? null);
+        $this->assertSame('5 avenue du Port, 83310 Cogolin', $tenant['postalAddress'] ?? null);
+
+        $updated = $lifecycleRepository->updateTenant(
+            (int) ($tenant['id'] ?? 0),
+            $property->id,
+            $unit->id,
+            '',
+            'tenant-updated@example.com',
+            null,
+            'validated',
+            null,
+            [
+                'last_name' => 'MARTIN',
+                'first_names' => 'Claire',
+                'birth_date' => '1988-11-03',
+                'birth_city' => 'Saint-Tropez',
+                'birth_country' => 'France',
+                'nationality' => 'Française',
+                'occupation' => 'Artisane',
+                'postal_address' => '8 rue Centrale, 83990 Saint-Tropez',
+            ]
+        );
+
+        $this->assertIsArray($updated);
+        $this->assertSame('MARTIN Claire', $updated['fullName'] ?? null);
+        $this->assertSame('Artisane', $updated['occupation'] ?? null);
+        $this->assertSame('8 rue Centrale, 83990 Saint-Tropez', $updated['postalAddress'] ?? null);
+        $this->assertNull($lifecycleRepository->createTenant(
+            $property->id,
+            $unit->id,
+            '',
+            null,
+            null,
+            'validated',
+            $ownerId,
+            null,
+            ['last_name' => 'INVALIDE', 'birth_date' => '2026-99-99']
+        ));
+    }
+
     public function testDocumentsStayOutsideWebrootAndExportsAreLogged(): void
     {
         $database = $this->editorialSqlDatabase();

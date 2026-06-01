@@ -15,18 +15,18 @@ $taxCurrentSubsection = 'year';
 ?>
 <section>
   <?php include __DIR__ . '/_nav.php'; ?>
-  <p class="notice">Aide non officielle : cette synthese ne remplace pas une declaration fiscale ni un conseil professionnel.</p>
+  <p class="notice">Aide non officielle : cette synthèse ne remplace pas une déclaration fiscale ni un conseil professionnel.</p>
   <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
   <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
   <section class="card">
-    <h2>Liaisons de donnees</h2>
-    <p class="muted">Les donnees d'une autre application privee ne sont ajoutees a la synthese fiscale qu'apres activation manuelle pour cette annee.</p>
+    <h2>Liaisons de données</h2>
+    <p class="muted">Les données d'une autre application privée ne sont ajoutées à la synthèse fiscale qu'après activation manuelle pour cette année.</p>
     <?php if ($availableSources === []): ?>
       <p class="muted">Aucune source connectable.</p>
     <?php else: ?>
       <table>
-        <thead><tr><th>Source</th><th>Etat</th><th>Action</th></tr></thead>
+        <thead><tr><th>Source</th><th>État</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($availableSources as $source): ?>
             <?php
@@ -40,13 +40,13 @@ $taxCurrentSubsection = 'year';
             ?>
             <tr>
               <td><?php echo htmlspecialchars($sourceLabel, ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo $enabled ? 'Activee' : 'Inactive'; ?></td>
+              <td><?php echo $enabled ? 'Activée' : 'Inactive'; ?></td>
               <td>
                 <form method="post" action="<?php echo htmlspecialchars($yearUrl, ENT_QUOTES, 'UTF-8'); ?>">
                   <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
                   <input type="hidden" name="source_code" value="<?php echo htmlspecialchars($sourceCode, ENT_QUOTES, 'UTF-8'); ?>" />
                   <?php if ($enabled): ?>
-                    <button type="submit" name="action" value="disable_source" <?php echo $locked ? 'disabled' : ''; ?>>Desactiver</button>
+                    <button type="submit" name="action" value="disable_source" <?php echo $locked ? 'disabled' : ''; ?>>Désactiver</button>
                   <?php else: ?>
                     <button type="submit" name="action" value="enable_source" <?php echo $locked ? 'disabled' : ''; ?>>Activer la liaison</button>
                   <?php endif; ?>
@@ -60,7 +60,7 @@ $taxCurrentSubsection = 'year';
   </section>
 
   <section class="card">
-    <h2>Synthese <?php echo htmlspecialchars((string) $year, ENT_QUOTES, 'UTF-8'); ?> <?php echo $locked ? '(verrouillee)' : ''; ?></h2>
+    <h2>Synthèse <?php echo htmlspecialchars((string) $year, ENT_QUOTES, 'UTF-8'); ?> <?php echo $locked ? '(verrouillée)' : ''; ?></h2>
     <dl>
       <dt>Revenus manuels</dt><dd><?php echo htmlspecialchars(number_format((float) ($totals['manualIncome'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</dd>
       <dt>Revenus locatifs</dt><dd><?php echo htmlspecialchars(number_format((float) ($totals['rentalIncome'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</dd>
@@ -69,9 +69,9 @@ $taxCurrentSubsection = 'year';
     </dl>
     <form method="post" action="<?php echo htmlspecialchars($yearUrl, ENT_QUOTES, 'UTF-8'); ?>">
       <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
-      <button type="submit" name="action" value="generate_summary" <?php echo $locked ? 'disabled' : ''; ?>>Generer la synthese</button>
+      <button type="submit" name="action" value="generate_summary" <?php echo $locked ? 'disabled' : ''; ?>>Générer la synthèse</button>
       <button type="submit" name="action" value="lock_year" <?php echo $locked ? 'disabled' : ''; ?>>Verrouiller</button>
-      <button type="submit" name="action" value="unlock_year" <?php echo !$locked ? 'disabled' : ''; ?>>Deverrouiller admin</button>
+      <button type="submit" name="action" value="unlock_year" <?php echo !$locked ? 'disabled' : ''; ?>>Déverrouiller admin</button>
     </form>
     <p class="private-actions">
       <a href="<?php echo htmlspecialchars((string) ($urls['exportCsv'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">Export CSV</a>
@@ -85,7 +85,7 @@ $taxCurrentSubsection = 'year';
       <p class="muted">Aucune ligne calculee.</p>
     <?php else: ?>
       <table>
-        <thead><tr><th>Source</th><th>Type</th><th>Libelle</th><th>Montant</th><th>Origine</th></tr></thead>
+        <thead><tr><th>Source</th><th>Type</th><th>Libellé</th><th>Montant</th><th>Origine</th></tr></thead>
         <tbody>
           <?php foreach ($lines as $line): ?>
             <?php if (!is_array($line)) { continue; } ?>

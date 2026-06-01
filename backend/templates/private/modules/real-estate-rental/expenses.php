@@ -13,7 +13,7 @@ foreach ($properties as $property) {
         $propertyNames[(int) $property['id']] = (string) ($property['name'] ?? ('Propriété #' . (int) $property['id']));
     }
 }
-$expenseStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled' => 'Annule'];
+$expenseStatuses = ['draft' => 'Brouillon', 'validated' => 'Validé', 'cancelled' => 'Annulé'];
 $categoryLabels = [];
 foreach ($expenseCategories as $category) {
     if (is_array($category) && is_string($category['code'] ?? null)) {
@@ -21,9 +21,9 @@ foreach ($expenseCategories as $category) {
     }
 }
 $expenseGroups = [
-    'recoverable' => ['title' => 'Charges recuperables', 'total' => 0.0, 'rows' => []],
-    'deductible' => ['title' => 'Candidates deductibles', 'total' => 0.0, 'rows' => []],
-    'nonDeductible' => ['title' => 'Non deductibles', 'total' => 0.0, 'rows' => []],
+    'recoverable' => ['title' => 'Charges récupérables', 'total' => 0.0, 'rows' => []],
+    'deductible' => ['title' => 'Candidates déductibles', 'total' => 0.0, 'rows' => []],
+    'nonDeductible' => ['title' => 'Non déductibles', 'total' => 0.0, 'rows' => []],
 ];
 foreach ($expenses as $expense) {
     if (!is_array($expense) || (string) ($expense['status'] ?? '') !== 'validated') {
@@ -61,7 +61,7 @@ $createDialogId = 'rental-expense-create-dialog';
       <p class="muted">Créer d'abord une propriété autorisée.</p>
     <?php endif; ?>
     <?php if ($expenses === []): ?>
-      <p class="muted">Aucune charge enregistree.</p>
+      <p class="muted">Aucune charge enregistrée.</p>
     <?php else: ?>
       <div class="private-list-tools">
         <div class="private-kpi-grid">
@@ -71,7 +71,7 @@ $createDialogId = 'rental-expense-create-dialog';
               <span><?php echo htmlspecialchars((string) ($group['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
               <strong><?php echo htmlspecialchars(number_format((float) ($group['total'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</strong>
               <?php if ($rows === []): ?>
-                <p class="muted">Aucune charge validee.</p>
+                <p class="muted">Aucune charge validée.</p>
               <?php else: ?>
                 <ul>
                   <?php foreach (array_slice($rows, 0, 5) as $row): ?>
@@ -102,7 +102,7 @@ $createDialogId = 'rental-expense-create-dialog';
       </div>
       <div class="private-table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Annee fiscale</th><th>Propriété</th><th>Categorie</th><th>Libelle</th><th>Montant</th><th>Nature</th><th>Justificatifs</th><th>Statut</th><th>Action</th></tr></thead>
+        <thead><tr><th>Date</th><th>Année fiscale</th><th>Propriété</th><th>Catégorie</th><th>Libellé</th><th>Montant</th><th>Nature</th><th>Justificatifs</th><th>Statut</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($expenses as $expense): ?>
             <?php if (!is_array($expense)) { continue; } ?>
@@ -115,8 +115,8 @@ $createDialogId = 'rental-expense-create-dialog';
               <td><?php echo htmlspecialchars((string) ($expense['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars(number_format((float) ($expense['amount'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</td>
               <td>
-                <?php echo ((int) ($expense['isRecoverable'] ?? 0) === 1) ? 'recuperable' : 'non recuperable'; ?>,
-                <?php echo ((int) ($expense['isDeductibleCandidate'] ?? 0) === 1) ? 'potentiellement deductible' : 'non deductible'; ?>
+                <?php echo ((int) ($expense['isRecoverable'] ?? 0) === 1) ? 'récupérable' : 'non récupérable'; ?>,
+                <?php echo ((int) ($expense['isDeductibleCandidate'] ?? 0) === 1) ? 'potentiellement déductible' : 'non déductible'; ?>
               </td>
               <td><?php echo htmlspecialchars((string) (int) ($expense['supportingDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($expenseStatuses[(string) ($expense['status'] ?? '')] ?? ($expense['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -169,8 +169,8 @@ $createDialogId = 'rental-expense-create-dialog';
             </select>
           </label>
           <label>Date <input type="date" name="expense_date" required /></label>
-          <label>Annee fiscale <input type="number" name="tax_year" min="2000" max="2100" value="<?php echo htmlspecialchars((string) date('Y'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
-          <label>Categorie
+          <label>Année fiscale <input type="number" name="tax_year" min="2000" max="2100" value="<?php echo htmlspecialchars((string) date('Y'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+          <label>Catégorie
             <select name="expense_category" required>
               <?php foreach ($expenseCategories as $category): ?>
                 <?php if (!is_array($category) || !is_string($category['code'] ?? null)) { continue; } ?>
@@ -178,10 +178,10 @@ $createDialogId = 'rental-expense-create-dialog';
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Libelle <input type="text" name="label" maxlength="160" required /></label>
+          <label>Libellé <input type="text" name="label" maxlength="160" required /></label>
           <label>Montant <input type="number" name="amount" min="0.01" step="0.01" required /></label>
-          <label><input type="checkbox" name="is_recoverable" value="1" /> Charge recuperable</label>
-          <label><input type="checkbox" name="is_deductible_candidate" value="1" /> Potentiellement deductible</label>
+          <label><input type="checkbox" name="is_recoverable" value="1" /> Charge récupérable</label>
+          <label><input type="checkbox" name="is_deductible_candidate" value="1" /> Potentiellement déductible</label>
           <label>Statut
             <select name="status">
               <?php foreach ($expenseStatuses as $value => $label): ?>

@@ -34,7 +34,7 @@ $taxCurrentSubsection = 'documents';
 
   <section class="card">
     <h2>Documents et justificatifs</h2>
-    <?php if ($documents === []): ?><p class="notice notice-success">Aucun justificatif manquant detecte.</p><?php else: ?>
+    <?php if ($documents === []): ?><p class="notice notice-success">Aucun justificatif manquant détecté.</p><?php else: ?>
       <ul>
         <?php foreach ($documents as $document): ?>
           <?php if (!is_array($document)) { continue; } ?>

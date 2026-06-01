@@ -24,7 +24,19 @@ foreach ($units as $unit) {
         . (string) ($unit['label'] ?? ('Bien locatif #' . (int) $unit['id']))
     );
 }
-$statuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'cancelled' => 'Annule'];
+$statuses = ['draft' => 'Brouillon', 'validated' => 'Validé', 'cancelled' => 'Annulé'];
+$tenantValue = static function (array $tenant, string $key): string {
+    return is_scalar($tenant[$key] ?? null) ? trim((string) $tenant[$key]) : '';
+};
+$tenantNameParts = static function (array $tenant) use ($tenantValue): array {
+    $lastName = $tenantValue($tenant, 'lastName');
+    $firstNames = $tenantValue($tenant, 'firstNames');
+    if ($lastName === '' && $firstNames === '') {
+        $lastName = $tenantValue($tenant, 'fullName');
+    }
+
+    return [$lastName, $firstNames];
+};
 $createDialogId = 'rental-tenant-create-dialog';
 ?>
 <section>
@@ -64,21 +76,54 @@ $createDialogId = 'rental-tenant-create-dialog';
         </div>
       </div>
       <div class="private-table-wrap">
-      <table>
-        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Email</th><th>Statut</th><th>Action</th></tr></thead>
-        <tbody>
-          <?php foreach ($tenants as $tenant): ?>
-            <?php if (!is_array($tenant)) { continue; } ?>
-            <?php
-            $tenantId = is_numeric($tenant['id'] ?? null) ? (int) $tenant['id'] : 0;
-            $dialogId = 'rental-tenant-dialog-' . $tenantId;
-            ?>
-            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($tenant['propertyName'] ?? '') . ' ' . (string) ($tenant['unitLabel'] ?? '') . ' ' . (string) ($tenant['fullName'] ?? '') . ' ' . (string) ($tenant['email'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($tenant['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-              <td><?php echo htmlspecialchars((string) ($tenant['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars((string) ($tenant['unitLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars((string) ($tenant['fullName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars((string) ($tenant['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars((string) ($statuses[(string) ($tenant['status'] ?? '')] ?? ($tenant['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+	      <table>
+	        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Contact</th><th>Naissance</th><th>Statut</th><th>Action</th></tr></thead>
+	        <tbody>
+	          <?php foreach ($tenants as $tenant): ?>
+	            <?php if (!is_array($tenant)) { continue; } ?>
+	            <?php
+	            $tenantId = is_numeric($tenant['id'] ?? null) ? (int) $tenant['id'] : 0;
+	            [$tenantLastName, $tenantFirstNames] = $tenantNameParts($tenant);
+	            $tenantBirth = trim(implode(' - ', array_filter([
+	                $tenantValue($tenant, 'birthDate'),
+	                $tenantValue($tenant, 'birthCity'),
+	                $tenantValue($tenant, 'birthCountry'),
+	            ], static fn (string $value): bool => $value !== '')));
+	            $tenantContact = trim(implode(' - ', array_filter([
+	                $tenantValue($tenant, 'email'),
+	                $tenantValue($tenant, 'phone'),
+	            ], static fn (string $value): bool => $value !== '')));
+	            $tenantSearch = strtolower(trim(
+	                (string) ($tenant['propertyName'] ?? '') . ' '
+	                . (string) ($tenant['unitLabel'] ?? '') . ' '
+	                . (string) ($tenant['fullName'] ?? '') . ' '
+	                . $tenantLastName . ' '
+	                . $tenantFirstNames . ' '
+	                . $tenantValue($tenant, 'email') . ' '
+	                . $tenantValue($tenant, 'phone') . ' '
+	                . $tenantValue($tenant, 'birthCity') . ' '
+	                . $tenantValue($tenant, 'birthCountry') . ' '
+	                . $tenantValue($tenant, 'nationality') . ' '
+	                . $tenantValue($tenant, 'occupation') . ' '
+	                . $tenantValue($tenant, 'postalAddress')
+	            ));
+	            $dialogId = 'rental-tenant-dialog-' . $tenantId;
+	            ?>
+	            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars($tenantSearch, ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($tenant['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+	              <td><?php echo htmlspecialchars((string) ($tenant['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+	              <td><?php echo htmlspecialchars((string) ($tenant['unitLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+	              <td>
+	                <strong><?php echo htmlspecialchars(trim($tenantLastName . ' ' . $tenantFirstNames), ENT_QUOTES, 'UTF-8'); ?></strong>
+	                <?php if ($tenantValue($tenant, 'nationality') !== '' || $tenantValue($tenant, 'occupation') !== ''): ?>
+	                  <br /><span class="muted"><?php echo htmlspecialchars(trim($tenantValue($tenant, 'nationality') . ' - ' . $tenantValue($tenant, 'occupation'), ' -'), ENT_QUOTES, 'UTF-8'); ?></span>
+	                <?php endif; ?>
+	              </td>
+	              <td>
+	                <?php echo htmlspecialchars($tenantContact !== '' ? $tenantContact : '-', ENT_QUOTES, 'UTF-8'); ?>
+	                <?php if ($tenantValue($tenant, 'postalAddress') !== ''): ?><br /><span class="muted"><?php echo htmlspecialchars($tenantValue($tenant, 'postalAddress'), ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
+	              </td>
+	              <td><?php echo htmlspecialchars($tenantBirth !== '' ? $tenantBirth : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+	              <td><?php echo htmlspecialchars((string) ($statuses[(string) ($tenant['status'] ?? '')] ?? ($tenant['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php if ($tenantId > 0): ?>
                   <button type="button" class="private-row-action" data-private-dialog-open="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>">Modifier</button>
@@ -86,7 +131,7 @@ $createDialogId = 'rental-tenant-create-dialog';
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucun locataire ne correspond aux filtres.</td></tr>
+	          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="7">Aucun locataire ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -100,9 +145,10 @@ $createDialogId = 'rental-tenant-create-dialog';
         if ($tenantId <= 0) {
             continue;
         }
-        $selectedUnitId = is_numeric($tenant['rentalUnitId'] ?? null) ? (int) $tenant['rentalUnitId'] : 0;
-        $tenantStatus = is_string($tenant['status'] ?? null) ? (string) $tenant['status'] : 'draft';
-        $dialogId = 'rental-tenant-dialog-' . $tenantId;
+	        $selectedUnitId = is_numeric($tenant['rentalUnitId'] ?? null) ? (int) $tenant['rentalUnitId'] : 0;
+	        $tenantStatus = is_string($tenant['status'] ?? null) ? (string) $tenant['status'] : 'draft';
+	        [$tenantLastName, $tenantFirstNames] = $tenantNameParts($tenant);
+	        $dialogId = 'rental-tenant-dialog-' . $tenantId;
         ?>
         <dialog class="private-dialog" id="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
           <div class="private-dialog-panel">
@@ -124,9 +170,15 @@ $createDialogId = 'rental-tenant-create-dialog';
                   <?php endforeach; ?>
                 </select>
               </label>
-              <label>Nom complet <input type="text" name="full_name" maxlength="160" value="<?php echo htmlspecialchars((string) ($tenant['fullName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
-              <label>Email <input type="email" name="email" maxlength="190" value="<?php echo htmlspecialchars((string) ($tenant['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
-              <label>Telephone <input type="text" name="phone" maxlength="64" value="<?php echo htmlspecialchars((string) ($tenant['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	              <label>Nom <input type="text" name="last_name" maxlength="120" value="<?php echo htmlspecialchars($tenantLastName, ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+	              <label>Prénoms <input type="text" name="first_names" maxlength="160" value="<?php echo htmlspecialchars($tenantFirstNames, ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	              <label>Email <input type="email" name="email" maxlength="190" value="<?php echo htmlspecialchars((string) ($tenant['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	              <label>Téléphone <input type="text" name="phone" maxlength="64" value="<?php echo htmlspecialchars((string) ($tenant['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	              <label>Date de naissance <input type="date" name="birth_date" value="<?php echo htmlspecialchars($tenantValue($tenant, 'birthDate'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	              <label>Ville de naissance <input type="text" name="birth_city" maxlength="120" value="<?php echo htmlspecialchars($tenantValue($tenant, 'birthCity'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	              <label>Pays de naissance <input type="text" name="birth_country" maxlength="120" value="<?php echo htmlspecialchars($tenantValue($tenant, 'birthCountry'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	              <label>Nationalité <input type="text" name="nationality" maxlength="120" value="<?php echo htmlspecialchars($tenantValue($tenant, 'nationality'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	              <label>Métier <input type="text" name="occupation" maxlength="160" value="<?php echo htmlspecialchars($tenantValue($tenant, 'occupation'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <label>Statut
                 <select name="status">
                   <?php foreach ($statuses as $value => $label): ?>
@@ -136,7 +188,8 @@ $createDialogId = 'rental-tenant-create-dialog';
                   <?php endforeach; ?>
                 </select>
               </label>
-              <label>Notes <textarea name="notes" maxlength="2000"><?php echo htmlspecialchars((string) ($tenant['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+	              <label>Adresse <textarea name="postal_address" maxlength="500"><?php echo htmlspecialchars($tenantValue($tenant, 'postalAddress'), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+	              <label>Notes <textarea name="notes" maxlength="2000"><?php echo htmlspecialchars((string) ($tenant['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
               <button type="submit">Mettre à jour</button>
             </form>
             <form method="post" action="<?php echo htmlspecialchars((string) ($urls['tenants'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -171,9 +224,15 @@ $createDialogId = 'rental-tenant-create-dialog';
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Nom complet <input type="text" name="full_name" maxlength="160" required /></label>
-          <label>Email <input type="email" name="email" maxlength="190" /></label>
-          <label>Telephone <input type="text" name="phone" maxlength="64" /></label>
+	          <label>Nom <input type="text" name="last_name" maxlength="120" required /></label>
+	          <label>Prénoms <input type="text" name="first_names" maxlength="160" /></label>
+	          <label>Email <input type="email" name="email" maxlength="190" /></label>
+	          <label>Téléphone <input type="text" name="phone" maxlength="64" /></label>
+	          <label>Date de naissance <input type="date" name="birth_date" /></label>
+	          <label>Ville de naissance <input type="text" name="birth_city" maxlength="120" /></label>
+	          <label>Pays de naissance <input type="text" name="birth_country" maxlength="120" /></label>
+	          <label>Nationalité <input type="text" name="nationality" maxlength="120" /></label>
+	          <label>Métier <input type="text" name="occupation" maxlength="160" /></label>
           <label>Statut
             <select name="status">
               <?php foreach ($statuses as $value => $label): ?>
@@ -181,7 +240,8 @@ $createDialogId = 'rental-tenant-create-dialog';
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
+	          <label>Adresse <textarea name="postal_address" maxlength="500"></textarea></label>
+	          <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
           <button type="submit">Créer le locataire</button>
         </form>
       <?php endif; ?>

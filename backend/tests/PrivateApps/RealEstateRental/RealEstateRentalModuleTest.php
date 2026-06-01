@@ -112,7 +112,7 @@ final class RealEstateRentalModuleTest extends TestCase
 
         $regularizations = $controller->handle('rental_regularizations', $this->request('GET', '/private/locations/regularisations'));
         $this->assertSame(200, $regularizations->status);
-        $this->assertStringContainsString('Regularisations', $regularizations->body);
+        $this->assertStringContainsString('Régularisations', $regularizations->body);
         $this->assertStringContainsString('Maison A', $regularizations->body);
         $this->assertStringNotContainsString('Maison B', $regularizations->body);
     }
@@ -147,7 +147,17 @@ final class RealEstateRentalModuleTest extends TestCase
             '20 rue du Port',
             'A',
             'RDC',
-            '1'
+            '1',
+            [
+                'tax_identifier' => 'FISC-LOT-1',
+                'room_count' => '3',
+                'designation' => 'Appartement principal',
+                'equipment_elements' => 'Cuisine équipée',
+                'heating_production_mode' => 'Chaudière gaz',
+                'hot_water_production_mode' => 'Ballon électrique',
+                'sanitation' => 'Tout-à-l’égout',
+                'other_details' => 'Balcon côté jardin',
+            ]
         );
         $this->assertNotNull($valid);
         $this->assertSame('house', $valid->unitType);
@@ -155,6 +165,64 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertSame('A', $valid->building);
         $this->assertSame('RDC', $valid->floor);
         $this->assertSame('1', $valid->door);
+        $this->assertSame('FISC-LOT-1', $valid->taxIdentifier);
+        $this->assertSame(3, $valid->roomCount);
+        $this->assertSame('Appartement principal', $valid->designation);
+        $this->assertSame('Cuisine équipée', $valid->equipmentElements);
+        $this->assertSame('Chaudière gaz', $valid->heatingProductionMode);
+        $this->assertSame('Ballon électrique', $valid->hotWaterProductionMode);
+        $this->assertSame('Tout-à-l’égout', $valid->sanitation);
+        $this->assertSame('Balcon côté jardin', $valid->otherDetails);
+    }
+
+    public function testRentalUnitAndTenantFormsExposeExpandedFrenchFields(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $propertyRepository = new RentalPropertyRepository($database);
+        $memberRepository = new RentalPropertyMemberRepository($database);
+        $unitRepository = new RentalUnitRepository($database);
+        $lifecycleRepository = new RentalLifecycleRepository($database);
+
+        $ownerId = $this->createPrivateUser($userRepository, 'expanded-fields@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
+        $property = $propertyRepository->create($ownerId, 'Maison champs', '21 rue des Champs', 'maison', 'indivision', 'active');
+        $this->assertNotNull($property);
+        $this->assertNotNull($memberRepository->create($property->id, $ownerId, 'owner', $ownerId));
+        $unit = $unitRepository->create($property->id, 'Lot champs', 42.0, false, 'available', null, $ownerId);
+        $this->assertNotNull($unit);
+
+        $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'expanded-fields@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            rentalPropertyRepository: $propertyRepository,
+            rentalPropertyMemberRepository: $memberRepository,
+            rentalUnitRepository: $unitRepository,
+            rentalLifecycleRepository: $lifecycleRepository
+        );
+
+        $unitsResponse = $controller->handle('rental_units', $this->request('GET', '/private/locations/biens-locatifs'));
+        $this->assertSame(200, $unitsResponse->status);
+        $this->assertStringContainsString('Identifiant fiscal', $unitsResponse->body);
+        $this->assertStringContainsString('Nombre de pièces', $unitsResponse->body);
+        $this->assertStringContainsString('Désignation', $unitsResponse->body);
+        $this->assertStringContainsString('Éléments d’équipements du logement', $unitsResponse->body);
+        $this->assertStringContainsString('Modalité de production de chauffage', $unitsResponse->body);
+        $this->assertStringContainsString('Modalité de production d\'eau chaude sanitaire', $unitsResponse->body);
+        $this->assertStringContainsString('Assainissement', $unitsResponse->body);
+
+        $tenantsResponse = $controller->handle('rental_tenants', $this->request('GET', '/private/locations/locataires'));
+        $this->assertSame(200, $tenantsResponse->status);
+        $this->assertStringContainsString('Nom', $tenantsResponse->body);
+        $this->assertStringContainsString('Prénoms', $tenantsResponse->body);
+        $this->assertStringContainsString('Date de naissance', $tenantsResponse->body);
+        $this->assertStringContainsString('Ville de naissance', $tenantsResponse->body);
+        $this->assertStringContainsString('Pays de naissance', $tenantsResponse->body);
+        $this->assertStringContainsString('Nationalité', $tenantsResponse->body);
+        $this->assertStringContainsString('Métier', $tenantsResponse->body);
+        $this->assertStringContainsString('Adresse', $tenantsResponse->body);
     }
 
     public function testLeaseFormDisplaysLeaseTypeChoices(): void

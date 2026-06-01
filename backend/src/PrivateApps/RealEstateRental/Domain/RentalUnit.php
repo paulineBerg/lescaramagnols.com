@@ -24,7 +24,15 @@ final class RentalUnit
         public readonly string $createdAt,
         public readonly string $updatedAt,
         public readonly ?string $archivedAt = null,
-        public readonly ?int $archivedByPrivateUserId = null
+        public readonly ?int $archivedByPrivateUserId = null,
+        public readonly ?string $taxIdentifier = null,
+        public readonly ?int $roomCount = null,
+        public readonly ?string $designation = null,
+        public readonly ?string $otherDetails = null,
+        public readonly ?string $equipmentElements = null,
+        public readonly ?string $heatingProductionMode = null,
+        public readonly ?string $hotWaterProductionMode = null,
+        public readonly ?string $sanitation = null
     ) {
     }
 
@@ -86,7 +94,15 @@ final class RentalUnit
             $createdAt,
             $updatedAt,
             $archivedAt === '' ? null : $archivedAt,
-            $archivedBy
+            $archivedBy,
+            self::nullableString($row['tax_identifier'] ?? null),
+            self::nullableInteger($row['room_count'] ?? null),
+            self::nullableString($row['designation'] ?? null),
+            self::nullableString($row['other_details'] ?? null),
+            self::nullableString($row['equipment_elements'] ?? null),
+            self::nullableString($row['heating_production_mode'] ?? null),
+            self::nullableString($row['hot_water_production_mode'] ?? null),
+            self::nullableString($row['sanitation'] ?? null)
         );
     }
 
@@ -111,6 +127,14 @@ final class RentalUnit
             'archivedAt' => $this->archivedAt,
             'createdByPrivateUserId' => $this->createdByPrivateUserId,
             'archivedByPrivateUserId' => $this->archivedByPrivateUserId,
+            'taxIdentifier' => $this->taxIdentifier,
+            'roomCount' => $this->roomCount,
+            'designation' => $this->designation,
+            'otherDetails' => $this->otherDetails,
+            'equipmentElements' => $this->equipmentElements,
+            'heatingProductionMode' => $this->heatingProductionMode,
+            'hotWaterProductionMode' => $this->hotWaterProductionMode,
+            'sanitation' => $this->sanitation,
         ];
     }
 
@@ -122,6 +146,16 @@ final class RentalUnit
 
         $value = trim($value);
         return $value !== '' ? $value : null;
+    }
+
+    private static function nullableInteger(mixed $value): ?int
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $value = (int) $value;
+        return $value >= 0 ? $value : null;
     }
 
     private static function normalizeStatus(string $status): string

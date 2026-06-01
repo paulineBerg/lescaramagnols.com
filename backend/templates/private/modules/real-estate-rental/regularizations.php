@@ -17,7 +17,7 @@ foreach ($properties as $property) {
 $money = static fn (mixed $value): string => number_format(is_numeric($value) ? (float) $value : 0.0, 2, ',', ' ');
 $directionLabel = static function (string $direction): string {
     return match ($direction) {
-        'tenant_due' => 'Solde a demander',
+        'tenant_due' => 'Solde à demander',
         'tenant_refund' => 'Remboursement locataire',
         default => 'Solde nul',
     };
@@ -31,8 +31,8 @@ $directionLabel = static function (string $direction): string {
   <section class="card private-list-section">
     <div class="private-list-header">
       <div>
-        <h2>Regularisations</h2>
-        <p class="muted">Calcul annuel des provisions, charges recuperables et soldes.</p>
+        <h2>Régularisations</h2>
+        <p class="muted">Calcul annuel des provisions, charges récupérables et soldes.</p>
       </div>
     </div>
     <?php if ($propertyNames === []): ?>
@@ -58,11 +58,11 @@ $directionLabel = static function (string $direction): string {
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Annee <input type="number" name="year" min="2000" max="2100" value="<?php echo htmlspecialchars((string) date('Y'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+          <label>Année <input type="number" name="year" min="2000" max="2100" value="<?php echo htmlspecialchars((string) date('Y'), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
           <label>Part locataire (%) <input type="number" name="tenant_share_percent" min="0" max="100" step="0.01" value="100" required /></label>
           <div class="private-list-filter-actions">
             <button type="submit" name="action" value="preview_regularization" class="private-button-secondary">Calculer</button>
-            <button type="submit" name="action" value="generate_regularization">Generer le PDF</button>
+            <button type="submit" name="action" value="generate_regularization">Générer le PDF</button>
           </div>
         </div>
       </form>
@@ -73,17 +73,17 @@ $directionLabel = static function (string $direction): string {
     <section class="card">
       <h2>Calcul provisoire</h2>
       <dl>
-        <dt>Provisions demandees</dt><dd><?php echo htmlspecialchars($money($preview['provisionsAmount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> €</dd>
-        <dt>Charges recuperables reelles</dt><dd><?php echo htmlspecialchars($money($preview['recoverableExpensesAmount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> €</dd>
+        <dt>Provisions demandées</dt><dd><?php echo htmlspecialchars($money($preview['provisionsAmount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> €</dd>
+        <dt>Charges récupérables réelles</dt><dd><?php echo htmlspecialchars($money($preview['recoverableExpensesAmount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> €</dd>
         <dt>Part locataire</dt><dd><?php echo htmlspecialchars($money($preview['tenantSharePercent'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> %</dd>
-        <dt>Part recuperable locataire</dt><dd><?php echo htmlspecialchars($money($preview['tenantRecoverableAmount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> €</dd>
+        <dt>Part récupérable locataire</dt><dd><?php echo htmlspecialchars($money($preview['tenantRecoverableAmount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> €</dd>
         <dt>Solde</dt><dd><?php echo htmlspecialchars($money($preview['balanceAmount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> € - <?php echo htmlspecialchars($directionLabel((string) ($preview['balanceDirection'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></dd>
       </dl>
       <?php $expenseRows = is_array($preview['expenseRows'] ?? null) ? $preview['expenseRows'] : []; ?>
       <?php if ($expenseRows !== []): ?>
         <div class="private-table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Categorie</th><th>Libelle</th><th>Montant</th><th>Justificatifs</th></tr></thead>
+            <thead><tr><th>Date</th><th>Catégorie</th><th>Libellé</th><th>Montant</th><th>Justificatifs</th></tr></thead>
             <tbody>
               <?php foreach ($expenseRows as $expense): ?>
                 <?php if (!is_array($expense) || empty($expense['recoverable'])) { continue; } ?>
@@ -106,16 +106,16 @@ $directionLabel = static function (string $direction): string {
   <section class="card private-list-section">
     <div class="private-list-header">
       <div>
-        <h2>Documents generes</h2>
-        <p class="muted">Snapshots conserves avec empreinte SHA-256.</p>
+        <h2>Documents générés</h2>
+        <p class="muted">Snapshots conservés avec empreinte SHA-256.</p>
       </div>
     </div>
     <?php if ($regularizations === []): ?>
-      <p class="muted">Aucune regularisation generee.</p>
+      <p class="muted">Aucune régularisation générée.</p>
     <?php else: ?>
       <div class="private-table-wrap">
         <table>
-          <thead><tr><th>Annee</th><th>Propriété</th><th>Bien</th><th>Provisions</th><th>Charges</th><th>Solde</th><th>Document</th></tr></thead>
+          <thead><tr><th>Année</th><th>Propriété</th><th>Bien</th><th>Provisions</th><th>Charges</th><th>Solde</th><th>Document</th></tr></thead>
           <tbody>
             <?php foreach ($regularizations as $regularization): ?>
               <?php if (!is_array($regularization)) { continue; } ?>

@@ -86,9 +86,18 @@ final class RentalLifecycleRepository
         ?string $phone,
         string $status,
         int $actorPrivateUserId,
-        ?string $notes = null
+        ?string $notes = null,
+        array $details = []
     ): ?array {
+        $details = $this->normalizeTenantDetails($details);
+        if ($details === null) {
+            return null;
+        }
+
         $fullName = $this->normalizeText($fullName, self::MAX_TEXT_LENGTH);
+        if ($fullName === '') {
+            $fullName = $this->tenantFullNameFromDetails($details);
+        }
         $email = $email !== null ? strtolower($this->normalizeText($email, 190)) : null;
         $phone = $phone !== null ? $this->normalizeText($phone, 64) : null;
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
@@ -110,9 +119,13 @@ final class RentalLifecycleRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`rental_property_id`, `rental_unit_id`, `full_name`, `email`, `phone`, `status`, `notes`, `created_by_private_user_id`)
+                        (`rental_property_id`, `rental_unit_id`, `full_name`, `last_name`, `first_names`, `birth_date`,
+                         `birth_city`, `birth_country`, `nationality`, `occupation`, `postal_address`,
+                         `email`, `phone`, `status`, `notes`, `created_by_private_user_id`)
                      VALUES
-                        (:property_id, :unit_id, :full_name, :email, :phone, :status, :notes, :created_by)',
+                        (:property_id, :unit_id, :full_name, :last_name, :first_names, :birth_date,
+                         :birth_city, :birth_country, :nationality, :occupation, :postal_address,
+                         :email, :phone, :status, :notes, :created_by)',
                     $this->tenantsTable()
                 )
             );
@@ -120,6 +133,14 @@ final class RentalLifecycleRepository
                 'property_id' => $propertyId,
                 'unit_id' => $unitId,
                 'full_name' => $fullName,
+                'last_name' => $details['last_name'],
+                'first_names' => $details['first_names'],
+                'birth_date' => $details['birth_date'],
+                'birth_city' => $details['birth_city'],
+                'birth_country' => $details['birth_country'],
+                'nationality' => $details['nationality'],
+                'occupation' => $details['occupation'],
+                'postal_address' => $details['postal_address'],
                 'email' => $email !== '' ? $email : null,
                 'phone' => $phone !== '' ? $phone : null,
                 'status' => $status,
@@ -167,9 +188,18 @@ final class RentalLifecycleRepository
         ?string $email,
         ?string $phone,
         string $status,
-        ?string $notes = null
+        ?string $notes = null,
+        array $details = []
     ): ?array {
+        $details = $this->normalizeTenantDetails($details);
+        if ($details === null) {
+            return null;
+        }
+
         $fullName = $this->normalizeText($fullName, self::MAX_TEXT_LENGTH);
+        if ($fullName === '') {
+            $fullName = $this->tenantFullNameFromDetails($details);
+        }
         $email = $email !== null ? strtolower($this->normalizeText($email, 190)) : null;
         $phone = $phone !== null ? $this->normalizeText($phone, 64) : null;
         $notes = $notes !== null ? $this->normalizeText($notes, self::MAX_NOTES_LENGTH) : null;
@@ -194,6 +224,14 @@ final class RentalLifecycleRepository
                      SET `rental_property_id` = :property_id,
                          `rental_unit_id` = :unit_id,
                          `full_name` = :full_name,
+                         `last_name` = :last_name,
+                         `first_names` = :first_names,
+                         `birth_date` = :birth_date,
+                         `birth_city` = :birth_city,
+                         `birth_country` = :birth_country,
+                         `nationality` = :nationality,
+                         `occupation` = :occupation,
+                         `postal_address` = :postal_address,
                          `email` = :email,
                          `phone` = :phone,
                          `status` = :status,
@@ -208,6 +246,14 @@ final class RentalLifecycleRepository
                 'property_id' => $propertyId,
                 'unit_id' => $unitId,
                 'full_name' => $fullName,
+                'last_name' => $details['last_name'],
+                'first_names' => $details['first_names'],
+                'birth_date' => $details['birth_date'],
+                'birth_city' => $details['birth_city'],
+                'birth_country' => $details['birth_country'],
+                'nationality' => $details['nationality'],
+                'occupation' => $details['occupation'],
+                'postal_address' => $details['postal_address'],
                 'email' => $email !== '' ? $email : null,
                 'phone' => $phone !== '' ? $phone : null,
                 'status' => $status,
@@ -2379,6 +2425,14 @@ final class RentalLifecycleRepository
             )
         );
         $this->ensureColumn($pdo, $this->tenantsTable(), 'rental_unit_id', '`rental_unit_id` INT NULL AFTER `rental_property_id`');
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'last_name', '`last_name` VARCHAR(120) NULL AFTER `full_name`');
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'first_names', '`first_names` VARCHAR(160) NULL AFTER `last_name`');
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'birth_date', '`birth_date` DATE NULL AFTER `first_names`');
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'birth_city', '`birth_city` VARCHAR(120) NULL AFTER `birth_date`');
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'birth_country', '`birth_country` VARCHAR(120) NULL AFTER `birth_city`');
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'nationality', '`nationality` VARCHAR(120) NULL AFTER `birth_country`');
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'occupation', '`occupation` VARCHAR(160) NULL AFTER `nationality`');
+        $this->ensureColumn($pdo, $this->tenantsTable(), 'postal_address', '`postal_address` VARCHAR(500) NULL AFTER `occupation`');
         $this->ensureIndex($pdo, $this->tenantsTable(), 'idx_rental_tenants_unit', '`rental_unit_id`, `is_active`');
         $pdo->exec(
             sprintf(
@@ -2816,6 +2870,61 @@ final class RentalLifecycleRepository
     {
         $value = sanitize_text_field($value, $maxLength);
         return trim($value);
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     * @return array<string, string|null>|null
+     */
+    private function normalizeTenantDetails(array $details): ?array
+    {
+        $birthDate = $this->normalizeNullableDate($details['birth_date'] ?? $details['birthDate'] ?? null);
+        if ($birthDate === false) {
+            return null;
+        }
+
+        return [
+            'last_name' => $this->normalizeNullableText($details['last_name'] ?? $details['lastName'] ?? null, 120),
+            'first_names' => $this->normalizeNullableText($details['first_names'] ?? $details['firstNames'] ?? null, 160),
+            'birth_date' => $birthDate,
+            'birth_city' => $this->normalizeNullableText($details['birth_city'] ?? $details['birthCity'] ?? null, 120),
+            'birth_country' => $this->normalizeNullableText($details['birth_country'] ?? $details['birthCountry'] ?? null, 120),
+            'nationality' => $this->normalizeNullableText($details['nationality'] ?? null, 120),
+            'occupation' => $this->normalizeNullableText($details['occupation'] ?? null, 160),
+            'postal_address' => $this->normalizeNullableText($details['postal_address'] ?? $details['postalAddress'] ?? null, 500),
+        ];
+    }
+
+    /**
+     * @param array<string, string|null> $details
+     */
+    private function tenantFullNameFromDetails(array $details): string
+    {
+        return $this->normalizeText(trim(
+            (string) ($details['last_name'] ?? '')
+            . ' '
+            . (string) ($details['first_names'] ?? '')
+        ), self::MAX_TEXT_LENGTH);
+    }
+
+    private function normalizeNullableText(mixed $value, int $maxLength): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $value = $this->normalizeText((string) $value, $maxLength);
+        return $value !== '' ? $value : null;
+    }
+
+    private function normalizeNullableDate(mixed $value): string|false|null
+    {
+        if (!is_scalar($value) || trim((string) $value) === '') {
+            return null;
+        }
+
+        $date = $this->normalizeDate((string) $value);
+        return $date !== '' ? $date : false;
     }
 
     /**

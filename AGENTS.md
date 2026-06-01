@@ -217,6 +217,7 @@ Conventions du projet:
 - identifiants de code nouveaux en anglais
 - textes visibles cote PHP via `t()`
 - textes visibles cote frontend via le module i18n frontend ou des valeurs runtime exposees proprement
+- dans les interfaces admin et privees, tous les libelles visibles doivent etre en francais; les statuts et types comme `review`, `validated` ou `draft` doivent donc etre traduits avant affichage
 
 Regles:
 - ne jamais hardcoder un texte metier visible si une traduction est attendue

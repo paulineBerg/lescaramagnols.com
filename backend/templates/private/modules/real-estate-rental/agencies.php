@@ -70,10 +70,12 @@ $agencyValue = static function (array $agency, string $key): string {
         <thead>
           <tr>
             <th>Agence</th>
-            <th>Contact</th>
-            <th>Conseiller</th>
-            <th>Imports</th>
-            <th>Fichiers</th>
+	            <th>Adresse</th>
+	            <th>Téléphone</th>
+	            <th>Email</th>
+	            <th>Nom du conseiller</th>
+	            <th>Imports</th>
+	            <th>Fichiers</th>
             <th>Dernière activité</th>
             <th>Action</th>
           </tr>
@@ -85,21 +87,19 @@ $agencyValue = static function (array $agency, string $key): string {
             $agencyId = is_numeric($agency['id'] ?? null) ? (int) $agency['id'] : 0;
             $agencyName = trim((string) ($agency['name'] ?? ''));
             $legalName = $agencyValue($agency, 'legalName');
-            $contactSummary = trim(implode(' - ', array_filter([
-                $agencyValue($agency, 'contactTitle'),
-                $agencyValue($agency, 'email'),
-                $agencyValue($agency, 'phone'),
-            ], static fn (string $value): bool => $value !== '')));
-            $advisorSummary = trim(implode(' - ', array_filter([
-                $agencyValue($agency, 'advisorName'),
-                $agencyValue($agency, 'advisorTitle'),
+	            $agencyAddress = $agencyValue($agency, 'postalAddress');
+	            $agencyPhone = $agencyValue($agency, 'phone');
+	            $agencyEmail = $agencyValue($agency, 'email');
+	            $advisorSummary = trim(implode(' - ', array_filter([
+	                $agencyValue($agency, 'advisorName'),
+	                $agencyValue($agency, 'advisorTitle'),
                 $agencyValue($agency, 'advisorEmail'),
                 $agencyValue($agency, 'advisorPhone'),
-            ], static fn (string $value): bool => $value !== '')));
-            $agencySearch = strtolower(trim(
-                $agencyName . ' ' . $legalName . ' ' . $contactSummary . ' ' . $advisorSummary . ' '
-                . $agencyValue($agency, 'postalAddress') . ' ' . $agencyValue($agency, 'notes')
-            ));
+	            ], static fn (string $value): bool => $value !== '')));
+	            $agencySearch = strtolower(trim(
+	                $agencyName . ' ' . $legalName . ' ' . $agencyAddress . ' ' . $agencyPhone . ' ' . $agencyEmail . ' '
+	                . $agencyValue($agency, 'contactTitle') . ' ' . $advisorSummary . ' ' . $agencyValue($agency, 'notes')
+	            ));
             $editDialogId = 'rental-agency-edit-dialog-' . $agencyId;
             ?>
             <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars($agencySearch, ENT_QUOTES, 'UTF-8'); ?>">
@@ -107,8 +107,10 @@ $agencyValue = static function (array $agency, string $key): string {
                 <strong><?php echo htmlspecialchars($agencyName, ENT_QUOTES, 'UTF-8'); ?></strong>
                 <?php if ($legalName !== ''): ?><br /><span class="muted"><?php echo htmlspecialchars($legalName, ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
               </td>
-              <td><?php echo htmlspecialchars($contactSummary !== '' ? $contactSummary : '-', ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars($advisorSummary !== '' ? $advisorSummary : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+	              <td><?php echo htmlspecialchars($agencyAddress !== '' ? $agencyAddress : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+	              <td><?php echo htmlspecialchars($agencyPhone !== '' ? $agencyPhone : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+	              <td><?php echo htmlspecialchars($agencyEmail !== '' ? $agencyEmail : '-', ENT_QUOTES, 'UTF-8'); ?></td>
+	              <td><?php echo htmlspecialchars($advisorSummary !== '' ? $advisorSummary : '-', ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) (int) ($agency['batchCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) (int) ($agency['fileCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($agency['lastActivityAt'] ?? $agency['updatedAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -127,7 +129,7 @@ $agencyValue = static function (array $agency, string $key): string {
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="7">Aucune agence ne correspond aux filtres.</td></tr>
+	          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="9">Aucune agence ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -153,7 +155,7 @@ $agencyValue = static function (array $agency, string $key): string {
                 <label>Titre / service <input type="text" name="contact_title" maxlength="120" value="<?php echo htmlspecialchars($agencyValue($agency, 'contactTitle'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Téléphone agence <input type="tel" name="phone" maxlength="80" value="<?php echo htmlspecialchars($agencyValue($agency, 'phone'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Email agence <input type="email" name="email" maxlength="254" value="<?php echo htmlspecialchars($agencyValue($agency, 'email'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
-                <label>Conseiller <input type="text" name="advisor_name" maxlength="160" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorName'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+	                <label>Nom du conseiller <input type="text" name="advisor_name" maxlength="160" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorName'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Titre conseiller <input type="text" name="advisor_title" maxlength="120" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorTitle'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Téléphone conseiller <input type="tel" name="advisor_phone" maxlength="80" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorPhone'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Email conseiller <input type="email" name="advisor_email" maxlength="254" value="<?php echo htmlspecialchars($agencyValue($agency, 'advisorEmail'), ENT_QUOTES, 'UTF-8'); ?>" /></label>
@@ -253,7 +255,7 @@ $agencyValue = static function (array $agency, string $key): string {
           <label>Titre / service <input type="text" name="contact_title" maxlength="120" /></label>
           <label>Téléphone agence <input type="tel" name="phone" maxlength="80" /></label>
           <label>Email agence <input type="email" name="email" maxlength="254" /></label>
-          <label>Conseiller <input type="text" name="advisor_name" maxlength="160" /></label>
+	          <label>Nom du conseiller <input type="text" name="advisor_name" maxlength="160" /></label>
           <label>Titre conseiller <input type="text" name="advisor_title" maxlength="120" /></label>
           <label>Téléphone conseiller <input type="tel" name="advisor_phone" maxlength="80" /></label>
           <label>Email conseiller <input type="email" name="advisor_email" maxlength="254" /></label>

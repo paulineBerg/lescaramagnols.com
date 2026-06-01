@@ -31,7 +31,7 @@ foreach ($tenants as $tenant) {
         'name' => (string) ($tenant['fullName'] ?? ''),
     ];
 }
-$leaseStatuses = ['draft' => 'Brouillon', 'validated' => 'Valide', 'ended' => 'Termine', 'cancelled' => 'Annule'];
+$leaseStatuses = ['draft' => 'Brouillon', 'validated' => 'Validé', 'ended' => 'Terminé', 'cancelled' => 'Annulé'];
 $activeLeaseUnitIds = [];
 foreach ($leases as $lease) {
     if (!is_array($lease) || !is_numeric($lease['rentalUnitId'] ?? null)) {
@@ -123,7 +123,7 @@ $createDialogId = 'rental-lease-create-dialog';
       </div>
       <div class="private-table-wrap">
       <table>
-        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Type</th><th>Periode</th><th>Loyer</th><th>Charges</th><th>Statut</th><th>Action</th></tr></thead>
+        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Type</th><th>Période</th><th>Loyer</th><th>Charges</th><th>Statut</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($leases as $lease): ?>
             <?php if (!is_array($lease)) { continue; } ?>
@@ -239,7 +239,7 @@ $createDialogId = 'rental-lease-create-dialog';
                 </select>
               </label>
               <p class="muted" data-rental-lease-type-help></p>
-              <label>Debut <input type="date" name="start_date" value="<?php echo htmlspecialchars((string) ($lease['startDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required data-rental-lease-start-date /></label>
+              <label>Début <input type="date" name="start_date" value="<?php echo htmlspecialchars((string) ($lease['startDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required data-rental-lease-start-date /></label>
               <label>Fin <input type="date" name="end_date" value="<?php echo htmlspecialchars((string) ($lease['endDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-rental-lease-end-date data-rental-lease-end-auto="0" /></label>
               <label>Loyer mensuel <input type="number" name="monthly_rent" min="0.01" step="0.01" value="<?php echo htmlspecialchars($monthlyRent, ENT_QUOTES, 'UTF-8'); ?>" required /></label>
               <label>Provision charges <input type="number" name="charges_provision" min="0" step="0.01" value="<?php echo htmlspecialchars($chargesProvision, ENT_QUOTES, 'UTF-8'); ?>" /></label>
@@ -344,7 +344,7 @@ $createDialogId = 'rental-lease-create-dialog';
             </select>
           </label>
           <p class="muted" data-rental-lease-type-help></p>
-          <label>Debut <input type="date" name="start_date" required data-rental-lease-start-date /></label>
+          <label>Début <input type="date" name="start_date" required data-rental-lease-start-date /></label>
           <label>Fin <input type="date" name="end_date" data-rental-lease-end-date /></label>
           <label>Loyer mensuel <input type="number" name="monthly_rent" min="0.01" step="0.01" required /></label>
           <label>Provision charges <input type="number" name="charges_provision" min="0" step="0.01" value="0" /></label>

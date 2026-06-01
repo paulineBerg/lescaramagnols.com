@@ -1,7 +1,7 @@
 # Locations immobilieres privees
 
-Date de mise a jour : 2026-05-31
-Statut : plan d'amelioration du module `RealEstateRental`, phases L3 a L8 livrees avec raccord SMTP membre, fiches agences modifiables et revue agence en enregistrement groupé.
+Date de mise a jour : 2026-06-01
+Statut : plan d'amelioration du module `RealEstateRental`, phases L3 a L8 livrees avec raccord SMTP membre, fiches agences modifiables, libelles francais et revue agence en enregistrement groupé.
 
 Ce README sert de feuille de route fonctionnelle et technique pour rendre le module de locations immobilieres plus complet, sans casser le socle prive deja livre.
 
@@ -28,8 +28,16 @@ Fonctions deja presentes :
 - synthese annuelle, export CSV/PDF et journalisation d'export;
 - imports agence, classification, revue humaine et pont fiscal;
 - fiches agences modifiables avec coordonnees et conseiller;
+- fiches locataires enrichies avec identite, naissance, nationalite, metier et adresse;
+- fiches biens locatifs enrichies avec identifiant fiscal, nombre de pieces, designation, equipements, chauffage, eau chaude sanitaire et assainissement;
 - envois locatifs raccordes aux parametres SMTP du membre connecte;
 - bridge vers `TaxDeclarationHelper`.
+
+Regles d'interface livrees le 2026-06-01 :
+
+- les statuts et types visibles dans l'interface de locations immobilieres sont affiches avec des libelles francais (`A revoir`, `Validé`, `Ignoré`, etc.);
+- le controle fiscal des categories sensibles signifie qu'une ligne importee ayant un impact fiscal doit etre confirmee manuellement avant validation, pour eviter une synthese fiscale incorrecte;
+- les lignes de classement agence doivent remplir la largeur disponible du contenu prive, avec scroll local seulement si le viewport devient trop etroit.
 
 Ecarts importants :
 

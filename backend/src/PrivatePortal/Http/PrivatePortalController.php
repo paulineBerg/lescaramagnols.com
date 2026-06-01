@@ -775,6 +775,7 @@ final class PrivatePortalController
         $unitBuilding = is_string($body['building'] ?? null) ? (string) $body['building'] : null;
         $unitFloor = is_string($body['floor'] ?? null) ? (string) $body['floor'] : null;
         $unitDoor = is_string($body['door'] ?? null) ? (string) $body['door'] : null;
+        $unitDetails = $this->rentalUnitDetailsFromBody($body);
 
         if (!$this->canWriteByPropertyId($propertyId, $userId)) {
             return $this->renderRentalUnits($userId, $properties, $units, '', 'unit_forbidden');
@@ -793,7 +794,8 @@ final class PrivatePortalController
                 $unitAddress,
                 $unitBuilding,
                 $unitFloor,
-                $unitDoor
+                $unitDoor,
+                $unitDetails
             );
             if (!($created instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalUnit)) {
                 return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_write_failed');
@@ -822,7 +824,8 @@ final class PrivatePortalController
                 $unitAddress,
                 $unitBuilding,
                 $unitFloor,
-                $unitDoor
+                $unitDoor,
+                $unitDetails
             );
             if (!($updated instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalUnit)) {
                 return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_write_failed');
@@ -1030,11 +1033,12 @@ final class PrivatePortalController
                 $tenantId,
                 $propertyId,
                 $unitId,
-                (string) ($body['full_name'] ?? ''),
+                $this->rentalTenantFullNameFromBody($body),
                 is_string($body['email'] ?? null) ? (string) $body['email'] : null,
                 is_string($body['phone'] ?? null) ? (string) $body['phone'] : null,
                 is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
-                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
+                $this->rentalTenantDetailsFromBody($body)
             );
             if (!is_array($updated)) {
                 return $this->renderRentalTenants($properties, $units, $tenants, '', 'tenant_update_failed');
@@ -1081,12 +1085,13 @@ final class PrivatePortalController
         $created = $this->rentalLifecycleRepository()->createTenant(
             $propertyId,
             $unitId,
-            (string) ($body['full_name'] ?? ''),
+            $this->rentalTenantFullNameFromBody($body),
             is_string($body['email'] ?? null) ? (string) $body['email'] : null,
             is_string($body['phone'] ?? null) ? (string) $body['phone'] : null,
             is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
             $userId,
-            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
+            $this->rentalTenantDetailsFromBody($body)
         );
         if (!is_array($created)) {
             return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_write_failed');
@@ -1100,6 +1105,63 @@ final class PrivatePortalController
         ]);
 
         return $this->redirect(private_portal_url('rental_tenants') . '?notice=tenant_created');
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    private function rentalTenantDetailsFromBody(array $body): array
+    {
+        return [
+            'last_name' => $this->stringBodyValue($body, 'last_name'),
+            'first_names' => $this->stringBodyValue($body, 'first_names'),
+            'birth_date' => $this->stringBodyValue($body, 'birth_date'),
+            'birth_city' => $this->stringBodyValue($body, 'birth_city'),
+            'birth_country' => $this->stringBodyValue($body, 'birth_country'),
+            'nationality' => $this->stringBodyValue($body, 'nationality'),
+            'occupation' => $this->stringBodyValue($body, 'occupation'),
+            'postal_address' => $this->stringBodyValue($body, 'postal_address'),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function rentalTenantFullNameFromBody(array $body): string
+    {
+        $fromParts = trim($this->stringBodyValue($body, 'last_name') . ' ' . $this->stringBodyValue($body, 'first_names'));
+        if ($fromParts !== '') {
+            return $fromParts;
+        }
+
+        return $this->stringBodyValue($body, 'full_name');
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    private function rentalUnitDetailsFromBody(array $body): array
+    {
+        return [
+            'tax_identifier' => $this->stringBodyValue($body, 'tax_identifier'),
+            'room_count' => $this->stringBodyValue($body, 'room_count'),
+            'designation' => $this->stringBodyValue($body, 'designation'),
+            'other_details' => $this->stringBodyValue($body, 'other_details'),
+            'equipment_elements' => $this->stringBodyValue($body, 'equipment_elements'),
+            'heating_production_mode' => $this->stringBodyValue($body, 'heating_production_mode'),
+            'hot_water_production_mode' => $this->stringBodyValue($body, 'hot_water_production_mode'),
+            'sanitation' => $this->stringBodyValue($body, 'sanitation'),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function stringBodyValue(array $body, string $key): string
+    {
+        return is_scalar($body[$key] ?? null) ? trim((string) $body[$key]) : '';
     }
 
     private function handleRentalLeases(Request $request): Response
@@ -4398,7 +4460,7 @@ final class PrivatePortalController
         string $error = ''
     ): Response {
         return $this->render('modules/real-estate-rental/regularizations', array_merge(
-            $this->rentalBaseViewModel('Regularisations de charges', $notice, $error),
+            $this->rentalBaseViewModel('Régularisations de charges', $notice, $error),
             [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'regularizations',
@@ -5531,21 +5593,21 @@ final class PrivatePortalController
         return [
             'rent_income' => 'Loyer',
             'charge_provision_income' => 'Provision de charges',
-            'recoverable_tax_income' => 'Taxe recuperable refacturee',
-            'recoverable_charge_adjustment' => 'Regularisation de charges recuperables',
+            'recoverable_tax_income' => 'Taxe récupérable refacturée',
+            'recoverable_charge_adjustment' => 'Régularisation de charges récupérables',
             'agency_management_fee' => 'Honoraires de gestion',
             'agency_fee_vat' => 'TVA honoraires',
             'agency_letting_fee' => 'Honoraires de location',
-            'insurance_unpaid_rent' => 'Assurance loyers impayes',
-            'property_tax_service_fee' => 'Frais taxe fonciere',
+            'insurance_unpaid_rent' => 'Assurance loyers impayés',
+            'property_tax_service_fee' => 'Frais taxe foncière',
             'works_expense' => 'Travaux',
-            'copro_work_fund' => 'Fonds travaux copropriete',
-            'condominium_current_charge' => 'Charges de copropriete',
-            'recoverable_utility_charge' => 'Charge recuperable',
-            'owner_transfer' => 'Reversement proprietaire',
-            'security_deposit' => 'Depot de garantie',
+            'copro_work_fund' => 'Fonds travaux copropriété',
+            'condominium_current_charge' => 'Charges de copropriété',
+            'recoverable_utility_charge' => 'Charge récupérable',
+            'owner_transfer' => 'Reversement propriétaire',
+            'security_deposit' => 'Dépôt de garantie',
             'agency_balance' => 'Solde agence',
-            'other' => 'Autre / a qualifier',
+            'other' => 'Autre / à qualifier',
         ];
     }
 

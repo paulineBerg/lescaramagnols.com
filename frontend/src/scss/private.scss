@@ -915,6 +915,8 @@
 
   .agency-review-lines-wrap {
     margin-top: 0.7rem;
+    max-width: 100%;
+    width: 100%;
   }
 
   .agency-review-card {
@@ -1065,7 +1067,8 @@
   .agency-review-lines {
     display: grid;
     gap: 0.4rem;
-    min-width: 1540px;
+    min-width: min(100%, 1180px);
+    width: 100%;
   }
 
   .agency-review-lines-head,
@@ -1074,16 +1077,16 @@
     display: grid;
     gap: 0.45rem;
     grid-template-columns:
-      minmax(230px, 1.35fr)
-      minmax(180px, 1fr)
-      minmax(180px, 1fr)
-      minmax(170px, 0.9fr)
-      124px
-      124px
-      108px
-      108px
-      108px
-      292px;
+      minmax(13rem, 1.45fr)
+      minmax(11rem, 1fr)
+      minmax(11rem, 1fr)
+      minmax(10rem, 0.9fr)
+      minmax(7rem, 0.65fr)
+      minmax(7rem, 0.65fr)
+      minmax(6.5rem, 0.6fr)
+      minmax(6.5rem, 0.6fr)
+      minmax(6.5rem, 0.6fr)
+      minmax(17rem, 1.2fr);
   }
 
   .agency-review-lines-head {

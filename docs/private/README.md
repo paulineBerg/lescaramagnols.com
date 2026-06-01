@@ -10,9 +10,14 @@ Mise a jour 2026-06-01 (email de connexion membre) :
 
 Mise a jour 2026-06-01 (navigation privee robuste) :
 - le layout prive recoit maintenant la route privee courante depuis `PrivatePortalController`; l'etat actif du menu ne depend plus uniquement de `$_SERVER['REQUEST_URI']`;
-- chaque entree de menu porte une route canonique et `Parametres` reste force sur `private_portal_url('member_settings')`, soit `/private/parametres`, distinct de `/private/dashboard`;
+- chaque entree de menu porte une route canonique et `Parametres` reste force dans le layout sur `private_portal_url('member_settings')`, soit `/private/parametres`, distinct de `/private/dashboard`; aucune page ne doit surcharger ce lien avec la route dashboard;
 - les groupes `Discussions`, `Locations immobilieres` et `Aide impots` restent actifs sur leurs sous-pages par liste de routes, avec fallback URL seulement si aucun contexte de route n'est fourni;
 - `PrivatePortalDashboardTest` verrouille les deux liens `Parametres` et leur etat actif sur la page parametres; `PrivateRouteResolverTest` verrouille la separation entre dashboard et parametres.
+
+Mise a jour 2026-06-01 (libelles prives et donnees locatives) :
+- les interfaces admin/privees affichent des libelles visibles en francais, notamment pour les statuts et types qui apparaissaient auparavant sous forme `review`, `validated`, `draft`, etc.;
+- la page de classement des documents agence affiche les lignes sur toute la largeur disponible et remplace la mention ambigue de revue fiscale par un controle fiscal manuel des categories sensibles avant validation;
+- les fiches locataire acceptent maintenant nom, prenoms, naissance, nationalite, metier et adresse; les fiches agence exposent nom, adresse, telephone, email et nom du conseiller; les biens locatifs exposent identifiant fiscal, nombre de pieces, designation, autres precisions, equipements, chauffage, eau chaude sanitaire et assainissement.
 
 Mise a jour 2026-06-01 (recuperation admin et TOTP) :
 - le BO admin peut generer et installer `10` cles de recuperation uniques; seules leurs empreintes sont stockees cote serveur, le fichier clair reste sur le poste local hors depot;

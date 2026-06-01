@@ -8,6 +8,11 @@ $annualBalances = is_array($stats['annualBalances'] ?? null) ? $stats['annualBal
 $missingDocuments = is_array($stats['missingDocuments'] ?? null) ? $stats['missingDocuments'] : [];
 $leasesEndingSoon = is_array($stats['leasesEndingSoon'] ?? null) ? $stats['leasesEndingSoon'] : [];
 $issues = is_array($stats['issues'] ?? null) ? $stats['issues'] : [];
+$propertyStatusLabels = [
+    'active' => 'Actif',
+    'inactive' => 'Inactif',
+    'archived' => 'Archivé',
+];
 $propertyNames = [];
 foreach ($properties as $property) {
     if (is_array($property) && is_numeric($property['id'] ?? null)) {
@@ -27,7 +32,7 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
     <div class="private-kpi"><span>Locataires</span><strong><?php echo htmlspecialchars((string) (int) ($stats['tenantCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
     <div class="private-kpi"><span>Baux actifs</span><strong><?php echo htmlspecialchars((string) (int) ($stats['activeLeaseCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
     <div class="private-kpi"><span>Loyers du mois attendus</span><strong><?php echo htmlspecialchars($money($stats['monthlyRentDue'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
-    <div class="private-kpi"><span>Loyers du mois encaisses</span><strong><?php echo htmlspecialchars($money($stats['monthlyRentPaid'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
+    <div class="private-kpi"><span>Loyers du mois encaissés</span><strong><?php echo htmlspecialchars($money($stats['monthlyRentPaid'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
     <div class="private-kpi"><span>Partiels / retard</span><strong><?php echo htmlspecialchars((string) (int) ($stats['monthlyPartialRentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> / <?php echo htmlspecialchars((string) (int) ($stats['monthlyLateRentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
     <div class="private-kpi"><span>Baux proches de fin</span><strong><?php echo htmlspecialchars((string) (int) ($stats['leasesEndingSoonCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
     <div class="private-kpi"><span>Documents manquants</span><strong><?php echo htmlspecialchars((string) (int) ($stats['missingDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
@@ -35,8 +40,8 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
 
   <?php if (!empty($stats['summaryBlocked'])): ?>
     <p class="notice notice-error">
-      Synthese annuelle <?php echo htmlspecialchars((string) (int) ($stats['year'] ?? date('Y')), ENT_QUOTES, 'UTF-8'); ?> bloquee :
-      <?php echo htmlspecialchars((string) (int) ($stats['issueCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> point(s) a corriger.
+      Synthèse annuelle <?php echo htmlspecialchars((string) (int) ($stats['year'] ?? date('Y')), ENT_QUOTES, 'UTF-8'); ?> bloquée :
+      <?php echo htmlspecialchars((string) (int) ($stats['issueCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> point(s) à corriger.
     </p>
     <?php if ($issues !== []): ?>
       <ul>
@@ -65,7 +70,7 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
       <h2>Documents agence</h2>
       <p class="muted">
         <?php echo htmlspecialchars((string) (int) ($stats['pendingAgencyDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>
-        document(s) a classer sur
+        document(s) à classer sur
         <?php echo htmlspecialchars((string) (int) ($stats['agencyDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> import(s).
       </p>
       <p class="muted">Le classement agence se rattache aux propriétés créées dans le menu Biens et locations.</p>
@@ -81,9 +86,9 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
       <dl>
         <dt>Loyers attendus</dt>
         <dd><?php echo htmlspecialchars($money($stats['rentDue'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
-        <dt>Loyers encaisses</dt>
+        <dt>Loyers encaissés</dt>
         <dd><?php echo htmlspecialchars($money($stats['rentPaid'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
-        <dt>Reste impaye</dt>
+        <dt>Reste impayé</dt>
         <dd><?php echo htmlspecialchars($money($stats['unpaidRent'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
         <dt>Documents locatifs</dt>
         <dd><?php echo htmlspecialchars((string) (int) ($stats['documentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></dd>
@@ -97,7 +102,7 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
 
   <div class="cards-grid">
     <section class="card">
-      <h2>Baux a surveiller</h2>
+      <h2>Baux à surveiller</h2>
       <?php if ($leasesEndingSoon === []): ?>
         <p class="muted">Aucun bail proche de fin.</p>
       <?php else: ?>
@@ -113,7 +118,7 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
     <section class="card">
       <h2>Documents manquants</h2>
       <?php if ($missingDocuments === []): ?>
-        <p class="muted">Aucun manque detecte.</p>
+        <p class="muted">Aucun manque détecté.</p>
       <?php else: ?>
         <ul>
           <?php foreach (array_slice($missingDocuments, 0, 6) as $missingDocument): ?>
@@ -138,7 +143,8 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
             <tr>
               <td><?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($property['propertyType'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars((string) ($property['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <?php $propertyStatus = is_string($property['status'] ?? null) ? (string) $property['status'] : ''; ?>
+              <td><?php echo htmlspecialchars((string) ($propertyStatusLabels[$propertyStatus] ?? $propertyStatus), ENT_QUOTES, 'UTF-8'); ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody>
@@ -153,7 +159,7 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
     <?php else: ?>
       <div class="private-table-wrap">
         <table>
-          <thead><tr><th>Propriété</th><th>Loyers encaisses</th><th>Charges validees</th><th>Candidates deductibles</th><th>Solde</th></tr></thead>
+          <thead><tr><th>Propriété</th><th>Loyers encaissés</th><th>Charges validées</th><th>Candidates déductibles</th><th>Solde</th></tr></thead>
           <tbody>
             <?php foreach ($annualBalances as $balance): ?>
               <?php if (!is_array($balance)) { continue; } ?>

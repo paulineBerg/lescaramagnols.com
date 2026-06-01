@@ -10,6 +10,11 @@ $urls = is_array($viewModel['taxUrls'] ?? null) ? $viewModel['taxUrls'] : [];
 $h = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $createDialogId = 'tax-manual-entry-create-dialog';
 $taxCurrentSubsection = 'manual';
+$statusLabels = [
+    'draft' => 'Brouillon',
+    'validated' => 'Validé',
+    'cancelled' => 'Annulé',
+];
 $categories = [];
 foreach ($entries as $entry) {
     if (!is_array($entry)) {
@@ -35,7 +40,7 @@ foreach ($entries as $entry) {
       <button type="button" class="private-create-button" data-private-dialog-open="<?php echo $h($createDialogId); ?>"<?php echo $locked ? ' disabled' : ''; ?>>Ajouter un revenu</button>
     </div>
     <?php if ($locked): ?>
-      <p class="notice notice-error">Annee verrouillee : modification refusee.</p>
+      <p class="notice notice-error">Année verrouillée : modification refusée.</p>
     <?php endif; ?>
     <?php if ($entries === []): ?>
       <p class="muted">Aucun revenu manuel.</p>
@@ -43,9 +48,9 @@ foreach ($entries as $entry) {
       <div class="private-list-tools">
         <div class="private-list-filter-grid">
           <label>Recherche
-            <input type="search" placeholder="Libelle ou categorie" data-private-filter="text" />
+            <input type="search" placeholder="Libellé ou catégorie" data-private-filter="text" />
           </label>
-          <label>Categorie
+          <label>Catégorie
             <select data-private-filter="category">
               <option value="all">Toutes</option>
               <?php foreach ($categories as $category): ?>
@@ -56,9 +61,9 @@ foreach ($entries as $entry) {
           <label>Statut
             <select data-private-filter="status">
               <option value="all">Tous</option>
-              <option value="draft">Brouillon</option>
-              <option value="validated">Valide</option>
-              <option value="cancelled">Annule</option>
+              <?php foreach ($statusLabels as $value => $label): ?>
+                <option value="<?php echo $h($value); ?>"><?php echo $h($label); ?></option>
+              <?php endforeach; ?>
             </select>
           </label>
           <div class="private-list-filter-actions">
@@ -68,7 +73,7 @@ foreach ($entries as $entry) {
       </div>
       <div class="private-table-wrap">
         <table>
-          <thead><tr><th>Libelle</th><th>Montant</th><th>Categorie</th><th>Statut</th></tr></thead>
+          <thead><tr><th>Libellé</th><th>Montant</th><th>Catégorie</th><th>Statut</th></tr></thead>
           <tbody>
           <?php foreach ($entries as $entry): ?>
             <?php if (!is_array($entry)) { continue; } ?>
@@ -81,7 +86,7 @@ foreach ($entries as $entry) {
               <td><?php echo $h($label); ?></td>
               <td><?php echo $h(number_format((float) ($entry['amount'] ?? 0), 2, ',', ' ')); ?> €</td>
               <td><?php echo $h($category); ?></td>
-              <td><?php echo $h($status); ?></td>
+              <td><?php echo $h($statusLabels[$status] ?? $status); ?></td>
             </tr>
           <?php endforeach; ?>
           <tr class="private-empty-row" data-private-filter-empty hidden>
@@ -100,18 +105,18 @@ foreach ($entries as $entry) {
         <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
       </header>
       <?php if ($locked): ?>
-        <p class="notice notice-error">Annee verrouillee : modification refusee.</p>
+        <p class="notice notice-error">Année verrouillée : modification refusée.</p>
       <?php else: ?>
         <form method="post" action="<?php echo $h((string) ($urls['manual'] ?? '')); ?>">
           <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
-          <label>Libelle <input type="text" name="label" maxlength="160" required /></label>
+          <label>Libellé <input type="text" name="label" maxlength="160" required /></label>
           <label>Montant <input type="number" name="amount" min="0" step="0.01" required /></label>
-          <label>Categorie <input type="text" name="category" maxlength="64" required /></label>
+          <label>Catégorie <input type="text" name="category" maxlength="64" required /></label>
           <label>Statut
             <select name="status">
-              <option value="draft">Brouillon</option>
-              <option value="validated">Valide</option>
-              <option value="cancelled">Annule</option>
+              <?php foreach ($statusLabels as $value => $label): ?>
+                <option value="<?php echo $h($value); ?>"><?php echo $h($label); ?></option>
+              <?php endforeach; ?>
             </select>
           </label>
           <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>

@@ -53,6 +53,9 @@ final class PrivateUiGuardTest extends TestCase
     {
         $layout = $this->readRepoFile('backend/templates/private/layout.php');
 
+        self::assertStringContainsString('$privateDashboardUrl = private_portal_url(\'dashboard\');', $layout);
+        self::assertStringContainsString('$privateMemberSettingsUrl = private_portal_url(\'member_settings\');', $layout);
+        self::assertStringNotContainsString('is_string($privateMemberSettingsUrl ?? null)', $layout);
         self::assertSame(1, substr_count($layout, 'notice notice-success private-screen-notice" role="status"'));
         self::assertSame(1, substr_count($layout, 'notice notice-error private-screen-notice" role="alert"'));
         self::assertStringNotContainsString('<main class="private-main">
@@ -94,10 +97,17 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('agency-review-line-feedback', $template);
         self::assertStringNotContainsString('data-private-auto-submit="validate_line"', $template);
         self::assertStringContainsString('manual_fiscal_review_confirmed', $template);
+        self::assertStringContainsString('Contrôle fiscal à confirmer avant validation', $template);
+        self::assertStringContainsString('Contrôle fiscal confirmé', $template);
+        self::assertStringContainsString('$labelFromMap($line[\'mappingStatus\'] ?? \'\', $mappingStatusLabels)', $template);
+        self::assertStringNotContainsString('Revue fiscale requise avant validation', $template);
         self::assertStringContainsString('bulk_update_lines', $template);
         self::assertStringContainsString('line_action[', $template);
         self::assertStringContainsString('lines[<?php echo $h($lineId); ?>][mapped_category]', $template);
         self::assertStringContainsString('.agency-review-line-feedback', $stylesheet);
+        self::assertStringContainsString('.agency-review-lines-wrap', $stylesheet);
+        self::assertStringContainsString('width: 100%;', $stylesheet);
+        self::assertStringContainsString('grid-template-columns:', $stylesheet);
         self::assertStringContainsString('scroll-margin-top: 6rem;', $stylesheet);
         self::assertStringContainsString('.agency-review-bulk-actions', $stylesheet);
     }
@@ -112,6 +122,10 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('Correspondances par agence', $template);
         self::assertStringContainsString('value="update_agency"', $template);
         self::assertStringContainsString('value="delete_agency"', $template);
+        self::assertStringContainsString('Nom du conseiller', $template);
+        self::assertStringContainsString('<th>Adresse</th>', $template);
+        self::assertStringContainsString('<th>Téléphone</th>', $template);
+        self::assertStringContainsString('<th>Email</th>', $template);
         self::assertStringContainsString('advisor_name', $template);
         self::assertStringContainsString('postal_address', $template);
         self::assertStringContainsString('create_agency_unit_mapping', $template);
@@ -119,6 +133,8 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('Texte détecté dans le document', $template);
         self::assertStringContainsString('$url(\'agencies\', \'rental_agencies\')', $nav);
         self::assertStringContainsString('Gérer les agences', $importsTemplate);
+        self::assertStringContainsString('À revoir', $importsTemplate);
+        self::assertStringContainsString('Validé', $importsTemplate);
         self::assertStringNotContainsString('$currentTab === \'agencies\'', $importsTemplate);
     }
 
