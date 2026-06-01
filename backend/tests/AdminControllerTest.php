@@ -2708,9 +2708,10 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('id="admin_password" name="admin[password]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('id="admin_totp_secret" name="admin[totp_secret]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('data-admin-totp-generate', $response->body);
-        $this->assertStringContainsString('Générer un secret aléatoire', $response->body);
-        $this->assertStringContainsString('data-admin-totp-qr', $response->body);
-        $this->assertStringContainsString('Afficher le QR code', $response->body);
+        $this->assertStringContainsString('data-admin-totp-open-qr="true"', $response->body);
+        $this->assertStringContainsString('Générer le secret et afficher le QR code', $response->body);
+        $this->assertDoesNotMatchRegularExpression('/<button\b(?=[^>]*data-admin-totp-qr(?:\s|>|=))/s', $response->body);
+        $this->assertStringNotContainsString('Afficher le QR code', $response->body);
         $this->assertStringContainsString('Cette clé longue sert à inscrire le compte dans l’application TOTP', $response->body);
         $this->assertStringContainsString('id="discussion_recaptcha_secret_key" name="discussions[recaptcha_secret_key]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('id="instagram_access_token" name="instagram[access_token]" type="password" value="**********"', $response->body);

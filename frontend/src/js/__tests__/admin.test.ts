@@ -27,7 +27,7 @@ describe('admin TOTP helpers', () => {
     expect(svg).not.toContain('DHWW6REZSLVFFO2YEZRN');
   });
 
-  it('ouvre la popup QR depuis le formulaire admin avec le secret courant', () => {
+  it('ouvre la popup QR depuis le bouton unique de generation', () => {
     HTMLDialogElement.prototype.showModal = function showModal() {
       this.setAttribute('open', 'open');
     };
@@ -36,7 +36,8 @@ describe('admin TOTP helpers', () => {
       <input id="admin_totp_secret" value="DHWW6REZSLVFFO2YEZRN" />
       <button
         type="button"
-        data-admin-totp-qr
+        data-admin-totp-generate
+        data-admin-totp-open-qr="true"
         data-admin-totp-account-input="admin_identifier"
         data-admin-totp-issuer="Les Caramagnols"
         aria-controls="admin_totp_secret"
@@ -50,7 +51,7 @@ describe('admin TOTP helpers', () => {
       </dialog>
     `;
 
-    document.querySelector<HTMLButtonElement>('[data-admin-totp-qr]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-admin-totp-generate]')!.click();
 
     expect(document.querySelector<HTMLDialogElement>('#admin-totp-qr-dialog')!.hasAttribute('open')).toBe(true);
     expect(document.querySelector<HTMLElement>('[data-admin-totp-qr-output]')!.innerHTML).toContain('<svg');

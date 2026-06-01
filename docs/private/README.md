@@ -12,7 +12,7 @@ Mise a jour 2026-06-01 (navigation privee robuste) :
 Mise a jour 2026-06-01 (recuperation admin et TOTP) :
 - le BO admin peut generer et installer `10` cles de recuperation uniques; seules leurs empreintes sont stockees cote serveur, le fichier clair reste sur le poste local hors depot;
 - une recuperation valide consomme la cle, remplace le mot de passe admin et desactive le TOTP pour permettre une reconnexion controlee;
-- la generation du secret TOTP affiche un QR code `otpauth://` dans une popup locale, sans service externe, afin de distinguer la cle secrete longue du code TOTP a `6` chiffres.
+- la generation du secret TOTP se fait avec un seul bouton qui genere la cle et affiche le QR code `otpauth://` dans une popup locale, sans service externe, afin de distinguer la cle secrete longue du code TOTP a `6` chiffres.
 
 Mise a jour 2026-06-01 (retours SMTP membre) :
 - dans `Parametres > SMTP`, un mot de passe SMTP deja enregistre s'affiche sous la forme `******`; ce masque est aussi reconnu cote serveur comme une valeur inchangee afin de ne pas rechiffrer le masque comme secret;
