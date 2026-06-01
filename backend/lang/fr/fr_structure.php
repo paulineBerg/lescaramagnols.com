@@ -1281,7 +1281,7 @@ return [
     'TXT_PRIVATE_DISCUSSION_SECURITY_TEXT' => 'Les nouveaux messages texte sont chiffrés dans le navigateur avant envoi: le serveur ne stocke pas leur corps en clair.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_FILES' => 'Les images et fichiers joints sont chiffrés sur disque côté serveur, stockés hors webroot, puis déchiffrés seulement lors d’un téléchargement autorisé.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_METADATA' => 'Les métadonnées techniques restent nécessaires au fonctionnement: participants, dates, titres de groupes, noms de fichiers, types et tailles.',
-    'TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION' => 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par message.',
+    'TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION' => 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par message ou par discussion.',
     'TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP' => 'Les messages texte sont chiffrés dans le navigateur. Les fichiers joints sont chiffrés sur disque et restent servis uniquement par contrôle d’accès serveur.',
 
     // Instagram

@@ -3281,12 +3281,24 @@ final class PrivatePortalController
             if (!$this->guard()->validateCsrf($request, self::CSRF_DISCUSSIONS)) {
                 return $this->redirect(private_portal_url('discussion_index') . '?error=csrf');
             }
+
+            $body = $request->body();
+            $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
+            if ($action === 'delete_conversation') {
+                $conversationId = $this->normalizeNumericId($body['conversation_id'] ?? null);
+                $deleted = $this->discussionService()->deleteConversationForUser(
+                    $userId,
+                    $conversationId,
+                    $this->discussionRequestId($request)
+                );
+
+                return $this->redirect(private_portal_url('discussion_index') . ($deleted ? '?notice=conversation_deleted' : '?error=conversation_delete'));
+            }
+
             if (!$this->discussionRateLimitHit($request, $userId, 'conversation')) {
                 return $this->redirect(private_portal_url('discussion_index') . '?error=rate_limited');
             }
 
-            $body = $request->body();
-            $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
             if ($action === 'invite_member') {
                 $sent = $this->sendDiscussionInvitation($body, $userId);
                 return $this->redirect(private_portal_url('discussion_index') . ($sent ? '?notice=invite_sent' : '?error=invite'));
@@ -3343,6 +3355,18 @@ final class PrivatePortalController
 
             $body = $request->body();
             $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'send_message';
+            if ($action === 'delete_conversation') {
+                $deleted = $this->discussionService()->deleteConversationForUser(
+                    $userId,
+                    $conversationId,
+                    $this->discussionRequestId($request)
+                );
+
+                return $this->redirect($deleted
+                    ? private_portal_url('discussion_index') . '?notice=conversation_deleted'
+                    : private_portal_url('discussion_index') . '/' . $conversationId . '?error=conversation_delete');
+            }
+
             if ($action === 'delete_message') {
                 $messageId = $this->normalizeNumericId($body['message_id'] ?? null);
                 $deleted = $this->discussionService()->deleteMessage($userId, $messageId, $this->discussionRequestId($request));

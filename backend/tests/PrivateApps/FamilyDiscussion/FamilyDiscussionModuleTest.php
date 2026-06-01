@@ -115,6 +115,67 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertNull($repository->findConversationForUser($conversationId, $outsiderId));
     }
 
+    public function testMemberCanDeleteCompleteConversationFromOwnSpace(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $storage = $this->storage();
+        $service = new DiscussionService($repository, $userRepository, $storage);
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $outsiderId = $this->createPrivateUser($userRepository, 'outsider@example.com');
+
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $upload = $this->createUpload('note-delete.txt', 'piece jointe a supprimer');
+        $aliceMessage = $service->sendMessage(
+            $aliceId,
+            $conversationId,
+            'Message a supprimer',
+            [
+                'discussion_files' => [
+                    'name' => [$upload['name']],
+                    'tmp_name' => [$upload['tmp_name']],
+                    'size' => [$upload['size']],
+                    'error' => [UPLOAD_ERR_OK],
+                    'type' => ['text/plain'],
+                ],
+            ],
+            $this->encryptedPayload(),
+            'delete-conversation-alice'
+        );
+        $this->assertIsArray($aliceMessage);
+        $this->assertCount(1, $aliceMessage['attachments']);
+        $attachmentPath = $storage->absolutePath((string) $aliceMessage['attachments'][0]['storagePath']);
+        $this->assertIsString($attachmentPath);
+        $this->assertFileExists($attachmentPath);
+
+        $bobMessage = $service->sendMessage(
+            $bobId,
+            $conversationId,
+            'Message conserve',
+            [],
+            $this->encryptedPayload(),
+            'delete-conversation-bob'
+        );
+        $this->assertIsArray($bobMessage);
+
+        $this->assertTrue($service->deleteConversationForUser($aliceId, $conversationId, 'request-delete-conversation'));
+        $this->assertNull($repository->findConversationForUser($conversationId, $aliceId));
+        $this->assertSame([], $service->listConversations($aliceId));
+        $this->assertFileDoesNotExist($attachmentPath);
+
+        $this->assertIsArray($repository->findConversationForUser($conversationId, $bobId));
+        $bobMessages = $service->listMessages($conversationId, $bobId);
+        $this->assertCount(1, $bobMessages);
+        $this->assertSame((int) $bobMessage['id'], (int) $bobMessages[0]['id']);
+        $this->assertFalse($service->deleteConversationForUser($outsiderId, $conversationId, 'request-delete-outsider'));
+    }
+
     public function testGroupOwnerCanAddMembersButRegularMemberCannot(): void
     {
         $database = $this->editorialSqlDatabase();
@@ -855,6 +916,7 @@ final class FamilyDiscussionModuleTest extends TestCase
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
         $repository = new DiscussionRepository($database);
+        /** @var array<int, array{to:string,subject:string,html:string,recipientUserId:int}> $sentEmails */
         $sentEmails = [];
         $notificationService = new DiscussionNotificationService(
             $repository,
@@ -893,7 +955,7 @@ final class FamilyDiscussionModuleTest extends TestCase
             'notification-muted'
         );
         $this->assertIsArray($mutedMessage);
-        $this->assertSame([], $sentEmails);
+        $this->assertCount(0, $sentEmails);
 
         $this->assertTrue($repository->setNotificationPreference($conversationId, $bobId, 'notify'));
         $notifiedMessage = $service->sendMessage(
@@ -906,11 +968,13 @@ final class FamilyDiscussionModuleTest extends TestCase
         );
         $this->assertIsArray($notifiedMessage);
         $this->assertCount(1, $sentEmails);
-        $this->assertSame('bob@example.com', $sentEmails[0]['to']);
-        $this->assertSame($bobId, $sentEmails[0]['recipientUserId']);
-        $encoded = json_encode($sentEmails[0], JSON_THROW_ON_ERROR);
+        $sentEmail = $sentEmails[0] ?? null;
+        $this->assertIsArray($sentEmail);
+        $this->assertSame('bob@example.com', $sentEmail['to']);
+        $this->assertSame($bobId, $sentEmail['recipientUserId']);
+        $encoded = json_encode($sentEmail, JSON_THROW_ON_ERROR);
         $this->assertStringNotContainsString('Texte secret notifie', $encoded);
-        $this->assertStringContainsString('/private/discussions/' . $conversationId, (string) $sentEmails[0]['html']);
+        $this->assertStringContainsString('/private/discussions/' . $conversationId, (string) $sentEmail['html']);
 
         $this->assertTrue($repository->setNotificationPreference($conversationId, $bobId, 'digest'));
         $digestMessage = $service->sendMessage(
@@ -981,6 +1045,8 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertStringContainsString('Nouvelle discussion', $index->body);
         $this->assertStringContainsString('name="recipient_ids[]"', $index->body);
         $this->assertStringContainsString('bob@example.com', $index->body);
+        $this->assertStringContainsString('value="delete_conversation"', $index->body);
+        $this->assertStringContainsString('Supprimer', $index->body);
         $this->assertStringNotContainsString('outsider@example.com', $index->body);
         $this->assertStringNotContainsString('pending@example.com', $index->body);
         $this->assertStringContainsString('Conversations', $index->body);
@@ -1011,6 +1077,7 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertStringContainsString('bob@example.com', $detail->body);
         $this->assertStringContainsString('data-encrypted-body', $detail->body);
         $this->assertStringContainsString('data-discussion-last-message="1"', $detail->body);
+        $this->assertStringContainsString('Supprimer la discussion', $detail->body);
         $this->assertStringNotContainsString('Supprimer mes messages', $detail->body);
         $this->assertStringNotContainsString('Confirmer avec SUPPRIMER', $detail->body);
         $this->assertStringContainsString('nonce="testnonce"', $detail->body);
@@ -1042,6 +1109,58 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertSame(200, $detailNotice->status);
         $this->assertStringContainsString('data-private-toast', $detailNotice->body);
         $this->assertStringContainsString('Message envoyé.', $detailNotice->body);
+    }
+
+    public function testMemberCanDeleteConversationFromListing(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $discussionRepository = new DiscussionRepository($database);
+        $storage = $this->storage();
+        $service = new DiscussionService($discussionRepository, $userRepository, $storage, null, $moduleRepository);
+
+        $aliceId = $this->createPrivateUser($userRepository, 'alice@example.com');
+        $bobId = $this->createPrivateUser($userRepository, 'bob@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($aliceId, ['discussions'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($bobId, ['discussions'], 'admin@example.com'));
+
+        $conversation = $service->createDirectConversation($aliceId, $bobId);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+        $this->assertIsArray($service->sendMessage($aliceId, $conversationId, 'Bonjour', [], $this->encryptedPayload()));
+
+        $controller = new PrivatePortalController(
+            auth: $this->privateAuth($userRepository, 'alice@example.com'),
+            privateUserRepository: $userRepository,
+            modulePermissionRepository: $moduleRepository,
+            discussionRepository: $discussionRepository,
+            discussionAttachmentStorage: $storage,
+            discussionService: $service,
+            discussionRetentionService: new DiscussionRetentionService($discussionRepository, $storage)
+        );
+
+        $delete = $controller->handle(
+            'discussion_index',
+            $this->request('POST', '/private/discussions', [
+                'csrf_token' => csrf_token('private_discussions'),
+                'action' => 'delete_conversation',
+                'conversation_id' => $conversationId,
+            ])
+        );
+
+        $this->assertSame(302, $delete->status);
+        $this->assertSame('/private/discussions?notice=conversation_deleted', $delete->headers['Location'] ?? null);
+
+        $index = $controller->handle(
+            'discussion_index',
+            $this->request('GET', '/private/discussions?notice=conversation_deleted', [], ['notice' => 'conversation_deleted'])
+        );
+        $this->assertSame(200, $index->status);
+        $this->assertStringContainsString('Discussion supprimée.', $index->body);
+        $this->assertStringContainsString('Aucune conversation pour le moment.', $index->body);
+        $this->assertNull($discussionRepository->findConversationForUser($conversationId, $aliceId));
+        $this->assertIsArray($discussionRepository->findConversationForUser($conversationId, $bobId));
     }
 
     /**

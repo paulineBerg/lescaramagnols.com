@@ -367,7 +367,27 @@ final class DiscussionService
         return $deleted;
     }
 
-    public function deleteOwnConversationData(int $actorId, int $conversationId): int
+    public function deleteConversationForUser(int $actorId, int $conversationId, ?string $requestId = null): bool
+    {
+        if (!$this->repository->isParticipant($conversationId, $actorId)) {
+            $this->logAccessDenied($actorId, $conversationId);
+            return false;
+        }
+
+        $deletedMessages = $this->deleteOwnConversationData($actorId, $conversationId, $requestId);
+        $left = $this->leaveConversation($conversationId, $actorId, $requestId);
+        if ($left) {
+            $this->log('private.discussion.conversation.deleted_for_user', [
+                'conversation_id' => $conversationId,
+                'private_user_id' => $actorId,
+                'deleted_messages' => $deletedMessages,
+            ]);
+        }
+
+        return $left;
+    }
+
+    public function deleteOwnConversationData(int $actorId, int $conversationId, ?string $requestId = null): int
     {
         if (!$this->repository->isParticipant($conversationId, $actorId)) {
             $this->logAccessDenied($actorId, $conversationId);
@@ -376,7 +396,7 @@ final class DiscussionService
 
         $deleted = 0;
         foreach ($this->repository->listActiveMessageIdsForSender($conversationId, $actorId) as $messageId) {
-            if ($this->deleteMessage($actorId, $messageId)) {
+            if ($this->deleteMessage($actorId, $messageId, $requestId)) {
                 ++$deleted;
             }
         }

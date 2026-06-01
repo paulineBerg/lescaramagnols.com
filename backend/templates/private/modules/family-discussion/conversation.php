@@ -155,6 +155,7 @@ $notificationLabels = [
     <?php
     $noticeMessage = match ($notice) {
         'sent' => 'Message envoyé.',
+        'conversation_deleted' => 'Discussion supprimée.',
         'deleted' => 'Suppression effectuée.',
         'notifications_updated' => 'Préférence de notification enregistrée.',
         default => $notice,
@@ -170,6 +171,7 @@ $notificationLabels = [
       <?php
       $errorMessage = match ($error) {
           'csrf' => 'Session expiree, veuillez recommencer.',
+          'conversation_delete' => 'Suppression de la discussion impossible.',
           'rate_limited' => 'Trop de messages successifs, veuillez patienter.',
           'delete' => 'Suppression impossible.',
           'notification' => 'Préférence de notification impossible.',
@@ -247,6 +249,11 @@ $notificationLabels = [
           </select>
           <button type="submit" class="private-button-secondary">Enregistrer</button>
         </form>
+        <form class="private-discussion-delete-form" method="post" action="<?php echo $h($conversationUrl); ?>" data-private-sensitive-action="discussion-delete">
+          <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+          <input type="hidden" name="action" value="delete_conversation" />
+          <button class="private-discussion-delete-button" type="submit">Supprimer la discussion</button>
+        </form>
       </section>
 
       <section class="private-discussion-sidebar-section" aria-label="État du chiffrement local">
@@ -300,7 +307,7 @@ $notificationLabels = [
           <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TEXT', 'Les nouveaux messages texte sont chiffrés dans le navigateur avant envoi: le serveur ne stocke pas leur corps en clair.')); ?></li>
           <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_FILES', 'Les images et fichiers joints sont chiffrés sur disque côté serveur, stockés hors webroot, puis déchiffrés seulement lors d’un téléchargement autorisé.')); ?></li>
           <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_METADATA', 'Les métadonnées techniques restent nécessaires au fonctionnement: participants, dates, titres de groupes, noms de fichiers, types et tailles.')); ?></li>
-          <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par message.')); ?></li>
+          <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par message ou par discussion.')); ?></li>
         </ul>
       </aside>
     </aside>

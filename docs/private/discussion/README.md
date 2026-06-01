@@ -1,6 +1,6 @@
 # Module Discussion privee
 
-Date de mise a jour : 2026-05-31
+Date de mise a jour : 2026-06-01
 
 Ce document decrit le module prive `FamilyDiscussion`, expose dans l'interface sous le menu `Discussions`.
 Il couvre l'existant fonctionnel, l'architecture applicative, les garanties de securite et les pistes d'optimisation pour faire evoluer le module vers une experience proche d'un vrai messenger.
@@ -25,6 +25,7 @@ Fonctions disponibles :
 - stockage des fichiers joints chiffre au repos cote serveur;
 - apercu image quand une piece jointe est une image;
 - suppression d'un message ou d'une piece jointe par son auteur, ou par le proprietaire d'un groupe;
+- suppression complete d'une discussion pour le membre connecte : elle disparait de sa liste et ses propres messages ou pieces jointes sont neutralises;
 - marquage de lecture a l'ouverture et via API;
 - invitation email d'un membre depuis l'ecran Discussions;
 - retention automatique des messages et fichiers expires, par utilisateur a l'ouverture et via cron;
@@ -49,12 +50,16 @@ Le listing affiche les conversations accessibles au membre connecte. Il suit le 
 
 Pour une conversation directe, le libelle visible est l'email de l'autre personne. Pour une conversation de groupe, le titre saisi est utilise, avec fallback generique si le titre est absent.
 
+Le bouton `Supprimer` retire toute la discussion de l'espace du membre connecte. L'action passe par POST avec jeton CSRF et confirmation sensible. Elle ne supprime pas arbitrairement les messages des autres participants : les contenus envoyes par le membre connecte sont neutralises, puis son appartenance est marquee comme sortie.
+
 ### Conversation
 
 Route : `/private/discussions/{conversationId}`
 
 La page affiche le fil, les pieces jointes, les actions de suppression autorisees et le formulaire d'envoi.
 Apres envoi reussi, la redirection conserve l'ancre `#discussion-message-last`, le dernier message porte l'identifiant `discussion-message-last`, et la notice `Message envoye.` est affichee comme popup temporaire.
+
+La meme suppression de discussion est disponible depuis le panneau de details du fil. Apres suppression reussie, l'utilisateur est redirige vers le listing avec la notice `Discussion supprimee.`.
 
 ### Invitations
 
@@ -80,8 +85,8 @@ Routes principales :
 
 | Nom routeur | Methode | Chemin | Role |
 |---|---:|---|---|
-| `discussion_index` | GET/POST | `/private/discussions` | listing, creation de conversation, invitation |
-| `discussion_conversation` | GET/POST | `/private/discussions/{conversationId}` | lecture et envoi dans un fil |
+| `discussion_index` | GET/POST | `/private/discussions` | listing, creation, invitation et suppression cote membre |
+| `discussion_conversation` | GET/POST | `/private/discussions/{conversationId}` | lecture, envoi, suppression de message ou suppression du fil cote membre |
 | `discussion_api_conversations` | GET/POST | `/private/discussions/api/conversations` | liste ou creation API |
 | `discussion_api_messages` | GET/POST | `/private/discussions/api/conversations/{conversationId}/messages` | lecture incremental ou envoi API |
 | `discussion_api_events` | GET | `/private/discussions/api/conversations/{conversationId}/events` | flux SSE court depuis le journal d'evenements |
@@ -180,6 +185,7 @@ Garanties actuelles :
 - headers prives et `Cache-Control: private, no-store` sur les fichiers servis;
 - echappement HTML dans les templates;
 - logs applicatifs sans contenu de message;
+- suppression d'une discussion limitee au membre connecte : sortie de conversation, suppression de ses propres messages et fichiers joints, sans effacer les donnees des autres participants hors parcours RGPD centralise;
 - retention par defaut de 60 jours;
 - purge RGPD centralisee avec neutralisation des messages, pieces jointes, appartenances, appareils et cles.
 

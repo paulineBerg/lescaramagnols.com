@@ -1281,7 +1281,7 @@ return [
     'TXT_PRIVATE_DISCUSSION_SECURITY_TEXT' => 'New text messages are encrypted in the browser before sending: the server does not store their body in clear text.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_FILES' => 'Images and attachments are encrypted on disk server-side, stored outside the webroot, then decrypted only for an authorized download.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_METADATA' => 'Technical metadata remains necessary for operation: participants, dates, group titles, file names, types and sizes.',
-    'TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION' => 'Messages and files keep a short 60-day retention, with automatic purge and manual deletion available per message.',
+    'TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION' => 'Messages and files keep a short 60-day retention, with automatic purge and manual deletion available per message or per conversation.',
     'TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP' => 'Text messages are encrypted in the browser. Attachments are encrypted on disk and are served only through server-side access control.',
 
     // Instagram
