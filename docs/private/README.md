@@ -8,6 +8,11 @@ Mise a jour 2026-06-01 (email de connexion membre) :
 - la modification reste reservee au BO admin, passe par CSRF, verifie l'unicite de l'adresse et journalise l'action;
 - tout lien d'invitation ou de reset encore en attente pour le compte est invalide lors du changement d'adresse; l'admin doit renvoyer une invitation ou un reset si necessaire.
 
+Mise a jour 2026-06-01 (liens de reset local/preprod) :
+- les liens d'activation et de reset generes par l'admin ou par le portail prive passent par `app_url()`;
+- si `BASE_URL` pointe sur `https://127.0.0.1:8000` ou `https://localhost` et que `FORCE_HTTPS_ON_LOCALHOST=false`, le lien sort en `http://...` pour correspondre au serveur local sans TLS;
+- preprod et production conservent les liens `https://...` des que `BASE_URL` pointe sur un domaine public; si un vrai serveur TLS local est utilise, activer explicitement `FORCE_HTTPS_ON_LOCALHOST=true`.
+
 Mise a jour 2026-06-01 (navigation privee robuste) :
 - le layout prive recoit maintenant la route privee courante depuis `PrivatePortalController`; l'etat actif du menu ne depend plus uniquement de `$_SERVER['REQUEST_URI']`;
 - chaque entree de menu porte une route canonique et `Parametres` reste force dans le layout sur `private_portal_url('member_settings')`, soit `/private/parametres`, distinct de `/private/dashboard`; aucune page ne doit surcharger ce lien avec la route dashboard;
@@ -87,7 +92,7 @@ Mise a jour 2026-05-29 (chiffrement FamilyDiscussion) :
 
 Mise a jour 2026-05-29 (emails transactionnels V2) :
 - les emails critiques de l'espace prive sont declares dans un catalogue admin unique avec sujet, corps, variables, fallback et apercu sans envoi reel;
-- les liens d'activation et de reset sont construits avec `app_url()` et les chemins canoniques du routeur prive afin de respecter `BASE_URL`, y compris en preproduction;
+- les liens d'activation et de reset sont construits avec `app_url()` et les chemins canoniques du routeur prive afin de respecter `BASE_URL`, y compris en preproduction, avec normalisation HTTP automatique pour localhost quand aucun TLS local n'est force;
 - les emails de reset utilisent la configuration SMTP dediee a l'espace prive et le helper `send_private_email()`;
 - les erreurs SMTP restent neutres cote utilisateur, tandis que le log technique redige mots de passe, tokens, secrets et DSN sensibles avant journalisation;
 - les tokens d'activation/reset ne doivent jamais etre journalises en clair, y compris dans les evenements securite.

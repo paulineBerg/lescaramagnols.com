@@ -21,6 +21,9 @@ final class PrivateTransactionalEmailTest extends TestCase
 
     /** @var array<string, mixed> */
     private array $previousAppConfig = [];
+    private array $previousServer = [];
+    private array $previousEnv = [];
+    private string|false $previousForceHttpsOnLocalhost = false;
     private string $tempDir = '';
 
     public static function setUpBeforeClass(): void
@@ -34,6 +37,9 @@ final class PrivateTransactionalEmailTest extends TestCase
         global $appConfig;
 
         $this->previousAppConfig = is_array($appConfig) ? $appConfig : [];
+        $this->previousServer = $_SERVER;
+        $this->previousEnv = $_ENV;
+        $this->previousForceHttpsOnLocalhost = getenv('FORCE_HTTPS_ON_LOCALHOST');
         $this->tempDir = sys_get_temp_dir() . '/caramagnols-private-mail-' . bin2hex(random_bytes(6));
         mkdir($this->tempDir, 0700, true);
 
@@ -61,6 +67,13 @@ final class PrivateTransactionalEmailTest extends TestCase
         global $appConfig;
 
         $appConfig = $this->previousAppConfig;
+        $_SERVER = $this->previousServer;
+        $_ENV = $this->previousEnv;
+        if ($this->previousForceHttpsOnLocalhost === false) {
+            putenv('FORCE_HTTPS_ON_LOCALHOST');
+        } else {
+            putenv('FORCE_HTTPS_ON_LOCALHOST=' . $this->previousForceHttpsOnLocalhost);
+        }
         $this->cleanupEditorialSqlDatabase();
         $this->removeDirectory($this->tempDir);
     }
@@ -78,7 +91,7 @@ final class PrivateTransactionalEmailTest extends TestCase
         $catalog = is_array($viewModel['templateCatalog'] ?? null) ? $viewModel['templateCatalog'] : [];
         $previews = is_array($viewModel['previews'] ?? null) ? $viewModel['previews'] : [];
 
-        self::assertCount(11, $catalog);
+        self::assertCount(12, $catalog);
         self::assertSame(['email', 'today', 'login_url', 'private_url', 'reply_to', 'site_name'], $viewModel['commonVariables']);
 
         $variablesByBodyKey = [];
@@ -242,6 +255,40 @@ final class PrivateTransactionalEmailTest extends TestCase
         self::assertIsString($result['message']);
         self::assertStringContainsString('Lien de réinitialisation à usage unique', $result['message']);
         self::assertStringContainsString('https://preprod.lescaramagnols.com/private/password/reset/', $result['message']);
+    }
+
+    public function testPrivatePasswordResetActionUsesHttpForLocalhostWithoutTls(): void
+    {
+        global $appConfig;
+
+        $appConfig['base_url'] = 'https://127.0.0.1:8000';
+        $appConfig['site']['url'] = [];
+        $appConfig['private']['mail']['smtp_password'] = '';
+        unset($_SERVER['HTTP_HOST'], $_SERVER['HTTPS'], $_SERVER['SERVER_PORT']);
+        unset($_SERVER['FORCE_HTTPS_ON_LOCALHOST'], $_ENV['FORCE_HTTPS_ON_LOCALHOST']);
+        putenv('FORCE_HTTPS_ON_LOCALHOST');
+
+        $database = $this->editorialSqlDatabase();
+        $repository = new PrivateUserRepository($database);
+        $passwordHash = password_hash('TempPassword1!', PASSWORD_ARGON2ID);
+        self::assertIsString($passwordHash);
+        $userId = $repository->create('family-local@example.com', $passwordHash, 'active');
+        self::assertIsInt($userId);
+
+        $service = new AdminPrivateMembersService(
+            $repository,
+            new PrivateModulePermissionRepository($database, new PrivateModuleRegistry())
+        );
+
+        $result = $service->handleAction([
+            'private_member_action' => 'reset',
+            'private_user_id' => (string) $userId,
+        ], 'admin@example.com', '127.0.0.1', 'phpunit');
+
+        self::assertTrue($result['success']);
+        self::assertIsString($result['message']);
+        self::assertStringContainsString('http://127.0.0.1:8000/private/password/reset/', $result['message']);
+        self::assertStringNotContainsString('https://127.0.0.1:8000/private/password/reset/', $result['message']);
     }
 
     public function testSecurityLoggerRedactsTokenAndPasswordFields(): void

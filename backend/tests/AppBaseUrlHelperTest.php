@@ -9,23 +9,38 @@ require_once __DIR__ . '/../core/bootstrap.php';
 
 final class AppBaseUrlHelperTest extends TestCase
 {
-    private array $previousSiteUrl = [];
+    private array $previousAppConfig = [];
+    private array $previousServer = [];
+    private array $previousEnv = [];
+    private string|false $previousForceHttpsOnLocalhost = false;
 
     protected function setUp(): void
     {
         global $appConfig;
 
-        $this->previousSiteUrl = is_array($appConfig['site']['url'] ?? null) ? $appConfig['site']['url'] : [];
+        $this->previousAppConfig = is_array($appConfig) ? $appConfig : [];
+        $this->previousServer = $_SERVER;
+        $this->previousEnv = $_ENV;
+        $this->previousForceHttpsOnLocalhost = getenv('FORCE_HTTPS_ON_LOCALHOST');
+
         $_SERVER['HTTP_HOST'] = 'fallback.local';
         unset($_SERVER['HTTPS'], $_SERVER['SERVER_PORT']);
+        unset($_SERVER['FORCE_HTTPS_ON_LOCALHOST'], $_ENV['FORCE_HTTPS_ON_LOCALHOST']);
+        putenv('FORCE_HTTPS_ON_LOCALHOST');
     }
 
     protected function tearDown(): void
     {
         global $appConfig;
 
-        $appConfig['site']['url'] = $this->previousSiteUrl;
-        unset($_SERVER['HTTP_HOST'], $_SERVER['HTTPS'], $_SERVER['SERVER_PORT']);
+        $appConfig = $this->previousAppConfig;
+        $_SERVER = $this->previousServer;
+        $_ENV = $this->previousEnv;
+        if ($this->previousForceHttpsOnLocalhost === false) {
+            putenv('FORCE_HTTPS_ON_LOCALHOST');
+        } else {
+            putenv('FORCE_HTTPS_ON_LOCALHOST=' . $this->previousForceHttpsOnLocalhost);
+        }
     }
 
     public function testAppBaseUrlUsesConfiguredDomainAndBasePathForHttp(): void
@@ -123,5 +138,41 @@ final class AppBaseUrlHelperTest extends TestCase
         );
 
         $this->assertSame('http://127.0.0.1:8000', app_base_url($request));
+    }
+
+    public function testAppUrlDowngradesConfiguredHttpsLocalhostWhenLocalTlsIsNotForced(): void
+    {
+        global $appConfig;
+
+        unset($_SERVER['HTTP_HOST']);
+        $appConfig['base_url'] = 'https://127.0.0.1:8000';
+        $appConfig['site']['url'] = [];
+
+        $this->assertSame(
+            'http://127.0.0.1:8000/private/password/reset/token',
+            app_url('/private/password/reset/token')
+        );
+
+        $appConfig['site']['url'] = ['base_path' => '/'];
+
+        $this->assertSame(
+            'http://127.0.0.1:8000/private/password/reset/token',
+            app_url('/private/password/reset/token')
+        );
+    }
+
+    public function testAppUrlKeepsConfiguredHttpsLocalhostWhenLocalTlsIsForced(): void
+    {
+        global $appConfig;
+
+        unset($_SERVER['HTTP_HOST']);
+        $_ENV['FORCE_HTTPS_ON_LOCALHOST'] = 'true';
+        $appConfig['base_url'] = 'https://127.0.0.1:8000';
+        $appConfig['site']['url'] = [];
+
+        $this->assertSame(
+            'https://127.0.0.1:8000/private/password/reset/token',
+            app_url('/private/password/reset/token')
+        );
     }
 }

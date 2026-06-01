@@ -127,6 +127,7 @@ Les valeurs sont enregistrees dans `backend/config/admin.override.php` (fichier 
 
 - Production: `FORCE_HTTPS=true` et reverse-proxy/webserver correctement configures.
 - Localhost: laisser `FORCE_HTTPS_ON_LOCALHOST=false` si aucun endpoint TLS local n'ecoute.
+- Les liens applicatifs absolus, dont activation et reset de l'espace prive, suivent la meme regle: localhost sans TLS force sort en `http://...`, preprod/prod sortent en `https://...` via `BASE_URL`.
 - Si vous forcez HTTPS en local, il faut un serveur qui ecoute en TLS sur le port cible (ex: 18443), sinon navigateur => `ERR_CONNECTION_REFUSED`.
 
 ## Connexion Admin Locale Sans Mot De Passe

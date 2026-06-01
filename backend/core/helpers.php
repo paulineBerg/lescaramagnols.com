@@ -97,6 +97,33 @@ function app_host_is_local_or_private(string $host): bool
     ) === false;
 }
 
+function app_host_is_loopback_or_localhost(string $host): bool
+{
+    $normalizedHost = app_host_strip_port($host);
+    if ($normalizedHost === '') {
+        return false;
+    }
+
+    return $normalizedHost === 'localhost'
+        || $normalizedHost === '127.0.0.1'
+        || $normalizedHost === '::1'
+        || str_ends_with($normalizedHost, '.localhost');
+}
+
+function app_scheme_for_host(string $scheme, string $host): string
+{
+    $normalizedScheme = in_array($scheme, ['http', 'https'], true) ? $scheme : 'http';
+    if ($normalizedScheme !== 'https' || !app_host_is_loopback_or_localhost($host)) {
+        return $normalizedScheme;
+    }
+
+    $forceHttpsOnLocalhost = function_exists('env_bool')
+        ? env_bool('FORCE_HTTPS_ON_LOCALHOST', false)
+        : false;
+
+    return $forceHttpsOnLocalhost ? 'https' : 'http';
+}
+
 function app_base_url(?Request $request = null): string
 {
     $configured = app_config('base_url', '/');
@@ -113,11 +140,26 @@ function app_base_url(?Request $request = null): string
     $configuredScheme = strtolower((string) ($configuredUrlParts['scheme'] ?? ''));
     $configuredHost = trim((string) ($configuredUrlParts['host'] ?? ''));
     if ($configuredHost !== '' && isset($configuredUrlParts['port'])) {
-        $configuredHost .= ':' . (string) $configuredUrlParts['port'];
+        $configuredHost = str_contains($configuredHost, ':')
+            ? '[' . trim($configuredHost, '[]') . ']:' . (string) $configuredUrlParts['port']
+            : $configuredHost . ':' . (string) $configuredUrlParts['port'];
     }
 
-    if ($configuredBasePath === null && $configuredHost !== '' && in_array($configuredScheme, ['http', 'https'], true)) {
-        return rtrim($configured, '/');
+    if (
+        $configuredBasePath === null
+        && $configuredHost !== ''
+        && in_array($configuredScheme, ['http', 'https'], true)
+    ) {
+        $configuredPath = trim((string) ($configuredUrlParts['path'] ?? ''), '/');
+        $configuredPath = $configuredPath === '' ? '' : '/' . $configuredPath;
+        $configuredQuery = isset($configuredUrlParts['query']) ? '?' . (string) $configuredUrlParts['query'] : '';
+        $configuredBaseUrl = app_scheme_for_host($configuredScheme, $configuredHost)
+            . '://'
+            . $configuredHost
+            . $configuredPath
+            . $configuredQuery;
+
+        return rtrim($configuredBaseUrl, '/');
     }
 
     $scheme = in_array($configuredScheme, ['http', 'https'], true) ? $configuredScheme : 'http';
@@ -164,7 +206,9 @@ function app_base_url(?Request $request = null): string
         }
 
         if ($canUseConfiguredHost) {
-            return rtrim($scheme . '://' . $preferredHost, '/') . ($basePath === '/' ? '' : $basePath);
+            $preferredScheme = app_scheme_for_host($scheme, $preferredHost);
+
+            return rtrim($preferredScheme . '://' . $preferredHost, '/') . ($basePath === '/' ? '' : $basePath);
         }
     }
 
@@ -172,7 +216,9 @@ function app_base_url(?Request $request = null): string
         return $basePath;
     }
 
-    return rtrim($scheme . '://' . $requestHost, '/') . ($basePath === '/' ? '' : $basePath);
+    $requestScheme = app_scheme_for_host($scheme, $requestHost);
+
+    return rtrim($requestScheme . '://' . $requestHost, '/') . ($basePath === '/' ? '' : $basePath);
 }
 
 function app_url(string $path = '', ?Request $request = null): string
