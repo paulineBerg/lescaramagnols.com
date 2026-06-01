@@ -456,7 +456,8 @@ final class PrivatePortalController
         $error = is_string($query['error'] ?? null) ? (string) $query['error'] : null;
         $privateModules = $this->privateModuleNamesForUser($userId);
         $rentalDocuments = [];
-        if (in_array('real_estate_rental', $privateModules, true)) {
+        $rentalDocumentsEnabled = $this->modulePermissionRepository()->userHasModuleAccess($userId, 'real_estate_rental');
+        if ($rentalDocumentsEnabled) {
             $propertyIds = $this->authorizedPropertyIds($userId);
             $rentalDocuments = $propertyIds === []
                 ? []
@@ -469,7 +470,7 @@ final class PrivatePortalController
             'privateModules' => $privateModules,
             'privateDocumentsEnabled' => true,
             'privateDocuments' => $this->privateDocumentRepository()->listActiveByUser($userId, self::MAX_DOCUMENT_LIST),
-            'privateRentalDocumentsEnabled' => in_array('real_estate_rental', $privateModules, true),
+            'privateRentalDocumentsEnabled' => $rentalDocumentsEnabled,
             'privateRentalDocuments' => $rentalDocuments,
             'privateDocumentCategories' => $this->privateDocumentRepository()->listCategoriesForUser($userId),
             'privateDocumentCategoryColors' => PrivateDocumentRepository::CATEGORY_COLORS,
