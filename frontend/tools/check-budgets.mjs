@@ -27,7 +27,7 @@ if (entries.length === 0) {
   process.exit(1);
 }
 
-const mainEntry = entries[0];
+const mainEntry = manifest['src/js/main.ts'] ?? entries.find((entry) => entry.src === 'src/js/main.ts') ?? entries[0];
 const jsFiles = [mainEntry.file].filter((value) => typeof value === 'string');
 const cssFiles = Array.isArray(mainEntry.css) ? mainEntry.css.filter((value) => typeof value === 'string') : [];
 

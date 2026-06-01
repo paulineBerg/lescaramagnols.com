@@ -718,6 +718,12 @@ Recuperation admin par cles de secours :
 - une recuperation reinitialise le mot de passe admin, consomme la cle utilisee et desactive le Code 2FA admin afin de le recreer apres connexion;
 - pour la preprod, creer un fichier de cles distinct sur le PC avec `--no-install`, puis installer seulement les hashes via SSH avec `php backend/core/tools/admin_recovery_keys.php install --key-file=-`.
 
+Code 2FA admin :
+- le champ `Secret TOTP (Base32)` dans les parametres contient la cle longue a inscrire dans une application TOTP;
+- le bouton `Generer un secret aleatoire` cree un nouveau secret et ouvre une popup QR code locale, sans appel a un service externe;
+- le QR code encode une URI `otpauth://` standard et le secret reste uniquement dans le navigateur jusqu a la sauvegarde des parametres;
+- au login, le champ `Code 2FA (TOTP)` accepte uniquement le code temporaire a `6` chiffres genere par l application, jamais la cle Base32 longue.
+
 Ce qu il faut eviter :
 - stocker le mot de passe admin dans `pages.json`, `menus.json` ou une table editoriale
 - rendre les secrets modifiables sans re-authentification

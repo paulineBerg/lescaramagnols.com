@@ -669,6 +669,7 @@ final class AdminControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Identifiants invalides.', $response->body);
+        $this->assertStringContainsString('Saisis le code temporaire à 6 chiffres généré par l’application TOTP', $response->body);
         $this->assertStringNotContainsString('inconnu', $response->body);
 
         $securityLogPath = $this->logDir . '/security.log';
@@ -2708,6 +2709,9 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('id="admin_totp_secret" name="admin[totp_secret]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('data-admin-totp-generate', $response->body);
         $this->assertStringContainsString('Générer un secret aléatoire', $response->body);
+        $this->assertStringContainsString('data-admin-totp-qr', $response->body);
+        $this->assertStringContainsString('Afficher le QR code', $response->body);
+        $this->assertStringContainsString('Cette clé longue sert à inscrire le compte dans l’application TOTP', $response->body);
         $this->assertStringContainsString('id="discussion_recaptcha_secret_key" name="discussions[recaptcha_secret_key]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('id="instagram_access_token" name="instagram[access_token]" type="password" value="**********"', $response->body);
         $this->assertStringContainsString('id="backup-database-password" name="backup[database_password]" type="password" value="**********"', $response->body);

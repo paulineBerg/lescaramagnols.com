@@ -17,6 +17,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'src/js/main.ts'),
+        admin: path.resolve(__dirname, 'src/js/admin.ts'),
         style: path.resolve(__dirname, 'src/scss/style.scss'),
         private: path.resolve(__dirname, 'src/scss/private.scss'),
         privateDiscussion: path.resolve(__dirname, 'src/js/private-discussion.ts')

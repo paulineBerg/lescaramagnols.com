@@ -62,6 +62,7 @@ $translate = static function (string $key, string $fallback): string {
   <div class="field">
     <label for="totp_code"><?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_TOTP_LABEL', 'Code 2FA'), ENT_QUOTES, 'UTF-8'); ?></label>
     <input id="totp_code" name="totp_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_TOTP_PLACEHOLDER', '123456'), ENT_QUOTES, 'UTF-8'); ?>" required />
+    <small><?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_TOTP_HELP', 'Saisis le code temporaire à 6 chiffres généré par l’application TOTP, pas la clé secrète Base32.'), ENT_QUOTES, 'UTF-8'); ?></small>
   </div>
   <?php endif; ?>
   <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />

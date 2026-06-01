@@ -230,6 +230,7 @@ $adminTotpSummary = $adminTotpEnabled
 $adminTotpSecretSummary = !empty($admin['totpSecretConfigured'])
     ? $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_SET', 'secret enregistré')
     : $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_MISSING', 'secret absent');
+$adminTotpIssuer = function_exists('app_config') ? (string) app_config('site.name', 'Les Caramagnols') : 'Les Caramagnols';
 $adminInactivitySummary = max(60, (int) ($admin['inactivityTimeoutSeconds'] ?? 1200));
 $adminReauthSummary = max(60, (int) ($admin['reauthTimeoutSeconds'] ?? 600));
 $urlSummaryParts = [];
@@ -780,12 +781,27 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
               type="button"
               class="button-muted button-small"
               data-admin-totp-generate
+              data-admin-totp-open-qr="true"
+              data-admin-totp-account-input="admin_identifier"
+              data-admin-totp-issuer="<?php echo htmlspecialchars($adminTotpIssuer, ENT_QUOTES, 'UTF-8'); ?>"
+              data-admin-totp-qr-invalid="<?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_QR_INVALID', 'Renseigne ou génère un secret TOTP Base32 valide avant d’afficher le QR code.'), ENT_QUOTES, 'UTF-8'); ?>"
               aria-controls="admin_totp_secret"
             >
               <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_GENERATE', 'Générer un secret aléatoire'), ENT_QUOTES, 'UTF-8'); ?>
             </button>
+            <button
+              type="button"
+              class="button-muted button-small"
+              data-admin-totp-qr
+              data-admin-totp-account-input="admin_identifier"
+              data-admin-totp-issuer="<?php echo htmlspecialchars($adminTotpIssuer, ENT_QUOTES, 'UTF-8'); ?>"
+              data-admin-totp-qr-invalid="<?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_QR_INVALID', 'Renseigne ou génère un secret TOTP Base32 valide avant d’afficher le QR code.'), ENT_QUOTES, 'UTF-8'); ?>"
+              aria-controls="admin_totp_secret"
+            >
+              <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_QR_BUTTON', 'Afficher le QR code'), ENT_QUOTES, 'UTF-8'); ?>
+            </button>
           </div>
-          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_HELP', 'Laisser vide pour conserver le secret actuel. Pour désactiver le TOTP, décoche simplement la case ci-dessus'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($admin['totpSecretConfigured']) ? ' (' . htmlspecialchars($translate('TXT_ADMIN_SETTINGS_PASSWORD_ALREADY_SET', 'déjà enregistré'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>. <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_FORMAT_HELP', 'Activation possible uniquement avec un secret Base32 valide (A-Z, 2-7), au moins 16 caractères.'), ENT_QUOTES, 'UTF-8'); ?></small>
+          <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_HELP', 'Laisser vide pour conserver le secret actuel. Pour désactiver le TOTP, décoche simplement la case ci-dessus'), ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($admin['totpSecretConfigured']) ? ' (' . htmlspecialchars($translate('TXT_ADMIN_SETTINGS_PASSWORD_ALREADY_SET', 'déjà enregistré'), ENT_QUOTES, 'UTF-8') . ')' : ''; ?>. <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_FORMAT_HELP', 'Activation possible uniquement avec un secret Base32 valide (A-Z, 2-7), au moins 16 caractères.'), ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_USAGE_HELP', 'Cette clé longue sert à inscrire le compte dans l’application TOTP; au login, il faut saisir le code temporaire à 6 chiffres généré par l’application.'), ENT_QUOTES, 'UTF-8'); ?></small>
         </div>
         <div class="settings-dialog__grid">
           <div class="field">

@@ -3129,6 +3129,54 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         justify-content: flex-end;
       }
 
+      .admin-totp-qr-dialog {
+        width: min(520px, calc(100vw - 2rem));
+      }
+
+      .admin-totp-qr-box {
+        display: grid;
+        place-items: center;
+        min-height: 220px;
+        padding: 1rem;
+        border: 1px solid rgba(39, 75, 109, 0.12);
+        border-radius: 12px;
+        background: #fff;
+      }
+
+      .admin-totp-qr-box svg {
+        width: min(260px, 100%);
+        height: auto;
+      }
+
+      .admin-totp-secret-copy {
+        display: grid;
+        gap: 0.25rem;
+        margin: 0;
+        color: var(--admin-muted);
+        font-size: 0.9rem;
+      }
+
+      .admin-totp-secret-copy code {
+        max-width: 100%;
+        overflow-x: auto;
+        padding: 0.45rem 0.55rem;
+        border-radius: 8px;
+        background: rgba(19, 41, 75, 0.06);
+        color: var(--admin-primary-dark);
+        font-size: 0.85rem;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+
+      .admin-totp-qr-error {
+        margin: 0;
+        padding: 0.85rem;
+        border-radius: 10px;
+        background: rgba(161, 26, 42, 0.12);
+        color: var(--admin-danger);
+        font-weight: 600;
+      }
+
       @media (max-width: 840px) {
         :root {
           --admin-nav-width: 210px;
@@ -3810,6 +3858,26 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         </div>
       </div>
     </dialog>
+    <dialog class="admin-sensitive-dialog admin-totp-qr-dialog" id="admin-totp-qr-dialog" aria-labelledby="admin-totp-qr-title" aria-describedby="admin-totp-qr-description">
+      <div class="admin-sensitive-dialog__surface">
+        <header class="admin-sensitive-dialog__header">
+          <h2 id="admin-totp-qr-title"><?php echo htmlspecialchars($translate('TXT_ADMIN_TOTP_QR_TITLE', 'Configurer le Code 2FA'), ENT_QUOTES, 'UTF-8'); ?></h2>
+          <button class="button-small button-muted" type="button" data-admin-totp-qr-close aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?>">×</button>
+        </header>
+        <p class="admin-sensitive-dialog__message" id="admin-totp-qr-description">
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_TOTP_QR_DESCRIPTION', 'Scanne ce QR code avec ton application TOTP, puis enregistre les paramètres admin. Au prochain login, saisis le code temporaire à 6 chiffres généré par l’application.'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+        <p class="admin-totp-qr-error" data-admin-totp-qr-error role="alert" hidden></p>
+        <div class="admin-totp-qr-box" data-admin-totp-qr-output aria-live="polite"></div>
+        <p class="admin-totp-secret-copy">
+          <span><?php echo htmlspecialchars($translate('TXT_ADMIN_TOTP_QR_SECRET_LABEL', 'Clé secrète à saisir manuellement si le scan échoue'), ENT_QUOTES, 'UTF-8'); ?></span>
+          <code data-admin-totp-qr-secret></code>
+        </p>
+        <div class="admin-sensitive-dialog__actions">
+          <button class="button-muted button-small" type="button" data-admin-totp-qr-close><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?></button>
+        </div>
+      </div>
+    </dialog>
     <div class="admin-session-warning" id="admin-session-warning" role="dialog" aria-modal="true" aria-labelledby="admin-session-warning-title" aria-describedby="admin-session-warning-message" hidden>
       <div class="admin-session-warning__surface">
         <h2 class="admin-session-warning__title" id="admin-session-warning-title"><?php echo htmlspecialchars((string) ($adminSessionWarningTitle ?? $translate('TXT_ADMIN_LAYOUT_SESSION_TITLE', 'Session admin')), ENT_QUOTES, 'UTF-8'); ?></h2>
@@ -4419,6 +4487,7 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         scheduleWarning();
       })();
     </script>
+    <?php echo function_exists('vite_tags') ? vite_tags('src/js/admin.ts') : ''; ?>
     <?php endif; ?>
   </body>
 </html>
