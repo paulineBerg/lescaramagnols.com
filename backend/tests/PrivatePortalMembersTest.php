@@ -127,6 +127,72 @@ final class PrivatePortalMembersTest extends TestCase
         $this->assertNull($repository->resetPasswordByToken($resetToken, $resetHash, '127.0.0.1'));
     }
 
+    public function testAdminCanUpdateLoginEmailAndInvalidatePendingTokens(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $repository = new PrivateUserRepository($database);
+        $service = new AdminPrivateMembersService(
+            $repository,
+            new PrivateModulePermissionRepository($database, new PrivateModuleRegistry())
+        );
+        $passwordHash = password_hash('TempPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $repository->create('old-login@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $this->assertIsString($repository->createInviteToken($userId, 'old-login@example.com'));
+        $this->assertIsString($repository->createPasswordResetToken($userId, '127.0.0.1', 'phpunit'));
+
+        $result = $service->handleAction([
+            'private_member_action' => 'email',
+            'private_user_id' => $userId,
+            'private_member_email' => 'New-Login@example.com',
+        ], 'admin@example.com');
+
+        $this->assertTrue($result['success'], (string) ($result['error'] ?? ''));
+        $this->assertNull($repository->findByEmail('old-login@example.com'));
+        $updated = $repository->findByEmail('new-login@example.com');
+        $this->assertIsArray($updated);
+        $this->assertSame($userId, (int) ($updated['id'] ?? 0));
+
+        $pendingInvites = $database->pdo()
+            ->prepare(sprintf('SELECT COUNT(*) FROM `%s` WHERE `private_user_id` = :user_id AND `status` = :status', $database->table('private_user_invites')));
+        $pendingInvites->execute(['user_id' => $userId, 'status' => 'pending']);
+        $this->assertSame('0', (string) $pendingInvites->fetchColumn());
+
+        $pendingResets = $database->pdo()
+            ->prepare(sprintf('SELECT COUNT(*) FROM `%s` WHERE `private_user_id` = :user_id AND `used_at` IS NULL', $database->table('private_password_resets')));
+        $pendingResets->execute(['user_id' => $userId]);
+        $this->assertSame('0', (string) $pendingResets->fetchColumn());
+    }
+
+    public function testAdminCannotUpdateLoginEmailToDuplicateAddress(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $repository = new PrivateUserRepository($database);
+        $service = new AdminPrivateMembersService(
+            $repository,
+            new PrivateModulePermissionRepository($database, new PrivateModuleRegistry())
+        );
+        $passwordHash = password_hash('TempPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $repository->create('first@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $secondUserId = $repository->create('second@example.com', $passwordHash, 'active');
+        $this->assertIsInt($secondUserId);
+
+        $result = $service->handleAction([
+            'private_member_action' => 'email',
+            'private_user_id' => $userId,
+            'private_member_email' => 'second@example.com',
+        ], 'admin@example.com');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('existe déjà', (string) ($result['error'] ?? ''));
+        $this->assertIsArray($repository->findByEmail('first@example.com'));
+        $this->assertIsArray($repository->findByEmail('second@example.com'));
+    }
+
     public function testModuleAssignmentAndMfaBackupCodeAreServerSideOnly(): void
     {
         $database = $this->editorialSqlDatabase();

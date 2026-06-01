@@ -369,7 +369,29 @@ $statusLabels = [
             $memberFragment = $memberId > 0 ? 'private-member-' . $memberId : '';
             ?>
             <tr<?php echo $memberFragment !== '' ? ' id="' . $escape($memberFragment) . '"' : ''; ?>>
-              <td class="admin-private-members-email" data-private-member-email="<?php echo $escape((string) ($member['email'] ?? '')); ?>"><?php echo $escape((string) ($member['email'] ?? '-')); ?></td>
+              <td class="admin-private-members-email" data-private-member-email="<?php echo $escape((string) ($member['email'] ?? '')); ?>">
+                <strong class="admin-private-members-email-current"><?php echo $escape((string) ($member['email'] ?? '-')); ?></strong>
+                <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="admin-private-members-email-form">
+                  <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+                  <input type="hidden" name="private_member_action" value="email" />
+                  <input type="hidden" name="private_members_tab" value="members" />
+                  <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
+                  <?php if ($memberFragment !== ''): ?>
+                    <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
+                  <?php endif; ?>
+                  <input
+                    type="email"
+                    name="private_member_email"
+                    value="<?php echo $escape((string) ($member['email'] ?? '')); ?>"
+                    maxlength="254"
+                    aria-label="<?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_EMAIL_EDIT_ARIA', 'Nouvel email de connexion')); ?>"
+                    required
+                  />
+                  <button class="button-small button-muted" type="submit">
+                    <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_EMAIL_EDIT_SUBMIT', 'Modifier email')); ?>
+                  </button>
+                </form>
+              </td>
               <td>
                 <span class="admin-private-members-status admin-private-members-status-<?php echo $escape($statusValue !== '' ? $statusValue : 'unknown'); ?>">
                   <?php echo $escape($statusLabel !== '' ? $statusLabel : $translate('TXT_ADMIN_PRIVATE_MEMBERS_STATUS_UNKNOWN', 'Inconnu')); ?>

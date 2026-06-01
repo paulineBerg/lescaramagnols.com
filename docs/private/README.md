@@ -3,6 +3,11 @@
 Date de mise a jour : 2026-06-01
 Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, chiffrement serveur au repos des fichiers joints, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
 
+Mise a jour 2026-06-01 (email de connexion membre) :
+- le BO admin, section `Espace prive > Membres`, permet de modifier l'email de connexion d'un compte prive existant;
+- la modification reste reservee au BO admin, passe par CSRF, verifie l'unicite de l'adresse et journalise l'action;
+- tout lien d'invitation ou de reset encore en attente pour le compte est invalide lors du changement d'adresse; l'admin doit renvoyer une invitation ou un reset si necessaire.
+
 Mise a jour 2026-06-01 (navigation privee robuste) :
 - le layout prive recoit maintenant la route privee courante depuis `PrivatePortalController`; l'etat actif du menu ne depend plus uniquement de `$_SERVER['REQUEST_URI']`;
 - chaque entree de menu porte une route canonique et `Parametres` reste force sur `private_portal_url('member_settings')`, soit `/private/parametres`, distinct de `/private/dashboard`;
@@ -54,7 +59,7 @@ References projet a garder alignees :
 
 Mise a jour 2026-05-28 (parametres membre) :
 - ajout d'une page privee `/private/parametres` permettant au membre connecte de renseigner facultativement son nom, son adresse et son telephone;
-- l'email de connexion reste affiche en lecture seule et ne peut pas etre modifie depuis l'espace prive; toute demande de changement doit passer exclusivement par `private@lescaramagnols.com`;
+- l'email de connexion reste affiche en lecture seule dans l'espace prive; sa modification se fait exclusivement depuis le BO admin, section `Espace prive > Membres`;
 - les champs de profil sont stockes dans `private_users`, exportes dans le ZIP/JSON de compte, neutralises ou purges avec les operations RGPD existantes.
 - dans le module `FamilyDiscussion`, la creation d'une discussion directe liste les membres actifs qui ont acces au module, donc les invitations acceptees et autorisees, sous forme de cases a cocher; le serveur exige exactement un membre coche pour une discussion privee.
 - dans le module `RealEstateRental`, les baux portent maintenant un type de bail (`habitation vide`, `habitation meublee`, `meuble etudiant`, `bail mobilite`, `autre`) qui propose une date de fin par defaut et stocke une categorie fiscale indicative (`revenus fonciers`, `BIC location meublee`, `a qualifier`) pour les syntheses et ponts fiscaux.
@@ -2498,6 +2503,7 @@ Protocoles de la passe ciblée du 2026-05-26 :
 - BO : toute action sensible passe par `POST /admin/parametres/espace-prive`, `admin_is_authenticated()`, CSRF admin et allowlist stricte `private_member_action`.
 - Invitations : `invite` et `resend` créent un jeton hashé dans `car_private_user_invites`; aucun jeton brut n'est affiché dans le BO ni journalisé.
 - Reset : `reset` invalide les resets ouverts du compte puis crée un nouveau jeton hashé dans `car_private_password_resets`; l'email est envoyé si la configuration mail existe, sinon l'échec est journalisé sans exposer le jeton.
+- Email de connexion : `email` modifie `private_users.email` uniquement depuis le BO, refuse les doublons et invalide les invitations/resets en attente du compte.
 - Suppression : l'action visible neutralise les donnees personnelles, remplace l'email par une adresse technique `@private.invalid`, remplace le hash de mot de passe, supprime les traces de derniere connexion et passe le compte en `deleted`. L'ancien identifiant technique `anonymize` reste un alias interne de compatibilite, sans route active visible.
 - Modules : `modules` écrit uniquement via `PrivateModulePermissionRepository`, en s'appuyant sur `PrivateModuleRegistry`; les modules inconnus sont refusés.
 - Côté privé : `/private/files/{documentId}` vérifie session privée, utilisateur actif en repository et permission active `documents`; sans droit, réponse `403` + événement `private.files.access_denied`.

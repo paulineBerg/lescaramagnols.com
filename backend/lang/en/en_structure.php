@@ -1310,6 +1310,8 @@ return [
 
     // Private area admin
     'TXT_ADMIN_PRIVATE_MEMBERS_ACTION_REACTIVATE' => 'Reactivate account',
+    'TXT_ADMIN_PRIVATE_MEMBERS_EMAIL_EDIT_ARIA' => 'New login email',
+    'TXT_ADMIN_PRIVATE_MEMBERS_EMAIL_EDIT_SUBMIT' => 'Edit email',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE' => 'Account deletion',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP' => 'A backup is created, the data is purged, then the account and backup are deleted by cron after 30 days.',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION' => 'Do you want to delete this suspended account?',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Caramagnols\Admin\AdminController;
 use Caramagnols\Admin\AdminCronCenterService;
+use Caramagnols\Admin\AdminPrivateMembersService;
 use Caramagnols\Admin\AdminRecoveryService;
 use Caramagnols\Admin\AdminRouteResolver;
 use Caramagnols\Admin\AdminSettingsService;
@@ -11,6 +12,9 @@ use Caramagnols\Cron\CronJobRepository;
 use Caramagnols\Http\Request;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Logging\LoggerFactory;
+use Caramagnols\PrivatePortal\PrivateModuleRegistry;
+use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
+use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use Caramagnols\Social\InstagramFeedService;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
@@ -269,6 +273,53 @@ final class AdminControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Groupes de tuiles', $response->body);
+    }
+
+    public function testPrivateMembersCanUpdateLoginEmailFromAdmin(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $database = $this->editorialSqlDatabase();
+        $repository = new PrivateUserRepository($database);
+        $privateMembersService = new AdminPrivateMembersService(
+            $repository,
+            new PrivateModulePermissionRepository($database, new PrivateModuleRegistry())
+        );
+        $controller = $this->controller(privateMembersService: $privateMembersService);
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $repository->create('old-login@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $page = $controller->handle('private_members', $this->request('GET', '/admin/parametres/espace-prive'));
+        $this->assertSame(200, $page->status);
+        $this->assertStringContainsString('name="private_member_action" value="email"', $page->body);
+        $this->assertStringContainsString('name="private_member_email"', $page->body);
+        $this->assertStringContainsString('Modifier email', $page->body);
+
+        $response = $controller->handle(
+            'private_members',
+            $this->request(
+                'POST',
+                '/admin/parametres/espace-prive',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'private_member_action' => 'email',
+                    'private_members_tab' => 'members',
+                    'private_user_id' => (string) $userId,
+                    'private_member_email' => 'new-login@example.com',
+                    'private_member_return_fragment' => 'private-member-' . $userId,
+                ]
+            )
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame(
+            '/admin/parametres/espace-prive#private-member-' . $userId,
+            $response->headers['Location'] ?? null
+        );
+        $this->assertNull($repository->findByEmail('old-login@example.com'));
+        $this->assertIsArray($repository->findByEmail('new-login@example.com'));
     }
 
     public function testPrivateMembersEmailTabSavesPrivateMailSettings(): void
@@ -3749,7 +3800,8 @@ final class AdminControllerTest extends TestCase
         ?AdminSettingsService $settingsService = null,
         ?AppEventLogger $logger = null,
         ?AdminCronCenterService $cronCenterService = null,
-        ?AdminRecoveryService $recoveryService = null
+        ?AdminRecoveryService $recoveryService = null,
+        ?AdminPrivateMembersService $privateMembersService = null
     ): AdminController {
         $logger = $logger ?? new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
         $settingsService = $settingsService ?? new AdminSettingsService(
@@ -3772,7 +3824,7 @@ final class AdminControllerTest extends TestCase
             null,
             null,
             null,
-            null,
+            $privateMembersService,
             $cronCenterService,
             $recoveryService
         );

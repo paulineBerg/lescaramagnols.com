@@ -1741,6 +1741,29 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         line-height: 1.35;
       }
 
+      .admin-private-members-email-current {
+        display: block;
+        margin-bottom: 0.45rem;
+        overflow-wrap: anywhere;
+      }
+
+      .admin-private-members-email-form {
+        display: grid;
+        gap: 0.35rem;
+        margin: 0;
+        max-width: 100%;
+      }
+
+      .admin-private-members-email-form input[type="email"] {
+        width: 100%;
+        min-width: 0;
+        min-height: 2rem;
+        padding: 0.34rem 0.45rem;
+        border: 1px solid rgba(39, 75, 109, 0.22);
+        border-radius: 8px;
+        font: inherit;
+      }
+
       .admin-private-members-table tr[id] {
         scroll-margin-top: 1rem;
       }
@@ -1933,6 +1956,7 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
       }
 
       .admin-private-members-actions button,
+      .admin-private-members-email-form button,
       .admin-private-members-modules-form button {
         min-height: 2rem;
         padding: 0.42rem 0.62rem;

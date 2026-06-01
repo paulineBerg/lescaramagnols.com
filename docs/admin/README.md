@@ -21,6 +21,10 @@ Ce document contient encore une partie de journal de conception. L'etat courant 
 - les formulaires admin `pages` et `menus` serialisent maintenant leur etat dans un champ JSON cache avant POST pour eviter les troncatures `max_input_vars`
 - les mentions restantes de `legacy_template` plus bas sont historiques si elles ne sont pas explicitement marquees comme "etat courant"
 
+Mise a jour 2026-06-01 (BO espace prive, email de connexion) :
+- la section `Parametres > Espace prive > Membres` expose maintenant un formulaire par compte pour modifier l'email de connexion;
+- la sauvegarde verifie l'unicite de l'adresse, invalide les invitations et resets en attente du compte, puis journalise l'action admin.
+
 Mise a jour 2026-04-16 (Lot C, isolation de la refonte) :
 - les suppressions suivies de `backend/templates/pages/site/**`, `backend/config/menu_data.php` et des points d'entree admin obfusques relevent de la bascule vers `structured_page`, `NavigationRepository` et l'admin canonique
 - ce perimetre doit etre documente et livre a part du nettoyage de depot ; le mapping de remplacement est centralise dans `docs/refonte-lot-c.md`

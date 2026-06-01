@@ -1310,6 +1310,8 @@ return [
 
     // Admin espace privé
     'TXT_ADMIN_PRIVATE_MEMBERS_ACTION_REACTIVATE' => 'Réactiver le compte',
+    'TXT_ADMIN_PRIVATE_MEMBERS_EMAIL_EDIT_ARIA' => 'Nouvel email de connexion',
+    'TXT_ADMIN_PRIVATE_MEMBERS_EMAIL_EDIT_SUBMIT' => 'Modifier email',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE' => 'Suppression du compte',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP' => 'Une sauvegarde est créée, les données sont purgées, puis le compte et la sauvegarde seront supprimés par cron après 30 jours.',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION' => 'Voulez-vous supprimer ce compte suspendu ?',

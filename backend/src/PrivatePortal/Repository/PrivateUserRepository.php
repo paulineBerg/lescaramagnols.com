@@ -224,6 +224,97 @@ final class PrivateUserRepository
         }
     }
 
+    public function updateEmail(int $userId, string $email): bool
+    {
+        $email = $this->normalizeEmail($email);
+        if ($userId <= 0 || $email === '') {
+            return false;
+        }
+
+        $user = $this->findById($userId);
+        if (!is_array($user)) {
+            return false;
+        }
+
+        $currentEmail = is_string($user['email'] ?? null) ? $this->normalizeEmail((string) $user['email']) : '';
+        $status = is_string($user['status'] ?? null) ? $this->normalizeStatus((string) $user['status']) : '';
+        if ($currentEmail === '' || $status === '' || $status === 'deleted') {
+            return false;
+        }
+        if ($currentEmail === $email) {
+            return true;
+        }
+
+        $now = $this->currentDateTime();
+        try {
+            $this->ensureSchema();
+            $pdo = $this->database->pdo();
+            $pdo->beginTransaction();
+
+            $statement = $pdo->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `email` = :email,
+                         `updated_at` = :updated_at
+                     WHERE `id` = :id
+                       AND `status` IN (\'invited\', \'active\', \'suspended\', \'disabled\')',
+                    $this->table()
+                )
+            );
+            $statement->execute([
+                'email' => $email,
+                'updated_at' => $now,
+                'id' => $userId,
+            ]);
+
+            if ($statement->rowCount() < 1) {
+                $pdo->rollBack();
+
+                return false;
+            }
+
+            $inviteStatement = $pdo->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `status` = :cancelled
+                     WHERE `status` = :pending
+                       AND (`private_user_id` = :user_id OR `email` = :current_email)',
+                    $this->inviteTable()
+                )
+            );
+            $inviteStatement->execute([
+                'cancelled' => 'cancelled',
+                'pending' => 'pending',
+                'user_id' => $userId,
+                'current_email' => $currentEmail,
+            ]);
+
+            $resetStatement = $pdo->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `used_at` = :used_at
+                     WHERE `private_user_id` = :user_id
+                       AND `used_at` IS NULL',
+                    $this->passwordResetTable()
+                )
+            );
+            $resetStatement->execute([
+                'used_at' => $now,
+                'user_id' => $userId,
+            ]);
+
+            $pdo->commit();
+
+            return true;
+        } catch (\Throwable) {
+            if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return false;
+        }
+    }
+
     /**
      * @return array{fullName: string, postalAddress: string, phone: string, errors: array<int, string>}
      */

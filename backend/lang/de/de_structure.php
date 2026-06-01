@@ -1308,6 +1308,8 @@ return [
 
     // Admin privater Bereich
     'TXT_ADMIN_PRIVATE_MEMBERS_ACTION_REACTIVATE' => 'Konto reaktivieren',
+    'TXT_ADMIN_PRIVATE_MEMBERS_EMAIL_EDIT_ARIA' => 'Neue Login-E-Mail',
+    'TXT_ADMIN_PRIVATE_MEMBERS_EMAIL_EDIT_SUBMIT' => 'E-Mail bearbeiten',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_TITLE' => 'Kontoloeschung',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_HELP' => 'Eine Sicherung wird erstellt, die Daten werden bereinigt, danach werden Konto und Sicherung nach 30 Tagen per Cron geloescht.',
     'TXT_ADMIN_PRIVATE_MEMBERS_DELETE_SUSPENDED_QUESTION' => 'Moechten Sie dieses gesperrte Konto loeschen?',

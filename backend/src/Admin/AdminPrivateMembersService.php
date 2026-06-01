@@ -15,7 +15,7 @@ final class AdminPrivateMembersService
     private const ALLOWED_STATUS_FILTERS = ['invited', 'active', 'suspended', 'disabled'];
 
     /** @var array<int, string> */
-    private const ALLOWED_ACTIONS = ['invite', 'resend', 'suspend', 'reactivate', 'delete_suspended', 'reset', 'modules'];
+    private const ALLOWED_ACTIONS = ['invite', 'resend', 'suspend', 'reactivate', 'delete_suspended', 'reset', 'modules', 'email'];
 
     public function __construct(
         private readonly PrivateUserRepository $privateUserRepository,
@@ -98,6 +98,7 @@ final class AdminPrivateMembersService
             'delete_suspended' => $this->deleteSuspended($payload, $actorIdentifier),
             'reset' => $this->resetPassword($payload, $actorIdentifier, $clientIp, $userAgent),
             'modules' => $this->assignModules($payload, $actorIdentifier),
+            'email' => $this->updateEmail($payload, $actorIdentifier),
             default => $this->result(false, null, 'Action privée inconnue.'),
         };
     }
@@ -493,6 +494,61 @@ final class AdminPrivateMembersService
         );
 
         return $this->result(true, 'Modules privés mis à jour.', null);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, message: ?string, error: ?string}
+     */
+    private function updateEmail(array $payload, ?string $actorIdentifier): array
+    {
+        $member = $this->memberFromPayload($payload);
+        if ($member === null) {
+            return $this->result(false, null, 'Compte privé introuvable.');
+        }
+
+        $userId = (int) $member['id'];
+        $currentEmail = (string) $member['email'];
+        $email = $this->normalizeEmail($payload['private_member_email'] ?? null);
+        if ($email === '') {
+            return $this->result(false, null, 'Adresse email invalide.');
+        }
+        if ($email === $currentEmail) {
+            return $this->result(true, 'Email de connexion inchangé.', null);
+        }
+
+        $existing = $this->privateUserRepository->findByEmail($email);
+        if (is_array($existing) && (int) ($existing['id'] ?? 0) !== $userId) {
+            return $this->result(false, null, 'Un compte privé existe déjà pour cette adresse.');
+        }
+
+        if (!$this->privateUserRepository->updateEmail($userId, $email)) {
+            $this->logAction(
+                'admin.private.member_email_update_failed',
+                $actorIdentifier,
+                $userId,
+                $currentEmail,
+                'warning',
+                ['new_email' => AppEventLogger::maskEmail($email)]
+            );
+
+            return $this->result(false, null, 'Impossible de modifier l’email de connexion.');
+        }
+
+        $this->logAction(
+            'admin.private.member_email_updated',
+            $actorIdentifier,
+            $userId,
+            $email,
+            'info',
+            ['previous_email' => AppEventLogger::maskEmail($currentEmail)]
+        );
+
+        return $this->result(
+            true,
+            'Email de connexion modifié. Les liens d’invitation ou de reset en attente ont été invalidés.',
+            null
+        );
     }
 
     /**
