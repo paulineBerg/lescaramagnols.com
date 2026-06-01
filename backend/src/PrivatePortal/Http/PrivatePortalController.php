@@ -6749,6 +6749,12 @@ final class PrivatePortalController
         $privateDocuments = is_array($viewModel['privateDocuments'] ?? null)
             ? $viewModel['privateDocuments']
             : [];
+        $privateRentalDocumentsEnabled = is_bool($viewModel['privateRentalDocumentsEnabled'] ?? null)
+            ? (bool) $viewModel['privateRentalDocumentsEnabled']
+            : false;
+        $privateRentalDocuments = is_array($viewModel['privateRentalDocuments'] ?? null)
+            ? $viewModel['privateRentalDocuments']
+            : [];
         $privateDocumentCategories = is_array($viewModel['privateDocumentCategories'] ?? null)
             ? $viewModel['privateDocumentCategories']
             : [];
@@ -6764,6 +6770,9 @@ final class PrivatePortalController
         $privateFilesBaseUrl = is_string($viewModel['privateFilesBaseUrl'] ?? null)
             ? $viewModel['privateFilesBaseUrl']
             : private_portal_url('files');
+        $privateRentalFilesBaseUrl = is_string($viewModel['privateRentalFilesBaseUrl'] ?? null)
+            ? $viewModel['privateRentalFilesBaseUrl']
+            : private_portal_url('rental_documents');
         $privateDashboardLogoutUrl = is_string($viewModel['privateDashboardLogoutUrl'] ?? null)
             ? $viewModel['privateDashboardLogoutUrl']
             : private_portal_url('logout');
