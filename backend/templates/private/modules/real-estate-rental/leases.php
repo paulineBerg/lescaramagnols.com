@@ -85,6 +85,19 @@ foreach ($leaseTypes as $leaseType) {
     $leaseTypeLabels[(string) $leaseType['code']] = (string) ($leaseType['label'] ?? $leaseType['code']);
     $leaseTypeTaxLabels[(string) $leaseType['code']] = (string) ($leaseType['taxLabel'] ?? '');
 }
+$leaseDocumentDefaultName = static function (array $lease): string {
+    $tenantName = trim((string) ($lease['tenantName'] ?? ''));
+    if ($tenantName !== '') {
+        return 'Bail - ' . $tenantName;
+    }
+
+    $unitLabel = trim((string) ($lease['unitLabel'] ?? ''));
+    if ($unitLabel !== '') {
+        return 'Bail - ' . $unitLabel;
+    }
+
+    return 'Bail';
+};
 $createDialogId = 'rental-lease-create-dialog';
 $importDialogId = 'rental-lease-import-dialog';
 ?>
@@ -281,7 +294,7 @@ $importDialogId = 'rental-lease-import-dialog';
               <input type="hidden" name="lease_id" value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>" />
               <fieldset class="private-fieldset">
                 <legend>Document bail</legend>
-                <label>Nom du document <input type="text" name="document_name" maxlength="255" placeholder="Bail - <?php echo htmlspecialchars((string) ($lease['tenantName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Nom du document <input type="text" name="document_name" maxlength="255" value="<?php echo htmlspecialchars($leaseDocumentDefaultName($lease), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Fichier <input type="file" name="rental_document_file" required /></label>
                 <button type="submit" class="private-button-secondary">Importer le document bail</button>
               </fieldset>
@@ -385,7 +398,7 @@ $importDialogId = 'rental-lease-import-dialog';
           <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
           <fieldset class="private-fieldset">
             <legend>Importer un document bail</legend>
-            <label>Nom du document <input type="text" name="document_name" maxlength="255" placeholder="Bail signé" /></label>
+            <label>Nom du document <input type="text" name="document_name" maxlength="255" placeholder="Bail" data-rental-lease-document-name data-rental-lease-document-name-auto="1" /></label>
             <label>Fichier <input type="file" name="rental_document_file" /></label>
           </fieldset>
           <button type="submit" data-rental-lease-submit>Créer le bail</button>
@@ -402,11 +415,11 @@ $importDialogId = 'rental-lease-import-dialog';
       <?php if ($leases === []) : ?>
         <p class="muted">Créer d’abord un bail.</p>
       <?php else : ?>
-        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
+        <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" data-rental-lease-document-import-form>
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
           <input type="hidden" name="action" value="upload_lease_document" />
           <label>Bail
-            <select name="lease_id" required>
+            <select name="lease_id" required data-rental-lease-document-select>
               <?php foreach ($leases as $lease) : ?>
                     <?php if (!is_array($lease) || !is_numeric($lease['id'] ?? null)) {
                         continue;
@@ -421,12 +434,13 @@ $importDialogId = 'rental-lease-import-dialog';
                     if ($leaseLabel === '') {
                         $leaseLabel = 'Bail #' . $leaseId;
                     }
+                    $defaultDocumentName = $leaseDocumentDefaultName($lease);
                     ?>
-                <option value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($leaseLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>" data-default-document-name="<?php echo htmlspecialchars($defaultDocumentName, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($leaseLabel, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Nom du document <input type="text" name="document_name" maxlength="255" placeholder="Bail signé" /></label>
+          <label>Nom du document <input type="text" name="document_name" maxlength="255" placeholder="Bail" data-rental-lease-document-import-name data-rental-lease-document-name-auto="1" /></label>
           <label>Fichier <input type="file" name="rental_document_file" required /></label>
           <button type="submit">Importer le bail</button>
         </form>
@@ -435,6 +449,24 @@ $importDialogId = 'rental-lease-import-dialog';
   </dialog>
   <script>
     (() => {
+      const defaultLeaseDocumentName = (tenantName) => {
+        const normalizedTenantName = tenantName.trim();
+        return normalizedTenantName !== '' ? `Bail - ${normalizedTenantName}` : 'Bail';
+      };
+
+      const syncLeaseDocumentName = (input, defaultName) => {
+        if (!(input instanceof HTMLInputElement)) {
+          return;
+        }
+
+        const normalizedDefault = defaultName.trim() !== '' ? defaultName.trim() : 'Bail';
+        input.placeholder = normalizedDefault;
+        if (input.dataset.rentalLeaseDocumentNameAuto !== '0' || input.value.trim() === '') {
+          input.value = normalizedDefault;
+          input.dataset.rentalLeaseDocumentNameAuto = '1';
+        }
+      };
+
       document.querySelectorAll('[data-rental-lease-form]').forEach((form) => {
         const propertySelect = form.querySelector('[name="rental_property_id"]');
         const unitSelect = form.querySelector('[data-rental-unit-select]');
@@ -445,12 +477,19 @@ $importDialogId = 'rental-lease-import-dialog';
         const startDateInput = form.querySelector('[data-rental-lease-start-date]');
         const endDateInput = form.querySelector('[data-rental-lease-end-date]');
         const leaseTypeHelp = form.querySelector('[data-rental-lease-type-help]');
+        const documentNameInput = form.querySelector('[data-rental-lease-document-name]');
         if (!(unitSelect instanceof HTMLSelectElement) || !(tenantSelect instanceof HTMLSelectElement)) {
           return;
         }
 
         const unitOptions = Array.from(unitSelect.options);
         const tenantOptions = Array.from(tenantSelect.options);
+        if (documentNameInput instanceof HTMLInputElement) {
+          documentNameInput.addEventListener('input', () => {
+            documentNameInput.dataset.rentalLeaseDocumentNameAuto = documentNameInput.value.trim() === '' ? '1' : '0';
+          });
+        }
+
         const refreshTenants = () => {
           const selectedUnit = unitSelect.selectedOptions[0] ?? null;
           const selectedPropertyId = propertySelect instanceof HTMLSelectElement
@@ -482,6 +521,7 @@ $importDialogId = 'rental-lease-import-dialog';
             if (submitButton instanceof HTMLButtonElement) {
               submitButton.disabled = true;
             }
+            syncLeaseDocumentName(documentNameInput, 'Bail');
             return;
           }
 
@@ -496,6 +536,11 @@ $importDialogId = 'rental-lease-import-dialog';
           if (submitButton instanceof HTMLButtonElement) {
             submitButton.disabled = false;
           }
+          const selectedTenant = tenantSelect.selectedOptions[0] ?? null;
+          syncLeaseDocumentName(
+            documentNameInput,
+            defaultLeaseDocumentName(selectedTenant instanceof HTMLOptionElement ? selectedTenant.textContent ?? '' : '')
+          );
         };
 
         const refreshUnits = () => {
@@ -606,6 +651,29 @@ $importDialogId = 'rental-lease-import-dialog';
         }
         refreshUnits();
         refreshLeaseType();
+      });
+
+      document.querySelectorAll('[data-rental-lease-document-import-form]').forEach((form) => {
+        const leaseSelect = form.querySelector('[data-rental-lease-document-select]');
+        const documentNameInput = form.querySelector('[data-rental-lease-document-import-name]');
+        if (!(leaseSelect instanceof HTMLSelectElement) || !(documentNameInput instanceof HTMLInputElement)) {
+          return;
+        }
+
+        documentNameInput.addEventListener('input', () => {
+          documentNameInput.dataset.rentalLeaseDocumentNameAuto = documentNameInput.value.trim() === '' ? '1' : '0';
+        });
+
+        const refreshImportDocumentName = () => {
+          const selectedLease = leaseSelect.selectedOptions[0] ?? null;
+          const defaultName = selectedLease instanceof HTMLOptionElement
+            ? selectedLease.dataset.defaultDocumentName ?? ''
+            : '';
+          syncLeaseDocumentName(documentNameInput, defaultName);
+        };
+
+        leaseSelect.addEventListener('change', refreshImportDocumentName);
+        refreshImportDocumentName();
       });
     })();
   </script>

@@ -1558,7 +1558,7 @@ final class PrivatePortalController
             (int) $stored['sizeBytes'],
             $userId,
             null,
-            is_string($body['document_name'] ?? null) ? (string) $body['document_name'] : null,
+            $this->rentalLeaseDocumentDisplayName($body, $leaseId, $propertyId),
             'Baux'
         );
         if (!is_array($created)) {
@@ -1567,6 +1567,50 @@ final class PrivatePortalController
         }
 
         return true;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function rentalLeaseDocumentDisplayName(array $body, int $leaseId, int $propertyId): ?string
+    {
+        $documentName = $this->stringBodyValue($body, 'document_name');
+        if ($documentName !== '') {
+            return $documentName;
+        }
+
+        $defaultName = $this->defaultRentalLeaseDocumentName($leaseId, $propertyId);
+        return $defaultName !== '' ? $defaultName : null;
+    }
+
+    private function defaultRentalLeaseDocumentName(int $leaseId, int $propertyId): string
+    {
+        if ($leaseId <= 0) {
+            return 'Bail';
+        }
+
+        if ($propertyId > 0) {
+            $leases = $this->rentalLifecycleRepository()->listLeases([$propertyId], self::MAX_RENTAL_LIST);
+            foreach ($leases as $lease) {
+                if ((int) ($lease['id'] ?? 0) !== $leaseId) {
+                    continue;
+                }
+
+                $tenantName = trim((string) ($lease['tenantName'] ?? ''));
+                if ($tenantName !== '') {
+                    return 'Bail - ' . $tenantName;
+                }
+
+                $unitLabel = trim((string) ($lease['unitLabel'] ?? ''));
+                if ($unitLabel !== '') {
+                    return 'Bail - ' . $unitLabel;
+                }
+
+                return 'Bail #' . $leaseId;
+            }
+        }
+
+        return 'Bail #' . $leaseId;
     }
 
     private function handleRentalRents(Request $request): Response
