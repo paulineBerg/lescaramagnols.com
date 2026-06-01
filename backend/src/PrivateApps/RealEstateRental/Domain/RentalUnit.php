@@ -18,6 +18,7 @@ final class RentalUnit
         public readonly float $surface,
         public readonly bool $furnished,
         public readonly string $status,
+        public readonly ?string $unavailableUntil,
         public readonly bool $isActive,
         public readonly ?string $notes,
         public readonly int $createdByPrivateUserId,
@@ -57,6 +58,10 @@ final class RentalUnit
 
         $label = trim((string) ($row['label'] ?? ''));
         $status = self::normalizeStatus(trim((string) ($row['status'] ?? '')));
+        $unavailableUntil = self::normalizeDate($row['unavailable_until'] ?? null);
+        if ($status === 'unavailable' && $unavailableUntil !== null && $unavailableUntil < date('Y-m-d')) {
+            $status = 'available';
+        }
         $createdAt = trim((string) ($row['created_at'] ?? ''));
         $updatedAt = trim((string) ($row['updated_at'] ?? ''));
         $surface = is_numeric($row['surface'] ?? null) ? (float) $row['surface'] : 0.0;
@@ -88,6 +93,7 @@ final class RentalUnit
             $surface,
             ((int) ($row['furnished'] ?? 0)) === 1,
             $status,
+            $unavailableUntil,
             $isActive,
             $notes === '' ? null : $notes,
             $createdBy,
@@ -120,6 +126,7 @@ final class RentalUnit
             'surface' => $this->surface,
             'furnished' => $this->furnished,
             'status' => $this->status,
+            'unavailableUntil' => $this->unavailableUntil,
             'isActive' => $this->isActive,
             'notes' => $this->notes,
             'createdAt' => $this->createdAt,
@@ -166,5 +173,19 @@ final class RentalUnit
             'archived' => 'archived',
             default => '',
         };
+    }
+
+    private static function normalizeDate(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+            return null;
+        }
+
+        return $value;
     }
 }

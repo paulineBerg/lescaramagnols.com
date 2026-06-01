@@ -48,6 +48,7 @@ final class PrivateMigrationService
             'discussion_retention_runs',
         ],
         'real_estate_rental' => [
+            'rental_lessors',
             'rental_properties',
             'rental_units',
             'rental_property_members',

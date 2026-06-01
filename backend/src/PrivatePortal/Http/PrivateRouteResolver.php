@@ -30,6 +30,7 @@ final class PrivateRouteResolver
             'files_categories' => $basePath . '/files/categories',
             'files_delete' => $basePath . '/files',
             'rental_dashboard' => $basePath . '/locations',
+            'rental_lessors' => $basePath . '/locations/bailleurs',
             'rental_properties' => $basePath . '/rental-properties',
             'rental_units' => $basePath . '/rental-units',
             'rental_property_members' => $basePath . '/rental-property-members',
@@ -173,6 +174,11 @@ final class PrivateRouteResolver
                 'methods' => ['GET'],
                 'path' => $this->canonicalPath('rental_dashboard'),
                 'handler' => ['type' => 'private', 'page' => 'rental_dashboard'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('rental_lessors'),
+                'handler' => ['type' => 'private', 'page' => 'rental_lessors'],
             ],
             [
                 'methods' => ['GET', 'POST'],

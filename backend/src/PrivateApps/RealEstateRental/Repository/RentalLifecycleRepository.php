@@ -1409,11 +1409,15 @@ final class RentalLifecycleRepository
         string $mimeType,
         int $sizeBytes,
         int $actorPrivateUserId,
-        ?int $expenseId = null
+        ?int $expenseId = null,
+        ?string $displayName = null,
+        string $category = 'Document'
     ): ?array {
         $documentId = $this->normalizeIdentifier($documentId);
         $storagePath = trim(str_replace('\\', '/', $storagePath));
         $originalName = $this->normalizeText($originalName, 255);
+        $displayName = $displayName !== null ? $this->normalizeText($displayName, 255) : null;
+        $category = $this->normalizeText($category, 64);
         $extension = strtolower($this->normalizeText($extension, 16));
         $mimeType = strtolower($this->normalizeText($mimeType, 120));
         $unitId = $unitId !== null && $unitId > 0 ? $unitId : null;
@@ -1426,6 +1430,7 @@ final class RentalLifecycleRepository
             || $documentId === ''
             || $storagePath === ''
             || $originalName === ''
+            || $category === ''
             || $extension === ''
             || $mimeType === ''
             || $sizeBytes <= 0
@@ -1441,10 +1446,10 @@ final class RentalLifecycleRepository
                 sprintf(
                     'INSERT INTO `%s`
                         (`rental_property_id`, `rental_unit_id`, `rental_lease_id`, `rental_expense_id`, `document_id`, `storage_path`,
-                         `original_name`, `extension`, `mime_type`, `size_bytes`, `uploaded_by_private_user_id`)
+                         `original_name`, `display_name`, `category`, `extension`, `mime_type`, `size_bytes`, `uploaded_by_private_user_id`)
                      VALUES
                         (:property_id, :unit_id, :lease_id, :expense_id, :document_id, :storage_path,
-                         :original_name, :extension, :mime_type, :size_bytes, :uploaded_by)',
+                         :original_name, :display_name, :category, :extension, :mime_type, :size_bytes, :uploaded_by)',
                     $this->documentsTable()
                 )
             );
@@ -1456,6 +1461,8 @@ final class RentalLifecycleRepository
                 'document_id' => $documentId,
                 'storage_path' => $storagePath,
                 'original_name' => $originalName,
+                'display_name' => $displayName !== '' ? $displayName : null,
+                'category' => $category,
                 'extension' => $extension,
                 'mime_type' => $mimeType,
                 'size_bytes' => $sizeBytes,
@@ -1510,11 +1517,15 @@ final class RentalLifecycleRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'SELECT doc.*, prop.`name` AS `property_name`, u.`label` AS `unit_label`,
-                            exp.`label` AS `expense_label`, exp.`expense_category` AS `expense_category`
+                            exp.`label` AS `expense_label`, exp.`expense_category` AS `expense_category`,
+                            lease.`start_date` AS `lease_start_date`, lease.`end_date` AS `lease_end_date`,
+                            tenant.`full_name` AS `lease_tenant_name`
                      FROM `%s` doc
                      INNER JOIN `%s` prop ON prop.`id` = doc.`rental_property_id`
                      LEFT JOIN `%s` u ON u.`id` = doc.`rental_unit_id`
                      LEFT JOIN `%s` exp ON exp.`id` = doc.`rental_expense_id`
+                     LEFT JOIN `%s` lease ON lease.`id` = doc.`rental_lease_id`
+                     LEFT JOIN `%s` tenant ON tenant.`id` = lease.`rental_tenant_id`
                      WHERE doc.`rental_property_id` IN (%s)
                        AND doc.`is_active` = 1
                      ORDER BY doc.`uploaded_at` DESC, doc.`id` DESC
@@ -1523,6 +1534,8 @@ final class RentalLifecycleRepository
                     $this->database->table('rental_properties'),
                     $this->database->table('rental_units'),
                     $this->expensesTable(),
+                    $this->leasesTable(),
+                    $this->tenantsTable(),
                     implode(',', $placeholders)
                 )
             );
@@ -2589,6 +2602,8 @@ final class RentalLifecycleRepository
                     `document_id` VARCHAR(64) NOT NULL,
                     `storage_path` VARCHAR(255) NOT NULL,
                     `original_name` VARCHAR(255) NOT NULL,
+                    `display_name` VARCHAR(255) NULL,
+                    `category` VARCHAR(64) NOT NULL DEFAULT "Document",
                     `extension` VARCHAR(16) NOT NULL,
                     `mime_type` VARCHAR(120) NOT NULL,
                     `size_bytes` INT NOT NULL,
@@ -2598,13 +2613,17 @@ final class RentalLifecycleRepository
                     UNIQUE KEY `uq_rental_documents_document_id` (`document_id`),
                     KEY `idx_rental_documents_property` (`rental_property_id`, `is_active`),
                     KEY `idx_rental_documents_property_uploaded` (`rental_property_id`, `is_active`, `uploaded_at`),
+                    KEY `idx_rental_documents_category` (`category`, `is_active`),
                     KEY `idx_rental_documents_expense` (`rental_expense_id`, `is_active`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->documentsTable()
             )
         );
         $this->ensureColumn($pdo, $this->documentsTable(), 'rental_expense_id', '`rental_expense_id` INT NULL AFTER `rental_lease_id`');
+        $this->ensureColumn($pdo, $this->documentsTable(), 'display_name', '`display_name` VARCHAR(255) NULL AFTER `original_name`');
+        $this->ensureColumn($pdo, $this->documentsTable(), 'category', '`category` VARCHAR(64) NOT NULL DEFAULT "Document" AFTER `display_name`');
         $this->ensureIndex($pdo, $this->documentsTable(), 'idx_rental_documents_expense', '`rental_expense_id`, `is_active`');
+        $this->ensureIndex($pdo, $this->documentsTable(), 'idx_rental_documents_category', '`category`, `is_active`');
         $this->ensureIndex($pdo, $this->documentsTable(), 'idx_rental_documents_property_uploaded', '`rental_property_id`, `is_active`, `uploaded_at`');
         $pdo->exec(
             sprintf(
@@ -3014,6 +3033,12 @@ final class RentalLifecycleRepository
 
         try {
             $this->ensureSchema();
+            $this->ensureColumn(
+                $this->database->pdo(),
+                $this->database->table('rental_units'),
+                'unavailable_until',
+                '`unavailable_until` DATE NULL AFTER `status`'
+            );
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'SELECT COUNT(*)
@@ -3021,7 +3046,14 @@ final class RentalLifecycleRepository
                      WHERE `id` = :unit_id
                        AND `rental_property_id` = :property_id
                        AND `is_active` = 1
-                       AND `status` = "available"',
+                       AND (
+                           `status` = "available"
+                           OR (
+                               `status` = "unavailable"
+                               AND `unavailable_until` IS NOT NULL
+                               AND `unavailable_until` < CURDATE()
+                           )
+                       )',
                     $this->database->table('rental_units')
                 )
             );

@@ -9,6 +9,7 @@ final class RentalProperty
     public function __construct(
         public readonly int $id,
         public readonly int $createdByPrivateUserId,
+        public readonly ?int $rentalLessorId,
         public readonly string $name,
         public readonly string $address,
         public readonly string $propertyType,
@@ -38,6 +39,9 @@ final class RentalProperty
         }
 
         $name = trim((string) ($row['name'] ?? ''));
+        $rentalLessorId = is_numeric($row['rental_lessor_id'] ?? null)
+            ? (int) $row['rental_lessor_id']
+            : null;
         $address = trim((string) ($row['address'] ?? ''));
         $propertyType = trim((string) ($row['property_type'] ?? ''));
         $ownershipMode = trim((string) ($row['ownership_mode'] ?? ''));
@@ -62,6 +66,7 @@ final class RentalProperty
         return new self(
             $id,
             $createdBy,
+            $rentalLessorId !== null && $rentalLessorId > 0 ? $rentalLessorId : null,
             $name,
             $address,
             $propertyType,
@@ -80,6 +85,7 @@ final class RentalProperty
     {
         return [
             'id' => $this->id,
+            'rentalLessorId' => $this->rentalLessorId,
             'name' => $this->name,
             'address' => $this->address,
             'propertyType' => $this->propertyType,

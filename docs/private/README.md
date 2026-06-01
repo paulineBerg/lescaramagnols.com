@@ -33,8 +33,10 @@ Mise a jour 2026-06-01 (retours SMTP membre) :
 - dans `Parametres > SMTP`, un mot de passe SMTP deja enregistre s'affiche sous la forme `*****`; ce masque est aussi reconnu cote serveur comme une valeur inchangee afin de ne pas rechiffrer le masque comme secret;
 - le bouton `Afficher` / `Masquer` du mot de passe SMTP est integre dans le champ, comme les autres champs mot de passe de l'espace prive;
 - les actions `Enregistrer SMTP` et `Enregistrer et tester` affichent un message visible de succes ou d'erreur sur la page `Parametres`.
-- l'adresse `Email de test` soumise reste affichee apres une erreur de sauvegarde ou d'envoi; une configuration membre absente affiche l'erreur SMTP requise au lieu d'un echec de test generique.
-- `PRIVATE_MAIL_SETTINGS_ENCRYPTION_KEY` doit etre renseignee hors depot sur chaque environnement qui sauvegarde un mot de passe SMTP membre; sans cette cle, la page affiche l'erreur de chiffrement manquante et refuse d'enregistrer un nouveau secret.
+- l'adresse `Email de test` soumise reste affichee apres une erreur de sauvegarde ou d'envoi;
+- le SMTP admin prive reste la configuration par defaut pour les envois du BO prive; le SMTP membre est un override optionnel utilise seulement quand sa configuration est complete;
+- si aucun SMTP membre complet n'existe, `Enregistrer et tester` et les envois locatifs utilisent le SMTP admin prive au lieu de bloquer sur `Parametres > SMTP`;
+- `PRIVATE_MAIL_SETTINGS_ENCRYPTION_KEY` doit etre renseignee hors depot uniquement sur les environnements qui sauvegardent un nouveau mot de passe SMTP membre; son absence ne doit pas bloquer l'usage du SMTP admin prive existant.
 
 Regle projet pour les champs secrets :
 - tout champ secret deja renseigne doit afficher le masque standard `*****`, jamais la valeur reelle;
@@ -42,15 +44,22 @@ Regle projet pour les champs secrets :
 - si le champ est vide, la valeur existante est conservee sauf action explicite de suppression; si une nouvelle valeur non masquee est saisie, elle est stockee par le mecanisme protege du domaine concerne.
 
 Mise a jour 2026-05-31 (SMTP membre et fiches agences) :
-- les membres peuvent renseigner leur propre configuration SMTP depuis `Parametres > SMTP`; les envois locatifs sensibles utilisent cette configuration et redirigent vers cet onglet si elle est absente;
+- les membres peuvent renseigner leur propre configuration SMTP depuis `Parametres > SMTP`; les envois locatifs utilisent cette configuration lorsqu'elle est complete, sinon ils reviennent au SMTP admin prive;
 - les mots de passe SMTP membre sont stockes chiffres dans `private_user_mail_settings` et exclus des exports lisibles RGPD;
 - les agences importees disposent d'une fiche modifiable (`rental_agencies`) avec raison sociale, adresse, telephone, email, conseiller et notes;
 - la revue des documents agence permet d'enregistrer toutes les corrections de lignes en une seule action, tout en conservant les actions rapides par ligne.
 
 Mise a jour 2026-06-01 (page agences) :
-- le menu haut `Documents agence` ouvre la page dediee `/private/locations/agence` (`rental_agencies`), et non plus directement l'import de documents;
+- le menu haut `Agence` ouvre la page dediee `/private/locations/agence` (`rental_agencies`), et non plus directement l'import de documents;
+- le sous-menu d'agence utilise le libelle `Importer document` pour l'upload et les imports recents;
 - cette page centralise creation, modification et suppression des fiches agence, ainsi que les correspondances agence -> bien locatif;
 - la suppression d'une agence retire la fiche et ses correspondances, mais conserve les imports deja archives pour garder l'historique documentaire auditable.
+
+Mise a jour 2026-06-01 (bailleurs, baux et disponibilite) :
+- le sous-menu `Biens et locations` commence par `Bailleurs`, avec nom, prenom, adresse, telephone et email;
+- une propriete peut etre rattachee a un bailleur par liste de choix;
+- un document importe depuis un bail est classe automatiquement en categorie `Baux`, son nom affichable peut etre ajuste, et le module `Documents` centralise aussi ces documents locatifs;
+- un bien locatif `Indisponible` bloque la creation d'un bail tant que sa date de disponibilite future n'est pas depassee.
 
 Mise a jour 2026-05-31 (session privee active) :
 - la session privee n'est plus invalidee par le seul depassement du delai de re-authentification lorsque l'utilisateur travaille encore; ce delai reste disponible pour les actions sensibles qui demandent explicitement une session fraiche;
@@ -1603,12 +1612,12 @@ Routes recommandees :
 Implementation actuelle :
 
 1. `/private/locations` est le tableau de bord locatif et le point d'entree du module ;
-2. le menu haut sticky separe `Tableau de bord`, `Biens et locations`, `Documents agence` et `Rapports`, sans sous-menu sur le tableau de bord ;
+2. le menu haut sticky separe `Tableau de bord`, `Biens et locations`, `Agence` et `Rapports`, sans sous-menu sur le tableau de bord ;
 3. le sous-menu depend de la section active pour eviter le melange entre saisie proprietaire et imports agence, avec des onglets actifs discrets sans bandeau colore dominant ;
-4. la section `Documents agence` ouvre d'abord `Agences` (`rental_agencies`), page dediee aux fiches agences et aux correspondances; `Importer agence` reste reserve a l'upload et aux imports recents ;
-5. le vocabulaire fonctionnel visible est `Proprietes` pour `rental_properties` et `Biens locatifs` pour `rental_units`; `rental_property_members` reste une route technique, non exposee dans le sous-menu ;
+4. la section `Agence` ouvre d'abord `Agences` (`rental_agencies`), page dediee aux fiches agences et aux correspondances; `Importer document` reste reserve a l'upload et aux imports recents ;
+5. le vocabulaire fonctionnel visible est `Bailleurs`, `Proprietes` pour `rental_properties` et `Biens locatifs` pour `rental_units`; `rental_property_members` reste une route technique, non exposee dans le sous-menu ;
 6. un bien locatif porte son type (`apartment`, `house`, `garage`, `parking`, `commercial_space`, `room`, `storage`, `other`), une surface, le statut meuble ou non, sa disponibilite (`available` ou `unavailable`) et des reperes optionnels d'adresse, batiment, etage ou porte ;
-7. `Disponible` signifie qu'un bail peut etre cree ; `Indisponible` bloque la creation de bail, par exemple pendant des travaux ; un bien locatif qui possede deja un bail actif (`draft` ou `validated`) n'est pas propose dans la creation d'un nouveau bail ;
+7. `Disponible` signifie qu'un bail peut etre cree ; `Indisponible` bloque la creation de bail, par exemple pendant des travaux, sauf si la date de disponibilite renseignee est depassee ; un bien locatif qui possede deja un bail actif (`draft` ou `validated`) n'est pas propose dans la creation d'un nouveau bail ;
 8. une maison louee en entier peut etre saisie comme une propriete avec un bien locatif `Maison entiere` cree automatiquement ;
 9. les pages historiques gardent leurs routes techniques actuelles (`/private/rental-properties`, `/private/rental-units`, `/private/rental-property-members`, `/private/locations/locataires`, `/private/leases`, `/private/payments`, `/private/charges`) tant que les shims propres ne sont pas migres.
 10. les baux exposent une edition PDF selon le type choisi et un reajustement annuel qui met a jour le loyer et la provision de charges tout en conservant une trace dans les notes du bail ;

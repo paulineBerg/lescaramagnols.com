@@ -38,18 +38,18 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
     <div class="private-kpi"><span>Documents manquants</span><strong><?php echo htmlspecialchars((string) (int) ($stats['missingDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></strong></div>
   </div>
 
-  <?php if (!empty($stats['summaryBlocked'])): ?>
+  <?php if (!empty($stats['summaryBlocked'])) : ?>
     <p class="notice notice-error">
       Synthèse annuelle <?php echo htmlspecialchars((string) (int) ($stats['year'] ?? date('Y')), ENT_QUOTES, 'UTF-8'); ?> bloquée :
-      <?php echo htmlspecialchars((string) (int) ($stats['issueCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> point(s) à corriger.
+        <?php echo htmlspecialchars((string) (int) ($stats['issueCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?> point(s) à corriger.
     </p>
-    <?php if ($issues !== []): ?>
+        <?php if ($issues !== []) : ?>
       <ul>
-        <?php foreach (array_slice($issues, 0, 6) as $issue): ?>
+            <?php foreach (array_slice($issues, 0, 6) as $issue) : ?>
           <li><?php echo htmlspecialchars((string) $issue, ENT_QUOTES, 'UTF-8'); ?></li>
-        <?php endforeach; ?>
+            <?php endforeach; ?>
       </ul>
-    <?php endif; ?>
+        <?php endif; ?>
   <?php endif; ?>
 
   <div class="cards-grid">
@@ -67,7 +67,7 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
     </section>
 
     <section class="card">
-      <h2>Documents agence</h2>
+      <h2>Agence</h2>
       <p class="muted">
         <?php echo htmlspecialchars((string) (int) ($stats['pendingAgencyDocumentCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?>
         document(s) à classer sur
@@ -76,7 +76,7 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
       <p class="muted">Le classement agence se rattache aux propriétés créées dans le menu Biens et locations.</p>
       <p class="private-actions">
         <a href="<?php echo htmlspecialchars((string) ($urls['properties'] ?? private_portal_url('rental_properties')), ENT_QUOTES, 'UTF-8'); ?>">Propriétés</a>
-        <a href="<?php echo htmlspecialchars((string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports')), ENT_QUOTES, 'UTF-8'); ?>">Importer agence</a>
+        <a href="<?php echo htmlspecialchars((string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports')), ENT_QUOTES, 'UTF-8'); ?>">Importer document</a>
         <a href="<?php echo htmlspecialchars((string) ($urls['agencyReview'] ?? private_portal_url('rental_agency_review')), ENT_QUOTES, 'UTF-8'); ?>">Classer</a>
       </p>
     </section>
@@ -103,12 +103,14 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
   <div class="cards-grid">
     <section class="card">
       <h2>Baux à surveiller</h2>
-      <?php if ($leasesEndingSoon === []): ?>
+      <?php if ($leasesEndingSoon === []) : ?>
         <p class="muted">Aucun bail proche de fin.</p>
-      <?php else: ?>
+      <?php else : ?>
         <ul>
-          <?php foreach (array_slice($leasesEndingSoon, 0, 6) as $lease): ?>
-            <?php if (!is_array($lease)) { continue; } ?>
+          <?php foreach (array_slice($leasesEndingSoon, 0, 6) as $lease) : ?>
+                <?php if (!is_array($lease)) {
+                    continue;
+                } ?>
             <li><?php echo htmlspecialchars((string) ($lease['unitLabel'] ?? 'Bien'), ENT_QUOTES, 'UTF-8'); ?> - <?php echo htmlspecialchars((string) ($lease['tenantName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> - <?php echo htmlspecialchars((string) ($lease['endDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></li>
           <?php endforeach; ?>
         </ul>
@@ -117,12 +119,14 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
 
     <section class="card">
       <h2>Documents manquants</h2>
-      <?php if ($missingDocuments === []): ?>
+      <?php if ($missingDocuments === []) : ?>
         <p class="muted">Aucun manque détecté.</p>
-      <?php else: ?>
+      <?php else : ?>
         <ul>
-          <?php foreach (array_slice($missingDocuments, 0, 6) as $missingDocument): ?>
-            <?php if (!is_array($missingDocument)) { continue; } ?>
+          <?php foreach (array_slice($missingDocuments, 0, 6) as $missingDocument) : ?>
+                <?php if (!is_array($missingDocument)) {
+                    continue;
+                } ?>
             <li><?php echo htmlspecialchars((string) ($missingDocument['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></li>
           <?php endforeach; ?>
         </ul>
@@ -132,18 +136,20 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
 
   <section class="card private-card-wide">
     <h2>Propriétés suivies</h2>
-    <?php if ($properties === []): ?>
+    <?php if ($properties === []) : ?>
       <p class="muted">Aucune propriété autorisée pour ce compte.</p>
-    <?php else: ?>
+    <?php else : ?>
       <table>
         <thead><tr><th>Propriété</th><th>Type</th><th>Statut</th></tr></thead>
         <tbody>
-          <?php foreach ($properties as $property): ?>
-            <?php if (!is_array($property)) { continue; } ?>
+          <?php foreach ($properties as $property) : ?>
+                <?php if (!is_array($property)) {
+                    continue;
+                } ?>
             <tr>
               <td><?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($property['propertyType'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <?php $propertyStatus = is_string($property['status'] ?? null) ? (string) $property['status'] : ''; ?>
+                <?php $propertyStatus = is_string($property['status'] ?? null) ? (string) $property['status'] : ''; ?>
               <td><?php echo htmlspecialchars((string) ($propertyStatusLabels[$propertyStatus] ?? $propertyStatus), ENT_QUOTES, 'UTF-8'); ?></td>
             </tr>
           <?php endforeach; ?>
@@ -154,16 +160,18 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
 
   <section class="card private-card-wide">
     <h2>Solde annuel par propriété</h2>
-    <?php if ($annualBalances === []): ?>
+    <?php if ($annualBalances === []) : ?>
       <p class="muted">Aucun solde annuel disponible.</p>
-    <?php else: ?>
+    <?php else : ?>
       <div class="private-table-wrap">
         <table>
           <thead><tr><th>Propriété</th><th>Loyers encaissés</th><th>Charges validées</th><th>Candidates déductibles</th><th>Solde</th></tr></thead>
           <tbody>
-            <?php foreach ($annualBalances as $balance): ?>
-              <?php if (!is_array($balance)) { continue; } ?>
-              <?php $propertyId = is_numeric($balance['propertyId'] ?? null) ? (int) $balance['propertyId'] : 0; ?>
+            <?php foreach ($annualBalances as $balance) : ?>
+                <?php if (!is_array($balance)) {
+                    continue;
+                } ?>
+                <?php $propertyId = is_numeric($balance['propertyId'] ?? null) ? (int) $balance['propertyId'] : 0; ?>
               <tr>
                 <td><?php echo htmlspecialchars((string) ($propertyNames[$propertyId] ?? ('#' . $propertyId)), ENT_QUOTES, 'UTF-8'); ?></td>
                 <td><?php echo htmlspecialchars($money($balance['rentPaid'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -181,12 +189,14 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
   <div class="cards-grid">
     <section class="card">
       <h2>Derniers documents locatifs</h2>
-      <?php if ($documents === []): ?>
+      <?php if ($documents === []) : ?>
         <p class="muted">Aucun document locatif.</p>
-      <?php else: ?>
+      <?php else : ?>
         <ul>
-          <?php foreach ($documents as $document): ?>
-            <?php if (!is_array($document)) { continue; } ?>
+          <?php foreach ($documents as $document) : ?>
+                <?php if (!is_array($document)) {
+                    continue;
+                } ?>
             <li><?php echo htmlspecialchars((string) ($document['originalName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></li>
           <?php endforeach; ?>
         </ul>
@@ -195,12 +205,14 @@ $money = static fn (mixed $value): string => number_format(is_numeric($value) ? 
 
     <section class="card">
       <h2>Derniers imports agence</h2>
-      <?php if ($agencyDocuments === []): ?>
+      <?php if ($agencyDocuments === []) : ?>
         <p class="muted">Aucun import agence.</p>
-      <?php else: ?>
+      <?php else : ?>
         <ul>
-          <?php foreach ($agencyDocuments as $document): ?>
-            <?php if (!is_array($document)) { continue; } ?>
+          <?php foreach ($agencyDocuments as $document) : ?>
+                <?php if (!is_array($document)) {
+                    continue;
+                } ?>
             <li><?php echo htmlspecialchars((string) ($document['filename'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></li>
           <?php endforeach; ?>
         </ul>

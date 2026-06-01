@@ -88,8 +88,12 @@ $createDialogId = 'rental-lease-create-dialog';
 <section>
   <?php include __DIR__ . '/_nav.php'; ?>
 
-  <?php if ($notice !== ''): ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
-  <?php if ($error !== ''): ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+  <?php if ($notice !== '') :
+        ?><p class="notice notice-success"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php
+  endif; ?>
+  <?php if ($error !== '') :
+        ?><p class="notice notice-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php
+  endif; ?>
 
   <section class="card private-list-section" data-private-filter-scope>
     <div class="private-list-header">
@@ -99,19 +103,19 @@ $createDialogId = 'rental-lease-create-dialog';
       </div>
       <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($createDialogId, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$canCreateLease ? ' disabled' : ''; ?>>Créer un bail</button>
     </div>
-    <?php if (!$canCreateLease): ?>
+    <?php if (!$canCreateLease) : ?>
       <p class="muted">Un bail exige une propriété, un bien locatif disponible sans bail actif et un locataire rattaché au bien locatif.</p>
     <?php endif; ?>
-    <?php if ($leases === []): ?>
+    <?php if ($leases === []) : ?>
       <p class="muted">Aucun bail enregistre.</p>
-    <?php else: ?>
+    <?php else : ?>
       <div class="private-list-tools">
         <div class="private-list-filter-grid">
           <label>Recherche <input type="search" placeholder="Propriété, bien locatif, locataire" data-private-filter="text" /></label>
           <label>Statut
             <select data-private-filter="status">
               <option value="all">Tous</option>
-              <?php foreach ($leaseStatuses as $value => $label): ?>
+              <?php foreach ($leaseStatuses as $value => $label) : ?>
                 <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
@@ -125,18 +129,20 @@ $createDialogId = 'rental-lease-create-dialog';
       <table>
         <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Type</th><th>Période</th><th>Loyer</th><th>Charges</th><th>Statut</th><th>Action</th></tr></thead>
         <tbody>
-          <?php foreach ($leases as $lease): ?>
-            <?php if (!is_array($lease)) { continue; } ?>
-            <?php $leaseId = is_numeric($lease['id'] ?? null) ? (int) $lease['id'] : 0; ?>
-            <?php $leaseType = is_string($lease['leaseType'] ?? null) ? (string) $lease['leaseType'] : ''; ?>
-            <?php $dialogId = 'rental-lease-dialog-' . $leaseId; ?>
+          <?php foreach ($leases as $lease) : ?>
+                <?php if (!is_array($lease)) {
+                    continue;
+                } ?>
+                <?php $leaseId = is_numeric($lease['id'] ?? null) ? (int) $lease['id'] : 0; ?>
+                <?php $leaseType = is_string($lease['leaseType'] ?? null) ? (string) $lease['leaseType'] : ''; ?>
+                <?php $dialogId = 'rental-lease-dialog-' . $leaseId; ?>
             <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($lease['propertyName'] ?? '') . ' ' . (string) ($lease['unitLabel'] ?? '') . ' ' . (string) ($lease['tenantName'] ?? '') . ' ' . (string) ($leaseTypeLabels[$leaseType] ?? $leaseType))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($lease['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
               <td><?php echo htmlspecialchars((string) ($lease['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($lease['unitLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($lease['tenantName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php echo htmlspecialchars((string) ($leaseTypeLabels[$leaseType] ?? $leaseType), ENT_QUOTES, 'UTF-8'); ?>
-                <?php if (($leaseTypeTaxLabels[$leaseType] ?? '') !== ''): ?>
+                <?php if (($leaseTypeTaxLabels[$leaseType] ?? '') !== '') : ?>
                   <br /><small><?php echo htmlspecialchars((string) $leaseTypeTaxLabels[$leaseType], ENT_QUOTES, 'UTF-8'); ?></small>
                 <?php endif; ?>
               </td>
@@ -145,7 +151,7 @@ $createDialogId = 'rental-lease-create-dialog';
               <td><?php echo htmlspecialchars(number_format((float) ($lease['chargesProvision'] ?? 0), 2, ',', ' '), ENT_QUOTES, 'UTF-8'); ?> €</td>
               <td><?php echo htmlspecialchars((string) ($leaseStatuses[(string) ($lease['status'] ?? '')] ?? ($lease['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
-                <?php if ($leaseId > 0): ?>
+                <?php if ($leaseId > 0) : ?>
                   <button type="button" class="private-row-action" data-private-dialog-open="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>">Modifier</button>
                 <?php endif; ?>
               </td>
@@ -156,24 +162,24 @@ $createDialogId = 'rental-lease-create-dialog';
       </table>
       </div>
 
-      <?php foreach ($leases as $lease): ?>
-        <?php
-        if (!is_array($lease)) {
-            continue;
-        }
-        $leaseId = is_numeric($lease['id'] ?? null) ? (int) $lease['id'] : 0;
-        if ($leaseId <= 0) {
-            continue;
-        }
-        $dialogId = 'rental-lease-dialog-' . $leaseId;
-        $selectedPropertyId = is_numeric($lease['rentalPropertyId'] ?? null) ? (int) $lease['rentalPropertyId'] : 0;
-        $selectedUnitId = is_numeric($lease['rentalUnitId'] ?? null) ? (int) $lease['rentalUnitId'] : 0;
-        $selectedTenantId = is_numeric($lease['rentalTenantId'] ?? null) ? (int) $lease['rentalTenantId'] : 0;
-        $selectedLeaseType = is_string($lease['leaseType'] ?? null) ? (string) $lease['leaseType'] : '';
-        $selectedStatus = is_string($lease['status'] ?? null) ? (string) $lease['status'] : 'draft';
-        $monthlyRent = number_format((float) ($lease['monthlyRent'] ?? 0), 2, '.', '');
-        $chargesProvision = number_format((float) ($lease['chargesProvision'] ?? 0), 2, '.', '');
-        ?>
+        <?php foreach ($leases as $lease) : ?>
+            <?php
+            if (!is_array($lease)) {
+                continue;
+            }
+            $leaseId = is_numeric($lease['id'] ?? null) ? (int) $lease['id'] : 0;
+            if ($leaseId <= 0) {
+                continue;
+            }
+            $dialogId = 'rental-lease-dialog-' . $leaseId;
+            $selectedPropertyId = is_numeric($lease['rentalPropertyId'] ?? null) ? (int) $lease['rentalPropertyId'] : 0;
+            $selectedUnitId = is_numeric($lease['rentalUnitId'] ?? null) ? (int) $lease['rentalUnitId'] : 0;
+            $selectedTenantId = is_numeric($lease['rentalTenantId'] ?? null) ? (int) $lease['rentalTenantId'] : 0;
+            $selectedLeaseType = is_string($lease['leaseType'] ?? null) ? (string) $lease['leaseType'] : '';
+            $selectedStatus = is_string($lease['status'] ?? null) ? (string) $lease['status'] : 'draft';
+            $monthlyRent = number_format((float) ($lease['monthlyRent'] ?? 0), 2, '.', '');
+            $chargesProvision = number_format((float) ($lease['chargesProvision'] ?? 0), 2, '.', '');
+            ?>
         <dialog class="private-dialog" id="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
           <div class="private-dialog-panel">
             <header class="private-dialog-header">
@@ -186,21 +192,23 @@ $createDialogId = 'rental-lease-create-dialog';
               <input type="hidden" name="lease_id" value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>" />
               <label>Propriété
                 <select name="rental_property_id" required>
-                  <?php foreach ($propertyNames as $id => $name): ?>
+                  <?php foreach ($propertyNames as $id => $name) : ?>
                     <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedPropertyId === $id ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
               </label>
               <label>Bien locatif
                 <select name="rental_unit_id" required data-rental-unit-select>
-                  <?php foreach ($units as $unit): ?>
-                    <?php if (!is_array($unit) || !is_numeric($unit['id'] ?? null)) { continue; } ?>
-                    <?php $unitId = (int) $unit['id']; ?>
-                    <?php $unitPropertyId = is_numeric($unit['rentalPropertyId'] ?? null) ? (int) $unit['rentalPropertyId'] : 0; ?>
+                  <?php foreach ($units as $unit) : ?>
+                        <?php if (!is_array($unit) || !is_numeric($unit['id'] ?? null)) {
+                            continue;
+                        } ?>
+                        <?php $unitId = (int) $unit['id']; ?>
+                        <?php $unitPropertyId = is_numeric($unit['rentalPropertyId'] ?? null) ? (int) $unit['rentalPropertyId'] : 0; ?>
                     <option value="<?php echo htmlspecialchars((string) $unitId, ENT_QUOTES, 'UTF-8'); ?>" data-property-id="<?php echo htmlspecialchars((string) $unitPropertyId, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedUnitId === $unitId ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -208,9 +216,9 @@ $createDialogId = 'rental-lease-create-dialog';
               <label>Locataire
                 <select name="rental_tenant_id" required data-rental-tenant-select>
                   <option value="">Choisir un locataire</option>
-                  <?php foreach ($tenantOptions as $tenant): ?>
+                  <?php foreach ($tenantOptions as $tenant) : ?>
                     <option value="<?php echo htmlspecialchars((string) $tenant['id'], ENT_QUOTES, 'UTF-8'); ?>" data-unit-id="<?php echo htmlspecialchars((string) $tenant['unitId'], ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedTenantId === (int) $tenant['id'] ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($tenant['name'], ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars($tenant['name'], ENT_QUOTES, 'UTF-8'); ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -218,22 +226,22 @@ $createDialogId = 'rental-lease-create-dialog';
               <p class="notice notice-error" hidden data-rental-tenant-empty>Il faut créer un locataire pour ce bien locatif avant de modifier ce bail.</p>
               <label>Type de bail
                 <select name="lease_type" required data-rental-lease-type-select>
-                  <?php foreach ($leaseTypes as $leaseTypeOption): ?>
-                    <?php
-                    if (!is_array($leaseTypeOption) || !is_string($leaseTypeOption['code'] ?? null)) {
-                        continue;
-                    }
-                    $durationMonths = is_numeric($leaseTypeOption['durationMonths'] ?? null) ? (int) $leaseTypeOption['durationMonths'] : '';
-                    $leaseTypeCode = (string) $leaseTypeOption['code'];
-                    ?>
+                  <?php foreach ($leaseTypes as $leaseTypeOption) : ?>
+                        <?php
+                        if (!is_array($leaseTypeOption) || !is_string($leaseTypeOption['code'] ?? null)) {
+                            continue;
+                        }
+                        $durationMonths = is_numeric($leaseTypeOption['durationMonths'] ?? null) ? (int) $leaseTypeOption['durationMonths'] : '';
+                        $leaseTypeCode = (string) $leaseTypeOption['code'];
+                        ?>
                     <option
                       value="<?php echo htmlspecialchars($leaseTypeCode, ENT_QUOTES, 'UTF-8'); ?>"
                       data-duration-months="<?php echo htmlspecialchars((string) $durationMonths, ENT_QUOTES, 'UTF-8'); ?>"
                       data-tax-label="<?php echo htmlspecialchars((string) ($leaseTypeOption['taxLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                       data-description="<?php echo htmlspecialchars((string) ($leaseTypeOption['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
-                      <?php echo $selectedLeaseType === $leaseTypeCode ? 'selected' : ''; ?>
+                        <?php echo $selectedLeaseType === $leaseTypeCode ? 'selected' : ''; ?>
                     >
-                      <?php echo htmlspecialchars((string) ($leaseTypeOption['label'] ?? $leaseTypeCode), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars((string) ($leaseTypeOption['label'] ?? $leaseTypeCode), ENT_QUOTES, 'UTF-8'); ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -245,9 +253,9 @@ $createDialogId = 'rental-lease-create-dialog';
               <label>Provision charges <input type="number" name="charges_provision" min="0" step="0.01" value="<?php echo htmlspecialchars($chargesProvision, ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <label>Statut
                 <select name="status">
-                  <?php foreach ($leaseStatuses as $value => $label): ?>
+                  <?php foreach ($leaseStatuses as $value => $label) : ?>
                     <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedStatus === $value ? 'selected' : ''; ?>>
-                      <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
@@ -260,6 +268,17 @@ $createDialogId = 'rental-lease-create-dialog';
               <input type="hidden" name="action" value="download_lease" />
               <input type="hidden" name="lease_id" value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>" />
               <button type="submit" class="private-button-secondary">Éditer le bail selon le type choisi</button>
+            </form>
+            <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="upload_lease_document" />
+              <input type="hidden" name="lease_id" value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>" />
+              <fieldset class="private-fieldset">
+                <legend>Document bail</legend>
+                <label>Nom du document <input type="text" name="document_name" maxlength="255" placeholder="Bail - <?php echo htmlspecialchars((string) ($lease['tenantName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Fichier <input type="file" name="rental_document_file" required /></label>
+                <button type="submit" class="private-button-secondary">Importer le document bail</button>
+              </fieldset>
             </form>
             <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
               <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
@@ -282,7 +301,7 @@ $createDialogId = 'rental-lease-create-dialog';
             </form>
           </div>
         </dialog>
-      <?php endforeach; ?>
+        <?php endforeach; ?>
     <?php endif; ?>
   </section>
 
@@ -292,24 +311,26 @@ $createDialogId = 'rental-lease-create-dialog';
         <h3 id="<?php echo htmlspecialchars($createDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Créer un bail</h3>
         <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
       </header>
-      <?php if (!$canCreateLease): ?>
+      <?php if (!$canCreateLease) : ?>
         <p class="muted">Un bail exige une propriété, un bien locatif disponible sans bail actif et un locataire rattaché au bien locatif.</p>
-      <?php else: ?>
+      <?php else : ?>
         <form method="post" action="<?php echo htmlspecialchars((string) ($urls['leases'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-rental-lease-form>
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
           <input type="hidden" name="action" value="create_lease" />
           <label>Propriété
             <select name="rental_property_id" required>
-              <?php foreach ($propertyNames as $id => $name): ?>
+              <?php foreach ($propertyNames as $id => $name) : ?>
                 <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
           </label>
           <label>Bien locatif
             <select name="rental_unit_id" required data-rental-unit-select>
-              <?php foreach ($leaseCreateUnits as $unit): ?>
-                <?php if (!is_array($unit) || !is_numeric($unit['id'] ?? null)) { continue; } ?>
-                <?php $unitPropertyId = is_numeric($unit['rentalPropertyId'] ?? null) ? (int) $unit['rentalPropertyId'] : 0; ?>
+              <?php foreach ($leaseCreateUnits as $unit) : ?>
+                    <?php if (!is_array($unit) || !is_numeric($unit['id'] ?? null)) {
+                        continue;
+                    } ?>
+                    <?php $unitPropertyId = is_numeric($unit['rentalPropertyId'] ?? null) ? (int) $unit['rentalPropertyId'] : 0; ?>
                 <option value="<?php echo htmlspecialchars((string) (int) $unit['id'], ENT_QUOTES, 'UTF-8'); ?>" data-property-id="<?php echo htmlspecialchars((string) $unitPropertyId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
@@ -317,7 +338,7 @@ $createDialogId = 'rental-lease-create-dialog';
           <label>Locataire
             <select name="rental_tenant_id" required data-rental-tenant-select>
               <option value="">Choisir un locataire</option>
-              <?php foreach ($leaseCreateTenantOptions as $tenant): ?>
+              <?php foreach ($leaseCreateTenantOptions as $tenant) : ?>
                 <option value="<?php echo htmlspecialchars((string) $tenant['id'], ENT_QUOTES, 'UTF-8'); ?>" data-unit-id="<?php echo htmlspecialchars((string) $tenant['unitId'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($tenant['name'], ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>
@@ -325,20 +346,20 @@ $createDialogId = 'rental-lease-create-dialog';
           <p class="notice notice-error" hidden data-rental-tenant-empty>Il faut créer un locataire pour ce bien locatif avant de créer un bail.</p>
           <label>Type de bail
             <select name="lease_type" required data-rental-lease-type-select>
-              <?php foreach ($leaseTypes as $leaseType): ?>
-                <?php
-                if (!is_array($leaseType) || !is_string($leaseType['code'] ?? null)) {
-                    continue;
-                }
-                $durationMonths = is_numeric($leaseType['durationMonths'] ?? null) ? (int) $leaseType['durationMonths'] : '';
-                ?>
+              <?php foreach ($leaseTypes as $leaseType) : ?>
+                    <?php
+                    if (!is_array($leaseType) || !is_string($leaseType['code'] ?? null)) {
+                        continue;
+                    }
+                    $durationMonths = is_numeric($leaseType['durationMonths'] ?? null) ? (int) $leaseType['durationMonths'] : '';
+                    ?>
                 <option
                   value="<?php echo htmlspecialchars((string) $leaseType['code'], ENT_QUOTES, 'UTF-8'); ?>"
                   data-duration-months="<?php echo htmlspecialchars((string) $durationMonths, ENT_QUOTES, 'UTF-8'); ?>"
                   data-tax-label="<?php echo htmlspecialchars((string) ($leaseType['taxLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                   data-description="<?php echo htmlspecialchars((string) ($leaseType['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
                 >
-                  <?php echo htmlspecialchars((string) ($leaseType['label'] ?? $leaseType['code']), ENT_QUOTES, 'UTF-8'); ?>
+                    <?php echo htmlspecialchars((string) ($leaseType['label'] ?? $leaseType['code']), ENT_QUOTES, 'UTF-8'); ?>
                 </option>
               <?php endforeach; ?>
             </select>
@@ -350,7 +371,7 @@ $createDialogId = 'rental-lease-create-dialog';
           <label>Provision charges <input type="number" name="charges_provision" min="0" step="0.01" value="0" /></label>
           <label>Statut
             <select name="status">
-              <?php foreach ($leaseStatuses as $value => $label): ?>
+              <?php foreach ($leaseStatuses as $value => $label) : ?>
                 <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
               <?php endforeach; ?>
             </select>

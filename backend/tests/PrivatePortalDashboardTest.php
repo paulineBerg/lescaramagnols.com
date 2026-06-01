@@ -216,6 +216,67 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertStringNotContainsString('Le test SMTP a échoué. Vérifiez vos paramètres.', $response->body);
     }
 
+    public function testMemberSmtpTestFallsBackToAdminSmtpWhenUserSmtpIsIncomplete(): void
+    {
+        global $appConfig;
+
+        $appConfig['private']['mail'] = [
+            'enabled' => true,
+            'transport' => 'sendmail',
+            'smtp_host' => 'localhost',
+            'smtp_port' => 25,
+            'smtp_user' => '',
+            'smtp_password' => '',
+            'smtp_encryption' => '',
+            'from_address' => 'ne-pas-repondre@example.com',
+            'from_name' => 'Les Caramagnols',
+            'reply_to' => 'private@example.com',
+            'templates' => [],
+        ];
+
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+
+        $userId = $userRepository->create('family@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['dashboard'], 'admin@example.com'));
+
+        $session = new PrivateSession('_private_dashboard_test');
+        $auth = new PrivateAuth($session, null, $userRepository);
+        $controller = new PrivatePortalController($auth, null, null, $userRepository, $moduleRepository);
+
+        $login = $controller->handle('login', $this->request('POST', '/private/login', [
+            'identifier' => 'family@example.com',
+            'password' => 'StrongPassword1!',
+            'csrf_token' => $this->privateCsrfToken($session, 'private'),
+        ]));
+        $this->assertSame(302, $login->status);
+
+        $response = $controller->handle('member_settings', $this->request('POST', '/private/parametres?tab=smtp', [
+            'csrf_token' => $this->privateCsrfToken($session, 'private_member_settings'),
+            'action' => 'smtp_settings',
+            'enabled' => '1',
+            'smtp_host' => 'ssl0.ovh.net',
+            'smtp_port' => '587',
+            'smtp_user' => 'pauline@lescaramagnols.com',
+            'smtp_password' => '',
+            'smtp_encryption' => 'tls',
+            'from_address' => 'pauline@lescaramagnols.com',
+            'from_name' => 'Les Caramagnols',
+            'reply_to' => 'pauline@lescaramagnols.com',
+            'test_recipient' => 'alt-test@example.com',
+            'send_test' => '1',
+        ]));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringNotContainsString('Veuillez remplir vos paramètres SMTP avant d’envoyer un email.', $response->body);
+        $this->assertStringContainsString('Le test SMTP a échoué. Vérifiez vos paramètres.', $response->body);
+        $this->assertStringContainsString('name="test_recipient" maxlength="254" value="alt-test@example.com"', $response->body);
+    }
+
     public function testDashboardShowsDocumentManagementForDocumentsModule(): void
     {
         $database = $this->editorialSqlDatabase();

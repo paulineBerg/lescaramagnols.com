@@ -129,7 +129,8 @@ final class PrivateModulePermissionRepository
             + $this->countRows('discussion_messages', '`sender_private_user_id` = :user_id AND `purge_status` = \'active\' AND `deleted_at` IS NULL', ['user_id' => $userId])
             + $this->countRows('discussion_crypto_devices', '`private_user_id` = :user_id AND `revoked_at` IS NULL', ['user_id' => $userId]);
 
-        $counts['real_estate_rental'] = $this->countRows('rental_properties', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
+        $counts['real_estate_rental'] = $this->countRows('rental_lessors', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
+            + $this->countRows('rental_properties', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
             + $this->countRows('rental_units', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
             + $this->countRows('rental_property_members', '`private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])
             + $this->countRows('rental_tenants', '`created_by_private_user_id` = :user_id AND `is_active` = 1', ['user_id' => $userId])

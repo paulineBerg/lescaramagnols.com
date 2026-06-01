@@ -37,6 +37,7 @@ final class PrivateBackupService
         'discussion_conversation_keys',
         'discussion_crypto_devices',
         'discussion_retention_runs',
+        'rental_lessors',
         'rental_properties',
         'rental_units',
         'rental_property_members',

@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS car_rental_documents (
     document_id VARCHAR(64) NOT NULL,
     storage_path VARCHAR(255) NOT NULL,
     original_name VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255) NULL,
+    category VARCHAR(64) NOT NULL DEFAULT 'Document',
     extension VARCHAR(16) NOT NULL,
     mime_type VARCHAR(120) NOT NULL,
     size_bytes INT NOT NULL,
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS car_rental_documents (
     uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_rental_documents_document_id (document_id),
     KEY idx_rental_documents_property (rental_property_id, is_active),
+    KEY idx_rental_documents_category (category, is_active),
     KEY idx_rental_documents_expense (rental_expense_id, is_active),
     CONSTRAINT fk_rental_documents_property
         FOREIGN KEY (rental_property_id)

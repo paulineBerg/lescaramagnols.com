@@ -1,7 +1,7 @@
 # Locations immobilieres privees
 
 Date de mise a jour : 2026-06-01
-Statut : plan d'amelioration du module `RealEstateRental`, phases L3 a L8 livrees avec raccord SMTP membre, fiches agences modifiables, libelles francais et revue agence en enregistrement groupé.
+Statut : plan d'amelioration du module `RealEstateRental`, phases L3 a L8 livrees avec raccord SMTP admin et override membre optionnel, bailleurs, fiches agences modifiables, libelles francais et revue agence en enregistrement groupe.
 
 Ce README sert de feuille de route fonctionnelle et technique pour rendre le module de locations immobilieres plus complet, sans casser le socle prive deja livre.
 
@@ -20,7 +20,7 @@ Le module existe deja et doit rester dans l'architecture actuelle :
 Fonctions deja presentes :
 
 - tableau de bord locatif avec KPIs principaux;
-- proprietes, biens locatifs, acces par membre;
+- bailleurs, proprietes, biens locatifs, acces par membre;
 - locataires, baux, loyers, paiements, charges et documents locatifs;
 - generation manuelle d'un loyer depuis un bail, avec montant calcule cote serveur;
 - paiement rattache a un loyer, y compris paiement partiel;
@@ -30,14 +30,18 @@ Fonctions deja presentes :
 - fiches agences modifiables avec coordonnees et conseiller;
 - fiches locataires enrichies avec identite, naissance, nationalite, metier et adresse;
 - fiches biens locatifs enrichies avec identifiant fiscal, nombre de pieces, designation, equipements, chauffage, eau chaude sanitaire et assainissement;
-- envois locatifs raccordes aux parametres SMTP du membre connecte;
+- envois locatifs raccordes au SMTP admin prive, avec override SMTP membre quand il est complet;
 - bridge vers `TaxDeclarationHelper`.
 
 Regles d'interface livrees le 2026-06-01 :
 
 - les statuts et types visibles dans l'interface de locations immobilieres sont affiches avec des libelles francais (`A revoir`, `Validé`, `Ignoré`, etc.);
 - le controle fiscal des categories sensibles signifie qu'une ligne importee ayant un impact fiscal doit etre confirmee manuellement avant validation, pour eviter une synthese fiscale incorrecte;
-- les lignes de classement agence doivent remplir la largeur disponible du contenu prive, avec scroll local seulement si le viewport devient trop etroit.
+- les lignes de classement agence doivent remplir la largeur disponible du contenu prive, avec scroll local seulement si le viewport devient trop etroit;
+- le menu haut visible s'appelle `Agence`; son sous-menu d'import s'appelle `Importer document`;
+- le sous-menu `Biens et locations` expose `Bailleurs` avant `Proprietes`, et ne doit pas exposer `Acces aux proprietes`;
+- les documents ajoutes depuis un bail sont classes en categorie `Baux` et restent visibles dans le module central `Documents`;
+- un bien locatif indisponible bloque la creation d'un bail tant que sa date de disponibilite future n'est pas depassee.
 
 Ecarts importants :
 
@@ -79,7 +83,10 @@ Ecarts importants :
    Les textes par defaut doivent venir d'un modele configurable. L'utilisateur peut corriger l'objet, le destinataire et le corps avant envoi. Le contenu reellement envoye est conserve en snapshot.
 
 10. Raccorder toute nouvelle table et tout nouveau fichier au registre RGPD.
-   Les ajouts doivent etre declares dans `PrivateDataProtectionService`, dans les sauvegardes ZIP et dans les purges de compte.
+    Les ajouts doivent etre declares dans `PrivateDataProtectionService`, dans les sauvegardes ZIP et dans les purges de compte.
+
+11. Centraliser les envois SMTP.
+    Le SMTP admin prive reste le socle commun. Le SMTP membre ne sert que d'override personnel complet; l'absence de `PRIVATE_MAIL_SETTINGS_ENCRYPTION_KEY` bloque seulement l'enregistrement d'un nouveau mot de passe SMTP membre, pas les envois via le SMTP admin.
 
 ## 3. Modele cible prioritaire
 

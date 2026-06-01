@@ -142,6 +142,7 @@ final class RentalUnitRepository
         ?string $floor = null,
         ?string $door = null,
         array $details = [],
+        ?string $unavailableUntil = null,
     ): ?RentalUnit {
         $label = sanitize_text_field($label, 160);
         $unitType = $this->normalizeUnitType($unitType);
@@ -152,6 +153,7 @@ final class RentalUnitRepository
         $details = $this->normalizeDetails($details);
         $notes = $this->normalizeNullableText($notes, self::TEXT_LENGTH_NOTES);
         $status = $this->normalizeStatus($status);
+        $unavailableUntil = $status === 'unavailable' ? $this->normalizeNullableDate($unavailableUntil) : null;
 
         if (
             $rentalPropertyId <= 0
@@ -184,12 +186,12 @@ final class RentalUnitRepository
                         (`rental_property_id`, `label`, `unit_type`, `address`, `building`, `floor`, `door`,
                          `tax_identifier`, `room_count`, `designation`, `other_details`, `equipment_elements`,
                          `heating_production_mode`, `hot_water_production_mode`, `sanitation`,
-                         `surface`, `furnished`, `status`, `is_active`, `notes`, `created_by_private_user_id`)
+                         `surface`, `furnished`, `status`, `unavailable_until`, `is_active`, `notes`, `created_by_private_user_id`)
                      VALUES
                         (:rental_property_id, :label, :unit_type, :address, :building, :floor, :door,
                          :tax_identifier, :room_count, :designation, :other_details, :equipment_elements,
                          :heating_production_mode, :hot_water_production_mode, :sanitation,
-                         :surface, :furnished, :status, 1, :notes, :created_by)',
+                         :surface, :furnished, :status, :unavailable_until, 1, :notes, :created_by)',
                     $this->table()
                 )
             );
@@ -212,6 +214,7 @@ final class RentalUnitRepository
                 'surface' => $surface,
                 'furnished' => $furnished ? 1 : 0,
                 'status' => $status,
+                'unavailable_until' => $unavailableUntil,
                 'notes' => $notes,
                 'created_by' => $createdByPrivateUserId,
             ]);
@@ -305,6 +308,7 @@ final class RentalUnitRepository
         ?string $floor = null,
         ?string $door = null,
         array $details = [],
+        ?string $unavailableUntil = null,
     ): ?RentalUnit {
         if ($unitId <= 0 || $actorPrivateUserId <= 0 || $propertyId <= 0) {
             return null;
@@ -319,6 +323,7 @@ final class RentalUnitRepository
         $details = $this->normalizeDetails($details);
         $notes = $this->normalizeNullableText($notes, self::TEXT_LENGTH_NOTES);
         $status = $this->normalizeStatus($status);
+        $unavailableUntil = $status === 'unavailable' ? $this->normalizeNullableDate($unavailableUntil) : null;
 
         if (
             $label === ''
@@ -358,6 +363,7 @@ final class RentalUnitRepository
                          `surface` = :surface,
                          `furnished` = :furnished,
                          `status` = :status,
+                         `unavailable_until` = :unavailable_until,
                          `notes` = :notes,
                          `updated_at` = :updated_at
                      WHERE `id` = :id
@@ -384,6 +390,7 @@ final class RentalUnitRepository
                 'surface' => $surface,
                 'furnished' => $furnished ? 1 : 0,
                 'status' => $status,
+                'unavailable_until' => $unavailableUntil,
                 'notes' => $notes,
                 'updated_at' => date('Y-m-d H:i:s'),
                 'id' => $unitId,
@@ -421,6 +428,7 @@ final class RentalUnitRepository
                     `surface` DECIMAL(8,2) NOT NULL,
                     `furnished` TINYINT(1) NOT NULL DEFAULT 0,
                     `status` ENUM("available", "unavailable", "archived") NOT NULL DEFAULT "available",
+                    `unavailable_until` DATE NULL,
                     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
                     `notes` TEXT NULL,
                     `created_by_private_user_id` INT NOT NULL,
@@ -432,6 +440,7 @@ final class RentalUnitRepository
                     KEY `idx_rental_units_property_active` (`rental_property_id`, `is_active`),
                     KEY `idx_rental_units_type` (`unit_type`),
                     KEY `idx_rental_units_status` (`status`),
+                    KEY `idx_rental_units_unavailable_until` (`unavailable_until`),
                     KEY `idx_rental_units_active` (`is_active`),
                     KEY `idx_rental_units_created` (`created_by_private_user_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
@@ -451,8 +460,10 @@ final class RentalUnitRepository
         $this->ensureColumn($pdo, $this->table(), 'heating_production_mode', '`heating_production_mode` VARCHAR(160) NULL AFTER `equipment_elements`');
         $this->ensureColumn($pdo, $this->table(), 'hot_water_production_mode', '`hot_water_production_mode` VARCHAR(160) NULL AFTER `heating_production_mode`');
         $this->ensureColumn($pdo, $this->table(), 'sanitation', '`sanitation` VARCHAR(160) NULL AFTER `hot_water_production_mode`');
+        $this->ensureColumn($pdo, $this->table(), 'unavailable_until', '`unavailable_until` DATE NULL AFTER `status`');
         $this->ensureAvailabilityStatusSchema($pdo);
         $this->ensureIndex($pdo, $this->table(), 'idx_rental_units_type', '`unit_type`');
+        $this->ensureIndex($pdo, $this->table(), 'idx_rental_units_unavailable_until', '`unavailable_until`');
 
         $this->schemaReady = true;
     }
@@ -511,6 +522,20 @@ final class RentalUnitRepository
 
         $value = sanitize_text_field($value, $maxLength);
         return $value !== '' ? $value : null;
+    }
+
+    private function normalizeNullableDate(?string $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? $value : null;
     }
 
     /**

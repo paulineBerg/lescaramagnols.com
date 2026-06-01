@@ -74,6 +74,12 @@ final class PrivateDataProtectionService
                 ['private_user_id' => $privateUserId],
                 ['rental_property_id', 'private_user_id', 'role', 'status', 'is_active', 'created_at', 'updated_at']
             ),
+            'rentalLessors' => $this->rows(
+                'rental_lessors',
+                '`created_by_private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['id', 'last_name', 'first_name', 'address', 'phone', 'email', 'is_active', 'created_at', 'updated_at', 'archived_at']
+            ),
             'rentalPaymentRequests' => $this->rows(
                 'rental_payment_requests',
                 '`sent_by_private_user_id` = :private_user_id',
@@ -514,6 +520,12 @@ final class PrivateDataProtectionService
         $this->safeDelete('private_user_mail_settings', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
 
         $this->safeUpdate(
+            'rental_lessors',
+            '`last_name` = :last_name, `first_name` = NULL, `address` = NULL, `phone` = NULL, `email` = NULL, `is_active` = 0, `archived_at` = COALESCE(`archived_at`, :archived_at)',
+            '`created_by_private_user_id` = :private_user_id',
+            ['last_name' => 'Bailleur supprime ' . $privateUserId, 'archived_at' => $now, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
             'rental_property_members',
             '`status` = :status, `is_active` = 0, `notes` = NULL, `removed_at` = COALESCE(`removed_at`, :removed_at), `removed_by_private_user_id` = :actor',
             '`private_user_id` = :private_user_id',
@@ -562,6 +574,7 @@ final class PrivateDataProtectionService
         $this->safeDelete('rental_leases', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_export_logs', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('rental_agencies', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
+        $this->safeDelete('rental_lessors', '`created_by_private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
 
         $this->safeDelete('tax_export_logs', '`private_user_id` = :private_user_id', ['private_user_id' => $privateUserId]);
         $this->safeDelete('tax_summary_lines', '`tax_annual_summary_id` IN (SELECT `id` FROM `' . $this->database->table('tax_annual_summaries') . '` WHERE `private_user_id` = :private_user_id)', ['private_user_id' => $privateUserId]);
@@ -953,6 +966,7 @@ final class PrivateDataProtectionService
             'discussion_conversation_members' => '`private_user_id` = :private_user_id',
             'discussion_crypto_devices' => '`private_user_id` = :private_user_id',
             'discussion_conversation_keys' => '`private_user_id` = :private_user_id OR `created_by_private_user_id` = :private_user_id',
+            'rental_lessors' => '`created_by_private_user_id` = :private_user_id',
             'rental_properties' => '`created_by_private_user_id` = :private_user_id OR `archived_by_private_user_id` = :private_user_id',
             'rental_units' => '`created_by_private_user_id` = :private_user_id OR `archived_by_private_user_id` = :private_user_id',
             'rental_property_members' => '`private_user_id` = :private_user_id OR `added_by_private_user_id` = :private_user_id OR `removed_by_private_user_id` = :private_user_id',
@@ -1023,6 +1037,7 @@ final class PrivateDataProtectionService
             'rental_units',
             'rental_property_members',
             'rental_properties',
+            'rental_lessors',
             'tax_summary_lines',
             'tax_export_logs',
             'tax_annual_summaries',

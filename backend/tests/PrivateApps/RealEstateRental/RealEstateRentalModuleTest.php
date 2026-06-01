@@ -98,16 +98,21 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertSame(200, $dashboard->status);
         $this->assertStringContainsString('Tableau de bord locatif', $dashboard->body);
         $this->assertStringContainsString('Biens et locations', $dashboard->body);
-        $this->assertStringContainsString('Documents agence', $dashboard->body);
+        $this->assertStringContainsString('Agence', $dashboard->body);
         $this->assertStringContainsString('Rapports', $dashboard->body);
         $this->assertStringContainsString('Maison A', $dashboard->body);
         $this->assertStringNotContainsString('Maison B', $dashboard->body);
+
+        $lessors = $controller->handle('rental_lessors', $this->request('GET', '/private/locations/bailleurs'));
+        $this->assertSame(200, $lessors->status);
+        $this->assertStringContainsString('Bailleurs', $lessors->body);
+        $this->assertStringContainsString('Créer un bailleur', $lessors->body);
 
         $agencies = $controller->handle('rental_agencies', $this->request('GET', '/private/locations/agence'));
         $this->assertSame(200, $agencies->status);
         $this->assertStringContainsString('Agences', $agencies->body);
         $this->assertStringContainsString('Créer une agence', $agencies->body);
-        $this->assertStringContainsString('Importer agence', $agencies->body);
+        $this->assertStringContainsString('Importer document', $agencies->body);
         $this->assertStringNotContainsString('Importer des documents agence', $agencies->body);
 
         $regularizations = $controller->handle('rental_regularizations', $this->request('GET', '/private/locations/regularisations'));
@@ -674,17 +679,37 @@ final class RealEstateRentalModuleTest extends TestCase
 
         $leasedUnit = $unitRepository->create($property->id, 'Lot deja loue', 40.0, false, 'available', null, $ownerId);
         $unavailableUnit = $unitRepository->create($property->id, 'Lot travaux', 38.0, false, 'unavailable', null, $ownerId);
+        $expiredUnavailableUnit = $unitRepository->create(
+            $property->id,
+            'Lot debloque',
+            39.0,
+            false,
+            'unavailable',
+            null,
+            $ownerId,
+            'apartment',
+            null,
+            null,
+            null,
+            null,
+            [],
+            date('Y-m-d', strtotime('-1 day'))
+        );
         $freeUnit = $unitRepository->create($property->id, 'Lot libre', 42.0, false, 'available', null, $ownerId);
         $this->assertNotNull($leasedUnit);
         $this->assertNotNull($unavailableUnit);
+        $this->assertNotNull($expiredUnavailableUnit);
         $this->assertNotNull($freeUnit);
         $this->assertSame('unavailable', $unavailableUnit->status);
+        $this->assertSame('available', $expiredUnavailableUnit->status);
 
         $leasedTenant = $lifecycleRepository->createTenant($property->id, $leasedUnit->id, 'Locataire bail actif', null, null, 'validated', $ownerId, null);
         $unavailableTenant = $lifecycleRepository->createTenant($property->id, $unavailableUnit->id, 'Locataire travaux', null, null, 'validated', $ownerId, null);
+        $expiredUnavailableTenant = $lifecycleRepository->createTenant($property->id, $expiredUnavailableUnit->id, 'Locataire debloque', null, null, 'validated', $ownerId, null);
         $freeTenant = $lifecycleRepository->createTenant($property->id, $freeUnit->id, 'Locataire libre', null, null, 'validated', $ownerId, null);
         $this->assertIsArray($leasedTenant);
         $this->assertIsArray($unavailableTenant);
+        $this->assertIsArray($expiredUnavailableTenant);
         $this->assertIsArray($freeTenant);
 
         $activeLease = $lifecycleRepository->createLease(
@@ -725,6 +750,8 @@ final class RealEstateRentalModuleTest extends TestCase
         $createDialogHtml = substr($leasesResponse->body, $dialogStart);
         $this->assertStringContainsString('Lot libre', $createDialogHtml);
         $this->assertStringContainsString('Locataire libre', $createDialogHtml);
+        $this->assertStringContainsString('Lot debloque', $createDialogHtml);
+        $this->assertStringContainsString('Locataire debloque', $createDialogHtml);
         $this->assertStringNotContainsString('Lot deja loue', $createDialogHtml);
         $this->assertStringNotContainsString('Lot travaux', $createDialogHtml);
 

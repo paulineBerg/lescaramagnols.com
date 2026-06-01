@@ -170,6 +170,7 @@ final class PrivateModuleMigrationPlanService
                 'description' => 'Biens, lots, membres, locataires, baux, loyers, paiements, charges, documents et rapports.',
                 'routeNames' => [
                     'rental_dashboard',
+                    'rental_lessors',
                     'rental_properties',
                     'rental_units',
                     'rental_property_members',
@@ -186,6 +187,7 @@ final class PrivateModuleMigrationPlanService
                     'rental_export_zip',
                 ],
                 'tables' => [
+                    'rental_lessors',
                     'rental_properties',
                     'rental_units',
                     'rental_property_members',
@@ -201,6 +203,7 @@ final class PrivateModuleMigrationPlanService
                     'rental_export_logs',
                 ],
                 'contractClasses' => [
+                    'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalLessorRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalPropertyRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalUnitRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalLifecycleRepository',

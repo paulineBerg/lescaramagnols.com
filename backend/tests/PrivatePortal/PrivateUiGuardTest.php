@@ -132,6 +132,10 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('delete_agency_unit_mapping', $template);
         self::assertStringContainsString('Texte détecté dans le document', $template);
         self::assertStringContainsString('$url(\'agencies\', \'rental_agencies\')', $nav);
+        self::assertStringContainsString('Agence', $nav);
+        self::assertStringContainsString('Importer document', $nav);
+        self::assertStringNotContainsString('Documents agence', $nav);
+        self::assertStringNotContainsString('Importer agence', $nav);
         self::assertStringContainsString('Gérer les agences', $importsTemplate);
         self::assertStringContainsString('À revoir', $importsTemplate);
         self::assertStringContainsString('Validé', $importsTemplate);
@@ -161,6 +165,8 @@ final class PrivateUiGuardTest extends TestCase
         $payments = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/payments.php');
 
         self::assertStringContainsString('download_lease', $leases);
+        self::assertStringContainsString('upload_lease_document', $leases);
+        self::assertStringContainsString('Importer le document bail', $leases);
         self::assertStringContainsString('Réajustement annuel', $leases);
         self::assertStringContainsString('name="adjustment_month"', $leases);
 
@@ -180,13 +186,14 @@ final class PrivateUiGuardTest extends TestCase
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');
 
         self::assertStringContainsString('default => []', $template);
-        self::assertStringContainsString('<?php if ($subItems !== []): ?>', $template);
+        self::assertStringContainsString('if ($subItems !== [])', $template);
     }
 
     public function testRentalPersonalNavigationDoesNotExposePropertyMembersMenu(): void
     {
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');
 
+        self::assertStringContainsString('Bailleurs', $template);
         self::assertStringNotContainsString('Accès aux propriétés', $template);
         self::assertStringNotContainsString('rental_property_members', $template);
     }

@@ -9,16 +9,15 @@ $url = static function (string $key, string $fallback) use ($urls): string {
 
 $mainItems = [
     'dashboard' => ['Tableau de bord', $url('dashboard', 'rental_dashboard')],
-    'personal' => ['Biens et locations', $url('properties', 'rental_properties')],
-    'agency' => ['Documents agence', $url('agencies', 'rental_agencies')],
+    'personal' => ['Biens et locations', $url('lessors', 'rental_lessors')],
+    'agency' => ['Agence', $url('agencies', 'rental_agencies')],
     'reports' => ['Rapports', $url('summary', 'rental_summary')],
 ];
 
 $subItems = match ($currentSection) {
     'agency' => [
-        'properties' => ['Propriétés', $url('properties', 'rental_properties')],
         'agencies' => ['Agences', $url('agencies', 'rental_agencies')],
-        'agencyImports' => ['Importer agence', $url('agencyImports', 'rental_agency_imports')],
+        'agencyImports' => ['Importer document', $url('agencyImports', 'rental_agency_imports')],
         'agencyReview' => ['Classer les documents', $url('agencyReview', 'rental_agency_review')],
     ],
     'reports' => [
@@ -27,6 +26,7 @@ $subItems = match ($currentSection) {
         'exportPdf' => ['Export PDF', $url('exportPdf', 'rental_export_pdf')],
     ],
     'personal' => [
+        'lessors' => ['Bailleurs', $url('lessors', 'rental_lessors')],
         'properties' => ['Propriétés', $url('properties', 'rental_properties')],
         'units' => ['Biens locatifs', $url('units', 'rental_units')],
         'tenants' => ['Locataires', $url('tenants', 'rental_tenants')],
@@ -42,19 +42,19 @@ $subItems = match ($currentSection) {
 ?>
 <nav class="private-module-nav" aria-label="Navigation locations immobilieres">
   <div class="private-module-nav-row">
-    <?php foreach ($mainItems as $key => [$label, $href]): ?>
+    <?php foreach ($mainItems as $key => [$label, $href]) : ?>
       <a class="<?php echo $currentSection === $key ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($href, ENT_QUOTES, 'UTF-8'); ?>">
         <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
       </a>
     <?php endforeach; ?>
   </div>
-  <?php if ($subItems !== []): ?>
+  <?php if ($subItems !== []) : ?>
     <div class="private-module-nav-row">
-      <?php foreach ($subItems as $key => [$label, $href]): ?>
+        <?php foreach ($subItems as $key => [$label, $href]) : ?>
         <a class="<?php echo $currentSubsection === $key ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($href, ENT_QUOTES, 'UTF-8'); ?>">
-          <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
+            <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>
         </a>
-      <?php endforeach; ?>
+        <?php endforeach; ?>
     </div>
   <?php endif; ?>
 </nav>

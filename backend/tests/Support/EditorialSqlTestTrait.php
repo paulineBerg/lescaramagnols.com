@@ -112,6 +112,7 @@ trait EditorialSqlTestTrait
                     'rental_property_members',
                     'rental_units',
                     'rental_properties',
+                    'rental_lessors',
                     'private_blocnote_notes',
                     'private_blocnote_categories',
                     'private_module_migrations',

@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS car_rental_units (
     surface DECIMAL(8,2) NOT NULL,
     furnished TINYINT(1) NOT NULL DEFAULT 0,
     status ENUM('available', 'unavailable', 'archived') NOT NULL DEFAULT 'available',
+    unavailable_until DATE NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     notes TEXT NULL,
     created_by_private_user_id INT NOT NULL,
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS car_rental_units (
     KEY idx_rental_units_property_active (rental_property_id, is_active),
     KEY idx_rental_units_type (unit_type),
     KEY idx_rental_units_status (status),
+    KEY idx_rental_units_unavailable_until (unavailable_until),
     KEY idx_rental_units_active (is_active),
     KEY idx_rental_units_created (created_by_private_user_id),
     CONSTRAINT fk_rental_units_property
