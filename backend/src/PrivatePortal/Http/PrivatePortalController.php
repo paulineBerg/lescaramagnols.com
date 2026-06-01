@@ -353,6 +353,9 @@ final class PrivatePortalController
         if ((string) ($smtpSettings['replyTo'] ?? '') === '') {
             $smtpSettings['replyTo'] = (string) $profile['email'];
         }
+        if ((string) ($smtpSettings['testRecipient'] ?? '') === '') {
+            $smtpSettings['testRecipient'] = (string) $profile['email'];
+        }
 
         if ($request->method() !== self::METHOD_POST) {
             return $this->renderMemberSettings($userId, $formValues, $smtpSettings, $notice, $error, $tab);
@@ -373,6 +376,9 @@ final class PrivatePortalController
             if ((string) ($settings['replyTo'] ?? '') === '') {
                 $settings['replyTo'] = (string) $profile['email'];
             }
+            if ((string) ($settings['testRecipient'] ?? '') === '') {
+                $settings['testRecipient'] = (string) $profile['email'];
+            }
             if (empty($result['success'])) {
                 return $this->renderMemberSettings($userId, $formValues, $settings, '', (string) ($result['error'] ?? 'save_failed'), 'smtp');
             }
@@ -383,6 +389,7 @@ final class PrivatePortalController
                 if ($recipient === '') {
                     $recipient = (string) $profile['email'];
                 }
+                $settings['testRecipient'] = $recipient;
                 $sent = $this->sendPrivateMail(
                     $recipient,
                     'Test SMTP espace privé',
@@ -393,7 +400,11 @@ final class PrivatePortalController
                 );
                 $noticeKey = $sent ? 'smtp_test_sent' : '';
                 if (!$sent) {
-                    return $this->renderMemberSettings($userId, $formValues, $settings, '', 'smtp_test_failed', 'smtp');
+                    $errorKey = $this->lastPrivateMailFailure === 'smtp_required'
+                        ? 'smtp_required'
+                        : 'smtp_test_failed';
+
+                    return $this->renderMemberSettings($userId, $formValues, $settings, '', $errorKey, 'smtp');
                 }
             }
 

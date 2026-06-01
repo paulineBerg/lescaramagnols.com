@@ -227,6 +227,7 @@ final class PrivateUserMailSettingsRepository
             'fromAddress' => '',
             'fromName' => function_exists('app_config') ? (string) app_config('site.name', 'Les Caramagnols') : 'Les Caramagnols',
             'replyTo' => '',
+            'testRecipient' => '',
             'updatedAt' => '',
             'configured' => false,
         ];
@@ -248,6 +249,7 @@ final class PrivateUserMailSettingsRepository
         $fromAddress = strtolower(trim((string) ($payload['from_address'] ?? ($fallback['fromAddress'] ?? ''))));
         $fromName = $this->sanitizeText((string) ($payload['from_name'] ?? ($fallback['fromName'] ?? 'Les Caramagnols')), 120);
         $replyTo = strtolower(trim((string) ($payload['reply_to'] ?? ($fallback['replyTo'] ?? ''))));
+        $testRecipient = strtolower(trim((string) ($payload['test_recipient'] ?? ($fallback['testRecipient'] ?? ''))));
 
         $data = [
             'enabled' => $this->booleanValue($payload['enabled'] ?? true),
@@ -259,6 +261,7 @@ final class PrivateUserMailSettingsRepository
             'fromAddress' => $fromAddress,
             'fromName' => $fromName !== '' ? $fromName : 'Les Caramagnols',
             'replyTo' => $replyTo,
+            'testRecipient' => $testRecipient,
             'updatedAt' => (string) ($fallback['updatedAt'] ?? ''),
             'configured' => (bool) ($fallback['configured'] ?? false),
         ];

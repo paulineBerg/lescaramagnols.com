@@ -228,7 +228,7 @@ $tabUrl = static fn (string $tab): string => $formAction . '?' . http_build_quer
       <div class="private-form-grid">
         <label>
           <?php echo $escape($translate('TXT_PRIVATE_SETTINGS_SMTP_TEST_RECIPIENT', 'Email de test')); ?>
-          <input type="email" name="test_recipient" maxlength="254" value="<?php echo $escape($email); ?>" />
+          <input type="email" name="test_recipient" maxlength="254" value="<?php echo $escape((string) ($smtp['testRecipient'] ?? $email)); ?>" />
         </label>
       </div>
 
