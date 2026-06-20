@@ -7,6 +7,7 @@ require_once __DIR__ . '/../bootstrap.php';
 use Caramagnols\Cron\CronJobRepository;
 use Caramagnols\Cron\CronJobRunner;
 use Caramagnols\Cron\CronScheduler;
+use Caramagnols\Cron\CronCenterExitCode;
 
 if (PHP_SAPI !== 'cli') {
     fwrite(STDERR, "Cette commande doit être exécutée en CLI.\n");
@@ -17,6 +18,7 @@ $options = parse_cli_options(array_slice($argv, 1));
 $dryRun = isset($options['dry-run']);
 $jsonOutput = isset($options['json']);
 $quiet = isset($options['quiet']);
+$failOnJobError = isset($options['strict']) || isset($options['fail-on-job-error']);
 $jobCode = isset($options['job']) && is_string($options['job'])
     ? trim($options['job'])
     : null;
@@ -50,14 +52,14 @@ try {
 
     if ($jsonOutput) {
         fwrite(STDOUT, json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL);
-        exit(cron_center_exit_code($result));
+        exit(CronCenterExitCode::forResult($result, $failOnJobError));
     }
 
     if (!$quiet) {
         render_cron_center_result($result);
     }
 
-    exit(cron_center_exit_code($result));
+    exit(CronCenterExitCode::forResult($result, $failOnJobError));
 } catch (Throwable $exception) {
     write_cron_center_error($exception->getMessage(), $jsonOutput);
     exit(1);
@@ -122,33 +124,6 @@ function render_cron_center_result(array $result): void
             )
         );
     }
-}
-
-/**
- * @param array<string, mixed> $result
- */
-function cron_center_exit_code(array $result): int
-{
-    if (($result['locked'] ?? false) === true) {
-        return 0;
-    }
-
-    if (($result['success'] ?? false) !== true) {
-        return 1;
-    }
-
-    $runs = is_array($result['runs'] ?? null) ? $result['runs'] : [];
-    foreach ($runs as $run) {
-        if (!is_array($run)) {
-            continue;
-        }
-
-        if (in_array((string) ($run['status'] ?? ''), ['failed', 'timeout'], true)) {
-            return 2;
-        }
-    }
-
-    return 0;
 }
 
 function write_cron_center_error(string $message, bool $jsonOutput): void

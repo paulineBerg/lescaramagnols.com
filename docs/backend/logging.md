@@ -106,7 +106,13 @@ Les logs SQL visibles dans `Admin > Logs` sont purges par le job Cron Center `pu
   - `composer cron-center`
   - `composer cron-center -- --dry-run`
   - `composer cron-center -- --job=publish_scheduled_blog_articles`
+  - `composer cron-center -- --strict` si une execution CLI doit echouer quand un job interne echoue
   - l'historique SQL conserve les 100 dernieres executions par job
+
+Note OVH :
+- le point d'entree `run_cron_center.php` retourne `0` quand le scheduler s'est execute et a journalise ses jobs, meme si un job interne a echoue; cela evite qu'OVH suspende toute la coordination apres `10` echecs consecutifs;
+- le job Cron Center `check_log_alerts` s'execute sans `--strict` par defaut afin qu'une alerte detectee ne fasse pas sortir le point d'entree OVH en echec;
+- le mode `--strict` reste reserve aux controles manuels, pre-release ou au timer systemd dedie, dont l'unite accepte explicitement les codes de sortie `0` et `2`.
 
 Seuils par defaut :
 - `admin.login.failed >= 10`

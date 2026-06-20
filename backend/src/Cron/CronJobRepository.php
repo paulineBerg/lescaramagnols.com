@@ -347,7 +347,7 @@ final class CronJobRepository
                 'name' => 'Alertes logs',
                 'description' => 'Analyse les logs applicatifs et notifie les seuils configurés.',
                 'script_path' => 'core/tools/check_log_alerts.php',
-                'arguments' => ['args' => ['--strict']],
+                'arguments' => ['args' => []],
                 'schedule_expression' => '*/15 * * * *',
                 'timeout_seconds' => 300,
             ],

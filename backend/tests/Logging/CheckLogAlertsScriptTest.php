@@ -92,4 +92,33 @@ final class CheckLogAlertsScriptTest extends TestCase
         self::assertStringNotContainsString('raw-secret-token', $rawOutput);
         self::assertStringNotContainsString('raw-db-password', $rawOutput);
     }
+
+    public function testNonStrictModeKeepsZeroExitCodeWhenAlertsAreDetected(): void
+    {
+        $this->logDir = sys_get_temp_dir() . '/caramagnols-v5-log-alerts-' . bin2hex(random_bytes(6));
+        mkdir($this->logDir, 0700, true);
+
+        file_put_contents(
+            $this->logDir . '/content.log',
+            'content.ERROR: cron.job.failed {"job":"purge_private_discussions"}' . PHP_EOL
+        );
+
+        $script = dirname(__DIR__, 2) . '/core/tools/check_log_alerts.php';
+        $command = sprintf(
+            '%s %s --json --since-minutes=60 --log-dir=%s --cron-failed-threshold=1 2>&1',
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg($script),
+            escapeshellarg($this->logDir)
+        );
+
+        $output = [];
+        $status = 0;
+        exec($command, $output, $status);
+        $payload = json_decode(implode(PHP_EOL, $output), true);
+
+        self::assertSame(0, $status);
+        self::assertIsArray($payload);
+        self::assertSame('error', $payload['overall_severity'] ?? null);
+        self::assertSame('cron_failed', $payload['alerts'][0]['metric'] ?? null);
+    }
 }

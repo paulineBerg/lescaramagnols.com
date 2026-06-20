@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
+namespace LesCaramagnols\Tests;
+
 use Caramagnols\Cron\CronJobRepository;
+use DateTimeImmutable;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
-
-require_once __DIR__ . '/../core/bootstrap.php';
 
 final class CronJobRepositoryTest extends TestCase
 {
@@ -30,6 +31,10 @@ final class CronJobRepositoryTest extends TestCase
         $this->assertContains('backup_production', $codes);
         $this->assertContains('check_log_alerts', $codes);
         $this->assertContains('purge_sql_logs', $codes);
+
+        $logAlerts = $repository->findJob('check_log_alerts');
+        $this->assertIsArray($logAlerts);
+        $this->assertSame(['args' => []], $logAlerts['arguments']);
 
         foreach ($jobs as $job) {
             $this->assertSame('active', $job['status']);
