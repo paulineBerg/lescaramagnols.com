@@ -31,6 +31,7 @@ final class PrivatePortalDashboardTest extends TestCase
         $appConfig['private']['enabled'] = true;
         $appConfig['private']['session_name'] = '_private_dashboard_test';
         $appConfig['private']['base_path'] = 'private';
+        $appConfig['private']['mail'] = ['enabled' => false];
     }
 
     protected function tearDown(): void

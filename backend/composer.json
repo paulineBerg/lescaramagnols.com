@@ -27,6 +27,9 @@
       "LesCaramagnols\\Tests\\": "tests/"
     }
   },
+  "config": {
+    "process-timeout": 0
+  },
   "scripts": {
     "test": "phpunit",
     "check-env": "php core/tools/check_env.php",
