@@ -29,3 +29,6 @@ postbuild:
 	@cd frontend && npm run postbuild
 
 all: install-backend install-frontend test-backend test-frontend build-frontend postbuild
+
+# Interface standard workspace
+include /home/surfacepro8/www/.infra/tools/make-repo.mk
