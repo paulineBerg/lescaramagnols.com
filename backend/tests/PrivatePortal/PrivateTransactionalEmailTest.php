@@ -137,6 +137,28 @@ final class PrivateTransactionalEmailTest extends TestCase
         self::assertStringContainsString('[email redacted]', $message);
     }
 
+    public function testMailerDeliveryIsDisabledDuringAutomatedTests(): void
+    {
+        $result = send_notification_email_with_error(
+            'recipient@example.com',
+            'Test sans réseau',
+            '<p>Aucun envoi réel.</p>',
+            [],
+            [
+                'transport' => 'smtp',
+                'smtp_host' => 'smtp.example.com',
+                'smtp_port' => 587,
+                'smtp_user' => 'sender@example.com',
+                'smtp_password' => 'test-secret',
+                'smtp_encryption' => 'tls',
+                'from_address' => 'sender@example.com',
+            ]
+        );
+
+        self::assertFalse($result['sent']);
+        self::assertSame('mail delivery disabled in test environment', $result['error']);
+    }
+
     public function testPrivateMailSettingsCanSendMaskedSmtpTest(): void
     {
         $sentMessages = [];

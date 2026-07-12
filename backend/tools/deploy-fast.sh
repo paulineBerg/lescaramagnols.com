@@ -19,12 +19,36 @@ ALL_CHANGES=0
 
 is_deploy_excluded_path() {
   case "$1" in
-    .env|.env.*|config/*.override.php|vendor|vendor/*|node_modules|node_modules/*|tests|tests/*|docs|docs/*|README*|private|private/*|var|var/*|phpunit.xml|phpstan.neon*|phpstan.bootstrap.php|phpcs.xml|package.json|package-lock.json|npm-shrinkwrap.json|replace_image_paths.php|data/snapshots|data/snapshots/*|data/logs|data/logs/*|*.bak|*.old|*.orig|*.tmp|*~|.DS_Store|Thumbs.db|public/.ovhconfig|public/uploads|public/uploads/*|public/dev-router.php)
+    .env|.env.*|config/*.override.php|vendor|vendor/*|node_modules|node_modules/*|tests|tests/*|docs|docs/*|README*|*/README*|AGENTS.md|*/AGENTS.md|private|private/*|var|var/*|phpunit.xml|phpstan.neon*|phpstan.bootstrap.php|phpcs.xml|package.json|package-lock.json|npm-shrinkwrap.json|replace_image_paths.php|data/snapshots|data/snapshots/*|data/logs|data/logs/*|*.bak|*.old|*.orig|*.tmp|*~|.DS_Store|Thumbs.db|public/.ovhconfig|public/uploads|public/uploads/*|public/dev-router.php)
       return 0
       ;;
   esac
 
   return 1
+}
+
+guard_submodule_state() {
+  local gitmodules="$REPO_ROOT/.gitmodules"
+  [[ -f "$gitmodules" ]] || return
+
+  local status
+  status="$(git -C "$REPO_ROOT" submodule status --recursive)"
+  if grep -Eq '^[-+U]' <<<"$status"; then
+    echo "Refus de deploy: un sous-module est absent, divergent ou en conflit:" >&2
+    printf '%s\n' "$status" >&2
+    echo "Executer git submodule sync --recursive puis git submodule update --init --recursive." >&2
+    exit 1
+  fi
+
+  local path
+  while read -r _key path; do
+    [[ -n "$path" ]] || continue
+    if [[ -n "$(git -C "$REPO_ROOT/$path" status --porcelain)" ]]; then
+      echo "Refus de deploy: sous-module sale: $path" >&2
+      echo "Commiter et pousser le module, puis mettre a jour son gitlink dans le depot principal." >&2
+      exit 1
+    fi
+  done < <(git config --file "$gitmodules" --get-regexp '^submodule\..*\.path$')
 }
 
 cleanup_remote_non_prod_files() {
@@ -117,6 +141,8 @@ if ! git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
   exit 1
 fi
 
+guard_submodule_state
+
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 ALL_CHANGED="$TMP_DIR/all_changed.txt"
@@ -135,6 +161,17 @@ if [[ "$ALL_CHANGES" -eq 1 ]]; then
   } | sort -u > "$ALL_CHANGED"
 else
   git -C "$REPO_ROOT" diff --cached --name-only -- backend | sort -u > "$ALL_CHANGED"
+fi
+
+if [[ -f "$REPO_ROOT/.gitmodules" ]]; then
+  while read -r _key submodule_path; do
+    [[ -n "$submodule_path" ]] || continue
+    if grep -Fxq "$submodule_path" "$ALL_CHANGED"; then
+      echo "Refus du deploy rapide: gitlink de sous-module modifie: $submodule_path" >&2
+      echo "Utiliser backend/tools/deploy-release.sh pour publier un module autonome complet." >&2
+      exit 1
+    fi
+  done < <(git config --file "$REPO_ROOT/.gitmodules" --get-regexp '^submodule\..*\.path$')
 fi
 
 while IFS= read -r rel_path; do

@@ -4,8 +4,124 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "24c898724cad36671bd7de39207cde8f",
+    "content-hash": "d4cb37e20dd22d859ec43ecdb3af0d0d",
     "packages": [
+        {
+            "name": "caramagnols/family-discussion",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/PrivateApps/FamilyDiscussion",
+                "reference": "17fff7f7946d161a55d3b552bf45d134e63c0a31"
+            },
+            "require": {
+                "ext-fileinfo": "*",
+                "ext-openssl": "*",
+                "ext-pdo": "*",
+                "php": "^8.1"
+            },
+            "suggest": {
+                "lescaramagnols/backend": "Fournit les contrats PrivatePortal et les services hôtes requis à l’exécution."
+            },
+            "type": "caramagnols-private-app",
+            "extra": {
+                "caramagnols-private-app": {
+                    "manifests": [
+                        "Caramagnols\\PrivateApps\\FamilyDiscussion\\PrivateAppManifest"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Caramagnols\\PrivateApps\\FamilyDiscussion\\": ""
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Module de discussions familiales pour le portail privé Caramagnols.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "caramagnols/real-estate-rental",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/PrivateApps/RealEstateRental",
+                "reference": "981b2b9372b6fb4e9921667b057b1ff931c1f3c8"
+            },
+            "require": {
+                "ext-fileinfo": "*",
+                "ext-pdo": "*",
+                "ext-zip": "*",
+                "php": "^8.1"
+            },
+            "suggest": {
+                "lescaramagnols/backend": "Fournit les contrats PrivatePortal, le stockage documentaire et les services hôtes requis à l’exécution."
+            },
+            "type": "caramagnols-private-app",
+            "extra": {
+                "caramagnols-private-app": {
+                    "manifests": [
+                        "Caramagnols\\PrivateApps\\RealEstateRental\\PrivateAppManifest",
+                        "Caramagnols\\PrivateApps\\RealEstateRental\\AgencyImportsManifest"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\": ""
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Module de gestion locative privée pour le portail Caramagnols.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
+        {
+            "name": "caramagnols/tax-declaration-helper",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "src/PrivateApps/TaxDeclarationHelper",
+                "reference": "e26bc52a23b8e8c95b186983969c1482b4f6ba41"
+            },
+            "require": {
+                "ext-pdo": "*",
+                "php": "^8.1"
+            },
+            "suggest": {
+                "lescaramagnols/backend": "Fournit les contrats PrivatePortal, les sources fiscales et les services hôtes requis à l’exécution."
+            },
+            "type": "caramagnols-private-app",
+            "extra": {
+                "caramagnols-private-app": {
+                    "manifests": [
+                        "Caramagnols\\PrivateApps\\TaxDeclarationHelper\\PrivateAppManifest"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Caramagnols\\PrivateApps\\TaxDeclarationHelper\\": ""
+                }
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "Module privé d’aide à la préparation des données fiscales pour le portail Caramagnols.",
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
         {
             "name": "doctrine/lexer",
             "version": "3.0.1",
@@ -3015,7 +3131,11 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "caramagnols/family-discussion": 20,
+        "caramagnols/real-estate-rental": 20,
+        "caramagnols/tax-declaration-helper": 20
+    },
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {

@@ -21,6 +21,10 @@ function send_notification_email(string $to, string $subject, string $message, a
  */
 function send_notification_email_with_error(string $to, string $subject, string $message, array $attachments = [], ?array $config = null): array
 {
+    if (defined('CARAMAGNOLS_TESTING') && CARAMAGNOLS_TESTING === true) {
+        return ['sent' => false, 'error' => 'mail delivery disabled in test environment'];
+    }
+
     try {
         $mailer = new Mailer($config ?? app_config('mail'));
         $mailer->send($to, $subject, $message, $attachments);

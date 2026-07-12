@@ -46,9 +46,13 @@ Pre-requis:
 Commandes:
 
 ```bash
+git submodule sync --recursive
+git submodule update --init --recursive
 cd backend && composer install
 cd ../frontend && npm install
 ```
+
+Les modules privés sous `backend/src/PrivateApps/` sont des dépôts Git autonomes épinglés par le dépôt principal. Après chaque clone, changement de branche ou `git pull`, resynchroniser les sous-modules avant de lancer Composer.
 
 Procedure d'installation securisee (hors webroot): `docs/backend/installation-hors-webroot.md`.
 

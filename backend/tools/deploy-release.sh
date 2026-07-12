@@ -41,6 +41,30 @@ guard_untracked_source_files() {
   exit 1
 }
 
+guard_submodule_state() {
+  local gitmodules="$REPO_ROOT/.gitmodules"
+  [[ -f "$gitmodules" ]] || return
+
+  local status
+  status="$(git -C "$REPO_ROOT" submodule status --recursive)"
+  if grep -Eq '^[-+U]' <<<"$status"; then
+    echo "Refus de deploy: un sous-module est absent, divergent ou en conflit:" >&2
+    printf '%s\n' "$status" >&2
+    echo "Executer git submodule sync --recursive puis git submodule update --init --recursive." >&2
+    exit 1
+  fi
+
+  local path
+  while read -r _key path; do
+    [[ -n "$path" ]] || continue
+    if [[ -n "$(git -C "$REPO_ROOT/$path" status --porcelain)" ]]; then
+      echo "Refus de deploy: sous-module sale: $path" >&2
+      echo "Commiter et pousser le module, puis mettre a jour son gitlink dans le depot principal." >&2
+      exit 1
+    fi
+  done < <(git config --file "$gitmodules" --get-regexp '^submodule\..*\.path$')
+}
+
 usage() {
   cat <<'USAGE'
 Usage:
@@ -116,6 +140,7 @@ if [[ ! -f "$LOCAL_BACKEND/$PROD_TREE_CHECKER" ]]; then
 fi
 
 guard_untracked_source_files
+guard_submodule_state
 
 echo "Deploy mode: release"
 echo "Dry run: $DRY_RUN"
@@ -156,6 +181,7 @@ rsync "${RSYNC_FLAGS[@]}" \
   --exclude="/tests/" \
   --exclude="/docs/" \
   --exclude="README*" \
+  --exclude="AGENTS.md" \
   --exclude="/private/" \
   --exclude="phpunit.xml" \
   --exclude="phpstan.neon*" \

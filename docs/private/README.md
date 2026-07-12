@@ -3,6 +3,14 @@
 Date de mise a jour : 2026-06-01
 Statut : cadrage cible validé, PVT-01 terminé ; architecture fonctionnelle locative enrichie pour les contrats, loyers, locataires, agence, rapports, fiscalite et discussions privees avec chiffrement local texte V1, chiffrement serveur au repos des fichiers joints, categories documentaires, tableau de bord locatif et trajectoire de migration progressive vers une application privee moderne.
 
+Mise a jour 2026-07-12 (modules autonomes installables) :
+- `FamilyDiscussion`, `RealEstateRental` et `TaxDeclarationHelper` sont des sous-modules Git épinglés sous `backend/src/PrivateApps/`, chacun avec son dépôt GitHub et son historique propres;
+- chaque module est aussi un paquet Composer de type `caramagnols-private-app`, avec autoload PSR-4, extensions PHP requises et manifests déclarés dans `extra.caramagnols-private-app.manifests`;
+- le backend les installe depuis les chemins de sous-modules via le dépôt Composer `path` `src/PrivateApps/*` et découvre aussi leurs manifests depuis `vendor/composer/installed.json`;
+- après un clone ou un pull, exécuter `git submodule sync --recursive` puis `git submodule update --init --recursive` avant `composer install --working-dir=backend`;
+- une modification de module est d'abord commitée et poussée dans son dépôt propre; le dépôt principal ne versionne ensuite que le nouveau gitlink du sous-module;
+- un déploiement refuse un sous-module absent, divergent ou sale, afin de ne jamais supprimer ou publier une version incomplète du module.
+
 Mise a jour 2026-06-01 (email de connexion membre) :
 - le BO admin, section `Espace prive > Membres`, permet de modifier l'email de connexion d'un compte prive existant;
 - la modification reste reservee au BO admin, passe par CSRF, verifie l'unicite de l'adresse et journalise l'action;

@@ -10,11 +10,22 @@
 ## Installation locale
 
 ```bash
+git submodule sync --recursive
+git submodule update --init --recursive
+
 cd backend
 composer install
 
 cd ../frontend
 npm install
+```
+
+Les sous-modules privés sont épinglés sur des commits validés par le dépôt principal. Ne pas utiliser `git submodule update --remote` pour une installation normale : `git submodule update --init --recursive` restitue exactement les versions attendues.
+
+Pour cloner le projet en une seule commande :
+
+```bash
+git clone --recurse-submodules git@github.com:paulineBerg/lescaramagnols.com.git
 ```
 
 ## Lancement local

@@ -6,6 +6,11 @@ namespace Caramagnols\PrivatePortal;
 
 final class PrivateModuleRegistry
 {
+    public function __construct(
+        private readonly ?PrivateAppPackageDiscovery $packageDiscovery = null
+    ) {
+    }
+
     /**
      * @return array<int, array<string, string>>
      */
@@ -91,41 +96,47 @@ final class PrivateModuleRegistry
     private function privateAppManifestClasses(): array
     {
         $privateAppsPath = dirname(__DIR__) . '/PrivateApps';
-        if (!is_dir($privateAppsPath)) {
-            return [];
-        }
-
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($privateAppsPath, \FilesystemIterator::SKIP_DOTS)
-        );
-
         $manifestClasses = [];
-        $sourceRoot = dirname(__DIR__);
-        $sourceRootLength = strlen($sourceRoot) + 1;
+        if (is_dir($privateAppsPath)) {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($privateAppsPath, \FilesystemIterator::SKIP_DOTS)
+            );
+            $sourceRoot = dirname(__DIR__);
+            $sourceRootLength = strlen($sourceRoot) + 1;
 
-        foreach ($iterator as $fileinfo) {
-            if (!$fileinfo->isFile() || $fileinfo->getExtension() !== 'php') {
-                continue;
+            foreach ($iterator as $fileinfo) {
+                if (!$fileinfo->isFile() || $fileinfo->getExtension() !== 'php') {
+                    continue;
+                }
+
+                $filename = $fileinfo->getFilename();
+                if (!str_ends_with($filename, 'Manifest.php')) {
+                    continue;
+                }
+
+                $relativePath = str_replace('\\', '/', substr($fileinfo->getPathname(), $sourceRootLength));
+                $className = 'Caramagnols\\' . str_replace('/', '\\', substr($relativePath, 0, -4));
+
+                if (!str_starts_with($className, 'Caramagnols\\PrivateApps\\')) {
+                    continue;
+                }
+                if (!class_exists($className) || !is_subclass_of($className, PrivateAppManifest::class)) {
+                    continue;
+                }
+
+                $manifestClasses[] = $className;
             }
-
-            $filename = $fileinfo->getFilename();
-            if (!str_ends_with($filename, 'Manifest.php')) {
-                continue;
-            }
-
-            $relativePath = str_replace('\\', '/', substr($fileinfo->getPathname(), $sourceRootLength));
-            $className = 'Caramagnols\\' . str_replace('/', '\\', substr($relativePath, 0, -4));
-
-            if (!str_starts_with($className, 'Caramagnols\\PrivateApps\\')) {
-                continue;
-            }
-            if (!class_exists($className) || !is_subclass_of($className, PrivateAppManifest::class)) {
-                continue;
-            }
-
-            $manifestClasses[] = $className;
         }
 
+        foreach (($this->packageDiscovery ?? new PrivateAppPackageDiscovery())->manifestClasses() as $manifestClass) {
+            if (!class_exists($manifestClass) || !is_subclass_of($manifestClass, PrivateAppManifest::class)) {
+                continue;
+            }
+
+            $manifestClasses[] = $manifestClass;
+        }
+
+        $manifestClasses = array_values(array_unique($manifestClasses));
         sort($manifestClasses);
 
         return array_values($manifestClasses);
