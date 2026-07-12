@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\PrivatePortal\Operations;
 
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
+use Caramagnols\PrivatePortal\PrivateAppManifest;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 
 final class PrivateModuleMigrationPlanService
@@ -348,10 +349,53 @@ final class PrivateModuleMigrationPlanService
             ],
         ];
 
+        $plans = $this->hydratePlansFromPrivateAppManifest($plans);
+
         uasort(
             $plans,
             static fn (array $left, array $right): int => ((int) $left['order']) <=> ((int) $right['order'])
         );
+
+        return $plans;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $plans
+     * @return array<string, array<string, mixed>>
+     */
+    private function hydratePlansFromPrivateAppManifest(array $plans): array
+    {
+        $seeded = [];
+        foreach ($this->moduleRegistry->privateAppManifests() as $manifest) {
+            if (!$manifest instanceof PrivateAppManifest) {
+                continue;
+            }
+
+            $migrationCode = $manifest->migrationCode();
+            if ($migrationCode === '') {
+                continue;
+            }
+
+            $seeded[$migrationCode] = [
+                'order' => $manifest->order(),
+                'title' => $manifest->title(),
+                'permissionModule' => $manifest->modulePermissionCode(),
+                'migrationStatusModule' => $manifest->migrationStatusCode(),
+                'description' => $manifest->moduleDescription(),
+                'routeNames' => $manifest->routeNames(),
+                'tables' => $manifest->tables(),
+                'contractClasses' => $manifest->contractClasses(),
+                'testClasses' => $manifest->testClasses(),
+                'auditEvents' => $manifest->auditEvents(),
+                'uiStates' => $manifest->uiStates(),
+                'legacyRoutes' => $manifest->legacyRoutes(),
+                'notes' => $manifest->notes(),
+            ];
+        }
+
+        foreach ($seeded as $migrationCode => $seedPlan) {
+            $plans[$migrationCode] = array_merge($plans[$migrationCode] ?? [], $seedPlan);
+        }
 
         return $plans;
     }

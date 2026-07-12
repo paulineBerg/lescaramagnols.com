@@ -82,4 +82,47 @@ final class PrivateModuleMigrationPlanTest extends TestCase
         $this->assertContains('rental_agency_imported_documents', $agency['tables'] ?? []);
         $this->assertContains('rental_agency_unit_mappings', $agency['tables'] ?? []);
     }
+
+    public function testExistingPrivateAppsAreConnectedThroughManifests(): void
+    {
+        $registry = new PrivateModuleRegistry();
+        $manifests = $registry->privateAppManifests();
+
+        $manifestCodes = array_map(
+            static fn (\Caramagnols\PrivatePortal\PrivateAppManifest $manifest): string => $manifest->moduleCode(),
+            $manifests
+        );
+
+        $this->assertContains('discussions', $manifestCodes);
+        $this->assertContains('real_estate_rental', $manifestCodes);
+        $this->assertContains('tax_declaration_helper', $manifestCodes);
+
+        $this->assertContains('family_discussion', array_map(
+            static fn (\Caramagnols\PrivatePortal\PrivateAppManifest $manifest): string => $manifest->migrationCode(),
+            $manifests
+        ));
+        $this->assertContains('real_estate_rental', array_map(
+            static fn (\Caramagnols\PrivatePortal\PrivateAppManifest $manifest): string => $manifest->migrationCode(),
+            $manifests
+        ));
+        $this->assertContains('agency_imports', array_map(
+            static fn (\Caramagnols\PrivatePortal\PrivateAppManifest $manifest): string => $manifest->migrationCode(),
+            $manifests
+        ));
+        $this->assertContains('tax_declaration_helper', array_map(
+            static fn (\Caramagnols\PrivatePortal\PrivateAppManifest $manifest): string => $manifest->migrationCode(),
+            $manifests
+        ));
+
+        $service = new PrivateModuleMigrationPlanService(
+            $registry,
+            new PrivateRouteResolver('private')
+        );
+        $plans = $service->plans();
+
+        $this->assertArrayHasKey('family_discussion', $plans);
+        $this->assertArrayHasKey('real_estate_rental', $plans);
+        $this->assertArrayHasKey('agency_imports', $plans);
+        $this->assertArrayHasKey('tax_declaration_helper', $plans);
+    }
 }
