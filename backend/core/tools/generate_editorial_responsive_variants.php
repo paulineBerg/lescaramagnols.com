@@ -393,6 +393,20 @@ function resize_and_write_image(
     return $written;
 }
 
+/**
+ * PHPStan analyse ce script dans la portée globale où `$options` peut aussi
+ * désigner une valeur issue de `getopt()`. Réaffirmer ici la forme retournée
+ * par `parse_options()` évite cette ambiguïté sans modifier le runtime.
+ *
+ * @var array{
+ *   paths: array<int, string>,
+ *   widths: array<int, int>,
+ *   qualityJpeg: int,
+ *   qualityWebp: int,
+ *   force: bool,
+ *   dryRun: bool
+ * } $options
+ */
 $options = parse_options($argv);
 
 if (!function_exists('imagecreatetruecolor') || !function_exists('imagecopyresampled') || !function_exists('imagewebp')) {
