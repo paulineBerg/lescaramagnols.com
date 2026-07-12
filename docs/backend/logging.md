@@ -229,6 +229,20 @@ Pilotage admin V2 (sans exposition des secrets) :
 
 Par defaut, le service accepte les retours `0` et `2` (`--strict` + seuil depasse) comme etats valides (`SuccessExitStatus=0 2`).
 
+## Cohérence du déploiement Cron Center
+
+Le `2026-07-12`, la production OVH contenait trois jobs privés actifs alors que leurs scripts n'avaient pas été déployés. Le scheduler restait exécutable en mode non strict, mais enregistrait chaque passage en échec avec `Script cron non autorisé` ou `Script cron introuvable`.
+
+`CronJobRepository::ensureDefaults()` contrôle désormais la présence réelle de chaque script par défaut sous la racine applicative. Un job dont le script manque est créé inactif ou désactivé s'il était déjà actif. Il ne sera pas réactivé automatiquement lorsqu'un futur déploiement ajoutera le script : cette activation doit rester une décision explicite après déploiement complet du composant, de son schéma et de ses fichiers runtime.
+
+Validation attendue après un déploiement partiel ou complet :
+
+```bash
+php backend/core/tools/run_cron_center.php --dry-run --json
+```
+
+Le résultat ne doit contenir aucun job actif pointant vers un script absent. En production publique sans portail privé déployé, les jobs `purge_private_discussions`, `scan_private_discussion_attachments` et `purge_private_account_deletion_backups` doivent rester inactifs.
+
 ## TODO
 
 - raccorder le webhook a la destination monitoring definitive (selon infra cible : Slack/Teams/ELK/Prometheus Alertmanager, etc.)

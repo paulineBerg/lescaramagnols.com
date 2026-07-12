@@ -13,8 +13,13 @@ final class CronJobRepository
 {
     private const HISTORY_LIMIT_PER_JOB = 100;
 
-    public function __construct(private readonly EditorialDatabase $database)
-    {
+    private readonly string $rootPath;
+
+    public function __construct(
+        private readonly EditorialDatabase $database,
+        ?string $rootPath = null
+    ) {
+        $this->rootPath = rtrim($rootPath ?? dirname(__DIR__, 2), '/');
     }
 
     public function ensureDefaults(): void
@@ -22,6 +27,7 @@ final class CronJobRepository
         $this->database->ensureReady();
         $now = $this->now();
         foreach ($this->defaultJobs() as $job) {
+            $scriptAvailable = $this->isDefaultScriptAvailable($job['script_path']);
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT IGNORE INTO `%s`
@@ -40,12 +46,41 @@ final class CronJobRepository
                 'script_path' => $job['script_path'],
                 'arguments_json' => $this->encodeJson($job['arguments']),
                 'schedule_expression' => $job['schedule_expression'],
-                'status' => 'active',
+                'status' => $scriptAvailable ? 'active' : 'inactive',
                 'timeout_seconds' => $job['timeout_seconds'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
+
+            if (!$scriptAvailable) {
+                $this->deactivateUnavailableDefaultJob($job['code'], $now);
+            }
         }
+    }
+
+    private function isDefaultScriptAvailable(string $scriptPath): bool
+    {
+        $scriptPath = str_replace('\\', '/', trim($scriptPath));
+
+        return $scriptPath !== ''
+            && str_starts_with($scriptPath, 'core/tools/')
+            && !str_contains($scriptPath, '..')
+            && is_file($this->rootPath . '/' . $scriptPath);
+    }
+
+    private function deactivateUnavailableDefaultJob(string $code, string $updatedAt): void
+    {
+        $statement = $this->database->pdo()->prepare(
+            sprintf(
+                "UPDATE `%s` SET `status` = 'inactive', `updated_at` = :updated_at
+                 WHERE `code` = :code AND `status` = 'active'",
+                $this->database->table('cron_jobs')
+            )
+        );
+        $statement->execute([
+            'code' => $code,
+            'updated_at' => $updatedAt,
+        ]);
     }
 
     /**

@@ -41,6 +41,28 @@ final class CronJobRepositoryTest extends TestCase
         }
     }
 
+    public function testEnsureDefaultsDeactivatesJobsWhoseScriptsAreNotDeployed(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $repository = new CronJobRepository($database);
+        $repository->ensureDefaults();
+
+        $emptyRoot = sys_get_temp_dir() . '/caramagnols-cron-defaults-' . bin2hex(random_bytes(6));
+        mkdir($emptyRoot . '/core/tools', 0777, true);
+
+        try {
+            (new CronJobRepository($database, $emptyRoot))->ensureDefaults();
+
+            foreach ((new CronJobRepository($database, $emptyRoot))->listJobs() as $job) {
+                $this->assertSame('inactive', $job['status']);
+            }
+        } finally {
+            rmdir($emptyRoot . '/core/tools');
+            rmdir($emptyRoot . '/core');
+            rmdir($emptyRoot);
+        }
+    }
+
     public function testRunHistoryKeepsLastHundredEntriesPerJob(): void
     {
         $repository = new CronJobRepository($this->editorialSqlDatabase());
