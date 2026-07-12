@@ -1,0 +1,8 @@
+Phase C5 - frontend privé
+
+Commandes executees:
+- npm run lint:css
+  Resultat: OK.
+- npm run build
+  Resultat: OK, budgets respectes, publication terminee.
+  Asset privé publié: private.CsZtk3Rd.css.

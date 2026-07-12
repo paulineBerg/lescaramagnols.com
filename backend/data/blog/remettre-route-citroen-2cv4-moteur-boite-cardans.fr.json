@@ -1,0 +1,35 @@
+{
+    "title": "Remettre en route une Citroën 2CV4 : moteur, boîte, cardans et contrôles de fin de chantier",
+    "slug": "remettre-route-citroen-2cv4-moteur-boite-cardans",
+    "lang": "fr",
+    "status": "draft",
+    "author": "Caramagnols",
+    "category": "auto-retro",
+    "subcategory": "restauration-et-entretien",
+    "date": "2026-05-02 10:30:00",
+    "excerpt": "Une fois la structure remise d’aplomb, la 2CV4 réclame une remise en route logique : freins et suspensions d’abord, puis moteur, boîte, cardans, étanchéité et allumage avant les premiers essais.",
+    "content": "<p>Sur cette 2CV4, la mécanique n’a pas été abordée comme une récompense de fin de chantier. Elle a été traitée comme une suite d’ensembles à remettre en cohérence après la reprise du dessous : freins, suspensions, moteur, boîte, cardans et étanchéité. Cet ordre compte. Sur une ancienne non tournante, écouter le moteur trop tôt ne prouve rien si le reste de la voiture n’est pas prêt à le supporter.</p>\n<figure><img src=\"/assets/images/autoretro/citroen/citroen_2cv_orange_2024.jpg\" alt=\"Citroën 2CV orange vue en extérieur en 2024\" title=\"2CV prête à reprendre la route\" width=\"400\" height=\"267\" loading=\"lazy\" decoding=\"async\" /><figcaption>Quand la structure et la mécanique sont cohérentes, la 2CV retrouve une route simple et lisible.</figcaption></figure>\n<h2>Sécuriser la partie roulante avant le moteur</h2>\n<p>La première logique de remise en route passe par les organes qui tiennent la voiture : freins, suspensions, pots de suspension, amortisseurs et points d’usure évidents. Sur cette 2CV4, ces postes ont été repris avant de penser à un vrai retour sur route. Une voiture qui démarre mais ne freine pas ou ne tient pas sa ligne n’est pas remise en route; elle est seulement réveillée trop tôt.</p>\n<p>Ce principe vaut aussi pour la lecture du budget. Les pièces de sécurité donnent le cadre réel des premiers essais. Sans elles, tout démarrage devient un geste isolé, sans suite fiable.</p>\n<h2>Refaire le moteur sans oublier l’allumage</h2>\n<p>Le moteur de cette 2CV4 a été reconstruit avec cylindres, pistons et révision de culasse. Ce type d’intervention change la base mécanique de manière visible : compression retrouvée, étanchéité mieux maîtrisée et lecture plus claire du bicylindre au démarrage. Là encore, la valeur du travail tient à ce qui a été ouvert et contrôlé, pas au simple fait qu’un moteur démarre.</p>\n<p>Le choix de l’allumage électronique mérite aussi d’être lu pour ce qu’il est : une amélioration discrète de régularité et de facilité de démarrage, pas une transformation de caractère. Sur une 2CV de 1974 appelée à rouler en famille, ce type d’écart mesuré peut faire gagner du temps d’entretien sans dénaturer l’ensemble.</p>\n<h2>Boîte, cardans et étanchéité dans la même chaîne</h2>\n<p>La boîte a été déposée, ouverte pour contrôle, puis rendue de nouveau étanche avec le remplacement de tous les joints SPI. Les cardans ont suivi avec soufflets neufs et remise en état d’ensemble. Ce travail paraît moins visible qu’une peinture, mais c’est lui qui décide si les premiers kilomètres seront une validation ou une nouvelle série de fuites et de démontages.</p>\n<p>Sur une petite traction avant, la cohérence entre moteur, boîte et transmissions doit être lue comme une chaîne unique. Si un seul maillon reste douteux, le retour sur route se transforme vite en retour sur le pont.</p>\n<h2>Valider avant les premiers kilomètres</h2>\n<p>Une fois la mécanique remontée, la vraie prudence consiste à contrôler avant de rouler loin : absence de fuite, comportement du freinage, réglage de l’allumage, alimentation, niveau des fluides, fonctionnement de la boîte et tenue générale des transmissions. Une 2CV restaurée retrouve la route quand ces points concordent, pas quand le moteur chante seul dans l’atelier.</p>\n<p>La page <a href=\"/fr/auto-retro/citroen/la-2cv4-restauration.php\">de restauration de cette 2CV4</a> reprend l’ensemble du chantier. Le brouillon sur <a href=\"/fr/auto-retro/citroen/la-2cv4-restauration.php?open_article=citroen-2cv4-refaire-planchers-longerons-demi-tablier#attached-article-citroen-2cv4-refaire-planchers-longerons-demi-tablier\">le travail de structure</a> rappelle pourquoi cette remise en route mécanique vient après la base.</p>\n<h2>Sources</h2><ul>\n<li>Transcription audio interne : remise en route mécanique de la 2CV4, moteur, boîte, cardans et allumage.</li>\n<li>Observations d’atelier au cours du remontage mécanique de la 2CV4, 2025.</li>\n</ul>",
+    "tags": [
+        "citroen",
+        "2cv",
+        "mecanique",
+        "restauration",
+        "entretien"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/citroen/citroen_2cv_az_1957_engine.jpg",
+        "alt": "Moteur de Citroën 2CV AZ de 1957",
+        "title": "Moteur bicylindre de 2CV",
+        "caption": "Une remise en route sérieuse commence par l’ordre des organes, pas par l’envie d’entendre le moteur tourner trop tôt.",
+        "width": 700,
+        "height": 525
+    },
+    "page_slug": "auto-retro-citroen-la-2cv4-restauration",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-05-02T13:42:35+00:00",
+    "updated_at": "2026-05-02T13:42:35+00:00"
+}

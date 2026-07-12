@@ -1,0 +1,67 @@
+// Site LesCaramagnols
+// /src/scss/_utilities.scss
+
+@use 'variables' as vars;
+
+@mixin border-double() {
+  margin: 0.313rem;
+  border: double;
+  width: auto;
+}
+
+@mixin border-accent() {
+  border-width: 0.125rem;
+  border-style: inset;
+  border-color: vars.$color-rose-clair;
+}
+
+@mixin inline-display() {
+  display: inline;
+}
+
+@mixin background-turquoise() {
+  background-color: vars.$color-turquoise;
+}
+
+@mixin float-left() {
+  float: left;
+  margin-right: 1rem;
+}
+
+@mixin float-right() {
+  float: right;
+  margin-left: 1rem;
+}
+
+@mixin float-none() {
+  float: none;
+}
+
+// Classes utilitaires consommant les mixins (utilisables dans le markup)
+.u-border-double {
+  @include border-double;
+}
+
+.u-border-accent {
+  @include border-accent;
+}
+
+.u-inline {
+  @include inline-display;
+}
+
+.u-bg-turquoise {
+  @include background-turquoise;
+}
+
+.u-float-left {
+  @include float-left;
+}
+
+.u-float-right {
+  @include float-right;
+}
+
+.u-float-none {
+  @include float-none;
+}

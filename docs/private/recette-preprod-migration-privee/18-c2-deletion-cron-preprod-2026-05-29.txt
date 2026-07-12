@@ -1,0 +1,177 @@
+{
+    "startedAt": "2026-05-29T10:45:20+02:00",
+    "scenario": "C2 suppression compte suspendu + cron J+20/J+30",
+    "environment": "preprod",
+    "ok": true,
+    "finishedAt": "2026-05-29T10:45:21+02:00",
+    "initial": {
+        "userId": 4,
+        "email": "preprod-c2-delete-20260529-104520-33ba1d@example.invalid",
+        "status": "suspended",
+        "documents": 1,
+        "categories": 1,
+        "permissions": 2,
+        "fileExists": true
+    },
+    "adminDeletion": {
+        "success": true,
+        "message": "Sauvegarde créée, données purgées, suppression du compte programmée, mais l’email n’a pas pu être envoyé.",
+        "error": null
+    },
+    "afterDeletion": {
+        "userExists": true,
+        "status": "suspended",
+        "documents": 0,
+        "categories": 0,
+        "permissions": 0,
+        "fileExists": false,
+        "backupJsonExists": true,
+        "backupZipExists": true,
+        "backupTableDocuments": 1,
+        "backupFiles": 1
+    },
+    "backup": {
+        "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups/2026/05/private-user-4-20260529-104521.json",
+        "archivePath": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups/2026/05/private-user-4-20260529-104521.zip",
+        "generatedAt": "2026-05-29T10:45:21+02:00",
+        "deleteAfter": "2026-06-28T10:45:21+02:00",
+        "retentionDays": 30
+    },
+    "cron": {
+        "warningNow": "2026-06-18T10:46:21+02:00",
+        "deleteNow": "2026-06-28T10:46:21+02:00",
+        "warningDryRun": {
+            "command": "/usr/local/php8.2/bin/php core/tools/purge_private_account_deletion_backups.php '--dry-run' '--json' '--user-id=4' '--now=2026-06-18T10:46:21+02:00'",
+            "json": {
+                "ok": true,
+                "warnings": {
+                    "root": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups",
+                    "matched": 1,
+                    "sent": 0,
+                    "errors": 0,
+                    "dry_run": true,
+                    "scope_private_user_id": 4
+                },
+                "purge": {
+                    "root": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups",
+                    "matched": 0,
+                    "deleted": 0,
+                    "purged": 0,
+                    "backup_deleted": 0,
+                    "errors": 0,
+                    "dry_run": true,
+                    "scope_private_user_id": 4
+                },
+                "scope": {
+                    "now": "2026-06-18T10:46:21+02:00",
+                    "private_user_id": 4,
+                    "warning_after_days": 20
+                }
+            }
+        },
+        "purgeDryRun": {
+            "command": "/usr/local/php8.2/bin/php core/tools/purge_private_account_deletion_backups.php '--dry-run' '--json' '--user-id=4' '--now=2026-06-28T10:46:21+02:00'",
+            "json": {
+                "ok": true,
+                "warnings": {
+                    "root": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups",
+                    "matched": 0,
+                    "sent": 0,
+                    "errors": 0,
+                    "dry_run": true,
+                    "scope_private_user_id": 4
+                },
+                "purge": {
+                    "root": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups",
+                    "matched": 1,
+                    "deleted": 0,
+                    "purged": 0,
+                    "backup_deleted": 0,
+                    "errors": 0,
+                    "dry_run": true,
+                    "scope_private_user_id": 4
+                },
+                "scope": {
+                    "now": "2026-06-28T10:46:21+02:00",
+                    "private_user_id": 4,
+                    "warning_after_days": 20
+                }
+            }
+        },
+        "purgeActual": {
+            "command": "/usr/local/php8.2/bin/php core/tools/purge_private_account_deletion_backups.php '--json' '--user-id=4' '--now=2026-06-28T10:46:21+02:00'",
+            "json": {
+                "ok": true,
+                "warnings": {
+                    "root": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups",
+                    "matched": 0,
+                    "sent": 0,
+                    "errors": 0,
+                    "dry_run": false,
+                    "scope_private_user_id": 4
+                },
+                "purge": {
+                    "root": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups",
+                    "matched": 1,
+                    "deleted": 2,
+                    "purged": 1,
+                    "backup_deleted": 2,
+                    "errors": 0,
+                    "dry_run": false,
+                    "scope_private_user_id": 4
+                },
+                "scope": {
+                    "now": "2026-06-28T10:46:21+02:00",
+                    "private_user_id": 4,
+                    "warning_after_days": 20
+                }
+            }
+        },
+        "purgeSecond": {
+            "command": "/usr/local/php8.2/bin/php core/tools/purge_private_account_deletion_backups.php '--json' '--user-id=4' '--now=2026-06-28T10:46:21+02:00'",
+            "json": {
+                "ok": true,
+                "warnings": {
+                    "root": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups",
+                    "matched": 0,
+                    "sent": 0,
+                    "errors": 0,
+                    "dry_run": false,
+                    "scope_private_user_id": 4
+                },
+                "purge": {
+                    "root": "/home/lescaramgl-ssh/caramagnols-preprod/backend/var/private-account-deletion-backups",
+                    "matched": 0,
+                    "deleted": 0,
+                    "purged": 0,
+                    "backup_deleted": 0,
+                    "errors": 0,
+                    "dry_run": false,
+                    "scope_private_user_id": 4
+                },
+                "scope": {
+                    "now": "2026-06-28T10:46:21+02:00",
+                    "private_user_id": 4,
+                    "warning_after_days": 20
+                }
+            }
+        }
+    },
+    "final": {
+        "userExists": false,
+        "backupJsonExists": false,
+        "backupZipExists": false,
+        "documentFileExists": false
+    },
+    "checks": {
+        "initial_data_present": true,
+        "admin_deletion_success": true,
+        "backup_created": true,
+        "data_purged_immediately": true,
+        "warning_j20_dry_run": true,
+        "purge_j30_dry_run": true,
+        "purge_j30_actual": true,
+        "purge_idempotent": true,
+        "final_deleted": true
+    }
+}

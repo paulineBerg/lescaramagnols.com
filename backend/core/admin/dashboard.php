@@ -1,1 +1,0 @@
-<?php // Tableau de bord admin

@@ -1,0 +1,69 @@
+{
+    "success": true,
+    "generatedAt": "2026-05-29T17:52:49+02:00",
+    "ovhCronCommand": "* * * * * '/usr/local/php8.2/bin/php' '/home/lescaramgl-ssh/caramagnols-preprod/backend/core/tools/run_cron_center.php' --quiet >/dev/null 2>&1",
+    "allowedPrivateScripts": [
+        "core/tools/purge_private_account_deletion_backups.php",
+        "core/tools/purge_private_discussions.php"
+    ],
+    "jobs": [
+        {
+            "code": "backup_production",
+            "name": "Backup production",
+            "scriptPath": "core/tools/backup_production.php",
+            "schedule": "25 2 * * *",
+            "status": "active",
+            "timeoutSeconds": 1800,
+            "privateCron": false
+        },
+        {
+            "code": "check_log_alerts",
+            "name": "Alertes logs",
+            "scriptPath": "core/tools/check_log_alerts.php",
+            "schedule": "*/15 * * * *",
+            "status": "active",
+            "timeoutSeconds": 300,
+            "privateCron": false
+        },
+        {
+            "code": "publish_scheduled_blog_articles",
+            "name": "Publication articles planifiés",
+            "scriptPath": "core/tools/publish_scheduled_blog_articles.php",
+            "schedule": "*/5 * * * *",
+            "status": "active",
+            "timeoutSeconds": 300,
+            "privateCron": false
+        },
+        {
+            "code": "purge_private_account_deletion_backups",
+            "name": "Suppressions comptes privés",
+            "scriptPath": "core/tools/purge_private_account_deletion_backups.php",
+            "schedule": "55 3 * * *",
+            "status": "active",
+            "timeoutSeconds": 300,
+            "privateCron": true
+        },
+        {
+            "code": "purge_private_discussions",
+            "name": "Purge discussions privées",
+            "scriptPath": "core/tools/purge_private_discussions.php",
+            "schedule": "45 3 * * *",
+            "status": "active",
+            "timeoutSeconds": 300,
+            "privateCron": true
+        },
+        {
+            "code": "purge_sql_logs",
+            "name": "Purge logs SQL",
+            "scriptPath": "core/tools/purge_sql_logs.php",
+            "schedule": "40 3 * * *",
+            "status": "active",
+            "timeoutSeconds": 300,
+            "privateCron": false
+        }
+    ],
+    "privateCronChecks": {
+        "purgePrivateDiscussions": true,
+        "purgePrivateAccountDeletionBackups": true
+    }
+}

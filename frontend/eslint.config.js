@@ -6,7 +6,7 @@ export default [
     ignores: ['dist/**', 'node_modules/**', 'public/**']
   },
   {
-    files: ['src/js/**/*.{js,mjs}'],
+    files: ['src/js/**/*.{js,mjs,ts}'],
     ...js.configs.recommended,
     languageOptions: {
       ecmaVersion: 2022,

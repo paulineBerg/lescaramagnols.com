@@ -1,0 +1,13 @@
+[Unit]
+Description=Caramagnols - Timer analyse logs applicatifs
+
+[Timer]
+OnCalendar=__ON_CALENDAR__
+RandomizedDelaySec=30s
+AccuracySec=1m
+Persistent=true
+Unit=__SERVICE_NAME__
+
+[Install]
+WantedBy=timers.target
+

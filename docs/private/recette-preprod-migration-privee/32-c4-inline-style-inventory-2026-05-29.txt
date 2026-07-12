@@ -1,0 +1,7 @@
+Command: rg -n "<style|style=" backend/templates/private
+No inline style blocks or attributes found in backend/templates/private.
+
+Command: rg -n "unsafe-inline" backend/src/PrivatePortal backend/templates/private
+backend/src/PrivatePortal/Operations/PrivateSecurityChecklistService.php:335:        $scriptUnsafeInline = str_contains($policy, "script-src 'self' 'unsafe-inline'");
+backend/src/PrivatePortal/Operations/PrivateSecurityChecklistService.php:336:        $styleUnsafeInline = str_contains($policy, "style-src 'self' 'unsafe-inline'");
+backend/src/PrivatePortal/Operations/PrivateSecurityChecklistService.php:340:            'CSP privee sans unsafe-inline script ni style',

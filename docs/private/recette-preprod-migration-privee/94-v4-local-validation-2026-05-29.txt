@@ -1,0 +1,61 @@
+No syntax errors detected in backend/templates/admin/layout.php
+No syntax errors detected in backend/templates/admin/private_members_list.php
+No syntax errors detected in backend/templates/private/layout.php
+No syntax errors detected in backend/tests/PrivatePortal/PrivateUiGuardTest.php
+PHPUnit 10.5.63 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.29
+Configuration: /home/surfacepro8/www/caramagnols/backend/phpunit.xml
+
+...................................                               35 / 35 (100%)
+
+Time: 00:00.247, Memory: 16.00 MB
+
+OK (35 tests, 341 assertions)
+
+> lescaramagnols@1.0.0 lint:css
+> stylelint "src/**/*.{css,scss}" --allow-empty-input src/scss/private.scss
+
+
+> lescaramagnols@1.0.0 build
+> vite build && node tools/check-budgets.mjs
+
+vite v7.3.1 building client environment for production...
+transforming...
+✓ 11 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/.vite/manifest.json                                  3.63 kB │ gzip:  0.71 kB
+dist/assets/btgrd_bleuturquoise_selection.ZtS0fsCF.png    5.18 kB
+dist/assets/PlageMerSoleil.ffFolf4f.webp                 11.98 kB
+dist/assets/St-Tropez.BiwTXx_C.webp                      13.23 kB
+dist/assets/st-tropez.DfcyEWA8.webp                      14.65 kB
+dist/assets/PlageMerSoleil.D2h6OO4T.jpg                  15.57 kB
+dist/assets/balladeNature.C3KgDM0A.webp                  15.97 kB
+dist/assets/St-Tropez.DiddkOTK.jpg                       16.98 kB
+dist/assets/st-tropez.q0946iJL.jpg                       18.59 kB
+dist/assets/balladeNature.CiZNnbpt.jpg                   21.09 kB
+dist/assets/mer.BHJSPSkI.webp                            21.39 kB
+dist/assets/mer.YsFucqis.jpg                             48.72 kB
+dist/assets/private.CIVgqN_o.css                         18.54 kB │ gzip:  4.00 kB
+dist/assets/style.CP8SGsBC.css                          105.83 kB │ gzip: 20.14 kB
+dist/assets/instagram-feed-Dsc9HRlx.js                    1.49 kB │ gzip:  0.71 kB
+dist/assets/share-DpLoSu87.js                             2.60 kB │ gzip:  0.99 kB
+dist/assets/discussion-form-CcQxzRpB.js                   5.45 kB │ gzip:  1.99 kB
+dist/assets/main.sYLZz7fl.js                             17.19 kB │ gzip:  6.01 kB
+✓ built in 2.58s
+[budget] Vérification des budgets frontend
+- JS entry: 16.8 KiB / 70.0 KiB OK
+- CSS entry: 103.3 KiB / 110.0 KiB OK
+- Initial JS+CSS: 120.1 KiB / 220.0 KiB OK
+- Image max (assets/mer.YsFucqis.jpg): 47.6 KiB / 220.0 KiB OK
+[budget] Budgets respectés.
+
+> lescaramagnols@1.0.0 postbuild
+> node tools/publish-build.mjs
+
+[publish-build] publication terminée
+- manifest : ../backend/public/.vite/manifest.json
+- assets référencés : 17
+- images publiées : ../backend/public/assets/images
+- anciens bundles supprimés : 1

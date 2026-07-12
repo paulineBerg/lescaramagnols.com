@@ -1,0 +1,712 @@
+{
+    "success": true,
+    "ready": true,
+    "summary": {
+        "activeRoutes": 54,
+        "blockedLegacyRoutes": 1,
+        "templates": 6,
+        "permissions": 6,
+        "fileEndpoints": 4
+    },
+    "routes": [
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private",
+            "handlerType": "redirect",
+            "handler": "/private/login",
+            "status": "redirected",
+            "reason": "Route legacy redirigee explicitement."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/login",
+            "handlerType": "private",
+            "handler": "login",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/login/index.php",
+            "handlerType": "redirect",
+            "handler": "/private/login",
+            "status": "redirected",
+            "reason": "Route legacy redirigee explicitement."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/dashboard",
+            "handlerType": "private",
+            "handler": "dashboard",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/parametres",
+            "handlerType": "private",
+            "handler": "member_settings",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/documents",
+            "handlerType": "private",
+            "handler": "documents",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/blocnote",
+            "handlerType": "private",
+            "handler": "blocnote",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/dashboard.php",
+            "handlerType": "redirect",
+            "handler": "/private/dashboard",
+            "status": "redirected",
+            "reason": "Route legacy redirigee explicitement."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/logout",
+            "handlerType": "private",
+            "handler": "logout",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/activate/{token:[A-Za-z0-9._-]+}",
+            "handlerType": "private",
+            "handler": "activate",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/password/forgot",
+            "handlerType": "private",
+            "handler": "password_forgot",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/password/reset/{token:[A-Za-z0-9._-]+}",
+            "handlerType": "private",
+            "handler": "password_reset",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/files/{documentId:[A-Za-z0-9._-]+}",
+            "handlerType": "private",
+            "handler": "files",
+            "status": "kept",
+            "reason": "Endpoint fichier conserve derriere controles serveur."
+        },
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/files/upload",
+            "handlerType": "private",
+            "handler": "files_upload",
+            "status": "kept",
+            "reason": "Endpoint fichier conserve derriere controles serveur."
+        },
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/files/categories",
+            "handlerType": "private",
+            "handler": "files_categories",
+            "status": "kept",
+            "reason": "Endpoint fichier conserve derriere controles serveur."
+        },
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/files/{documentId:[A-Za-z0-9._-]+}/delete",
+            "handlerType": "private",
+            "handler": "files_delete",
+            "status": "kept",
+            "reason": "Endpoint fichier conserve derriere controles serveur."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/locations",
+            "handlerType": "private",
+            "handler": "rental_dashboard",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/rental-properties",
+            "handlerType": "private",
+            "handler": "rental_properties",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/rental-properties/{propertyId:[0-9]+}/archive",
+            "handlerType": "private",
+            "handler": "rental_property_archive",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/rental-units",
+            "handlerType": "private",
+            "handler": "rental_units",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/rental-units/{unitId:[0-9]+}/archive",
+            "handlerType": "private",
+            "handler": "rental_unit_archive",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/rental-property-members",
+            "handlerType": "private",
+            "handler": "rental_property_members",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/locations/locataires",
+            "handlerType": "private",
+            "handler": "rental_tenants",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/leases",
+            "handlerType": "private",
+            "handler": "rental_leases",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/payments",
+            "handlerType": "private",
+            "handler": "rental_payments",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/rents",
+            "handlerType": "private",
+            "handler": "rental_payments",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/charges",
+            "handlerType": "private",
+            "handler": "rental_expenses",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/locations/documents",
+            "handlerType": "private",
+            "handler": "rental_documents",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/locations/agence/imports",
+            "handlerType": "private",
+            "handler": "rental_agency_imports",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/locations/agence/documents-a-classer",
+            "handlerType": "private",
+            "handler": "rental_agency_review",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/locations/documents/{documentId:[A-Za-z0-9._-]+}",
+            "handlerType": "private",
+            "handler": "rental_document_file",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/locations/summary",
+            "handlerType": "private",
+            "handler": "rental_summary",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/locations/export.csv",
+            "handlerType": "private",
+            "handler": "rental_export_csv",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/locations/export.pdf",
+            "handlerType": "private",
+            "handler": "rental_export_pdf",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/impots",
+            "handlerType": "private",
+            "handler": "tax_dashboard",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/impots/{year:[0-9]{4}}",
+            "handlerType": "private",
+            "handler": "tax_year",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/impots/{year:[0-9]{4}}/revenus-manuels",
+            "handlerType": "private",
+            "handler": "tax_manual_entries",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/impots/{year:[0-9]{4}}/controle",
+            "handlerType": "private",
+            "handler": "tax_controls",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/impots/{year:[0-9]{4}}/documents",
+            "handlerType": "private",
+            "handler": "tax_documents",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/impots/{year:[0-9]{4}}/export",
+            "handlerType": "private",
+            "handler": "tax_export",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/discussions",
+            "handlerType": "private",
+            "handler": "discussion_index",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/discussions/new",
+            "handlerType": "private",
+            "handler": "discussion_new",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/discussions/{conversationId:[0-9]+}",
+            "handlerType": "private",
+            "handler": "discussion_conversation",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/discussions/api/conversations",
+            "handlerType": "private",
+            "handler": "discussion_api_conversations",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/discussions/api/conversations/{conversationId:[0-9]+}/messages",
+            "handlerType": "private",
+            "handler": "discussion_api_messages",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/discussions/api/crypto/devices",
+            "handlerType": "private",
+            "handler": "discussion_api_crypto_devices",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET",
+                "POST"
+            ],
+            "path": "/private/discussions/api/conversations/{conversationId:[0-9]+}/keys",
+            "handlerType": "private",
+            "handler": "discussion_api_conversation_keys",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/discussions/api/conversations/{conversationId:[0-9]+}/members",
+            "handlerType": "private",
+            "handler": "discussion_api_members",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/discussions/api/conversations/{conversationId:[0-9]+}/leave",
+            "handlerType": "private",
+            "handler": "discussion_api_leave",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/discussions/api/conversations/{conversationId:[0-9]+}/read",
+            "handlerType": "private",
+            "handler": "discussion_api_read",
+            "status": "kept",
+            "reason": "Route privee conservee jusqu a bascule applicative validee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}",
+            "handlerType": "private",
+            "handler": "discussion_file",
+            "status": "kept",
+            "reason": "Endpoint fichier conserve derriere controles serveur."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}/preview",
+            "handlerType": "private",
+            "handler": "discussion_file_preview",
+            "status": "kept",
+            "reason": "Endpoint fichier conserve derriere controles serveur."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/privacy/export",
+            "handlerType": "private",
+            "handler": "privacy_export",
+            "status": "kept",
+            "reason": "Route operationnelle conservee pour export/restauration et exploitation controlee."
+        },
+        {
+            "methods": [
+                "GET"
+            ],
+            "path": "/private/ops/backup",
+            "handlerType": "private",
+            "handler": "ops_backup",
+            "status": "kept",
+            "reason": "Route operationnelle conservee pour export/restauration et exploitation controlee."
+        }
+    ],
+    "blockedLegacyRoutes": [
+        {
+            "methods": [
+                "POST"
+            ],
+            "path": "/private/privacy/anonymize",
+            "handler": "privacy_anonymize",
+            "status": "blocked",
+            "reason": "Endpoint retire: la suppression de compte passe par sauvegarde, purge donnees, avertissement J+20 et suppression compte J+30."
+        }
+    ],
+    "templates": [
+        {
+            "file": "dashboard.php",
+            "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/dashboard.php",
+            "status": "kept",
+            "exists": true,
+            "reason": "Template prive encore utilise par le front-controller prive."
+        },
+        {
+            "file": "layout.php",
+            "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/layout.php",
+            "status": "kept",
+            "exists": true,
+            "reason": "Template prive encore utilise par le front-controller prive."
+        },
+        {
+            "file": "login.php",
+            "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/login.php",
+            "status": "kept",
+            "exists": true,
+            "reason": "Template prive encore utilise par le front-controller prive."
+        },
+        {
+            "file": "notice.php",
+            "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/notice.php",
+            "status": "kept",
+            "exists": true,
+            "reason": "Template prive encore utilise par le front-controller prive."
+        },
+        {
+            "file": "password_forgot.php",
+            "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/password_forgot.php",
+            "status": "kept",
+            "exists": true,
+            "reason": "Template prive encore utilise par le front-controller prive."
+        },
+        {
+            "file": "password_form.php",
+            "path": "/home/lescaramgl-ssh/caramagnols-preprod/backend/templates/private/password_form.php",
+            "status": "kept",
+            "exists": true,
+            "reason": "Template prive encore utilise par le front-controller prive."
+        }
+    ],
+    "permissions": [
+        {
+            "module": "dashboard",
+            "status": "kept",
+            "obsolete": false,
+            "reason": "Permission active dans PrivateModuleRegistry."
+        },
+        {
+            "module": "documents",
+            "status": "kept",
+            "obsolete": false,
+            "reason": "Permission active dans PrivateModuleRegistry."
+        },
+        {
+            "module": "blocnote",
+            "status": "kept",
+            "obsolete": false,
+            "reason": "Permission active dans PrivateModuleRegistry."
+        },
+        {
+            "module": "discussions",
+            "status": "kept",
+            "obsolete": false,
+            "reason": "Permission active dans PrivateModuleRegistry."
+        },
+        {
+            "module": "real_estate_rental",
+            "status": "kept",
+            "obsolete": false,
+            "reason": "Permission active dans PrivateModuleRegistry."
+        },
+        {
+            "module": "tax_declaration_helper",
+            "status": "kept",
+            "obsolete": false,
+            "reason": "Permission active dans PrivateModuleRegistry."
+        }
+    ],
+    "fileEndpoints": [
+        {
+            "path": "/private/files/{documentId:[A-Za-z0-9._-]+}",
+            "handler": "files",
+            "status": "kept",
+            "controlled": true,
+            "reason": "Endpoint fichier conserve uniquement derriere session, permission module et controle metier."
+        },
+        {
+            "path": "/private/locations/documents/{documentId:[A-Za-z0-9._-]+}",
+            "handler": "rental_document_file",
+            "status": "kept",
+            "controlled": true,
+            "reason": "Endpoint fichier conserve uniquement derriere session, permission module et controle metier."
+        },
+        {
+            "path": "/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}",
+            "handler": "discussion_file",
+            "status": "kept",
+            "controlled": true,
+            "reason": "Endpoint fichier conserve uniquement derriere session, permission module et controle metier."
+        },
+        {
+            "path": "/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}/preview",
+            "handler": "discussion_file_preview",
+            "status": "kept",
+            "controlled": true,
+            "reason": "Endpoint fichier conserve uniquement derriere session, permission module et controle metier."
+        }
+    ],
+    "obsoletePermissions": [],
+    "obsoleteTemplates": [],
+    "runbook": {
+        "backupBeforeDelete": true,
+        "tagBeforeDelete": true,
+        "noDirectPrivateFileEndpoint": true,
+        "legacyRouteResolutionBlocked": true
+    }
+}

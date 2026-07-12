@@ -1,7 +1,7 @@
 
 -- Structure de base pour LesCaramagnols
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS car_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS articles (
+CREATE TABLE IF NOT EXISTS car_articles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     slug VARCHAR(255) NOT NULL UNIQUE,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS articles (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS comments (
+CREATE TABLE IF NOT EXISTS car_comments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     article_id INT NOT NULL,
     user_id INT DEFAULT NULL,
@@ -26,6 +26,6 @@ CREATE TABLE IF NOT EXISTS comments (
     content TEXT NOT NULL,
     status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (article_id) REFERENCES car_articles(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES car_users(id) ON DELETE SET NULL
 );

@@ -1,0 +1,10 @@
+PHPUnit 10.5.63 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.29
+Configuration: /home/surfacepro8/www/caramagnols/backend/phpunit.xml
+
+................                                                  16 / 16 (100%)
+
+Time: 00:27.494, Memory: 10.00 MB
+
+OK (16 tests, 405 assertions)

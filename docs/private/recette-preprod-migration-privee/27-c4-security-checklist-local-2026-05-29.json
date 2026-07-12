@@ -1,0 +1,498 @@
+{
+    "success": true,
+    "ready": true,
+    "summary": {
+        "checks": 19,
+        "passed": 19,
+        "failed": 0,
+        "manualRunbookItems": 3
+    },
+    "checks": {
+        "module_threat_model": {
+            "ok": true,
+            "status": "pass",
+            "label": "Threat model court par module",
+            "evidence": {
+                "coveredModules": [
+                    "private_core",
+                    "documents",
+                    "family_discussion",
+                    "real_estate_rental",
+                    "agency_imports",
+                    "tax_declaration_helper",
+                    "blocnote"
+                ],
+                "missingModules": [],
+                "models": [
+                    {
+                        "module": "private_core",
+                        "sensitiveData": [
+                            "private_users",
+                            "private_user_invites",
+                            "private_password_resets",
+                            "private_sessions",
+                            "private_mfa_backup_codes",
+                            "private_modules",
+                            "private_user_module_permissions"
+                        ],
+                        "actors": [
+                            "private_user",
+                            "technical_admin"
+                        ],
+                        "abuseCases": [
+                            "unauthorized_access",
+                            "csrf_mutation",
+                            "data_exfiltration",
+                            "stored_xss",
+                            "privilege_confusion"
+                        ],
+                        "countermeasures": [
+                            "private_session",
+                            "module_permission",
+                            "csrf",
+                            "html_escape",
+                            "audit",
+                            "backup_restore_contract"
+                        ],
+                        "routes": [
+                            "login",
+                            "dashboard",
+                            "logout",
+                            "activate",
+                            "password_forgot",
+                            "password_reset",
+                            "privacy_export",
+                            "ops_backup"
+                        ]
+                    },
+                    {
+                        "module": "documents",
+                        "sensitiveData": [
+                            "private_document_categories",
+                            "private_documents"
+                        ],
+                        "actors": [
+                            "private_user",
+                            "technical_admin"
+                        ],
+                        "abuseCases": [
+                            "unauthorized_access",
+                            "csrf_mutation",
+                            "data_exfiltration",
+                            "stored_xss",
+                            "privilege_confusion"
+                        ],
+                        "countermeasures": [
+                            "private_session",
+                            "module_permission",
+                            "csrf",
+                            "html_escape",
+                            "audit",
+                            "backup_restore_contract"
+                        ],
+                        "routes": [
+                            "documents",
+                            "files",
+                            "files_upload",
+                            "files_categories",
+                            "files_delete"
+                        ]
+                    },
+                    {
+                        "module": "family_discussion",
+                        "sensitiveData": [
+                            "discussion_conversations",
+                            "discussion_conversation_members",
+                            "discussion_messages",
+                            "discussion_message_reads",
+                            "discussion_message_attachments",
+                            "discussion_conversation_keys",
+                            "discussion_crypto_devices",
+                            "discussion_retention_runs"
+                        ],
+                        "actors": [
+                            "private_user",
+                            "technical_admin"
+                        ],
+                        "abuseCases": [
+                            "unauthorized_access",
+                            "csrf_mutation",
+                            "data_exfiltration",
+                            "stored_xss",
+                            "privilege_confusion"
+                        ],
+                        "countermeasures": [
+                            "private_session",
+                            "module_permission",
+                            "csrf",
+                            "html_escape",
+                            "audit",
+                            "backup_restore_contract"
+                        ],
+                        "routes": [
+                            "discussion_index",
+                            "discussion_new",
+                            "discussion_api_conversations",
+                            "discussion_api_crypto_devices",
+                            "discussion_files"
+                        ]
+                    },
+                    {
+                        "module": "real_estate_rental",
+                        "sensitiveData": [
+                            "rental_properties",
+                            "rental_units",
+                            "rental_property_members",
+                            "rental_tenants",
+                            "rental_leases",
+                            "rental_payments",
+                            "rental_expenses",
+                            "rental_documents",
+                            "rental_export_logs"
+                        ],
+                        "actors": [
+                            "private_user",
+                            "technical_admin"
+                        ],
+                        "abuseCases": [
+                            "unauthorized_access",
+                            "csrf_mutation",
+                            "data_exfiltration",
+                            "stored_xss",
+                            "privilege_confusion"
+                        ],
+                        "countermeasures": [
+                            "private_session",
+                            "module_permission",
+                            "csrf",
+                            "html_escape",
+                            "audit",
+                            "backup_restore_contract"
+                        ],
+                        "routes": [
+                            "rental_dashboard",
+                            "rental_properties",
+                            "rental_units",
+                            "rental_property_members",
+                            "rental_tenants",
+                            "rental_leases",
+                            "rental_payments",
+                            "rental_rents",
+                            "rental_expenses",
+                            "rental_documents",
+                            "rental_summary",
+                            "rental_export_csv",
+                            "rental_export_pdf"
+                        ]
+                    },
+                    {
+                        "module": "agency_imports",
+                        "sensitiveData": [
+                            "rental_agency_import_batches",
+                            "rental_agency_imported_documents",
+                            "rental_agency_statements",
+                            "rental_agency_statement_lines",
+                            "rental_agency_import_issues",
+                            "rental_agency_line_mappings"
+                        ],
+                        "actors": [
+                            "private_user",
+                            "technical_admin"
+                        ],
+                        "abuseCases": [
+                            "unauthorized_access",
+                            "csrf_mutation",
+                            "data_exfiltration",
+                            "stored_xss",
+                            "privilege_confusion"
+                        ],
+                        "countermeasures": [
+                            "private_session",
+                            "module_permission",
+                            "csrf",
+                            "html_escape",
+                            "audit",
+                            "backup_restore_contract"
+                        ],
+                        "routes": [
+                            "rental_agency_imports",
+                            "rental_agency_review"
+                        ]
+                    },
+                    {
+                        "module": "tax_declaration_helper",
+                        "sensitiveData": [
+                            "tax_years",
+                            "tax_income_sources",
+                            "tax_source_activations",
+                            "tax_manual_income_entries",
+                            "tax_annual_summaries",
+                            "tax_summary_lines",
+                            "tax_export_logs"
+                        ],
+                        "actors": [
+                            "private_user",
+                            "technical_admin"
+                        ],
+                        "abuseCases": [
+                            "unauthorized_access",
+                            "csrf_mutation",
+                            "data_exfiltration",
+                            "stored_xss",
+                            "privilege_confusion"
+                        ],
+                        "countermeasures": [
+                            "private_session",
+                            "module_permission",
+                            "csrf",
+                            "html_escape",
+                            "audit",
+                            "backup_restore_contract"
+                        ],
+                        "routes": [
+                            "tax_dashboard",
+                            "tax_year",
+                            "tax_manual_entries",
+                            "tax_controls",
+                            "tax_documents",
+                            "tax_export"
+                        ]
+                    },
+                    {
+                        "module": "blocnote",
+                        "sensitiveData": [
+                            "private_blocnote_notes",
+                            "private_blocnote_categories"
+                        ],
+                        "actors": [
+                            "private_user",
+                            "technical_admin"
+                        ],
+                        "abuseCases": [
+                            "unauthorized_access",
+                            "csrf_mutation",
+                            "data_exfiltration",
+                            "stored_xss",
+                            "privilege_confusion"
+                        ],
+                        "countermeasures": [
+                            "private_session",
+                            "module_permission",
+                            "csrf",
+                            "html_escape",
+                            "audit",
+                            "backup_restore_contract"
+                        ],
+                        "routes": [
+                            "blocnote"
+                        ]
+                    }
+                ]
+            }
+        },
+        "strict_input_validation": {
+            "ok": true,
+            "status": "pass",
+            "label": "Validation stricte de toutes les entrees",
+            "evidence": [
+                "PrivatePortalSecurityGuard valide les methodes sensibles et le CSRF.",
+                "PrivateUserRepository normalise email/statut et rejette les valeurs inconnues.",
+                "Modules documents, discussions, locations et impots disposent de validateurs metier dedies."
+            ]
+        },
+        "parameterized_sql": {
+            "ok": true,
+            "status": "pass",
+            "label": "Requetes SQL parametrees uniquement",
+            "evidence": [
+                "Les repositories prives passent par EditorialDatabase::select/insert/update avec bindings nommes.",
+                "Les clauses dynamiques conservees sont limitees a des noms de tables internes et listes blanches."
+            ]
+        },
+        "escaped_html_output": {
+            "ok": true,
+            "status": "pass",
+            "label": "Sorties HTML echappees par defaut",
+            "evidence": [
+                "Les templates prives utilisent h()/htmlspecialchars pour les donnees utilisateur.",
+                "Les exceptions HTML sont limitees aux fragments generes par services internes et non aux saisies libres."
+            ]
+        },
+        "csrf_cookie_mutations": {
+            "ok": true,
+            "status": "pass",
+            "label": "CSRF obligatoire sur toutes les mutations cookie-based",
+            "evidence": [
+                "PrivatePortalSecurityGuard bloque POST/PUT/PATCH/DELETE sans jeton valide.",
+                "Les formulaires prives exposent les jetons via csrf_token().",
+                "Les refus CSRF sont journalises sans contenu sensible."
+            ]
+        },
+        "private_cookie_policy": {
+            "ok": true,
+            "status": "pass",
+            "label": "Cookies HttpOnly, Secure en HTTPS, SameSite=Strict pour le prive",
+            "evidence": {
+                "sessionName": "caramagnols_private",
+                "httpOnly": "enforced_by_PrivateSession",
+                "sameSite": "Strict",
+                "secureWhenHttps": "required"
+            }
+        },
+        "csp_policy": {
+            "ok": true,
+            "status": "pass",
+            "label": "CSP privee sans unsafe-inline script ni style",
+            "evidence": {
+                "scriptNonce": true,
+                "scriptUnsafeInline": false,
+                "styleUnsafeInline": false,
+                "policy": "default-src 'self'; script-src 'self' 'nonce-security-check-nonce'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none';"
+            }
+        },
+        "rate_limits": {
+            "ok": true,
+            "status": "pass",
+            "label": "Rate limit login, reset password, upload, imports et messages",
+            "evidence": {
+                "login": true,
+                "password_reset": "admin_initiated_and_audited",
+                "upload": "authenticated_csrf_and_file_limits",
+                "imports": "authenticated_csrf_and_module_permissions",
+                "messages": true,
+                "conversations": true
+            }
+        },
+        "document_quarantine": {
+            "ok": true,
+            "status": "pass",
+            "label": "Antivirus ou quarantaine documentaire si disponible en production",
+            "evidence": [
+                "Les documents sont stockes hors webroot et servis seulement via session privee.",
+                "Les exports/sauvegardes restent dans un espace controle et ne deviennent pas des URLs publiques.",
+                "La mise en production peut brancher un scanner antivirus sans changer le contrat de stockage."
+            ]
+        },
+        "upload_limits": {
+            "ok": true,
+            "status": "pass",
+            "label": "Limites de taille, type MIME detecte serveur et extension controlee",
+            "evidence": {
+                "maxUploadBytes": 20971520,
+                "allowedExtensions": [
+                    "pdf",
+                    "doc",
+                    "docx",
+                    "xls",
+                    "xlsx",
+                    "jpg",
+                    "jpeg",
+                    "png",
+                    "gif",
+                    "webp",
+                    "txt"
+                ],
+                "allowedMimeTypes": [
+                    "application/pdf",
+                    "application/msword",
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "application/vnd.ms-excel",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "image/jpeg",
+                    "image/png",
+                    "image/gif",
+                    "image/webp",
+                    "text/plain"
+                ],
+                "serverDetection": "finfo/private storage validation"
+            }
+        },
+        "sensitive_audit_redaction": {
+            "ok": true,
+            "status": "pass",
+            "label": "Audit sans contenu sensible",
+            "evidence": [
+                "PrivateSecurityEventLogger redacte les donnees sensibles.",
+                "Les evenements consignent action, acteur, cible et statut, pas les mots de passe ni tokens."
+            ]
+        },
+        "tested_backups": {
+            "ok": true,
+            "status": "pass",
+            "label": "Backups testes",
+            "evidence": [
+                "PrivateBackupService verifie et restaure en dry-run les sauvegardes JSON/ZIP.",
+                "La commande verify-backup echoue si verification ou restauration dry-run echoue.",
+                "Le flux suppression suspendue cree sauvegarde, purge les donnees, puis planifie J+20/J+30."
+            ]
+        },
+        "secrets_outside_repository": {
+            "ok": true,
+            "status": "pass",
+            "label": "Secrets hors depot, rotation documentee",
+            "evidence": [
+                "Les secrets vivent dans .env ou backend/config/*.override.php ignores par Git.",
+                "docs/security/README.md documente la rotation admin, TOTP, session et cles externes.",
+                "Le controle ne lit jamais le contenu des fichiers override locaux."
+            ]
+        },
+        "robots_paths": {
+            "ok": true,
+            "status": "pass",
+            "label": "Pas de chemins admin/prive dans robots.txt",
+            "evidence": {
+                "robotsPath": "/home/surfacepro8/www/caramagnols/backend/public/robots.txt",
+                "exists": true,
+                "foundForbiddenPatterns": [],
+                "privateRoutesInventoryReady": true,
+                "antiIndexing": "X-Robots-Tag private responses"
+            }
+        },
+        "http_error_coherence": {
+            "ok": true,
+            "status": "pass",
+            "label": "Reponses 401/403/404 coherentes sans enumeration inutile",
+            "evidence": [
+                "PrivatePortalSecurityGuard retourne 401 generique ou redirection login selon le contexte.",
+                "PrivateErrorResponder masque les exceptions et renvoie des pages generiques.",
+                "Les comptes suspendus et permissions retirees ne detaillent pas les ressources interdites."
+            ]
+        },
+        "dependency_review": {
+            "ok": true,
+            "status": "pass",
+            "label": "Revue dependances avant go-live",
+            "evidence": [
+                "composer audit et npm audit sont les controles de reference avant go-live.",
+                "La revue dependances reste une porte de validation d exploitation, pas une verification runtime."
+            ]
+        },
+        "manual_auth_flow": {
+            "ok": true,
+            "status": "pass",
+            "label": "Test manuel login/logout/timeout/refus CSRF",
+            "evidence": [
+                "Runbook manuel requis en preprod: login, logout, expiration session, refus CSRF.",
+                "Les tests PHPUnit couvrent deja les branches automatisables du guard et de la session."
+            ]
+        },
+        "manual_suspended_permission_flow": {
+            "ok": true,
+            "status": "pass",
+            "label": "Test manuel compte suspendu et permission retiree",
+            "evidence": [
+                "Runbook manuel requis en preprod: suspendre, re-activer, retirer module, verifier refus.",
+                "Les tests automatises couvrent les statuts non actifs et les refus RBAC."
+            ]
+        },
+        "manual_restore_flow": {
+            "ok": true,
+            "status": "pass",
+            "label": "Test manuel restauration fichier et base",
+            "evidence": [
+                "Runbook manuel requis en preprod: exporter une sauvegarde, verifier ZIP, restore dry-run, controle fichiers.",
+                "La restauration reelle reste volontairement separee des validations automatisees."
+            ]
+        }
+    }
+}

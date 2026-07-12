@@ -1,0 +1,19 @@
+Phase C6 - inventaire apres nettoyage
+
+Occurrences restantes compatibles:
+docs/private/recette-preprod-migration-privee.md:45:| 2026-05-29 | Auto (CLI) | C6 inventaire `anonymize`, `anonymized`, `anonymous` apres nettoyage | traces restantes classees alias internes ou route legacy bloquee, aucun texte visible applicatif | [46-c6-inventory-after-cleanup-2026-05-29.txt](./recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt) |
+docs/private/recette-preprod-migration-privee.md:98:{ printf 'Phase C6 - inventaire apres nettoyage\n\n'; printf 'Occurrences restantes compatibles:\n'; rg -n "anonymize|anonymized|anonymous|anonymise|anonymisee|anonymisé|anonymisée" backend/src backend/templates backend/core backend/tests docs/private/README.md docs/private/recette-preprod-migration-privee.md || true; printf '\nTextes visibles applicatifs:\n'; rg -n "anonymize|anonymized|anonymous|anonymise|anonymisee|anonymisé|anonymisée" backend/templates backend/lang backend/public || printf 'Aucune occurrence visible applicative.\n'; } | tee docs/private/recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt
+docs/private/recette-preprod-migration-privee.md:130:- [x] C6 — Inventaire des traces `anonymize`, `anonymized`, `anonymous` et classement des occurrences restantes — **OK LOCAL**, preuve: [46-c6-inventory-after-cleanup-2026-05-29.txt](./recette-preprod-migration-privee/46-c6-inventory-after-cleanup-2026-05-29.txt)
+backend/tests/PrivatePortal/PrivateLegacyRetirementTest.php:32:            $this->assertNotSame('privacy_anonymize', $route['handler'] ?? null);
+backend/tests/PrivatePortal/PrivateLegacyRetirementTest.php:47:        $this->assertContains('/private/privacy/anonymize', $blockedPaths);
+backend/tests/PrivatePortal/PrivateLegacyRetirementTest.php:50:        $this->assertNotContains('/private/privacy/anonymize', $activePaths);
+docs/private/README.md:2255:- [x] Brancher le `POST /admin/parametres/espace-prive` avec actions explicites `invite`, `resend`, `suspend`, `reset`, `delete`, `modules`; l'ancien identifiant interne `anonymize` reste un alias technique non visible.
+docs/private/README.md:2276:- Suppression : l'action visible neutralise les donnees personnelles, remplace l'email par une adresse technique `@private.invalid`, remplace le hash de mot de passe, supprime les traces de derniere connexion et passe le compte en `deleted`. L'ancien identifiant technique `anonymize` reste un alias interne de compatibilite, sans route active visible.
+docs/private/README.md:3318:- `/{private}/privacy/anonymize` est retire du routeur prive : cette ancienne route self-service reste bloquee, la politique retenue reste sauvegarde, purge des donnees, avertissement J+20 puis suppression compte + sauvegarde a J+30.
+backend/src/PrivatePortal/Operations/PrivateDataProtectionService.php:173:    public function anonymizeAccount(int $privateUserId, int $actorPrivateUserId, string $reason): bool
+backend/src/PrivatePortal/Operations/PrivateLegacyRetirementService.php:31:            'path' => '/privacy/anonymize',
+backend/src/PrivatePortal/Operations/PrivateLegacyRetirementService.php:32:            'handler' => 'privacy_anonymize',
+backend/src/PrivatePortal/Repository/PrivateUserRepository.php:713:    public function anonymize(int $userId): bool
+
+Textes visibles applicatifs:
+Aucune occurrence visible applicative.

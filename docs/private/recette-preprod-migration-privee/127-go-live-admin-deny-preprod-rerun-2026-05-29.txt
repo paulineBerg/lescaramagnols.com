@@ -1,0 +1,30 @@
+# Controle admin non authentifie preprod
+date=2026-05-29T18:39:49+02:00
+url=https://preprod.lescaramagnols.com/espace-admin-7k9m2p
+client=browser-like curl
+status=403
+headers:
+HTTP/2 403 
+date: Fri, 29 May 2026 16:42:01 GMT
+content-type: text/html; charset=utf-8
+server: OVHcloud
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-site
+origin-agent-cluster: ?1
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+set-cookie: lang=[redacted]; expires=Sat, 29 May 2027 16:39:48 GMT; Max-Age=31536000; path=/; secure; HttpOnly; SameSite=Lax
+set-cookie: caramagnols_session=[redacted]; path=/; secure; HttpOnly; SameSite=Strict
+x-robots-tag: noindex, nofollow, noarchive, nosnippet
+cache-control: private, no-store, no-cache, must-revalidate
+pragma: no-cache
+expires: 0
+x-frame-options: DENY
+x-content-type-options: nosniff
+referrer-policy: no-referrer
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+content-security-policy: default-src 'self'; img-src 'self' data: https: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http:; font-src 'self' data:; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';
+x-request-id: e41ef30f75b806763a8db744
+
+body_checks:
+access_denied=yes
+result=OK_EXPECTED_DENY

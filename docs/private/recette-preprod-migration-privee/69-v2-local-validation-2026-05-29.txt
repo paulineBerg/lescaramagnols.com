@@ -1,0 +1,183 @@
+No syntax errors detected in backend/core/helpers.php
+No syntax errors detected in backend/core/mailer.php
+No syntax errors detected in backend/src/Admin/AdminSettingsService.php
+No syntax errors detected in backend/src/Admin/AdminPrivateMembersService.php
+No syntax errors detected in backend/src/PrivatePortal/Http/PrivatePortalController.php
+No syntax errors detected in backend/templates/admin/private_members_list.php
+No syntax errors detected in backend/tests/PrivatePortal/PrivateTransactionalEmailTest.php
+
+FILE: ...rfacepro8/www/caramagnols/backend/templates/admin/private_members_list.php
+--------------------------------------------------------------------------------
+FOUND 101 ERRORS AFFECTING 91 LINES
+--------------------------------------------------------------------------------
+  56 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+  60 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+  85 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 120 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 122 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 14
+ 155 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 164 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 165 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 166 | ERROR | [x] Line indented incorrectly; expected 12 spaces, found 10
+ 167 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 14
+ 168 | ERROR | [x] Line indented incorrectly; expected 12 spaces, found 10
+ 169 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 170 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 171 | ERROR | [x] Line indented incorrectly; expected 12 spaces, found 10
+ 172 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 14
+ 173 | ERROR | [x] Line indented incorrectly; expected 12 spaces, found 10
+ 174 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 175 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 176 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 177 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 178 | ERROR | [x] Line indented incorrectly; expected 12 spaces, found 10
+ 187 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 190 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 202 | ERROR | [x] Closing brace indented incorrectly; expected 8 spaces, found
+     |       |     6
+ 212 | ERROR | [x] Expected 1 space after ELSE keyword; 0 found
+ 249 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 258 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 260 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 260 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 261 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 262 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 263 | ERROR | [x] Line indented incorrectly; expected at least 20 spaces,
+     |       |     found 16
+ 264 | ERROR | [x] Line indented incorrectly; expected 16 spaces, found 12
+ 278 | ERROR | [x] Line indented incorrectly; expected at least 4 spaces, found
+     |       |     2
+ 278 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 280 | ERROR | [x] Expected 1 space after ELSE keyword; 0 found
+ 282 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 283 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 8
+ 284 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 8
+ 285 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 8
+ 286 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 8
+ 287 | ERROR | [x] Line indented incorrectly; expected 12 spaces, found 8
+ 316 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 320 | ERROR | [x] Expected 1 space after ELSE keyword; 0 found
+ 321 | ERROR | [x] Line indented incorrectly; expected at least 12 spaces,
+     |       |     found 10
+ 321 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 322 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 323 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 324 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 325 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 326 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 327 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 328 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 329 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 332 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 333 | ERROR | [x] Line indented incorrectly; expected at least 16 spaces,
+     |       |     found 12
+ 334 | ERROR | [x] Line indented incorrectly; expected 16 spaces, found 12
+ 347 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 351 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 352 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 22
+ 353 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 22
+ 354 | ERROR | [x] Line indented incorrectly; expected 24 spaces, found 22
+ 355 | ERROR | [x] Line indented incorrectly; expected at least 28 spaces,
+     |       |     found 26
+ 356 | ERROR | [x] Line indented incorrectly; expected 24 spaces, found 22
+ 357 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 22
+ 358 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 22
+ 359 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 22
+ 360 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 22
+ 361 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 22
+ 362 | ERROR | [x] Line indented incorrectly; expected 24 spaces, found 22
+ 364 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 369 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 373 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 390 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 395 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 22
+ 395 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 402 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 403 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 20
+ 403 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 408 | ERROR | [x] Line indented incorrectly; expected at least 28 spaces,
+     |       |     found 24
+ 408 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 415 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 20
+ 415 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 421 | ERROR | [x] Line indented incorrectly; expected at least 28 spaces,
+     |       |     found 26
+ 424 | ERROR | [x] Line indented incorrectly; expected at least 28 spaces,
+     |       |     found 22
+ 424 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 426 | ERROR | [x] Line indented incorrectly; expected at least 32 spaces,
+     |       |     found 26
+ 427 | ERROR | [x] Line indented incorrectly; expected at least 32 spaces,
+     |       |     found 26
+ 428 | ERROR | [x] Line indented incorrectly; expected at least 32 spaces,
+     |       |     found 30
+ 431 | ERROR | [x] Line indented incorrectly; expected at least 32 spaces,
+     |       |     found 30
+ 433 | ERROR | [x] Line indented incorrectly; expected 28 spaces, found 26
+ 437 | ERROR | [x] Line indented incorrectly; expected at least 28 spaces,
+     |       |     found 24
+ 441 | ERROR | [x] Line indented incorrectly; expected at least 24 spaces,
+     |       |     found 20
+ 441 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 442 | ERROR | [x] Line indented incorrectly; expected at least 28 spaces,
+     |       |     found 22
+ 450 | ERROR | [x] Line indented incorrectly; expected at least 28 spaces,
+     |       |     found 24
+ 465 | ERROR | [x] Line indented incorrectly; expected at least 28 spaces,
+     |       |     found 26
+ 465 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 485 | ERROR | [x] Expected 1 space after ELSE keyword; 0 found
+ 490 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+ 500 | ERROR | [x] Expected 1 space after closing parenthesis; found 0
+--------------------------------------------------------------------------------
+PHPCBF CAN FIX THE 101 MARKED SNIFF VIOLATIONS AUTOMATICALLY
+--------------------------------------------------------------------------------
+
+Time: 783ms; Memory: 50MB
+
+PHPUnit 10.5.63 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.29
+Configuration: /home/surfacepro8/www/caramagnols/backend/phpunit.xml
+
+........                                                            8 / 8 (100%)
+
+Time: 00:08.284, Memory: 14.00 MB
+
+OK (8 tests, 103 assertions)

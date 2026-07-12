@@ -1,0 +1,54 @@
+# Phase C1 - Recette manuelle securite privee preprod
+
+Date: 2026-05-29T10:22:25+02:00
+URL: https://preprod.lescaramagnols.com
+Compte de recette: preprod-c1-security@lescaramagnols.com
+User ID preprod: 1
+Document ID de recette: 005f9e056140499d91ececa7700439b4
+Secrets: mot de passe et jetons CSRF/reset masques, non stockes dans cette preuve.
+
+## Resultats
+
+| Scenario | Attendu | Observe | Resultat |
+|---|---|---|---|
+| Compte et document de recette prepares | user_id + document_id | user_id=1, document_id=005f9e056140499d91ececa7700439b4 | OK |
+| GET /private/login | 200 | 200 | OK |
+| CSRF login present | present | present | OK |
+| POST /private/login valide | 302 | 302 | OK |
+| Redirection login valide | /private/dashboard | /private/dashboard | OK |
+| GET /private/dashboard authentifie | 200 | 200 | OK |
+| CSRF logout present | present | present | OK |
+| POST /private/logout | 302 | 200 | KO |
+| Redirection logout | /private/login |  | KO |
+| Dashboard apres logout/expiration session | 302 | 200 | KO |
+| Redirection dashboard apres logout | /private/login |  | KO |
+| Fichier prive sans session | 403 | 403 | OK |
+| POST login CSRF invalide | 200 | 200 | OK |
+| Dashboard apres CSRF invalide | 302 | 302 | OK |
+| Compte suspendu POST login | 200 | 200 | OK |
+| Compte suspendu dashboard refuse | 302 | 302 | OK |
+| Login sans module documents | 302 | 302 | OK |
+| Module documents retire: /private/documents | 302 | 302 | OK |
+| Redirection documents sans module | /private/login | /private/login | OK |
+| Fichier prive avec session sans permission documents | 403 | 403 | OK |
+| Reset password lien valide GET | 200 | 200 | OK |
+| Reset password lien valide POST | 200 | 200 | OK |
+| Login avec mot de passe remplace | 302 | 302 | OK |
+| Reset password lien deja consomme POST | 200 | 200 | OK |
+| Login refuse avec mdp issu lien consomme | 200 | 200 | OK |
+| Dashboard refuse apres lien consomme | 302 | 302 | OK |
+| Reset password lien expire GET | 200 | 200 | OK |
+| Reset password lien expire POST | 200 | 200 | OK |
+| Login refuse avec mdp issu lien expire | 200 | 200 | OK |
+| Dashboard refuse apres lien expire | 302 | 302 | OK |
+| Etat final compte recette | active + dashboard/documents + mot de passe restaure | restaure | OK |
+
+## Conclusion
+C1 KO: 4 anomalie(s) a corriger avant cloture.
+
+## Hygiene secrets
+
+- Aucun mot de passe n'a ete ecrit dans le depot.
+- Aucun token CSRF ou reset n'a ete ecrit dans le depot.
+- Le contenu du document prive de test n'est pas journalise.
+- Les scripts temporaires locaux et distants sont supprimes par trap.

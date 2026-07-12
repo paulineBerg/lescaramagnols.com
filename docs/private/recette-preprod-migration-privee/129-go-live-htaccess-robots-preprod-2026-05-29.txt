@@ -1,0 +1,33 @@
+# Controle .htaccess / robots preprod
+date=2026-05-29T18:43:47+02:00
+htaccess_checked=backend/public/.htaccess local + preprod deployed
+user_agent_block_in_htaccess=no
+robots_indexing_block=robots.txt + X-Robots-Tag noindex/nofollow on preprod
+robots_status=200
+robots_headers:
+HTTP/2 200 
+date: Fri, 29 May 2026 16:45:55 GMT
+content-type: text/plain; charset=UTF-8
+server: OVHcloud
+x-frame-options: DENY
+x-content-type-options: nosniff
+referrer-policy: no-referrer
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-site
+origin-agent-cluster: ?1
+x-robots-tag: noindex, nofollow, noarchive, nosnippet
+content-security-policy: default-src 'self'; img-src 'self' data: https: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https: http:; font-src 'self' data:; frame-src 'self' https://www.youtube-nocookie.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+set-cookie: lang=fr; expires=Sat, 29 May 2027 16:43:47 GMT; Max-Age=31536000; path=/; secure; HttpOnly; SameSite=Lax
+set-cookie: caramagnols_session=4abba62a93045548569c608b61c536b6; path=/; secure; HttpOnly; SameSite=Strict
+expires: Thu, 19 Nov 1981 08:52:00 GMT
+cache-control: no-store, no-cache, must-revalidate
+pragma: no-cache
+x-request-id: 24bf88fa055cc0cbb4681e71
+vary: Accept-Encoding
+
+robots_body:
+User-agent: *
+Disallow: /
+result=OK_ROBOTS_BLOCK_INDEXING

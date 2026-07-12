@@ -1,0 +1,156 @@
+{
+    "templateCount": 10,
+    "commonVariables": [
+        "email",
+        "today",
+        "login_url",
+        "private_url",
+        "reply_to",
+        "site_name"
+    ],
+    "templates": [
+        {
+            "subject": "rental_subject",
+            "body": "rental_body",
+            "variables": [
+                "email",
+                "today",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "tax_subject",
+            "body": "tax_body",
+            "variables": [
+                "email",
+                "today",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "discussion_invite_subject",
+            "body": "discussion_invite_body",
+            "variables": [
+                "email",
+                "today",
+                "activation_url",
+                "login_url",
+                "private_url",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "admin_invite_subject",
+            "body": "admin_invite_body",
+            "variables": [
+                "email",
+                "today",
+                "activation_url",
+                "login_url",
+                "private_url",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "password_reset_subject",
+            "body": "password_reset_body",
+            "variables": [
+                "email",
+                "today",
+                "reset_url",
+                "login_url",
+                "private_url",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "member_suspended_subject",
+            "body": "member_suspended_body",
+            "variables": [
+                "email",
+                "today",
+                "login_url",
+                "private_url",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "member_reactivated_subject",
+            "body": "member_reactivated_body",
+            "variables": [
+                "email",
+                "today",
+                "login_url",
+                "private_url",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "member_deletion_scheduled_subject",
+            "body": "member_deletion_scheduled_body",
+            "variables": [
+                "email",
+                "today",
+                "delete_after",
+                "login_url",
+                "private_url",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "member_deletion_warning_subject",
+            "body": "member_deletion_warning_body",
+            "variables": [
+                "email",
+                "today",
+                "delete_after",
+                "login_url",
+                "private_url",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        },
+        {
+            "subject": "member_deletion_final_subject",
+            "body": "member_deletion_final_body",
+            "variables": [
+                "email",
+                "today",
+                "reply_to",
+                "site_name"
+            ],
+            "hasFallbackSubject": true,
+            "hasFallbackBody": true
+        }
+    ],
+    "previewChecks": {
+        "adminInviteHasActivationUrl": true,
+        "passwordResetHasResetUrl": true
+    }
+}

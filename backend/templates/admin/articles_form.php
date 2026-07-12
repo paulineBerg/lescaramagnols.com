@@ -1,0 +1,1701 @@
+<?php
+$formData = is_array($formData ?? null) ? $formData : [];
+$translate = static function (string $key, string $fallback): string {
+    if (function_exists('admin_translate')) {
+        return admin_translate($key, $fallback);
+    }
+
+    if (!function_exists('t')) {
+        return $fallback;
+    }
+
+    $translated = t($key);
+    if (!is_string($translated) || $translated === '' || $translated === '[[' . $key . ']]') {
+        return $fallback;
+    }
+
+    return $translated;
+};
+$translateFormat = static function (string $key, string $fallback, mixed ...$args) use ($translate): string {
+    return sprintf($translate($key, $fallback), ...$args);
+};
+$statusLabels = [
+    'draft' => $translate('TXT_ADMIN_ARTICLE_STATUS_DRAFT', 'Brouillon'),
+    'scheduled' => $translate('TXT_ADMIN_ARTICLE_STATUS_SCHEDULED', 'Planifié'),
+    'published' => $translate('TXT_ADMIN_ARTICLE_STATUS_PUBLISHED', 'Publié'),
+];
+$contentMediaPicker = is_array($contentMediaPicker ?? null) ? $contentMediaPicker : [];
+$contentMediaLibrary = is_array($contentMediaPicker['items'] ?? null)
+    ? array_values($contentMediaPicker['items'])
+    : (is_array($contentMediaLibrary ?? null) ? array_values($contentMediaLibrary) : []);
+$contentMediaFolders = is_array($contentMediaPicker['folders'] ?? null) ? array_values($contentMediaPicker['folders']) : [''];
+$contentMediaFavorites = is_array($contentMediaPicker['favorites'] ?? null) ? array_values($contentMediaPicker['favorites']) : [''];
+$contentMediaPolicy = is_array($contentMediaPicker['policy'] ?? null) ? $contentMediaPicker['policy'] : [];
+$contentMediaPolicyImageExtensions = array_values(
+    array_filter(
+        array_map(
+            static fn (mixed $extension): string => is_string($extension) ? strtolower(trim($extension)) : '',
+            is_array($contentMediaPolicy['imageExtensions'] ?? null) ? $contentMediaPolicy['imageExtensions'] : []
+        ),
+        static fn (string $extension): bool => $extension !== ''
+    )
+);
+$contentMediaPolicyVideoExtensions = array_values(
+    array_filter(
+        array_map(
+            static fn (mixed $extension): string => is_string($extension) ? strtolower(trim($extension)) : '',
+            is_array($contentMediaPolicy['videoExtensions'] ?? null) ? $contentMediaPolicy['videoExtensions'] : []
+        ),
+        static fn (string $extension): bool => $extension !== ''
+    )
+);
+$contentMediaPolicyImageMaxBytes = max(0, (int) ($contentMediaPolicy['imageMaxBytes'] ?? 0));
+$contentMediaPolicyVideoMaxBytes = max(0, (int) ($contentMediaPolicy['videoMaxBytes'] ?? 0));
+$contentMediaPolicyJson = json_encode(
+    [
+        'context' => (string) ($contentMediaPolicy['context'] ?? 'article'),
+        'imageExtensions' => $contentMediaPolicyImageExtensions,
+        'videoExtensions' => $contentMediaPolicyVideoExtensions,
+        'imageMaxBytes' => $contentMediaPolicyImageMaxBytes,
+        'videoMaxBytes' => $contentMediaPolicyVideoMaxBytes,
+        'imageMaxLabel' => (string) ($contentMediaPolicy['imageMaxLabel'] ?? ''),
+        'videoMaxLabel' => (string) ($contentMediaPolicy['videoMaxLabel'] ?? ''),
+    ],
+    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+);
+if (!is_string($contentMediaPolicyJson) || $contentMediaPolicyJson === '') {
+    $contentMediaPolicyJson = '{}';
+}
+$availableLanguages = is_array($availableLanguages ?? null)
+    ? array_values(array_filter(array_map('strval', $availableLanguages)))
+    : ['fr'];
+if ($availableLanguages === []) {
+    $availableLanguages = ['fr'];
+}
+$languageLabels = [
+    'fr' => 'Français',
+    'en' => 'English',
+    'de' => 'Deutsch',
+];
+$translations = is_array($formData['translations'] ?? null) ? $formData['translations'] : [];
+$existingLanguages = is_array($formData['existing_languages'] ?? null)
+    ? array_values(array_map('strval', $formData['existing_languages']))
+    : [];
+$activeLanguage = (string) ($formData['active_language'] ?? $formData['lang'] ?? ($availableLanguages[0] ?? 'fr'));
+if (!in_array($activeLanguage, $availableLanguages, true)) {
+    $activeLanguage = $availableLanguages[0] ?? 'fr';
+}
+$currentLanguage = $activeLanguage;
+$categoryOptions = is_array($availableCategoryOptions ?? null) ? array_values($availableCategoryOptions) : [];
+$subcategoryOptions = is_array($availableSubcategoryOptions ?? null) ? array_values($availableSubcategoryOptions) : [];
+$tagOptions = is_array($availableTagOptions ?? null) ? array_values($availableTagOptions) : [];
+$selectedTags = is_array($formData['tags'] ?? null)
+    ? array_values(array_map('strval', $formData['tags']))
+    : array_values(array_filter(array_map('trim', explode(',', (string) ($formData['tags_input'] ?? '')))));
+$featuredImageSrc = trim((string) ($formData['featured_image_src'] ?? ''));
+$featuredImageAlt = trim((string) ($formData['featured_image_alt'] ?? ''));
+$articleEditorFormId = 'article-editor-form';
+?>
+
+<section class="cards-grid">
+  <article class="card">
+    <h2><?php echo htmlspecialchars(($isNewArticle ?? false) ? $translate('TXT_ADMIN_ARTICLES_FORM_NEW_TITLE', 'Nouvel article') : $translate('TXT_ADMIN_ARTICLES_FORM_EXISTING_TITLE', 'Article du blog'), ENT_QUOTES, 'UTF-8'); ?></h2>
+    <p>
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_FORM_SHARED_FIELDS_HINT', 'Les champs structurels de l article sont partagés une seule fois. Les textes traduits s éditent ensuite dans des onglets séparés pour le français, l anglais et l allemand.'), ENT_QUOTES, 'UTF-8'); ?>
+    </p>
+    <p class="actions-inline">
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesIndexUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_BACK_TO_LIST', 'Retour à la liste'), ENT_QUOTES, 'UTF-8'); ?></a>
+      <?php if (($isNewArticle ?? false) === false): ?>
+      <span class="tag"><?php echo htmlspecialchars(sprintf($translate('TXT_ADMIN_ARTICLES_FORM_EXISTING_VARIANTS', '%d variante(s) existante(s)'), count($existingLanguages)), ENT_QUOTES, 'UTF-8'); ?></span>
+      <?php endif; ?>
+    </p>
+  </article>
+
+  <article class="card">
+    <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TAXONOMY_TITLE', 'Taxonomie blog'), ENT_QUOTES, 'UTF-8'); ?></h2>
+    <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TAXONOMY_NOTICE', 'Source canonique limitée : pas de catégorie ni de tag libre.'), ENT_QUOTES, 'UTF-8'); ?></p>
+    <div class="field">
+      <label><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_ALLOWED_CATEGORIES', 'Catégories autorisées'), ENT_QUOTES, 'UTF-8'); ?></label>
+      <div class="taxonomy-chip-list">
+        <?php foreach ($categoryOptions as $category): ?>
+        <span class="taxonomy-chip"><?php echo htmlspecialchars((string) ($category['label'] ?? $category['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <div class="field">
+      <label><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_ALLOWED_TAGS', 'Tags autorisés'), ENT_QUOTES, 'UTF-8'); ?></label>
+      <div class="taxonomy-chip-list">
+        <?php foreach ($tagOptions as $tag): ?>
+        <span class="taxonomy-chip"><?php echo htmlspecialchars((string) ($tag['label'] ?? $tag['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+        <?php endforeach; ?>
+      </div>
+    </div>
+  </article>
+</section>
+
+<?php if (($message ?? null) !== null): ?>
+<div class="notice notice-success"><?php echo htmlspecialchars((string) $message, ENT_QUOTES, 'UTF-8'); ?></div>
+<?php endif; ?>
+
+<?php if (($error ?? null) !== null): ?>
+<div class="notice notice-error"><?php echo htmlspecialchars((string) $error, ENT_QUOTES, 'UTF-8'); ?></div>
+<?php endif; ?>
+
+<section class="card">
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_EDITING', 'Édition'), ENT_QUOTES, 'UTF-8'); ?></h2>
+
+  <form
+    id="<?php echo htmlspecialchars($articleEditorFormId, ENT_QUOTES, 'UTF-8'); ?>"
+    method="post"
+    enctype="multipart/form-data"
+    action="<?php echo htmlspecialchars((string) ($currentArticleUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+  >
+    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+    <input
+      type="hidden"
+      name="article[active_language]"
+      value="<?php echo htmlspecialchars($activeLanguage, ENT_QUOTES, 'UTF-8'); ?>"
+      data-article-active-language
+    />
+
+    <div class="admin-form-grid admin-form-grid-3">
+      <div class="field">
+        <label for="article-status"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <select id="article-status" name="article[status]">
+          <?php foreach (($supportedStatuses ?? []) as $status): ?>
+          <option value="<?php echo htmlspecialchars((string) $status, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ($formData['status'] ?? 'draft') === $status ? ' selected' : ''; ?>>
+            <?php echo htmlspecialchars($statusLabels[$status] ?? (string) $status, ENT_QUOTES, 'UTF-8'); ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="article-slug"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SLUG', 'Slug'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input id="article-slug" name="article[slug]" type="text" value="<?php echo htmlspecialchars((string) ($formData['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required />
+      </div>
+
+      <div class="field">
+        <label for="article-author"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_AUTHOR', 'Auteur'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input id="article-author" name="article[author]" type="text" value="<?php echo htmlspecialchars((string) ($formData['author'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+      </div>
+
+      <div class="field">
+        <label for="article-date"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_DATE', 'Date'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input id="article-date" name="article[date]" type="datetime-local" value="<?php echo htmlspecialchars((string) ($formData['date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+        <p class="admin-form-help">
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DATE_HELP', 'Date éditoriale de référence (tri, affichage et chronologie).'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="article-scheduled-publish-at"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_SCHEDULED_AT_LABEL', 'Publication programmée'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input
+          id="article-scheduled-publish-at"
+          name="article[scheduled_publish_at]"
+          type="datetime-local"
+          value="<?php echo htmlspecialchars((string) ($formData['scheduled_publish_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+        />
+        <p class="admin-form-help">
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_SCHEDULED_AT_HELP', 'Pour une publication automatique, choisissez le statut "Planifié" puis renseignez cette date.'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+      </div>
+
+      <div class="field admin-form-span-2">
+        <label for="article-page-slug"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_PAGE_LABEL', 'Page parent de publication'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <select id="article-page-slug" name="article[page_slug]" required>
+          <option value="" disabled<?php echo trim((string) ($formData['page_slug'] ?? '')) === '' ? ' selected' : ''; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_PAGE_PLACEHOLDER', 'Choisir une page parent (obligatoire)'), ENT_QUOTES, 'UTF-8'); ?></option>
+          <?php foreach (($availablePageOptions ?? []) as $pageOption): ?>
+          <?php
+          $pageSlug = (string) ($pageOption['slug'] ?? '');
+          $pageTitle = trim((string) ($pageOption['title'] ?? 'Page sans titre'));
+          $pageRoute = trim((string) ($pageOption['route'] ?? ''));
+          $pageStatus = trim((string) ($pageOption['status'] ?? 'draft'));
+          ?>
+          <option value="<?php echo htmlspecialchars($pageSlug, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (($formData['page_slug'] ?? '') === $pageSlug) ? ' selected' : ''; ?>>
+            <?php echo htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8'); ?>
+            <?php echo $pageRoute !== '' ? ' · ' . htmlspecialchars($pageRoute, ENT_QUOTES, 'UTF-8') : ''; ?>
+            <?php echo $pageStatus !== '' ? ' · ' . htmlspecialchars($statusLabels[$pageStatus] ?? $pageStatus, ENT_QUOTES, 'UTF-8') : ''; ?>
+            <?php echo $pageSlug !== '' ? ' · ' . htmlspecialchars($pageSlug, ENT_QUOTES, 'UTF-8') : ''; ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+        <p class="admin-form-help">
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_PAGE_HELP', 'Obligatoire. Ce rattachement est partagé par toutes les langues et sert de point d ouverture public pour chaque variante.'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+      </div>
+
+      <div class="field admin-form-span-2">
+        <label for="article-parent-slug"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_LABEL', 'Article parent'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <select id="article-parent-slug" name="article[parent_slug]">
+          <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_NONE', 'Aucun parent (article racine)'), ENT_QUOTES, 'UTF-8'); ?></option>
+          <?php foreach (($availableParentArticles ?? []) as $parentArticle): ?>
+          <?php
+          $parentSlug = (string) ($parentArticle['slug'] ?? '');
+          $parentTitle = (string) ($parentArticle['title'] ?? 'Article sans titre');
+          $parentStatus = (string) ($parentArticle['status'] ?? 'draft');
+          $parentDate = trim((string) ($parentArticle['date'] ?? ''));
+          $parentLanguages = array_values(
+              array_filter(
+                  array_map(
+                      static fn (mixed $language): string => is_string($language) ? strtoupper(trim($language)) : '',
+                      is_array($parentArticle['languages'] ?? null) ? $parentArticle['languages'] : []
+                  ),
+                  static fn (string $language): bool => $language !== ''
+              )
+          );
+          ?>
+          <option value="<?php echo htmlspecialchars($parentSlug, ENT_QUOTES, 'UTF-8'); ?>"<?php echo (($formData['parent_slug'] ?? '') === $parentSlug) ? ' selected' : ''; ?>>
+            <?php echo htmlspecialchars($parentTitle, ENT_QUOTES, 'UTF-8'); ?>
+            <?php echo $parentLanguages !== [] ? ' · ' . htmlspecialchars(implode('/', $parentLanguages), ENT_QUOTES, 'UTF-8') : ''; ?>
+            <?php echo $parentDate !== '' ? ' · ' . htmlspecialchars($parentDate, ENT_QUOTES, 'UTF-8') : ''; ?>
+            · <?php echo htmlspecialchars($statusLabels[$parentStatus] ?? $parentStatus, ENT_QUOTES, 'UTF-8'); ?>
+            · <?php echo htmlspecialchars($parentSlug, ENT_QUOTES, 'UTF-8'); ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+        <p class="admin-form-help">
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_PARENT_HELP', 'Le parent logique est choisi une seule fois. Chaque traduction utilise automatiquement la variante correspondante quand elle existe.'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="article-child-sort-order"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CHILD_SORT_ORDER_LABEL', 'Ordre manuel sous le parent'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input
+          id="article-child-sort-order"
+          name="article[child_sort_order]"
+          type="number"
+          min="1"
+          step="1"
+          value="<?php echo htmlspecialchars((string) ($formData['child_sort_order'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+        />
+        <p class="admin-form-help"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CHILD_SORT_ORDER_HELP', 'Optionnel. Laisser vide pour utiliser l’ordre de creation.'), ENT_QUOTES, 'UTF-8'); ?></p>
+      </div>
+
+      <div class="field">
+        <label for="article-category"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CATEGORY', 'Catégorie'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <select id="article-category" name="article[category]" required data-blog-category-select>
+          <option value="" disabled<?php echo trim((string) ($formData['category'] ?? '')) === '' ? ' selected' : ''; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CATEGORY_PLACEHOLDER', 'Choisir une catégorie'), ENT_QUOTES, 'UTF-8'); ?></option>
+          <?php foreach ($categoryOptions as $category): ?>
+          <?php $categorySlug = (string) ($category['slug'] ?? ''); ?>
+          <option value="<?php echo htmlspecialchars($categorySlug, ENT_QUOTES, 'UTF-8'); ?>"<?php echo ((string) ($formData['category'] ?? '') === $categorySlug) ? ' selected' : ''; ?>>
+            <?php echo htmlspecialchars((string) ($category['label'] ?? $categorySlug), ENT_QUOTES, 'UTF-8'); ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="article-subcategory"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SUBCATEGORY', 'Sous-catégorie'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <select id="article-subcategory" name="article[subcategory]" data-blog-subcategory-select>
+          <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_SUBCATEGORY_NONE', 'Aucune sous-catégorie'), ENT_QUOTES, 'UTF-8'); ?></option>
+          <?php foreach ($subcategoryOptions as $subcategory): ?>
+          <?php
+          $subcategorySlug = (string) ($subcategory['slug'] ?? '');
+          $subcategoryCategory = (string) ($subcategory['category'] ?? '');
+          ?>
+          <option
+            value="<?php echo htmlspecialchars($subcategorySlug, ENT_QUOTES, 'UTF-8'); ?>"
+            data-category="<?php echo htmlspecialchars($subcategoryCategory, ENT_QUOTES, 'UTF-8'); ?>"
+            <?php echo ((string) ($formData['subcategory'] ?? '') === $subcategorySlug) ? ' selected' : ''; ?>
+          >
+            <?php echo htmlspecialchars((string) ($subcategory['label'] ?? $subcategorySlug), ENT_QUOTES, 'UTF-8'); ?>
+          </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="field admin-form-span-2">
+        <label for="article-tags"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_TAGS', 'Tags'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <div id="article-tags" class="taxonomy-chip-list taxonomy-checkbox-list">
+          <?php foreach ($tagOptions as $tag): ?>
+          <?php $tagSlug = (string) ($tag['slug'] ?? ''); ?>
+          <label class="taxonomy-chip taxonomy-chip-checkbox">
+            <input
+              type="checkbox"
+              name="article[tags][]"
+              value="<?php echo htmlspecialchars($tagSlug, ENT_QUOTES, 'UTF-8'); ?>"
+              <?php echo in_array($tagSlug, $selectedTags, true) ? ' checked' : ''; ?>
+            />
+            <span><?php echo htmlspecialchars((string) ($tag['label'] ?? $tagSlug), ENT_QUOTES, 'UTF-8'); ?></span>
+          </label>
+          <?php endforeach; ?>
+        </div>
+        <p class="admin-form-help"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_TAGS_HELP', 'Choisir 3 à 5 tags. Les tags libres et les tags créés automatiquement sont refusés.'), ENT_QUOTES, 'UTF-8'); ?></p>
+      </div>
+
+      <div class="field admin-form-span-2">
+        <label for="article-featured-image-src"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_LABEL', 'Image de couverture'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input
+          id="article-featured-image-src"
+          name="article[featured_image_src]"
+          type="text"
+          value="<?php echo htmlspecialchars($featuredImageSrc, ENT_QUOTES, 'UTF-8'); ?>"
+          placeholder="/uploads/editorial/article/..."
+        />
+        <p class="admin-form-help">
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_HELP', 'Utilisée dans les cartes blog et les balises SEO (Open Graph / Twitter).'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="article-image-file"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_UPLOAD_LABEL', 'Upload image'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input
+          id="article-image-file"
+          name="article_image_file"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+        />
+        <p class="admin-form-help">
+          <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_UPLOAD_HELP', 'JPG, PNG, WebP, GIF ou AVIF. Le chemin est rempli automatiquement après upload.'), ENT_QUOTES, 'UTF-8'); ?>
+        </p>
+      </div>
+
+      <div class="field">
+        <label for="article-featured-image-alt"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_ALT_LABEL', 'Texte alternatif'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input
+          id="article-featured-image-alt"
+          name="article[featured_image_alt]"
+          type="text"
+          value="<?php echo htmlspecialchars($featuredImageAlt, ENT_QUOTES, 'UTF-8'); ?>"
+        />
+      </div>
+
+      <div class="field">
+        <label for="article-featured-image-title"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_TITLE_LABEL', 'Titre image'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input
+          id="article-featured-image-title"
+          name="article[featured_image_title]"
+          type="text"
+          value="<?php echo htmlspecialchars((string) ($formData['featured_image_title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+        />
+      </div>
+
+      <div class="field">
+        <label for="article-featured-image-width"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_WIDTH_LABEL', 'Largeur'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input
+          id="article-featured-image-width"
+          name="article[featured_image_width]"
+          type="number"
+          min="1"
+          max="8192"
+          step="1"
+          value="<?php echo htmlspecialchars((string) ($formData['featured_image_width'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+        />
+      </div>
+
+      <div class="field">
+        <label for="article-featured-image-height"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_HEIGHT_LABEL', 'Hauteur'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <input
+          id="article-featured-image-height"
+          name="article[featured_image_height]"
+          type="number"
+          min="1"
+          max="8192"
+          step="1"
+          value="<?php echo htmlspecialchars((string) ($formData['featured_image_height'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+        />
+      </div>
+
+      <div class="field admin-form-span-2">
+        <label for="article-featured-image-caption"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_CAPTION_LABEL', 'Légende'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <textarea
+          id="article-featured-image-caption"
+          name="article[featured_image_caption]"
+          rows="2"
+        ><?php echo htmlspecialchars((string) ($formData['featured_image_caption'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+      </div>
+
+      <?php if ($featuredImageSrc !== ''): ?>
+      <div class="field admin-form-span-2">
+        <label><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_PREVIEW_LABEL', 'Aperçu image'), ENT_QUOTES, 'UTF-8'); ?></label>
+        <p>
+          <img
+            src="<?php echo htmlspecialchars($featuredImageSrc, ENT_QUOTES, 'UTF-8'); ?>"
+            alt="<?php echo htmlspecialchars($featuredImageAlt !== '' ? $featuredImageAlt : $translate('TXT_ADMIN_ARTICLE_FEATURED_IMAGE_PREVIEW_ALT', 'Aperçu image article'), ENT_QUOTES, 'UTF-8'); ?>"
+            width="<?php echo ((int) ($formData['featured_image_width'] ?? 0) > 0) ? (int) $formData['featured_image_width'] : 320; ?>"
+            height="<?php echo ((int) ($formData['featured_image_height'] ?? 0) > 0) ? (int) $formData['featured_image_height'] : 180; ?>"
+            loading="lazy"
+            decoding="async"
+            fetchpriority="low"
+            style="max-width: 24rem; width: 100%; height: auto; border-radius: 0.75rem;"
+          />
+        </p>
+      </div>
+      <?php endif; ?>
+    </div>
+
+    <section class="card" style="margin-top: 2rem;">
+      <div class="page-editor-intro__header">
+        <div>
+          <h3><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATIONS_TITLE', 'Traductions'), ENT_QUOTES, 'UTF-8'); ?></h3>
+          <p class="page-editor-intro__description">
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATIONS_HELP', 'Chaque onglet ne contient que les textes propres à sa langue. Les choix de page parent, taxonomie, image de couverture et hiérarchie restent communs.'), ENT_QUOTES, 'UTF-8'); ?>
+          </p>
+        </div>
+      </div>
+
+      <div class="menu-builder-tabs" role="tablist" aria-label="<?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATIONS_TITLE', 'Traductions'), ENT_QUOTES, 'UTF-8'); ?>" data-article-translation-tabs>
+        <?php foreach ($availableLanguages as $translationTabIndex => $language): ?>
+        <?php
+        $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
+        $translationTitle = trim((string) ($translation['title'] ?? ''));
+        $translationExcerpt = trim((string) ($translation['excerpt'] ?? ''));
+        $translationContent = trim((string) ($translation['content'] ?? ''));
+        $translationExists = !empty($translation['exists']);
+        $translationHasDraft = $translationTitle !== '' || $translationExcerpt !== '' || $translationContent !== '';
+        $isActiveTranslationTab = $language === $activeLanguage;
+        $translationStatusLabel = $translationExists
+            ? $translate('TXT_ADMIN_ARTICLES_TRANSLATION_EXISTS', 'Version existante')
+            : ($translationHasDraft ? $translate('TXT_ADMIN_ARTICLES_TRANSLATION_TO_COMPLETE', 'A completer') : $translate('TXT_ADMIN_ARTICLES_TRANSLATION_TO_FILL', 'A renseigner'));
+        ?>
+        <button
+          type="button"
+          id="article-translation-tab-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+          class="menu-builder-tab<?php echo $isActiveTranslationTab ? ' menu-builder-tab-active' : ''; ?>"
+          role="tab"
+          aria-selected="<?php echo $isActiveTranslationTab ? 'true' : 'false'; ?>"
+          aria-controls="article-translation-panel-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+          tabindex="<?php echo $isActiveTranslationTab ? '0' : '-1'; ?>"
+          data-article-translation-tab="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+          data-translation-label="<?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?>"
+          data-translation-exists="<?php echo $translationExists ? '1' : '0'; ?>"
+        >
+          <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
+          <small><?php echo htmlspecialchars($translationStatusLabel, ENT_QUOTES, 'UTF-8'); ?></small>
+        </button>
+        <?php endforeach; ?>
+      </div>
+
+      <?php foreach ($availableLanguages as $language): ?>
+      <?php
+      $translation = is_array($translations[$language] ?? null) ? $translations[$language] : [];
+      $translationExists = !empty($translation['exists']);
+      $isActiveTranslationTab = $language === $activeLanguage;
+      ?>
+      <section
+        class="card translation-card"
+        id="article-translation-panel-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+        role="tabpanel"
+        aria-labelledby="article-translation-tab-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+        data-article-translation-panel="<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+        <?php echo $isActiveTranslationTab ? '' : 'hidden'; ?>
+      >
+        <div class="page-editor-intro__header">
+          <div class="actions-inline">
+            <strong><?php echo htmlspecialchars($languageLabels[$language] ?? strtoupper((string) $language), ENT_QUOTES, 'UTF-8'); ?></strong>
+            <span class="lang-badge"><?php echo strtoupper(htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8')); ?></span>
+            <?php if ($translationExists): ?>
+            <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATION_EXISTING_VARIANT', 'Variante existante'), ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php else: ?>
+            <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLES_TRANSLATION_NEW_VARIANT', 'Nouvelle variante'), ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php endif; ?>
+          </div>
+          <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_SAVE_BUTTON', 'Sauvegarder l article'), ENT_QUOTES, 'UTF-8'); ?></button>
+        </div>
+
+        <div class="admin-form-grid admin-form-grid-2">
+          <div class="field admin-form-span-2">
+            <label for="article-title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_TITLE', 'Titre'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input
+              id="article-title-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+              name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][title]"
+              type="text"
+              value="<?php echo htmlspecialchars((string) ($translation['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+            />
+          </div>
+
+          <div class="field admin-form-span-2">
+            <label for="article-excerpt-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_EXCERPT_LABEL', 'Extrait'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <textarea
+              id="article-excerpt-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+              name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][excerpt]"
+              rows="4"
+            ><?php echo htmlspecialchars((string) ($translation['excerpt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+          </div>
+
+          <div class="field admin-form-span-2">
+            <label for="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CONTENT_HTML', 'Contenu HTML'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <div class="actions-inline">
+              <button
+                type="button"
+                class="button-link button-link-muted"
+                data-content-media-open="article-media-insert-dialog"
+                data-content-media-target="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+              >
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_INSERT_MEDIA', 'Inserer un media (image / video)'), ENT_QUOTES, 'UTF-8'); ?>
+              </button>
+            </div>
+            <textarea
+              id="article-content-<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>"
+              class="textarea-large"
+              name="translations[<?php echo htmlspecialchars((string) $language, ENT_QUOTES, 'UTF-8'); ?>][content]"
+              rows="16"
+            ><?php echo htmlspecialchars((string) ($translation['content'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+          </div>
+        </div>
+      </section>
+      <?php endforeach; ?>
+    </section>
+
+    <div class="actions-inline actions-inline-end">
+      <a class="button-link button-link-muted" href="<?php echo htmlspecialchars((string) ($articlesIndexUrl ?? $adminArticlesUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CANCEL', 'Annuler'), ENT_QUOTES, 'UTF-8'); ?></a>
+      <button type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SAVE', 'Sauvegarder'), ENT_QUOTES, 'UTF-8'); ?></button>
+    </div>
+  </form>
+
+  <dialog
+    class="region-modal content-media-dialog"
+    id="article-media-insert-dialog"
+    data-content-media-dialog
+    data-content-media-policy="<?php echo htmlspecialchars($contentMediaPolicyJson, ENT_QUOTES, 'UTF-8'); ?>"
+  >
+    <div class="region-modal__surface">
+      <div class="region-modal__header">
+        <div>
+          <p class="region-modal__eyebrow"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_LIBRARY_EYEBROW', 'Bibliotheque medias'), ENT_QUOTES, 'UTF-8'); ?></p>
+          <h3><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_TITLE', 'Inserer un media dans le contenu'), ENT_QUOTES, 'UTF-8'); ?></h3>
+          <p><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_HELP', 'Selectionne une image ou une video, puis insertion au curseur dans le champ actif.'), ENT_QUOTES, 'UTF-8'); ?></p>
+        </div>
+        <button type="button" class="button-link button-link-muted" data-content-media-close><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?></button>
+      </div>
+
+      <div class="region-modal__body">
+        <div class="admin-form-grid admin-form-grid-2 content-media-toolbar">
+          <div class="field content-media-dialog__search">
+            <label for="article-media-insert-search"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_SEARCH', 'Recherche'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <input id="article-media-insert-search" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_SEARCH_PLACEHOLDER', 'nom, chemin, format...'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-search />
+          </div>
+          <div class="field">
+            <label for="article-media-insert-folder"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_FOLDER_LABEL', 'Dossier'), ENT_QUOTES, 'UTF-8'); ?></label>
+            <select id="article-media-insert-folder" data-content-media-folder>
+              <option value=""><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FOLDERS', 'Tous les dossiers'), ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php foreach ($contentMediaFolders as $folderOption): ?>
+              <?php
+              if (!is_string($folderOption)) {
+                  continue;
+              }
+              $folderOption = trim($folderOption);
+              if ($folderOption === '') {
+                  continue;
+              }
+              ?>
+              <option value="<?php echo htmlspecialchars($folderOption, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php echo htmlspecialchars($folderOption, ENT_QUOTES, 'UTF-8'); ?>
+              </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+
+        <?php if ($contentMediaFavorites !== []): ?>
+        <div class="actions-inline content-media-favorites" data-content-media-favorites>
+          <span class="tag"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_FAVORITES', 'Favoris'), ENT_QUOTES, 'UTF-8'); ?></span>
+          <?php foreach ($contentMediaFavorites as $favoriteFolder): ?>
+          <?php
+          if (!is_string($favoriteFolder)) {
+              continue;
+          }
+          $favoriteFolder = trim($favoriteFolder);
+          ?>
+          <button
+            type="button"
+            class="button-small button-muted"
+            data-content-media-favorite-folder="<?php echo htmlspecialchars($favoriteFolder, ENT_QUOTES, 'UTF-8'); ?>"
+          >
+            <?php echo htmlspecialchars($favoriteFolder === '' ? $translate('TXT_ADMIN_CONTENT_MEDIA_ROOT', 'Racine') : $favoriteFolder, ENT_QUOTES, 'UTF-8'); ?>
+          </button>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <section class="content-media-controls">
+          <h4><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_TITLE', 'Preset insertion'), ENT_QUOTES, 'UTF-8'); ?></h4>
+          <div class="admin-form-grid admin-form-grid-3">
+            <div class="field">
+              <label for="article-media-insert-preset"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_LABEL', 'Preset'), ENT_QUOTES, 'UTF-8'); ?></label>
+              <select id="article-media-insert-preset" data-content-media-preset>
+                <option value="figure-default"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_DEFAULT', 'Figure standard'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-wide"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_WIDE', 'Figure pleine largeur'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-left"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_LEFT', 'Figure flottante gauche'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="figure-right"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_FIGURE_RIGHT', 'Figure flottante droite'), ENT_QUOTES, 'UTF-8'); ?></option>
+                <option value="raw"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_PRESET_RAW', 'Balise simple (sans figure)'), ENT_QUOTES, 'UTF-8'); ?></option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="article-media-insert-classes"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_EXTRA_CLASSES_LABEL', 'Classes CSS supplementaires'), ENT_QUOTES, 'UTF-8'); ?></label>
+              <input id="article-media-insert-classes" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_EXTRA_CLASSES_PLACEHOLDER', 'ex: rounded shadow-lg'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-extra-classes />
+            </div>
+            <div class="field">
+              <label for="article-media-insert-alt"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_DEFAULT_ALT_LABEL', 'Alt image par defaut'), ENT_QUOTES, 'UTF-8'); ?></label>
+              <input id="article-media-insert-alt" type="text" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_DEFAULT_ALT_PLACEHOLDER', 'description courte'), ENT_QUOTES, 'UTF-8'); ?>" data-content-media-alt />
+            </div>
+          </div>
+
+          <div class="admin-form-grid admin-form-grid-3">
+            <div class="field">
+              <label class="checkbox-field" for="article-media-insert-lazy">
+                <input id="article-media-insert-lazy" type="checkbox" data-content-media-lazy checked />
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_LAZY_IMAGES', 'Charger en lazy (images)'), ENT_QUOTES, 'UTF-8'); ?>
+              </label>
+            </div>
+            <div class="field">
+              <label class="checkbox-field" for="article-media-insert-dimensions">
+                <input id="article-media-insert-dimensions" type="checkbox" data-content-media-include-dimensions checked />
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INCLUDE_DIMENSIONS', 'Injecter width/height (si disponibles)'), ENT_QUOTES, 'UTF-8'); ?>
+              </label>
+            </div>
+            <div class="field">
+              <label class="checkbox-field" for="article-media-insert-governance-strict">
+                <input id="article-media-insert-governance-strict" type="checkbox" data-content-media-governance-strict checked />
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_STRICT_GOVERNANCE', 'Bloquer les assets hors charte'), ENT_QUOTES, 'UTF-8'); ?>
+              </label>
+            </div>
+          </div>
+
+          <div class="admin-form-grid admin-form-grid-3">
+            <div class="field">
+              <label class="checkbox-field" for="article-media-insert-video-controls">
+                <input id="article-media-insert-video-controls" type="checkbox" data-content-media-video-controls checked />
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_CONTROLS', 'Video: controls'), ENT_QUOTES, 'UTF-8'); ?>
+              </label>
+            </div>
+            <div class="field">
+              <label class="checkbox-field" for="article-media-insert-video-muted">
+                <input id="article-media-insert-video-muted" type="checkbox" data-content-media-video-muted />
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_MUTED', 'Video: muted'), ENT_QUOTES, 'UTF-8'); ?>
+              </label>
+            </div>
+            <div class="field">
+              <label class="checkbox-field" for="article-media-insert-video-autoplay">
+                <input id="article-media-insert-video-autoplay" type="checkbox" data-content-media-video-autoplay />
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_AUTOPLAY', 'Video: autoplay'), ENT_QUOTES, 'UTF-8'); ?>
+              </label>
+            </div>
+            <div class="field">
+              <label class="checkbox-field" for="article-media-insert-video-loop">
+                <input id="article-media-insert-video-loop" type="checkbox" data-content-media-video-loop />
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_LOOP', 'Video: loop'), ENT_QUOTES, 'UTF-8'); ?>
+              </label>
+            </div>
+            <div class="field admin-form-span-2">
+              <label for="article-media-insert-video-poster"><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_VIDEO_POSTER_OPTIONAL', 'Video poster (optionnel)'), ENT_QUOTES, 'UTF-8'); ?></label>
+              <input id="article-media-insert-video-poster" type="text" placeholder="/uploads/editorial/library/.../poster.webp" data-content-media-video-poster />
+            </div>
+            <div class="field">
+              <label class="checkbox-field" for="article-media-insert-filter-governance">
+                <input id="article-media-insert-filter-governance" type="checkbox" data-content-media-filter-governance />
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_ONLY_COMPLIANT', 'Afficher seulement les assets conformes'), ENT_QUOTES, 'UTF-8'); ?>
+              </label>
+            </div>
+          </div>
+
+          <p class="notice-muted">
+            <?php echo htmlspecialchars($translateFormat(
+                'TXT_ADMIN_CONTENT_MEDIA_GOVERNANCE_ARTICLE',
+                'Gouvernance ARTICLE: images %s (max %s), videos %s (max %s).',
+                $contentMediaPolicyImageExtensions === [] ? $translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FORMATS', 'tous formats') : strtoupper(implode(', ', $contentMediaPolicyImageExtensions)),
+                (string) ($contentMediaPolicy['imageMaxLabel'] ?? 'N/A'),
+                $contentMediaPolicyVideoExtensions === [] ? $translate('TXT_ADMIN_CONTENT_MEDIA_ALL_FORMATS', 'tous formats') : strtoupper(implode(', ', $contentMediaPolicyVideoExtensions)),
+                (string) ($contentMediaPolicy['videoMaxLabel'] ?? 'N/A')
+            ), ENT_QUOTES, 'UTF-8'); ?>
+          </p>
+          <div class="actions-inline">
+            <button type="button" class="button-small button-link-muted" data-content-media-audit><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_TARGET', 'Auditer le contenu cible'), ENT_QUOTES, 'UTF-8'); ?></button>
+          </div>
+          <p class="notice-muted content-media-audit__status" data-content-media-audit-status>
+            <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_HINT', 'Lance un controle automatique (format, taille, source referencee) sur le champ cible.'), ENT_QUOTES, 'UTF-8'); ?>
+          </p>
+          <ul class="content-media-audit__results" data-content-media-audit-results hidden></ul>
+          <p class="notice-muted content-media-dialog__status" data-content-media-status hidden></p>
+        </section>
+
+        <div class="content-media-library" data-content-media-list>
+          <?php foreach ($contentMediaLibrary as $mediaItem): ?>
+          <?php
+          $mediaItem = is_array($mediaItem) ? $mediaItem : [];
+          $mediaSrc = trim((string) ($mediaItem['src'] ?? ''));
+          if ($mediaSrc === '') {
+              continue;
+          }
+
+          $mediaKind = trim((string) ($mediaItem['kind'] ?? 'other'));
+          if ($mediaKind !== 'image' && $mediaKind !== 'video') {
+              continue;
+          }
+
+          $mediaName = trim((string) ($mediaItem['name'] ?? basename($mediaSrc)));
+          $mediaFolder = trim((string) ($mediaItem['folder'] ?? ''));
+          $mediaMime = trim((string) ($mediaItem['mime'] ?? 'application/octet-stream'));
+          $mediaExtension = strtoupper(trim((string) ($mediaItem['extension'] ?? '')));
+          $mediaExtensionLower = strtolower($mediaExtension);
+          $mediaSizeBytes = max(0, (int) ($mediaItem['sizeBytes'] ?? 0));
+          $mediaSizeLabel = trim((string) ($mediaItem['sizeLabel'] ?? '0 B'));
+          $mediaDimensionsLabel = trim((string) ($mediaItem['dimensionsLabel'] ?? 'N/A'));
+          $mediaWidth = is_int($mediaItem['width'] ?? null) ? (int) $mediaItem['width'] : 0;
+          $mediaHeight = is_int($mediaItem['height'] ?? null) ? (int) $mediaItem['height'] : 0;
+          $mediaSearch = strtolower(trim($mediaName . ' ' . $mediaSrc . ' ' . $mediaKind . ' ' . $mediaMime . ' ' . $mediaExtension . ' ' . $mediaFolder));
+          $mediaPolicyCompliant = true;
+          $mediaPolicyReasons = [];
+          if ($mediaKind === 'image') {
+              if ($contentMediaPolicyImageExtensions !== [] && !in_array($mediaExtensionLower, $contentMediaPolicyImageExtensions, true)) {
+                  $mediaPolicyCompliant = false;
+                  $mediaPolicyReasons[] = 'format hors charte';
+              }
+              if ($contentMediaPolicyImageMaxBytes > 0 && $mediaSizeBytes > $contentMediaPolicyImageMaxBytes) {
+                  $mediaPolicyCompliant = false;
+                  $mediaPolicyReasons[] = 'taille depassee';
+              }
+          } elseif ($mediaKind === 'video') {
+              if ($contentMediaPolicyVideoExtensions !== [] && !in_array($mediaExtensionLower, $contentMediaPolicyVideoExtensions, true)) {
+                  $mediaPolicyCompliant = false;
+                  $mediaPolicyReasons[] = 'format hors charte';
+              }
+              if ($contentMediaPolicyVideoMaxBytes > 0 && $mediaSizeBytes > $contentMediaPolicyVideoMaxBytes) {
+                  $mediaPolicyCompliant = false;
+                  $mediaPolicyReasons[] = 'taille depassee';
+              }
+          }
+          $mediaPolicyHint = implode(' · ', $mediaPolicyReasons);
+          ?>
+          <article
+            class="content-media-item"
+            data-content-media-item
+            data-content-media-filter="<?php echo htmlspecialchars($mediaSearch, ENT_QUOTES, 'UTF-8'); ?>"
+            data-content-media-folder="<?php echo htmlspecialchars($mediaFolder, ENT_QUOTES, 'UTF-8'); ?>"
+            data-content-media-src="<?php echo htmlspecialchars($mediaSrc, ENT_QUOTES, 'UTF-8'); ?>"
+            data-content-media-kind="<?php echo htmlspecialchars($mediaKind, ENT_QUOTES, 'UTF-8'); ?>"
+            data-content-media-extension="<?php echo htmlspecialchars($mediaExtensionLower, ENT_QUOTES, 'UTF-8'); ?>"
+            data-content-media-size-bytes="<?php echo $mediaSizeBytes; ?>"
+            data-content-media-compliant="<?php echo $mediaPolicyCompliant ? '1' : '0'; ?>"
+            data-content-media-policy-hint="<?php echo htmlspecialchars($mediaPolicyHint, ENT_QUOTES, 'UTF-8'); ?>"
+          >
+            <div class="content-media-item__preview">
+              <?php if ($mediaKind === 'image'): ?>
+              <img src="<?php echo htmlspecialchars($mediaSrc, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($mediaName, ENT_QUOTES, 'UTF-8'); ?>" loading="lazy" />
+              <?php else: ?>
+              <video src="<?php echo htmlspecialchars($mediaSrc, ENT_QUOTES, 'UTF-8'); ?>" preload="metadata" muted></video>
+              <?php endif; ?>
+            </div>
+            <div class="content-media-item__meta">
+              <strong><?php echo htmlspecialchars($mediaName, ENT_QUOTES, 'UTF-8'); ?></strong>
+              <code><?php echo htmlspecialchars($mediaSrc, ENT_QUOTES, 'UTF-8'); ?></code>
+              <small>
+                <?php echo htmlspecialchars(strtoupper($mediaKind), ENT_QUOTES, 'UTF-8'); ?>
+                · <?php echo htmlspecialchars($mediaExtension, ENT_QUOTES, 'UTF-8'); ?>
+                · <?php echo htmlspecialchars($mediaSizeLabel, ENT_QUOTES, 'UTF-8'); ?>
+                · <?php echo htmlspecialchars($mediaDimensionsLabel, ENT_QUOTES, 'UTF-8'); ?>
+                <?php if ($mediaFolder !== ''): ?>
+                · <?php echo htmlspecialchars($mediaFolder, ENT_QUOTES, 'UTF-8'); ?>
+                <?php endif; ?>
+              </small>
+              <small data-content-media-policy-badge>
+                <?php echo $mediaPolicyCompliant
+                    ? htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_COMPLIANT', 'Conforme gouvernance'), ENT_QUOTES, 'UTF-8')
+                    : htmlspecialchars($translateFormat('TXT_ADMIN_CONTENT_MEDIA_OUT_OF_POLICY', 'Hors charte: %s', $mediaPolicyHint), ENT_QUOTES, 'UTF-8'); ?>
+              </small>
+            </div>
+            <div class="actions-inline actions-inline-end">
+              <button
+                type="button"
+                class="button-small"
+                data-content-media-insert
+                data-content-media-src="<?php echo htmlspecialchars($mediaSrc, ENT_QUOTES, 'UTF-8'); ?>"
+                data-content-media-kind="<?php echo htmlspecialchars($mediaKind, ENT_QUOTES, 'UTF-8'); ?>"
+                data-content-media-width="<?php echo $mediaWidth > 0 ? $mediaWidth : ''; ?>"
+                data-content-media-height="<?php echo $mediaHeight > 0 ? $mediaHeight : ''; ?>"
+                data-content-media-extension="<?php echo htmlspecialchars($mediaExtensionLower, ENT_QUOTES, 'UTF-8'); ?>"
+                data-content-media-size-bytes="<?php echo $mediaSizeBytes; ?>"
+                data-content-media-compliant="<?php echo $mediaPolicyCompliant ? '1' : '0'; ?>"
+                data-content-media-policy-hint="<?php echo htmlspecialchars($mediaPolicyHint, ENT_QUOTES, 'UTF-8'); ?>"
+                data-content-media-folder="<?php echo htmlspecialchars($mediaFolder, ENT_QUOTES, 'UTF-8'); ?>"
+              >
+                <?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_BUTTON', 'Inserer'), ENT_QUOTES, 'UTF-8'); ?>
+              </button>
+            </div>
+          </article>
+          <?php endforeach; ?>
+        </div>
+
+        <p class="notice-muted content-media-dialog__empty" data-content-media-empty hidden><?php echo htmlspecialchars($translate('TXT_ADMIN_CONTENT_MEDIA_NO_RESULTS', 'Aucun media ne correspond a la recherche.'), ENT_QUOTES, 'UTF-8'); ?></p>
+      </div>
+
+      <div class="actions-inline actions-inline-end region-modal__actions">
+        <button type="button" class="button-link button-link-muted" data-content-media-close><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer'), ENT_QUOTES, 'UTF-8'); ?></button>
+      </div>
+    </div>
+  </dialog>
+
+  <?php if (($isNewArticle ?? false) === false): ?>
+  <?php $canDeleteActiveVariant = in_array($activeLanguage, $existingLanguages, true); ?>
+  <hr />
+  <h3><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_SECTION_TITLE', 'Suppression'), ENT_QUOTES, 'UTF-8'); ?></h3>
+  <p class="notice-muted">
+    <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_SECTION_HELP', 'Supprime uniquement la variante linguistique active et efface aussi les discussions rattachées à ce couple slug/langue. Les éventuels articles enfants sont conservés, mais détachés de ce parent.'), ENT_QUOTES, 'UTF-8'); ?>
+  </p>
+  <form
+    method="post"
+    action="<?php echo htmlspecialchars((string) ($currentArticleUrl ?? ''), ENT_QUOTES, 'UTF-8'); ?>"
+    onsubmit="return confirm('<?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_CONFIRM', 'Supprimer définitivement cette variante linguistique et ses discussions rattachées ?'), ENT_QUOTES, 'UTF-8'); ?>');"
+    data-article-delete-form
+  >
+    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
+    <input type="hidden" name="article_action" value="delete" />
+    <input
+      type="hidden"
+      name="article[active_language]"
+      value="<?php echo htmlspecialchars($activeLanguage, ENT_QUOTES, 'UTF-8'); ?>"
+      data-article-active-language
+    />
+    <p class="notice-muted" data-article-delete-status>
+      <?php if ($canDeleteActiveVariant): ?>
+      <?php echo htmlspecialchars($translateFormat('TXT_ADMIN_ARTICLE_DELETE_ACTIVE_STATUS', 'Supprime la variante %s actuellement ouverte.', $languageLabels[$activeLanguage] ?? strtoupper($activeLanguage)), ENT_QUOTES, 'UTF-8'); ?>
+      <?php else: ?>
+      <?php echo htmlspecialchars($translateFormat('TXT_ADMIN_ARTICLE_DELETE_UNAVAILABLE', 'Aucune variante %s n existe encore. La suppression est indisponible.', $languageLabels[$activeLanguage] ?? strtoupper($activeLanguage)), ENT_QUOTES, 'UTF-8'); ?>
+      <?php endif; ?>
+    </p>
+    <p class="checkbox-field">
+      <label for="confirm-article-delete">
+        <input
+          id="confirm-article-delete"
+          type="checkbox"
+          name="confirm_delete"
+          value="1"
+          required
+          data-article-delete-confirm
+          <?php echo $canDeleteActiveVariant ? '' : 'disabled'; ?>
+        />
+        <?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_CHECKBOX', 'Je confirme la suppression définitive.'), ENT_QUOTES, 'UTF-8'); ?>
+      </label>
+    </p>
+    <div class="actions-inline actions-inline-end">
+      <button class="button-danger" type="submit" data-article-delete-button <?php echo $canDeleteActiveVariant ? '' : 'disabled'; ?>><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_DELETE_ACTIVE_BUTTON', 'Supprimer la variante active'), ENT_QUOTES, 'UTF-8'); ?></button>
+    </div>
+  </form>
+  <?php endif; ?>
+</section>
+
+<?php if (($childArticles ?? []) !== []): ?>
+<section class="card">
+  <h2><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CHILDREN_TITLE', 'Articles enfants deja rattaches'), ENT_QUOTES, 'UTF-8'); ?></h2>
+  <p class="notice-muted"><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CHILDREN_HELP', 'Leur affichage front suit d abord l ordre manuel s il est renseigne, sinon la date de creation.'), ENT_QUOTES, 'UTF-8'); ?></p>
+  <div class="table-shell">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Titre</th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_STATUS', 'Statut'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th>Date</th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_CREATED_AT_LABEL', 'Creation'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_ARTICLE_MANUAL_ORDER_LABEL', 'Ordre manuel'), ENT_QUOTES, 'UTF-8'); ?></th>
+          <th><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_ACTION', 'Action'), ENT_QUOTES, 'UTF-8'); ?></th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach (($childArticles ?? []) as $childArticle): ?>
+        <tr>
+          <td>
+            <strong><?php echo htmlspecialchars((string) ($childArticle['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong><br />
+            <code><?php echo htmlspecialchars((string) ($childArticle['slug'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></code>
+          </td>
+          <td><?php echo htmlspecialchars((string) ($childArticle['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+          <td><?php echo htmlspecialchars((string) ($childArticle['date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+          <td><?php echo htmlspecialchars((string) ($childArticle['createdAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+          <td><?php echo htmlspecialchars((string) (($childArticle['childSortOrder'] ?? null) ?? '—'), ENT_QUOTES, 'UTF-8'); ?></td>
+          <td>
+            <a class="button-link" href="<?php echo htmlspecialchars((string) ($childArticle['editPath'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($translate('TXT_ADMIN_COMMON_OPEN', 'Ouvrir'), ENT_QUOTES, 'UTF-8'); ?></a>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</section>
+<?php endif; ?>
+
+<?php $cspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
+<script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+  (() => {
+    const deleteActiveTemplate = <?php echo json_encode($translate('TXT_ADMIN_ARTICLE_DELETE_ACTIVE_STATUS', 'Supprime la variante %s actuellement ouverte.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const deleteUnavailableTemplate = <?php echo json_encode($translate('TXT_ADMIN_ARTICLE_DELETE_UNAVAILABLE', 'Aucune variante %s n existe encore. La suppression est indisponible.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const tabList = document.querySelector('[data-article-translation-tabs]');
+    const tabs = Array.from(document.querySelectorAll('[data-article-translation-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-article-translation-panel]'));
+    const activeInputs = Array.from(document.querySelectorAll('[data-article-active-language]'));
+    if (!(tabList instanceof HTMLElement) || tabs.length === 0 || panels.length === 0) {
+      return;
+    }
+
+    const storageKey = 'admin-article-editor-active-translation';
+    const availableLanguages = tabs
+      .map((tab) => tab.getAttribute('data-article-translation-tab') || '')
+      .filter((language) => language !== '');
+    if (availableLanguages.length === 0) {
+      return;
+    }
+
+    const deleteForm = document.querySelector('[data-article-delete-form]');
+    const deleteStatus = deleteForm instanceof HTMLFormElement
+      ? deleteForm.querySelector('[data-article-delete-status]')
+      : null;
+    const deleteButton = deleteForm instanceof HTMLFormElement
+      ? deleteForm.querySelector('[data-article-delete-button]')
+      : null;
+    const deleteConfirm = deleteForm instanceof HTMLFormElement
+      ? deleteForm.querySelector('[data-article-delete-confirm]')
+      : null;
+    const firstLanguage = availableLanguages[0];
+
+    const updateDeleteState = (language) => {
+      const activeTab = tabs.find((tab) => (tab.getAttribute('data-article-translation-tab') || '') === language);
+      const translationLabel = activeTab instanceof HTMLElement
+        ? (activeTab.getAttribute('data-translation-label') || language.toUpperCase())
+        : language.toUpperCase();
+      const translationExists = activeTab instanceof HTMLElement
+        && activeTab.getAttribute('data-translation-exists') === '1';
+
+      activeInputs.forEach((input) => {
+        if (input instanceof HTMLInputElement) {
+          input.value = language;
+        }
+      });
+
+      if (deleteStatus instanceof HTMLElement) {
+        deleteStatus.textContent = translationExists
+          ? deleteActiveTemplate.replace('%s', translationLabel)
+          : deleteUnavailableTemplate.replace('%s', translationLabel);
+      }
+
+      if (deleteButton instanceof HTMLButtonElement) {
+        deleteButton.disabled = !translationExists;
+      }
+
+      if (deleteConfirm instanceof HTMLInputElement) {
+        deleteConfirm.disabled = !translationExists;
+        if (!translationExists) {
+          deleteConfirm.checked = false;
+        }
+      }
+    };
+
+    const setActiveLanguage = (requestedLanguage, options = {}) => {
+      const language = availableLanguages.includes(requestedLanguage) ? requestedLanguage : firstLanguage;
+      const shouldStore = options.store !== false;
+
+      tabs.forEach((tab) => {
+        const tabLanguage = tab.getAttribute('data-article-translation-tab') || '';
+        const isActive = tabLanguage === language;
+        tab.classList.toggle('menu-builder-tab-active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        tab.tabIndex = isActive ? 0 : -1;
+      });
+
+      panels.forEach((panel) => {
+        const panelLanguage = panel.getAttribute('data-article-translation-panel') || '';
+        panel.hidden = panelLanguage !== language;
+      });
+
+      updateDeleteState(language);
+
+      if (shouldStore && typeof window.sessionStorage !== 'undefined') {
+        window.sessionStorage.setItem(storageKey, language);
+      }
+
+      if (window.location.hash !== `#translation-${language}`) {
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}#translation-${language}`);
+      }
+
+      return language;
+    };
+
+    const moveFocus = (currentIndex, delta) => {
+      const nextIndex = (currentIndex + delta + tabs.length) % tabs.length;
+      const nextTab = tabs[nextIndex];
+      if (!(nextTab instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const nextLanguage = nextTab.getAttribute('data-article-translation-tab') || firstLanguage;
+      setActiveLanguage(nextLanguage);
+      nextTab.focus();
+    };
+
+    tabs.forEach((tab, index) => {
+      if (!(tab instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      tab.addEventListener('click', () => {
+        setActiveLanguage(tab.getAttribute('data-article-translation-tab') || firstLanguage);
+      });
+
+      tab.addEventListener('keydown', (event) => {
+        if (!(event instanceof KeyboardEvent)) {
+          return;
+        }
+
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          moveFocus(index, 1);
+          return;
+        }
+
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          moveFocus(index, -1);
+          return;
+        }
+
+        if (event.key === 'Home') {
+          event.preventDefault();
+          const firstTab = tabs[0];
+          if (firstTab instanceof HTMLButtonElement) {
+            setActiveLanguage(firstTab.getAttribute('data-article-translation-tab') || firstLanguage);
+            firstTab.focus();
+          }
+          return;
+        }
+
+        if (event.key === 'End') {
+          event.preventDefault();
+          const lastTab = tabs[tabs.length - 1];
+          if (lastTab instanceof HTMLButtonElement) {
+            setActiveLanguage(lastTab.getAttribute('data-article-translation-tab') || firstLanguage);
+            lastTab.focus();
+          }
+        }
+      });
+    });
+
+    let preferredLanguage = '';
+    const hashMatch = window.location.hash.match(/^#translation-([a-z]{2})$/i);
+    if (Array.isArray(hashMatch) && typeof hashMatch[1] === 'string') {
+      preferredLanguage = hashMatch[1].toLowerCase();
+    }
+
+    if (preferredLanguage === '' && typeof window.sessionStorage !== 'undefined') {
+      preferredLanguage = window.sessionStorage.getItem(storageKey) || '';
+    }
+
+    setActiveLanguage(preferredLanguage, { store: preferredLanguage !== '' });
+  })();
+</script>
+<script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+  (() => {
+    const governanceCompliantLabel = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_COMPLIANT', 'Conforme gouvernance'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const governanceOutOfPolicyTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_OUT_OF_POLICY', 'Hors charte: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const reasonFormatTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_REASON_FORMAT_NOT_ALLOWED', 'format %s non autorise'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const reasonSizeTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_REASON_SIZE_EXCEEDED', 'taille %s > %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditHintText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_HINT', 'Lance un controle automatique (format, taille, source referencee) sur le champ cible.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const noActiveTargetText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_NO_ACTIVE_TARGET', 'Aucun champ cible actif pour l audit.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditNoMediaText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_NO_MEDIA', 'Audit termine: aucun media detecte dans le contenu.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const missingSourceTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_MISSING_SOURCE', 'Source non referencee dans la bibliotheque: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditSuccessTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_SUCCESS', 'Audit termine: %d media conforme(s).'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const auditIssuesTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_AUDIT_ISSUES', 'Audit termine: %d anomalie(s) sur %d media.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const insertBlockedTemplate = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_INSERT_BLOCKED', 'Insertion bloquee: %s'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const insertedText = <?php echo json_encode($translate('TXT_ADMIN_CONTENT_MEDIA_INSERTED_ARTICLE', 'Media insere dans le contenu.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const escapeAttribute = (value) => String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+
+    const normalizeTokenList = (value) => {
+      if (typeof value !== 'string' || value.trim() === '') {
+        return [];
+      }
+
+      const unique = new Set();
+      value.split(/\s+/).forEach((token) => {
+        const normalized = token.trim();
+        if (normalized === '' || /[^a-z0-9_-]/i.test(normalized)) {
+          return;
+        }
+        unique.add(normalized);
+      });
+
+      return Array.from(unique);
+    };
+
+    const bytesToLabel = (bytes) => {
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let value = Number.isFinite(bytes) ? Math.max(0, Number(bytes)) : 0;
+      let unitIndex = 0;
+      while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+      }
+      return unitIndex === 0 ? `${Math.round(value)} ${units[unitIndex]}` : `${value.toFixed(1)} ${units[unitIndex]}`;
+    };
+
+    const insertAtCursor = (textarea, snippet) => {
+      if (!(textarea instanceof HTMLTextAreaElement)) {
+        return;
+      }
+
+      const start = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : textarea.value.length;
+      const end = typeof textarea.selectionEnd === 'number' ? textarea.selectionEnd : textarea.value.length;
+      textarea.value = `${textarea.value.slice(0, start)}${snippet}${textarea.value.slice(end)}`;
+      const nextCursor = start + snippet.length;
+      textarea.setSelectionRange(nextCursor, nextCursor);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.focus();
+    };
+
+    const dialog = document.getElementById('article-media-insert-dialog');
+    if (!(dialog instanceof HTMLDialogElement)) {
+      return;
+    }
+
+    const openButtons = document.querySelectorAll('[data-content-media-open="article-media-insert-dialog"]');
+    const closeButtons = dialog.querySelectorAll('[data-content-media-close]');
+    const searchInput = dialog.querySelector('[data-content-media-search]');
+    const folderSelect = dialog.querySelector('[data-content-media-folder]');
+    const favoriteButtons = dialog.querySelectorAll('[data-content-media-favorite-folder]');
+    const listRoot = dialog.querySelector('[data-content-media-list]');
+    const emptyState = dialog.querySelector('[data-content-media-empty]');
+    const presetSelect = dialog.querySelector('[data-content-media-preset]');
+    const extraClassesInput = dialog.querySelector('[data-content-media-extra-classes]');
+    const altInput = dialog.querySelector('[data-content-media-alt]');
+    const lazyCheckbox = dialog.querySelector('[data-content-media-lazy]');
+    const includeDimensionsCheckbox = dialog.querySelector('[data-content-media-include-dimensions]');
+    const governanceStrictCheckbox = dialog.querySelector('[data-content-media-governance-strict]');
+    const governanceFilterCheckbox = dialog.querySelector('[data-content-media-filter-governance]');
+    const videoControlsCheckbox = dialog.querySelector('[data-content-media-video-controls]');
+    const videoMutedCheckbox = dialog.querySelector('[data-content-media-video-muted]');
+    const videoAutoplayCheckbox = dialog.querySelector('[data-content-media-video-autoplay]');
+    const videoLoopCheckbox = dialog.querySelector('[data-content-media-video-loop]');
+    const videoPosterInput = dialog.querySelector('[data-content-media-video-poster]');
+    const auditButton = dialog.querySelector('[data-content-media-audit]');
+    const auditStatus = dialog.querySelector('[data-content-media-audit-status]');
+    const auditResults = dialog.querySelector('[data-content-media-audit-results]');
+    const inlineStatus = dialog.querySelector('[data-content-media-status]');
+
+    const parsePolicy = () => {
+      const raw = dialog.getAttribute('data-content-media-policy') || '{}';
+      let parsed = {};
+      try {
+        parsed = JSON.parse(raw);
+      } catch (_error) {
+        parsed = {};
+      }
+
+      const normalizeExtensions = (value) => (Array.isArray(value) ? value : [])
+        .map((entry) => String(entry).trim().toLowerCase())
+        .filter((entry) => entry !== '');
+
+      const imageMaxBytes = Number.parseInt(String(parsed.imageMaxBytes ?? ''), 10);
+      const videoMaxBytes = Number.parseInt(String(parsed.videoMaxBytes ?? ''), 10);
+
+      return {
+        context: String(parsed.context || 'article'),
+        imageExtensions: normalizeExtensions(parsed.imageExtensions),
+        videoExtensions: normalizeExtensions(parsed.videoExtensions),
+        imageMaxBytes: Number.isNaN(imageMaxBytes) ? 0 : Math.max(0, imageMaxBytes),
+        videoMaxBytes: Number.isNaN(videoMaxBytes) ? 0 : Math.max(0, videoMaxBytes),
+        imageMaxLabel: String(parsed.imageMaxLabel || ''),
+        videoMaxLabel: String(parsed.videoMaxLabel || ''),
+      };
+    };
+
+    const policy = parsePolicy();
+
+    const canonicalSource = (value) => {
+      const normalized = String(value || '').trim();
+      if (normalized === '') {
+        return '';
+      }
+
+      return normalized.split('#')[0].split('?')[0];
+    };
+
+    const complianceForAsset = ({ kind, extension, sizeBytes }) => {
+      const normalizedKind = String(kind || '').toLowerCase() === 'video' ? 'video' : 'image';
+      const normalizedExtension = String(extension || '').toLowerCase().replace(/^\./, '');
+      const normalizedSize = Number.isFinite(sizeBytes) ? Math.max(0, Number(sizeBytes)) : 0;
+      const reasons = [];
+
+      if (normalizedKind === 'image') {
+        if (policy.imageExtensions.length > 0 && !policy.imageExtensions.includes(normalizedExtension)) {
+          reasons.push(reasonFormatTemplate.replace('%s', normalizedExtension || 'inconnu'));
+        }
+        if (policy.imageMaxBytes > 0 && normalizedSize > policy.imageMaxBytes) {
+          reasons.push(
+            reasonSizeTemplate
+              .replace('%s', bytesToLabel(normalizedSize))
+              .replace('%s', policy.imageMaxLabel || bytesToLabel(policy.imageMaxBytes))
+          );
+        }
+      } else {
+        if (policy.videoExtensions.length > 0 && !policy.videoExtensions.includes(normalizedExtension)) {
+          reasons.push(reasonFormatTemplate.replace('%s', normalizedExtension || 'inconnu'));
+        }
+        if (policy.videoMaxBytes > 0 && normalizedSize > policy.videoMaxBytes) {
+          reasons.push(
+            reasonSizeTemplate
+              .replace('%s', bytesToLabel(normalizedSize))
+              .replace('%s', policy.videoMaxLabel || bytesToLabel(policy.videoMaxBytes))
+          );
+        }
+      }
+
+      return {
+        compliant: reasons.length === 0,
+        reasons,
+      };
+    };
+
+    const setInlineStatus = (message, isError = false) => {
+      if (!(inlineStatus instanceof HTMLElement)) {
+        return;
+      }
+      const normalized = String(message || '').trim();
+      inlineStatus.hidden = normalized === '';
+      inlineStatus.textContent = normalized;
+      inlineStatus.classList.toggle('notice-error', isError && normalized !== '');
+      inlineStatus.classList.toggle('notice-success', !isError && normalized !== '');
+    };
+
+    const clearAuditState = () => {
+      if (auditStatus instanceof HTMLElement) {
+        auditStatus.textContent = auditHintText;
+      }
+      if (auditResults instanceof HTMLElement) {
+        auditResults.innerHTML = '';
+        auditResults.hidden = true;
+      }
+    };
+
+    const mediaIndex = new Map();
+    dialog.querySelectorAll('[data-content-media-item]').forEach((item) => {
+      if (!(item instanceof HTMLElement)) {
+        return;
+      }
+      const src = canonicalSource(item.getAttribute('data-content-media-src') || '');
+      if (src === '' || mediaIndex.has(src)) {
+        return;
+      }
+      const kind = (item.getAttribute('data-content-media-kind') || 'image').toLowerCase();
+      const extension = (item.getAttribute('data-content-media-extension') || '').toLowerCase();
+      const sizeBytes = Number.parseInt(item.getAttribute('data-content-media-size-bytes') || '0', 10);
+      mediaIndex.set(src, {
+        kind: kind === 'video' ? 'video' : 'image',
+        extension,
+        sizeBytes: Number.isNaN(sizeBytes) ? 0 : sizeBytes,
+      });
+    });
+
+    const applyFilter = () => {
+      if (!(listRoot instanceof HTMLElement)) {
+        return;
+      }
+
+      const query = searchInput instanceof HTMLInputElement
+        ? searchInput.value.trim().toLowerCase()
+        : '';
+      const selectedFolder = folderSelect instanceof HTMLSelectElement
+        ? folderSelect.value.trim()
+        : '';
+      const onlyGovernedAssets = governanceFilterCheckbox instanceof HTMLInputElement && governanceFilterCheckbox.checked;
+      let visibleCount = 0;
+
+      listRoot.querySelectorAll('[data-content-media-item]').forEach((node) => {
+        if (!(node instanceof HTMLElement)) {
+          return;
+        }
+
+        const haystack = (node.getAttribute('data-content-media-filter') || '').toLowerCase();
+        const folder = (node.getAttribute('data-content-media-folder') || '').trim();
+        const extension = (node.getAttribute('data-content-media-extension') || '').trim().toLowerCase();
+        const kind = (node.getAttribute('data-content-media-kind') || 'image').toLowerCase();
+        const sizeBytes = Number.parseInt(node.getAttribute('data-content-media-size-bytes') || '0', 10);
+        const governance = complianceForAsset({
+          kind,
+          extension,
+          sizeBytes: Number.isNaN(sizeBytes) ? 0 : sizeBytes,
+        });
+        const searchMatch = query === '' || haystack.includes(query);
+        const folderMatch = selectedFolder === '' || folder === selectedFolder || folder.startsWith(`${selectedFolder}/`);
+        const governanceMatch = !onlyGovernedAssets || governance.compliant;
+        const match = searchMatch && folderMatch && governanceMatch;
+        node.hidden = !match;
+        node.setAttribute('data-content-media-compliant', governance.compliant ? '1' : '0');
+        node.setAttribute('data-content-media-policy-hint', governance.reasons.join(' · '));
+
+        const badge = node.querySelector('[data-content-media-policy-badge]');
+        if (badge instanceof HTMLElement) {
+          badge.textContent = governance.compliant
+            ? governanceCompliantLabel
+            : governanceOutOfPolicyTemplate.replace('%s', governance.reasons.join(' · '));
+        }
+
+        if (match) {
+          visibleCount += 1;
+        }
+      });
+
+      if (emptyState instanceof HTMLElement) {
+        emptyState.hidden = visibleCount > 0;
+      }
+    };
+
+    const buildClassAttribute = (presetClasses, customClasses) => {
+      const classes = [...normalizeTokenList(presetClasses), ...normalizeTokenList(customClasses)];
+      if (classes.length === 0) {
+        return '';
+      }
+      return ` class="${escapeAttribute(classes.join(' '))}"`;
+    };
+
+    const buildMediaSnippet = ({ src, kind, width, height }) => {
+      const safeSrc = escapeAttribute(src);
+      const preset = presetSelect instanceof HTMLSelectElement ? presetSelect.value : 'figure-default';
+      const extraClasses = extraClassesInput instanceof HTMLInputElement ? extraClassesInput.value : '';
+      const presetConfig = {
+        'figure-default': { figureClass: 'media-figure', mediaClass: 'media-asset' },
+        'figure-wide': { figureClass: 'media-figure media-figure--wide', mediaClass: 'media-asset media-asset--wide' },
+        'figure-left': { figureClass: 'media-figure media-figure--left', mediaClass: 'media-asset media-asset--left' },
+        'figure-right': { figureClass: 'media-figure media-figure--right', mediaClass: 'media-asset media-asset--right' },
+        'raw': { figureClass: '', mediaClass: '' },
+      }[preset] || { figureClass: 'media-figure', mediaClass: 'media-asset' };
+      const mediaClassAttribute = buildClassAttribute(presetConfig.mediaClass, extraClasses);
+      const figureClassAttribute = preset === 'raw' ? '' : buildClassAttribute(presetConfig.figureClass, '');
+
+      if (kind === 'video') {
+        const controls = !(videoControlsCheckbox instanceof HTMLInputElement) || videoControlsCheckbox.checked;
+        const muted = videoMutedCheckbox instanceof HTMLInputElement && videoMutedCheckbox.checked;
+        const autoplay = videoAutoplayCheckbox instanceof HTMLInputElement && videoAutoplayCheckbox.checked;
+        const loop = videoLoopCheckbox instanceof HTMLInputElement && videoLoopCheckbox.checked;
+        const poster = videoPosterInput instanceof HTMLInputElement ? videoPosterInput.value.trim() : '';
+        const attributes = [];
+        if (controls) {
+          attributes.push('controls');
+        }
+        attributes.push('preload="metadata"');
+        attributes.push('playsinline');
+        if (autoplay || muted) {
+          attributes.push('muted');
+        }
+        if (autoplay) {
+          attributes.push('autoplay');
+        }
+        if (loop) {
+          attributes.push('loop');
+        }
+        if (poster !== '') {
+          attributes.push(`poster="${escapeAttribute(poster)}"`);
+        }
+        attributes.push(`src="${safeSrc}"`);
+        if (mediaClassAttribute !== '') {
+          attributes.push(mediaClassAttribute.trim());
+        }
+
+        const videoTag = `<video ${attributes.join(' ')}></video>`;
+        return preset === 'raw'
+          ? `\n${videoTag}\n`
+          : `\n<figure${figureClassAttribute}>\n  ${videoTag}\n</figure>\n`;
+      }
+
+      const altValue = altInput instanceof HTMLInputElement ? altInput.value.trim() : '';
+      const useLazy = !(lazyCheckbox instanceof HTMLInputElement) || lazyCheckbox.checked;
+      const includeDimensions = !(includeDimensionsCheckbox instanceof HTMLInputElement) || includeDimensionsCheckbox.checked;
+      const widthAttr = includeDimensions && Number.isInteger(width) && width > 0 ? ` width="${width}"` : '';
+      const heightAttr = includeDimensions && Number.isInteger(height) && height > 0 ? ` height="${height}"` : '';
+      const loadingAttributes = useLazy ? ' loading="lazy" decoding="async" fetchpriority="low"' : '';
+      const classAttribute = mediaClassAttribute;
+      const imageTag = `<img src="${safeSrc}" alt="${escapeAttribute(altValue)}"${classAttribute}${loadingAttributes}${widthAttr}${heightAttr} />`;
+      return preset === 'raw'
+        ? `\n${imageTag}\n`
+        : `\n<figure${figureClassAttribute}>\n  ${imageTag}\n</figure>\n`;
+    };
+
+    const resolveTargetTextarea = () => {
+      const textareaId = dialog.getAttribute('data-content-media-target') || '';
+      if (textareaId === '') {
+        return null;
+      }
+      const textarea = document.getElementById(textareaId);
+      return textarea instanceof HTMLTextAreaElement ? textarea : null;
+    };
+
+    const inferKindFromSource = (source, typeHint = '') => {
+      const normalizedType = String(typeHint || '').toLowerCase();
+      if (normalizedType.startsWith('video/')) {
+        return 'video';
+      }
+      if (normalizedType.startsWith('image/')) {
+        return 'image';
+      }
+
+      const normalizedSource = canonicalSource(source).toLowerCase();
+      const extension = normalizedSource.includes('.')
+        ? normalizedSource.split('.').pop() || ''
+        : '';
+      return ['mp4', 'webm', 'ogv', 'ogg', 'mov', 'm4v'].includes(extension) ? 'video' : 'image';
+    };
+
+    const extractMediaSources = (rawHtml) => {
+      if (typeof rawHtml !== 'string' || rawHtml.trim() === '') {
+        return [];
+      }
+
+      const template = document.createElement('template');
+      template.innerHTML = rawHtml;
+
+      const found = [];
+      const seen = new Set();
+      const pushSource = (kind, src) => {
+        const normalized = canonicalSource(src);
+        if (normalized === '') {
+          return;
+        }
+        const key = `${kind}::${normalized}`;
+        if (seen.has(key)) {
+          return;
+        }
+        seen.add(key);
+        found.push({ kind, src: normalized });
+      };
+
+      template.content.querySelectorAll('img[src]').forEach((node) => {
+        pushSource('image', node.getAttribute('src') || '');
+      });
+      template.content.querySelectorAll('video[src]').forEach((node) => {
+        pushSource('video', node.getAttribute('src') || '');
+      });
+      template.content.querySelectorAll('video source[src], source[src]').forEach((node) => {
+        pushSource(inferKindFromSource(node.getAttribute('src') || '', node.getAttribute('type') || ''), node.getAttribute('src') || '');
+      });
+
+      return found;
+    };
+
+    openButtons.forEach((button) => {
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+
+      button.addEventListener('click', () => {
+        const targetId = button.getAttribute('data-content-media-target') || '';
+        dialog.setAttribute('data-content-media-target', targetId);
+        setInlineStatus('', false);
+        clearAuditState();
+        dialog.showModal();
+        if (searchInput instanceof HTMLInputElement) {
+          searchInput.value = '';
+        }
+        if (folderSelect instanceof HTMLSelectElement) {
+          folderSelect.value = '';
+        }
+        applyFilter();
+        if (searchInput instanceof HTMLInputElement) {
+          searchInput.focus();
+        }
+      });
+    });
+
+    closeButtons.forEach((button) => {
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+
+      button.addEventListener('click', () => dialog.close());
+    });
+
+    if (searchInput instanceof HTMLInputElement) {
+      searchInput.addEventListener('input', applyFilter);
+    }
+    if (folderSelect instanceof HTMLSelectElement) {
+      folderSelect.addEventListener('change', applyFilter);
+    }
+    if (governanceFilterCheckbox instanceof HTMLInputElement) {
+      governanceFilterCheckbox.addEventListener('change', applyFilter);
+    }
+
+    favoriteButtons.forEach((button) => {
+      if (!(button instanceof HTMLElement)) {
+        return;
+      }
+      button.addEventListener('click', () => {
+        if (!(folderSelect instanceof HTMLSelectElement)) {
+          return;
+        }
+        const favoriteFolder = button.getAttribute('data-content-media-favorite-folder') || '';
+        folderSelect.value = favoriteFolder;
+        applyFilter();
+      });
+    });
+
+    if (auditButton instanceof HTMLElement) {
+      auditButton.addEventListener('click', () => {
+        const textarea = resolveTargetTextarea();
+        if (!(textarea instanceof HTMLTextAreaElement)) {
+          if (auditStatus instanceof HTMLElement) {
+            auditStatus.textContent = noActiveTargetText;
+          }
+          return;
+        }
+
+        const references = extractMediaSources(textarea.value);
+        if (references.length === 0) {
+          if (auditStatus instanceof HTMLElement) {
+            auditStatus.textContent = auditNoMediaText;
+          }
+          if (auditResults instanceof HTMLElement) {
+            auditResults.innerHTML = '';
+            auditResults.hidden = true;
+          }
+          return;
+        }
+
+        const issues = [];
+        references.forEach((reference) => {
+          const indexed = mediaIndex.get(reference.src);
+          if (!indexed) {
+            issues.push(missingSourceTemplate.replace('%s', reference.src));
+            return;
+          }
+
+          const governance = complianceForAsset({
+            kind: reference.kind === 'video' ? 'video' : indexed.kind,
+            extension: indexed.extension,
+            sizeBytes: indexed.sizeBytes,
+          });
+          if (!governance.compliant) {
+            issues.push(`${reference.src} -> ${governance.reasons.join(' · ')}`);
+          }
+        });
+
+        if (auditStatus instanceof HTMLElement) {
+          auditStatus.textContent = issues.length === 0
+            ? auditSuccessTemplate.replace('%d', String(references.length))
+            : auditIssuesTemplate.replace('%d', String(issues.length)).replace('%d', String(references.length));
+        }
+
+        if (auditResults instanceof HTMLElement) {
+          auditResults.innerHTML = '';
+          if (issues.length === 0) {
+            auditResults.hidden = true;
+          } else {
+            issues.forEach((issue) => {
+              const item = document.createElement('li');
+              item.textContent = issue;
+              auditResults.appendChild(item);
+            });
+            auditResults.hidden = false;
+          }
+        }
+      });
+    }
+
+    if (listRoot instanceof HTMLElement) {
+      listRoot.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) {
+          return;
+        }
+
+        const insertButton = target.closest('[data-content-media-insert]');
+        if (!(insertButton instanceof HTMLElement)) {
+          return;
+        }
+
+        const textarea = resolveTargetTextarea();
+        if (!(textarea instanceof HTMLTextAreaElement)) {
+          return;
+        }
+
+        const src = insertButton.getAttribute('data-content-media-src') || '';
+        const kind = (insertButton.getAttribute('data-content-media-kind') || 'image').toLowerCase();
+        const extension = (insertButton.getAttribute('data-content-media-extension') || '').toLowerCase();
+        const sizeBytes = Number.parseInt(insertButton.getAttribute('data-content-media-size-bytes') || '0', 10);
+        const width = Number.parseInt(insertButton.getAttribute('data-content-media-width') || '', 10);
+        const height = Number.parseInt(insertButton.getAttribute('data-content-media-height') || '', 10);
+        if (src.trim() === '') {
+          return;
+        }
+
+        const governance = complianceForAsset({
+          kind: kind === 'video' ? 'video' : 'image',
+          extension,
+          sizeBytes: Number.isNaN(sizeBytes) ? 0 : sizeBytes,
+        });
+        const strictGovernance = !(governanceStrictCheckbox instanceof HTMLInputElement) || governanceStrictCheckbox.checked;
+        if (strictGovernance && !governance.compliant) {
+          setInlineStatus(insertBlockedTemplate.replace('%s', governance.reasons.join(' · ')), true);
+          return;
+        }
+
+        const snippet = buildMediaSnippet({
+          src,
+          kind: kind === 'video' ? 'video' : 'image',
+          width: Number.isNaN(width) ? 0 : width,
+          height: Number.isNaN(height) ? 0 : height,
+        });
+
+        insertAtCursor(textarea, snippet);
+        setInlineStatus(insertedText, false);
+        dialog.close();
+      });
+    }
+
+    if (videoAutoplayCheckbox instanceof HTMLInputElement && videoMutedCheckbox instanceof HTMLInputElement) {
+      videoAutoplayCheckbox.addEventListener('change', () => {
+        if (videoAutoplayCheckbox.checked) {
+          videoMutedCheckbox.checked = true;
+        }
+      });
+    }
+
+    applyFilter();
+  })();
+</script>
+
+<script<?php echo $cspNonce !== '' ? ' nonce="' . htmlspecialchars($cspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
+  (() => {
+    const categorySelect = document.querySelector('[data-blog-category-select]');
+    const subcategorySelect = document.querySelector('[data-blog-subcategory-select]');
+    const tagCheckboxes = Array.from(document.querySelectorAll('input[name="article[tags][]"]'));
+
+    const syncSubcategories = () => {
+      if (!(categorySelect instanceof HTMLSelectElement) || !(subcategorySelect instanceof HTMLSelectElement)) {
+        return;
+      }
+
+      const activeCategory = categorySelect.value;
+      Array.from(subcategorySelect.options).forEach((option) => {
+        const category = option.getAttribute('data-category') || '';
+        const available = option.value === '' || category === activeCategory;
+        option.hidden = !available;
+        option.disabled = !available;
+      });
+
+      const selectedOption = subcategorySelect.selectedOptions[0] || null;
+      if (selectedOption instanceof HTMLOptionElement && selectedOption.disabled) {
+        subcategorySelect.value = '';
+      }
+    };
+
+    const syncTagLimit = () => {
+      const checkedCount = tagCheckboxes.filter((checkbox) => checkbox instanceof HTMLInputElement && checkbox.checked).length;
+      tagCheckboxes.forEach((checkbox) => {
+        if (checkbox instanceof HTMLInputElement && !checkbox.checked) {
+          checkbox.disabled = checkedCount >= 5;
+        }
+      });
+    };
+
+    if (categorySelect instanceof HTMLSelectElement) {
+      categorySelect.addEventListener('change', syncSubcategories);
+    }
+
+    tagCheckboxes.forEach((checkbox) => {
+      if (checkbox instanceof HTMLInputElement) {
+        checkbox.addEventListener('change', syncTagLimit);
+      }
+    });
+
+    syncSubcategories();
+    syncTagLimit();
+  })();
+</script>

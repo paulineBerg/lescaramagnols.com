@@ -1,0 +1,12 @@
+{
+    "success": true,
+    "ok": true,
+    "started_at": "2026-05-29T17:53:04+02:00",
+    "finished_at": "2026-05-29T17:53:04+02:00",
+    "duration_ms": 170,
+    "dry_run": true,
+    "limit": 1000,
+    "messages": 0,
+    "attachments": 0,
+    "errors": 0
+}

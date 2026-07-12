@@ -1,0 +1,49 @@
+Deploy mode: fast
+Dry run: 0
+Scope: all changes
+Remote: ovh-boutique:/home/lescaramgl-ssh/caramagnols-preprod/backend
+Changed files: 3
+Deleted files: 0
+Sitemap base URL override: https://preprod.lescaramagnols.com
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+[editorial-media] OK: 609 perimetre(s), 1621 reference(s) controlee(s).
+building file list ... done
+core/tools/
+core/tools/private_migration_reconcile.php
+            700   0%    0.00kB/s    0:00:00           10,960  10%    9.78MB/s    0:00:00 (xfr#1, to-chk=5/8)
+src/PrivatePortal/Operations/PrivateBackupService.php
+         48,614  45%   11.42MB/s    0:00:00 (xfr#2, to-chk=1/8)
+src/PrivatePortal/Operations/PrivateDataProtectionService.php
+        106,323 100%   11.19MB/s    0:00:00 (xfr#3, to-chk=0/8)        106,323 100%   11.19MB/s    0:00:00 (xfr#3, to-chk=0/8)        106,323 100%    2.24MB/s    0:00:00 (xfr#3, to-chk=0/8)        106,323 100%    2.24MB/s    0:00:00 (xfr#3, to-chk=0/8)
+
+sent 4,827 bytes  received 936 bytes  3,842.00 bytes/sec
+total size is 106,323  speedup is 18.45
+sync-published-frontend-tree completed.
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 85 bytes  received 12 bytes  194.00 bytes/sec
+total size is 6,372  speedup is 65.69
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 83 bytes  received 12 bytes  63.33 bytes/sec
+total size is 6,163  speedup is 64.87
+[prod-tree] OK: aucun fichier non-prod detecte.
+Sitemap genere: /home/lescaramgl-ssh/caramagnols-preprod/backend/public/sitemap.xml (64 urls)
+Sommaire mis a jour dans accueil-le-plan-du-site-des-caramagnols, region body, langues FR, EN, DE.
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+cache_cleared
+autoload_ok
+deploy-fast completed.
+
+[docs-sync] Synchronisation README DoD preprod
+sending incremental file list
+README.md
+
+sent 4,030 bytes  received 1,631 bytes  11,322.00 bytes/sec
+total size is 187,718  speedup is 33.16
+sending incremental file list
+
+sent 74 bytes  received 12 bytes  57.33 bytes/sec
+total size is 10,775  speedup is 125.29

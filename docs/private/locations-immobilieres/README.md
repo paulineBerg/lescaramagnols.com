@@ -1,0 +1,725 @@
+# Locations immobilieres privees
+
+Date de mise a jour : 2026-06-01
+Statut : plan d'amelioration du module `RealEstateRental`, phases L3 a L8 livrees avec raccord SMTP admin et override membre optionnel, bailleurs, fiches agences modifiables, libelles francais et revue agence en enregistrement groupe.
+
+Ce README sert de feuille de route fonctionnelle et technique pour rendre le module de locations immobilieres plus complet, sans casser le socle prive deja livre.
+
+## 1. Etat actuel observe
+
+Le module existe deja et doit rester dans l'architecture actuelle :
+
+- code metier : `backend/src/PrivateApps/RealEstateRental/`;
+- controle prive : `backend/src/PrivatePortal/Http/PrivatePortalController.php`;
+- routes privees : `backend/src/PrivatePortal/Http/PrivateRouteResolver.php`;
+- templates : `backend/templates/private/modules/real-estate-rental/`;
+- tables SQL : `backend/sql/private/rental_*.sql`;
+- stockage fichiers prives : `backend/private/storage/uploads/**`, servi uniquement par endpoint PHP apres verification des droits;
+- tests : `backend/tests/PrivateApps/RealEstateRental/` et tests de garde du portail prive.
+
+Fonctions deja presentes :
+
+- tableau de bord locatif avec KPIs principaux;
+- bailleurs, proprietes, biens locatifs, acces par membre;
+- locataires, baux, loyers, paiements, charges et documents locatifs;
+- generation manuelle d'un loyer depuis un bail, avec montant calcule cote serveur;
+- paiement rattache a un loyer, y compris paiement partiel;
+- telechargement et envoi email d'une quittance PDF depuis un paiement;
+- synthese annuelle, export CSV/PDF et journalisation d'export;
+- imports agence, classification, revue humaine et pont fiscal;
+- fiches agences modifiables avec coordonnees et conseiller;
+- fiches locataires enrichies avec identite, naissance, nationalite, metier et adresse;
+- fiches biens locatifs enrichies avec identifiant fiscal, nombre de pieces, designation, equipements, chauffage, eau chaude sanitaire et assainissement;
+- envois locatifs raccordes au SMTP admin prive, avec override SMTP membre quand il est complet;
+- bridge vers `TaxDeclarationHelper`.
+
+Regles d'interface livrees le 2026-06-01 :
+
+- les statuts, types de documents, types de biens et autres termes visibles dans l'interface de locations immobilieres sont toujours affiches en francais (`À revoir`, `Validé`, `Appartement`, `Relevé de gestion`, etc.);
+- aucun code technique ne doit apparaitre tel quel dans le BO prive ou admin : utiliser une table de libelles francais pour `review`, `validated`, `apartment`, `commercial_space`, `management_statement` et les valeurs comparables;
+- le controle fiscal des categories sensibles signifie qu'une ligne importee ayant un impact fiscal doit etre confirmee manuellement avant validation, pour eviter une synthese fiscale incorrecte;
+- les lignes de classement agence doivent remplir la largeur disponible du contenu prive, avec scroll local seulement si le viewport devient trop etroit;
+- le menu haut visible s'appelle `Agence`; son sous-menu d'import s'appelle `Importer document`;
+- le sous-menu `Biens et locations` expose `Bailleurs` avant `Proprietes`, et ne doit pas exposer `Acces aux proprietes`;
+- les documents ajoutes depuis un bail sont classes en categorie `Baux` et restent visibles dans le module central `Documents`;
+- un bien locatif indisponible bloque la creation d'un bail tant que sa date de disponibilite future n'est pas depassee.
+
+Ecarts importants :
+
+- les loyers attendus sont generes par `RentScheduleService`, avec idempotence applicative et contrainte unique `bail + mois`;
+- les loyers portent maintenant un statut de paiement `pending/partial/paid/late/cancelled`, recalcule depuis les paiements valides;
+- les demandes de paiement et relances ne sont pas historisees dans une table dediee;
+- les quittances existent comme reponse PDF/email, mais pas encore comme document genere immuable rattache au loyer;
+- les charges n'ont pas encore de referentiel de categories complet, d'annee fiscale explicite ni de rattachement documentaire fin;
+- la regularisation annuelle des charges reste a creer;
+- le tableau de bord doit mieux remonter vacance, retards, documents manquants, echeances de bail et fiscalite provisoire.
+
+## 2. Arbitrages retenus
+
+1. Garder `backend/src/PrivateApps/RealEstateRental/`.
+   Le brouillon proposait `backend/src/PrivatePortal/Modules/RentalManagement/`, mais le depot a deja convergé vers `PrivateApps/RealEstateRental`. Il ne faut pas renommer le module sans migration large.
+
+2. Garder les fichiers hors webroot via le stockage prive existant.
+   Le besoin `backend/private/storage/rental/documents/` est valide en intention, mais le projet utilise deja `backend/private/storage/uploads/**` avec scanner, hash, MIME et streaming controle. Une sous-arborescence dediee pourra etre ajoutee seulement si `PrivateDocumentStorage` la gere officiellement.
+
+3. Ne pas mettre les documents, exports ou justificatifs sous `backend/public`.
+   Aucun `backend/public/private/rental/`, aucun `backend/public/location.php`, aucun upload locatif public.
+
+4. Limiter les imports par format avant toute extraction.
+   Le stockage prive applique une limite globale, une limite par extension et un controle MIME serveur. Les images pures (`jpg`, `jpeg`, `png`, `webp`) peuvent etre redimensionnees et recompressees pour respecter un plafond de stockage; les PDF, fichiers Office et justificatifs texte restent conserves tels quels pour garder leur valeur probatoire.
+
+5. Separer le statut de validation et le statut de paiement.
+   `draft/validated/cancelled` reste le statut de validation des paiements, charges, baux et autres lignes de travail. Le cycle de paiement du loyer est porte par `rental_rents.status` : `pending`, `partial`, `paid`, `late`, `cancelled`.
+
+6. Ne pas recalculer brutalement les loyers a chaque affichage.
+   Un service genere les lignes mensuelles attendues une seule fois, les conserve en base et les complete sans doublon.
+
+7. Garder la fiscalite comme preparation, pas comme declaration.
+   Les montants locatifs alimentent le module fiscal, mais les cases declaratives et rulesets par annee restent configurables dans `TaxDeclarationHelper`.
+
+8. Traiter les demandes de paiement comme des courriers historises.
+   Une demande n'est pas un texte libre : elle est liee au loyer, au bail, au locataire, au logement, au canal, au contenu envoye et a l'utilisateur emetteur.
+
+9. Rendre les emails et courriers modifiables.
+   Les textes par defaut doivent venir d'un modele configurable. L'utilisateur peut corriger l'objet, le destinataire et le corps avant envoi. Le contenu reellement envoye est conserve en snapshot.
+
+10. Raccorder toute nouvelle table et tout nouveau fichier au registre RGPD.
+    Les ajouts doivent etre declares dans `PrivateDataProtectionService`, dans les sauvegardes ZIP et dans les purges de compte.
+
+11. Centraliser les envois SMTP.
+    Le SMTP admin prive reste le socle commun. Le SMTP membre ne sert que d'override personnel complet; l'absence de `PRIVATE_MAIL_SETTINGS_ENCRYPTION_KEY` bloque seulement l'enregistrement d'un nouveau mot de passe SMTP membre, pas les envois via le SMTP admin.
+
+## 3. Modele cible prioritaire
+
+### 3.1 Loyers attendus
+
+Regles :
+
+- un loyer mensuel attendu est cree depuis un bail actif ou valide;
+- le loyer existe avant paiement;
+- le paiement est enregistre separement et s'impute sur le loyer;
+- un bail ne peut pas avoir deux loyers pour la meme periode;
+- le montant attendu est conserve, meme si le bail est modifie plus tard;
+- toute correction doit etre auditee.
+
+Statuts cibles :
+
+| Statut paiement | Regle |
+|---|---|
+| `pending` | loyer attendu, aucun paiement valide, date d'echeance non depassee |
+| `partial` | paiements valides inferieurs au total du |
+| `paid` | paiements valides superieurs ou egaux au total du |
+| `late` | solde restant apres date d'echeance |
+| `cancelled` | loyer annule, exclu des relances, quittances et syntheses |
+
+Implementation recommandee :
+
+- ajouter une contrainte unique `rental_lease_id, period_year, period_month`;
+- creer un `RentScheduleService` idempotent;
+- ajouter un service `RentPaymentStatusService` qui calcule le statut depuis les paiements valides, le montant du et la date d'echeance;
+- exposer l'etat operationnel dans la liste des loyers sans supprimer le statut de validation existant.
+
+### 3.2 Paiements
+
+Regles :
+
+- un paiement peut solder un loyer complet, une partie de loyer, plusieurs paiements successifs ou un retard;
+- un paiement annule ne compte jamais dans le total encaisse;
+- le statut `paid` n'est atteint que si le total valide couvre le montant du;
+- la suppression physique d'un paiement doit rester evitee lorsque l'historique fiscal ou locatif en depend.
+
+Ameliorations recommandees :
+
+- distinguer `payment_method`, `received_from`, `reference`, `is_caf_payment`;
+- ajouter une correction auditee plutot qu'une suppression silencieuse;
+- refuser un paiement qui depasse fortement le solde sans confirmation explicite;
+- afficher `Attendu`, `Paye`, `Reste du`, `Date echeance`, `Statut paiement`.
+
+### 3.3 Demandes de paiement et relances
+
+La demande de paiement doit etre disponible sur chaque ligne de loyer si le statut paiement est `pending`, `partial` ou `late`.
+
+Elle ne doit pas apparaitre pour :
+
+- `paid`;
+- `cancelled`.
+
+Donnees obligatoires dans le message :
+
+- nom du locataire;
+- adresse du logement;
+- mois concerne;
+- montant du loyer;
+- montant des charges;
+- total a payer;
+- montant deja paye si paiement partiel;
+- reste du;
+- date d'echeance;
+- mode de paiement;
+- reference bail, bien ou logement.
+
+Table cible :
+
+```text
+rental_payment_requests
+- id
+- rental_rent_id
+- rental_lease_id
+- rental_tenant_id
+- rental_property_id
+- rental_unit_id
+- channel
+- subject
+- body_snapshot
+- amount_due
+- amount_paid
+- balance_due
+- payment_status_at_send
+- status
+- sent_at
+- sent_by_private_user_id
+- recipient_email
+- created_at
+```
+
+Canaux :
+
+- email en premier, via la configuration SMTP privee existante;
+- PDF exportable;
+- copier-coller disponible;
+- SMS et WhatsApp plus tard via adaptateur externe, jamais comme dependance du coeur metier.
+
+Edition :
+
+- le modele email/courrier est charge depuis un catalogue configurable;
+- l'objet, le destinataire email et le corps peuvent etre modifies avant envoi;
+- les variables autorisees sont explicites, par exemple `{{tenant_name}}`, `{{period}}`, `{{rent_amount}}`, `{{charges_amount}}`, `{{balance_due}}`, `{{due_date}}`, `{{payment_method}}`;
+- le HTML email et le PDF courrier sont generes depuis le contenu valide, pas depuis un texte hardcode dans le controleur;
+- le snapshot envoye reste conserve meme si le modele est modifie ensuite.
+
+### 3.4 Quittances, avis et documents generes
+
+Regles :
+
+- une quittance ne peut etre generee que si le statut paiement du loyer est `paid`;
+- un paiement partiel produit au mieux un recu partiel, pas une quittance;
+- les documents generes doivent etre stockes hors webroot;
+- le PDF conserve un snapshot du modele et des montants au moment de la generation;
+- chaque telechargement, envoi email et regeneration est audite.
+
+Priorite :
+
+1. avis d'echeance;
+2. demande de paiement;
+3. recu partiel;
+4. quittance mensuelle;
+5. recapitulatif annuel par locataire;
+6. export ZIP des documents d'un bien.
+
+### 3.5 Reglages email et courrier
+
+Le module doit proposer une zone de reglages, ou s'appuyer sur le catalogue admin des emails prives, pour modifier les textes par defaut sans deploy.
+
+Modeles a prevoir :
+
+- demande de paiement simple;
+- relance ferme pour retard;
+- relance apres paiement partiel;
+- avis d'echeance;
+- recu partiel;
+- quittance;
+- regularisation des charges;
+- recapitulatif annuel.
+
+Regles :
+
+- aucun nouveau texte email durable ne doit etre hardcode;
+- chaque modele declare ses variables autorisees;
+- l'interface affiche un apercu avant envoi;
+- l'utilisateur peut modifier le contenu ponctuel avant envoi;
+- l'email du locataire reste pre-rempli depuis sa fiche, mais peut etre corrige pour l'envoi en cours;
+- les courriers PDF doivent reprendre le contenu valide dans la previsualisation;
+- le snapshot envoye ne doit plus changer apres modification du modele source;
+- la configuration SMTP du membre dans `Parametres > SMTP` doit proposer un bouton `Envoyer un message de test` vers une adresse saisie et validee;
+- l'envoi de test SMTP doit journaliser succes ou echec avec adresse masquee, sans stocker mot de passe, token, DSN ni erreur brute sensible.
+
+### 3.6 Charges et regularisations
+
+Categories minimales :
+
+```text
+taxe_fonciere
+assurance_pno
+copropriete
+travaux
+entretien
+agence
+banque
+eau
+electricite
+internet
+mobilier
+emprunt
+autre
+```
+
+Regles :
+
+- ne pas confondre charge payee, charge recuperable et charge fiscalement deductible;
+- `recoverable` indique une recuperation possible aupres du locataire;
+- `deductible_candidate` reste une aide de preparation fiscale, pas une validation officielle;
+- `tax_year` doit etre explicite et modifiable;
+- le justificatif doit etre rattache au bien, a la charge et, si utile, au bail ou au locataire.
+
+Regularisation des charges :
+
+- comparer provisions demandees au locataire et charges reelles;
+- isoler la part recuperable;
+- produire un solde a demander ou a rembourser;
+- conserver un snapshot du calcul et des justificatifs.
+
+### 3.7 Tableau de bord
+
+KPIs a viser :
+
+- nombre de proprietes;
+- nombre de biens locatifs;
+- biens loues;
+- biens vacants ou indisponibles;
+- loyers attendus du mois;
+- loyers encaisses;
+- loyers en retard;
+- paiements partiels;
+- charges payees;
+- solde par bien;
+- alertes importantes;
+- documents manquants;
+- echeances de bail;
+- synthese fiscale provisoire.
+
+Le tableau de bord doit rester dense, responsive et sans surcharge visuelle.
+
+### 3.8 Contrat de champs confirme en L0
+
+Ces champs forment le socle minimal pour les avis d'echeance, demandes de paiement, recus partiels, quittances et recapitulatif annuel. Ils ne declenchent pas de nouvelle route publique et ne doivent jamais etre compenses par du texte hardcode dans un controleur.
+
+Champs indispensables pour les documents generes :
+
+| Champ | Source retenue | Regle L0 |
+|---|---|---|
+| Bailleur | membre locatif `owner`, `co_owner` ou `manager`, rattache par `rental_property_members` et complete par `private_users.full_name`, `private_users.postal_address`, `private_users.email` | obligatoire pour un document final; si le nom ou l'adresse manque, afficher une alerte et autoriser seulement brouillon, apercu ou copie de travail |
+| Mode de paiement | reglage futur de bail ou de propriete, avec snapshot dans le document envoye | indispensable pour une demande de paiement; ne pas inventer de mode par defaut, utiliser une valeur explicite validee avant envoi |
+| Reference logement | composition lisible `propriete + bien locatif + bail`, avec les identifiants internes conserves pour audit | afficher un libelle humain; les ids SQL ne doivent pas etre la seule reference visible dans un courrier |
+| Adresse exacte | `rental_units.address` si renseignee, sinon `rental_properties.address`, puis ajout possible de `building`, `floor`, `door` | obligatoire pour un document final; si l'adresse du bien differe de la propriete, l'adresse du bien prime |
+| Civilite locataire | champ locataire futur controle, avec repli neutre sur `full_name` | ne jamais deduire `M.` ou `Mme` depuis le prenom; en absence de civilite, employer le nom complet sans civilite |
+
+Champs modifiables avant envoi :
+
+| Champ | Regle L0 |
+|---|---|
+| Email destinataire | pre-rempli depuis la fiche locataire quand disponible, modifiable pour l'envoi courant, valide par `FILTER_VALIDATE_EMAIL`, snapshot masque dans les logs |
+| Objet | pre-rempli depuis le catalogue de modeles prives, modifiable avant envoi, longueur bornee |
+| Corps email | issu du modele configurable, variables autorisees explicites, modifiable avant envoi, rendu HTML genere depuis le contenu valide |
+| Texte courrier | commun a la previsualisation PDF et au snapshot envoye; aucune divergence entre email, PDF et historique |
+| Signature | pre-remplie depuis le bailleur ou un reglage prive, modifiable avant envoi, conservee dans le snapshot |
+
+Regles associees :
+
+- tout modele durable doit venir du catalogue admin des emails prives ou d'un catalogue equivalent de courriers locatifs;
+- le snapshot envoye conserve sujet, corps, texte courrier, signature, montants, destinataire, statut de paiement et date d'envoi;
+- les journaux ne doivent exposer ni email complet, ni chemin serveur, ni token, ni secret SMTP;
+- les phases L1 et L2 peuvent avancer sans ces champs si elles restent limitees a l'echeancier et aux statuts, mais L3 et L4 doivent bloquer les envois definitifs quand le contrat documentaire n'est pas satisfait.
+
+## 4. Phases de realisation
+
+### Phase L0 - Cadrage et alignement
+
+- [x] Lire le brouillon de besoins.
+- [x] Comparer avec le module existant.
+- [x] Conserver l'architecture `PrivateApps/RealEstateRental`.
+- [x] Remplacer le brouillon texte par ce README maintenu.
+- [x] Confirmer les champs indispensables pour les prochains documents generes : bailleur, mode de paiement, reference logement, adresse exacte, civilite locataire.
+- [x] Confirmer les champs modifiables avant envoi : email destinataire, objet, corps email, texte courrier, signature.
+- [x] Ajouter un lien de navigation documentaire depuis `docs/private/README.md`.
+
+Definition of Done :
+
+- le plan ne demande aucun nouveau point d'entree public;
+- les choix de stockage, statuts et fiscalite sont explicites;
+- le brouillon non maintenu est supprime.
+
+Validation L0 :
+
+- le brouillon `docs/private/amelioration locations immobil.txt` n'est plus present dans le depot;
+- aucune modification de schema SQL, route privee, endpoint public ou stockage fichier n'est introduite par L0;
+- les ecarts de champs sont explicites pour guider L1 a L4 sans inventer de donnees dans les documents.
+
+### Phase L1 - Echeancier durable des loyers
+
+- [x] Creer `RentScheduleService`.
+- [x] Ajouter une contrainte anti-doublon `bail + annee + mois`.
+- [x] Ajouter une action `Generer les loyers dus` par bail ou par mois.
+- [x] Refuser la generation si le bail est annule, termine hors periode ou si la periode existe deja.
+- [x] Conserver le montant du au moment de la generation.
+- [x] Auditer generation, correction et annulation.
+
+Tests minimum :
+
+- [x] `RentScheduleServiceTest`;
+- [x] test doublon `bail + mois`;
+- [x] test bail hors periode;
+- [x] test generation depuis bail actif.
+
+Decisions L1 :
+
+- le service cree le loyer attendu depuis `monthly_rent + charges_provision`, avec snapshot du montant dans `rental_rents.amount_due`;
+- une periode existante n'est jamais recreee : la generation retourne la ligne existante et le controleur affiche `Echeancier deja a jour`;
+- la date d'echeance est le premier jour du mois, sauf premier mois du bail ou elle reprend la date de debut si le bail commence en cours de mois;
+- les baux `draft`, `validated` et `ended` peuvent alimenter l'echeancier quand la periode est couverte par le bail; les baux `cancelled` et les periodes hors bail sont ignorees;
+- les paiements saisis sans `rental_rent_id` sur une periode deja generee sont rattaches au loyer existant au lieu de creer une seconde ligne;
+- la generation est journalisee via `private.rental_rent_schedule.generated` avec compteurs `created`, `existing` et `skipped`.
+
+Validations L1 executees :
+
+- `php -l` sur `RentScheduleService`, `RentalLifecycleRepository`, `PrivatePortalController`, `rents.php` et les tests modifies;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentScheduleServiceTest.php tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`;
+- `git diff --check`.
+
+### Phase L2 - Statut de paiement et encaissements
+
+- [x] Creer `RentPaymentStatusService`.
+- [x] Afficher `pending`, `partial`, `paid`, `late`, `cancelled` sur les loyers.
+- [x] Recalculer le statut apres creation, correction ou annulation d'un paiement.
+- [x] Distinguer paiements locataire, CAF, remboursement et regularisation.
+- [x] Ajouter mode de paiement et reference.
+- [x] Bloquer ou confirmer les surpaiements.
+
+Tests minimum :
+
+- [x] `RentPaymentStatusServiceTest`;
+- [x] paiement partiel;
+- [x] paiement complet;
+- [x] paiement annule;
+- [x] retard apres echeance;
+- [x] surpaiement controle.
+
+Decisions L2 :
+
+- `rental_rents.status` devient le statut de paiement durable du loyer : `pending`, `partial`, `paid`, `late`, `cancelled`;
+- `rental_payments.status` conserve le cycle de validation de l'encaissement : `draft`, `validated`, `cancelled`;
+- seuls les paiements `validated` modifient le solde d'un loyer; un remboursement diminue le montant paye effectif;
+- les paiements portent `payment_kind` (`tenant`, `caf`, `refund`, `adjustment`), `payment_method` et `payment_reference`;
+- une creation ou correction de paiement validee qui depasse le montant attendu est refusee tant que la case de confirmation de surpaiement n'est pas cochee;
+- l'ecran `Paiements` permet de corriger ou annuler un encaissement et recalcule le statut du loyer rattache.
+
+Validations L2 executees :
+
+- `php -l` sur `RentPaymentStatusService`, `RentalLifecycleRepository`, `PrivatePortalController`, `payments.php`, `rents.php` et les tests modifies;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentPaymentStatusServiceTest.php tests/PrivateApps/RealEstateRental/Lifecycle/RentScheduleServiceTest.php tests/PrivateApps/RealEstateRental/Lifecycle/RentalLifecycleTest.php tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`;
+- `git diff --check`;
+- `cd frontend && npm run hygiene:repo`, puis `cd frontend && npm run hygiene:docs` apres la derniere mise a jour documentaire.
+
+### Phase L3 - Demandes de paiement et relances
+
+- [x] Creer `rental_payment_requests`.
+- [x] Ajouter un bouton `Demande de paiement` sur les loyers non soldes.
+- [x] Generer le message depuis les donnees du loyer, du bail, du locataire et du logement.
+- [x] Ajouter une previsualisation modifiable avant envoi : email, objet, courrier PDF et signature.
+- [x] Brancher les textes par defaut sur un catalogue de modeles configurables.
+- [x] Autoriser la modification ponctuelle du destinataire email.
+- [x] Ajouter un envoi de test depuis la configuration SMTP privee.
+- [x] Enregistrer le snapshot du message envoye.
+- [x] Envoyer par email via SMTP prive.
+- [x] Ajouter export PDF et copier-coller.
+- [x] Journaliser succes et echec d'envoi.
+
+Tests minimum :
+
+- [x] `RentalPaymentRequestServiceTest`;
+- [x] bouton absent si loyer `paid` ou `cancelled`;
+- [x] email refuse sans destinataire valide;
+- [x] contenu genere sans chemin serveur ni secret;
+- [x] message SMTP de test avec succes/echec journalise et adresse masquee;
+- [x] audit succes/echec.
+
+Decisions L3 :
+
+- les demandes de paiement sont historisees dans `rental_payment_requests`, avec destinataire, sujet, corps, signature, canal, statut, cle d'idempotence et snapshot JSON;
+- les relances ne sont disponibles que sur les loyers `pending`, `partial` ou `late` avec solde restant strictement positif;
+- le snapshot masque l'email dans le payload JSON, tandis que le destinataire exact reste en colonne SQL pour l'audit operationnel;
+- les textes par defaut `rental_payment_request_subject` et `rental_payment_request_body` sont exposes dans le catalogue des modeles email prives; la signature reste editable dans l'aperçu et surchargeable par configuration;
+- l'envoi email et le telechargement PDF journalisent l'action avec adresse masquee;
+- la configuration email privee permet maintenant un test SMTP ponctuel depuis l'onglet admin email.
+
+Validations L3 executees :
+
+- `php -l` sur `RentalLifecycleRepository`, `RentalPaymentRequestService`, `PrivatePortalController`, `AdminSettingsService`, `rents.php` et `private_members_list.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalPaymentRequestServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTransactionalEmailTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`;
+- `git diff --check`;
+- `cd frontend && npm run hygiene:docs`;
+- `cd frontend && npm run hygiene:repo`.
+
+### Phase L4 - Quittances et documents generes
+
+- [x] Bloquer la quittance si le loyer n'est pas integralement paye.
+- [x] Ajouter recu partiel pour paiement incomplet.
+- [x] Stocker les PDF generes hors webroot avec hash, type MIME et taille.
+- [x] Rattacher quittance, recu et avis au loyer et au bail.
+- [x] Garder un snapshot immuable du document envoye.
+- [x] Ajouter purge ou retention documentee pour exports temporaires.
+
+Tests minimum :
+
+- [x] `RentalReceiptServiceTest`;
+- [x] quittance interdite sur paiement partiel;
+- [x] PDF stocke hors webroot;
+- [x] telechargement refuse sans droit propriete;
+- [x] audit telechargement/email.
+
+Decisions L4 :
+
+- les documents generes durablement sont historises dans `rental_generated_documents`, avec rattachement au loyer, bail, paiement, propriete et lot;
+- les fichiers PDF sont ecrits par `PrivateDocumentStorage::storeGeneratedDocument()` dans le stockage prive hors webroot, avec `sha256_hash`, type MIME et taille;
+- une quittance `receipt` est refusee tant que le solde du loyer reste positif; un `partial_receipt` est autorise uniquement si un paiement valide existe et que le solde n'est pas nul;
+- la generation est idempotente par document, paiement, periode et montants; une regeneration identique reutilise le document stocke;
+- les telechargements et envois email passent par `RentalReceiptService` et sont journalises avec type de document et identifiants locatifs;
+- la suppression de donnees privees sauvegarde, purge et supprime aussi les documents generes via le registre central de protection des donnees.
+
+Validations L4 executees :
+
+- `php -l` sur `PrivateDocumentStorage`, `RentalLifecycleRepository`, `RentalReceiptService`, `PrivatePortalController`, `payments.php` et `RentalReceiptServiceTest`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalReceiptServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`;
+- `git diff --check`;
+- `cd frontend && npm run hygiene:docs`;
+- `cd frontend && npm run hygiene:repo`.
+
+### Phase L5 - Charges, justificatifs et regularisations
+
+- [x] Ajouter categorie de charge normalisee.
+- [x] Ajouter `tax_year`.
+- [x] Rattacher un justificatif a une charge.
+- [x] Afficher charges recuperables, candidates deductibles et non deductibles separement.
+- [x] Creer l'ecran `Regularisations`.
+- [x] Calculer provisions, charges reelles, part recuperable et solde.
+- [x] Generer un document de regularisation verifiable.
+
+Tests minimum :
+
+- [x] `RentalExpenseCategoryTest`;
+- [x] `ChargeRegularizationServiceTest`;
+- [x] charge recuperable non automatiquement deductible;
+- [x] regularisation avec solde a demander;
+- [x] regularisation avec remboursement.
+
+Decisions L5 :
+
+- les categories de charges sont centralisees dans `RentalExpenseCategoryCatalog`, avec normalisation stricte et libelles stables;
+- `tax_year` devient explicite sur `rental_expenses`; les anciennes charges sont migrees depuis `expense_date` lors de l'initialisation de schema;
+- les justificatifs de charges restent dans le stockage prive et sont relies par `rental_documents.rental_expense_id`;
+- les regularisations sont conservees dans `rental_charge_regularizations` avec snapshot JSON, document PDF prive, empreinte SHA-256 et cle d'idempotence;
+- une charge recuperable ne devient jamais deductible par automatisme : les deux decisions restent separees.
+
+Validations L5 executees :
+
+- `php -l` sur les services, repository, controller, routes, templates et tests L5;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalExpenseCategoryTest.php tests/PrivateApps/RealEstateRental/Lifecycle/ChargeRegularizationServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateRouteResolverTest.php tests/PrivatePortalPhaseCoverageTest.php tests/PrivatePortal/PrivateUiGuardTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php tests/PrivatePortal/PrivateModuleMigrationPlanTest.php tests/PrivatePortal/PrivacyOperationsTest.php`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`.
+
+### Phase L6 - Dashboard et synthese fiscale provisoire
+
+- [x] Ajouter biens vacants, biens indisponibles et baux proches de fin.
+- [x] Ajouter loyers du mois attendus, encaisses, partiels et en retard.
+- [x] Ajouter documents manquants par bail ou par bien.
+- [x] Ajouter solde annuel par bien.
+- [x] Afficher les donnees incertaines ou brouillon sans les integrer silencieusement.
+- [x] Garder la liaison fiscale configuree dans `TaxDeclarationHelper`.
+
+Tests minimum :
+
+- [x] `RentalDashboardServiceTest`;
+- [x] `TaxSummaryServiceTest`;
+- [x] brouillons bloquants;
+- [x] charges non deductibles non additionnees aux deductions.
+
+Decisions L6 :
+
+- le tableau de bord passe par `RentalDashboardService`, service de lecture dedie, afin de garder les templates sans recalcul metier;
+- les loyers du mois sont separes entre attendu, encaisse, paiements partiels et retards;
+- les documents manquants sont signales par bail et par bien, sans bloquer automatiquement la synthese fiscale;
+- les lignes brouillon restent des controles bloquants pour la synthese et le pont fiscal;
+- le lien vers `TaxDeclarationHelper` reste expose depuis le dashboard et les charges non deductibles ne sont pas ajoutees aux deductions.
+
+Validations L6 executees :
+
+- `php -l` sur `RentalDashboardService`, le controller, le template dashboard et les tests L6;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalDashboardServiceTest.php tests/PrivateApps/RealEstateRental/Lifecycle/TaxSummaryServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/RealEstateRentalModuleTest.php tests/PrivatePortalTaxBridgeTest.php tests/PrivateApps/TaxDeclarationHelper/TaxDeclarationHelperModuleTest.php`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`.
+
+### Phase L7 - Exports et sauvegardes
+
+- [x] Export CSV loyers.
+- [x] Export CSV charges.
+- [x] Export PDF annuel par bien.
+- [x] Export PDF recapitulatif par locataire.
+- [x] Export ZIP des documents d'un bien.
+- [x] Stocker les exports temporaires hors webroot.
+- [x] Journaliser chaque export.
+- [x] Raccorder nouvelles tables et fichiers a `PrivateDataProtectionService`.
+
+Tests minimum :
+
+- [x] `RentalExportServiceTest`;
+- [x] ZIP sans chemin serveur expose;
+- [x] export refuse sans permission;
+- [x] backup ZIP contient tables et fichiers attendus;
+- [x] purge compte traite les nouvelles donnees.
+
+Decisions L7 :
+
+- les exports passent par `RentalExportService`, avec generation temporaire dans le stockage prive `exports/real-estate-rental`, jamais sous `backend/public`;
+- les routes existantes `export.csv` et `export.pdf` restent compatibles, et une route `export.zip` sert les archives de documents d'un bien;
+- chaque export reussi cree une ligne `rental_export_logs` avec `format`, `export_kind`, empreinte et metadonnees minimales dans le payload;
+- les exports financiers restent bloques si la synthese annuelle detecte des lignes brouillon; le ZIP documentaire reste soumis aux droits par bien;
+- l'export RGPD inclut les journaux d'exports locatifs, et la purge de compte les supprime avec les autres donnees locatives;
+- les ZIP embarquent un `manifest.json` sans chemin serveur ni `storage_path`, avec seulement les noms, types et tailles utiles.
+
+Validations L7 executees :
+
+- `php -l` sur `RentalExportService`, `RentalLifecycleRepository`, le controller, le template de synthese et `RentalExportServiceTest`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental/Lifecycle/RentalExportServiceTest.php`;
+- `cd backend && vendor/bin/phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental tests/PrivateRouteResolverTest.php tests/PrivatePortalPhaseCoverageTest.php tests/PrivatePortal/PrivateModuleMigrationPlanTest.php tests/PrivatePortal/PrivacyOperationsTest.php`;
+- `cd backend && vendor/bin/phpstan analyse`;
+- `cd backend && vendor/bin/phpcs`.
+
+### Phase L8 - Imports agence et rapprochements avances
+
+- [x] Conserver l'import agence comme sous-domaine de `RealEstateRental`.
+- [x] Renforcer le mapping des lignes agence vers loyers, charges, honoraires, GLI et reversements.
+- [x] Ajouter rapprochement avec virements et justificatifs.
+- [x] Ajouter file OCR/saisie manuelle pour scans sans texte.
+- [x] Signaler doublons, periodes manquantes et lignes non classees.
+- [x] Ne jamais valider automatiquement une categorie fiscale sensible.
+
+Tests minimum :
+
+- [x] parseurs ASG/ICS existants;
+- [x] mapping fiscal avec revue humaine;
+- [x] donnees sensibles masquees;
+- [x] document source conserve.
+
+Decisions L8 :
+
+- les imports agence restent portes par le module prive `real_estate_rental`, avec readiness dediee `agency_imports`;
+- `AgencyFiscalReviewPolicy` centralise les categories fiscales sensibles : une ligne fiscale ne peut pas passer en `validated` sans confirmation humaine explicite;
+- les changements de propriete, lot ou categorie dans la revue agence ne declenchent plus de validation automatique par changement de champ;
+- `AgencyAdvancedReconciliationService` calcule la lecture de rapprochement hors template : recettes, charges, net avant virement, virements proprietaire, ecart, source conservee, file OCR/saisie et anomalies courantes;
+- les lignes non classees, les periodes manquantes, les doublons potentiels et les scans sans texte sont signales avant alimentation des syntheses;
+- les justificatifs agence restent dans le stockage prive via `private_document_id` / `storage_path`, jamais sous `backend/public`.
+- les agences sont conservees dans `rental_agencies` et peuvent etre creees, modifiees ou supprimees depuis la page dediee `/private/locations/agence`, avec raison sociale, adresse, telephone, email, conseiller et notes;
+- la revue des lignes agence conserve les actions par ligne, mais permet aussi d'enregistrer toutes les corrections visibles en une seule soumission.
+- l'import agence respecte le statut du scanner documentaire avant toute extraction texte : un fichier `infected`, `pending_scan` ou `scan_unavailable` est refuse, supprime du stockage prive et n'est pas persiste comme document a revoir.
+
+## 5. Optimisations possibles
+
+- [x] Index SQL sur les requetes frequentes : `rental_property_id`, periode, statut de validation, statut paiement, echeance.
+- [x] Vue ou service de lecture pour le tableau de bord, afin d'eviter de recalculer tous les totaux dans les templates.
+- [x] Generation batch mensuelle avec dry-run JSON avant ecriture.
+- [x] Idempotence stricte sur imports, generation de loyers, relances et exports.
+- [ ] Files d'attente futures pour OCR, envoi email volumineux et generation ZIP.
+- [ ] Cache court des KPIs par utilisateur et annee, invalide apres ecriture locative.
+- [x] Composants UI plus compacts pour les tableaux longs, filtres persistants et actions groupees.
+- [x] Versionnement des modeles de courriers et quittances.
+- [ ] Historique de corrections plutot que suppression sur les objets financiers.
+- [ ] API privee future uniquement apres stabilisation du rendu serveur, avec les memes controles CSRF, permissions et audit.
+
+Optimisations appliquees apres L7 :
+
+- indexes ajoutes sur baux proches de fin, echeances de loyers, paiements par periode, charges par statut fiscal et documents par date d'envoi;
+- `RentalDashboardService` reste la couche de lecture du dashboard, sans recalcul metier dans le template;
+- `RentScheduleService::dryRunForMonth()` produit une previsualisation JSON sans ecriture avant generation mensuelle reelle;
+- les exports produisent un contenu stable pour un meme etat de donnees et les ZIP documentaires n'incluent plus d'horodatage variable dans le manifeste;
+- les filtres de longues listes privees sont conserves par onglet via `sessionStorage`, avec reinitialisation explicite;
+- les snapshots de demandes de paiement et de quittances portent `templateVersion`.
+
+Optimisations reportees :
+
+- files d'attente OCR/email/ZIP : a introduire avec un worker prive et une table de jobs dediee, pour eviter un pseudo-asynchrone web fragile;
+- cache KPI persistant : a ajouter seulement avec une strategie d'invalidation commune apres toutes les ecritures locatives;
+- historique financier de corrections : a traiter comme evolution de modele, avec table d'audit metier et migration de l'action `delete`;
+- API privee : a garder hors perimetre tant que le rendu serveur reste la surface canonique.
+
+## 6. Interdits et controles de securite
+
+Interdits :
+
+- creer `backend/public/private/rental/`;
+- creer `backend/public/location.php`;
+- stocker documents, exports ou justificatifs sous `backend/public/uploads/`;
+- coder du SQL dans les templates;
+- coder les regles fiscales definitives dans les templates;
+- exposer chemin serveur, token, mot de passe, IBAN ou numero fiscal complet dans le HTML ou les logs;
+- supprimer physiquement un locataire lie a un bail sans politique de purge explicite.
+
+Controles obligatoires pour chaque phase :
+
+- validation stricte des entrees;
+- CSRF sur toutes les ecritures;
+- verification des permissions par propriete;
+- audit des actions sensibles;
+- documents hors webroot;
+- raccordement sauvegarde ZIP et purge RGPD si nouvelles donnees;
+- tests unitaires ou fonctionnels adaptes au risque;
+- controle UI responsive si template modifie.
+
+Commandes de validation a adapter au perimetre :
+
+```bash
+cd backend && phpunit --configuration phpunit.xml tests/PrivateApps/RealEstateRental
+cd backend && phpunit --configuration phpunit.xml tests/PrivatePortal/PrivateTemplateGuardTest.php tests/PrivatePortal/PrivateUiGuardTest.php
+cd backend && phpunit --configuration phpunit.xml tests/PrivatePortalTaxBridgeTest.php
+cd backend && vendor/bin/phpstan analyse
+cd backend && vendor/bin/phpcs
+git diff --check
+```
+
+## 7. Ordre de priorite recommande
+
+1. securiser les loyers attendus avec echeancier idempotent et anti-doublon;
+2. separer statut de validation et statut de paiement;
+3. ajouter demandes de paiement historisees;
+4. rendre quittances et recus immuables dans le stockage prive;
+5. structurer charges, justificatifs et regularisations;
+6. enrichir tableau de bord et synthese annuelle;
+7. etendre exports et sauvegardes;
+8. poursuivre import agence, OCR et rapprochements.
+
+Cette progression donne rapidement un module plus utile au quotidien, tout en gardant une base saine pour les declarations fiscales et les evolutions avancees.

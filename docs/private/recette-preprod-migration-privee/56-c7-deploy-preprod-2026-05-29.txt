@@ -1,0 +1,47 @@
+Deploy mode: fast
+Dry run: 0
+Scope: all changes
+Remote: ovh-boutique:/home/lescaramgl-ssh/caramagnols-preprod/backend
+Changed files: 2
+Deleted files: 0
+Sitemap base URL override: https://preprod.lescaramagnols.com
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+[editorial-media] OK: 609 perimetre(s), 1621 reference(s) controlee(s).
+building file list ... done
+templates/private/modules/real-estate-rental/properties.php
+            700   3%    0.00kB/s    0:00:00           10,557  54%    9.40MB/s    0:00:00 (xfr#1, to-chk=1/6)
+templates/private/modules/real-estate-rental/units.php
+         19,490 100%   17.92MB/s    0:00:00 (xfr#2, to-chk=0/6)         19,490 100%   17.92MB/s    0:00:00 (xfr#2, to-chk=0/6)         19,490 100%  573.43kB/s    0:00:00 (xfr#2, to-chk=0/6)         19,490 100%  573.43kB/s    0:00:00 (xfr#2, to-chk=0/6)
+
+sent 795 bytes  received 230 bytes  683.33 bytes/sec
+total size is 19,490  speedup is 19.01
+sync-published-frontend-tree completed.
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 85 bytes  received 12 bytes  64.67 bytes/sec
+total size is 6,372  speedup is 65.69
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 83 bytes  received 12 bytes  190.00 bytes/sec
+total size is 6,163  speedup is 64.87
+[prod-tree] OK: aucun fichier non-prod detecte.
+Sitemap genere: /home/lescaramgl-ssh/caramagnols-preprod/backend/public/sitemap.xml (64 urls)
+Sommaire mis a jour dans accueil-le-plan-du-site-des-caramagnols, region body, langues FR, EN, DE.
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+cache_cleared
+autoload_ok
+deploy-fast completed.
+
+[docs-sync] Synchronisation README DoD preprod
+sending incremental file list
+README.md
+
+sent 185,725 bytes  received 35 bytes  371,520.00 bytes/sec
+total size is 185,569  speedup is 1.00
+sending incremental file list
+README.md
+
+sent 10,896 bytes  received 35 bytes  7,287.33 bytes/sec
+total size is 10,775  speedup is 0.99

@@ -1,0 +1,20 @@
+# C1 - Synthese finale preprod
+
+Date: 2026-05-29
+URL: https://preprod.lescaramagnols.com
+Compte de recette: preprod-c1-security@lescaramagnols.com
+Secrets: aucun mot de passe ni token conserve.
+
+Resultat C1: OK.
+
+Preuves composees:
+- 15-c1-security-manual-preprod-2026-05-29.txt: login, refus CSRF, compte suspendu, permission documents retiree, reset password, fichiers sans session/sans permission.
+- 16-c1-logout-rerun-preprod-2026-05-29.txt: logout corrige et revalide.
+
+Conclusion securite:
+- Aucun scenario critique C1 ne donne acces a une ressource interdite.
+- Les refus observes sont des 302 vers login, 403, ou pages neutres 200 sans session active selon le contexte.
+- Les preuves ne contiennent ni mot de passe, ni token, ni contenu de document.
+
+Anomalie hors C1 stricte:
+- Upload HTTP documentaire preprod: upload_failed/storage_unavailable, classe majeur exploitation, a reprendre avant go-live.

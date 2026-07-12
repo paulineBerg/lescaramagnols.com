@@ -1,0 +1,14 @@
+No syntax errors detected in backend/core/tools/check_log_alerts.php
+No syntax errors detected in backend/src/Logging/LogAlertsNotifier.php
+No syntax errors detected in backend/tests/Logging/CheckLogAlertsScriptTest.php
+No syntax errors detected in backend/tests/Logging/LogAlertsNotifierTest.php
+PHPUnit 10.5.63 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.2.29
+Configuration: /home/surfacepro8/www/caramagnols/backend/phpunit.xml
+
+.......                                                             7 / 7 (100%)
+
+Time: 00:00.052, Memory: 8.00 MB
+
+OK (7 tests, 42 assertions)

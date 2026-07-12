@@ -1,0 +1,382 @@
+{
+    "success": true,
+    "ready": true,
+    "modules": {
+        "private_core": {
+            "code": "private_core",
+            "title": "PrivateCore",
+            "permissionModule": "dashboard",
+            "migrationStatusModule": "dashboard",
+            "status": "php_source",
+            "ready": true,
+            "checklist": {
+                "apiContract": true,
+                "sqlSchemaAndMigration": true,
+                "legacyReadOrImport": true,
+                "permissionsByAction": true,
+                "domainUnitTests": true,
+                "httpAuthPermissionCsrfTests": true,
+                "formAndFileValidationTests": true,
+                "sensitiveActionAudit": true,
+                "uiStates": true,
+                "smokeHttp": true,
+                "reconciliationBeforeSwitch": true,
+                "reversibleSwitch": true,
+                "legacyRouteHandled": true
+            },
+            "routes": {
+                "login": "/private-4h6F1c/login",
+                "dashboard": "/private-4h6F1c/dashboard",
+                "logout": "/private-4h6F1c/logout",
+                "activate": "/private-4h6F1c/activate",
+                "password_forgot": "/private-4h6F1c/password/forgot",
+                "password_reset": "/private-4h6F1c/password/reset",
+                "privacy_export": "/private-4h6F1c/privacy/export",
+                "ops_backup": "/private-4h6F1c/ops/backup"
+            },
+            "tables": [
+                "private_users",
+                "private_user_invites",
+                "private_password_resets",
+                "private_sessions",
+                "private_mfa_backup_codes",
+                "private_modules",
+                "private_user_module_permissions"
+            ],
+            "contractClasses": {
+                "existing": [
+                    "Caramagnols\\PrivatePortal\\Repository\\PrivateUserRepository",
+                    "Caramagnols\\PrivatePortal\\Repository\\PrivateModulePermissionRepository",
+                    "Caramagnols\\PrivatePortal\\Security\\PrivateAuth",
+                    "Caramagnols\\PrivatePortal\\Security\\PrivateSession",
+                    "Caramagnols\\PrivatePortal\\Security\\PrivatePortalSecurityGuard",
+                    "Caramagnols\\PrivatePortal\\Operations\\PrivateDataProtectionService"
+                ],
+                "missing": []
+            },
+            "testClasses": [
+                "PrivatePortalSecurityTest",
+                "PrivatePortalMembersTest",
+                "PrivatePortalModuleAssignmentTest",
+                "PrivatePortalPhaseCoverageTest",
+                "PrivacyOperationsTest"
+            ],
+            "auditEvents": [
+                "private.login.rejected",
+                "private.logout.rejected",
+                "admin.private.member_modules_updated",
+                "admin.private.deletion_backup_downloaded"
+            ],
+            "notes": "Source de verite actuelle : PHP prive moderne sous backend/src/PrivatePortal."
+        },
+        "documents": {
+            "code": "documents",
+            "title": "Documents",
+            "permissionModule": "documents",
+            "migrationStatusModule": "documents",
+            "status": "php_source",
+            "ready": true,
+            "checklist": {
+                "apiContract": true,
+                "sqlSchemaAndMigration": true,
+                "legacyReadOrImport": true,
+                "permissionsByAction": true,
+                "domainUnitTests": true,
+                "httpAuthPermissionCsrfTests": true,
+                "formAndFileValidationTests": true,
+                "sensitiveActionAudit": true,
+                "uiStates": true,
+                "smokeHttp": true,
+                "reconciliationBeforeSwitch": true,
+                "reversibleSwitch": true,
+                "legacyRouteHandled": true
+            },
+            "routes": {
+                "documents": "/private-4h6F1c/documents",
+                "files": "/private-4h6F1c/files",
+                "files_upload": "/private-4h6F1c/files/upload",
+                "files_categories": "/private-4h6F1c/files/categories",
+                "files_delete": "/private-4h6F1c/files"
+            },
+            "tables": [
+                "private_document_categories",
+                "private_documents"
+            ],
+            "contractClasses": {
+                "existing": [
+                    "Caramagnols\\PrivatePortal\\Documents\\PrivateDocumentRepository",
+                    "Caramagnols\\PrivatePortal\\Documents\\PrivateDocumentStorage"
+                ],
+                "missing": []
+            },
+            "testClasses": [
+                "PrivatePortalStorageTest",
+                "PrivacyOperationsTest"
+            ],
+            "auditEvents": [
+                "private.documents.uploaded",
+                "private.documents.deleted",
+                "private.documents.downloaded"
+            ],
+            "notes": "Les fichiers restent hors webroot et les chemins publics ne sont pas persistants."
+        },
+        "family_discussion": {
+            "code": "family_discussion",
+            "title": "FamilyDiscussion",
+            "permissionModule": "discussions",
+            "migrationStatusModule": "discussions",
+            "status": "php_source",
+            "ready": true,
+            "checklist": {
+                "apiContract": true,
+                "sqlSchemaAndMigration": true,
+                "legacyReadOrImport": true,
+                "permissionsByAction": true,
+                "domainUnitTests": true,
+                "httpAuthPermissionCsrfTests": true,
+                "formAndFileValidationTests": true,
+                "sensitiveActionAudit": true,
+                "uiStates": true,
+                "smokeHttp": true,
+                "reconciliationBeforeSwitch": true,
+                "reversibleSwitch": true,
+                "legacyRouteHandled": true
+            },
+            "routes": {
+                "discussion_index": "/private-4h6F1c/discussions",
+                "discussion_new": "/private-4h6F1c/discussions/new",
+                "discussion_api_conversations": "/private-4h6F1c/discussions/api/conversations",
+                "discussion_api_crypto_devices": "/private-4h6F1c/discussions/api/crypto/devices",
+                "discussion_files": "/private-4h6F1c/discussions/files"
+            },
+            "tables": [
+                "discussion_conversations",
+                "discussion_conversation_members",
+                "discussion_messages",
+                "discussion_message_reads",
+                "discussion_message_attachments",
+                "discussion_conversation_keys",
+                "discussion_crypto_devices",
+                "discussion_retention_runs"
+            ],
+            "contractClasses": {
+                "existing": [
+                    "Caramagnols\\PrivateApps\\FamilyDiscussion\\Repository\\DiscussionRepository",
+                    "Caramagnols\\PrivateApps\\FamilyDiscussion\\Service\\DiscussionService",
+                    "Caramagnols\\PrivateApps\\FamilyDiscussion\\Service\\DiscussionAccessPolicy",
+                    "Caramagnols\\PrivateApps\\FamilyDiscussion\\Attachment\\DiscussionAttachmentStorage",
+                    "Caramagnols\\PrivateApps\\FamilyDiscussion\\Retention\\DiscussionRetentionService"
+                ],
+                "missing": []
+            },
+            "testClasses": [
+                "FamilyDiscussionModuleTest",
+                "PrivatePortalPhaseCoverageTest"
+            ],
+            "auditEvents": [
+                "private.discussions.message_created",
+                "private.discussions.message_deleted",
+                "private.discussions.attachment_deleted",
+                "private.discussions.retention_run"
+            ],
+            "notes": "La retention cible reste 60 jours pour les messages/fichiers expirables."
+        },
+        "real_estate_rental": {
+            "code": "real_estate_rental",
+            "title": "RealEstateRental",
+            "permissionModule": "real_estate_rental",
+            "migrationStatusModule": "real_estate_rental",
+            "status": "php_source",
+            "ready": true,
+            "checklist": {
+                "apiContract": true,
+                "sqlSchemaAndMigration": true,
+                "legacyReadOrImport": true,
+                "permissionsByAction": true,
+                "domainUnitTests": true,
+                "httpAuthPermissionCsrfTests": true,
+                "formAndFileValidationTests": true,
+                "sensitiveActionAudit": true,
+                "uiStates": true,
+                "smokeHttp": true,
+                "reconciliationBeforeSwitch": true,
+                "reversibleSwitch": true,
+                "legacyRouteHandled": true
+            },
+            "routes": {
+                "rental_dashboard": "/private-4h6F1c/locations",
+                "rental_properties": "/private-4h6F1c/rental-properties",
+                "rental_units": "/private-4h6F1c/rental-units",
+                "rental_property_members": "/private-4h6F1c/rental-property-members",
+                "rental_tenants": "/private-4h6F1c/locations/locataires",
+                "rental_leases": "/private-4h6F1c/leases",
+                "rental_payments": "/private-4h6F1c/payments",
+                "rental_rents": "/private-4h6F1c/rents",
+                "rental_expenses": "/private-4h6F1c/charges",
+                "rental_documents": "/private-4h6F1c/locations/documents",
+                "rental_summary": "/private-4h6F1c/locations/summary",
+                "rental_export_csv": "/private-4h6F1c/locations/export.csv",
+                "rental_export_pdf": "/private-4h6F1c/locations/export.pdf"
+            },
+            "tables": [
+                "rental_properties",
+                "rental_units",
+                "rental_property_members",
+                "rental_tenants",
+                "rental_leases",
+                "rental_payments",
+                "rental_expenses",
+                "rental_documents",
+                "rental_export_logs"
+            ],
+            "contractClasses": {
+                "existing": [
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalPropertyRepository",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalUnitRepository",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalLifecycleRepository",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalPropertyMemberRepository",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\Service\\RentalAnnualSummaryService"
+                ],
+                "missing": []
+            },
+            "testClasses": [
+                "RealEstateRentalModuleTest",
+                "RentalLifecycleTest",
+                "PrivatePortalPhaseCoverageTest"
+            ],
+            "auditEvents": [
+                "private.rental.property_created",
+                "private.rental.unit_created",
+                "private.rental.document_uploaded",
+                "private.rental.export_created"
+            ],
+            "notes": "Les exports restent regenerables depuis les tables locatives source."
+        },
+        "agency_imports": {
+            "code": "agency_imports",
+            "title": "AgencyImports",
+            "permissionModule": "real_estate_rental",
+            "migrationStatusModule": "real_estate_rental",
+            "status": "php_source",
+            "ready": true,
+            "checklist": {
+                "apiContract": true,
+                "sqlSchemaAndMigration": true,
+                "legacyReadOrImport": true,
+                "permissionsByAction": true,
+                "domainUnitTests": true,
+                "httpAuthPermissionCsrfTests": true,
+                "formAndFileValidationTests": true,
+                "sensitiveActionAudit": true,
+                "uiStates": true,
+                "smokeHttp": true,
+                "reconciliationBeforeSwitch": true,
+                "reversibleSwitch": true,
+                "legacyRouteHandled": true
+            },
+            "routes": {
+                "rental_agency_imports": "/private-4h6F1c/locations/agence/imports",
+                "rental_agency_review": "/private-4h6F1c/locations/agence/documents-a-classer"
+            },
+            "tables": [
+                "rental_agency_import_batches",
+                "rental_agency_imported_documents",
+                "rental_agency_statements",
+                "rental_agency_statement_lines",
+                "rental_agency_import_issues",
+                "rental_agency_line_mappings"
+            ],
+            "contractClasses": {
+                "existing": [
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\AgencyManagement\\Import\\AgencyImportService",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\AgencyManagement\\Import\\AgencyImportPreviewService",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\AgencyManagement\\Repository\\AgencyImportRepository",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\AgencyManagement\\Repository\\AgencyMappingRepository",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\AgencyManagement\\Service\\AgencyStatementValidationService",
+                    "Caramagnols\\PrivateApps\\RealEstateRental\\AgencyManagement\\Import\\AgencySensitiveDataMasker"
+                ],
+                "missing": []
+            },
+            "testClasses": [
+                "PrivatePortalPhaseCoverageTest",
+                "AgencyDocumentClassifierTest",
+                "AgencyImportPreviewServiceTest",
+                "AgencyImportRepositoryTest",
+                "AgencyImportServiceTest",
+                "AgencySensitiveDataMaskerTest",
+                "AgencyStatementValidationServiceTest",
+                "AgencyTaxBridgeNormalizerTest"
+            ],
+            "auditEvents": [
+                "private.rental.agency_imported",
+                "private.rental.agency_reviewed",
+                "private.rental.agency_issue_created"
+            ],
+            "notes": "Sous-module fonctionnel rattache a la permission real_estate_rental."
+        },
+        "tax_declaration_helper": {
+            "code": "tax_declaration_helper",
+            "title": "TaxDeclarationHelper",
+            "permissionModule": "tax_declaration_helper",
+            "migrationStatusModule": "tax_declaration_helper",
+            "status": "php_source",
+            "ready": true,
+            "checklist": {
+                "apiContract": true,
+                "sqlSchemaAndMigration": true,
+                "legacyReadOrImport": true,
+                "permissionsByAction": true,
+                "domainUnitTests": true,
+                "httpAuthPermissionCsrfTests": true,
+                "formAndFileValidationTests": true,
+                "sensitiveActionAudit": true,
+                "uiStates": true,
+                "smokeHttp": true,
+                "reconciliationBeforeSwitch": true,
+                "reversibleSwitch": true,
+                "legacyRouteHandled": true
+            },
+            "routes": {
+                "tax_dashboard": "/private-4h6F1c/impots",
+                "tax_year": "/private-4h6F1c/impots",
+                "tax_manual_entries": "/private-4h6F1c/impots",
+                "tax_controls": "/private-4h6F1c/impots",
+                "tax_documents": "/private-4h6F1c/impots",
+                "tax_export": "/private-4h6F1c/impots"
+            },
+            "tables": [
+                "tax_years",
+                "tax_income_sources",
+                "tax_source_activations",
+                "tax_manual_income_entries",
+                "tax_annual_summaries",
+                "tax_summary_lines",
+                "tax_export_logs"
+            ],
+            "contractClasses": {
+                "existing": [
+                    "Caramagnols\\PrivateApps\\TaxDeclarationHelper\\Repository\\TaxDeclarationRepository",
+                    "Caramagnols\\PrivateApps\\TaxDeclarationHelper\\Service\\TaxDeclarationSummaryService",
+                    "Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\Source\\RentalTaxDataSource",
+                    "Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\AnnualRentalIncome",
+                    "Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\AnnualDeductibleExpenses",
+                    "Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\MissingTaxDocument"
+                ],
+                "missing": []
+            },
+            "testClasses": [
+                "TaxDeclarationHelperModuleTest",
+                "TaxDeclarationHelperRoutesTest",
+                "PrivatePortalTaxBridgeTest",
+                "PrivatePortalPhaseCoverageTest"
+            ],
+            "auditEvents": [
+                "private.tax.source_updated",
+                "private.tax.summary_generated",
+                "private.tax.year_locked",
+                "private.tax.export_created"
+            ],
+            "notes": "Le module reste une aide non officielle, sans remplacer la declaration fiscale."
+        }
+    }
+}

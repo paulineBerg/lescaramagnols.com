@@ -1,0 +1,14 @@
+> php core/tools/check_security_headers.php '--url=https://preprod.lescaramagnols.com'
+Verification headers securite: https://preprod.lescaramagnols.com
+- URL finale: https://preprod.lescaramagnols.com
+- Status final: 200
+- Headers manquants:
+  - content-security-policy
+  - x-frame-options
+  - x-content-type-options
+  - referrer-policy
+  - permissions-policy
+  - cross-origin-opener-policy
+  - cross-origin-resource-policy
+  - strict-transport-security
+Script php core/tools/check_security_headers.php handling the check-security-headers event returned with error code 1

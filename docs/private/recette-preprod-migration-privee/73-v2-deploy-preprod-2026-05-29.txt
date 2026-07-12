@@ -1,0 +1,43 @@
+Deploy mode: fast
+Dry run: 0
+Scope: all changes
+Remote: ovh-boutique:/home/lescaramgl-ssh/caramagnols-preprod/backend
+Changed files: 6
+Deleted files: 0
+Sitemap base URL override: https://preprod.lescaramagnols.com
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+[editorial-media] OK: 609 perimetre(s), 1621 reference(s) controlee(s).
+building file list ... done
+core/helpers.php
+            700   0%    0.00kB/s    0:00:00           21,291   4%   19.64MB/s    0:00:00 (xfr#1, to-chk=11/13)         21,291   4%   19.64MB/s    0:00:00 (xfr#1, to-chk=0/13)          21,291   4%  837.85kB/s    0:00:00 (xfr#1, to-chk=0/13)         21,291   4%  837.85kB/s    0:00:00 (xfr#1, to-chk=0/13)
+
+sent 1,076 bytes  received 214 bytes  2,580.00 bytes/sec
+total size is 457,171  speedup is 354.40
+sync-published-frontend-tree completed.
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 85 bytes  received 12 bytes  194.00 bytes/sec
+total size is 6,372  speedup is 65.69
+sending incremental file list
+              0   0%    0.00kB/s    0:00:00 (xfr#0, to-chk=0/1)
+
+sent 83 bytes  received 12 bytes  63.33 bytes/sec
+total size is 6,163  speedup is 64.87
+[prod-tree] OK: aucun fichier non-prod detecte.
+Sitemap genere: /home/lescaramgl-ssh/caramagnols-preprod/backend/public/sitemap.xml (64 urls)
+Sommaire mis a jour dans accueil-le-plan-du-site-des-caramagnols, region body, langues FR, EN, DE.
+[vite-assets] OK: 17 fichier(s) reference(s) par le manifest sont presents.
+cache_cleared
+autoload_ok
+deploy-fast completed.
+
+[docs-sync] Synchronisation README DoD preprod
+sending incremental file list
+
+sent 73 bytes  received 12 bytes  170.00 bytes/sec
+total size is 190,545  speedup is 2,241.71
+sending incremental file list
+
+sent 74 bytes  received 12 bytes  57.33 bytes/sec
+total size is 10,775  speedup is 125.29

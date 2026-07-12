@@ -1,1 +1,0 @@
-<?php // Page d'inscription utilisateur

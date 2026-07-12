@@ -1,0 +1,12 @@
+[submodule "backend/src/PrivateApps/FamilyDiscussion"]
+	path = backend/src/PrivateApps/FamilyDiscussion
+	url = git@github.com:paulineBerg/caramagnols-family-discussion.git
+	branch = main
+[submodule "backend/src/PrivateApps/RealEstateRental"]
+	path = backend/src/PrivateApps/RealEstateRental
+	url = git@github.com:paulineBerg/caramagnols-real-estate-rental.git
+	branch = main
+[submodule "backend/src/PrivateApps/TaxDeclarationHelper"]
+	path = backend/src/PrivateApps/TaxDeclarationHelper
+	url = git@github.com:paulineBerg/caramagnols-tax-declaration-helper.git
+	branch = main

@@ -1,0 +1,35 @@
+-- Private real estate rental schema - tenants
+
+CREATE TABLE IF NOT EXISTS car_rental_tenants (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    rental_property_id INT NOT NULL,
+    rental_unit_id INT NULL,
+    full_name VARCHAR(160) NOT NULL,
+    last_name VARCHAR(120) NULL,
+    first_names VARCHAR(160) NULL,
+    birth_date DATE NULL,
+    birth_city VARCHAR(120) NULL,
+    birth_country VARCHAR(120) NULL,
+    nationality VARCHAR(120) NULL,
+    occupation VARCHAR(160) NULL,
+    postal_address VARCHAR(500) NULL,
+    email VARCHAR(190) NULL,
+    phone VARCHAR(64) NULL,
+    status ENUM('draft', 'validated', 'cancelled') NOT NULL DEFAULT 'draft',
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    notes TEXT NULL,
+    created_by_private_user_id INT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_rental_tenants_property (rental_property_id, is_active),
+    KEY idx_rental_tenants_unit (rental_unit_id, is_active),
+    KEY idx_rental_tenants_status (status),
+    CONSTRAINT fk_rental_tenants_property
+        FOREIGN KEY (rental_property_id)
+        REFERENCES car_rental_properties (id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_rental_tenants_created_by
+        FOREIGN KEY (created_by_private_user_id)
+        REFERENCES car_private_users (id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

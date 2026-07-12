@@ -1,0 +1,35 @@
+Phase C7 - inventaire templates prives apres encadrement
+
+Templates controles:
+backend/templates/private/dashboard.php
+backend/templates/private/layout.php
+backend/templates/private/login.php
+backend/templates/private/modules/blocnote/index.php
+backend/templates/private/modules/documents/index.php
+backend/templates/private/modules/family-discussion/conversation.php
+backend/templates/private/modules/family-discussion/index.php
+backend/templates/private/modules/real-estate-rental/_nav.php
+backend/templates/private/modules/real-estate-rental/agency-imports.php
+backend/templates/private/modules/real-estate-rental/agency-review.php
+backend/templates/private/modules/real-estate-rental/dashboard.php
+backend/templates/private/modules/real-estate-rental/documents.php
+backend/templates/private/modules/real-estate-rental/expenses.php
+backend/templates/private/modules/real-estate-rental/leases.php
+backend/templates/private/modules/real-estate-rental/payments.php
+backend/templates/private/modules/real-estate-rental/properties.php
+backend/templates/private/modules/real-estate-rental/property-members.php
+backend/templates/private/modules/real-estate-rental/summary.php
+backend/templates/private/modules/real-estate-rental/tenants.php
+backend/templates/private/modules/real-estate-rental/units.php
+backend/templates/private/modules/tax-declaration-helper/controls.php
+backend/templates/private/modules/tax-declaration-helper/dashboard.php
+backend/templates/private/modules/tax-declaration-helper/documents.php
+backend/templates/private/modules/tax-declaration-helper/manual.php
+backend/templates/private/modules/tax-declaration-helper/year.php
+backend/templates/private/notice.php
+backend/templates/private/password_forgot.php
+backend/templates/private/password_form.php
+backend/templates/private/settings.php
+
+Occurrences interdites restantes:
+Aucune occurrence interdite.
