@@ -1,5 +1,10 @@
 # Makefile - helper tasks for local development
 
+WORKSPACE_DEPLOY_CMD = REMOTE_HOST=ovh-boutique \
+    REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols-preprod/backend \
+    SITEMAP_BASE_URL=https://preprod.lescaramagnols.com \
+    bash backend/tools/deploy-fast.sh --all-changes
+
 .PHONY: help install-backend install-frontend install-git-hooks test-backend test-frontend build-frontend postbuild all
 
 help:
