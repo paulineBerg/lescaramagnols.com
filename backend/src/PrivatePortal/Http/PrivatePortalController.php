@@ -44,6 +44,7 @@ use Caramagnols\PrivateApps\RealEstateRental\Service\RentalExportService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalPaymentRequestService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalReceiptService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
+use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataSource;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Service\TaxDeclarationSummaryService;
 use Caramagnols\PrivatePortal\BlocNote\BlocNoteRepository;
@@ -53,7 +54,6 @@ use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserMailSettingsRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\Source\RentalTaxDataSource;
 
 final class PrivatePortalController
 {

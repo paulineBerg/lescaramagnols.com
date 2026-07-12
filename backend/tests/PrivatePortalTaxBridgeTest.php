@@ -8,8 +8,8 @@ use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalUnitRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
+use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataSource;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\Source\RentalTaxDataSource;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 

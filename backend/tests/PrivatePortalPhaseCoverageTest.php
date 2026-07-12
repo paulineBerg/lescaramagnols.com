@@ -131,15 +131,13 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
     public function testPhase7TaxBridgeContractsAreImplemented(): void
     {
         $expectedClasses = [
-            'Caramagnols\\PrivatePortal\\RealEstateRental\\TaxBridge\\RentalTaxDataProviderInterface',
             'Caramagnols\\PrivateApps\\RealEstateRental\\TaxBridge\\RentalTaxDataProviderInterface',
-            'Caramagnols\\PrivatePortal\\RealEstateRental\\TaxBridge\\RentalTaxDataProvider',
             'Caramagnols\\PrivateApps\\RealEstateRental\\TaxBridge\\RentalTaxDataProvider',
-            'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\Source\\TaxDataSourceInterface',
-            'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\Source\\RentalTaxDataSource',
-            'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\AnnualRentalIncome',
-            'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\AnnualDeductibleExpenses',
-            'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\MissingTaxDocument',
+            'Caramagnols\\PrivateApps\\RealEstateRental\\TaxBridge\\RentalTaxDataSource',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\Source\\TaxDataSourceInterface',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\AnnualRentalIncome',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\AnnualDeductibleExpenses',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\MissingTaxDocument',
         ];
 
         foreach ($expectedClasses as $expectedClass) {
