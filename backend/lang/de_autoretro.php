@@ -405,7 +405,7 @@ En avril-mai 1957, une Aronde établit un exploit remarquable en battant plus de
 <h2>Fin de l\'Aronde</h2>
 <p>En 1963, la production de l\'Aronde a cessé pour laisser place à la Simca 1300/1500, un modèle plus moderne. Cependant, l\'Aronde reste une icône de son époque, symbolisant la montée en puissance de l\'industrie automobile française dans l\'après-guerre.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/panhard/Panhard-Levassor_Dynavia_(1948).jpg" title="Dynavia 1948" alt="Dynavia 1948"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/panhard/Panhard-Levassor_Dynavia_1948.jpg" title="Dynavia 1948" alt="Dynavia 1948"></div>
 
 <h3>Die Dynavia: rollendes Labor</h3>
 <p>Die 1948 vorgestellte <strong>Dynavia</strong> ist ein experimenteller Prototyp, der auf der Dyna X basiert. Ihre ultra-aerodynamische Aluminiumkarosserie ist darauf ausgelegt, einen Cx-Wert von 0,26 zu erreichen. Der Motor ist identisch mit dem der Dyna, aber der Schwerpunkt liegt auf der Energieeinsparung durch reine Aerodynamik. Sie nimmt zukünftige Forschungen zur Verbrauchsoptimierung durch die Form vorweg.</p>
@@ -520,12 +520,12 @@ En avril-mai 1957, une Aronde établit un exploit remarquable en battant plus de
 <h3>Facelifts et sportivité (2000s)</h3>
 <p>Au fil des ans, la Twingo se modernise. En 1998, un premier restylage introduit les phares cristallins et un tableau de bord plus arrondi. En 2004, la Twingo reçoit des airbags et l’ABS de série. Des séries spéciales apparaissent régulièrement (Kenzo, Privilège, Night&Day). En 2007, la Twingo II fait son apparition : plus longue (3,60 m), elle gagne en équipements mais perd la banquette coulissante. La version RS (Renault Sport) équipée d’un moteur 1.6 L 133 ch devient une référence parmi les citadines sportives.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_(II,_Facelift).jpg" title="Twingo II" alt="Twingo II"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_II_Facelift.jpg" title="Twingo II" alt="Twingo II"></div>
 
 <h3>Troisième génération : la révolution technique (2014)</h3>
 <p>In Partnerschaft mit Daimler (Smart) bricht der Twingo III mit der Vergangenheit. Er erhält eine Heckantriebsarchitektur mit Heckmotor, was für einen Kleinwagen selten ist. Diese Konfiguration ermöglicht einen außergewöhnlichen Wendekreis (4,3 m), ideal für die Stadt. Angetrieben von 1.0 SCe (70–75 PS) oder 0.9 TCe Turbo (90 PS) Motoren erreicht er in der TCe-Version 160 km/h. Der Kofferraum gewinnt an Volumen (219 L), obwohl der Motor unter dem Boden platziert ist.</p>
 
-<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_2014_(2).jpg" title="Twingo III" alt="Twingo III"></div>
+<div id="bloccenter"><img src="/assets/images/autoretro/renault/Renault_Twingo_2014_2.jpg" title="Twingo III" alt="Twingo III"></div>
 
 <h3>Version électrique (2020)</h3>
 <p>En 2020, Renault lance la Twingo Electric, équipée d’un moteur électrique de 82 ch et une batterie de 22 kWh. L’autonomie atteint 190 km en cycle WLTP, idéale pour les trajets urbains quotidiens. La recharge s’effectue en 4 h sur borne 7 kW. L’équipement comprend régulateur de vitesse, climatisation automatique et système EasyLink avec écran 7 pouces.</p>

@@ -1,62 +1,59 @@
 // Site LesCaramagnols
 // /src/scss/_variables.scss
- 
-@use "sass:color";
+
+@use 'sass:color';
 
 // ----------------------------------
 // Couleurs principales
 // ----------------------------------
-$color-white: #ffffff;        // blanc standard
-$color-blanc: $color-white;   // alias blanc
-$color-noir: #000000;         // noir
-$color-citron:#A4C400;
-$color-vert: #60A917;
-$color-vert-fonce: #008A00;
-$color-turquoise: #00ABA9;
-$color-bleu-clair: #1BA1E2;   //cyan
-$color-bleu-fonce: #0050EF;  // bleu cobalt
-$color-indigo: #6A00FF;      // indigo
-$color-violet: #AA00FF;
-$color-rose-clair: #F472D0;   //rose
-$color-rose: #D80073;       //magenta rgb(216, 0, 115) => hex #D80073
-$color-rouge: #E51400;
-$color-rouge-fonce:#A20025;    // bordeau
-$color-orange: #FA6800;
-$color-amber: #F0A30A;
-$color-jaune: #E3C800;
-$color-marron: #825A2C;
-$color-olive: #6D8764;
+$color-white: #fff; // blanc standard
+$color-blanc: $color-white; // alias blanc
+$color-noir: #000; // noir
+$color-citron: #a4c400;
+$color-vert: #60a917;
+$color-vert-fonce: #008a00;
+$color-turquoise: #00aba9;
+$color-bleu-clair: #1ba1e2; // cyan
+$color-bleu-fonce: #0050ef; // bleu cobalt
+$color-indigo: #6a00ff; // indigo
+$color-violet: #a0f;
+$color-rose-clair: #f472d0; // rose
+$color-rose: #d80073; // magenta rgb(216, 0, 115) => hex #D80073
+$color-rouge: #e51400;
+$color-rouge-fonce: #a20025; // bordeau
+$color-orange: #fa6800;
+$color-amber: #f0a30a;
+$color-jaune: #e3c800;
+$color-marron: #825a2c;
+$color-olive: #6d8764;
 $color-gris: #647687;
-$color-mauve: #76608A;
-$color-taupe: #87794E;
-
-
-$color-bleu-transparent: rgba(27, 160, 226, 0.825);
-$color-menu-border: #DDD;
-$color-link: #007BFF;
+$color-mauve: #76608a;
+$color-taupe: #87794e;
+$color-bleu-transparent: rgb(27 160 226 / 82.5%);
+$color-menu-border: #ddd;
+$color-link: #007bff;
 $color-link-hover: color.adjust($color-link, $lightness: -10%);
-$color-breadcrumb-bg: #F9F9F9;
+$color-breadcrumb-bg: #f9f9f9;
 $color-breadcrumb-text: $color-noir;
 
 // ----------------------------------
 // Fonts
 // ----------------------------------
-$font-family-main: "Segoe UI", sans-serif;
-$font-segoe-ui: "Segoe UI";
-$font-segoe-ui-light: "Segoe UI Light";
+$font-family-main: 'Segoe UI', sans-serif;
+$font-segoe-ui: 'Segoe UI';
+$font-segoe-ui-light: 'Segoe UI Light';
 
 // Tailles de police
-$font-size-small: 0.625rem;        // ~10px
+$font-size-small: 0.625rem; // ~10px
 $font-size-legend: $font-size-small;
-
-$font-size-base: 1rem;             // base normalisée (1rem = 16px)
+$font-size-base: 1rem; // base normalisée (1rem = 16px)
 $font-size-base-legacy: 1.188rem; // ~19px (ancien)
 $font-size-intermediate: 1.375rem; // ~22px
-$font-size-tablet: 1.1rem;         // 110%
-$font-size-medium: 1.5rem;         // ~30px
+$font-size-tablet: 1.1rem; // 110%
+$font-size-medium: 1.5rem; // ~30px
 $font-size-marquee: 14px;
-$font-size-large: 2.1rem;          // ~42px
-$font-size-mobile: 1.4rem;         // 140%
+$font-size-large: 2.1rem; // ~42px
+$font-size-mobile: 1.4rem; // 140%
 
 // ----------------------------------
 // Dimensions boutons
@@ -67,14 +64,11 @@ $button-hover-width: 15rem;
 $button-hover-height: 7rem;
 $button-active-width: 17rem;
 $button-active-height: 7rem;
-
 $button-margin: 0.125rem;
 $button-padding: 0.25rem;
 $button-padding-bottom: 0.625rem;
-
 $button-img-width: 99%;
 $button-img-height: 80%;
-
 $background-position-center: 50% 50%;
 
 // ----------------------------------
@@ -88,38 +82,29 @@ $iframe-height: 25rem;
 // ----------------------------------
 $diaporama-width: 45rem;
 $diaporama-height: 29rem;
-
-$diaporamaAppt-width: 44.35rem;
-$diaporamaAppt-height: 28.126rem;
-
+$diaporama-appt-width: 44.35rem;
+$diaporama-appt-height: 28.126rem;
 $thumbnail-width: 6.3rem;
 $thumbnail-height: 4.688rem;
-
 $centered-img-width: 31.25rem;
 $centered-img-height: 18.75rem;
-
 $side-block-width: 6.25rem;
 
 // ----------------------------------
 // Tables
 // ----------------------------------
-$table-bg-main: #07A7F5;
-$table-header-bg: #2406E4;
-
+$table-bg-main: #07a7f5;
+$table-header-bg: #2406e4;
 $table1-width: 90%;
 $table1gard-width: 60%;
 $table1loc-width: 80%;
 $table1promo-width: 80%;
-
 $caption-font-size: 1.5rem;
-
 $th-width-table1: 30%;
 $th-width-table1loc: 25%;
 $th-width-table1promo: 10rem;
-
 $td-width-table1: 100%;
 $td-width-table1gard: 50%;
-
 $margin-box: 1rem;
 
 // ----------------------------------
@@ -141,4 +126,5 @@ $bp-tablet-max: 1024px;
 $hamburger-size: 30px;
 $hamburger-bar-height: 10px;
 $hamburger-bar-margin: 3px;
+
 // ----------------------------------

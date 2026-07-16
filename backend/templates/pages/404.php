@@ -14,7 +14,7 @@ $blocks['EditRegion3'] ='
  <div>' . t("TXT_ERREUR") . '</div>
  '; 
 $blocks['EditRegion4'] = ' 
- <div id="blocHaut" class="border">' . t('TXT_FINERREUR') . '</div>
+ <div id="bloc-haut" class="border">' . t('TXT_FINERREUR') . '</div>
  ';
 
 // === Bloc bas gauche ===

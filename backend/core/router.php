@@ -1,42 +1,48 @@
 <?php
 // core/router.php
 
-function resolve_route(string $uri): string {
-    // 🔍 Nettoyage de l'URI
-    $uri = parse_url($uri, PHP_URL_PATH);
-    $uri = trim($uri, '/');
-    $segments = explode('/', $uri);
+require_once ROOT_PATH . '/core/content/pages_loader.php';
 
-    // 🌐 Détection de la langue via URL ou ?lang=xx
-    $lang = $_GET['lang'] ?? (in_array($segments[0], ['fr', 'en', 'de']) ? array_shift($segments) : DEFAULT_LANG);
-    $_GET['lang'] = $lang;
-    define('CURRENT_LANG', $lang);
+use Caramagnols\Http\LegacyRouteResolver;
 
-    // 🧭 Route nettoyée sans le préfixe de langue
-    $route = implode('/', $segments);
+function route_resolver(): LegacyRouteResolver
+{
+    static $resolver = null;
+    static $state = null;
 
-    // 🏠 Page d'accueil
-    if ($route === '' || $route === 'index.php') {
-        return 'pages/site/accueil/bienvenue-aux-caramagnols.php';
+    $availableLanguages = function_exists('site_available_languages')
+        ? site_available_languages()
+        : ['fr', 'en', 'de'];
+    $availableLanguages = array_values(array_filter(
+        array_map(static fn ($language): string => strtolower(trim((string) $language)), $availableLanguages),
+        static fn (string $language): bool => $language !== ''
+    ));
+    if ($availableLanguages === []) {
+        $availableLanguages = ['fr', 'en', 'de'];
     }
 
-    // 🔍 Page de recherche
-    if (in_array($route, ['search', 'site/search', 'search.php'])) {
-        return 'pages/search.php';
+    $currentState = [
+        'pages_path' => pages_data_path(),
+        'blog_dir' => blog_data_dir(),
+        'blog_storage' => blog_storage_mode(),
+        'default_lang' => (string) app_config('default_lang', 'fr'),
+        'available_languages' => implode('|', $availableLanguages),
+    ];
+
+    if (!$resolver instanceof LegacyRouteResolver || $state !== $currentState) {
+        $resolver = new LegacyRouteResolver(
+            page_repository_for_path($currentState['pages_path']),
+            blog_repository(),
+            $availableLanguages,
+            $currentState['default_lang']
+        );
+        $state = $currentState;
     }
 
-    // 📄 Fichier brut sans extension
-    $file = TEMPLATES_PATH . '/pages/' . $route;
-    if (file_exists($file)) {
-        return 'pages/' . $route;
-    }
+    return $resolver;
+}
 
-    // 📄 Fichier avec .php
-    $filePhp = TEMPLATES_PATH . '/pages/' . $route . '.php';
-    if (file_exists($filePhp)) {
-        return 'pages/' . $route . '.php';
-    }
-
-    // ❌ Page non trouvée
-    return 'pages/404.php';
+function resolve_route(string $uri): string
+{
+    return route_resolver()->resolve($uri);
 }

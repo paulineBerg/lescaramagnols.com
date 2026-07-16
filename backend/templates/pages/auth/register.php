@@ -1,10 +1,10 @@
 <?php
-$pageTitle = $pageTitle ?? 'Les Caramagnols';
+$pageTitle = $pageTitle ?? t('TXT_PAGE_DEFAULT_TITLE');
 ob_start();
 ?>
 
 <!-- PAGE CONTENT START -->
-<?php // Formulaire d'inscription
+<!-- Formulaire d'inscription -->
 <!-- PAGE CONTENT END -->
 
 <?php

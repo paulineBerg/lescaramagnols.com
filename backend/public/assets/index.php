@@ -1,5 +1,6 @@
-<?php 
-// public/index.php
-// Point d'entrée principal de l'application
-require_once '../core/bootstrap.php'; 
-require_once TEMPLATES_PATH . '/layout.php';
+<?php
+
+http_response_code(404);
+header('Content-Type: text/plain; charset=UTF-8');
+
+echo 'Not Found';

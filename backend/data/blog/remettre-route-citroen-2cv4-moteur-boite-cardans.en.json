@@ -1,0 +1,35 @@
+{
+  "title": "Restarting a Citroën 2CV4: engine, gearbox, driveshafts and the checks that finish the job properly",
+  "slug": "remettre-route-citroen-2cv4-moteur-boite-cardans",
+  "lang": "en",
+  "status": "scheduled",
+  "author": "Caramagnols",
+  "category": "auto-retro",
+  "subcategory": "restauration-et-entretien",
+  "date": "2029-04-03 14:36:14",
+  "excerpt": "Once the structure is sound again, the 2CV4 needs a logical recommissioning order: brakes and suspension first, then engine, gearbox, driveshafts, sealing and ignition before any real test drive.",
+  "content": "<p>On this 2CV4, the mechanical work was not treated as a reward at the end of the project. It was handled as a chain of systems that had to be brought back into agreement after the underside was repaired: brakes, suspension, engine, gearbox, driveshafts and sealing. That order matters. On a non-running classic, hearing the engine too early proves very little if the rest of the car is not ready to carry it.</p>\n<figure><img src=\"/assets/images/autoretro/citroen/citroen_2cv_orange_2024.jpg\" alt=\"Orange Citroën 2CV seen outdoors in 2024\" title=\"2CV ready to return to the road\" width=\"400\" height=\"267\" loading=\"lazy\" decoding=\"async\" /><figcaption>Once structure and mechanics agree, a 2CV becomes simple and readable on the road again.</figcaption></figure>\n<h2>Make the rolling side safe before the engine</h2>\n<p>The first logic of recommissioning starts with the parts that hold the car on the road: brakes, suspension, spring cans, dampers and obvious wear points. On this 2CV4, those areas were tackled before anyone thought about a real return to the road. A car that starts but does not brake or track properly is not recommissioned; it has simply been woken up too early.</p>\n<p>The same rule matters for the budget. Safety parts define the real framework of the first tests. Without them, any engine start remains an isolated gesture with no reliable follow-up.</p>\n<h2>Rebuild the engine and read the ignition choice correctly</h2>\n<p>The engine of this 2CV4 was rebuilt with new cylinders, pistons and head work. That changes the mechanical base in a visible way: compression returns, sealing improves and the flat-twin becomes easier to read at start-up. Again, the value of the work lies in what was opened and checked, not in the bare fact that the engine can fire.</p>\n<p>The electronic ignition also deserves to be read for what it is: a discreet improvement in regularity and ease of starting, not a change of character. On a 1974 2CV expected to run with the family, that kind of measured deviation can save maintenance time without distorting the whole car.</p>\n<h2>Gearbox, driveshafts and sealing belong to the same chain</h2>\n<p>The gearbox was removed, opened for inspection and made tight again with a full set of oil seals. The driveshafts followed with new gaiters and a general overhaul. This work is less visible than paint, yet it decides whether the first miles will validate the project or produce a fresh round of leaks and dismantling.</p>\n<p>On a small front-wheel-drive car, the relationship between engine, gearbox and driveshafts has to be read as one single chain. If one link remains doubtful, the return to the road quickly turns into a return to the lift.</p>\n<h2>Validate before the first real miles</h2>\n<p>Once the mechanical assembly is back together, the cautious approach is to check before driving far: no leaks, even braking, ignition setting, fuel delivery, fluid levels, gearbox operation and the general behaviour of the transmissions. A restored 2CV returns to the road when those points agree, not when the engine sounds happy on its own inside the workshop.</p>\n<p>The page <a href=\"/en/auto-retro/citroen/la-2cv4-restauration.php\">about this 2CV4 restoration</a> summarises the whole project. The draft on <a href=\"/en/auto-retro/citroen/la-2cv4-restauration.php?open_article=citroen-2cv4-refaire-planchers-longerons-demi-tablier#attached-article-citroen-2cv4-refaire-planchers-longerons-demi-tablier\">structural metal work</a> explains why mechanical recommissioning only makes sense after the base is sound again.</p>\n<h2>Sources</h2><ul>\n<li>Internal audio transcript: mechanical recommissioning of the 2CV4, engine, gearbox, driveshafts and ignition.</li>\n<li>Workshop observations during the mechanical reassembly of the 2CV4, 2025.</li>\n</ul>",
+  "tags": [
+    "citroen",
+    "2cv",
+    "mecanique",
+    "restauration",
+    "entretien"
+  ],
+  "translations": [],
+  "comments": [],
+  "featured_image": {
+    "src": "/assets/images/autoretro/citroen/citroen_2cv_az_1957_engine.jpg",
+    "alt": "Engine of a 1957 Citroën 2CV AZ",
+    "title": "2CV flat-twin engine",
+    "caption": "A proper restart begins with the right order of components, not with the urge to hear the engine too early.",
+    "width": 700,
+    "height": 525
+  },
+  "page_slug": "auto-retro-citroen-la-2cv4-restauration",
+  "parent_slug": "",
+  "parent_lang": "",
+  "child_sort_order": null,
+  "created_at": "2026-05-02T13:42:35+00:00",
+  "updated_at": "2026-05-02T13:42:35+00:00"
+}
