@@ -26,6 +26,7 @@ backend/public/sitemap.xml
 backend/data/search_index*.json
 backend/data/*.cache
 backend/data/logs/
+backend/data/snapshots/
 backend/data/menus.json
 frontend/coverage/
 
@@ -62,6 +63,7 @@ backend/config/site.override.php
 backend/public/tmp_config/
 backend/config/db.php
 backend/private/storage/
+docs/private/
 docs/private/agence/
 
 *:Zone.Identifier
