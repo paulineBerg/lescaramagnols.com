@@ -32,6 +32,19 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      - name: Setup Node (publication des assets Vite requise par les tests de rendu)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend (publie le manifest Vite vers backend/public)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
       - name: PHPUnit
         run: composer test
 
