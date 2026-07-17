@@ -84,7 +84,7 @@ Validation :
 - [x] `composer test` vert (`624` tests, `5056` assertions), `composer phpstan` vert (0 erreur), `composer phpcs` vert. — 2026-07-17
 - [x] Parcours verifies apres deploy release preprod + prod du 2026-07-17 : en production, la page de login privee canonique repond (200, formulaire present), `/private/login` retourne 404 sans formulaire, l'espace admin repond, accueil et blog en 200, headers securite OK (`check_security_headers`). Note : la preprod expose le portail prive sur `/private` par configuration `.env` locale a cet environnement (comportement preexistant, non modifie par le deploy).
 
-Risque : moyen (espace prive en production). Deployer d'abord en preprod, comparer avec la prod avant tout deploiement.
+Risque : moyen (espace prive en production). Pas d'environnement preprod (abandonne le 2026-07-17) : tester en local puis deployer directement en prod, avec verification immediate post-deploiement.
 
 ## Phase 2 — Qualite statique et hygiene (~2-3 semaines)
 
@@ -123,9 +123,9 @@ Validation apres chaque etape (jamais en fin de phase seulement) :
 
 - [ ] Suite de tests verte + ajout de tests sur chaque brique extraite.
 - [ ] `composer benchmark-routes` : pas de regression de latence sur les routes cles.
-- [ ] Recette manuelle admin + prive en preprod avant deploiement.
+- [ ] Recette manuelle admin + prive en local avant deploiement, verification cible immediate en prod juste apres (pas d'environnement preprod).
 
-Risque : eleve si mene en bloc — d'ou l'approche incrementale, une PR par decoupage, comparaison preprod/prod systematique.
+Risque : eleve si mene en bloc — d'ou l'approche incrementale, une PR par decoupage, verification systematique en prod juste apres chaque deploiement.
 
 ## Phase 4 — Performance et assets (~2 semaines)
 
@@ -134,7 +134,7 @@ Objectif : alleger le depot et le rendu.
 Checklist :
 
 - [ ] Sortir les PDF volumineux (7-31 Mo, `frontend/src/assets/pdf/`) du depot git : stockage sur l'hebergement (type `backend/public/uploads/`) + script de synchronisation dedie (modele : `backend/tools/sync-editorial-uploads.sh`) ; conserver uniquement les references.
-- [ ] Basculer la source editoriale maitre de `backend/data/pages.json` (~1,6 Mo charge a chaque requete en mode `json`) vers SQL : le mode `dual-write` existe deja (`EDITORIAL_STORAGE`), valider la parite JSON/SQL puis passer en `sql` en preprod, enfin en prod.
+- [ ] Basculer la source editoriale maitre de `backend/data/pages.json` (~1,6 Mo charge a chaque requete en mode `json`) vers SQL : le mode `dual-write` existe deja (`EDITORIAL_STORAGE`), valider la parite JSON/SQL en local puis passer en `sql` directement en prod, avec verification immediate (pas d'environnement preprod).
 - [ ] Mettre en place un cache de rendu (ou de fragments) pour les pages dynamiques publiques, invalide a la publication admin (`backend/var/cache/` existe deja pour la navigation).
 - [ ] Resserrer les budgets d'assets (`frontend/tools/check-budgets.mjs`) apres deduplication des images de la phase 2.
 
@@ -144,7 +144,7 @@ Validation :
 - [ ] Parite de contenu JSON/SQL verifiee (outil d'import/comparaison existant : `composer editorial-import-sql`).
 - [ ] Taille du depot reduite (mesure `git count-objects -vH` avant/apres).
 
-Risque : moyen sur la bascule SQL (source de verite editoriale) — le mode `dual-write` et la preprod servent de filet.
+Risque : moyen sur la bascule SQL (source de verite editoriale) — le mode `dual-write` sert de filet (pas d'environnement preprod).
 
 ## Phase 5 — Securite continue (fil rouge, recurrente)
 
@@ -162,5 +162,5 @@ Checklist recurrente (mensuelle ou a chaque deploiement) :
 ## Regles transverses d'execution
 
 - Une phase ne demarre que si la precedente est validee (la phase 5 tourne en continu).
-- Chaque lot se termine par : tests verts, `npm run hygiene:docs` OK, `git status` propre, comparaison preprod/prod si routes ou contenus publics touches.
+- Chaque lot se termine par : tests verts, `npm run hygiene:docs` OK, `git status` propre, verification directe en prod (avant/apres deploiement) si routes ou contenus publics touches.
 - Jamais de secret dans le depot ; jamais de logique metier privee dans `PrivatePortal/` ; production = reference en cas de doute (`AGENTS.md`).
