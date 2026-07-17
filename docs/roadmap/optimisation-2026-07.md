@@ -1,7 +1,7 @@
 # Plan D'Optimisation Post-V1
 
 Date : 2026-07-17
-Statut : phase 0 validee, phase 1 terminee (2026-07-17), phase 2 terminee (2026-07-17), phase 3 demarree (2026-07-17)
+Statut : phase 0 validee, phase 1 terminee (2026-07-17), phase 2 terminee (2026-07-17), phase 3 en cours (BlocNote + Documents extraits, 2026-07-17), phase 4 demarree (budgets d'assets resserres, 2026-07-17)
 
 Ce document analyse la dette technique actuelle et propose un plan d'optimisation en phases, avec checklist d'implementation. Il complete les plans existants sans les dupliquer :
 
@@ -77,7 +77,7 @@ Checklist :
 - [x] Verifier qu'aucun `use Caramagnols\PrivatePortal\...` ne pointe vers du code deplace : plus aucune reference dans `src/`, `core/`, `templates/`. — fait le 2026-07-17
 - [x] Nettoyage associe dans `PrivatePortalController` : suppression de la propriete morte `$lastPrivateMailFailure` et du parametre injecte jamais lu `$privateUserMailSettingsRepository` (aucun appelant ne le passait ; la classe `PrivateUserMailSettingsRepository` reste en place, c'est un contrat du module `private_core`). Correction du garde mort dans `PrivateUserMailSettingsRepository::encryptSecret()` (verification explicite du tag GCM 16 octets).
 - [ ] Aligner l'arborescence `backend/tests/` sur la nouvelle organisation (tests `PrivatePortal*` historiques a la racine de `tests/`) — reporte : churn sans gain fonctionnel immediat, a traiter avec la phase 3.
-- [ ] Mettre a jour les references de documentation le cas echeant (`docs/private/`).
+- [x] Mettre a jour les references de documentation le cas echeant (`docs/private/`). — verifie le 2026-07-17 : `README.md` et `backlog-pvt01.md` reflettent deja correctement le split `PrivatePortal`/`PrivateApps` ; aucune correction necessaire.
 
 Validation :
 
@@ -119,6 +119,7 @@ Checklist :
 
 - [ ] Decouper `PrivatePortalController` (~6 200 l.) : un controleur par module (`PrivateApps/<Module>/Http/<Module>Controller.php`), le socle `PrivatePortal/Http/` ne gardant que routage, auth et layout. Proceder module par module (commencer par le plus petit, ex. `BlocNote`).
   - [x] `BlocNote` extrait vers `backend/src/PrivateApps/BlocNote/Http/BlocNoteController.php`, avec delegation depuis `PrivatePortalController`, controle d'acces module conserve, CSRF conserve, rendu prive conserve via le socle, et test cible `backend/tests/PrivateApps/BlocNote/BlocNoteControllerTest.php`. — fait le 2026-07-17
+  - [x] `Documents` extrait vers `backend/src/PrivateApps/Documents/Http/DocumentsController.php` (routes `documents`, `files`, `files_upload`, `files_categories`, `files_delete`), delegation depuis `PrivatePortalController`, controle d'acces module et CSRF conserves a l'identique, test cible `backend/tests/PrivateApps/Documents/DocumentsControllerTest.php`. Controleur socle reduit de ~6 200 a ~5 575 lignes. — fait le 2026-07-17
 - [ ] Decouper `AdminSettingsService` (~3 300 l.) et `AdminController` (~2 600 l.) par domaine fonctionnel (settings site, tarteaucitron, medias, navigation...).
 - [ ] Extraire la logique PHP des templates admin volumineux (`templates/admin/layout.php` ~4 400 l., `pages_form.php`, `menus.php`) vers des services/presenters testables ; les templates ne gardent que le rendu.
 - [ ] Introduire un conteneur DI leger (PSR-11) et y migrer progressivement les fabriques globales (`app_event_logger()`, `blog_repository()`, `editorial_database()`, ...), en conservant les fonctions comme façades le temps de la transition.
@@ -126,9 +127,8 @@ Checklist :
 
 Validation apres chaque etape (jamais en fin de phase seulement) :
 
-- [ ] Suite de tests verte + ajout de tests sur chaque brique extraite.
-  - [x] Test cible BlocNote ajoute. Suite complete a relancer avant commit/deploiement.
-- [ ] `composer benchmark-routes` : pas de regression de latence sur les routes cles.
+- [x] Suite de tests verte + ajout de tests sur chaque brique extraite. — 2026-07-17 : `629` tests, `5088` assertions, tous verts (tests BlocNote et Documents inclus) ; `composer phpstan` et `composer phpcs` verts.
+- [x] `composer benchmark-routes` : pas de regression de latence sur les routes cles. — 2026-07-17 : execution sans erreur (`/` avg 31.8ms, `/blog` avg 222.9ms, `/blog/article/...` avg 59.9ms), aucun outil de comparaison automatise avant/apres n'existe encore pour ce benchmark.
 - [ ] Recette manuelle admin + prive en local avant deploiement, verification cible immediate en prod juste apres (pas d'environnement preprod).
 
 Risque : eleve si mene en bloc — d'ou l'approche incrementale, une PR par decoupage, verification systematique en prod juste apres chaque deploiement.
@@ -142,13 +142,15 @@ Checklist :
 - [ ] Sortir les PDF volumineux (7-31 Mo, `frontend/src/assets/pdf/`) du depot git : stockage sur l'hebergement (type `backend/public/uploads/`) + script de synchronisation dedie (modele : `backend/tools/sync-editorial-uploads.sh`) ; conserver uniquement les references.
 - [ ] Basculer la source editoriale maitre de `backend/data/pages.json` (~1,6 Mo charge a chaque requete en mode `json`) vers SQL : le mode `dual-write` existe deja (`EDITORIAL_STORAGE`), valider la parite JSON/SQL en local puis passer en `sql` directement en prod, avec verification immediate (pas d'environnement preprod).
 - [ ] Mettre en place un cache de rendu (ou de fragments) pour les pages dynamiques publiques, invalide a la publication admin (`backend/var/cache/` existe deja pour la navigation).
-- [ ] Resserrer les budgets d'assets (`frontend/tools/check-budgets.mjs`) apres deduplication des images de la phase 2.
+- [x] Resserrer les budgets d'assets (`frontend/tools/check-budgets.mjs`) apres deduplication des images de la phase 2. — 2026-07-17 : mesure reelle post-dedup (JS 16,8 Kio, CSS 103,3 Kio, initial 120,1 Kio, plus grosse image `mer.jpg` 47,6 Kio) ; budgets resserres avec marge (JS 70->32 Kio, initial 220->150 Kio, image 220->90 Kio) ; CSS laisse a 110 Kio (deja a 94% d'usage, aucune marge de resserrement sans risquer un echec de build sur un changement de contenu mineur) ; `npm run build` valide les nouveaux seuils.
+
+Les 3 autres items de la phase 4 (sortie des PDF du depot, bascule SQL editoriale en prod, cache de rendu) ne sont pas traites dans ce lot : ce sont des chantiers a risque moyen/eleve sur la prod (seule cible de deploiement, sans preprod) qui necessitent chacun leur propre validation dediee plutot qu'une execution groupee non verifiee.
 
 Validation :
 
-- [ ] `composer benchmark-routes` avant/apres : amelioration ou stabilite mesuree, resultats archives.
-- [ ] Parite de contenu JSON/SQL verifiee (outil d'import/comparaison existant : `composer editorial-import-sql`).
-- [ ] Taille du depot reduite (mesure `git count-objects -vH` avant/apres).
+- [ ] `composer benchmark-routes` avant/apres : amelioration ou stabilite mesuree, resultats archives. — non applicable a l'item traite (budgets d'assets, pas de changement de rendu serveur) ; a faire pour la bascule SQL et le cache de rendu.
+- [ ] Parite de contenu JSON/SQL verifiee (outil d'import/comparaison existant : `composer editorial-import-sql`). — concerne la bascule SQL, non traitee dans ce lot.
+- [ ] Taille du depot reduite (mesure `git count-objects -vH` avant/apres). — concerne la sortie des PDF, non traitee dans ce lot.
 
 Risque : moyen sur la bascule SQL (source de verite editoriale) — le mode `dual-write` sert de filet (pas d'environnement preprod).
 

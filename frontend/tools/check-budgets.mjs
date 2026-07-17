@@ -5,10 +5,10 @@ const DIST_DIR = join(process.cwd(), 'dist');
 const MANIFEST_PATH = join(DIST_DIR, '.vite', 'manifest.json');
 
 const budget = {
-  jsEntryMaxBytes: 70 * 1024,
+  jsEntryMaxBytes: 32 * 1024,
   cssEntryMaxBytes: 110 * 1024,
-  initialTotalMaxBytes: 220 * 1024,
-  largestImageMaxBytes: 220 * 1024
+  initialTotalMaxBytes: 150 * 1024,
+  largestImageMaxBytes: 90 * 1024
 };
 
 if (!existsSync(MANIFEST_PATH)) {
