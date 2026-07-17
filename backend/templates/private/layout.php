@@ -113,6 +113,7 @@ if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)
 if ($privateHasModule('Locations immobilières')) {
     $privateRentalPaths = [
         private_portal_url('rental_dashboard'),
+        private_portal_url('rental_lessors'),
         private_portal_url('rental_properties'),
         private_portal_url('rental_units'),
         private_portal_url('rental_property_members'),
@@ -123,6 +124,7 @@ if ($privateHasModule('Locations immobilières')) {
         private_portal_url('rental_expenses'),
         private_portal_url('rental_regularizations'),
         private_portal_url('rental_documents'),
+        private_portal_url('rental_agencies'),
         private_portal_url('rental_agency_imports'),
         private_portal_url('rental_agency_review'),
         private_portal_url('rental_summary'),

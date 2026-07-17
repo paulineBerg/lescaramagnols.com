@@ -1,0 +1,28 @@
+{
+  "name": "caramagnols/real-estate-rental",
+  "description": "Module de gestion locative privée pour le portail Caramagnols.",
+  "type": "caramagnols-private-app",
+  "license": "proprietary",
+  "require": {
+    "php": "^8.1",
+    "ext-fileinfo": "*",
+    "ext-pdo": "*",
+    "ext-zip": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Caramagnols\\PrivateApps\\RealEstateRental\\": ""
+    }
+  },
+  "suggest": {
+    "lescaramagnols/backend": "Fournit les contrats PrivatePortal, le stockage documentaire et les services hôtes requis à l’exécution."
+  },
+  "extra": {
+    "caramagnols-private-app": {
+      "manifests": [
+        "Caramagnols\\PrivateApps\\RealEstateRental\\PrivateAppManifest",
+        "Caramagnols\\PrivateApps\\RealEstateRental\\AgencyImportsManifest"
+      ]
+    }
+  }
+}

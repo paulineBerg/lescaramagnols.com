@@ -74,6 +74,18 @@ final class PrivateDataProtectionService
                 ['private_user_id' => $privateUserId],
                 ['rental_property_id', 'private_user_id', 'role', 'status', 'is_active', 'created_at', 'updated_at']
             ),
+            'rentalLessors' => $this->rows(
+                'rental_lessors',
+                '`created_by_private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['id', 'created_by_private_user_id', 'last_name', 'first_name', 'address', 'phone', 'email', 'is_active', 'created_at', 'updated_at', 'archived_at']
+            ),
+            'rentalAgencies' => $this->rows(
+                'rental_agencies',
+                '`created_by_private_user_id` = :private_user_id',
+                ['private_user_id' => $privateUserId],
+                ['id', 'created_by_private_user_id', 'name', 'legal_name', 'contact_title', 'postal_address', 'phone', 'email', 'advisor_name', 'advisor_title', 'advisor_phone', 'advisor_email', 'notes', 'created_at', 'updated_at']
+            ),
             'rentalPaymentRequests' => $this->rows(
                 'rental_payment_requests',
                 '`sent_by_private_user_id` = :private_user_id',
@@ -502,6 +514,12 @@ final class PrivateDataProtectionService
             ['status' => 'revoked', 'removed_at' => $now, 'actor' => $actor, 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
+            'rental_lessors',
+            '`last_name` = :last_name, `first_name` = NULL, `address` = NULL, `phone` = NULL, `email` = NULL, `is_active` = 0, `archived_at` = COALESCE(`archived_at`, :archived_at)',
+            '`created_by_private_user_id` = :private_user_id',
+            ['last_name' => 'Bailleur supprime ' . $privateUserId, 'archived_at' => $now, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
             'rental_properties',
             '`name` = :name, `address` = :address, `status` = \'archived\', `is_active` = 0, `notes` = NULL, `archived_at` = COALESCE(`archived_at`, :archived_at), `archived_by_private_user_id` = :actor',
             '`created_by_private_user_id` = :private_user_id',
@@ -520,10 +538,16 @@ final class PrivateDataProtectionService
             ['name' => 'Locataire supprime', 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
+            'rental_agencies',
+            '`name` = :name, `legal_name` = NULL, `contact_title` = NULL, `postal_address` = NULL, `phone` = NULL, `email` = NULL, `advisor_name` = NULL, `advisor_title` = NULL, `advisor_phone` = NULL, `advisor_email` = NULL, `notes` = NULL',
+            '`created_by_private_user_id` = :private_user_id',
+            ['name' => 'Agence supprimee ' . $privateUserId, 'private_user_id' => $privateUserId]
+        );
+        $this->safeUpdate(
             'rental_documents',
-            '`original_name` = :original_name, `is_active` = 0',
+            '`original_name` = :original_name, `display_name` = NULL, `category` = :category, `is_active` = 0',
             '`uploaded_by_private_user_id` = :private_user_id',
-            ['original_name' => 'document-locatif-supprime', 'private_user_id' => $privateUserId]
+            ['original_name' => 'document-locatif-supprime', 'category' => 'Document', 'private_user_id' => $privateUserId]
         );
         $this->safeUpdate(
             'rental_generated_documents',
@@ -931,6 +955,7 @@ final class PrivateDataProtectionService
             'discussion_conversation_members' => '`private_user_id` = :private_user_id',
             'discussion_crypto_devices' => '`private_user_id` = :private_user_id',
             'discussion_conversation_keys' => '`private_user_id` = :private_user_id OR `created_by_private_user_id` = :private_user_id',
+            'rental_lessors' => '`created_by_private_user_id` = :private_user_id',
             'rental_properties' => '`created_by_private_user_id` = :private_user_id OR `archived_by_private_user_id` = :private_user_id',
             'rental_units' => '`created_by_private_user_id` = :private_user_id OR `archived_by_private_user_id` = :private_user_id',
             'rental_property_members' => '`private_user_id` = :private_user_id OR `added_by_private_user_id` = :private_user_id OR `removed_by_private_user_id` = :private_user_id',
@@ -944,6 +969,7 @@ final class PrivateDataProtectionService
             'rental_generated_documents' => '`generated_by_private_user_id` = :private_user_id',
             'rental_charge_regularizations' => '`generated_by_private_user_id` = :private_user_id',
             'rental_export_logs' => '`private_user_id` = :private_user_id',
+            'rental_agencies' => '`created_by_private_user_id` = :private_user_id',
             'rental_agency_import_batches' => '`created_by_private_user_id` = :private_user_id',
             'rental_agency_imported_documents' => $agencyBatchDocumentIds,
             'rental_agency_statements' => $agencyDocumentIds,
@@ -984,6 +1010,7 @@ final class PrivateDataProtectionService
             'rental_charge_regularizations',
             'rental_payment_requests',
             'rental_agency_unit_mappings',
+            'rental_agencies',
             'rental_agency_import_issues',
             'rental_agency_statement_lines',
             'rental_agency_statements',
@@ -997,6 +1024,7 @@ final class PrivateDataProtectionService
             'rental_units',
             'rental_property_members',
             'rental_properties',
+            'rental_lessors',
             'tax_summary_lines',
             'tax_export_logs',
             'tax_annual_summaries',

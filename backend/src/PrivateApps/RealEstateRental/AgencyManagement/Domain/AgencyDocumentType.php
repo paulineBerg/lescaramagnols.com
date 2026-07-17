@@ -7,6 +7,9 @@ namespace Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain;
 final class AgencyDocumentType
 {
     public const UNKNOWN = 'unknown';
+    public const RENT_RECEIPT = 'rent_receipt';
+    public const MANAGEMENT_STATEMENT = 'management_statement';
+    public const OTHER_AGENCY_DOCUMENT = 'other_agency_document';
     public const ASG_MANAGEMENT_STATEMENT = 'asg_management_statement';
     public const ICS_MANAGEMENT_REPORT = 'ics_management_report';
     public const COPRO_FUND_CALL = 'copro_fund_call';
@@ -26,6 +29,9 @@ final class AgencyDocumentType
     {
         return [
             self::UNKNOWN,
+            self::RENT_RECEIPT,
+            self::MANAGEMENT_STATEMENT,
+            self::OTHER_AGENCY_DOCUMENT,
             self::ASG_MANAGEMENT_STATEMENT,
             self::ICS_MANAGEMENT_REPORT,
             self::COPRO_FUND_CALL,
@@ -43,5 +49,16 @@ final class AgencyDocumentType
     public static function isKnown(string $type): bool
     {
         return in_array($type, self::all(), true) && $type !== self::UNKNOWN;
+    }
+
+    public static function normalizeUserChoice(?string $type): ?string
+    {
+        $type = is_string($type) ? strtolower(trim($type)) : '';
+        return match ($type) {
+            self::RENT_RECEIPT => self::RENT_RECEIPT,
+            self::MANAGEMENT_STATEMENT => self::MANAGEMENT_STATEMENT,
+            self::OTHER_AGENCY_DOCUMENT, 'other' => self::OTHER_AGENCY_DOCUMENT,
+            default => null,
+        };
     }
 }

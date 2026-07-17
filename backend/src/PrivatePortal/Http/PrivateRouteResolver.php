@@ -29,6 +29,7 @@ final class PrivateRouteResolver
             'files_categories' => $basePath . '/files/categories',
             'files_delete' => $basePath . '/files',
             'rental_dashboard' => $basePath . '/locations',
+            'rental_lessors' => $basePath . '/locations/bailleurs',
             'rental_properties' => $basePath . '/rental-properties',
             'rental_units' => $basePath . '/rental-units',
             'rental_property_members' => $basePath . '/rental-property-members',
@@ -39,6 +40,7 @@ final class PrivateRouteResolver
             'rental_expenses' => $basePath . '/charges',
             'rental_regularizations' => $basePath . '/locations/regularisations',
             'rental_documents' => $basePath . '/locations/documents',
+            'rental_agencies' => $basePath . '/locations/agences',
             'rental_agency_imports' => $basePath . '/locations/agence/imports',
             'rental_agency_review' => $basePath . '/locations/agence/documents-a-classer',
             'rental_summary' => $basePath . '/locations/summary',
@@ -168,6 +170,11 @@ final class PrivateRouteResolver
             ],
             [
                 'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('rental_lessors'),
+                'handler' => ['type' => 'private', 'page' => 'rental_lessors'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('rental_properties'),
                 'handler' => ['type' => 'private', 'page' => 'rental_properties'],
             ],
@@ -225,6 +232,11 @@ final class PrivateRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('rental_documents'),
                 'handler' => ['type' => 'private', 'page' => 'rental_documents'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('rental_agencies'),
+                'handler' => ['type' => 'private', 'page' => 'rental_agencies'],
             ],
             [
                 'methods' => ['GET', 'POST'],

@@ -46,6 +46,7 @@ final class PrivateMigrationService
             'discussion_retention_runs',
         ],
         'real_estate_rental' => [
+            'rental_lessors',
             'rental_properties',
             'rental_units',
             'rental_property_members',
@@ -59,6 +60,7 @@ final class PrivateMigrationService
             'rental_generated_documents',
             'rental_charge_regularizations',
             'rental_export_logs',
+            'rental_agencies',
             'rental_agency_import_batches',
             'rental_agency_imported_documents',
             'rental_agency_statements',

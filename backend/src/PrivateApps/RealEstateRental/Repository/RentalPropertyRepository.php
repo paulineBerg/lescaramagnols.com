@@ -122,6 +122,7 @@ final class RentalPropertyRepository
         string $ownershipMode,
         string $status,
         ?string $notes = null,
+        ?int $rentalLessorId = null,
     ): ?RentalProperty {
         $name = sanitize_text_field($name, 160);
         $address = sanitize_text_field($address, 255);
@@ -129,6 +130,7 @@ final class RentalPropertyRepository
         $ownershipMode = sanitize_text_field($ownershipMode, 64);
         $status = trim($status);
         $notes = is_string($notes) ? trim($notes) : null;
+        $rentalLessorId = $rentalLessorId !== null && $rentalLessorId > 0 ? $rentalLessorId : null;
 
         if (
             $createdByPrivateUserId <= 0
@@ -158,14 +160,15 @@ final class RentalPropertyRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`created_by_private_user_id`, `name`, `address`, `property_type`, `ownership_mode`, `status`, `notes`)
+                        (`created_by_private_user_id`, `rental_lessor_id`, `name`, `address`, `property_type`, `ownership_mode`, `status`, `notes`)
                      VALUES
-                        (:created_by_private_user_id, :name, :address, :property_type, :ownership_mode, :status, :notes)',
+                        (:created_by_private_user_id, :rental_lessor_id, :name, :address, :property_type, :ownership_mode, :status, :notes)',
                     $this->table()
                 )
             );
             $statement->execute([
                 'created_by_private_user_id' => $createdByPrivateUserId,
+                'rental_lessor_id' => $rentalLessorId,
                 'name' => $name,
                 'address' => $address,
                 'property_type' => $propertyType,
@@ -193,6 +196,7 @@ final class RentalPropertyRepository
         string $ownershipMode,
         string $status,
         ?string $notes = null,
+        ?int $rentalLessorId = null,
     ): ?RentalProperty {
         if ($propertyId <= 0 || $updatedByPrivateUserId <= 0) {
             return null;
@@ -204,6 +208,7 @@ final class RentalPropertyRepository
         $ownershipMode = sanitize_text_field($ownershipMode, 64);
         $status = trim($status);
         $notes = is_string($notes) ? trim($notes) : null;
+        $rentalLessorId = $rentalLessorId !== null && $rentalLessorId > 0 ? $rentalLessorId : null;
 
         if (
             $name === ''
@@ -229,7 +234,8 @@ final class RentalPropertyRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'UPDATE `%s`
-                     SET `name` = :name,
+                     SET `rental_lessor_id` = :rental_lessor_id,
+                         `name` = :name,
                          `address` = :address,
                          `property_type` = :property_type,
                          `ownership_mode` = :ownership_mode,
@@ -243,6 +249,7 @@ final class RentalPropertyRepository
             );
 
             $statement->execute([
+                'rental_lessor_id' => $rentalLessorId,
                 'name' => $name,
                 'address' => $address,
                 'property_type' => $propertyType,
@@ -308,6 +315,7 @@ final class RentalPropertyRepository
                 'CREATE TABLE IF NOT EXISTS `%s` (
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `created_by_private_user_id` INT NOT NULL,
+                    `rental_lessor_id` INT NULL,
                     `name` VARCHAR(160) NOT NULL,
                     `address` VARCHAR(255) NOT NULL,
                     `property_type` VARCHAR(64) NOT NULL,
@@ -322,11 +330,15 @@ final class RentalPropertyRepository
                     UNIQUE KEY `uq_rental_properties_name_owner` (`name`, `created_by_private_user_id`),
                     KEY `idx_rental_properties_active` (`is_active`),
                     KEY `idx_rental_properties_status` (`status`),
+                    KEY `idx_rental_properties_lessor` (`rental_lessor_id`),
                     KEY `idx_rental_properties_created` (`created_by_private_user_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->table()
             )
         );
+        $pdo = $this->database->pdo();
+        $this->ensureColumn($pdo, $this->table(), 'rental_lessor_id', '`rental_lessor_id` INT NULL AFTER `created_by_private_user_id`');
+        $this->ensureIndex($pdo, $this->table(), 'idx_rental_properties_lessor', '`rental_lessor_id`');
 
         $this->schemaReady = true;
     }
@@ -356,5 +368,47 @@ final class RentalPropertyRepository
         }
 
         return min($limit, 500);
+    }
+
+    private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND COLUMN_NAME = :column'
+            );
+            $statement->execute(['table' => $table, 'column' => $column]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $table, $definition));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureIndex(PDO $pdo, string $table, string $index, string $columns): void
+    {
+        try {
+            $statement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM INFORMATION_SCHEMA.STATISTICS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME = :table
+                   AND INDEX_NAME = :index'
+            );
+            $statement->execute(['table' => $table, 'index' => $index]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return;
+            }
+
+            $pdo->exec(sprintf('ALTER TABLE `%s` ADD INDEX `%s` (%s)', $table, $index, $columns));
+        } catch (\Throwable) {
+            return;
+        }
     }
 }

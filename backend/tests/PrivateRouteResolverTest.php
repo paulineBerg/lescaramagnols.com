@@ -21,8 +21,10 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c/blocnote', $resolver->canonicalPath('blocnote'));
         $this->assertSame('/private-4h6F1c/files/categories', $resolver->canonicalPath('files_categories'));
         $this->assertSame('/private-4h6F1c/locations', $resolver->canonicalPath('rental_dashboard'));
+        $this->assertSame('/private-4h6F1c/locations/bailleurs', $resolver->canonicalPath('rental_lessors'));
         $this->assertSame('/private-4h6F1c/locations/locataires', $resolver->canonicalPath('rental_tenants'));
         $this->assertSame('/private-4h6F1c/locations/regularisations', $resolver->canonicalPath('rental_regularizations'));
+        $this->assertSame('/private-4h6F1c/locations/agences', $resolver->canonicalPath('rental_agencies'));
         $this->assertSame('/private-4h6F1c/locations/agence/imports', $resolver->canonicalPath('rental_agency_imports'));
     }
 
@@ -68,6 +70,7 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/files/categories' => ['methods' => ['POST'], 'handler' => 'private:files_categories'],
             '/private/files/{documentId:[A-Za-z0-9._-]+}/delete' => ['methods' => ['POST'], 'handler' => 'private:files_delete'],
             '/private/locations' => ['methods' => ['GET'], 'handler' => 'private:rental_dashboard'],
+            '/private/locations/bailleurs' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_lessors'],
             '/private/rental-properties' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_properties'],
             '/private/rental-properties/{propertyId:[0-9]+}/archive' => ['methods' => ['POST'], 'handler' => 'private:rental_property_archive'],
             '/private/rental-units' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_units'],
@@ -80,6 +83,7 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/charges' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_expenses'],
             '/private/locations/regularisations' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_regularizations'],
             '/private/locations/documents' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_documents'],
+            '/private/locations/agences' => ['methods' => ['GET'], 'handler' => 'private:rental_agencies'],
             '/private/locations/agence/imports' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_imports'],
             '/private/locations/agence/documents-a-classer' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_review'],
             '/private/locations/documents/{documentId:[A-Za-z0-9._-]+}' => ['methods' => ['GET'], 'handler' => 'private:rental_document_file'],

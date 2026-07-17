@@ -20,6 +20,7 @@ use Caramagnols\PrivatePortal\Security\PrivateAuth;
 use Caramagnols\PrivatePortal\Security\PrivatePasswordPolicy;
 use Caramagnols\PrivatePortal\Security\PrivatePortalSecurityGuard;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
+use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLessorRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyMemberRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalUnitRepository;
@@ -117,6 +118,7 @@ final class PrivatePortalController
                 (string) ($routeParams['documentId'] ?? '')
             ),
             'rental_dashboard' => $this->handleRentalDashboard($request),
+            'rental_lessors' => $this->handleRentalLessors($request),
             'rental_properties' => $this->handleRentalProperties($request),
             'rental_property_archive' => $this->handleRentalPropertyArchive(
                 $request,
@@ -135,6 +137,7 @@ final class PrivatePortalController
             'rental_expenses' => $this->handleRentalExpenses($request),
             'rental_regularizations' => $this->handleRentalRegularizations($request),
             'rental_documents' => $this->handleRentalDocuments($request),
+            'rental_agencies' => $this->redirect(private_portal_url('rental_agency_imports') . '?tab=agencies'),
             'rental_agency_imports' => $this->handleRentalAgencyImports($request),
             'rental_agency_review' => $this->handleRentalAgencyReview($request),
             'rental_document_file' => $this->handleRentalDocumentFile(
@@ -369,6 +372,78 @@ final class PrivatePortalController
         }
 
         return $this->renderRentalDashboard($userId);
+    }
+
+    private function handleRentalLessors(Request $request): Response
+    {
+        $userId = $this->requireRentalModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $query = $request->query();
+        $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
+        $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
+
+        if ($request->method() !== self::METHOD_POST) {
+            return $this->renderRentalLessors($userId, $notice, $error);
+        }
+
+        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
+            return $this->renderRentalLessors($userId, '', 'rental_invalid_request');
+        }
+
+        $body = $request->body();
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_lessor';
+        $lessorId = $this->normalizeNumericId($body['lessor_id'] ?? null);
+
+        if ($action === 'delete_lessor') {
+            $deleted = $this->rentalLessorRepository()->deleteForUser($lessorId, $userId);
+            $this->logEvent('private.rental_lessor.deleted', [
+                'private_user_id' => $userId,
+                'rental_lessor_id' => $lessorId,
+            ]);
+
+            return $this->redirect(private_portal_url('rental_lessors') . ($deleted ? '?notice=lessor_deleted' : '?error=lessor_delete_failed'));
+        }
+
+        $payload = [
+            'last_name' => is_string($body['last_name'] ?? null) ? (string) $body['last_name'] : '',
+            'first_name' => is_string($body['first_name'] ?? null) ? (string) $body['first_name'] : '',
+            'address' => is_string($body['address'] ?? null) ? (string) $body['address'] : '',
+            'phone' => is_string($body['phone'] ?? null) ? (string) $body['phone'] : '',
+            'email' => is_string($body['email'] ?? null) ? (string) $body['email'] : '',
+        ];
+
+        $saved = $action === 'update_lessor' && $lessorId > 0
+            ? $this->rentalLessorRepository()->update(
+                $lessorId,
+                $userId,
+                $payload['last_name'],
+                $payload['first_name'],
+                $payload['address'],
+                $payload['phone'],
+                $payload['email']
+            )
+            : $this->rentalLessorRepository()->create(
+                $userId,
+                $payload['last_name'],
+                $payload['first_name'],
+                $payload['address'],
+                $payload['phone'],
+                $payload['email']
+            );
+
+        if (!is_array($saved)) {
+            return $this->renderRentalLessors($userId, '', 'rental_write_failed');
+        }
+
+        $this->logEvent($action === 'update_lessor' ? 'private.rental_lessor.updated' : 'private.rental_lessor.created', [
+            'private_user_id' => $userId,
+            'rental_lessor_id' => (int) ($saved['id'] ?? 0),
+        ]);
+
+        return $this->redirect(private_portal_url('rental_lessors') . ($action === 'update_lessor' ? '?notice=lessor_updated' : '?notice=lessor_created'));
     }
 
     private function handleRentalProperties(Request $request): Response
@@ -1518,7 +1593,19 @@ final class PrivatePortalController
         $uploadedFile = $this->optionalRentalUploadedFile($request);
         if (is_array($uploadedFile)) {
             $expenseId = is_numeric($created['id'] ?? null) ? (int) $created['id'] : 0;
-            if ($expenseId <= 0 || !$this->storeRentalSupportingDocument($uploadedFile, $propertyId, $unitId, null, $expenseId, $userId)) {
+            $expenseCategory = is_string($body['expense_category'] ?? null)
+                ? RentalExpenseCategoryCatalog::label((string) $body['expense_category'])
+                : RentalExpenseCategoryCatalog::label(RentalExpenseCategoryCatalog::DEFAULT);
+            if ($expenseId <= 0 || !$this->storeRentalSupportingDocument(
+                $uploadedFile,
+                $propertyId,
+                $unitId,
+                null,
+                $expenseId,
+                $userId,
+                is_string($body['label'] ?? null) ? (string) $body['label'] : null,
+                'Charge - ' . $expenseCategory
+            )) {
                 return $this->renderRentalExpenses($properties, $units, $expenses, '', 'upload_failed');
             }
         }
@@ -1737,7 +1824,10 @@ final class PrivatePortalController
             (string) $stored['extension'],
             (string) $stored['mimeType'],
             (int) $stored['sizeBytes'],
-            $userId
+            $userId,
+            null,
+            is_string($body['display_name'] ?? null) ? (string) $body['display_name'] : null,
+            is_string($body['document_category'] ?? null) ? (string) $body['document_category'] : 'Document'
         );
         if (!is_array($created)) {
             $storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
@@ -3170,6 +3260,20 @@ final class PrivatePortalController
         ));
     }
 
+    private function renderRentalLessors(int $userId, string $notice = '', string $error = ''): Response
+    {
+        $lessors = $this->rentalLessorRepository()->listForUser($userId, self::MAX_RENTAL_LIST);
+
+        return $this->render('modules/real-estate-rental/lessors', array_merge(
+            $this->rentalBaseViewModel('Bailleurs', $notice, $error),
+            [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'lessors',
+                'rentalLessors' => $lessors,
+            ]
+        ));
+    }
+
     /**
      * @param array<int, object> $properties
      * @param array<int, object> $units
@@ -3649,7 +3753,9 @@ final class PrivatePortalController
         ?int $unitId,
         ?int $leaseId,
         ?int $expenseId,
-        int $userId
+        int $userId,
+        ?string $displayName = null,
+        string $category = 'Document'
     ): bool {
         $storage = $this->privateDocumentStorage();
         $metadata = $storage->validateUploadedFile($uploadedFile);
@@ -3670,7 +3776,9 @@ final class PrivatePortalController
             (string) $stored['mimeType'],
             (int) $stored['sizeBytes'],
             $userId,
-            $expenseId !== null && $expenseId > 0 ? $expenseId : null
+            $expenseId !== null && $expenseId > 0 ? $expenseId : null,
+            $displayName,
+            $category
         );
         if (!is_array($created)) {
             $storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
@@ -4320,6 +4428,7 @@ final class PrivatePortalController
             'rentalError' => $this->rentalError($error),
             'rentalUrls' => [
                 'dashboard' => private_portal_url('rental_dashboard'),
+                'lessors' => private_portal_url('rental_lessors'),
                 'properties' => private_portal_url('rental_properties'),
                 'units' => private_portal_url('rental_units'),
                 'members' => private_portal_url('rental_property_members'),
@@ -4330,6 +4439,7 @@ final class PrivatePortalController
                 'expenses' => private_portal_url('rental_expenses'),
                 'regularizations' => private_portal_url('rental_regularizations'),
                 'documents' => private_portal_url('rental_documents'),
+                'agencies' => private_portal_url('rental_agencies'),
                 'agencyImports' => private_portal_url('rental_agency_imports'),
                 'agencyReview' => private_portal_url('rental_agency_review'),
                 'summary' => private_portal_url('rental_summary'),
@@ -5314,6 +5424,11 @@ final class PrivatePortalController
     private function rentalPropertyRepository(): RentalPropertyRepository
     {
         return $this->rentalPropertyRepository ?? new RentalPropertyRepository(editorial_database());
+    }
+
+    private function rentalLessorRepository(): RentalLessorRepository
+    {
+        return new RentalLessorRepository(editorial_database());
     }
 
     private function rentalPropertyMemberRepository(): RentalPropertyMemberRepository

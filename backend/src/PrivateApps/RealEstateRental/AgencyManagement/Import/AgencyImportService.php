@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import;
 
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Domain\AgencyDocumentType;
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Parser\AgencyParserResult;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentScanResult;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 
 final class AgencyImportService
@@ -23,7 +26,8 @@ final class AgencyImportService
         int $privateUserId,
         array $uploadedFile,
         ?string $agencyName = null,
-        ?string $sourceDirectory = null
+        ?string $sourceDirectory = null,
+        ?string $documentType = null
     ): AgencyImportResult {
         if ($privateUserId <= 0) {
             return new AgencyImportResult('failed', error: 'invalid_user');
@@ -65,6 +69,25 @@ final class AgencyImportService
             return new AgencyImportResult('failed', $batch, error: $this->storage->uploadError() ?? 'storage_failed');
         }
 
+        $scanStatus = is_string($stored['scanStatus'] ?? null)
+            ? PrivateDocumentScanResult::normalizeStatus((string) $stored['scanStatus'])
+            : PrivateDocumentScanResult::STATUS_CLEAN;
+        if (!PrivateDocumentScanResult::isDownloadable($scanStatus)) {
+            $this->storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
+            $batch = $this->repository->createBatch(
+                $privateUserId,
+                $agencyName,
+                $sourceDirectory,
+                1,
+                0,
+                0,
+                'draft',
+                'Document refuse par le controle antivirus.'
+            );
+
+            return new AgencyImportResult('failed', $batch, error: $this->scanErrorForStatus($scanStatus));
+        }
+
         $absolutePath = $this->storage->absolutePath((string) $stored['storagePath']);
         if ($absolutePath === null || !is_file($absolutePath)) {
             $this->storage->deleteStoredDocument((string) $stored['storagePath'], (string) $stored['documentId']);
@@ -83,6 +106,7 @@ final class AgencyImportService
             (string) $stored['originalName'],
             (string) $stored['mimeType']
         );
+        $preview = $this->applyDocumentTypeChoice($preview, $documentType);
         $document = $this->repository->persistPreview(
             $batch->id,
             $preview,
@@ -103,6 +127,67 @@ final class AgencyImportService
     {
         $normalized = strtolower(str_replace('\\', '/', trim($originalName)));
         return $normalized !== '' && str_ends_with($normalized, ':zone.identifier');
+    }
+
+    private function scanErrorForStatus(string $scanStatus): string
+    {
+        return match (PrivateDocumentScanResult::normalizeStatus($scanStatus)) {
+            PrivateDocumentScanResult::STATUS_INFECTED => 'scan_infected',
+            PrivateDocumentScanResult::STATUS_PENDING_SCAN => 'scan_pending',
+            PrivateDocumentScanResult::STATUS_SCAN_UNAVAILABLE => 'scan_unavailable',
+            default => 'scan_blocked',
+        };
+    }
+
+    private function applyDocumentTypeChoice(AgencyImportPreview $preview, ?string $documentType): AgencyImportPreview
+    {
+        $chosenType = AgencyDocumentType::normalizeUserChoice($documentType);
+        if ($chosenType === null) {
+            return $preview;
+        }
+
+        $currentType = $preview->classification->documentType;
+        if (
+            $chosenType === AgencyDocumentType::MANAGEMENT_STATEMENT
+            && in_array($currentType, [AgencyDocumentType::ASG_MANAGEMENT_STATEMENT, AgencyDocumentType::ICS_MANAGEMENT_REPORT], true)
+        ) {
+            return $preview;
+        }
+
+        $parserResult = $this->parserResultMatchesType($preview->parserResult, $chosenType)
+            ? $preview->parserResult
+            : null;
+
+        return new AgencyImportPreview(
+            $preview->sourcePath,
+            $preview->filename,
+            $preview->mimeType,
+            $preview->fileSize,
+            $preview->sha256,
+            $preview->pdfMetadata,
+            $preview->textExtraction,
+            new ClassifiedAgencyDocument($chosenType, 'choix manuel', 1.0, ['Type choisi pendant l’import.']),
+            $parserResult,
+            $preview->maskedTextPreview,
+            $preview->issues
+        );
+    }
+
+    private function parserResultMatchesType(?AgencyParserResult $parserResult, string $documentType): bool
+    {
+        if (!$parserResult instanceof AgencyParserResult) {
+            return false;
+        }
+
+        return $parserResult->documentType === $documentType
+            || (
+                $documentType === AgencyDocumentType::MANAGEMENT_STATEMENT
+                && in_array(
+                    $parserResult->documentType,
+                    [AgencyDocumentType::ASG_MANAGEMENT_STATEMENT, AgencyDocumentType::ICS_MANAGEMENT_REPORT],
+                    true
+                )
+            );
     }
 
     private function previewService(): AgencyImportPreviewService

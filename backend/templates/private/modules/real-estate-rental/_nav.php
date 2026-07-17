@@ -16,6 +16,7 @@ $mainItems = [
 
 $subItems = match ($currentSection) {
     'agency' => [
+        'agencies' => ['Agences', $url('agencies', 'rental_agencies')],
         'properties' => ['Propriétés', $url('properties', 'rental_properties')],
         'agencyImports' => ['Importer agence', $url('agencyImports', 'rental_agency_imports')],
         'agencyReview' => ['Classer les documents', $url('agencyReview', 'rental_agency_review')],
@@ -26,6 +27,7 @@ $subItems = match ($currentSection) {
         'exportPdf' => ['Export PDF', $url('exportPdf', 'rental_export_pdf')],
     ],
     'personal' => [
+        'lessors' => ['Bailleurs', $url('lessors', 'rental_lessors')],
         'properties' => ['Propriétés', $url('properties', 'rental_properties')],
         'units' => ['Biens locatifs', $url('units', 'rental_units')],
         'tenants' => ['Locataires', $url('tenants', 'rental_tenants')],

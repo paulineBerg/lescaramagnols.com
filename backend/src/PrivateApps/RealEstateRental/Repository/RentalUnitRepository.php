@@ -14,6 +14,7 @@ final class RentalUnitRepository
     private const TEXT_LENGTH_ADDRESS = 255;
     private const TEXT_LENGTH_BUILDING = 120;
     private const TEXT_LENGTH_SHORT = 64;
+    private const TEXT_LENGTH_MEDIUM = 160;
     private const TEXT_LENGTH_NOTES = 2000;
     private const ALLOWED_LABEL_PATTERN = '/^[\p{L}0-9][\p{L}0-9 _\-.,#()]{1,158}$/u';
     private const ALLOWED_UNIT_TYPES = [
@@ -140,6 +141,8 @@ final class RentalUnitRepository
         ?string $building = null,
         ?string $floor = null,
         ?string $door = null,
+        array $details = [],
+        ?string $unavailableUntil = null,
     ): ?RentalUnit {
         $label = sanitize_text_field($label, 160);
         $unitType = $this->normalizeUnitType($unitType);
@@ -147,8 +150,10 @@ final class RentalUnitRepository
         $building = $this->normalizeNullableText($building, self::TEXT_LENGTH_BUILDING);
         $floor = $this->normalizeNullableText($floor, self::TEXT_LENGTH_SHORT);
         $door = $this->normalizeNullableText($door, self::TEXT_LENGTH_SHORT);
+        $details = $this->normalizeDetails($details);
         $notes = $this->normalizeNullableText($notes, self::TEXT_LENGTH_NOTES);
         $status = $this->normalizeStatus($status);
+        $unavailableUntil = $status === 'unavailable' ? $this->normalizeNullableDate($unavailableUntil) : null;
 
         if (
             $rentalPropertyId <= 0
@@ -178,9 +183,15 @@ final class RentalUnitRepository
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'INSERT INTO `%s`
-                        (`rental_property_id`, `label`, `unit_type`, `address`, `building`, `floor`, `door`, `surface`, `furnished`, `status`, `is_active`, `notes`, `created_by_private_user_id`)
+                        (`rental_property_id`, `label`, `unit_type`, `address`, `building`, `floor`, `door`,
+                         `tax_identifier`, `room_count`, `designation`, `other_details`, `equipment_elements`,
+                         `heating_production_mode`, `hot_water_production_mode`, `sanitation`,
+                         `surface`, `furnished`, `status`, `unavailable_until`, `is_active`, `notes`, `created_by_private_user_id`)
                      VALUES
-                        (:rental_property_id, :label, :unit_type, :address, :building, :floor, :door, :surface, :furnished, :status, 1, :notes, :created_by)',
+                        (:rental_property_id, :label, :unit_type, :address, :building, :floor, :door,
+                         :tax_identifier, :room_count, :designation, :other_details, :equipment_elements,
+                         :heating_production_mode, :hot_water_production_mode, :sanitation,
+                         :surface, :furnished, :status, :unavailable_until, 1, :notes, :created_by)',
                     $this->table()
                 )
             );
@@ -192,9 +203,18 @@ final class RentalUnitRepository
                 'building' => $building,
                 'floor' => $floor,
                 'door' => $door,
+                'tax_identifier' => $details['tax_identifier'],
+                'room_count' => $details['room_count'],
+                'designation' => $details['designation'],
+                'other_details' => $details['other_details'],
+                'equipment_elements' => $details['equipment_elements'],
+                'heating_production_mode' => $details['heating_production_mode'],
+                'hot_water_production_mode' => $details['hot_water_production_mode'],
+                'sanitation' => $details['sanitation'],
                 'surface' => $surface,
                 'furnished' => $furnished ? 1 : 0,
                 'status' => $status,
+                'unavailable_until' => $unavailableUntil,
                 'notes' => $notes,
                 'created_by' => $createdByPrivateUserId,
             ]);
@@ -287,6 +307,8 @@ final class RentalUnitRepository
         ?string $building = null,
         ?string $floor = null,
         ?string $door = null,
+        array $details = [],
+        ?string $unavailableUntil = null,
     ): ?RentalUnit {
         if ($unitId <= 0 || $actorPrivateUserId <= 0 || $propertyId <= 0) {
             return null;
@@ -298,8 +320,10 @@ final class RentalUnitRepository
         $building = $this->normalizeNullableText($building, self::TEXT_LENGTH_BUILDING);
         $floor = $this->normalizeNullableText($floor, self::TEXT_LENGTH_SHORT);
         $door = $this->normalizeNullableText($door, self::TEXT_LENGTH_SHORT);
+        $details = $this->normalizeDetails($details);
         $notes = $this->normalizeNullableText($notes, self::TEXT_LENGTH_NOTES);
         $status = $this->normalizeStatus($status);
+        $unavailableUntil = $status === 'unavailable' ? $this->normalizeNullableDate($unavailableUntil) : null;
 
         if (
             $label === ''
@@ -328,9 +352,18 @@ final class RentalUnitRepository
                          `building` = :building,
                          `floor` = :floor,
                          `door` = :door,
+                         `tax_identifier` = :tax_identifier,
+                         `room_count` = :room_count,
+                         `designation` = :designation,
+                         `other_details` = :other_details,
+                         `equipment_elements` = :equipment_elements,
+                         `heating_production_mode` = :heating_production_mode,
+                         `hot_water_production_mode` = :hot_water_production_mode,
+                         `sanitation` = :sanitation,
                          `surface` = :surface,
                          `furnished` = :furnished,
                          `status` = :status,
+                         `unavailable_until` = :unavailable_until,
                          `notes` = :notes,
                          `updated_at` = :updated_at
                      WHERE `id` = :id
@@ -346,9 +379,18 @@ final class RentalUnitRepository
                 'building' => $building,
                 'floor' => $floor,
                 'door' => $door,
+                'tax_identifier' => $details['tax_identifier'],
+                'room_count' => $details['room_count'],
+                'designation' => $details['designation'],
+                'other_details' => $details['other_details'],
+                'equipment_elements' => $details['equipment_elements'],
+                'heating_production_mode' => $details['heating_production_mode'],
+                'hot_water_production_mode' => $details['hot_water_production_mode'],
+                'sanitation' => $details['sanitation'],
                 'surface' => $surface,
                 'furnished' => $furnished ? 1 : 0,
                 'status' => $status,
+                'unavailable_until' => $unavailableUntil,
                 'notes' => $notes,
                 'updated_at' => date('Y-m-d H:i:s'),
                 'id' => $unitId,
@@ -386,6 +428,7 @@ final class RentalUnitRepository
                     `surface` DECIMAL(8,2) NOT NULL,
                     `furnished` TINYINT(1) NOT NULL DEFAULT 0,
                     `status` ENUM("available", "unavailable", "archived") NOT NULL DEFAULT "available",
+                    `unavailable_until` DATE NULL,
                     `is_active` TINYINT(1) NOT NULL DEFAULT 1,
                     `notes` TEXT NULL,
                     `created_by_private_user_id` INT NOT NULL,
@@ -397,6 +440,7 @@ final class RentalUnitRepository
                     KEY `idx_rental_units_property_active` (`rental_property_id`, `is_active`),
                     KEY `idx_rental_units_type` (`unit_type`),
                     KEY `idx_rental_units_status` (`status`),
+                    KEY `idx_rental_units_unavailable_until` (`unavailable_until`),
                     KEY `idx_rental_units_active` (`is_active`),
                     KEY `idx_rental_units_created` (`created_by_private_user_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
@@ -408,8 +452,18 @@ final class RentalUnitRepository
         $this->ensureColumn($pdo, $this->table(), 'building', '`building` VARCHAR(120) NULL AFTER `address`');
         $this->ensureColumn($pdo, $this->table(), 'floor', '`floor` VARCHAR(64) NULL AFTER `building`');
         $this->ensureColumn($pdo, $this->table(), 'door', '`door` VARCHAR(64) NULL AFTER `floor`');
+        $this->ensureColumn($pdo, $this->table(), 'tax_identifier', '`tax_identifier` VARCHAR(80) NULL AFTER `door`');
+        $this->ensureColumn($pdo, $this->table(), 'room_count', '`room_count` SMALLINT UNSIGNED NULL AFTER `tax_identifier`');
+        $this->ensureColumn($pdo, $this->table(), 'designation', '`designation` VARCHAR(160) NULL AFTER `room_count`');
+        $this->ensureColumn($pdo, $this->table(), 'other_details', '`other_details` TEXT NULL AFTER `designation`');
+        $this->ensureColumn($pdo, $this->table(), 'equipment_elements', '`equipment_elements` TEXT NULL AFTER `other_details`');
+        $this->ensureColumn($pdo, $this->table(), 'heating_production_mode', '`heating_production_mode` VARCHAR(160) NULL AFTER `equipment_elements`');
+        $this->ensureColumn($pdo, $this->table(), 'hot_water_production_mode', '`hot_water_production_mode` VARCHAR(160) NULL AFTER `heating_production_mode`');
+        $this->ensureColumn($pdo, $this->table(), 'sanitation', '`sanitation` VARCHAR(160) NULL AFTER `hot_water_production_mode`');
+        $this->ensureColumn($pdo, $this->table(), 'unavailable_until', '`unavailable_until` DATE NULL AFTER `status`');
         $this->ensureAvailabilityStatusSchema($pdo);
         $this->ensureIndex($pdo, $this->table(), 'idx_rental_units_type', '`unit_type`');
+        $this->ensureIndex($pdo, $this->table(), 'idx_rental_units_unavailable_until', '`unavailable_until`');
 
         $this->schemaReady = true;
     }
@@ -468,6 +522,80 @@ final class RentalUnitRepository
 
         $value = sanitize_text_field($value, $maxLength);
         return $value !== '' ? $value : null;
+    }
+
+    private function normalizeNullableDate(?string $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? $value : null;
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     * @return array<string, mixed>
+     */
+    private function normalizeDetails(array $details): array
+    {
+        return [
+            'tax_identifier' => $this->normalizeNullableText(
+                $this->stringDetail($details, 'tax_identifier', 'taxIdentifier'),
+                80
+            ),
+            'room_count' => $this->normalizeNullableRoomCount($details['room_count'] ?? $details['roomCount'] ?? null),
+            'designation' => $this->normalizeNullableText(
+                $this->stringDetail($details, 'designation'),
+                self::TEXT_LENGTH_MEDIUM
+            ),
+            'other_details' => $this->normalizeNullableText(
+                $this->stringDetail($details, 'other_details', 'otherDetails'),
+                self::TEXT_LENGTH_NOTES
+            ),
+            'equipment_elements' => $this->normalizeNullableText(
+                $this->stringDetail($details, 'equipment_elements', 'equipmentElements'),
+                self::TEXT_LENGTH_NOTES
+            ),
+            'heating_production_mode' => $this->normalizeNullableText(
+                $this->stringDetail($details, 'heating_production_mode', 'heatingProductionMode'),
+                self::TEXT_LENGTH_MEDIUM
+            ),
+            'hot_water_production_mode' => $this->normalizeNullableText(
+                $this->stringDetail($details, 'hot_water_production_mode', 'hotWaterProductionMode'),
+                self::TEXT_LENGTH_MEDIUM
+            ),
+            'sanitation' => $this->normalizeNullableText(
+                $this->stringDetail($details, 'sanitation'),
+                self::TEXT_LENGTH_MEDIUM
+            ),
+        ];
+    }
+
+    private function stringDetail(array $details, string $primaryKey, ?string $fallbackKey = null): ?string
+    {
+        $value = $details[$primaryKey] ?? ($fallbackKey !== null ? ($details[$fallbackKey] ?? null) : null);
+
+        return is_scalar($value) ? (string) $value : null;
+    }
+
+    private function normalizeNullableRoomCount(mixed $value): ?int
+    {
+        if (!is_scalar($value) || trim((string) $value) === '') {
+            return null;
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $roomCount = (int) $value;
+        return $roomCount >= 0 && $roomCount <= 99 ? $roomCount : null;
     }
 
     private function ensureColumn(PDO $pdo, string $table, string $column, string $definition): void

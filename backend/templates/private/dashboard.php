@@ -159,13 +159,15 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
       </p>
       <p class="private-actions">
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_dashboard'), ENT_QUOTES, 'UTF-8'); ?>">Tableau de bord</a>
+        <a href="<?php echo htmlspecialchars(private_portal_url('rental_lessors'), ENT_QUOTES, 'UTF-8'); ?>">Bailleurs</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_properties'), ENT_QUOTES, 'UTF-8'); ?>">Propriétés</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_units'), ENT_QUOTES, 'UTF-8'); ?>">Biens locatifs</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_tenants'), ENT_QUOTES, 'UTF-8'); ?>">Locataires</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_rents'), ENT_QUOTES, 'UTF-8'); ?>">Loyers</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_payments'), ENT_QUOTES, 'UTF-8'); ?>">Paiements</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_regularizations'), ENT_QUOTES, 'UTF-8'); ?>">Régularisations</a>
-        <a href="<?php echo htmlspecialchars(private_portal_url('rental_agency_imports'), ENT_QUOTES, 'UTF-8'); ?>">Agence</a>
+        <a href="<?php echo htmlspecialchars(private_portal_url('rental_agencies'), ENT_QUOTES, 'UTF-8'); ?>">Agences</a>
+        <a href="<?php echo htmlspecialchars(private_portal_url('rental_agency_imports'), ENT_QUOTES, 'UTF-8'); ?>">Imports agence</a>
         <a href="<?php echo htmlspecialchars(private_portal_url('rental_summary'), ENT_QUOTES, 'UTF-8'); ?>">Synthèse</a>
       </p>
     </section>

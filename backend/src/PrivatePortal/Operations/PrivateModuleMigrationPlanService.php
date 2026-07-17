@@ -160,6 +160,7 @@ final class PrivateModuleMigrationPlanService
                 'description' => 'Biens, lots, membres, locataires, baux, loyers, paiements, charges, documents et rapports.',
                 'routeNames' => [
                     'rental_dashboard',
+                    'rental_lessors',
                     'rental_properties',
                     'rental_units',
                     'rental_property_members',
@@ -176,6 +177,7 @@ final class PrivateModuleMigrationPlanService
                     'rental_export_zip',
                 ],
                 'tables' => [
+                    'rental_lessors',
                     'rental_properties',
                     'rental_units',
                     'rental_property_members',
@@ -191,6 +193,7 @@ final class PrivateModuleMigrationPlanService
                     'rental_export_logs',
                 ],
                 'contractClasses' => [
+                    'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalLessorRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalPropertyRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalUnitRepository',
                     'Caramagnols\\PrivateApps\\RealEstateRental\\Repository\\RentalLifecycleRepository',
@@ -232,10 +235,12 @@ final class PrivateModuleMigrationPlanService
                 'migrationStatusModule' => 'real_estate_rental',
                 'description' => 'Imports agence, documents detectes, lignes, anomalies, mapping et revue humaine.',
                 'routeNames' => [
+                    'rental_agencies',
                     'rental_agency_imports',
                     'rental_agency_review',
                 ],
                 'tables' => [
+                    'rental_agencies',
                     'rental_agency_import_batches',
                     'rental_agency_imported_documents',
                     'rental_agency_statements',
@@ -273,10 +278,12 @@ final class PrivateModuleMigrationPlanService
                     'private.rental_agency_import.imported',
                     'private.rental_agency_import.document_deleted',
                     'private.rental_agency_import.agency_created',
+                    'private.rental_agency_import.agency_updated',
                     'private.rental_agency_import.unit_mapping_created',
                     'private.rental_agency_import.unit_mapping_deleted',
                     'private.rental_agency_review.property_updated',
                     'private.rental_agency_review.line_reviewed',
+                    'private.rental_agency_review.lines_bulk_saved',
                 ],
                 'uiStates' => ['empty', 'error', 'success'],
                 'legacyRoutes' => ['agency imports inherit real_estate_rental permission'],
