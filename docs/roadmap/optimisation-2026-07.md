@@ -1,7 +1,7 @@
 # Plan D'Optimisation Post-V1
 
 Date : 2026-07-17
-Statut : phase 0 en cours d'execution (2026-07-17), phases 1+ proposees
+Statut : phase 0 validee, phase 1 terminee (2026-07-17), phase 2 en attente
 
 Ce document analyse la dette technique actuelle et propose un plan d'optimisation en phases, avec checklist d'implementation. Il complete les plans existants sans les dupliquer :
 
@@ -22,7 +22,7 @@ Perimetre : dette **post-V1** observee sur la branche `restore-prod-master-20260
 
 ### Dettes identifiees
 
-1. **Migration `PrivatePortal/` -> `PrivateApps/` non finalisee** : fichiers supprimes cote socle (`Documents/`, `BlocNote/`, `TaxDeclarationHelper/Source|ValueObject`, `RealEstateRental/TaxBridge`), contreparties non versionnees sous `PrivateApps/`, imports mixtes dans `backend/src/Http/FrontController.php`.
+1. **Migration `PrivatePortal/` -> `PrivateApps/` finalisee** : fichiers supprimes cote socle (`Documents/`, `BlocNote/`, `TaxDeclarationHelper/Source|ValueObject`, `RealEstateRental/TaxBridge`), contreparties versionnees sous `PrivateApps/`, imports alignes dans `backend/src/Http/FrontController.php`. Garantie par `PrivatePortalPhaseCoverageTest`.
 2. **Monolithes** :
    - `backend/src/PrivatePortal/Http/PrivatePortalController.php` : ~6 200 lignes
    - `backend/templates/admin/layout.php` : ~4 400 lignes
@@ -72,7 +72,7 @@ Objectif : terminer le deplacement des modules metier hors du socle, conformemen
 
 Checklist :
 
-- [ ] Versionner les contreparties actuellement non suivies sous `backend/src/PrivateApps/` (`Documents/`, `BlocNote/`, `TaxDeclarationHelper/Source|ValueObject`) — les fichiers sont en place et testes, reste le commit (a la demande).
+- [x] Versionner les contreparties actuellement non suivies sous `backend/src/PrivateApps/` (`Documents/`, `BlocNote/`, `TaxDeclarationHelper/Source|ValueObject`) — les fichiers sont en place, tests et commites dans 0bb5045 le 2026-07-17.
 - [x] Purger les vestiges restants sous `backend/src/PrivatePortal/` : les repertoires metier sont supprimes du disque, les 6 FQCN legacy restantes dans `PrivateModuleMigrationPlanService` sont passees a `PrivateApps`, et une garde anti-regression a ete ajoutee (`PrivatePortalPhaseCoverageTest` verifie desormais que les anciennes classes n'existent plus). — fait le 2026-07-17
 - [x] Verifier qu'aucun `use Caramagnols\PrivatePortal\...` ne pointe vers du code deplace : plus aucune reference dans `src/`, `core/`, `templates/`. — fait le 2026-07-17
 - [x] Nettoyage associe dans `PrivatePortalController` : suppression de la propriete morte `$lastPrivateMailFailure` et du parametre injecte jamais lu `$privateUserMailSettingsRepository` (aucun appelant ne le passait ; la classe `PrivateUserMailSettingsRepository` reste en place, c'est un contrat du module `private_core`). Correction du garde mort dans `PrivateUserMailSettingsRepository::encryptSecret()` (verification explicite du tag GCM 16 octets).
