@@ -9,6 +9,11 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 - Avant toute evolution qui touche les routes, menus, contenus publics, assets visibles, securite HTTP ou espace admin, comparer avec la production et signaler les ecarts connus.
 - Ne pas remplacer un comportement de production observe par une hypothese locale sans verification.
 
+## Synchro
+
+- workspace sous \\wsl.localhost\Ubuntu\home\surfacepro8\Workspace
+- repos sous \\wsl.localhost\Ubuntu\home\surfacepro8\www\repos
+
 ## Espace admin
 
 - La route canonique admin de production est `/espace-admin-7k9m2p`.
