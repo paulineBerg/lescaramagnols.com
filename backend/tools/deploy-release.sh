@@ -29,7 +29,10 @@ normalize_deploy_target() {
 }
 
 deploys_private_runtime() {
-  [[ "$DEPLOY_TARGET" == "preprod" ]]
+  # backend/private/ est synchronise pour toutes les cibles, en mode additif
+  # uniquement (jamais de --delete) pour ne jamais supprimer les fichiers
+  # runtime distants (documents prives reels).
+  return 0
 }
 
 guard_untracked_source_files() {
@@ -62,8 +65,9 @@ Usage:
 
 Description:
   Full release deploy of backend/ to remote host.
-  - Target prod excludes backend/private/ from sync
-  - Target preprod syncs backend/private/ for full private portal testing
+  - backend/private/ is synced additively (rsync without --delete): remote
+    runtime files are never deleted by a deploy
+  - Target preprod is abandoned (2026-07-17); prod is the only maintained target
   - Keeps remote .env in place
   - Keeps remote config/*.override.php in place (admin runtime settings)
   - Keeps runtime editorial uploads under backend/public/uploads/editorial/
@@ -150,14 +154,14 @@ echo "Deploy target: $DEPLOY_TARGET"
 echo "Dry run: $DRY_RUN"
 echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
 echo "Sync vendor: $((1 - NO_VENDOR))"
-echo "Sync private runtime: $(deploys_private_runtime && echo yes || echo no)"
+echo "Sync private runtime: additif (sans --delete)"
 echo "Sitemap base URL override: ${SITEMAP_BASE_URL:-<auto>}"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   FILE_COUNT="$(find "$LOCAL_BACKEND" -type f | wc -l | tr -d ' ')"
   echo "[dry-run] backend files detected locally: $FILE_COUNT"
   echo "[dry-run] full rsync would run with --delete and standard excludes."
-  echo "[dry-run] private/ sync: $(deploys_private_runtime && echo included || echo excluded)"
+  echo "[dry-run] private/ sync: additive pass without --delete (remote runtime preserved)"
   if [[ "$NO_VENDOR" -eq 0 && -d "$LOCAL_BACKEND/vendor" ]]; then
     echo "[dry-run] vendor/ would be synced."
   fi
@@ -176,10 +180,9 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   RSYNC_FLAGS+=(-n)
 fi
 
-PRIVATE_RSYNC_EXCLUDES=()
-if ! deploys_private_runtime; then
-  PRIVATE_RSYNC_EXCLUDES+=(--exclude="private/")
-fi
+# private/ est toujours exclu de la passe principale (qui utilise --delete) ;
+# il est synchronise ensuite par une passe additive dediee.
+PRIVATE_RSYNC_EXCLUDES=(--exclude="private/")
 
 rsync "${RSYNC_FLAGS[@]}" \
   --exclude=".git/" \
@@ -219,6 +222,11 @@ rsync "${RSYNC_FLAGS[@]}" \
 
 if [[ "$NO_VENDOR" -eq 0 && -d "$LOCAL_BACKEND/vendor" ]]; then
   rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/vendor/" "$REMOTE_HOST:$REMOTE_BACKEND/vendor/"
+fi
+
+if deploys_private_runtime && [[ -d "$LOCAL_BACKEND/private" ]]; then
+  # Passe additive : pas de --delete, les fichiers runtime distants sont conserves.
+  rsync -az --info=progress2 "$LOCAL_BACKEND/private/" "$REMOTE_HOST:$REMOTE_BACKEND/private/"
 fi
 
 cleanup_remote_non_prod_files

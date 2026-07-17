@@ -8,7 +8,7 @@ La production est la reference fonctionnelle et editoriale du projet (voir `AGEN
 
 | Domaine | Technologies |
 |---|---|
-| Backend | PHP `^8.1`, FastRoute (routage), Monolog 3 (logs), Symfony Mailer 7 (emails), PDO/MySQL |
+| Backend | PHP `8.2+` (les dependances verrouillees exigent `>=8.2`), FastRoute (routage), Monolog 3 (logs), Symfony Mailer 7 (emails), PDO/MySQL |
 | Frontend | Vite 7, TypeScript, SCSS, tarteaucitron (consentement cookies) |
 | Qualite backend | PHPUnit 10, PHPStan (niveau 5), PHP_CodeSniffer (PSR-12) |
 | Qualite frontend | Vitest, ESLint 9, Stylelint 16, Prettier, budgets d'assets |
@@ -75,7 +75,7 @@ Regle d'architecture (voir `AGENTS.md`) : toute nouvelle logique metier privee v
 
 ## Installation
 
-Pre-requis: PHP `8.1+`, Composer, Node `>=20.19.0 <25`, npm.
+Pre-requis: PHP `8.2+`, Composer, Node `>=20.19.0 <25`, npm.
 
 ```bash
 make install-backend    # ou: cd backend && composer install
@@ -140,7 +140,9 @@ make test-backend test-frontend
 
 ## Déploiement (OVH)
 
-Deux environnements : **prod** (`DEPLOY_TARGET=prod`, ne synchronise jamais `backend/private/`) et **preprod** (`DEPLOY_TARGET=preprod`, robots en `noindex`).
+Cible unique : **prod** (`DEPLOY_TARGET=prod`). La preprod est abandonnee depuis le 2026-07-17.
+
+`backend/private/` est synchronise en mode **additif** (rsync sans `--delete`) : les fichiers runtime prives de production ne sont jamais supprimes par un deploy.
 
 ```bash
 backend/tools/deploy-release.sh   # deploiement complet (garde anti-fichiers non trackes)

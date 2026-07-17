@@ -35,6 +35,11 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 - Les modules applicatifs prives doivent vivre sous `backend/src/PrivateApps`.
 - Ne pas ajouter de nouvelle logique metier applicative dans `PrivatePortal` sans justification explicite ; preferer un module dedie dans `PrivateApps`.
 
+## Deploiement
+
+- La preprod est abandonnee depuis le 2026-07-17 : `prod` est la seule cible de deploiement maintenue.
+- `backend/private/` est synchronise vers la production par `deploy-release.sh` en mode additif uniquement (rsync sans `--delete`) : un deploy ne doit jamais supprimer ni ecraser les fichiers runtime prives distants.
+
 ## Synchronisation
 
 - Lors d'une remise en coherence, inventorier d'abord les routes et contenus visibles en production.

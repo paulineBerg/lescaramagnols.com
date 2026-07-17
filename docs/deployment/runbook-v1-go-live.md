@@ -20,6 +20,11 @@ Ce qui ne doit pas etre rendu identique:
 - logs, caches, backups, sessions, permissions serveur, crons et donnees runtime propres a l'environnement
 - fixtures de recette preprod declarees jetables
 
+> Note 2026-07-17 : la preprod est abandonnee. `prod` est la seule cible maintenue et
+> `backend/private/` y est synchronise en mode additif (rsync sans `--delete`, les
+> fichiers runtime prives distants ne sont jamais supprimes). Les sections preprod
+> ci-dessous sont conservees comme historique.
+
 Avant deploy preprod:
 
 ```bash
