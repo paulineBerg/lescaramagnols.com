@@ -17,10 +17,10 @@ install-git-hooks:
 	@echo "Git hooks installes depuis .githooks"
 
 test-backend:
-	@cd backend && composer test || true
+	@cd backend && composer test
 
 test-frontend:
-	@cd frontend && npm run test:run || true
+	@cd frontend && npm run test:run
 
 build-frontend:
 	@cd frontend && npm run build

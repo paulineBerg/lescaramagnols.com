@@ -159,7 +159,7 @@ function collect_non_prod_paths(string $backendRoot): array
     ];
 
     $globPatterns = [
-        '.env.bak.*',
+        '.env.bak*',
         'README*',
         'phpstan.neon*',
         'data/*.bak',
