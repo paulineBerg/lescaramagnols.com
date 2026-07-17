@@ -82,7 +82,7 @@ Checklist :
 Validation :
 
 - [x] `composer test` vert (`624` tests, `5056` assertions), `composer phpstan` vert (0 erreur), `composer phpcs` vert. — 2026-07-17
-- [ ] Parcours prives testes en preprod, checklist `AGENTS.md` : la page de login privee canonique repond, `/private/login` ne retourne pas le formulaire prive, l'espace admin reste fonctionnel. (Les redirections `/private/*` -> login sont couvertes par les tests HTTP locaux ; la verification preprod/prod reste a faire au prochain deploiement.)
+- [x] Parcours verifies apres deploy release preprod + prod du 2026-07-17 : en production, la page de login privee canonique repond (200, formulaire present), `/private/login` retourne 404 sans formulaire, l'espace admin repond, accueil et blog en 200, headers securite OK (`check_security_headers`). Note : la preprod expose le portail prive sur `/private` par configuration `.env` locale a cet environnement (comportement preexistant, non modifie par le deploy).
 
 Risque : moyen (espace prive en production). Deployer d'abord en preprod, comparer avec la prod avant tout deploiement.
 
