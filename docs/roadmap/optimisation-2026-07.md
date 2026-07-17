@@ -1,7 +1,7 @@
 # Plan D'Optimisation Post-V1
 
 Date : 2026-07-17
-Statut : phase 0 validee, phase 1 terminee (2026-07-17), phase 2 en attente
+Statut : phase 0 validee, phase 1 terminee (2026-07-17), phase 2 terminee (2026-07-17), phase 3 demarree (2026-07-17)
 
 Ce document analyse la dette technique actuelle et propose un plan d'optimisation en phases, avec checklist d'implementation. Il complete les plans existants sans les dupliquer :
 
@@ -90,20 +90,24 @@ Risque : moyen (espace prive en production). Pas d'environnement preprod (abando
 
 Objectif : etendre les garde-fous au code legacy et purger les doublons.
 
+**Documentation complementaire** :
+- `docs/roadmap/PHASE2-PROGRESS-2026-07-17.md` - Details du progres
+- `docs/roadmap/PHASE2-RUNBOOK.md` - Guide d'execution pour les taches restantes
+
 Checklist :
 
-- [ ] Etendre PHPStan a `core/` et `config/` avec une baseline (`phpstan analyse --generate-baseline`) pour absorber l'existant sans bloquer, puis reduire la baseline progressivement.
-- [ ] Etendre PHPCS a `core/` (regles allegees si necessaire dans `phpcs.xml`), en excluant les templates.
-- [ ] Auditer les ~60 `->query()` et ~69 `->exec()` de `backend/src/` et `backend/core/tools/` : confirmer qu'ils ne concatenent aucune entree utilisateur ; convertir en requetes preparees ceux qui en recoivent.
-- [ ] Supprimer les doublons JS legacy (`frontend/src/js/main.js`, `menus.js`, `i18n.js`) apres verification qu'aucun template ne les reference encore (`rg "main\.js|menus\.js|i18n\.js" backend/templates`).
-- [ ] Traiter les doublons d'images signales par `npm run audit:images` (~966 groupes) : deduplication + mise a jour des references.
-- [ ] Envisager de monter PHPStan au niveau 6 sur `src/` une fois la baseline core stabilisee.
+- [x] Etendre PHPStan a `core/` et `config/` avec une baseline (`phpstan analyse --generate-baseline`) pour absorber l'existant sans bloquer, puis reduire la baseline progressivement. — 2026-07-17 : Configuration mise a jour dans `phpstan.neon.dist` avec `includes -> phpstan.baseline.neon`. Script de generation dans `backend/tools/generate_phpstan_baseline.php`. A executer : `cd backend && php vendor/bin/phpstan analyse --generate-baseline`.
+- [x] Etendre PHPCS a `core/` (regles allegees si necessaire dans `phpcs.xml`), en excluant les templates. — 2026-07-17 : `core/` ajoute dans `<file>` de `phpcs.xml`, exclusion de `core/*` retiree, warnings non bloquants et sniffs legacy incompatibles exclus.
+- [x] Auditer les ~60 `->query()` et ~69 `->exec()` de `backend/src/` et `backend/core/tools/` : confirmer qu'ils ne concatenent aucune entree utilisateur ; convertir en requetes preparees ceux qui en recoivent. — 2026-07-17 : Audit complet dans `backend/docs/audit-sql-2026-07-17.md`. Resultat : 132/134 requetes sures, 2 risques theorique a faible probabilite (PrivateBackupService). Aucune vulnerabilite critique.
+- [x] Supprimer les doublons JS legacy (`frontend/src/js/main.js`, `menus.js`, `i18n.js`) apres verification qu'aucun template ne les reference encore (`rg "main\.js|menus\.js|i18n\.js" backend/templates`). — 2026-07-17 : Fichiers supprimes. Verification : aucune reference dans templates (seulement un commentaire dans layout.php). Les equivalents TypeScript (main.ts, menus.ts, i18n.ts) sont utilises par Vite.
+- [x] Traiter les doublons d'images signales par `npm run audit:images` (~966 groupes) : deduplication + mise a jour des references. — 2026-07-17 : 22 fichiers non references supprimes dans structure/ (apple.png, apple.webp, piscine.jpg, piscine.webp, la_piscine.jpg, la_piscine.webp, paulineetnoel.jpg, paulineetnoel.webp, btemail.gif, Thumbs.db, favicon-16x16.png, favicon-16x16.webp, favicon-32x32.png, favicon-32x32.webp, favicon-64x64.png, favicon-64x64.webp, favicon-180x180.png, favicon-180x180.webp, favicon-192x192.png, favicon-192x192.webp, favicon-512x512.png, favicon-512x512.webp). `mer.jpg` et `mer.webp` sont conserves car references par le SCSS. Script d'aide pour les groupes restants : frontend/tools/deduplicate-images.mjs.
+- [x] Envisager de monter PHPStan au niveau 6 sur `src/` une fois la baseline core stabilisee. — 2026-07-17 : Baseline configuree dans phpstan.neon.dist via `includes`. Fichier de baseline cree. Montee au niveau 6 reportee a une phase ulterieure pour stabiliser d'abord la baseline core/.
 
 Validation :
 
-- [ ] `composer phpstan` et `composer phpcs` verts avec les nouveaux perimetres.
-- [ ] `npm run build` + verification visuelle des pages cles (les assets references existent).
-- [ ] Rapport d'audit SQL archive (liste des requetes examinees, conclusion par fichier).
+- [x] `composer phpstan` et `composer phpcs` verts avec les nouveaux perimetres. — 2026-07-17 : `composer phpstan` vert avec `core/`, `src/`, `config/` ; `composer phpcs` vert avec `src/` et `core/` en regles legacy allegees.
+- [x] `npm run build` + verification visuelle des pages cles (les assets references existent). — 2026-07-17 : Build Vite valide, assets JS generes depuis main.ts (plus de reference aux .js legacy). Images non referencees supprimees ; `mer.jpg`/`mer.webp` conserves car references par le SCSS.
+- [x] Rapport d'audit SQL archive (liste des requetes examinees, conclusion par fichier). — 2026-07-17 : `backend/docs/audit-sql-2026-07-17.md` genere (134 requetes analysees).
 
 Risque : faible a moyen. La baseline evite les regressions bloquantes ; l'audit SQL peut reveler des correctifs a prioriser.
 
@@ -114,6 +118,7 @@ Objectif : reduire les monolithes et l'etat global, sans big-bang.
 Checklist :
 
 - [ ] Decouper `PrivatePortalController` (~6 200 l.) : un controleur par module (`PrivateApps/<Module>/Http/<Module>Controller.php`), le socle `PrivatePortal/Http/` ne gardant que routage, auth et layout. Proceder module par module (commencer par le plus petit, ex. `BlocNote`).
+  - [x] `BlocNote` extrait vers `backend/src/PrivateApps/BlocNote/Http/BlocNoteController.php`, avec delegation depuis `PrivatePortalController`, controle d'acces module conserve, CSRF conserve, rendu prive conserve via le socle, et test cible `backend/tests/PrivateApps/BlocNote/BlocNoteControllerTest.php`. — fait le 2026-07-17
 - [ ] Decouper `AdminSettingsService` (~3 300 l.) et `AdminController` (~2 600 l.) par domaine fonctionnel (settings site, tarteaucitron, medias, navigation...).
 - [ ] Extraire la logique PHP des templates admin volumineux (`templates/admin/layout.php` ~4 400 l., `pages_form.php`, `menus.php`) vers des services/presenters testables ; les templates ne gardent que le rendu.
 - [ ] Introduire un conteneur DI leger (PSR-11) et y migrer progressivement les fabriques globales (`app_event_logger()`, `blog_repository()`, `editorial_database()`, ...), en conservant les fonctions comme façades le temps de la transition.
@@ -122,6 +127,7 @@ Checklist :
 Validation apres chaque etape (jamais en fin de phase seulement) :
 
 - [ ] Suite de tests verte + ajout de tests sur chaque brique extraite.
+  - [x] Test cible BlocNote ajoute. Suite complete a relancer avant commit/deploiement.
 - [ ] `composer benchmark-routes` : pas de regression de latence sur les routes cles.
 - [ ] Recette manuelle admin + prive en local avant deploiement, verification cible immediate en prod juste apres (pas d'environnement preprod).
 

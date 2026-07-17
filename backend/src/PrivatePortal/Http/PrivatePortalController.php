@@ -41,6 +41,7 @@ use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Service\TaxDeclarationSummaryService;
 use Caramagnols\PrivateApps\BlocNote\BlocNoteRepository;
+use Caramagnols\PrivateApps\BlocNote\Http\BlocNoteController;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
@@ -61,7 +62,6 @@ final class PrivatePortalController
     private const AGENCY_IMPORT_UPLOAD_FIELD = 'agency_import_file';
     private const CSRF_TAX = 'private_tax_declaration';
     private const CSRF_DISCUSSIONS = 'private_discussions';
-    private const CSRF_BLOCNOTE = 'private_blocnote';
     private const CSRF_MEMBER_SETTINGS = 'private_member_settings';
 
     public function __construct(
@@ -91,7 +91,8 @@ final class PrivatePortalController
         private readonly ?RentalReceiptService $rentalReceiptService = null,
         private readonly ?ChargeRegularizationService $chargeRegularizationService = null,
         private readonly ?RentalDashboardService $rentalDashboardService = null,
-        private readonly ?RentalExportService $rentalExportService = null
+        private readonly ?RentalExportService $rentalExportService = null,
+        private readonly ?BlocNoteRepository $blocNoteRepository = null
     ) {
     }
 
@@ -102,7 +103,7 @@ final class PrivatePortalController
             'dashboard' => $this->handleDashboard($request),
             'member_settings' => $this->handleMemberSettings($request),
             'documents' => $this->handleDocuments($request),
-            'blocnote' => $this->handleBlocNote($request),
+            'blocnote' => $this->blocNoteController()->handle($request),
             'logout' => $this->handleLogout($request),
             'activate' => $this->handleActivate($request, (string) ($routeParams['token'] ?? '')),
             'password_forgot' => $this->handlePasswordForgot($request),
@@ -410,113 +411,6 @@ final class PrivatePortalController
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ]);
-    }
-
-    private function handleBlocNote(Request $request): Response
-    {
-        $userId = $this->requireBlocNoteModuleUser($request);
-        if ($userId instanceof Response) {
-            return $userId;
-        }
-
-        $repository = $this->blocNoteRepository();
-        $defaultCategoryId = $repository->ensureDefaultCategory($userId);
-        $query = $request->query();
-        $view = $this->resolveBlocNoteView(is_string($query['view'] ?? null) ? (string) $query['view'] : 'dashboard');
-        $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : null;
-        $error = is_string($query['error'] ?? null) ? (string) $query['error'] : null;
-        $formValues = $this->blocNoteDefaultFormValues($defaultCategoryId);
-
-        $editingNoteId = $this->normalizeNumericId($query['note_id'] ?? null);
-        if ($editingNoteId > 0) {
-            $note = $repository->findNote($editingNoteId, $userId);
-            if (is_array($note)) {
-                $view = 'form';
-                $formValues = $this->blocNoteFormValuesFromNote($note, $defaultCategoryId);
-            } else {
-                $error = 'note_not_found';
-            }
-        }
-
-        if ($request->method() !== self::METHOD_POST) {
-            return $this->renderBlocNote($userId, $repository, $view, $formValues, $notice, $error);
-        }
-
-        if (!$this->guard()->validateCsrf($request, self::CSRF_BLOCNOTE)) {
-            return $this->renderBlocNote($userId, $repository, $view, $formValues, null, 'invalid_request');
-        }
-
-        $body = $request->body();
-        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
-
-        if ($action === 'save_note') {
-            $formValues = $this->blocNoteFormValuesFromBody($body, $defaultCategoryId);
-            if ($repository->saveNote($userId, $formValues)) {
-                $this->logEvent('private.blocnote.note.saved', [
-                    'private_user_id' => $userId,
-                    'note_id' => (int) $formValues['note_id'],
-                ]);
-
-                return $this->redirect($this->blocNoteUrl(['view' => 'notes', 'notice' => 'note_saved']));
-            }
-
-            return $this->renderBlocNote($userId, $repository, 'form', $formValues, null, 'note_required');
-        }
-
-        if ($action === 'delete_note') {
-            $noteId = $this->normalizeNumericId($body['note_id'] ?? $body['delete_note'] ?? null);
-            if ($repository->deleteNote($noteId, $userId)) {
-                $this->logEvent('private.blocnote.note.deleted', [
-                    'private_user_id' => $userId,
-                    'note_id' => $noteId,
-                ]);
-
-                return $this->redirect($this->blocNoteUrl(['view' => 'notes', 'notice' => 'note_deleted']));
-            }
-
-            return $this->redirect($this->blocNoteUrl(['view' => 'notes', 'error' => 'note_delete_failed']));
-        }
-
-        if ($action === 'save_category') {
-            $categoryId = $this->normalizeNumericId($body['category_id'] ?? null);
-            $name = is_string($body['category_name'] ?? null) ? (string) $body['category_name'] : '';
-            $color = is_string($body['category_color'] ?? null) ? (string) $body['category_color'] : BlocNoteRepository::DEFAULT_COLOR;
-            if ($repository->saveCategory($userId, $categoryId, $name, $color)) {
-                $this->logEvent('private.blocnote.category.saved', [
-                    'private_user_id' => $userId,
-                    'category_id' => $categoryId,
-                ]);
-
-                return $this->redirect($this->blocNoteUrl(['view' => 'categories', 'notice' => 'category_saved']));
-            }
-
-            return $this->redirect($this->blocNoteUrl(['view' => 'categories', 'error' => 'category_failed']));
-        }
-
-        if ($action === 'set_default_category') {
-            $categoryId = $this->normalizeNumericId($body['category_id'] ?? null);
-            if ($repository->setDefaultCategory($userId, $categoryId)) {
-                return $this->redirect($this->blocNoteUrl(['view' => 'categories', 'notice' => 'default_category_saved']));
-            }
-
-            return $this->redirect($this->blocNoteUrl(['view' => 'categories', 'error' => 'category_failed']));
-        }
-
-        if ($action === 'delete_category') {
-            $categoryId = $this->normalizeNumericId($body['category_id'] ?? null);
-            if ($repository->deleteCategory($userId, $categoryId)) {
-                $this->logEvent('private.blocnote.category.deleted', [
-                    'private_user_id' => $userId,
-                    'category_id' => $categoryId,
-                ]);
-
-                return $this->redirect($this->blocNoteUrl(['view' => 'categories', 'notice' => 'category_deleted']));
-            }
-
-            return $this->redirect($this->blocNoteUrl(['view' => 'categories', 'error' => 'category_delete_failed']));
-        }
-
-        return $this->renderBlocNote($userId, $repository, $view, $formValues, null, 'invalid_request');
     }
 
     private function handleRentalDashboard(Request $request): Response
@@ -5492,16 +5386,6 @@ final class PrivatePortalController
         return $result;
     }
 
-    private function requireBlocNoteModuleUser(Request $request): int|Response
-    {
-        $result = $this->requireModuleOrUnauthorized($request, 'blocnote');
-        if ($result === null) {
-            return $this->handleModuleAccessDenied('blocnote');
-        }
-
-        return $result;
-    }
-
     private function requireTaxModuleUser(Request $request): int|Response
     {
         $result = $this->requireModuleOrUnauthorized($request, 'tax_declaration_helper');
@@ -5590,137 +5474,6 @@ final class PrivatePortalController
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ]);
-    }
-
-    /**
-     * @param array<string, mixed> $formValues
-     */
-    private function renderBlocNote(
-        int $userId,
-        BlocNoteRepository $repository,
-        string $view,
-        array $formValues,
-        ?string $notice,
-        ?string $error
-    ): Response {
-        $view = $this->resolveBlocNoteView($view);
-
-        return $this->render('modules/blocnote/index', [
-            'privatePageTitle' => 'Bloc-note',
-            'privateUserIdentifier' => is_string($this->auth->currentIdentifier()) ? (string) $this->auth->currentIdentifier() : '',
-            'privateModules' => $this->privateModuleNamesForUser($userId),
-            'blocNote' => [
-                'view' => $view,
-                'baseUrl' => private_portal_url('blocnote'),
-                'csrfToken' => csrf_token(self::CSRF_BLOCNOTE),
-                'notes' => $repository->listNotes($userId),
-                'categories' => $repository->listCategories($userId),
-                'dashboard' => $repository->dashboardData($userId),
-                'formValues' => $formValues,
-                'categoryColors' => BlocNoteRepository::CATEGORY_COLORS,
-                'categoryDefaultColor' => BlocNoteRepository::DEFAULT_COLOR,
-            ],
-            'notice' => $this->blocNoteNotice($notice),
-            'errorMessage' => $this->blocNoteError($error),
-            'privateDashboardLogoutUrl' => private_portal_url('logout'),
-            'privateLogoutCsrfToken' => csrf_token('private_logout'),
-        ]);
-    }
-
-    /**
-     * @return array{note_id: int, title: string, content: string, category_id: int}
-     */
-    private function blocNoteDefaultFormValues(int $defaultCategoryId): array
-    {
-        return [
-            'note_id' => 0,
-            'title' => '',
-            'content' => '',
-            'category_id' => $defaultCategoryId,
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $body
-     * @return array{note_id: int, title: string, content: string, category_id: int}
-     */
-    private function blocNoteFormValuesFromBody(array $body, int $defaultCategoryId): array
-    {
-        $categoryId = $this->normalizeNumericId($body['category_id'] ?? null);
-
-        return [
-            'note_id' => $this->normalizeNumericId($body['note_id'] ?? null),
-            'title' => is_string($body['title'] ?? null) ? (string) $body['title'] : '',
-            'content' => is_string($body['content'] ?? null) ? (string) $body['content'] : '',
-            'category_id' => $categoryId > 0 ? $categoryId : $defaultCategoryId,
-        ];
-    }
-
-    /**
-     * @param array<string, mixed> $note
-     * @return array{note_id: int, title: string, content: string, category_id: int}
-     */
-    private function blocNoteFormValuesFromNote(array $note, int $defaultCategoryId): array
-    {
-        $categoryId = is_numeric($note['categoryId'] ?? null) ? (int) $note['categoryId'] : 0;
-
-        return [
-            'note_id' => is_numeric($note['id'] ?? null) ? (int) $note['id'] : 0,
-            'title' => is_string($note['title'] ?? null) ? (string) $note['title'] : '',
-            'content' => is_string($note['contentText'] ?? null) ? (string) $note['contentText'] : '',
-            'category_id' => $categoryId > 0 ? $categoryId : $defaultCategoryId,
-        ];
-    }
-
-    private function resolveBlocNoteView(string $view): string
-    {
-        $view = strtolower(trim($view));
-
-        return match ($view) {
-            'notes', 'my_notes', 'mes-notes' => 'notes',
-            'form', 'new', 'edit', 'nouvelle-note' => 'form',
-            'categories' => 'categories',
-            'help', 'aide' => 'help',
-            default => 'dashboard',
-        };
-    }
-
-    /**
-     * @param array<string, string> $params
-     */
-    private function blocNoteUrl(array $params = []): string
-    {
-        $url = private_portal_url('blocnote');
-        if ($params === []) {
-            return $url;
-        }
-
-        return $url . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
-    }
-
-    private function blocNoteNotice(?string $key): ?string
-    {
-        return match ($key) {
-            'note_saved' => 'Note enregistrée.',
-            'note_deleted' => 'Note supprimée.',
-            'category_saved' => 'Catégorie enregistrée.',
-            'category_deleted' => 'Catégorie supprimée.',
-            'default_category_saved' => 'Catégorie par défaut mise à jour.',
-            default => null,
-        };
-    }
-
-    private function blocNoteError(?string $key): ?string
-    {
-        return match ($key) {
-            'invalid_request' => $this->translate('TXT_PRIVATE_ERROR_CSRF', 'Requête invalide.'),
-            'note_required' => 'Saisissez au moins un titre ou un contenu.',
-            'note_not_found' => 'Note introuvable.',
-            'note_delete_failed' => 'La note n’a pas pu être supprimée.',
-            'category_failed' => 'La catégorie n’a pas pu être enregistrée. Vérifiez le nom et les doublons.',
-            'category_delete_failed' => 'La catégorie n’a pas pu être supprimée. La catégorie par défaut ne peut pas être supprimée.',
-            default => null,
-        };
     }
 
     private function documentsUrlWithNotice(string $notice): string
@@ -5950,7 +5703,20 @@ final class PrivatePortalController
 
     private function blocNoteRepository(): BlocNoteRepository
     {
-        return new BlocNoteRepository(editorial_database());
+        return $this->blocNoteRepository ?? new BlocNoteRepository(editorial_database());
+    }
+
+    private function blocNoteController(): BlocNoteController
+    {
+        return new BlocNoteController(
+            $this->auth,
+            $this->guard(),
+            $this->privateUserRepository(),
+            $this->modulePermissionRepository(),
+            $this->blocNoteRepository(),
+            fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
+            $this->eventLogger
+        );
     }
 
     private function privateDocumentStorage(): PrivateDocumentStorage
