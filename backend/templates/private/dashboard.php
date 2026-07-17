@@ -18,6 +18,23 @@ $privateUserIdentifier = is_string($privateUserIdentifier ?? null) ? (string) $p
 $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null) ? (string) $privatePasswordForgotUrl : private_portal_url('password_forgot');
 $privateDashboardNotice = is_string($privateDashboardNotice ?? null) ? (string) $privateDashboardNotice : '';
 $privateDashboardErrorMessage = is_string($privateDashboardErrorMessage ?? null) ? (string) $privateDashboardErrorMessage : '';
+
+// Utiliser PrivateAppRegistry pour obtenir les données de tuiles dashboard
+$privateModuleTiles = [];
+try {
+    $tiles = \Caramagnols\PrivatePortal\PrivateAppRegistry::allDashboardTileData();
+    foreach ($tiles as $tile) {
+        $privateModuleTiles[$tile['module_code']] = [
+            'name' => $tile['label'],
+            'description' => $tile['description'],
+            'stat_code' => $tile['stat_code'],
+        ];
+    }
+} catch (\Throwable $e) {
+    // Si le registre n'est pas disponible, utiliser les valeurs par défaut
+}
+
+// Module code by name - à migrer progressivement vers le registre
 $privateModuleCodeByName = [
     'Tableau de bord privé' => 'dashboard',
     'Documents' => 'documents',
@@ -26,6 +43,16 @@ $privateModuleCodeByName = [
     'Locations immobilières' => 'real_estate_rental',
     'Aide impôts' => 'tax_declaration_helper',
 ];
+
+// Ajouter les modules depuis le registre si disponibles
+if (!empty($privateModuleTiles)) {
+    foreach ($privateModuleTiles as $moduleCode => $tile) {
+        if (!in_array($tile['name'], array_keys($privateModuleCodeByName), true)) {
+            $privateModuleCodeByName[$tile['name']] = $moduleCode;
+        }
+    }
+}
+
 $privateModuleStat = static function (string $code, string $singular, string $plural) use ($privateModuleDataCounts): string {
     $count = max(0, (int) ($privateModuleDataCounts[$code] ?? 0));
 

@@ -4,8 +4,41 @@ declare(strict_types=1);
 
 namespace Caramagnols\PrivatePortal\Http;
 
+use Caramagnols\PrivatePortal\PrivateAppRegistry;
+
 final class PrivateRouteResolver
 {
+    /**
+     * Routes du socle (ne doivent pas etre dans les modules).
+     */
+    private const CORE_ROUTES = [
+        'login' => 'login',
+        'dashboard' => 'dashboard',
+        'member_settings' => 'parametres',
+        'logout' => 'logout',
+        'activate' => 'activate',
+        'password_forgot' => 'password/forgot',
+        'password_reset' => 'password/reset',
+        'privacy_export' => 'privacy/export',
+        'ops_backup' => 'ops/backup',
+    ];
+
+    /**
+     * Routes legacy qui ne sont pas encore dans les manifestes.
+     * A migrer progressivement vers les modules.
+     */
+    private const LEGACY_ROUTES = [
+        'files' => 'files',
+        'files_upload' => 'files/upload',
+        'files_categories' => 'files/categories',
+        'files_delete' => 'files',
+        'discussion_index' => 'discussions',
+        'discussion_new' => 'discussions/new',
+        'discussion_api_conversations' => 'discussions/api/conversations',
+        'discussion_api_crypto_devices' => 'discussions/api/crypto/devices',
+        'discussion_files' => 'discussions/files',
+    ];
+
     public function __construct(private readonly string $configuredBasePath)
     {
     }
@@ -14,54 +47,70 @@ final class PrivateRouteResolver
     {
         $basePath = $this->basePath();
 
-        return match ($page) {
-            'login' => $basePath . '/login',
-            'dashboard' => $basePath . '/dashboard',
-            'member_settings' => $basePath . '/parametres',
-            'documents' => $basePath . '/documents',
-            'blocnote' => $basePath . '/blocnote',
-            'logout' => $basePath . '/logout',
-            'activate' => $basePath . '/activate',
-            'password_forgot' => $basePath . '/password/forgot',
-            'password_reset' => $basePath . '/password/reset',
-            'files' => $basePath . '/files',
-            'files_upload' => $basePath . '/files/upload',
-            'files_categories' => $basePath . '/files/categories',
-            'files_delete' => $basePath . '/files',
-            'rental_dashboard' => $basePath . '/locations',
-            'rental_lessors' => $basePath . '/locations/bailleurs',
-            'rental_properties' => $basePath . '/rental-properties',
-            'rental_units' => $basePath . '/rental-units',
-            'rental_property_members' => $basePath . '/rental-property-members',
-            'rental_tenants' => $basePath . '/locations/locataires',
-            'rental_leases' => $basePath . '/leases',
-            'rental_payments' => $basePath . '/payments',
-            'rental_rents' => $basePath . '/rents',
-            'rental_expenses' => $basePath . '/charges',
-            'rental_regularizations' => $basePath . '/locations/regularisations',
-            'rental_documents' => $basePath . '/locations/documents',
-            'rental_agencies' => $basePath . '/locations/agences',
-            'rental_agency_imports' => $basePath . '/locations/agence/imports',
-            'rental_agency_review' => $basePath . '/locations/agence/documents-a-classer',
-            'rental_summary' => $basePath . '/locations/summary',
-            'rental_export_csv' => $basePath . '/locations/export.csv',
-            'rental_export_pdf' => $basePath . '/locations/export.pdf',
-            'rental_export_zip' => $basePath . '/locations/export.zip',
-            'tax_dashboard' => $basePath . '/impots',
-            'tax_year' => $basePath . '/impots',
-            'tax_manual_entries' => $basePath . '/impots',
-            'tax_controls' => $basePath . '/impots',
-            'tax_documents' => $basePath . '/impots',
-            'tax_export' => $basePath . '/impots',
-            'discussion_index' => $basePath . '/discussions',
-            'discussion_new' => $basePath . '/discussions/new',
-            'discussion_api_conversations' => $basePath . '/discussions/api/conversations',
-            'discussion_api_crypto_devices' => $basePath . '/discussions/api/crypto/devices',
-            'discussion_files' => $basePath . '/discussions/files',
-            'privacy_export' => $basePath . '/privacy/export',
-            'ops_backup' => $basePath . '/ops/backup',
-            default => $basePath,
-        };
+        // 1. Routes du socle
+        if (isset(self::CORE_ROUTES[$page])) {
+            return $basePath . '/' . self::CORE_ROUTES[$page];
+        }
+
+        // 2. Routes depuis les manifestes (via PrivateAppRegistry)
+        try {
+            $routePaths = PrivateAppRegistry::allRoutePaths();
+            if (isset($routePaths[$page])) {
+                return $basePath . '/' . $routePaths[$page];
+            }
+        } catch (\Throwable $e) {
+            // Si le registre n'est pas encore utilisable, retomber sur legacy
+        }
+
+        // 3. Routes legacy (a migrer vers les modules)
+        if (isset(self::LEGACY_ROUTES[$page])) {
+            return $basePath . '/' . self::LEGACY_ROUTES[$page];
+        }
+
+        // 4. Routes rental (a extraire vers RealEstateRental module)
+        // Ces routes devraient etre dans RealEstateRental/PrivateAppManifest::routePaths()
+        $rentalRoutes = [
+            'rental_dashboard' => 'locations',
+            'rental_lessors' => 'locations/bailleurs',
+            'rental_properties' => 'rental-properties',
+            'rental_units' => 'rental-units',
+            'rental_property_members' => 'rental-property-members',
+            'rental_tenants' => 'locations/locataires',
+            'rental_leases' => 'leases',
+            'rental_payments' => 'payments',
+            'rental_rents' => 'rents',
+            'rental_expenses' => 'charges',
+            'rental_regularizations' => 'locations/regularisations',
+            'rental_documents' => 'locations/documents',
+            'rental_agencies' => 'locations/agences',
+            'rental_agency_imports' => 'locations/agence/imports',
+            'rental_agency_review' => 'locations/agence/documents-a-classer',
+            'rental_summary' => 'locations/summary',
+            'rental_export_csv' => 'locations/export.csv',
+            'rental_export_pdf' => 'locations/export.pdf',
+            'rental_export_zip' => 'locations/export.zip',
+        ];
+
+        if (isset($rentalRoutes[$page])) {
+            return $basePath . '/' . $rentalRoutes[$page];
+        }
+
+        // 5. Routes tax (a extraire vers TaxDeclarationHelper module)
+        $taxRoutes = [
+            'tax_dashboard' => 'impots',
+            'tax_year' => 'impots',
+            'tax_manual_entries' => 'impots',
+            'tax_controls' => 'impots',
+            'tax_documents' => 'impots',
+            'tax_export' => 'impots',
+        ];
+
+        if (isset($taxRoutes[$page])) {
+            return $basePath . '/' . $taxRoutes[$page];
+        }
+
+        // 6. Default
+        return $basePath;
     }
 
     public function basePath(): string
