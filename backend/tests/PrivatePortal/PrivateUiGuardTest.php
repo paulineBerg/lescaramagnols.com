@@ -124,6 +124,56 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-due-date=', $payments);
     }
 
+    public function testRentalTemplatesExposeV2DataFields(): void
+    {
+        $properties = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/properties.php');
+        $units = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/units.php');
+        $tenants = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/tenants.php');
+        $documents = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/documents.php');
+
+        foreach ([
+            'name="rental_lessor_id"',
+            '$lessorNames',
+            'rentalLessorId',
+        ] as $expected) {
+            self::assertStringContainsString($expected, $properties);
+        }
+
+        foreach ([
+            'name="tax_identifier"',
+            'name="room_count"',
+            'name="designation"',
+            'name="other_details"',
+            'name="equipment_elements"',
+            'name="heating_production_mode"',
+            'name="hot_water_production_mode"',
+            'name="sanitation"',
+            'name="unavailable_until"',
+            'taxIdentifier',
+            'unavailableUntil',
+        ] as $expected) {
+            self::assertStringContainsString($expected, $units);
+        }
+
+        foreach ([
+            'name="last_name"',
+            'name="first_names"',
+            'name="birth_date"',
+            'name="birth_city"',
+            'name="birth_country"',
+            'name="nationality"',
+            'name="occupation"',
+            'name="postal_address"',
+            'postalAddress',
+        ] as $expected) {
+            self::assertStringContainsString($expected, $tenants);
+        }
+
+        self::assertStringContainsString('name="display_name"', $documents);
+        self::assertStringContainsString('name="document_category"', $documents);
+        self::assertStringContainsString('displayName', $documents);
+    }
+
     public function testRentalDashboardNavigationDoesNotExposeSubmenu(): void
     {
         $template = $this->readRepoFile('backend/templates/private/modules/real-estate-rental/_nav.php');

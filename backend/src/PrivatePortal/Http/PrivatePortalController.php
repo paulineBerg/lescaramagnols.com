@@ -470,11 +470,15 @@ final class PrivatePortalController
         $status = $body['status'] ?? '';
         $statusValue = is_string($status) ? strtolower(trim($status)) : '';
         $propertyId = $this->normalizeNumericId($body['property_id'] ?? null);
+        $rentalLessorId = $this->normalizeNumericId($body['rental_lessor_id'] ?? null);
         $createDefaultUnit = isset($body['create_default_unit']) && (int) $body['create_default_unit'] === 1;
         $defaultUnitSurface = is_numeric($body['default_unit_surface'] ?? null)
             ? (float) $body['default_unit_surface']
             : 0.0;
         $defaultUnitFurnished = isset($body['default_unit_furnished']) && (int) $body['default_unit_furnished'] === 1;
+        if ($rentalLessorId > 0 && $this->rentalLessorRepository()->findForUser($rentalLessorId, $userId) === null) {
+            return $this->renderRentalProperties($userId, '', 'property_forbidden');
+        }
 
         if ($action === 'create_property') {
             if ($createDefaultUnit && $defaultUnitSurface <= 0) {
@@ -488,7 +492,8 @@ final class PrivatePortalController
                 (string) ($body['property_type'] ?? ''),
                 (string) ($body['ownership_mode'] ?? ''),
                 $statusValue !== '' ? $statusValue : 'draft',
-                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
+                $rentalLessorId > 0 ? $rentalLessorId : null
             );
             if (!($created instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalProperty)) {
                 return $this->renderRentalProperties($userId, '', 'rental_write_failed');
@@ -533,7 +538,8 @@ final class PrivatePortalController
                 (string) ($body['property_type'] ?? ''),
                 (string) ($body['ownership_mode'] ?? ''),
                 $statusValue !== '' ? $statusValue : 'draft',
-                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
+                $rentalLessorId > 0 ? $rentalLessorId : null
             );
             if (!($updated instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalProperty)) {
                 return $this->renderRentalProperties($userId, '', 'rental_write_failed');
@@ -613,6 +619,8 @@ final class PrivatePortalController
         $unitBuilding = is_string($body['building'] ?? null) ? (string) $body['building'] : null;
         $unitFloor = is_string($body['floor'] ?? null) ? (string) $body['floor'] : null;
         $unitDoor = is_string($body['door'] ?? null) ? (string) $body['door'] : null;
+        $unitDetails = $this->rentalUnitDetailsFromBody($body);
+        $unavailableUntil = is_string($body['unavailable_until'] ?? null) ? (string) $body['unavailable_until'] : null;
 
         if (!$this->canWriteByPropertyId($propertyId, $userId)) {
             return $this->renderRentalUnits($userId, $properties, $units, '', 'unit_forbidden');
@@ -631,7 +639,9 @@ final class PrivatePortalController
                 $unitAddress,
                 $unitBuilding,
                 $unitFloor,
-                $unitDoor
+                $unitDoor,
+                $unitDetails,
+                $unavailableUntil
             );
             if (!($created instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalUnit)) {
                 return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_write_failed');
@@ -660,7 +670,9 @@ final class PrivatePortalController
                 $unitAddress,
                 $unitBuilding,
                 $unitFloor,
-                $unitDoor
+                $unitDoor,
+                $unitDetails,
+                $unavailableUntil
             );
             if (!($updated instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalUnit)) {
                 return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_write_failed');
@@ -868,11 +880,12 @@ final class PrivatePortalController
                 $tenantId,
                 $propertyId,
                 $unitId,
-                (string) ($body['full_name'] ?? ''),
+                $this->rentalTenantFullNameFromBody($body),
                 is_string($body['email'] ?? null) ? (string) $body['email'] : null,
                 is_string($body['phone'] ?? null) ? (string) $body['phone'] : null,
                 is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
-                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
+                $this->rentalTenantDetailsFromBody($body)
             );
             if (!is_array($updated)) {
                 return $this->renderRentalTenants($properties, $units, $tenants, '', 'tenant_update_failed');
@@ -919,12 +932,13 @@ final class PrivatePortalController
         $created = $this->rentalLifecycleRepository()->createTenant(
             $propertyId,
             $unitId,
-            (string) ($body['full_name'] ?? ''),
+            $this->rentalTenantFullNameFromBody($body),
             is_string($body['email'] ?? null) ? (string) $body['email'] : null,
             is_string($body['phone'] ?? null) ? (string) $body['phone'] : null,
             is_string($body['status'] ?? null) ? (string) $body['status'] : 'draft',
             $userId,
-            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null
+            is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
+            $this->rentalTenantDetailsFromBody($body)
         );
         if (!is_array($created)) {
             return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_write_failed');
@@ -3249,6 +3263,7 @@ final class PrivatePortalController
         $properties = $propertyIds === []
             ? []
             : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
+        $lessors = $this->rentalLessorRepository()->listForUser($userId, self::MAX_RENTAL_LIST);
 
         return $this->render('modules/real-estate-rental/properties', array_merge(
             $this->rentalBaseViewModel('Propriétés', $notice, $error),
@@ -3256,8 +3271,60 @@ final class PrivatePortalController
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'properties',
                 'rentalProperties' => $this->objectsToArrays($properties),
+                'rentalLessors' => $lessors,
             ]
         ));
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    private function rentalUnitDetailsFromBody(array $body): array
+    {
+        return [
+            'tax_identifier' => is_string($body['tax_identifier'] ?? null) ? (string) $body['tax_identifier'] : null,
+            'room_count' => $body['room_count'] ?? null,
+            'designation' => is_string($body['designation'] ?? null) ? (string) $body['designation'] : null,
+            'other_details' => is_string($body['other_details'] ?? null) ? (string) $body['other_details'] : null,
+            'equipment_elements' => is_string($body['equipment_elements'] ?? null) ? (string) $body['equipment_elements'] : null,
+            'heating_production_mode' => is_string($body['heating_production_mode'] ?? null) ? (string) $body['heating_production_mode'] : null,
+            'hot_water_production_mode' => is_string($body['hot_water_production_mode'] ?? null) ? (string) $body['hot_water_production_mode'] : null,
+            'sanitation' => is_string($body['sanitation'] ?? null) ? (string) $body['sanitation'] : null,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    private function rentalTenantDetailsFromBody(array $body): array
+    {
+        return [
+            'last_name' => is_string($body['last_name'] ?? null) ? (string) $body['last_name'] : null,
+            'first_names' => is_string($body['first_names'] ?? null) ? (string) $body['first_names'] : null,
+            'birth_date' => is_string($body['birth_date'] ?? null) ? (string) $body['birth_date'] : null,
+            'birth_city' => is_string($body['birth_city'] ?? null) ? (string) $body['birth_city'] : null,
+            'birth_country' => is_string($body['birth_country'] ?? null) ? (string) $body['birth_country'] : null,
+            'nationality' => is_string($body['nationality'] ?? null) ? (string) $body['nationality'] : null,
+            'occupation' => is_string($body['occupation'] ?? null) ? (string) $body['occupation'] : null,
+            'postal_address' => is_string($body['postal_address'] ?? null) ? (string) $body['postal_address'] : null,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function rentalTenantFullNameFromBody(array $body): string
+    {
+        $lastName = is_string($body['last_name'] ?? null) ? trim((string) $body['last_name']) : '';
+        $firstNames = is_string($body['first_names'] ?? null) ? trim((string) $body['first_names']) : '';
+
+        if ($lastName !== '' || $firstNames !== '') {
+            return '';
+        }
+
+        return is_string($body['full_name'] ?? null) ? (string) $body['full_name'] : '';
     }
 
     private function renderRentalLessors(int $userId, string $notice = '', string $error = ''): Response

@@ -72,7 +72,10 @@ foreach ($properties as $property) {
             <th>Bien locatif</th>
             <th>Propriété</th>
             <th>Type</th>
+            <th>Désignation</th>
             <th>Adresse / repère</th>
+            <th>Fiscal</th>
+            <th>Pièces</th>
             <th>Surface</th>
             <th>Meublé</th>
             <th>Disponibilité</th>
@@ -98,6 +101,10 @@ foreach ($properties as $property) {
             $building = is_string($unit['building'] ?? null) ? trim((string) $unit['building']) : '';
             $floor = is_string($unit['floor'] ?? null) ? trim((string) $unit['floor']) : '';
             $door = is_string($unit['door'] ?? null) ? trim((string) $unit['door']) : '';
+            $designation = is_string($unit['designation'] ?? null) ? trim((string) $unit['designation']) : '';
+            $taxIdentifier = is_string($unit['taxIdentifier'] ?? null) ? trim((string) $unit['taxIdentifier']) : '';
+            $roomCount = is_numeric($unit['roomCount'] ?? null) ? (int) $unit['roomCount'] : null;
+            $unavailableUntil = is_string($unit['unavailableUntil'] ?? null) ? trim((string) $unit['unavailableUntil']) : '';
             $locationParts = array_filter([
                 $address,
                 $building !== '' ? 'Bât. ' . $building : '',
@@ -107,20 +114,23 @@ foreach ($properties as $property) {
             $locationLabel = $locationParts !== [] ? implode(' - ', $locationParts) : 'Adresse de la propriété';
             $dialogId = 'rental-unit-dialog-' . $id;
             ?>
-            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($unit['label'] ?? '') . ' ' . (string) ($propertyNames[$propertyId] ?? '') . ' ' . $typeLabel . ' ' . $locationLabel . ' ' . (empty($unit['furnished']) ? 'non meuble' : 'meuble'))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>">
+            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($unit['label'] ?? '') . ' ' . (string) ($propertyNames[$propertyId] ?? '') . ' ' . $typeLabel . ' ' . $designation . ' ' . $taxIdentifier . ' ' . $locationLabel . ' ' . (empty($unit['furnished']) ? 'non meuble' : 'meuble'))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>">
               <td><strong><?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
               <td><?php echo htmlspecialchars((string) ($propertyNames[$propertyId] ?? ('Propriété #' . $propertyId)), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($typeLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars($designation, ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($locationLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars($taxIdentifier, ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo $roomCount !== null ? htmlspecialchars((string) $roomCount, ENT_QUOTES, 'UTF-8') : ''; ?></td>
               <td><?php echo htmlspecialchars((string) ($unit['surface'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> m²</td>
               <td><?php echo !empty($unit['furnished']) ? 'Oui' : 'Non'; ?></td>
-              <td><?php echo htmlspecialchars((string) ($unitStatuses[$status] ?? $status), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($unitStatuses[$status] ?? $status) . ($unavailableUntil !== '' ? ' jusqu’au ' . $unavailableUntil : ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <button type="button" class="private-row-action" data-private-dialog-open="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>">Modifier</button>
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="8">Aucun bien locatif ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="11">Aucun bien locatif ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -173,6 +183,17 @@ foreach ($properties as $property) {
               <label>Bâtiment <input type="text" name="building" maxlength="120" value="<?php echo htmlspecialchars((string) ($unit['building'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <label>Étage <input type="text" name="floor" maxlength="64" value="<?php echo htmlspecialchars((string) ($unit['floor'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <label>Porte / repère <input type="text" name="door" maxlength="64" value="<?php echo htmlspecialchars((string) ($unit['door'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+              <fieldset class="private-fieldset">
+                <legend>Identifiants et descriptif V2</legend>
+                <label>Identifiant fiscal <input type="text" name="tax_identifier" maxlength="80" value="<?php echo htmlspecialchars((string) ($unit['taxIdentifier'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Nombre de pièces <input type="number" name="room_count" min="0" max="99" step="1" value="<?php echo htmlspecialchars((string) ($unit['roomCount'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Désignation <input type="text" name="designation" maxlength="160" value="<?php echo htmlspecialchars((string) ($unit['designation'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Autres détails <textarea name="other_details" maxlength="2000"><?php echo htmlspecialchars((string) ($unit['otherDetails'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+                <label>Équipements <textarea name="equipment_elements" maxlength="2000"><?php echo htmlspecialchars((string) ($unit['equipmentElements'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+                <label>Mode de chauffage <input type="text" name="heating_production_mode" maxlength="160" value="<?php echo htmlspecialchars((string) ($unit['heatingProductionMode'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Production eau chaude <input type="text" name="hot_water_production_mode" maxlength="160" value="<?php echo htmlspecialchars((string) ($unit['hotWaterProductionMode'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Assainissement <input type="text" name="sanitation" maxlength="160" value="<?php echo htmlspecialchars((string) ($unit['sanitation'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+              </fieldset>
               <label>Surface <input type="number" name="surface" min="0.5" max="10000" step="0.01" value="<?php echo htmlspecialchars((string) ($unit['surface'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
               <label class="private-checkbox-inline"><input type="checkbox" name="furnished" value="1" <?php echo !empty($unit['furnished']) ? 'checked' : ''; ?> /> Meublé</label>
               <label>Disponibilité
@@ -184,6 +205,7 @@ foreach ($properties as $property) {
                   <?php endforeach; ?>
                 </select>
               </label>
+              <label>Indisponible jusqu’au <input type="date" name="unavailable_until" value="<?php echo htmlspecialchars((string) ($unit['unavailableUntil'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <label>Notes <textarea name="notes" maxlength="2000"><?php echo htmlspecialchars((string) ($unit['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
               <button type="submit">Mettre à jour</button>
             </form>
@@ -228,6 +250,17 @@ foreach ($properties as $property) {
           <label>Bâtiment <input type="text" name="building" maxlength="120" /></label>
           <label>Étage <input type="text" name="floor" maxlength="64" /></label>
           <label>Porte / repère <input type="text" name="door" maxlength="64" /></label>
+          <fieldset class="private-fieldset">
+            <legend>Identifiants et descriptif V2</legend>
+            <label>Identifiant fiscal <input type="text" name="tax_identifier" maxlength="80" /></label>
+            <label>Nombre de pièces <input type="number" name="room_count" min="0" max="99" step="1" /></label>
+            <label>Désignation <input type="text" name="designation" maxlength="160" /></label>
+            <label>Autres détails <textarea name="other_details" maxlength="2000"></textarea></label>
+            <label>Équipements <textarea name="equipment_elements" maxlength="2000"></textarea></label>
+            <label>Mode de chauffage <input type="text" name="heating_production_mode" maxlength="160" /></label>
+            <label>Production eau chaude <input type="text" name="hot_water_production_mode" maxlength="160" /></label>
+            <label>Assainissement <input type="text" name="sanitation" maxlength="160" /></label>
+          </fieldset>
           <label>Surface <input type="number" name="surface" min="0.5" max="10000" step="0.01" required /></label>
           <label class="private-checkbox-inline"><input type="checkbox" name="furnished" value="1" /> Meublé</label>
           <label>Disponibilité
@@ -236,6 +269,7 @@ foreach ($properties as $property) {
               <option value="unavailable">Indisponible</option>
             </select>
           </label>
+          <label>Indisponible jusqu’au <input type="date" name="unavailable_until" /></label>
           <label>Notes <textarea name="notes" maxlength="2000"></textarea></label>
           <button type="submit">Créer le bien locatif</button>
         </form>

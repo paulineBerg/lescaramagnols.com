@@ -1,5 +1,6 @@
 <?php
 $properties = is_array($viewModel['rentalProperties'] ?? null) ? $viewModel['rentalProperties'] : [];
+$lessors = is_array($viewModel['rentalLessors'] ?? null) ? $viewModel['rentalLessors'] : [];
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
@@ -23,6 +24,14 @@ $ownershipModes = [
     'Nue-propriété' => 'Nue-propriété',
     'Autre' => 'Autre',
 ];
+$lessorNames = [];
+foreach ($lessors as $lessor) {
+    if (!is_array($lessor) || !is_numeric($lessor['id'] ?? null)) {
+        continue;
+    }
+    $name = trim((string) ($lessor['lastName'] ?? '') . ' ' . (string) ($lessor['firstName'] ?? ''));
+    $lessorNames[(int) $lessor['id']] = $name !== '' ? $name : 'Bailleur #' . (int) $lessor['id'];
+}
 $createDialogId = 'rental-property-create-dialog';
 ?>
 <section>
@@ -70,6 +79,7 @@ $createDialogId = 'rental-property-create-dialog';
           <tr>
             <th>Nom</th>
             <th>Adresse</th>
+            <th>Bailleur</th>
             <th>Type</th>
             <th>Détention</th>
             <th>Statut</th>
@@ -89,11 +99,13 @@ $createDialogId = 'rental-property-create-dialog';
             $status = is_string($property['status'] ?? null) ? (string) $property['status'] : 'draft';
             $propertyType = is_string($property['propertyType'] ?? null) ? (string) $property['propertyType'] : '';
             $ownershipMode = is_string($property['ownershipMode'] ?? null) ? (string) $property['ownershipMode'] : '';
+            $lessorId = is_numeric($property['rentalLessorId'] ?? null) ? (int) $property['rentalLessorId'] : 0;
             $dialogId = 'rental-property-dialog-' . $id;
             ?>
-            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($property['name'] ?? '') . ' ' . (string) ($property['address'] ?? '') . ' ' . $propertyType . ' ' . $ownershipMode)), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>">
+            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($property['name'] ?? '') . ' ' . (string) ($property['address'] ?? '') . ' ' . (string) ($lessorNames[$lessorId] ?? '') . ' ' . $propertyType . ' ' . $ownershipMode)), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?>">
               <td><strong><?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
               <td><?php echo htmlspecialchars((string) ($property['address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($lessorNames[$lessorId] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($propertyType, ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($ownershipMode, ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($statuses[$status] ?? $status, ENT_QUOTES, 'UTF-8'); ?></td>
@@ -102,7 +114,7 @@ $createDialogId = 'rental-property-create-dialog';
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucune propriété ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="7">Aucune propriété ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -119,6 +131,7 @@ $createDialogId = 'rental-property-create-dialog';
         $status = is_string($property['status'] ?? null) ? (string) $property['status'] : 'draft';
         $propertyType = is_string($property['propertyType'] ?? null) ? (string) $property['propertyType'] : '';
         $ownershipMode = is_string($property['ownershipMode'] ?? null) ? (string) $property['ownershipMode'] : '';
+        $lessorId = is_numeric($property['rentalLessorId'] ?? null) ? (int) $property['rentalLessorId'] : 0;
         $dialogId = 'rental-property-dialog-' . $id;
         ?>
         <dialog class="private-dialog" id="<?php echo htmlspecialchars($dialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($dialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
@@ -133,6 +146,16 @@ $createDialogId = 'rental-property-create-dialog';
               <input type="hidden" name="property_id" value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" />
               <label>Nom <input type="text" name="name" maxlength="160" value="<?php echo htmlspecialchars((string) ($property['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
               <label>Adresse <input type="text" name="address" maxlength="255" value="<?php echo htmlspecialchars((string) ($property['address'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+              <label>Bailleur
+                <select name="rental_lessor_id">
+                  <option value="">Aucun bailleur rattaché</option>
+                  <?php foreach ($lessorNames as $optionId => $name): ?>
+                    <option value="<?php echo htmlspecialchars((string) $optionId, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $lessorId === $optionId ? 'selected' : ''; ?>>
+                      <?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
               <label>Type
                 <select name="property_type" required>
                   <option value="">Choisir un type</option>
@@ -196,6 +219,14 @@ $createDialogId = 'rental-property-create-dialog';
         <input type="hidden" name="action" value="create_property" />
         <label>Nom <input type="text" name="name" maxlength="160" required /></label>
         <label>Adresse <input type="text" name="address" maxlength="255" required /></label>
+        <label>Bailleur
+          <select name="rental_lessor_id">
+            <option value="">Aucun bailleur rattaché</option>
+            <?php foreach ($lessorNames as $id => $name): ?>
+              <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </label>
         <label>Type
           <select name="property_type" required>
             <option value="">Choisir un type</option>

@@ -65,19 +65,26 @@ $createDialogId = 'rental-tenant-create-dialog';
       </div>
       <div class="private-table-wrap">
       <table>
-        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Email</th><th>Statut</th><th>Action</th></tr></thead>
+        <thead><tr><th>Propriété</th><th>Bien locatif</th><th>Locataire</th><th>Naissance</th><th>Contact</th><th>Profession</th><th>Statut</th><th>Action</th></tr></thead>
         <tbody>
           <?php foreach ($tenants as $tenant): ?>
             <?php if (!is_array($tenant)) { continue; } ?>
             <?php
             $tenantId = is_numeric($tenant['id'] ?? null) ? (int) $tenant['id'] : 0;
+            $birthDate = is_string($tenant['birthDate'] ?? null) ? (string) $tenant['birthDate'] : '';
+            $birthCity = is_string($tenant['birthCity'] ?? null) ? (string) $tenant['birthCity'] : '';
+            $birthCountry = is_string($tenant['birthCountry'] ?? null) ? (string) $tenant['birthCountry'] : '';
+            $birthLabel = trim($birthDate . ' ' . $birthCity . ' ' . $birthCountry);
+            $contactLabel = trim((string) ($tenant['email'] ?? '') . ' ' . (string) ($tenant['phone'] ?? ''));
             $dialogId = 'rental-tenant-dialog-' . $tenantId;
             ?>
-            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($tenant['propertyName'] ?? '') . ' ' . (string) ($tenant['unitLabel'] ?? '') . ' ' . (string) ($tenant['fullName'] ?? '') . ' ' . (string) ($tenant['email'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($tenant['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+            <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower(trim((string) ($tenant['propertyName'] ?? '') . ' ' . (string) ($tenant['unitLabel'] ?? '') . ' ' . (string) ($tenant['fullName'] ?? '') . ' ' . (string) ($tenant['lastName'] ?? '') . ' ' . (string) ($tenant['firstNames'] ?? '') . ' ' . (string) ($tenant['email'] ?? '') . ' ' . (string) ($tenant['phone'] ?? '') . ' ' . (string) ($tenant['occupation'] ?? '') . ' ' . (string) ($tenant['postalAddress'] ?? ''))), ENT_QUOTES, 'UTF-8'); ?>" data-filter-status="<?php echo htmlspecialchars((string) ($tenant['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
               <td><?php echo htmlspecialchars((string) ($tenant['propertyName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($tenant['unitLabel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($tenant['fullName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars((string) ($tenant['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars($birthLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars($contactLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+              <td><?php echo htmlspecialchars((string) ($tenant['occupation'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($statuses[(string) ($tenant['status'] ?? '')] ?? ($tenant['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
               <td>
                 <?php if ($tenantId > 0): ?>
@@ -86,7 +93,7 @@ $createDialogId = 'rental-tenant-create-dialog';
               </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucun locataire ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="8">Aucun locataire ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -114,6 +121,7 @@ $createDialogId = 'rental-tenant-create-dialog';
               <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
               <input type="hidden" name="action" value="update_tenant" />
               <input type="hidden" name="tenant_id" value="<?php echo htmlspecialchars((string) $tenantId, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="full_name" value="<?php echo htmlspecialchars((string) ($tenant['fullName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
               <label>Bien locatif
                 <select name="rental_unit_id" required>
                   <option value="">Choisir un bien locatif</option>
@@ -124,7 +132,17 @@ $createDialogId = 'rental-tenant-create-dialog';
                   <?php endforeach; ?>
                 </select>
               </label>
-              <label>Nom complet <input type="text" name="full_name" maxlength="160" value="<?php echo htmlspecialchars((string) ($tenant['fullName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required /></label>
+              <fieldset class="private-fieldset">
+                <legend>Identité V2</legend>
+                <label>Nom <input type="text" name="last_name" maxlength="120" value="<?php echo htmlspecialchars((string) ($tenant['lastName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Prénoms <input type="text" name="first_names" maxlength="160" value="<?php echo htmlspecialchars((string) ($tenant['firstNames'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Date de naissance <input type="date" name="birth_date" value="<?php echo htmlspecialchars((string) ($tenant['birthDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Ville de naissance <input type="text" name="birth_city" maxlength="120" value="<?php echo htmlspecialchars((string) ($tenant['birthCity'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Pays de naissance <input type="text" name="birth_country" maxlength="120" value="<?php echo htmlspecialchars((string) ($tenant['birthCountry'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Nationalité <input type="text" name="nationality" maxlength="120" value="<?php echo htmlspecialchars((string) ($tenant['nationality'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Profession <input type="text" name="occupation" maxlength="160" value="<?php echo htmlspecialchars((string) ($tenant['occupation'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
+                <label>Adresse postale <textarea name="postal_address" maxlength="500"><?php echo htmlspecialchars((string) ($tenant['postalAddress'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></label>
+              </fieldset>
               <label>Email <input type="email" name="email" maxlength="190" value="<?php echo htmlspecialchars((string) ($tenant['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <label>Telephone <input type="text" name="phone" maxlength="64" value="<?php echo htmlspecialchars((string) ($tenant['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <label>Statut
@@ -163,6 +181,7 @@ $createDialogId = 'rental-tenant-create-dialog';
         <form method="post" action="<?php echo htmlspecialchars((string) ($urls['tenants'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
           <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
           <input type="hidden" name="action" value="create_tenant" />
+          <input type="hidden" name="full_name" value="" />
           <label>Bien locatif
             <select name="rental_unit_id" required>
               <option value="">Choisir un bien locatif</option>
@@ -171,7 +190,17 @@ $createDialogId = 'rental-tenant-create-dialog';
               <?php endforeach; ?>
             </select>
           </label>
-          <label>Nom complet <input type="text" name="full_name" maxlength="160" required /></label>
+          <fieldset class="private-fieldset">
+            <legend>Identité V2</legend>
+            <label>Nom <input type="text" name="last_name" maxlength="120" required /></label>
+            <label>Prénoms <input type="text" name="first_names" maxlength="160" /></label>
+            <label>Date de naissance <input type="date" name="birth_date" /></label>
+            <label>Ville de naissance <input type="text" name="birth_city" maxlength="120" /></label>
+            <label>Pays de naissance <input type="text" name="birth_country" maxlength="120" /></label>
+            <label>Nationalité <input type="text" name="nationality" maxlength="120" /></label>
+            <label>Profession <input type="text" name="occupation" maxlength="160" /></label>
+            <label>Adresse postale <textarea name="postal_address" maxlength="500"></textarea></label>
+          </fieldset>
           <label>Email <input type="email" name="email" maxlength="190" /></label>
           <label>Telephone <input type="text" name="phone" maxlength="64" /></label>
           <label>Statut
