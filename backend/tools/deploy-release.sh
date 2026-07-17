@@ -11,10 +11,12 @@ DEPLOY_TARGET="${DEPLOY_TARGET:-prod}"
 VITE_ASSET_CHECKER="core/tools/check_vite_assets.php"
 EDITORIAL_MEDIA_CHECKER="core/tools/check_editorial_media.php"
 PROD_TREE_CHECKER="core/tools/check_prod_tree.php"
+DEPLOY_SCHEMA_SYNCER="core/tools/sync_deploy_schema.php"
 
 DRY_RUN=0
 NO_VENDOR=0
 NO_CACHE_CLEAR=0
+SCHEMA_SYNC=1
 
 cleanup_remote_non_prod_files() {
   ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$PROD_TREE_CHECKER' --root=. --clean"
@@ -77,6 +79,7 @@ Description:
   - Syncs backend/vendor/ by default (OVH without composer)
   - Checks Vite manifest assets locally before deploy and remotely after sync
   - Generates static sitemap at backend/public/sitemap.xml and refreshes the public site summary page
+  - Syncs the SQL schema expected by the deployed code unless --no-schema-sync is used
   - Clears runtime cache after deploy (unless --no-cache-clear)
 
 Options:
@@ -87,6 +90,7 @@ Options:
   --preprod         Alias for --target=preprod.
   --sitemap-base-url=URL  Override base URL for sitemap generation.
   --no-cache-clear  Skip runtime cache clear on remote.
+  --no-schema-sync  Skip deploy-time SQL schema synchronization.
   -h, --help        Show help.
 USAGE
 }
@@ -100,6 +104,7 @@ while (($#)); do
     --preprod) DEPLOY_TARGET="preprod" ;;
     --sitemap-base-url=*) SITEMAP_BASE_URL="${1#*=}" ;;
     --no-cache-clear) NO_CACHE_CLEAR=1 ;;
+    --no-schema-sync) SCHEMA_SYNC=0 ;;
     -h|--help)
       usage
       exit 0
@@ -145,6 +150,11 @@ if [[ ! -f "$LOCAL_BACKEND/$PROD_TREE_CHECKER" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$LOCAL_BACKEND/$DEPLOY_SCHEMA_SYNCER" ]]; then
+  echo "Deploy schema syncer not found: $LOCAL_BACKEND/$DEPLOY_SCHEMA_SYNCER" >&2
+  exit 1
+fi
+
 if [[ "$DRY_RUN" -eq 0 && "$DEPLOY_TARGET" == "prod" ]]; then
   guard_untracked_source_files
 fi
@@ -155,6 +165,7 @@ echo "Dry run: $DRY_RUN"
 echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
 echo "Sync vendor: $((1 - NO_VENDOR))"
 echo "Sync private runtime: additif (sans --delete)"
+echo "Sync SQL schema: $SCHEMA_SYNC"
 echo "Sitemap base URL override: ${SITEMAP_BASE_URL:-<auto>}"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -162,6 +173,11 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "[dry-run] backend files detected locally: $FILE_COUNT"
   echo "[dry-run] full rsync would run with --delete and standard excludes."
   echo "[dry-run] private/ sync: additive pass without --delete (remote runtime preserved)"
+  if [[ "$SCHEMA_SYNC" -eq 1 ]]; then
+    echo "[dry-run] SQL schema sync would run after file sync."
+  else
+    echo "[dry-run] SQL schema sync disabled."
+  fi
   if [[ "$NO_VENDOR" -eq 0 && -d "$LOCAL_BACKEND/vendor" ]]; then
     echo "[dry-run] vendor/ would be synced."
   fi
@@ -227,6 +243,10 @@ fi
 if deploys_private_runtime && [[ -d "$LOCAL_BACKEND/private" ]]; then
   # Passe additive : pas de --delete, les fichiers runtime distants sont conserves.
   rsync -az --info=progress2 "$LOCAL_BACKEND/private/" "$REMOTE_HOST:$REMOTE_BACKEND/private/"
+fi
+
+if [[ "$SCHEMA_SYNC" -eq 1 ]]; then
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$DEPLOY_SCHEMA_SYNCER'"
 fi
 
 cleanup_remote_non_prod_files

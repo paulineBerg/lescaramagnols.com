@@ -144,6 +144,12 @@ Cible unique : **prod** (`DEPLOY_TARGET=prod`). La preprod est abandonnee depuis
 
 `backend/private/` est synchronise en mode **additif** (rsync sans `--delete`) : les fichiers runtime prives de production ne sont jamais supprimes par un deploy.
 
+Par defaut, les scripts de deploiement synchronisent aussi le schema SQL attendu par le code deploye :
+- migrations editoriales versionnees `backend/sql/editorial/*.sql` ;
+- creation idempotente des tables privees manquantes declarees dans `backend/sql/private/*.sql`.
+
+Utiliser `--no-schema-sync` uniquement pour un deploiement de fichiers qui ne doit pas toucher au schema SQL.
+
 ```bash
 backend/tools/deploy-release.sh   # deploiement complet (garde anti-fichiers non trackes)
 backend/tools/deploy-fast.sh      # deploiement rapide

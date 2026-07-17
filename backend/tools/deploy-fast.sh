@@ -12,11 +12,13 @@ VITE_ASSET_CHECKER="core/tools/check_vite_assets.php"
 EDITORIAL_MEDIA_CHECKER="core/tools/check_editorial_media.php"
 PROD_TREE_CHECKER="core/tools/check_prod_tree.php"
 PUBLISHED_FRONTEND_SYNC_SCRIPT="${REPO_ROOT}/backend/tools/sync-published-frontend-tree.sh"
+DEPLOY_SCHEMA_SYNCER="core/tools/sync_deploy_schema.php"
 
 DRY_RUN=0
 WITH_VENDOR=0
 NO_CACHE_CLEAR=0
 ALL_CHANGES=0
+SCHEMA_SYNC=1
 
 is_deploy_excluded_path() {
   case "$1" in
@@ -70,6 +72,7 @@ Description:
   - Checks Vite manifest assets locally before deploy and remotely after sync
   - Synchronises the full published frontend tree (.vite, assets, tarteaucitron)
   - Generates static sitemap at backend/public/sitemap.xml and refreshes the public site summary page
+  - Syncs the SQL schema expected by the deployed code unless --no-schema-sync is used
   - Clears runtime cache after deploy (unless --no-cache-clear)
 
 Options:
@@ -81,6 +84,7 @@ Options:
   --preprod         Alias for --target=preprod.
   --sitemap-base-url=URL  Override base URL for sitemap generation.
   --no-cache-clear  Skip runtime cache clear on remote.
+  --no-schema-sync  Skip deploy-time SQL schema synchronization.
   -h, --help        Show help.
 USAGE
 }
@@ -95,6 +99,7 @@ while (($#)); do
     --preprod) DEPLOY_TARGET="preprod" ;;
     --sitemap-base-url=*) SITEMAP_BASE_URL="${1#*=}" ;;
     --no-cache-clear) NO_CACHE_CLEAR=1 ;;
+    --no-schema-sync) SCHEMA_SYNC=0 ;;
     -h|--help)
       usage
       exit 0
@@ -142,6 +147,11 @@ fi
 
 if [[ ! -f "$PUBLISHED_FRONTEND_SYNC_SCRIPT" ]]; then
   echo "Published frontend sync script not found: $PUBLISHED_FRONTEND_SYNC_SCRIPT" >&2
+  exit 1
+fi
+
+if [[ ! -f "$LOCAL_BACKEND/$DEPLOY_SCHEMA_SYNCER" ]]; then
+  echo "Deploy schema syncer not found: $LOCAL_BACKEND/$DEPLOY_SCHEMA_SYNCER" >&2
   exit 1
 fi
 
@@ -203,6 +213,7 @@ echo "Remote: $REMOTE_HOST:$REMOTE_BACKEND"
 echo "Changed files: $(wc -l < "$CHANGED_FILES" | tr -d ' ')"
 echo "Deleted files: $(wc -l < "$DELETED_FILES" | tr -d ' ')"
 echo "Sync private runtime: $(deploys_private_runtime && echo yes || echo no)"
+echo "Sync SQL schema: $SCHEMA_SYNC"
 echo "Sitemap base URL override: ${SITEMAP_BASE_URL:-<auto>}"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -216,6 +227,11 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     echo "[dry-run] vendor/ would be synced."
   fi
   echo "[dry-run] private/ changes: $(deploys_private_runtime && echo allowed || echo excluded)"
+  if [[ "$SCHEMA_SYNC" -eq 1 ]]; then
+    echo "[dry-run] SQL schema sync would run after file sync."
+  else
+    echo "[dry-run] SQL schema sync disabled."
+  fi
   echo "[dry-run] Non-production remote files would be cleaned if this deploy ran."
   echo "[dry-run] No remote command executed."
   exit 0
@@ -241,6 +257,7 @@ REMOTE_HOST="$REMOTE_HOST" REMOTE_BACKEND="$REMOTE_BACKEND" LOCAL_BACKEND="$LOCA
 ssh "$REMOTE_HOST" "mkdir -p '$REMOTE_BACKEND/core/tools'"
 rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/$VITE_ASSET_CHECKER" "$REMOTE_HOST:$REMOTE_BACKEND/$VITE_ASSET_CHECKER"
 rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/$PROD_TREE_CHECKER" "$REMOTE_HOST:$REMOTE_BACKEND/$PROD_TREE_CHECKER"
+rsync "${RSYNC_FLAGS[@]}" "$LOCAL_BACKEND/$DEPLOY_SCHEMA_SYNCER" "$REMOTE_HOST:$REMOTE_BACKEND/$DEPLOY_SCHEMA_SYNCER"
 
 if [[ "$WITH_VENDOR" -eq 1 && -d "$LOCAL_BACKEND/vendor" ]]; then
   rsync "${RSYNC_FLAGS[@]}" --delete "$LOCAL_BACKEND/vendor/" "$REMOTE_HOST:$REMOTE_BACKEND/vendor/"
@@ -248,6 +265,10 @@ fi
 
 if [[ -s "$DELETED_FILES" ]]; then
   ssh "$REMOTE_HOST" "while IFS= read -r rel; do [ -n \"\$rel\" ] || continue; rm -rf -- '$REMOTE_BACKEND'/\"\$rel\"; done" < "$DELETED_FILES"
+fi
+
+if [[ "$SCHEMA_SYNC" -eq 1 ]]; then
+  ssh "$REMOTE_HOST" "cd '$REMOTE_BACKEND' && php '$DEPLOY_SCHEMA_SYNCER'"
 fi
 
 cleanup_remote_non_prod_files
