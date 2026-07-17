@@ -1,0 +1,3 @@
+# Ce répertoire contient des PDF qui sont stockés sur l'hébergement
+# et synchronisés via backend/tools/sync-pdf-assets.sh
+# Les PDF sont exclus du versionnage git.

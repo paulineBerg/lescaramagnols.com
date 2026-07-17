@@ -57,6 +57,11 @@ backend/var/
 /backups/
 /.ops-sync/
 /php
+
+# PDF assets - stockés sur l'hébergement, pas dans git
+frontend/src/assets/pdf/**
+!frontend/src/assets/pdf/
+!frontend/src/assets/pdf/.gitkeep
 backend/config/database.override.php
 backend/config/admin.override.php
 backend/config/site.override.php

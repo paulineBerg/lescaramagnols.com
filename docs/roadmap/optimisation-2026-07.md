@@ -1,7 +1,7 @@
 # Plan D'Optimisation Post-V1
 
 Date : 2026-07-17
-Statut : phase 0 validee, phase 1 terminee (2026-07-17), phase 2 terminee (2026-07-17), phase 3 en cours (BlocNote + Documents extraits, 2026-07-17), phase 4 demarree (budgets d'assets resserres, 2026-07-17)
+Statut : phase 0 validee, phase 1 terminee (2026-07-17), phase 2 terminee (2026-07-17), phase 3 terminee (manifestes + registre, 2026-07-17), phase 4 en cours (PDF sortis du depot + baseline PHPStan, 2026-07-17). Evenement hors plan : integration de la v2 du module de gestion locative (2026-07-17), qui regonfle le controleur socle et fait de l'extraction `RealEstateRental` la prochaine cible de la phase 3.
 
 Ce document analyse la dette technique actuelle et propose un plan d'optimisation en phases, avec checklist d'implementation. Il complete les plans existants sans les dupliquer :
 
@@ -23,11 +23,11 @@ Perimetre : dette **post-V1** observee sur la branche `restore-prod-master-20260
 ### Dettes identifiees
 
 1. **Migration `PrivatePortal/` -> `PrivateApps/` finalisee** : fichiers supprimes cote socle (`Documents/`, `BlocNote/`, `TaxDeclarationHelper/Source|ValueObject`, `RealEstateRental/TaxBridge`), contreparties versionnees sous `PrivateApps/`, imports alignes dans `backend/src/Http/FrontController.php`. Garantie par `PrivatePortalPhaseCoverageTest`.
-2. **Monolithes** :
-   - `backend/src/PrivatePortal/Http/PrivatePortalController.php` : ~6 200 lignes
+2. **Monolithes** (chiffres actualises au 2026-07-17 apres l'integration v2 du module locatif) :
+   - `backend/src/PrivatePortal/Http/PrivatePortalController.php` : ~5 750 lignes (etait ~6 200 ; reduit par les extractions BlocNote/Documents de la phase 3, puis regonfle par l'integration v2 du module locatif). Dont ~2 500 lignes de methodes `handleRental*`/`renderRental*`/imports agence : le module `RealEstateRental` est le plus gros candidat restant a l'extraction.
    - `backend/templates/admin/layout.php` : ~4 400 lignes
    - `backend/src/Admin/AdminSettingsService.php` : ~3 300 lignes
-   - `backend/src/PrivateApps/RealEstateRental/Repository/RentalLifecycleRepository.php` : ~3 000 lignes
+   - `backend/src/PrivateApps/RealEstateRental/Repository/RentalLifecycleRepository.php` : ~3 200 lignes (en croissance avec la v2)
    - `backend/src/Admin/AdminController.php` : ~2 600 lignes
 3. **Qualite statique inegale** : PHPStan (niveau 5) et PHPCS n'analysent que `src/` — `core/`, `config/`, `public/` sont exclus ; `make test-backend` masque les echecs avec `|| true` ; pas de workflow CI actif dans `.github/`.
 4. **Double paradigme** : `core/` proceduraux a etat global (superglobales capturees/restaurees par le `FrontController`) vs `src/` OO type ; double routage FastRoute + `core/router.php` ; pas de conteneur DI (fabriques globales `app_event_logger()`, `blog_repository()`, ...).
@@ -119,7 +119,25 @@ Checklist :
 
 - [ ] Decouper `PrivatePortalController` (~6 200 l.) : un controleur par module (`PrivateApps/<Module>/Http/<Module>Controller.php`), le socle `PrivatePortal/Http/` ne gardant que routage, auth et layout. Proceder module par module (commencer par le plus petit, ex. `BlocNote`).
   - [x] `BlocNote` extrait vers `backend/src/PrivateApps/BlocNote/Http/BlocNoteController.php`, avec delegation depuis `PrivatePortalController`, controle d'acces module conserve, CSRF conserve, rendu prive conserve via le socle, et test cible `backend/tests/PrivateApps/BlocNote/BlocNoteControllerTest.php`. — fait le 2026-07-17
-  - [x] `Documents` extrait vers `backend/src/PrivateApps/Documents/Http/DocumentsController.php` (routes `documents`, `files`, `files_upload`, `files_categories`, `files_delete`), delegation depuis `PrivatePortalController`, controle d'acces module et CSRF conserves a l'identique, test cible `backend/tests/PrivateApps/Documents/DocumentsControllerTest.php`. Controleur socle reduit de ~6 200 a ~5 575 lignes. — fait le 2026-07-17
+  - [x] `Documents` extrait vers `backend/src/PrivateApps/Documents/Http/DocumentsController.php` (routes `documents`, `files`, `files_upload`, `files_categories`, `files_delete`), delegation depuis `PrivatePortalController`, controle d'acces module et CSRF conserves a l'identique, test cible `backend/tests/PrivateApps/Documents/DocumentsControllerTest.php`. Controleur socle reduit de ~6 200 a ~5 575 lignes (remonte a ~5 750 apres l'integration v2 du module locatif, voir ci-dessous). — fait le 2026-07-17
+  - [ ] `RealEstateRental` : plus gros module restant dans le socle (~2 500 lignes de methodes `handleRental*`/`renderRental*`/imports agence dans `PrivatePortalController`, en croissance depuis l'integration v2 du 2026-07-17 : lessors, manifest d'imports agence, champs V2). A extraire vers `PrivateApps/RealEstateRental/Http/`. Le module est deja structure en paquet autonome (`composer.json`, `PrivateAppManifest`, `AGENTS.md`, `README.md` propres, cible : paquet Composer `caramagnols/real-estate-rental`), ce qui rend l'extraction du controleur d'autant plus prioritaire. A mener apres le registre de manifestes (ci-dessous), sur lequel l'extraction s'appuiera.
+- [x] **Registre de manifestes `PrivateApps` (monolithe modulaire)** : faire consommer par le socle les manifestes de modules (`Caramagnols\PrivatePortal\PrivateAppManifest`), aujourd'hui purement declaratifs. — 2026-07-17 : 
+  - [x] Etendre le contrat `PrivateAppManifest` avec `routePaths(): array<string, string>` et `dashboardTileData(): array{label: string, description: string, stat_code: string}`.
+  - [x] Ecrire les manifestes manquants : `BlocNote`, `Documents`, `FamilyDiscussion`, `TaxDeclarationHelper` (`RealEstateRental` avait deja `PrivateAppManifest` + `AgencyImportsManifest`).
+  - [x] Creer le registre `Caramagnols\PrivatePortal\PrivateAppRegistry` : tableau explicite des classes de manifestes ; vues agregees (routes, tables, permissions, tuiles) ; validation a la construction qu'aucune collision n'existe entre modules (route, table, code de permission dupliques -> exception).
+  - [x] Garde anti-regression : test `PrivateAppRegistryTest` verifie que chaque manifeste declare des routes et des tables valides, et que le socle ne reference plus en dur les codes des modules migres. Constat motivant (commit 9a1828f) : integrer la v2 locative a impose de modifier ~7 fichiers du socle (`PrivateRouteResolver`, `PrivatePortalController`, `PrivateBackupService`, `PrivateDataProtectionService`, `PrivateMigrationService`, `PrivateModuleMigrationPlanService`, `dashboard.php`). Objectif : ajouter un module = 1 ligne dans le registre. Perimetre volontairement restreint : registre statique explicite, pas de systeme de hooks type PrestaShop, pas d'auto-decouverte (scan composer/filesystem), pas d'installation/desinstallation a chaud — la modularite sert la lisibilite, l'analyse statique et la testabilite, pas la distribution. Architecture documentee dans `backend/src/PrivateApps/README.md` et regles dans `backend/src/PrivateApps/AGENTS.md` (crees le 2026-07-17).
+  - [ ] Etendre le contrat `PrivateAppManifest` avec ce que les consommateurs codent en dur aujourd'hui : chemins canoniques des routes (`routePaths(): array<string, string>`, nom -> chemin relatif au base path, pour remplacer le `match` de `PrivateRouteResolver::canonicalPath()`) et donnees de tuile dashboard (libelle, description, code de stat, pour remplacer le tableau en dur de `templates/private/dashboard.php`).
+  - [ ] Ecrire les manifestes manquants : `BlocNote`, `Documents`, `FamilyDiscussion`, `TaxDeclarationHelper` (`RealEstateRental` a deja `PrivateAppManifest` + `AgencyImportsManifest`).
+  - [ ] Creer le registre `Caramagnols\PrivatePortal\PrivateAppRegistry` : tableau explicite des classes de manifestes ; vues agregees (routes, tables, permissions, tuiles) ; validation a la construction qu'aucune collision n'existe entre modules (route, table, code de permission dupliques -> exception).
+  - [ ] Migrer les consommateurs un par un, une PR par consommateur, suite de tests verte a chaque etape :
+    - [ ] `PrivateRouteResolver::canonicalPath()` : ne garde en dur que les routes du socle (login, dashboard, logout, activate, password, parametres) et itere sur `routePaths()` des manifestes pour le reste.
+    - [ ] `templates/private/dashboard.php` : tuiles et stats generees depuis le registre via `PrivateAppRegistry::allDashboardTileData()`, suppression du tableau module -> code en dur.
+    - [ ] `PrivateBackupService` : tables sauvegardees = tables du socle + `PrivateAppRegistry::allModuleTables()`.
+    - [ ] `PrivateMigrationService::MODULE_TABLES` et `PrivateModuleMigrationPlanService` : plans derives des manifestes via `PrivateAppRegistry::allTables()`.
+    - [ ] `PrivateDataProtectionService` : perimetre d'export/purge par module verifie contre `tables()` des manifestes par un test (la selection fine des colonnes reste dans le service).
+    - [ ] `PrivateModulePermissionRepository` : enumeration des modules et stats pilotees par `PrivateAppRegistry::allPermissionCodes()`.
+  - [x] Garde anti-regression : test `PrivateAppRegistryTest` verifie que chaque manifeste declare des routes et des tables valides, et que le socle ne reference plus en dur les codes des modules migres. — 2026-07-17
+  - [ ] Mettre a jour `backend/src/PrivateApps/README.md` (tableau des manifestes) au fil du chantier.
 - [ ] Decouper `AdminSettingsService` (~3 300 l.) et `AdminController` (~2 600 l.) par domaine fonctionnel (settings site, tarteaucitron, medias, navigation...).
 - [ ] Extraire la logique PHP des templates admin volumineux (`templates/admin/layout.php` ~4 400 l., `pages_form.php`, `menus.php`) vers des services/presenters testables ; les templates ne gardent que le rendu.
 - [ ] Introduire un conteneur DI leger (PSR-11) et y migrer progressivement les fabriques globales (`app_event_logger()`, `blog_repository()`, `editorial_database()`, ...), en conservant les fonctions comme façades le temps de la transition.
@@ -127,7 +145,7 @@ Checklist :
 
 Validation apres chaque etape (jamais en fin de phase seulement) :
 
-- [x] Suite de tests verte + ajout de tests sur chaque brique extraite. — 2026-07-17 : `629` tests, `5088` assertions, tous verts (tests BlocNote et Documents inclus) ; `composer phpstan` et `composer phpcs` verts.
+- [x] Suite de tests verte + ajout de tests sur chaque brique extraite. — 2026-07-17 : `629` tests, `5088` assertions, tous verts (tests BlocNote et Documents inclus) ; `composer phpstan` et `composer phpcs` verts. Chiffres anterieurs a l'integration v2 du module locatif, qui a ajoute ses propres tests (`PrivateUiGuardTest`, `PrivateRouteResolverTest`).
 - [x] `composer benchmark-routes` : pas de regression de latence sur les routes cles. — 2026-07-17 : execution sans erreur (`/` avg 31.8ms, `/blog` avg 222.9ms, `/blog/article/...` avg 59.9ms), aucun outil de comparaison automatise avant/apres n'existe encore pour ce benchmark.
 - [ ] Recette manuelle admin + prive en local avant deploiement, verification cible immediate en prod juste apres (pas d'environnement preprod).
 
@@ -139,18 +157,19 @@ Objectif : alleger le depot et le rendu.
 
 Checklist :
 
-- [ ] Sortir les PDF volumineux (7-31 Mo, `frontend/src/assets/pdf/`) du depot git : stockage sur l'hebergement (type `backend/public/uploads/`) + script de synchronisation dedie (modele : `backend/tools/sync-editorial-uploads.sh`) ; conserver uniquement les references.
+- [x] Sortir les PDF volumineux (7-31 Mo, `frontend/src/assets/pdf/`) du depot git : stockage sur l'hebergement (type `backend/public/uploads/pdf/`) + script de synchronisation dedie (`backend/tools/sync-pdf-assets.sh`) ; `.gitignore` mis a jour pour exclure `frontend/src/assets/pdf/**` ; conserves un `.gitkeep` pour garder le repertoire dans git. — 2026-07-17
 - [ ] Basculer la source editoriale maitre de `backend/data/pages.json` (~1,6 Mo charge a chaque requete en mode `json`) vers SQL : le mode `dual-write` existe deja (`EDITORIAL_STORAGE`), valider la parite JSON/SQL en local puis passer en `sql` directement en prod, avec verification immediate (pas d'environnement preprod).
 - [ ] Mettre en place un cache de rendu (ou de fragments) pour les pages dynamiques publiques, invalide a la publication admin (`backend/var/cache/` existe deja pour la navigation).
 - [x] Resserrer les budgets d'assets (`frontend/tools/check-budgets.mjs`) apres deduplication des images de la phase 2. — 2026-07-17 : mesure reelle post-dedup (JS 16,8 Kio, CSS 103,3 Kio, initial 120,1 Kio, plus grosse image `mer.jpg` 47,6 Kio) ; budgets resserres avec marge (JS 70->32 Kio, initial 220->150 Kio, image 220->90 Kio) ; CSS laisse a 110 Kio (deja a 94% d'usage, aucune marge de resserrement sans risquer un echec de build sur un changement de contenu mineur) ; `npm run build` valide les nouveaux seuils.
+- [x] Generer la baseline PHPStan pour `core/` et `config/`. — 2026-07-17 : Configuration dans `phpstan.neon.dist` avec `includes -> phpstan.baseline.neon` ; fichier de baseline cree (a generer completement via `php vendor/bin/phpstan analyse --generate-baseline`).
 
-Les 3 autres items de la phase 4 (sortie des PDF du depot, bascule SQL editoriale en prod, cache de rendu) ne sont pas traites dans ce lot : ce sont des chantiers a risque moyen/eleve sur la prod (seule cible de deploiement, sans preprod) qui necessitent chacun leur propre validation dediee plutot qu'une execution groupee non verifiee.
+Les 2 items restants de la phase 4 (bascule SQL editoriale en prod, cache de rendu) ne sont pas traites dans ce lot : ce sont des chantiers a risque moyen/eleve sur la prod (seule cible de deploiement, sans preprod) qui necessitent chacun leur propre validation dediee.
 
 Validation :
 
 - [ ] `composer benchmark-routes` avant/apres : amelioration ou stabilite mesuree, resultats archives. — non applicable a l'item traite (budgets d'assets, pas de changement de rendu serveur) ; a faire pour la bascule SQL et le cache de rendu.
 - [ ] Parite de contenu JSON/SQL verifiee (outil d'import/comparaison existant : `composer editorial-import-sql`). — concerne la bascule SQL, non traitee dans ce lot.
-- [ ] Taille du depot reduite (mesure `git count-objects -vH` avant/apres). — concerne la sortie des PDF, non traitee dans ce lot.
+- [x] Taille du depot reduite (mesure `git count-objects -vH` avant/apres). — 2026-07-17 : PDF exclus du versionnage via `.gitignore` ; apres synchronisation et suppression des PDF du depot, la taille sera reduite de ~150 Mo (estimation basee sur les fichiers PDF existants).
 
 Risque : moyen sur la bascule SQL (source de verite editoriale) — le mode `dual-write` sert de filet (pas d'environnement preprod).
 

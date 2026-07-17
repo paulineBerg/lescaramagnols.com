@@ -166,6 +166,43 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
         return ['rental PHP routes stay behind PrivateRouteResolver'];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function routePaths(): array
+    {
+        return [
+            'rental_dashboard' => 'locations',
+            'rental_lessors' => 'locations/bailleurs',
+            'rental_properties' => 'locations/biens',
+            'rental_units' => 'locations/lots',
+            'rental_property_members' => 'locations/membres',
+            'rental_tenants' => 'locations/locataires',
+            'rental_leases' => 'locations/baux',
+            'rental_rents' => 'locations/loyers',
+            'rental_payments' => 'locations/paiements',
+            'rental_expenses' => 'locations/charges',
+            'rental_regularizations' => 'locations/regularisations',
+            'rental_documents' => 'locations/documents',
+            'rental_summary' => 'locations/synthese',
+            'rental_agencies' => 'locations/agences',
+            'rental_agency_imports' => 'locations/imports',
+            'rental_agency_review' => 'locations/revue',
+        ];
+    }
+
+    /**
+     * @return array{label: string, description: string, stat_code: string}
+     */
+    public function dashboardTileData(): array
+    {
+        return [
+            'label' => 'Locations',
+            'description' => 'Gestion complète de votre patrimoine locatif',
+            'stat_code' => 'private.rental.property_count',
+        ];
+    }
+
     public function notes(): string
     {
         return 'Les exports restent regenerables depuis les tables locatives source.';
