@@ -6,7 +6,7 @@ namespace Caramagnols\PrivateApps\RealEstateRental\Service;
 
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalExpenseCategoryCatalog;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 
 final class ChargeRegularizationService
 {

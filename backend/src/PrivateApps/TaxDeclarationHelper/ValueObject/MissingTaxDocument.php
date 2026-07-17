@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject;
+namespace Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject;
 
 final class MissingTaxDocument
 {

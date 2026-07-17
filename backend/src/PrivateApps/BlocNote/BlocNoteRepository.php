@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Caramagnols\PrivatePortal\BlocNote;
+namespace Caramagnols\PrivateApps\BlocNote;
 
 use Caramagnols\Database\EditorialDatabase;
 use PDO;

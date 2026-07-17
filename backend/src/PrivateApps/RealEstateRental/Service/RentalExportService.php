@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\PrivateApps\RealEstateRental\Service;
 
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use ZipArchive;
 
 final class RentalExportService

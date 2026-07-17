@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Caramagnols\PrivatePortal\Documents;
+namespace Caramagnols\PrivateApps\Documents;
 
 final class PrivateDocumentScanner
 {

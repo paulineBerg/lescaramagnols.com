@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LesCaramagnols\Tests;
 
 use Caramagnols\Database\EditorialDatabase;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;

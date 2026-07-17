@@ -14,8 +14,8 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalExpenseCategoryCatalog;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
 use Caramagnols\PrivatePortal\Security\PrivatePasswordPolicy;
 use Caramagnols\PrivatePortal\Security\PrivatePortalSecurityGuard;
@@ -40,14 +40,13 @@ use Caramagnols\PrivateApps\RealEstateRental\Service\RentalReceiptService;
 use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Service\TaxDeclarationSummaryService;
-use Caramagnols\PrivatePortal\BlocNote\BlocNoteRepository;
+use Caramagnols\PrivateApps\BlocNote\BlocNoteRepository;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
-use Caramagnols\PrivatePortal\Repository\PrivateUserMailSettingsRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\Source\RentalTaxDataSource;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\Source\RentalTaxDataSource;
 
 final class PrivatePortalController
 {
@@ -64,8 +63,6 @@ final class PrivatePortalController
     private const CSRF_DISCUSSIONS = 'private_discussions';
     private const CSRF_BLOCNOTE = 'private_blocnote';
     private const CSRF_MEMBER_SETTINGS = 'private_member_settings';
-
-    private ?string $lastPrivateMailFailure = null;
 
     public function __construct(
         private readonly PrivateAuth $auth,
@@ -94,8 +91,7 @@ final class PrivatePortalController
         private readonly ?RentalReceiptService $rentalReceiptService = null,
         private readonly ?ChargeRegularizationService $chargeRegularizationService = null,
         private readonly ?RentalDashboardService $rentalDashboardService = null,
-        private readonly ?RentalExportService $rentalExportService = null,
-        private readonly ?PrivateUserMailSettingsRepository $privateUserMailSettingsRepository = null
+        private readonly ?RentalExportService $rentalExportService = null
     ) {
     }
 

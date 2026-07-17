@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Caramagnols\PrivateApps\RealEstateRental\TaxBridge;
 
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\AnnualDeductibleExpenses;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\AnnualRentalIncome;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\MissingTaxDocument;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\AnnualDeductibleExpenses;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\AnnualRentalIncome;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\MissingTaxDocument;
 
 interface RentalTaxDataProviderInterface
 {

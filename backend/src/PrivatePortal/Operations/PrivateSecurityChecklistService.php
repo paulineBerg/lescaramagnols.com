@@ -6,7 +6,7 @@ namespace Caramagnols\PrivatePortal\Operations;
 
 use Caramagnols\PrivatePortal\Http\PrivateResponseHeaders;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentScanResult;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentScanResult;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 
 final class PrivateSecurityChecklistService

@@ -9,7 +9,7 @@ use Caramagnols\PrivatePortal\Operations\PrivateMigrationDefinitionOfDoneService
 use Caramagnols\PrivatePortal\Operations\PrivateModuleMigrationPlanService;
 use Caramagnols\PrivatePortal\Operations\PrivateMigrationService;
 use Caramagnols\PrivatePortal\Operations\PrivateSecurityChecklistService;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 

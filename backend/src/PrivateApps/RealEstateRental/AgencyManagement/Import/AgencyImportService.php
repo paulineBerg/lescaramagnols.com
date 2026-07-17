@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Import;
 
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyImportRepository;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 
 final class AgencyImportService
 {

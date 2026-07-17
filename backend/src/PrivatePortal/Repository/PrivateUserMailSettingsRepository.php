@@ -310,7 +310,7 @@ final class PrivateUserMailSettingsRepository
         $iv = random_bytes(12);
         $tag = '';
         $ciphertext = openssl_encrypt($secret, self::ENCRYPTION_CIPHER, $key, OPENSSL_RAW_DATA, $iv, $tag);
-        if (!is_string($ciphertext) || $tag === '') {
+        if (!is_string($ciphertext) || strlen($tag) !== 16) {
             return null;
         }
 

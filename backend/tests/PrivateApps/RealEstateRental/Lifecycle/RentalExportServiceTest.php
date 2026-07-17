@@ -8,7 +8,7 @@ use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalUnitRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalExportService;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Caramagnols\Admin\AdminPrivateMembersService;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;

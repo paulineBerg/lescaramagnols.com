@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\PrivateApps\TaxDeclarationHelper\Service;
 
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\Source\TaxDataSourceInterface;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\Source\TaxDataSourceInterface;
 
 final class TaxDeclarationSummaryService
 {

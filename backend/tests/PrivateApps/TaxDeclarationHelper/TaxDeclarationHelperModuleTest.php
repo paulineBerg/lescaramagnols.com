@@ -11,7 +11,7 @@ use Caramagnols\PrivateApps\RealEstateRental\TaxBridge\RentalTaxDataProvider;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Repository\TaxDeclarationRepository;
 use Caramagnols\PrivateApps\TaxDeclarationHelper\Service\TaxDeclarationSummaryService;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\Source\RentalTaxDataSource;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\Source\RentalTaxDataSource;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 

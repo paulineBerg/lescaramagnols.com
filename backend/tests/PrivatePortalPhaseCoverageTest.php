@@ -130,10 +130,23 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
     public function testPhase7TaxBridgeContractsAreImplemented(): void
     {
         $expectedClasses = [
-            'Caramagnols\\PrivatePortal\\RealEstateRental\\TaxBridge\\RentalTaxDataProviderInterface',
             'Caramagnols\\PrivateApps\\RealEstateRental\\TaxBridge\\RentalTaxDataProviderInterface',
-            'Caramagnols\\PrivatePortal\\RealEstateRental\\TaxBridge\\RentalTaxDataProvider',
             'Caramagnols\\PrivateApps\\RealEstateRental\\TaxBridge\\RentalTaxDataProvider',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\Source\\TaxDataSourceInterface',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\Source\\RentalTaxDataSource',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\AnnualRentalIncome',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\AnnualDeductibleExpenses',
+            'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\MissingTaxDocument',
+        ];
+
+        foreach ($expectedClasses as $expectedClass) {
+            $exists = class_exists($expectedClass) || interface_exists($expectedClass);
+            $this->assertTrue($exists, sprintf('Contract %s must exist after phase 7.', $expectedClass));
+        }
+
+        $retiredClasses = [
+            'Caramagnols\\PrivatePortal\\RealEstateRental\\TaxBridge\\RentalTaxDataProviderInterface',
+            'Caramagnols\\PrivatePortal\\RealEstateRental\\TaxBridge\\RentalTaxDataProvider',
             'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\Source\\TaxDataSourceInterface',
             'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\Source\\RentalTaxDataSource',
             'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\AnnualRentalIncome',
@@ -141,9 +154,9 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
             'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\MissingTaxDocument',
         ];
 
-        foreach ($expectedClasses as $expectedClass) {
-            $exists = class_exists($expectedClass) || interface_exists($expectedClass);
-            $this->assertTrue($exists, sprintf('Contract %s must exist after phase 7.', $expectedClass));
+        foreach ($retiredClasses as $retiredClass) {
+            $stillExists = class_exists($retiredClass) || interface_exists($retiredClass);
+            $this->assertFalse($stillExists, sprintf('Legacy contract %s must be retired after the PrivateApps migration.', $retiredClass));
         }
     }
 

@@ -15,6 +15,21 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 - Ne pas tenter de contourner l'authentification admin, le 2FA, les tokens CSRF ou les protections de session.
 - Toute reconstruction locale de l'admin doit conserver au minimum les controles de securite observes en production : session securisee, CSRF, 2FA et en-tetes de securite.
 
+## Espace prive
+
+- La route canonique de production pour l'espace prive est `/espace-private-4h6F1c`.
+- Ne pas exposer l'espace prive via `/private` en production ; ce chemin doit rester non fonctionnel publiquement.
+- Toute modification de `PRIVATE_PORTAL_BASE_PATH` doit etre testee en local puis sur production avec au minimum :
+  - `/espace-private-4h6F1c/login` retourne le formulaire prive ;
+  - `/private/login` ne retourne pas le formulaire prive ;
+  - `/espace-admin-7k9m2p` reste fonctionnel.
+
+## Architecture privee
+
+- `backend/src/PrivatePortal` est reserve au socle de l'espace prive : HTTP, routes, securite, sessions, utilisateurs, permissions et operations transverses.
+- Les modules applicatifs prives doivent vivre sous `backend/src/PrivateApps`.
+- Ne pas ajouter de nouvelle logique metier applicative dans `PrivatePortal` sans justification explicite ; preferer un module dedie dans `PrivateApps`.
+
 ## Synchronisation
 
 - Lors d'une remise en coherence, inventorier d'abord les routes et contenus visibles en production.

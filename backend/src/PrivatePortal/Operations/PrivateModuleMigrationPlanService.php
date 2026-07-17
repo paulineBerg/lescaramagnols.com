@@ -92,8 +92,8 @@ final class PrivateModuleMigrationPlanService
                     'private_documents',
                 ],
                 'contractClasses' => [
-                    'Caramagnols\\PrivatePortal\\Documents\\PrivateDocumentRepository',
-                    'Caramagnols\\PrivatePortal\\Documents\\PrivateDocumentStorage',
+                    'Caramagnols\\PrivateApps\\Documents\\PrivateDocumentRepository',
+                    'Caramagnols\\PrivateApps\\Documents\\PrivateDocumentStorage',
                 ],
                 'testClasses' => [
                     'PrivatePortalStorageTest',
@@ -308,10 +308,10 @@ final class PrivateModuleMigrationPlanService
                 'contractClasses' => [
                     'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\Repository\\TaxDeclarationRepository',
                     'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\Service\\TaxDeclarationSummaryService',
-                    'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\Source\\RentalTaxDataSource',
-                    'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\AnnualRentalIncome',
-                    'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\AnnualDeductibleExpenses',
-                    'Caramagnols\\PrivatePortal\\TaxDeclarationHelper\\ValueObject\\MissingTaxDocument',
+                    'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\Source\\RentalTaxDataSource',
+                    'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\AnnualRentalIncome',
+                    'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\AnnualDeductibleExpenses',
+                    'Caramagnols\\PrivateApps\\TaxDeclarationHelper\\ValueObject\\MissingTaxDocument',
                 ],
                 'testClasses' => [
                     'TaxDeclarationHelperModuleTest',

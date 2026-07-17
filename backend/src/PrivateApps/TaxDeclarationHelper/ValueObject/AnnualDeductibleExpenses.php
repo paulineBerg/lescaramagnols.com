@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject;
+namespace Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject;
 
-final class AnnualRentalIncome
+final class AnnualDeductibleExpenses
 {
     /**
      * @param array<int, array<string, mixed>> $sourceRows
@@ -12,11 +12,10 @@ final class AnnualRentalIncome
      */
     public function __construct(
         public readonly int $year,
-        public readonly float $rentDue,
-        public readonly float $rentPaid,
-        public readonly float $unpaidRent,
-        public readonly int $validatedPaymentCount,
-        public readonly int $partialPaymentCount,
+        public readonly float $recoverableExpenses,
+        public readonly float $deductibleCandidateExpenses,
+        public readonly float $nonDeductibleExpenses,
+        public readonly int $validatedExpenseCount,
         private readonly array $sourceRows,
         private readonly array $blockingControls = []
     ) {
@@ -50,11 +49,10 @@ final class AnnualRentalIncome
     {
         return [
             'year' => $this->year,
-            'rentDue' => $this->rentDue,
-            'rentPaid' => $this->rentPaid,
-            'unpaidRent' => $this->unpaidRent,
-            'validatedPaymentCount' => $this->validatedPaymentCount,
-            'partialPaymentCount' => $this->partialPaymentCount,
+            'recoverableExpenses' => $this->recoverableExpenses,
+            'deductibleCandidateExpenses' => $this->deductibleCandidateExpenses,
+            'nonDeductibleExpenses' => $this->nonDeductibleExpenses,
+            'validatedExpenseCount' => $this->validatedExpenseCount,
             'blocked' => $this->isBlocked(),
             'blockingControls' => $this->blockingControls,
             'sourceRows' => $this->sourceRows,

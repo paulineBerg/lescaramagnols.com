@@ -7,7 +7,7 @@ use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyMemberRepo
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalUnitRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Service\ChargeRegularizationService;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;

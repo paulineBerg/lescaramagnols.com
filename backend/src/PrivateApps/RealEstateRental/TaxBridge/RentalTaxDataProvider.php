@@ -7,9 +7,9 @@ namespace Caramagnols\PrivateApps\RealEstateRental\TaxBridge;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyTaxBridgeNormalizer;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Service\RentalAnnualSummaryService;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\AnnualDeductibleExpenses;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\AnnualRentalIncome;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\MissingTaxDocument;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\AnnualDeductibleExpenses;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\AnnualRentalIncome;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\MissingTaxDocument;
 
 final class RentalTaxDataProvider implements RentalTaxDataProviderInterface
 {

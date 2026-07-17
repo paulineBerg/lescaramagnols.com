@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace LesCaramagnols\Tests;
 
 use Caramagnols\Http\Request;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentRepository;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\Http\PrivatePortalController;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;

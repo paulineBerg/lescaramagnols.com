@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Caramagnols\PrivatePortal\TaxDeclarationHelper\Source;
+namespace Caramagnols\PrivateApps\TaxDeclarationHelper\Source;
 
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\AnnualDeductibleExpenses;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\AnnualRentalIncome;
-use Caramagnols\PrivatePortal\TaxDeclarationHelper\ValueObject\MissingTaxDocument;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\AnnualDeductibleExpenses;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\AnnualRentalIncome;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\ValueObject\MissingTaxDocument;
 
 interface TaxDataSourceInterface
 {

@@ -6,7 +6,7 @@ namespace Caramagnols\PrivatePortal\Operations;
 
 use Caramagnols\Database\EditorialDatabase;
 use Caramagnols\PrivateApps\FamilyDiscussion\Attachment\DiscussionAttachmentStorage;
-use Caramagnols\PrivatePortal\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use PDO;
 
 final class PrivateDataProtectionService
