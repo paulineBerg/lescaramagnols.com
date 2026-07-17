@@ -1,60 +1,101 @@
 # Les Caramagnols
 
-## Objectif du projet
+Site `https://www.lescaramagnols.com/` : rendu serveur PHP avec front-controller unique, pipeline frontend Vite, gestion editoriale multilingue (`fr`, `en`, `de`) et publication d'assets vers `backend/public/`.
 
-Ce depot contient le site Les Caramagnols avec rendu serveur PHP, pipeline frontend Vite, gestion editoriale multilingue (`fr`, `en`, `de`) et publication d'assets vers `backend/public/`.
+La production est la reference fonctionnelle et editoriale du projet (voir `AGENTS.md`).
+
+## Stack technique
+
+| Domaine | Technologies |
+|---|---|
+| Backend | PHP `^8.1`, FastRoute (routage), Monolog 3 (logs), Symfony Mailer 7 (emails), PDO/MySQL |
+| Frontend | Vite 7, TypeScript, SCSS, tarteaucitron (consentement cookies) |
+| Qualite backend | PHPUnit 10, PHPStan (niveau 5), PHP_CodeSniffer (PSR-12) |
+| Qualite frontend | Vitest, ESLint 9, Stylelint 16, Prettier, budgets d'assets |
+| Runtime | Node `>=20.19.0 <25` (recommande: `22.22.1` via `.nvmrc`), Composer |
+| Hebergement | OVH (prod + preprod), deploiement rsync/ssh via `backend/tools/` |
+
+Pas de framework applicatif : socle maison PSR-4 (`Caramagnols\` => `backend/src/`) sur FastRoute.
 
 ## Structure générale
 
 ```text
 /
 ├── README.md
-├── AGENTS.md
+├── AGENTS.md               # gouvernance, securite, conventions (PRIORITAIRE)
+├── Makefile                # install, tests, build, hooks git
+├── dev.sh                  # orchestrateur dev local (PHP + Vite + proxy HTTPS)
 ├── backend/
-│   ├── src/
-│   ├── templates/
-│   ├── tests/
-│   └── README.md
+│   ├── public/             # webroot unique (index.php, assets publies, .htaccess durci)
+│   ├── src/                # code moderne PSR-4, organise par domaine
+│   ├── core/               # bootstrap, helpers et wrappers legacy, outils CLI
+│   ├── config/             # config centrale (secrets via .env, jamais en dur)
+│   ├── templates/          # rendu serveur (pages, partials, admin, private)
+│   ├── data/               # sources editoriales JSON (pages, menus, blog)
+│   ├── sql/                # schemas et migrations (editorial/ et private/)
+│   ├── tools/              # scripts shell d'exploitation et deploiement OVH
+│   ├── var/                # runtime (cache, logs, rate-limits) — non versionne
+│   ├── lang/               # dictionnaires i18n fr/en/de
+│   └── tests/              # PHPUnit (~126 fichiers de tests)
 ├── frontend/
-│   ├── src/
-│   ├── tools/
-│   └── README.md
-└── docs/
-    ├── README.md
-    ├── architecture.md
-    ├── installation.md
-    ├── seo.md
-    ├── codex.md
-    ├── admin/
-    ├── backend/
-    ├── blog/
-    ├── deployment/
-    ├── private/
-    ├── roadmap/
-    ├── security/
-    └── archive/
+│   ├── src/                # TS/JS, SCSS, assets sources
+│   └── tools/              # scripts de build, hygiene docs/assets, budgets
+└── docs/                   # documentation par domaine (index: docs/README.md)
 ```
+
+## Architecture backend
+
+### Flux d'une requête
+
+```text
+backend/public/index.php
+  └─ core/bootstrap.php            # env, config, i18n, securite, sessions
+      └─ src/Http/FrontController  # dispatcher FastRoute (API, blog, RSS/sitemap, admin, prive)
+          └─ fallback core/router.php (routes legacy -> templates/pages/*.php)
+              └─ templates/ (layout + partials)
+```
+
+### Domaines principaux de `backend/src/`
+
+- Site public et editorial : `Content` (pages structurees, tuiles), `Navigation` (menus/mega-menu), `Blog`, `Editorial`, `Seo`, `Feed`, `I18n`, `Assets`
+- Transverse : `Http`, `Database`, `Security` (CSRF, cookies, CSP), `Logging`, `Mailer`, `Support`, `Cron`, `Backup`, `Social`
+- Admin : `Admin` (controleur + services de gestion editoriale)
+- Espace prive :
+  - `PrivatePortal/` — **socle uniquement** : HTTP, routes, securite (auth, MFA, sessions), utilisateurs, permissions, operations transverses
+  - `PrivateApps/` — **modules metier** : `RealEstateRental` (gestion locative + import agence), `TaxDeclarationHelper`, `FamilyDiscussion` (messagerie chiffree), `BlocNote`, `Documents`
+
+Regle d'architecture (voir `AGENTS.md`) : toute nouvelle logique metier privee va dans `PrivateApps/`, jamais dans `PrivatePortal/`.
+
+### Données
+
+- Stockage editorial configurable via `EDITORIAL_STORAGE` : `json` | `sql` | `dual-write`
+- Sources JSON : `backend/data/` (`pages.json`, `menus.json`, articles de blog multilingues)
+- Schemas SQL : `backend/sql/install.sql` + migrations `sql/editorial/` et `sql/private/`
+- Acces base : PDO exclusivement, requetes preparees, `ATTR_EMULATE_PREPARES => false` (`src/Database/PdoConnectionFactory.php`)
 
 ## Installation
 
-Pre-requis:
-- PHP `8.1+`
-- Composer
-- Node `>=20.19.0 <25` (recommande: `22.22.1` via `.nvmrc`)
-- npm
-
-Commandes:
+Pre-requis: PHP `8.1+`, Composer, Node `>=20.19.0 <25`, npm.
 
 ```bash
-cd backend && composer install
-cd ../frontend && npm install
+make install-backend    # ou: cd backend && composer install
+make install-frontend   # ou: cd frontend && npm ci
+make install-git-hooks  # hooks pre-commit (.githooks)
 ```
+
+Configuration : copier `backend/.env.example` vers `backend/.env` et renseigner les valeurs locales. Aucun secret ne doit etre versionne.
 
 Procedure d'installation securisee (hors webroot): `docs/backend/installation-hors-webroot.md`.
 
 ## Développement local
 
-Terminal 1:
+Orchestrateur tout-en-un :
+
+```bash
+./dev.sh   # PHP 127.0.0.1:8000 + Vite localhost:5173 (+ proxy HTTPS optionnel)
+```
+
+Ou manuellement — Terminal 1:
 
 ```bash
 cd backend
@@ -74,17 +115,49 @@ Build publication:
 
 ```bash
 cd frontend
-npm run build
+npm run build   # inclut check-budgets + publication vers backend/public/
 ```
 
-## Fonctionnalités principales
+## Qualité et tests
 
-- Rendu serveur PHP avec front-controller unique
-- Admin editorial (pages, navigation, blog)
-- Blog SQL maitre avec contraintes de taxonomie et maillage interne
-- Internationalisation `fr/en/de`
-- SEO technique (canonical, JSON-LD, Open Graph/Twitter)
-- Pipeline frontend outille (build, hygiene docs/assets, budgets)
+```bash
+# Backend (depuis backend/)
+composer test          # PHPUnit
+composer phpstan       # analyse statique (niveau 5, src/)
+composer phpcs         # PSR-12 (src/)
+composer lint          # php -l
+composer check-env     # coherence configuration
+composer check-i18n    # coherence cles de traduction
+
+# Frontend (depuis frontend/)
+npm run test:run       # Vitest
+npm run lint           # ESLint + Stylelint
+npm run hygiene:docs   # verification des liens documentation
+
+# Racine
+make test-backend test-frontend
+```
+
+## Déploiement (OVH)
+
+Deux environnements : **prod** (`DEPLOY_TARGET=prod`, ne synchronise jamais `backend/private/`) et **preprod** (`DEPLOY_TARGET=preprod`, robots en `noindex`).
+
+```bash
+backend/tools/deploy-release.sh   # deploiement complet (garde anti-fichiers non trackes)
+backend/tools/deploy-fast.sh      # deploiement rapide
+```
+
+References : `docs/deployment/README.md` (checklist V1) et `docs/deployment/runbook-v1-go-live.md`.
+
+## Sécurité
+
+- Webroot limite a `backend/public/` ; `private/`, `var/`, `data/`, `.env` hors exposition HTTP
+- `.htaccess` durci : HTTPS force, CSP, HSTS, X-Frame-Options, Permissions-Policy, blocage fichiers sensibles
+- Admin : session securisee, CSRF, rate-limit, allowlist IP, timeout d'inactivite, re-authentification, 2FA TOTP
+- Espace prive : MFA TOTP + codes de secours, politique de mot de passe (min. 14 caracteres), verrouillage de compte, chiffrement AES-256-GCM des pieces jointes de discussion
+- Les routes canoniques admin/prive ne sont pas documentees ici (voir `AGENTS.md`)
+
+Reference : `docs/security/README.md`.
 
 ## Documentation disponible
 
@@ -99,14 +172,16 @@ Guides principaux:
 - Blog: `docs/blog/`
 - Securite admin: `docs/security/README.md`
 - Modernisation/deploiement: `docs/roadmap/` et `docs/deployment/`
+- **Plan d'optimisation (phases + checklist): `docs/roadmap/optimisation-2026-07.md`**
 - Archives: `docs/archive/`
 
-## Règles Codex / contribution
+## Règles de contribution
 
-- Les regles de travail, d'architecture, de securite et de verification sont definies dans `AGENTS.md`.
+- Les regles de travail, d'architecture, de securite et de verification sont definies dans `AGENTS.md` (prioritaire).
 - Toute modification non triviale doit respecter les documents de reference listes dans `AGENTS.md`.
 - Ne pas multiplier les `.md`: fusionner par fonction et archiver les notes datees.
-- Avant validation: executer les tests/lints pertinents et verifier les liens docs.
+- Avant validation: executer les tests/lints pertinents et verifier les liens docs (`npm run hygiene:docs`).
+- Aucun secret dans le depot : utiliser `backend/.env` (local) et `backend/.env.example` (reference).
 
 ## Points sensibles à ne pas casser
 
@@ -116,3 +191,4 @@ Guides principaux:
 - Publication assets frontend -> `backend/public/` sans reintroduire d'artefacts versionnes
 - Regles SEO: canonical sans fragment `#`, JSON-LD centralise, images sociales par page
 - Durcissement securite admin (session, re-auth, 2FA, anti brute-force)
+- Separation `PrivatePortal` (socle) / `PrivateApps` (metier) et non-exposition publique de `/private`

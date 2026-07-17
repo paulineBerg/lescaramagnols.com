@@ -11,6 +11,7 @@ Reference :
 - `docs/consolidation-lot-d.md`
 - `docs/admin/README.md`
 - `docs/roadmap/transition-v1-s1-s8.md` (plan operationnel, tickets S1, trajectoire 8 semaines)
+- `docs/roadmap/optimisation-2026-07.md` (plan d'optimisation post-V1 : phases + checklist d'implementation)
 
 ## Note 2026-04-16
 
