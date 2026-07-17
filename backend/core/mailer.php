@@ -75,16 +75,33 @@ function send_private_email_with_config(
         private_mail_set_last_error('private mail disabled');
         return false;
     }
-    if (trim((string) ($privateMailConfig['smtp_user'] ?? '')) !== '' && (string) ($privateMailConfig['smtp_password'] ?? '') === '') {
+    $configuredTransport = strtolower(trim((string) ($privateMailConfig['transport'] ?? 'smtp')));
+    $isConfiguredLocalTransport = in_array($configuredTransport, ['native', 'sendmail'], true);
+    if (
+        !$isConfiguredLocalTransport
+        && trim((string) ($privateMailConfig['smtp_user'] ?? '')) !== ''
+        && (string) ($privateMailConfig['smtp_password'] ?? '') === ''
+    ) {
         private_mail_set_last_error('private mail smtp password missing');
         return false;
     }
 
-    $networkFallbackAllowed = false;
+    $networkFallbackAllowed = $isConfiguredLocalTransport;
     foreach (private_mail_delivery_configs($privateMailConfig) as $mailConfig) {
         $isLocalTransport = in_array((string) ($mailConfig['transport'] ?? ''), ['native', 'sendmail'], true);
         if ($isLocalTransport && !$networkFallbackAllowed) {
             return false;
+        }
+
+        if ((string) ($mailConfig['transport'] ?? '') === 'native' && $attachments === []) {
+            $sent = send_private_email_with_php_mail($to, $subject, $message, $mailConfig);
+            if ($sent) {
+                private_mail_set_last_error(null);
+                return true;
+            }
+
+            private_mail_set_last_error('php mail returned false');
+            continue;
         }
 
         $result = send_notification_email_with_error($to, $subject, $message, $attachments, $mailConfig);
@@ -106,6 +123,45 @@ function send_private_email_with_config(
     }
 
     return false;
+}
+
+/**
+ * Envoi direct via mail() pour les hebergements mutualises qui refusent SMTP et sendmail explicite.
+ *
+ * @param array<string, mixed> $config
+ */
+function send_private_email_with_php_mail(string $to, string $subject, string $message, array $config): bool
+{
+    if (filter_var($to, FILTER_VALIDATE_EMAIL) === false) {
+        return false;
+    }
+
+    $from = trim((string) ($config['from_address'] ?? ''));
+    if ($from === '' || filter_var($from, FILTER_VALIDATE_EMAIL) === false) {
+        return false;
+    }
+
+    $fromName = trim((string) ($config['from_name'] ?? 'Les Caramagnols'));
+    $replyTo = trim((string) ($config['reply_to'] ?? ''));
+    $encodedSubject = function_exists('mb_encode_mimeheader')
+        ? mb_encode_mimeheader($subject, 'UTF-8')
+        : '=?UTF-8?B?' . base64_encode($subject) . '?=';
+    $encodedFromName = function_exists('mb_encode_mimeheader')
+        ? mb_encode_mimeheader($fromName, 'UTF-8')
+        : '=?UTF-8?B?' . base64_encode($fromName) . '?=';
+
+    $headers = [
+        sprintf('From: %s <%s>', $encodedFromName, $from),
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=UTF-8',
+        'Content-Transfer-Encoding: 8bit',
+    ];
+
+    if ($replyTo !== '' && filter_var($replyTo, FILTER_VALIDATE_EMAIL) !== false) {
+        $headers[] = 'Reply-To: ' . $replyTo;
+    }
+
+    return mail($to, $encodedSubject, $message, implode("\r\n", $headers));
 }
 
 function private_mail_set_last_error(?string $error): void

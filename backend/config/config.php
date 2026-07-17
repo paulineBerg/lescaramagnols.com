@@ -692,6 +692,11 @@ $appConfig = [
                 FILTER_VALIDATE_BOOLEAN,
                 FILTER_NULL_ON_FAILURE
             ) ?? true,
+            'transport' => in_array(
+                strtolower(trim((string) ($sitePrivateMailOverride['transport'] ?? env('PRIVATE_MAIL_TRANSPORT', 'smtp')))),
+                ['smtp', 'native', 'sendmail'],
+                true
+            ) ? strtolower(trim((string) ($sitePrivateMailOverride['transport'] ?? env('PRIVATE_MAIL_TRANSPORT', 'smtp')))) : 'smtp',
             'smtp_host' => trim((string) ($sitePrivateMailOverride['smtp_host'] ?? env('PRIVATE_MAIL_SMTP_HOST', 'ssl0.ovh.net'))),
             'smtp_port' => max(1, min(65535, (int) ($sitePrivateMailOverride['smtp_port'] ?? env('PRIVATE_MAIL_SMTP_PORT', 465)))),
             'smtp_user' => trim((string) ($sitePrivateMailOverride['smtp_user'] ?? env('PRIVATE_MAIL_SMTP_USER', 'ne-pas-repondre@lescaramagnols.com'))),
