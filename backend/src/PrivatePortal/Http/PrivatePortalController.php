@@ -44,6 +44,9 @@ use Caramagnols\PrivateApps\TaxDeclarationHelper\Service\TaxDeclarationSummarySe
 use Caramagnols\PrivateApps\BlocNote\BlocNoteRepository;
 use Caramagnols\PrivateApps\BlocNote\Http\BlocNoteController;
 use Caramagnols\PrivateApps\Documents\Http\DocumentsController;
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyMappingRepository;
+use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyStatementValidationService;
+use Caramagnols\PrivateApps\RealEstateRental\Http\RealEstateRentalController;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Operations\PrivateBackupService;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
@@ -103,6 +106,47 @@ final class PrivatePortalController
             'member_settings' => $this->handleMemberSettings($request),
             'documents' => $this->documentsController()->index($request),
             'blocnote' => $this->blocNoteController()->handle($request),
+            'rental_dashboard' => $this->rentalController()->handle('rental_dashboard', $request),
+            'rental_lessors' => $this->rentalController()->handle('rental_lessors', $request),
+            'rental_properties' => $this->rentalController()->handle('rental_properties', $request),
+            'rental_property_archive' => $this->rentalController()->handle(
+                'rental_property_archive',
+                $request,
+                ['propertyId' => (int) ($routeParams['propertyId'] ?? 0)]
+            ),
+            'rental_units' => $this->rentalController()->handle('rental_units', $request),
+            'rental_unit_archive' => $this->rentalController()->handle(
+                'rental_unit_archive',
+                $request,
+                ['unitId' => (int) ($routeParams['unitId'] ?? 0)]
+            ),
+            'rental_property_members' => $this->rentalController()->handle('rental_property_members', $request),
+            'rental_tenants' => $this->rentalController()->handle('rental_tenants', $request),
+            'rental_leases' => $this->rentalController()->handle('rental_leases', $request),
+            'rental_rents' => $this->rentalController()->handle('rental_rents', $request),
+            'rental_payments' => $this->rentalController()->handle('rental_payments', $request),
+            'rental_expenses' => $this->rentalController()->handle('rental_expenses', $request),
+            'rental_regularizations' => $this->rentalController()->handle('rental_regularizations', $request),
+            'rental_documents' => $this->rentalController()->handle('rental_documents', $request),
+            'rental_agencies' => $this->redirect(private_portal_url('rental_agency_imports') . '?tab=agencies'),
+            'rental_agency_imports' => $this->rentalController()->handle('rental_agency_imports', $request),
+            'rental_agency_review' => $this->rentalController()->handle('rental_agency_review', $request),
+            'rental_document_file' => $this->rentalController()->handle(
+                'rental_document_file',
+                $request,
+                ['documentId' => (string) ($routeParams['documentId'] ?? '')]
+            ),
+            'rental_regularization_file' => $this->rentalController()->handle(
+                'rental_regularization_file',
+                $request,
+                ['documentId' => (string) ($routeParams['documentId'] ?? '')]
+            ),
+            'rental_summary' => $this->rentalController()->handle('rental_summary', $request),
+            'rental_export' => $this->rentalController()->handle(
+                'rental_export',
+                $request,
+                ['format' => (string) ($routeParams['format'] ?? '')]
+            ),
             'logout' => $this->handleLogout($request),
             'activate' => $this->handleActivate($request, (string) ($routeParams['token'] ?? '')),
             'password_forgot' => $this->handlePasswordForgot($request),
@@ -114,37 +158,6 @@ final class PrivatePortalController
             'files_upload' => $this->documentsController()->upload($request),
             'files_categories' => $this->documentsController()->categories($request),
             'files_delete' => $this->documentsController()->delete(
-                $request,
-                (string) ($routeParams['documentId'] ?? '')
-            ),
-            'rental_dashboard' => $this->handleRentalDashboard($request),
-            'rental_lessors' => $this->handleRentalLessors($request),
-            'rental_properties' => $this->handleRentalProperties($request),
-            'rental_property_archive' => $this->handleRentalPropertyArchive(
-                $request,
-                (int) ($routeParams['propertyId'] ?? 0)
-            ),
-            'rental_units' => $this->handleRentalUnits($request),
-            'rental_unit_archive' => $this->handleRentalUnitArchive(
-                $request,
-                (int) ($routeParams['unitId'] ?? 0)
-            ),
-            'rental_property_members' => $this->handleRentalPropertyMembers($request),
-            'rental_tenants' => $this->handleRentalTenants($request),
-            'rental_leases' => $this->handleRentalLeases($request),
-            'rental_rents' => $this->handleRentalRents($request),
-            'rental_payments' => $this->handleRentalPayments($request),
-            'rental_expenses' => $this->handleRentalExpenses($request),
-            'rental_regularizations' => $this->handleRentalRegularizations($request),
-            'rental_documents' => $this->handleRentalDocuments($request),
-            'rental_agencies' => $this->redirect(private_portal_url('rental_agency_imports') . '?tab=agencies'),
-            'rental_agency_imports' => $this->handleRentalAgencyImports($request),
-            'rental_agency_review' => $this->handleRentalAgencyReview($request),
-            'rental_document_file' => $this->handleRentalDocumentFile(
-                $request,
-                (string) ($routeParams['documentId'] ?? '')
-            ),
-            'rental_regularization_file' => $this->handleRentalRegularizationFile(
                 $request,
                 (string) ($routeParams['documentId'] ?? '')
             ),
@@ -5472,6 +5485,36 @@ final class PrivatePortalController
             $this->privateDocumentStorage(),
             fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
             $this->eventLogger
+        );
+    }
+
+    private function rentalController(): RealEstateRentalController
+    {
+        return new RealEstateRentalController(
+            $this->auth,
+            $this->guard(),
+            $this->privateUserRepository(),
+            $this->modulePermissionRepository(),
+            $this->rentalPropertyRepository(),
+            $this->rentalPropertyMemberRepository(),
+            $this->rentalUnitRepository(),
+            $this->rentalLifecycleRepository(),
+            $this->rentalLessorRepository(),
+            $this->agencyImportRepository(),
+            new AgencyMappingRepository(editorial_database()),
+            $this->rentalAnnualSummaryService(),
+            $this->rentalDashboardService(),
+            $this->rentalExportService(),
+            $this->rentalPaymentRequestService(),
+            $this->rentalReceiptService(),
+            $this->chargeRegularizationService(),
+            $this->rentScheduleService(),
+            $this->rentPaymentStatusService(),
+            $this->agencyImportService(),
+            fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
+            $this->eventLogger,
+            null,
+            null
         );
     }
 

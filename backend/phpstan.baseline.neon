@@ -1,2 +1,241 @@
 parameters:
-  ignoreErrors: []
+	ignoreErrors:
+		-
+			message: "#^Constant Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:AGENCY_IMPORT_UPLOAD_FIELD is unused\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Constant Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:CSRF_RENTAL is unused\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Constant Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:MAX_RENTAL_LIST is unused\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Constant Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:METHOD_GET is unused\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Constant Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:METHOD_POST is unused\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Constant Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:RENTAL_DOCUMENT_UPLOAD_FIELD is unused\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:render\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$agencyAdvancedReconciliationService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$agencyImportRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$agencyImportService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$agencyMappingRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$agencyStatementValidationService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$auth is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$chargeRegularizationService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$eventLogger is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$modulePermissionRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$privateUserRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentPaymentStatusService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentScheduleService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalAnnualSummaryService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalDashboardService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalExportService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalLessorRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalLifecycleRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalPaymentRequestService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalPropertyMemberRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalPropertyRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalReceiptService is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$rentalUnitRepository is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Property Caramagnols\\\\PrivateApps\\\\RealEstateRental\\\\Http\\\\RealEstateRentalController\\:\\:\\$securityGuard is never read, only written\\.$#"
+			count: 1
+			path: src/PrivateApps/RealEstateRental/Http/RealEstateRentalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalAgencyImports\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalAgencyReview\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalDashboard\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalDocumentFile\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalDocuments\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalExpenses\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalLeases\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalLessors\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalPayments\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalProperties\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalPropertyArchive\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalPropertyMembers\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalRegularizationFile\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalRegularizations\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalRents\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalTenants\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalUnitArchive\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php
+
+		-
+			message: "#^Method Caramagnols\\\\PrivatePortal\\\\Http\\\\PrivatePortalController\\:\\:handleRentalUnits\\(\\) is unused\\.$#"
+			count: 1
+			path: src/PrivatePortal/Http/PrivatePortalController.php

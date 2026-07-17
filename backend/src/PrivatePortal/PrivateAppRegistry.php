@@ -110,21 +110,26 @@ final class PrivateAppRegistry
             return self::$orderedManifests;
         }
 
+        // Build a mapping from moduleCode to class
+        $moduleCodeToClass = [];
+        foreach (self::MANIFEST_CLASSES as $manifestClass) {
+            $tempInstance = new $manifestClass();
+            $moduleCodeToClass[$tempInstance->moduleCode()] = $manifestClass;
+        }
+
         $manifests = [];
         foreach (self::MANIFEST_CLASSES as $manifestClass) {
-            $manifest = self::all()[$manifestClass::moduleCode()] ?? null;
-            if ($manifest === null) {
-                // Ne devrait jamais arriver si all() est appelé avant
-                $manifest = new $manifestClass();
-            }
-
+            $tempInstance = new $manifestClass();
+            $moduleCode = $tempInstance->moduleCode();
+            $manifest = self::all()[$moduleCode] ?? $tempInstance;
+            
             $manifests[] = [
                 'class' => $manifestClass,
                 'instance' => $manifest,
             ];
         }
 
-        // Tri par ordre
+        // Tri par ordre (bien que MANIFEST_CLASSES soit déjà dans l'ordre, on trie par order() pour être sûr)
         usort($manifests, static function (array $a, array $b): int {
             return $a['instance']->order() <=> $b['instance']->order();
         });

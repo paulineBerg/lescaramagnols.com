@@ -152,4 +152,28 @@ final class AgencyImportsManifest implements \Caramagnols\PrivatePortal\PrivateA
     {
         return 'Sous-module fonctionnel rattache a la permission real_estate_rental.';
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function routePaths(): array
+    {
+        return [
+            'rental_agencies' => 'locations/agences',
+            'rental_agency_imports' => 'locations/imports',
+            'rental_agency_review' => 'locations/revue',
+        ];
+    }
+
+    /**
+     * @return array{label: string, description: string, stat_code: string}
+     */
+    public function dashboardTileData(): array
+    {
+        return [
+            'label' => 'Imports Agence',
+            'description' => 'Gestion des imports et revue des documents agence',
+            'stat_code' => 'private.rental.agency_import_count',
+        ];
+    }
 }
