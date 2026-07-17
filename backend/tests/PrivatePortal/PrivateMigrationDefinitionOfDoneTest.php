@@ -13,6 +13,10 @@ final class PrivateMigrationDefinitionOfDoneTest extends TestCase
 {
     public function testDefinitionOfDoneIsReadyAndCoversMigrationCriteria(): void
     {
+        if (!is_file(dirname(ROOT_PATH) . '/docs/private/README.md')) {
+            self::markTestSkipped('docs/private absent (non versionne) : definition of done non evaluable ici.');
+        }
+
         $service = new PrivateMigrationDefinitionOfDoneService(
             new PrivateModuleRegistry(),
             new PrivateRouteResolver('private-test')

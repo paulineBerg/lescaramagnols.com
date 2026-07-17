@@ -1799,6 +1799,10 @@ final class FrontControllerHttpTest extends TestCase
         menus_data_set_path_override(null);
         navigation_view_model_cache_clear();
 
+        if (!is_file(menus_data_path())) {
+            $this->markTestSkipped('Registre editorial local absent (backend/data/menus.json non versionne).');
+        }
+
         file_put_contents(
             $this->pagesFile,
             json_encode(
