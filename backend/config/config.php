@@ -484,15 +484,22 @@ $normalizePrivateDocumentMimeTypes = static function (mixed $values): array {
     return $normalized;
 };
 
-$privateDocumentStorageRootPath = trim((string) env('PRIVATE_DOCUMENT_STORAGE_ROOT_PATH', ROOT_PATH . '/private'));
-if ($privateDocumentStorageRootPath === '') {
-    $privateDocumentStorageRootPath = ROOT_PATH . '/private';
-}
+$privateStorageRootPath = rtrim(str_replace('\\', '/', trim((string) env('PRIVATE_STORAGE_ROOT', ''))), '/');
+if ($privateStorageRootPath !== '') {
+    $privateDocumentStorageRootPath = dirname($privateStorageRootPath);
+    $privateDocumentStorageDirectory = basename($privateStorageRootPath);
+} else {
+    $privateDocumentStorageRootPath = trim((string) env('PRIVATE_DOCUMENT_STORAGE_ROOT_PATH', ROOT_PATH . '/private'));
+    if ($privateDocumentStorageRootPath === '') {
+        $privateDocumentStorageRootPath = ROOT_PATH . '/private';
+    }
 
-$privateDocumentStorageDirectory = trim((string) env('PRIVATE_DOCUMENT_STORAGE_DIRECTORY', 'storage'));
-if ($privateDocumentStorageDirectory === '') {
+    $privateDocumentStorageDirectory = trim((string) env('PRIVATE_DOCUMENT_STORAGE_DIRECTORY', 'storage'));
+}
+if ($privateDocumentStorageDirectory === '' || $privateDocumentStorageDirectory === '.' || $privateDocumentStorageDirectory === '/') {
     $privateDocumentStorageDirectory = 'storage';
 }
+$privateStorageDirectoryPath = rtrim($privateDocumentStorageRootPath, '/') . '/' . $privateDocumentStorageDirectory;
 
 $privateDocumentUploadsDirectory = trim((string) env('PRIVATE_DOCUMENT_UPLOADS_DIRECTORY', 'uploads'));
 if ($privateDocumentUploadsDirectory === '') {
@@ -521,13 +528,13 @@ $parsePrivateDocumentPermission = static function (mixed $value, int $default, i
 };
 
 $privateDocumentDirectoryPermissions = $parsePrivateDocumentPermission(
-    env('PRIVATE_DOCUMENT_DIRECTORY_PERMISSIONS', '0700'),
-    0700,
+    env('PRIVATE_DOCUMENT_DIRECTORY_PERMISSIONS', $privateStorageRootPath !== '' ? '0770' : '0700'),
+    $privateStorageRootPath !== '' ? 0770 : 0700,
     0700
 );
 $privateDocumentFilePermissions = $parsePrivateDocumentPermission(
-    env('PRIVATE_DOCUMENT_FILE_PERMISSIONS', '0600'),
-    0600,
+    env('PRIVATE_DOCUMENT_FILE_PERMISSIONS', $privateStorageRootPath !== '' ? '0660' : '0600'),
+    $privateStorageRootPath !== '' ? 0660 : 0600,
     0600
 );
 
@@ -673,6 +680,7 @@ $appConfig = [
         ],
         'discussions' => [
             'storage_root_path' => $privateDocumentStorageRootPath,
+            'storage_directory' => $privateDocumentStorageDirectory,
             'retention_days' => $privateDiscussionRetentionDays,
             'max_message_length' => $privateDiscussionMaxMessageLength,
             'max_attachments_per_message' => $privateDiscussionMaxAttachmentsPerMessage,
@@ -685,6 +693,9 @@ $appConfig = [
             'attachment_encryption_key' => $privateDiscussionAttachmentEncryptionKey,
             'allowed_extensions' => $privateDiscussionAllowedExtensions,
             'allowed_mime_types' => $privateDiscussionAllowedMimeTypes,
+        ],
+        'document_hub' => [
+            'storage_root_path' => $privateStorageDirectoryPath . '/document-hub',
         ],
         'mail' => [
             'enabled' => filter_var(

@@ -133,7 +133,7 @@ $createDialogId = 'rental-tenant-create-dialog';
                 </select>
               </label>
               <fieldset class="private-fieldset">
-                <legend>Identité V2</legend>
+                <legend>Identité</legend>
                 <label>Nom <input type="text" name="last_name" maxlength="120" value="<?php echo htmlspecialchars((string) ($tenant['lastName'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Prénoms <input type="text" name="first_names" maxlength="160" value="<?php echo htmlspecialchars((string) ($tenant['firstNames'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Date de naissance <input type="date" name="birth_date" value="<?php echo htmlspecialchars((string) ($tenant['birthDate'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
@@ -191,7 +191,7 @@ $createDialogId = 'rental-tenant-create-dialog';
             </select>
           </label>
           <fieldset class="private-fieldset">
-            <legend>Identité V2</legend>
+            <legend>Identité</legend>
             <label>Nom <input type="text" name="last_name" maxlength="120" required /></label>
             <label>Prénoms <input type="text" name="first_names" maxlength="160" /></label>
             <label>Date de naissance <input type="date" name="birth_date" /></label>

@@ -10,7 +10,7 @@ final class DiscussionAttachmentStorage
     private const ENCRYPTION_CIPHER = 'aes-256-gcm';
     private const ENCRYPTION_IV_BYTES = 12;
     private const ENCRYPTION_TAG_BYTES = 16;
-    private const DIRECTORY_PERMISSIONS = 0700;
+    private const DIRECTORY_PERMISSIONS = 0770;
     private const DEFAULT_MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
     private const DEFAULT_ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'txt'];
     private const DEFAULT_ALLOWED_MIME_TYPES = [
@@ -26,7 +26,7 @@ final class DiscussionAttachmentStorage
         'text/plain',
     ];
 
-    private readonly string $rootPath;
+    private string $rootPath;
     private readonly int $maxUploadBytes;
     /** @var array<int, string> */
     private array $allowedExtensions;
@@ -34,6 +34,18 @@ final class DiscussionAttachmentStorage
     private array $allowedMimeTypes;
     private ?string $encryptionKey;
     private ?string $lastError = null;
+
+    /**
+     * Mode legacy : lecture depuis l'ancien chemin, écriture bloquée.
+     * Activé automatiquement si le nouveau chemin n'existe pas mais que l'ancien existe.
+     */
+    private bool $legacyMode = false;
+
+    /**
+     * Chemin legacy pour la compatibilité pendant la migration.
+     */
+    private const LEGACY_STORAGE_ROOT = ROOT_PATH . '/private';
+    private const LEGACY_STORAGE_DIR = 'storage/family-discussion';
 
     /**
      * @param array<int, string> $allowedExtensions
@@ -44,14 +56,17 @@ final class DiscussionAttachmentStorage
         int $maxUploadBytes = self::DEFAULT_MAX_UPLOAD_BYTES,
         array $allowedExtensions = self::DEFAULT_ALLOWED_EXTENSIONS,
         array $allowedMimeTypes = self::DEFAULT_ALLOWED_MIME_TYPES,
-        ?string $encryptionSecret = null
+        ?string $encryptionSecret = null,
+        string $storageDirectory = 'storage'
     ) {
         $storageRootPath = trim(str_replace('\\', '/', $storageRootPath));
         if ($storageRootPath === '') {
             $storageRootPath = ROOT_PATH . '/private';
         }
 
-        $this->rootPath = rtrim($storageRootPath, '/') . '/storage/family-discussion';
+        // Vérifier si le chemin principal existe, sinon essayer le fallback legacy
+        $this->checkLegacyFallback($storageRootPath, $storageDirectory);
+
         $this->maxUploadBytes = max(1, $maxUploadBytes);
         $this->allowedExtensions = $this->normalizeExtensions($allowedExtensions);
         $this->allowedMimeTypes = $this->normalizeMimeTypes($allowedMimeTypes);
@@ -66,6 +81,34 @@ final class DiscussionAttachmentStorage
         $this->ensureRoot();
     }
 
+    /**
+     * Vérifie si le chemin principal existe, sinon bascule vers le chemin legacy.
+     * Le mode legacy permet la lecture mais bloque l'écriture.
+     */
+    private function checkLegacyFallback(string $storageRootPath, string $storageDirectory): void
+    {
+        $storageDirectory = $this->sanitizeDirectoryName($storageDirectory, 'storage');
+        $appEnv = function_exists('app_config') ? strtolower((string) app_config('env', '')) : '';
+        if (!in_array($appEnv, ['production', 'prod', 'live'], true)) {
+            $this->rootPath = rtrim($storageRootPath, '/') . '/' . $storageDirectory . '/family-discussion';
+            return;
+        }
+
+        // Chemin principal
+        $mainRootPath = rtrim($storageRootPath, '/') . '/' . $storageDirectory . '/family-discussion';
+
+        // Chemin legacy
+        $legacyRootPath = self::LEGACY_STORAGE_ROOT . '/' . self::LEGACY_STORAGE_DIR;
+
+        // Si le chemin principal n'existe pas mais que le legacy existe, basculer
+        if (!is_dir($mainRootPath) && is_dir($legacyRootPath)) {
+            $this->rootPath = $legacyRootPath;
+            $this->legacyMode = true;
+        } else {
+            $this->rootPath = $mainRootPath;
+        }
+    }
+
     public static function fromAppConfig(): self
     {
         $discussionConfig = is_array(app_config('private.discussions', []))
@@ -78,6 +121,9 @@ final class DiscussionAttachmentStorage
         $rootPath = is_string($discussionConfig['storage_root_path'] ?? null)
             ? (string) $discussionConfig['storage_root_path']
             : (is_string($documentConfig['storage_root_path'] ?? null) ? (string) $documentConfig['storage_root_path'] : ROOT_PATH . '/private');
+        $storageDirectory = is_string($discussionConfig['storage_directory'] ?? null)
+            ? (string) $discussionConfig['storage_directory']
+            : (is_string($documentConfig['storage_directory'] ?? null) ? (string) $documentConfig['storage_directory'] : 'storage');
         $maxUploadBytes = is_numeric($discussionConfig['max_attachment_bytes'] ?? null)
             ? (int) $discussionConfig['max_attachment_bytes']
             : self::DEFAULT_MAX_UPLOAD_BYTES;
@@ -90,13 +136,19 @@ final class DiscussionAttachmentStorage
             $maxUploadBytes,
             is_array($discussionConfig['allowed_extensions'] ?? null) ? $discussionConfig['allowed_extensions'] : [],
             is_array($discussionConfig['allowed_mime_types'] ?? null) ? $discussionConfig['allowed_mime_types'] : [],
-            $encryptionSecret
+            $encryptionSecret,
+            $storageDirectory
         );
     }
 
     public function lastError(): ?string
     {
         return $this->lastError;
+    }
+
+    public function isLegacyMode(): bool
+    {
+        return $this->legacyMode;
     }
 
     public function uploadsDirectory(): string
@@ -201,6 +253,12 @@ final class DiscussionAttachmentStorage
     public function store(array $metadata, string $attachmentId): ?array
     {
         $this->lastError = null;
+
+        if ($this->legacyMode) {
+            $this->lastError = 'legacy_mode_readonly';
+            return null;
+        }
+
         $attachmentId = $this->normalizeAttachmentId($attachmentId);
         if ($attachmentId === '') {
             $this->lastError = 'invalid_attachment_id';
@@ -244,7 +302,7 @@ final class DiscussionAttachmentStorage
             $this->lastError = 'write_failed';
             return null;
         }
-        @chmod($absolutePath, 0600);
+        @chmod($absolutePath, 0660);
 
         $previewStoragePath = !empty($metadata['isImage']) ? $storagePath : null;
 
@@ -310,6 +368,10 @@ final class DiscussionAttachmentStorage
 
     public function delete(string $storagePath): bool
     {
+        if ($this->legacyMode) {
+            return false;
+        }
+
         $absolutePath = $this->absolutePath($storagePath);
         if ($absolutePath === null || !is_file($absolutePath)) {
             return false;
@@ -454,6 +516,16 @@ final class DiscussionAttachmentStorage
         $id = trim($id);
 
         return preg_match('/\A[A-Za-z0-9._-]{1,64}\z/', $id) === 1 ? $id : '';
+    }
+
+    private function sanitizeDirectoryName(string $directory, string $fallback): string
+    {
+        $directory = trim(str_replace('\\', '/', $directory), '/');
+        if ($directory === '' || str_contains($directory, '..') || preg_match('/\A[A-Za-z0-9._-]+\z/', $directory) !== 1) {
+            return $fallback;
+        }
+
+        return $directory;
     }
 
     private function normalizeOriginalFilename(string $filename): string

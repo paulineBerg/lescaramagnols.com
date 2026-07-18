@@ -87,14 +87,14 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
     {
         $frontController = $this->frontController();
         $phase5Routes = [
-            '/private/rental-properties',
-            '/private/rental-units',
-            '/private/rental-property-members',
+            '/private/locations/biens',
+            '/private/locations/lots',
+            '/private/locations/membres',
         ];
 
         foreach ($phase5Routes as $route) {
             $response = $frontController->handle($this->request('GET', $route));
-            $this->assertSame(302, $response->status, 'Phase 5 routes must redirect to login when unauthenticated.');
+            $this->assertSame(302, $response->status, 'Phase 5 route must redirect to login when unauthenticated: ' . $route);
             $this->assertSame('/private/login', $response->headers['Location'] ?? null);
             $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
         }
@@ -107,12 +107,12 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
             '/private/locations',
             '/private/locations/locataires',
             '/private/locations/documents',
-            '/private/locations/agence/imports',
-            '/private/locations/agence/documents-a-classer',
-            '/private/rents',
-            '/private/leases',
-            '/private/payments',
-            '/private/charges',
+            '/private/locations/imports',
+            '/private/locations/revue',
+            '/private/locations/loyers',
+            '/private/locations/baux',
+            '/private/locations/paiements',
+            '/private/locations/charges',
             '/private/locations/regularisations',
             '/private/locations/export.csv',
             '/private/locations/export.pdf',
@@ -121,7 +121,7 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
 
         foreach ($phase6Routes as $route) {
             $response = $frontController->handle($this->request('GET', $route));
-            $this->assertSame(302, $response->status, 'Phase 6 routes must redirect to login when unauthenticated.');
+            $this->assertSame(302, $response->status, 'Phase 6 route must redirect to login when unauthenticated: ' . $route);
             $this->assertSame('/private/login', $response->headers['Location'] ?? null);
             $this->assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
         }

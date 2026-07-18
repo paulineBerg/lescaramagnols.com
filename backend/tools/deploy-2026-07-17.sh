@@ -51,7 +51,7 @@ log_error() {
 run_cmd() {
     local cmd="$1"
     local description="$2"
-    
+
     if [ "$DRY_RUN" = true ]; then
         log_warn "[DRY RUN] $description"
         log_warn "  Commande: $cmd"
@@ -120,10 +120,10 @@ log_info "Aucun fichier sensible détecté dans le commit"
 if [ "$SKIP_TESTS" = false ]; then
     echo ""
     log_info "Exécution des validations de base..."
-    
+
     # Vérifier la syntaxe PHP
     run_cmd "cd '$PROJECT_ROOT/backend' && find src/ -name '*.php' -type f | head -20 | xargs -n 1 php -l" "Vérification syntaxe PHP (échantillon)"
-    
+
     # Vérifier que les nouveaux fichiers existent
     NEW_FILES=(
         "$PROJECT_ROOT/backend/src/PrivateApps/BlocNote/PrivateAppManifest.php"
@@ -134,14 +134,14 @@ if [ "$SKIP_TESTS" = false ]; then
         "$PROJECT_ROOT/backend/tests/PrivatePortal/PrivateAppRegistryTest.php"
         "$PROJECT_ROOT/backend/tools/sync-pdf-assets.sh"
     )
-    
+
     for file in "${NEW_FILES[@]}"; do
         if [ ! -f "$file" ]; then
             log_error "Fichier manquant: $file"
             exit 1
         fi
     done
-    
+
     log_info "Tous les nouveaux fichiers sont en place"
 fi
 

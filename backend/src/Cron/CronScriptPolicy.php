@@ -57,6 +57,11 @@ final class CronScriptPolicy
             'core/tools/check_instagram_feed.php',
             'core/tools/check_security_headers.php',
             'core/tools/check_vite_assets.php',
+            // Document Hub cron jobs
+            'core/tools/document_hub_backup.php',
+            'core/tools/document_hub_gc.php',
+            'core/tools/document_hub_integrity.php',
+            'core/tools/document_hub_maintenance.php',
         ];
     }
 

@@ -184,7 +184,7 @@ foreach ($properties as $property) {
               <label>Étage <input type="text" name="floor" maxlength="64" value="<?php echo htmlspecialchars((string) ($unit['floor'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <label>Porte / repère <input type="text" name="door" maxlength="64" value="<?php echo htmlspecialchars((string) ($unit['door'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
               <fieldset class="private-fieldset">
-                <legend>Identifiants et descriptif V2</legend>
+                <legend>Identifiants et descriptif</legend>
                 <label>Identifiant fiscal <input type="text" name="tax_identifier" maxlength="80" value="<?php echo htmlspecialchars((string) ($unit['taxIdentifier'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Nombre de pièces <input type="number" name="room_count" min="0" max="99" step="1" value="<?php echo htmlspecialchars((string) ($unit['roomCount'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
                 <label>Désignation <input type="text" name="designation" maxlength="160" value="<?php echo htmlspecialchars((string) ($unit['designation'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" /></label>
@@ -251,7 +251,7 @@ foreach ($properties as $property) {
           <label>Étage <input type="text" name="floor" maxlength="64" /></label>
           <label>Porte / repère <input type="text" name="door" maxlength="64" /></label>
           <fieldset class="private-fieldset">
-            <legend>Identifiants et descriptif V2</legend>
+            <legend>Identifiants et descriptif</legend>
             <label>Identifiant fiscal <input type="text" name="tax_identifier" maxlength="80" /></label>
             <label>Nombre de pièces <input type="number" name="room_count" min="0" max="99" step="1" /></label>
             <label>Désignation <input type="text" name="designation" maxlength="160" /></label>

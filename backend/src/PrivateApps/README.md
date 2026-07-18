@@ -25,6 +25,36 @@ Modules métier de l'espace privé Caramagnols. Architecture « monolithe modula
 | `RealEstateRental` | Gestion locative v2 : biens, lots, bailleurs, locataires, baux, loyers, charges, imports agence | non (socle, ~2 500 lignes à extraire) | `PrivateAppManifest`, `AgencyImportsManifest` |
 | `TaxDeclarationHelper` | Aide à la déclaration fiscale | non (socle) | à écrire (phase 3) |
 
+## Stockage des fichiers privés
+
+Les modules qui manipulent des fichiers (`Documents`, `FamilyDiscussion`, intégrations documentaires de `RealEstateRental`, exports privés) doivent écrire hors webroot et hors arborescence de déploiement.
+
+En production depuis le 2026-07-18 :
+
+```text
+/home/lescaramgl-ssh/caramagnols-runtime/private-storage/
+```
+
+Ce chemin est fourni par `PRIVATE_STORAGE_ROOT`. Il remplace l'usage production historique de `backend/private/storage/`, qui ne doit rester qu'un chemin local ou un fallback temporaire documenté par le runbook.
+
+Structure attendue :
+
+```text
+private-storage/
+├── uploads/
+├── document-hub/
+├── family-discussion/
+├── backups/
+└── exports/
+```
+
+Règles :
+
+- ne jamais versionner, générer dans Git, ni déployer de données runtime privées ;
+- ne jamais pousser de documents locaux vers la production ;
+- conserver les permissions runtime `770` pour les dossiers et `660` pour les fichiers ;
+- suivre `backend/docs/STORAGE_RUNTIME_POLICY.md` et `backend/docs/RUNBOOK_STORAGE_MIGRATION.md` avant toute migration, archive ou nettoyage.
+
 ## Ajouter un module
 
 1. Créer `backend/src/PrivateApps/<Module>/` avec au minimum `Http/<Module>Controller.php`, ses classes métier et son manifeste `PrivateAppManifest`.

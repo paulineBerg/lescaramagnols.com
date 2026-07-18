@@ -34,6 +34,19 @@ deploys_private_runtime() {
   # backend/private/ est synchronise pour toutes les cibles, en mode additif
   # uniquement (jamais de --delete) pour ne jamais supprimer les fichiers
   # runtime distants (documents prives reels).
+  #
+  # IMPORTANT: Le stockage runtime sous backend/private/storage/ contient:
+  #   - uploads/ : documents privés des utilisateurs
+  #   - document-hub/ : hub documentaire CAS
+  #   - family-discussion/ : pièces jointes des discussions
+  #   - backups/ : sauvegardes document-hub
+  #   - exports/ : exports temporaires
+  #
+  # Ces données sont gérées par l'application et la production est la source
+  # maîtresse. Le déploiement synchronise en mode additif uniquement.
+  #
+  # ATTENTION: Ce script NE DOIT PAS être modifié pour ajouter --delete ou
+  # --delete-excluded sur le stockage runtime.
   return 0
 }
 
@@ -81,6 +94,11 @@ Description:
   - Generates static sitemap at backend/public/sitemap.xml and refreshes the public site summary page
   - Syncs the SQL schema expected by the deployed code unless --no-schema-sync is used
   - Clears runtime cache after deploy (unless --no-cache-clear)
+
+RUNTIME DATA PROTECTION:
+  backend/private/storage/** is PROTECTED - it contains user-uploaded private data
+  and production is the master source. This directory is synced additively only.
+  NO data from local backend/private/storage/ is pushed to production.
 
 Options:
   --dry-run         Preview sync and deletions only.

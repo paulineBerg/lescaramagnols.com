@@ -83,3 +83,20 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 - Lors d'une remise en coherence, inventorier d'abord les routes et contenus visibles en production.
 - Preferer des changements progressifs et verifies par comparaison locale/prod.
 - Ne jamais inventer de secrets de production dans le depot ; utiliser des exemples ou variables d'environnement locales.
+
+## Stockage Runtime Privé
+
+- Depuis la migration du 2026-07-18, le stockage runtime privé de production est séparé physiquement du code :
+  - code : `/home/lescaramgl-ssh/caramagnols/backend/` ;
+  - runtime : `/home/lescaramgl-ssh/caramagnols-runtime/private-storage/`.
+- Le dossier `caramagnols-runtime/` est volontaire : il protège les documents utilisateurs des déploiements, nettoyages, rsync et opérations Git sur le backend.
+- `PRIVATE_STORAGE_ROOT` doit pointer vers `/home/lescaramgl-ssh/caramagnols-runtime/private-storage` en production.
+- L'ancien chemin `/home/lescaramgl-ssh/caramagnols/backend/private/storage/` est conservé uniquement comme transition/rollback tant que le runbook ne demande pas explicitement son archivage.
+- Ne jamais recréer, déplacer, supprimer, archiver ou synchroniser `caramagnols-runtime/private-storage/**` sans suivre `backend/docs/RUNBOOK_STORAGE_MIGRATION.md`.
+- La production OVH est l'unique source de vérité pour ces données (invariant absolu).
+- `backend/private/storage/**` et tout export/copie locale de données runtime sont exclus du versionnage Git et ne doivent JAMAIS être déployés vers la production.
+- Les scripts de déploiement (`deploy-release.sh`, `deploy-fast.sh`) doivent rester conçus pour ne jamais supprimer ni remplacer les fichiers runtime distants.
+- Les dossiers hexadécimaux (ex: `01/`, `0b/36/`) sont légitimes : sharding SHA-256 à 2 niveaux pour répartition des fichiers.
+- Permissions attendues sur le runtime OVH : dossiers `770`, fichiers `660`, sans accès `others`. Sur OVH, le groupe effectif peut être `users` si `chown ...:www-data` est refusé.
+- Voir `backend/docs/STORAGE_RUNTIME_POLICY.md` pour les détails complets et `backend/docs/RUNBOOK_STORAGE_MIGRATION.md` pour la procédure et les checklists.
+- **Règle critique** : Local -> Production = CODE SEULEMENT, aucune donnée SQL, aucun upload, aucun document runtime.

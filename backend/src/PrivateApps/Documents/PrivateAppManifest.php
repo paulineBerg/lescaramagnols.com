@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Caramagnols\PrivateApps\Documents;
 
-final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppManifest
+final class PrivateAppManifest implements
+    \Caramagnols\PrivatePortal\PrivateAppManifest,
+    \Caramagnols\PrivateApps\Documents\Contract\ProvidesDocumentIntegration
 {
     public function migrationCode(): string
     {
@@ -57,6 +59,10 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
             'files_upload',
             'files_categories',
             'files_delete',
+            'documents_hub',
+            'documents_hub_import',
+            'documents_hub_file',
+            'documents_hub_action',
         ];
     }
 
@@ -68,6 +74,13 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
         return [
             'private_documents',
             'private_document_categories',
+            'private_document_objects',
+            'private_document_library',
+            'private_document_links',
+            'private_document_versions',
+            'private_document_derivatives',
+            'private_document_import_jobs',
+            'private_document_taxonomy',
         ];
     }
 
@@ -79,6 +92,11 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
         return [
             'Caramagnols\\PrivateApps\\Documents\\PrivateDocumentRepository',
             'Caramagnols\\PrivateApps\\Documents\\PrivateDocumentStorage',
+            'Caramagnols\\PrivateApps\\Documents\\Repository\\DocumentHubRepository',
+            'Caramagnols\\PrivateApps\\Documents\\Repository\\DocumentTaxonomyRepository',
+            'Caramagnols\\PrivateApps\\Documents\\Service\\DocumentImportService',
+            'Caramagnols\\PrivateApps\\Documents\\Service\\DocumentStorageService',
+            'Caramagnols\\PrivateApps\\Documents\\Service\\DocumentValidationService',
         ];
     }
 
@@ -89,6 +107,11 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     {
         return [
             'DocumentsControllerTest',
+            'DocumentPolicyTest',
+            'DocumentValidationServiceTest',
+            'DocumentStorageServiceTest',
+            'DocumentClassificationServiceTest',
+            'DocumentHubImportTest',
         ];
     }
 
@@ -103,6 +126,13 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
             'private.files.deleted',
             'private.files.category_created',
             'private.module.access_denied',
+            'private.document_hub.imported',
+            'private.document_hub.import_rejected',
+            'private.document_hub.downloaded',
+            'private.document_hub.link_added',
+            'private.document_hub.link_removed',
+            'private.document_hub.archived',
+            'private.document_hub.trashed',
         ];
     }
 
@@ -129,10 +159,10 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     {
         return [
             'documents' => 'documents',
-            'files' => 'documents/fichiers',
-            'files_upload' => 'documents/importer',
-            'files_categories' => 'documents/categories',
-            'files_delete' => 'documents/supprimer',
+            'documents_hub' => 'documents/bibliotheque',
+            'documents_hub_import' => 'documents/bibliotheque/importer',
+            'documents_hub_file' => 'documents/bibliotheque/fichier',
+            'documents_hub_action' => 'documents/bibliotheque/action',
         ];
     }
 
@@ -150,6 +180,11 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
 
     public function notes(): string
     {
-        return 'Module extrait de PrivatePortal vers PrivateApps le 2026-07-17.';
+        return 'Module extrait de PrivatePortal vers PrivateApps le 2026-07-17. Héberge la bibliothèque documentaire centrale partagée par tous les modules.';
+    }
+
+    public function documentIntegration(): \Caramagnols\PrivateApps\Documents\Contract\DocumentIntegration
+    {
+        return new PersonalDocumentIntegration();
     }
 }

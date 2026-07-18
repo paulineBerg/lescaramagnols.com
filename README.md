@@ -72,6 +72,7 @@ Regle d'architecture (voir `AGENTS.md`) : toute nouvelle logique metier privee v
 - Sources JSON : `backend/data/` (`pages.json`, `menus.json`, articles de blog multilingues)
 - Schemas SQL : `backend/sql/install.sql` + migrations `sql/editorial/` et `sql/private/`
 - Acces base : PDO exclusivement, requetes preparees, `ATTR_EMULATE_PREPARES => false` (`src/Database/PdoConnectionFactory.php`)
+- Stockage runtime privé production : `/home/lescaramgl-ssh/caramagnols-runtime/private-storage/`, séparé du code backend depuis le 2026-07-18. Voir `backend/docs/STORAGE_RUNTIME_POLICY.md` et `backend/docs/RUNBOOK_STORAGE_MIGRATION.md`.
 
 ## Installation
 
@@ -200,3 +201,4 @@ Guides principaux:
 - Regles SEO: canonical sans fragment `#`, JSON-LD centralise, images sociales par page
 - Durcissement securite admin (session, re-auth, 2FA, anti brute-force)
 - Separation `PrivatePortal` (socle) / `PrivateApps` (metier) et non-exposition publique de `/private`
+- Separation code/runtime privé : ne pas supprimer, synchroniser ou versionner `caramagnols-runtime/private-storage`

@@ -65,18 +65,18 @@ TOTAL_SIZE=0
 sync_pdfs() {
     local src="$1"
     local dst="$2"
-    
+
     # Créer le répertoire cible s'il n'existe pas
     local relative_path="${src#$SOURCE_DIR/}"
     local target_path="$dst/$relative_path"
-    
+
     if [ -d "$src" ]; then
         if [ "$DRY_RUN" = false ]; then
             mkdir -p "$target_path"
         else
             log "Créerait le répertoire : $target_path"
         fi
-        
+
         # Traiter les sous-répertoires et fichiers
         for item in "$src"/*; do
             if [ -e "$item" ]; then
@@ -88,7 +88,7 @@ sync_pdfs() {
         if [[ "$src" == *.pdf ]]; then
             local filename="$(basename "$src")"
             local target_file="$target_path/$filename"
-            
+
             if [ "$DRY_RUN" = true ]; then
                 local size=$(stat -c%s "$src" 2>/dev/null || stat -f%z "$src" 2>/dev/null || echo 0)
                 TOTAL_FILES=$((TOTAL_FILES + 1))
@@ -98,14 +98,14 @@ sync_pdfs() {
                 local size=$(stat -c%s "$src" 2>/dev/null || stat -f%z "$src" 2>/dev/null || echo 0)
                 TOTAL_FILES=$((TOTAL_FILES + 1))
                 TOTAL_SIZE=$((TOTAL_SIZE + size))
-                
+
                 if [ -f "$target_file" ]; then
                     # Comparer les tailles et timestamps
                     local src_size=$(stat -c%s "$src")
                     local dst_size=$(stat -c%s "$target_file")
                     local src_mtime=$(stat -c%Y "$src")
                     local dst_mtime=$(stat -c%Y "$target_file")
-                    
+
                     if [ "$src_size" -eq "$dst_size" ] && [ "$src_mtime" -le "$dst_mtime" ]; then
                         log "Déjà à jour : $filename"
                     else

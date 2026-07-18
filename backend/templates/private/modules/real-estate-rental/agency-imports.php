@@ -192,7 +192,7 @@ foreach ($units as $unit) {
     <div class="private-list-header">
       <div>
         <h2>Correspondances par agence</h2>
-        <p class="muted">Exemple : chez ASG, le texte « EVE Hervé » rattache automatiquement le bien locatif Arbousier.</p>
+        <p class="muted">Exemple : chez $AGENCE, le texte « $LOCATAIRE » rattache automatiquement le bien locatif $APPARTEMENT.</p>
       </div>
       <button type="button" class="private-create-button" data-private-dialog-open="<?php echo htmlspecialchars($mappingDialogId, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $agencies === [] || $unitOptions === [] ? ' disabled' : ''; ?>>Créer une correspondance</button>
     </div>
@@ -265,7 +265,7 @@ foreach ($units as $unit) {
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
         <input type="hidden" name="action" value="agency_import" />
         <label>Agence
-          <input type="text" name="agency_name" maxlength="120" placeholder="ASG IMMOBILIER" list="rental-agency-name-options" />
+          <input type="text" name="agency_name" maxlength="120" placeholder="$AGENCE" list="rental-agency-name-options" />
         </label>
         <?php if ($agencies !== []): ?>
           <datalist id="rental-agency-name-options">
@@ -293,7 +293,7 @@ foreach ($units as $unit) {
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
         <input type="hidden" name="action" value="create_agency" />
         <label>Nom de l'agence
-          <input type="text" name="agency_name" maxlength="120" placeholder="ASG IMMOBILIER" required />
+          <input type="text" name="agency_name" maxlength="120" placeholder="$AGENCE" required />
         </label>
         <button type="submit">Créer l'agence</button>
       </form>
@@ -319,7 +319,7 @@ foreach ($units as $unit) {
           </select>
         </label>
         <label>Texte détecté dans le document
-          <input type="text" name="match_text" maxlength="160" placeholder="EVE Hervé" required />
+          <input type="text" name="match_text" maxlength="160" placeholder="$LOCATAIRE" required />
         </label>
         <label>Bien locatif
           <select name="rental_unit_id" required>

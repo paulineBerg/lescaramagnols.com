@@ -170,7 +170,7 @@ final class PrivateUiGuardTest extends TestCase
         }
 
         self::assertStringContainsString('name="display_name"', $documents);
-        self::assertStringContainsString('name="document_category"', $documents);
+        self::assertStringContainsString('name="category_code"', $documents);
         self::assertStringContainsString('displayName', $documents);
     }
 

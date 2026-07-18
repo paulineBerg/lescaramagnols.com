@@ -249,7 +249,7 @@ final class RealEstateRentalModuleTest extends TestCase
         );
 
         $this->assertSame(302, $post->status);
-        $this->assertSame('/private/rents?notice=rent_schedule_generated', $post->headers['Location'] ?? null);
+        $this->assertSame('/private/locations/loyers?notice=rent_schedule_generated', $post->headers['Location'] ?? null);
 
         $rents = $lifecycleRepository->listRents([$property->id], 2026);
         $this->assertCount(1, $rents);
@@ -267,7 +267,7 @@ final class RealEstateRentalModuleTest extends TestCase
         );
 
         $this->assertSame(302, $again->status);
-        $this->assertSame('/private/rents?notice=rent_schedule_existing', $again->headers['Location'] ?? null);
+        $this->assertSame('/private/locations/loyers?notice=rent_schedule_existing', $again->headers['Location'] ?? null);
         $this->assertCount(1, $lifecycleRepository->listRents([$property->id], 2026));
     }
 
@@ -344,7 +344,7 @@ final class RealEstateRentalModuleTest extends TestCase
             ])
         );
         $this->assertSame(302, $created->status);
-        $this->assertSame('/private/payments?notice=payment_created', $created->headers['Location'] ?? null);
+        $this->assertSame('/private/locations/paiements?notice=payment_created', $created->headers['Location'] ?? null);
         $rentsAfterPartial = $lifecycleRepository->listRents([$property->id], 2026);
         $this->assertSame('partial', $rentsAfterPartial[0]['status'] ?? null);
         $payments = $lifecycleRepository->listPayments([$property->id], 2026);
@@ -367,7 +367,7 @@ final class RealEstateRentalModuleTest extends TestCase
             ])
         );
         $this->assertSame(302, $updated->status);
-        $this->assertSame('/private/payments?notice=payment_updated', $updated->headers['Location'] ?? null);
+        $this->assertSame('/private/locations/paiements?notice=payment_updated', $updated->headers['Location'] ?? null);
         $rentsAfterPaid = $lifecycleRepository->listRents([$property->id], 2026);
         $this->assertSame('paid', $rentsAfterPaid[0]['status'] ?? null);
 
@@ -380,7 +380,7 @@ final class RealEstateRentalModuleTest extends TestCase
             ])
         );
         $this->assertSame(302, $cancelled->status);
-        $this->assertSame('/private/payments?notice=payment_cancelled', $cancelled->headers['Location'] ?? null);
+        $this->assertSame('/private/locations/paiements?notice=payment_cancelled', $cancelled->headers['Location'] ?? null);
         $rentsAfterCancel = $lifecycleRepository->listRents([$property->id], 2026);
         $this->assertSame('pending', $rentsAfterCancel[0]['status'] ?? null);
     }
@@ -567,7 +567,7 @@ final class RealEstateRentalModuleTest extends TestCase
         );
 
         $this->assertSame(302, $post->status);
-        $this->assertSame('/private/leases?notice=lease_updated', $post->headers['Location'] ?? null);
+        $this->assertSame('/private/locations/baux?notice=lease_updated', $post->headers['Location'] ?? null);
 
         $updated = $lifecycleRepository->findLeaseById($leaseId);
         $this->assertIsArray($updated);
@@ -689,7 +689,7 @@ final class RealEstateRentalModuleTest extends TestCase
             ])
         );
         $this->assertSame(302, $createdResponse->status);
-        $this->assertSame('/private/leases?notice=lease_created', $createdResponse->headers['Location'] ?? null);
+        $this->assertSame('/private/locations/baux?notice=lease_created', $createdResponse->headers['Location'] ?? null);
     }
 
     public function testArchivingPropertyKeepsHistoricalRowsInactive(): void

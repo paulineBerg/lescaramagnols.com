@@ -43,9 +43,9 @@ final class PrivateDocumentStorage
         'text/plain',
     ];
 
-    private readonly string $storageDirectoryPath;
-    private readonly string $uploadsDirectoryPath;
-    private readonly string $exportsDirectoryPath;
+    private string $storageDirectoryPath;
+    private string $uploadsDirectoryPath;
+    private string $exportsDirectoryPath;
     private readonly int $directoryPermissions;
     private readonly int $filePermissions;
 
@@ -55,6 +55,20 @@ final class PrivateDocumentStorage
     private array $allowedMimeTypes;
     private readonly int $maxUploadBytes;
     private ?string $uploadError = null;
+
+    /**
+     * Mode legacy : lecture depuis l'ancien chemin, écriture bloquée.
+     * Activé automatiquement si le nouveau chemin n'existe pas mais que l'ancien existe.
+     */
+    private bool $legacyMode = false;
+
+    /**
+     * Chemin legacy pour la compatibilité pendant la migration.
+     */
+    private const LEGACY_STORAGE_ROOT = ROOT_PATH . '/private';
+    private const LEGACY_STORAGE_DIR = 'storage';
+    private const LEGACY_UPLOADS_DIR = 'uploads';
+    private const LEGACY_EXPORTS_DIR = 'exports';
 
     public function __construct(
         string $storageRootPath,
@@ -78,9 +92,18 @@ final class PrivateDocumentStorage
         $uploadsDirectory = $this->sanitizeDirectoryName($uploadsDirectory, 'uploads');
         $exportsDirectory = $this->sanitizeDirectoryName($exportsDirectory, 'exports');
 
+        // Tentative de résoudre le chemin principal
         $this->storageDirectoryPath = $this->normalizeDirectoryPath($storageRootPath . '/' . $storageDirectory);
         $this->uploadsDirectoryPath = $this->normalizeDirectoryPath($this->storageDirectoryPath . '/' . $uploadsDirectory);
         $this->exportsDirectoryPath = $this->normalizeDirectoryPath($this->storageDirectoryPath . '/' . $exportsDirectory);
+
+        // Vérifier si le chemin principal existe, sinon essayer le fallback legacy
+        $this->checkLegacyFallback(
+            $storageRootPath,
+            $storageDirectory,
+            $uploadsDirectory,
+            $exportsDirectory
+        );
         $this->maxUploadBytes = max(1, $maxUploadBytes);
         $this->directoryPermissions = $this->normalizePermissions(
             $directoryPermissions,
@@ -104,6 +127,62 @@ final class PrivateDocumentStorage
         }
 
         $this->ensureStorageDirectories();
+    }
+
+    /**
+     * Vérifie si le chemin principal existe, sinon bascule vers le chemin legacy.
+     * Le mode legacy permet la lecture mais bloque l'écriture.
+     */
+    private function checkLegacyFallback(
+        string $storageRootPath,
+        string $storageDirectory,
+        string $uploadsDirectory,
+        string $exportsDirectory
+    ): void {
+        $appEnv = function_exists('app_config') ? strtolower((string) app_config('env', '')) : '';
+        if (!in_array($appEnv, ['production', 'prod', 'live'], true)) {
+            return;
+        }
+
+        // Chemin principal pour uploads
+        $mainUploadsPath = $this->normalizeDirectoryPath(
+            $storageRootPath . '/' . $this->sanitizeDirectoryName($storageDirectory, 'storage') . '/' . $uploadsDirectory
+        );
+
+        // Chemin legacy pour uploads
+        $legacyStorageRoot = self::LEGACY_STORAGE_ROOT;
+        $legacyStorageDir = self::LEGACY_STORAGE_DIR;
+        $legacyUploadsDir = self::LEGACY_UPLOADS_DIR;
+        $legacyUploadsPath = $this->normalizeDirectoryPath(
+            $legacyStorageRoot . '/' . $legacyStorageDir . '/' . $legacyUploadsDir
+        );
+
+        // Si le chemin principal n'existe pas mais que le legacy existe, basculer
+        if (!is_dir($mainUploadsPath) && is_dir($legacyUploadsPath)) {
+            $this->storageDirectoryPath = $this->normalizeDirectoryPath(
+                $legacyStorageRoot . '/' . $legacyStorageDir
+            );
+            $this->uploadsDirectoryPath = $this->normalizeDirectoryPath(
+                $this->storageDirectoryPath . '/' . $legacyUploadsDir
+            );
+            $this->exportsDirectoryPath = $this->normalizeDirectoryPath(
+                $this->storageDirectoryPath . '/' . self::LEGACY_EXPORTS_DIR
+            );
+            $this->legacyMode = true;
+
+            $this->logEvent('private.documents.legacy_mode_activated', [
+                'main_path' => $mainUploadsPath,
+                'legacy_path' => $legacyUploadsPath,
+            ], 'warning');
+        }
+    }
+
+    /**
+     * Retourne true si on est en mode legacy (lecture seule).
+     */
+    public function isLegacyMode(): bool
+    {
+        return $this->legacyMode;
     }
 
     public static function fromAppConfig(?AppEventLogger $eventLogger = null): self
@@ -273,6 +352,11 @@ final class PrivateDocumentStorage
      */
     public function storeUploadedFile(array $metadata, string $documentId): ?array
     {
+        if ($this->legacyMode) {
+            $this->uploadError = 'legacy_mode_readonly';
+            return null;
+        }
+
         $documentId = $this->normalizeDocumentId($documentId);
         if ($documentId === '') {
             $this->uploadError = 'invalid_document_id';
@@ -386,6 +470,12 @@ final class PrivateDocumentStorage
         string $mimeType = 'application/pdf'
     ): ?array {
         $this->uploadError = null;
+
+        if ($this->legacyMode) {
+            $this->uploadError = 'legacy_mode_readonly';
+            return null;
+        }
+
         $documentId = $this->normalizeDocumentId($documentId);
         $originalName = $this->normalizeOriginalName($originalName);
         $extension = strtolower(trim($extension));
@@ -477,6 +567,10 @@ final class PrivateDocumentStorage
 
     public function deleteStoredDocument(string $storagePath, ?string $documentId = null): bool
     {
+        if ($this->legacyMode) {
+            return false;
+        }
+
         $absolutePath = $this->absolutePath($storagePath);
         if ($absolutePath === null || !is_file($absolutePath)) {
             return false;
@@ -494,6 +588,10 @@ final class PrivateDocumentStorage
 
     public function deleteStoredDocumentByDocumentId(string $documentId): bool
     {
+        if ($this->legacyMode) {
+            return false;
+        }
+
         $documentId = $this->normalizeDocumentId($documentId);
         if ($documentId === '' || !is_dir($this->uploadsDirectoryPath)) {
             return false;

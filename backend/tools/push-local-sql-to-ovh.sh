@@ -1,6 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# =============================================================================
+# GARDE-FOU : PRODUCTION MAÎTRESSE - AUCUN PUSH LOCAL VERS PRODUCTION
+# =============================================================================
+# Ce script permet de pousser du contenu éditorial SQL local vers OVH.
+# Cependant, conformément à la politique "production maîtresse", ce script DOIT
+# être utilisé uniquement pour :
+#   1. La synchronisation initiale ou de récupération après incident
+#   2. Avec validation humaine explicite
+#   3. Jamais en automatisme
+#
+# Pour bloquer complètement l'exécution (recommandé), définissez :
+#   export PUSH_LOCAL_SQL_BLOCKED=1
+#
+# Ce script NE DOIT PAS être appelé par les scripts de déploiement normal.
+# =============================================================================
+
+# Bloquer complètement si la variable d'environnement est définie
+if [[ "${PUSH_LOCAL_SQL_BLOCKED:-0}" == "1" ]]; then
+  echo "BLOQUÉ: PUSH_LOCAL_SQL_BLOCKED=1 - ce script est désactivé pour respecter la politique production maîtresse." >&2
+  echo "Aucune donnée locale ne doit être poussée vers la production." >&2
+  echo "Utilisez les migrations de schéma et l'administration en production à la place." >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 OPS_ENV_FILE_DEFAULT="${HOME}/.caramagnols/ops/caramagnols-ops.env"

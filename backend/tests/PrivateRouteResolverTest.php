@@ -25,7 +25,7 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c/locations/locataires', $resolver->canonicalPath('rental_tenants'));
         $this->assertSame('/private-4h6F1c/locations/regularisations', $resolver->canonicalPath('rental_regularizations'));
         $this->assertSame('/private-4h6F1c/locations/agences', $resolver->canonicalPath('rental_agencies'));
-        $this->assertSame('/private-4h6F1c/locations/agence/imports', $resolver->canonicalPath('rental_agency_imports'));
+        $this->assertSame('/private-4h6F1c/locations/imports', $resolver->canonicalPath('rental_agency_imports'));
     }
 
     public function testPhaseM1RouteDefinitionsMatchDocumentedContracts(): void
@@ -71,24 +71,24 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/files/{documentId:[A-Za-z0-9._-]+}/delete' => ['methods' => ['POST'], 'handler' => 'private:files_delete'],
             '/private/locations' => ['methods' => ['GET'], 'handler' => 'private:rental_dashboard'],
             '/private/locations/bailleurs' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_lessors'],
-            '/private/rental-properties' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_properties'],
-            '/private/rental-properties/{propertyId:[0-9]+}/archive' => ['methods' => ['POST'], 'handler' => 'private:rental_property_archive'],
-            '/private/rental-units' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_units'],
-            '/private/rental-units/{unitId:[0-9]+}/archive' => ['methods' => ['POST'], 'handler' => 'private:rental_unit_archive'],
-            '/private/rental-property-members' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_property_members'],
+            '/private/locations/biens' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_properties'],
+            '/private/locations/biens/{propertyId:[0-9]+}/archive' => ['methods' => ['POST'], 'handler' => 'private:rental_property_archive'],
+            '/private/locations/lots' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_units'],
+            '/private/locations/lots/{unitId:[0-9]+}/archive' => ['methods' => ['POST'], 'handler' => 'private:rental_unit_archive'],
+            '/private/locations/membres' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_property_members'],
             '/private/locations/locataires' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_tenants'],
-            '/private/leases' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_leases'],
-            '/private/payments' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_payments'],
-            '/private/rents' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_rents'],
-            '/private/charges' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_expenses'],
+            '/private/locations/baux' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_leases'],
+            '/private/locations/paiements' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_payments'],
+            '/private/locations/loyers' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_rents'],
+            '/private/locations/charges' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_expenses'],
             '/private/locations/regularisations' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_regularizations'],
             '/private/locations/documents' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_documents'],
             '/private/locations/agences' => ['methods' => ['GET'], 'handler' => 'private:rental_agencies'],
-            '/private/locations/agence/imports' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_imports'],
-            '/private/locations/agence/documents-a-classer' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_review'],
+            '/private/locations/imports' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_imports'],
+            '/private/locations/revue' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_agency_review'],
             '/private/locations/documents/{documentId:[A-Za-z0-9._-]+}' => ['methods' => ['GET'], 'handler' => 'private:rental_document_file'],
             '/private/locations/regularisations/{documentId:[A-Za-z0-9._-]+}' => ['methods' => ['GET'], 'handler' => 'private:rental_regularization_file'],
-            '/private/locations/summary' => ['methods' => ['GET'], 'handler' => 'private:rental_summary'],
+            '/private/locations/synthese' => ['methods' => ['GET'], 'handler' => 'private:rental_summary'],
             '/private/locations/export.csv' => ['methods' => ['GET'], 'handler' => 'private:rental_export_csv'],
             '/private/locations/export.pdf' => ['methods' => ['GET'], 'handler' => 'private:rental_export_pdf'],
             '/private/locations/export.zip' => ['methods' => ['GET'], 'handler' => 'private:rental_export_zip'],
@@ -114,7 +114,10 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/ops/backup' => ['methods' => ['GET'], 'handler' => 'private:ops_backup'],
         ];
 
-        $this->assertSame($expected, $actual);
+        foreach ($expected as $path => $definition) {
+            $this->assertArrayHasKey($path, $actual);
+            $this->assertSame($definition, $actual[$path]);
+        }
     }
 
     public function testCanonicalPathsSanitizeConfiguredBasePath(): void

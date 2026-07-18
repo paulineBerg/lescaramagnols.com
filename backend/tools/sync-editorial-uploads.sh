@@ -1,6 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# =============================================================================
+# GARDE-FOU : PRODUCTION MAÎTRESSE - AUCUN UPLOAD LOCAL VERS PRODUCTION
+# =============================================================================
+# Ce script synchronise les uploads éditoriaux runtime local vers OVH.
+#
+# ATTENTION : Conformément à la politique "production maîtresse", ce script ne doit
+# être utilisé que pour la synchronisation initiale ou de récupération.
+#
+# Pour bloquer complètement (recommandé), définissez :
+#   export SYNC_EDITORIAL_UPLOADS_BLOCKED=1
+#
+# Ce script NE DOIT PAS être appelé par les scripts de déploiement normal.
+# =============================================================================
+
+# Bloquer complètement si la variable d'environnement est définie
+if [[ "${SYNC_EDITORIAL_UPLOADS_BLOCKED:-0}" == "1" ]]; then
+  echo "BLOQUÉ: SYNC_EDITORIAL_UPLOADS_BLOCKED=1 - ce script est désactivé pour respecter la politique production maîtresse." >&2
+  echo "Aucun upload local ne doit être synchronisé vers la production." >&2
+  exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 LOCAL_BACKEND="${LOCAL_BACKEND:-${REPO_ROOT}/backend}"

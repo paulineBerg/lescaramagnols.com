@@ -8,6 +8,7 @@ $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['r
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
 $mailDefaults = is_array($viewModel['rentalMailDefaults'] ?? null) ? $viewModel['rentalMailDefaults'] : [];
+$documentCategories = is_array($viewModel['rentalDocumentCategories'] ?? null) ? $viewModel['rentalDocumentCategories'] : [];
 $createDialogId = 'rental-document-create-dialog';
 $bulkDialogId = 'rental-document-bulk-dialog';
 $dangerDialogId = 'rental-document-danger-dialog';
@@ -124,8 +125,26 @@ foreach ($properties as $property) {
             </select>
           </label>
           <label>Nom affiché <input type="text" name="display_name" maxlength="255" placeholder="Quittance, bail, justificatif..." /></label>
-          <label>Catégorie <input type="text" name="document_category" maxlength="64" value="Document" /></label>
-          <label>Fichier <input type="file" name="rental_document_file" required /></label>
+          <label>Catégorie
+            <select name="category_code">
+              <option value="">Classement automatique</option>
+              <?php foreach ($documentCategories as $documentCategory): ?>
+                <?php if (!is_array($documentCategory) || !is_string($documentCategory['code'] ?? null)) { continue; } ?>
+                <?php $categoryParent = is_string($documentCategory['parent_code'] ?? null) ? (string) $documentCategory['parent_code'] : ''; ?>
+                <option value="<?php echo htmlspecialchars((string) $documentCategory['code'], ENT_QUOTES, 'UTF-8'); ?>">
+                  <?php echo htmlspecialchars(($categoryParent !== '' ? '— ' : '') . (string) ($documentCategory['label'] ?? $documentCategory['code']), ENT_QUOTES, 'UTF-8'); ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+          <label>Date du document <input type="date" name="document_date" /></label>
+          <label>Fichier(s)
+            <input type="file"
+                   name="rental_document_file[]"
+                   multiple
+                   required
+                   accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,.tif,.tiff,.docx,.odt,.xlsx,.ods,.csv,.txt,image/*,application/pdf" />
+          </label>
           <button type="submit">Envoyer le document</button>
         </form>
       <?php endif; ?>

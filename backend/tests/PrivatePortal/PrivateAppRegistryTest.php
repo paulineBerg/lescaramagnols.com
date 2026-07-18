@@ -22,10 +22,10 @@ final class PrivateAppRegistryTest extends TestCase
     public function testAllManifestsAreInstantiable(): void
     {
         $manifests = PrivateAppRegistry::all();
-        
+
         $this->assertNotEmpty($manifests);
         $this->assertIsArray($manifests);
-        
+
         foreach ($manifests as $moduleCode => $manifest) {
             $this->assertInstanceOf(PrivateAppManifest::class, $manifest);
             $this->assertSame($moduleCode, $manifest->moduleCode());
@@ -35,7 +35,7 @@ final class PrivateAppRegistryTest extends TestCase
     public function testExpectedModulesAreRegistered(): void
     {
         $manifests = PrivateAppRegistry::all();
-        
+
         $expectedModules = [
             'blocnote',
             'documents',
@@ -43,9 +43,9 @@ final class PrivateAppRegistryTest extends TestCase
             'real_estate_rental',
             'tax_declaration_helper',
         ];
-        
+
         $registeredModules = array_keys($manifests);
-        
+
         foreach ($expectedModules as $module) {
             $this->assertArrayHasKey($module, $manifests, "Le module {$module} n'est pas enregistré.");
         }
@@ -54,7 +54,7 @@ final class PrivateAppRegistryTest extends TestCase
     public function testGetByModuleCode(): void
     {
         $manifest = PrivateAppRegistry::get('blocnote');
-        
+
         $this->assertNotNull($manifest);
         $this->assertInstanceOf(PrivateAppManifest::class, $manifest);
         $this->assertSame('blocnote', $manifest->moduleCode());
@@ -63,14 +63,14 @@ final class PrivateAppRegistryTest extends TestCase
     public function testGetByNonExistentModuleCodeReturnsNull(): void
     {
         $manifest = PrivateAppRegistry::get('non_existent_module');
-        
+
         $this->assertNull($manifest);
     }
 
     public function testAllRouteNamesAreUnique(): void
     {
         $allRoutes = PrivateAppRegistry::allRouteNames();
-        
+
         // Vérifier qu'il n'y a pas de doublons
         $uniqueRoutes = array_unique($allRoutes);
         $this->assertSameSize($allRoutes, $uniqueRoutes);
@@ -79,7 +79,7 @@ final class PrivateAppRegistryTest extends TestCase
     public function testAllModuleTablesAreUnique(): void
     {
         $allTables = PrivateAppRegistry::allModuleTables();
-        
+
         // Vérifier qu'il n'y a pas de doublons
         $uniqueTables = array_unique($allTables);
         $this->assertSameSize($allTables, $uniqueTables);
@@ -88,7 +88,7 @@ final class PrivateAppRegistryTest extends TestCase
     public function testAllPermissionCodesAreUnique(): void
     {
         $allCodes = PrivateAppRegistry::allPermissionCodes();
-        
+
         // Vérifier qu'il n'y a pas de doublons
         $uniqueCodes = array_unique($allCodes);
         $this->assertSameSize($allCodes, $uniqueCodes);
@@ -97,7 +97,7 @@ final class PrivateAppRegistryTest extends TestCase
     public function testAllTablesIncludesCoreTables(): void
     {
         $allTables = PrivateAppRegistry::allTables();
-        
+
         // Vérifier que les tables du socle sont incluses
         $expectedCoreTables = [
             'private_users',
@@ -105,7 +105,7 @@ final class PrivateAppRegistryTest extends TestCase
             'private_user_permissions',
             'private_module_permissions',
         ];
-        
+
         foreach ($expectedCoreTables as $table) {
             $this->assertContains($table, $allTables);
         }
@@ -114,16 +114,16 @@ final class PrivateAppRegistryTest extends TestCase
     public function testDashboardTileDataIsComplete(): void
     {
         $tiles = PrivateAppRegistry::allDashboardTileData();
-        
+
         $this->assertNotEmpty($tiles);
         $this->assertIsArray($tiles);
-        
+
         foreach ($tiles as $tile) {
             $this->assertArrayHasKey('label', $tile);
             $this->assertArrayHasKey('description', $tile);
             $this->assertArrayHasKey('stat_code', $tile);
             $this->assertArrayHasKey('module_code', $tile);
-            
+
             $this->assertIsString($tile['label']);
             $this->assertIsString($tile['description']);
             $this->assertIsString($tile['stat_code']);
@@ -134,7 +134,7 @@ final class PrivateAppRegistryTest extends TestCase
     public function testGetByRouteName(): void
     {
         $manifest = PrivateAppRegistry::getByRouteName('blocnote');
-        
+
         $this->assertNotNull($manifest);
         $this->assertSame('blocnote', $manifest->moduleCode());
     }
@@ -142,14 +142,14 @@ final class PrivateAppRegistryTest extends TestCase
     public function testGetByRouteNameReturnsNullForUnknownRoute(): void
     {
         $manifest = PrivateAppRegistry::getByRouteName('unknown_route');
-        
+
         $this->assertNull($manifest);
     }
 
     public function testGetByTableName(): void
     {
         $manifest = PrivateAppRegistry::getByTableName('blocnote_notes');
-        
+
         $this->assertNotNull($manifest);
         $this->assertSame('blocnote', $manifest->moduleCode());
     }
@@ -157,22 +157,22 @@ final class PrivateAppRegistryTest extends TestCase
     public function testGetByTableNameReturnsNullForUnknownTable(): void
     {
         $manifest = PrivateAppRegistry::getByTableName('unknown_table');
-        
+
         $this->assertNull($manifest);
     }
 
     public function testOrderedReturnsManifestsSortedByOrder(): void
     {
         $ordered = PrivateAppRegistry::ordered();
-        
+
         $this->assertNotEmpty($ordered);
         $this->assertIsArray($ordered);
-        
+
         // Vérifier que les manifestes sont triés par ordre
         for ($i = 0; $i < count($ordered) - 1; $i++) {
             $currentOrder = $ordered[$i]['instance']->order();
             $nextOrder = $ordered[$i + 1]['instance']->order();
-            
+
             $this->assertLessThanOrEqual($nextOrder, $currentOrder);
         }
     }
@@ -180,7 +180,7 @@ final class PrivateAppRegistryTest extends TestCase
     public function testRoutePathsAreUnique(): void
     {
         $allPaths = PrivateAppRegistry::allRoutePaths();
-        
+
         // Vérifier qu'il n'y a pas de doublons dans les chemins
         $values = array_values($allPaths);
         $uniqueValues = array_unique($values);
@@ -190,7 +190,7 @@ final class PrivateAppRegistryTest extends TestCase
     public function testManifestContractIsComplete(): void
     {
         $manifests = PrivateAppRegistry::all();
-        
+
         foreach ($manifests as $manifest) {
             // Vérifier que toutes les méthodes requises existent et retournent des valeurs valides
             $this->assertIsString($manifest->migrationCode());
@@ -201,7 +201,7 @@ final class PrivateAppRegistryTest extends TestCase
             $this->assertIsString($manifest->migrationStatusCode());
             $this->assertIsString($manifest->title());
             $this->assertIsInt($manifest->order());
-            
+
             $this->assertIsArray($manifest->routeNames());
             $this->assertIsArray($manifest->tables());
             $this->assertIsArray($manifest->contractClasses());
@@ -209,15 +209,15 @@ final class PrivateAppRegistryTest extends TestCase
             $this->assertIsArray($manifest->auditEvents());
             $this->assertIsArray($manifest->uiStates());
             $this->assertIsArray($manifest->legacyRoutes());
-            
+
             // Nouvelles méthodes
             $this->assertIsArray($manifest->routePaths());
-            
+
             $tileData = $manifest->dashboardTileData();
             $this->assertArrayHasKey('label', $tileData);
             $this->assertArrayHasKey('description', $tileData);
             $this->assertArrayHasKey('stat_code', $tileData);
-            
+
             $this->assertIsString($manifest->notes());
         }
     }

@@ -30,6 +30,13 @@ final class PrivateMigrationService
         'documents' => [
             'private_document_categories',
             'private_documents',
+            'private_document_objects',
+            'private_document_library',
+            'private_document_links',
+            'private_document_versions',
+            'private_document_derivatives',
+            'private_document_import_jobs',
+            'private_document_taxonomy',
         ],
         'blocnote' => [
             'private_blocnote_categories',

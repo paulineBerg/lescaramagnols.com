@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Caramagnols\PrivateApps\RealEstateRental;
 
-final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppManifest
+final class PrivateAppManifest implements
+    \Caramagnols\PrivatePortal\PrivateAppManifest,
+    \Caramagnols\PrivateApps\Documents\Contract\ProvidesDocumentIntegration
 {
     public function migrationCode(): string
     {
@@ -206,5 +208,10 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     public function notes(): string
     {
         return 'Les exports restent regenerables depuis les tables locatives source.';
+    }
+
+    public function documentIntegration(): \Caramagnols\PrivateApps\Documents\Contract\DocumentIntegration
+    {
+        return new RentalDocumentIntegration();
     }
 }

@@ -67,7 +67,24 @@ backend/config/admin.override.php
 backend/config/site.override.php
 backend/public/tmp_config/
 backend/config/db.php
+
+# =============================================================================
+# STOCKAGE RUNTIME PROTÉGÉ - production est la source maîtresse des données
+# =============================================================================
+# backend/private/storage/** contient:
+#   - uploads/         : documents privés (sharding SHA-256 à 2 niveaux)
+#   - document-hub/   : hub documentaire CAS (objects/sha256/ab/cd/<hash>)
+#   - family-discussion/: pièces jointes discussions (sharding SHA-256)
+#   - backups/        : sauvegardes document-hub et autres
+#   - exports/        : exports temporaires
+# Ces dossiers sont créés à la demande par l'application et ne doivent JAMAIS
+# être versionnés, synchronisés vers la production, ou nettoyés par un deploy.
+# La production OVH est l'unique source de vérité pour ces données.
+# Local -> Production: CODE SEULEMENT, aucune donnée runtime.
+# =============================================================================
 backend/private/storage/
+
+# Documentation privée - ne pas versionner
 docs/private/
 docs/private/agence/
 

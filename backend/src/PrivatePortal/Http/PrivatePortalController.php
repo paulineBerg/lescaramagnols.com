@@ -16,6 +16,15 @@ use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalExpenseCategoryCatalog;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
+use Caramagnols\PrivateApps\Documents\Http\DocumentHubController;
+use Caramagnols\PrivateApps\Documents\Repository\DocumentHubRepository;
+use Caramagnols\PrivateApps\Documents\Repository\DocumentTaxonomyRepository;
+use Caramagnols\PrivateApps\Documents\Service\DocumentClassificationService;
+use Caramagnols\PrivateApps\Documents\Service\DocumentImportService;
+use Caramagnols\PrivateApps\Documents\Service\DocumentLinkService;
+use Caramagnols\PrivateApps\Documents\Service\DocumentPolicy;
+use Caramagnols\PrivateApps\Documents\Service\DocumentStorageService;
+use Caramagnols\PrivateApps\Documents\Service\DocumentValidationService;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
 use Caramagnols\PrivatePortal\Security\PrivatePasswordPolicy;
 use Caramagnols\PrivatePortal\Security\PrivatePortalSecurityGuard;
@@ -105,6 +114,13 @@ final class PrivatePortalController
             'dashboard' => $this->handleDashboard($request),
             'member_settings' => $this->handleMemberSettings($request),
             'documents' => $this->documentsController()->index($request),
+            'documents_hub' => $this->documentHubController()->index($request),
+            'documents_hub_import' => $this->documentHubController()->import($request),
+            'documents_hub_file' => $this->documentHubController()->download(
+                $request,
+                (string) ($routeParams['documentUid'] ?? '')
+            ),
+            'documents_hub_action' => $this->documentHubController()->action($request),
             'blocnote' => $this->blocNoteController()->handle($request),
             'rental_dashboard' => $this->rentalController()->handle('rental_dashboard', $request),
             'rental_lessors' => $this->rentalController()->handle('rental_lessors', $request),
@@ -5483,6 +5499,40 @@ final class PrivatePortalController
             $this->modulePermissionRepository(),
             $this->privateDocumentRepository(),
             $this->privateDocumentStorage(),
+            fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
+            $this->eventLogger
+        );
+    }
+
+    private function documentHubController(): DocumentHubController
+    {
+        $database = editorial_database();
+        $hubRepository = new DocumentHubRepository($database);
+        $taxonomyRepository = new DocumentTaxonomyRepository($database);
+        $policy = DocumentPolicy::fromAppConfig();
+        $storage = DocumentStorageService::fromAppConfig();
+        $linkService = new DocumentLinkService($hubRepository, $database);
+        $importService = new DocumentImportService(
+            $policy,
+            new DocumentValidationService($policy),
+            $storage,
+            $hubRepository,
+            $taxonomyRepository,
+            new DocumentClassificationService($taxonomyRepository),
+            $linkService,
+            $this->eventLogger
+        );
+
+        return new DocumentHubController(
+            $this->auth,
+            $this->guard(),
+            $this->privateUserRepository(),
+            $this->modulePermissionRepository(),
+            $hubRepository,
+            $taxonomyRepository,
+            $storage,
+            $importService,
+            $linkService,
             fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
             $this->eventLogger
         );

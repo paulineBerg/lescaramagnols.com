@@ -12,6 +12,35 @@ Le backend porte le rendu serveur, le routage HTTP public/admin, la logique meti
 - `tests/`: tests PHPUnit
 - `sql/`: schemas/migrations
 
+## Stockage runtime privé
+
+En production OVH, le code et les données runtime privées sont séparés depuis le 2026-07-18 :
+
+```text
+# Code déployé
+/home/lescaramgl-ssh/caramagnols/backend/
+
+# Données runtime privées, hors déploiement
+/home/lescaramgl-ssh/caramagnols-runtime/private-storage/
+```
+
+Le dossier `caramagnols-runtime/` est volontaire. Il contient les documents et fichiers générés par l'espace privé (`uploads/`, `document-hub/`, `family-discussion/`, `backups/`, `exports/`) et évite qu'un déploiement backend ou une opération Git touche des données utilisateurs.
+
+Configuration production attendue :
+
+```bash
+PRIVATE_STORAGE_ROOT=/home/lescaramgl-ssh/caramagnols-runtime/private-storage
+PUSH_LOCAL_SQL_BLOCKED=1
+SYNC_EDITORIAL_UPLOADS_BLOCKED=1
+```
+
+L'ancien chemin `backend/private/storage/` peut rester présent comme transition/rollback, mais il n'est plus la destination d'écriture attendue en production. Ne pas supprimer ni archiver l'ancien stockage sans suivre `docs/RUNBOOK_STORAGE_MIGRATION.md`.
+
+Références :
+
+- `docs/STORAGE_RUNTIME_POLICY.md`
+- `docs/RUNBOOK_STORAGE_MIGRATION.md`
+
 ## Documentation technique
 
 - Bootstrap et i18n: `../docs/backend/bootstrap-i18n.md`

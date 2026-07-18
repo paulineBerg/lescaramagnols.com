@@ -83,7 +83,7 @@ final class PrivateRouteResolver
             'rental_regularizations' => 'locations/regularisations',
             'rental_documents' => 'locations/documents',
             'rental_agencies' => 'locations/agences',
-            'rental_agency_imports' => 'locations/agence/imports',
+            'rental_agency_imports' => 'locations/imports',
             'rental_agency_review' => 'locations/agence/documents-a-classer',
             'rental_summary' => 'locations/summary',
             'rental_export_csv' => 'locations/export.csv',
@@ -211,6 +211,26 @@ final class PrivateRouteResolver
                 'methods' => ['POST'],
                 'path' => $this->canonicalPath('files') . '/{documentId:[A-Za-z0-9._-]+}/delete',
                 'handler' => ['type' => 'private', 'page' => 'files_delete'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('documents_hub'),
+                'handler' => ['type' => 'private', 'page' => 'documents_hub'],
+            ],
+            [
+                'methods' => ['POST'],
+                'path' => $this->canonicalPath('documents_hub_import'),
+                'handler' => ['type' => 'private', 'page' => 'documents_hub_import'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('documents_hub_file') . '/{documentUid:[a-f0-9]{32}}',
+                'handler' => ['type' => 'private', 'page' => 'documents_hub_file'],
+            ],
+            [
+                'methods' => ['POST'],
+                'path' => $this->canonicalPath('documents_hub_action'),
+                'handler' => ['type' => 'private', 'page' => 'documents_hub_action'],
             ],
             [
                 'methods' => ['GET'],
