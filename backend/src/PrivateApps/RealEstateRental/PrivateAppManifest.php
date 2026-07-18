@@ -55,6 +55,8 @@ final class PrivateAppManifest implements
     {
         return [
             'rental_dashboard',
+            'rental_properties_dashboard',
+            'rental_agency_dashboard',
             'rental_lessors',
             'rental_properties',
             'rental_units',
@@ -175,6 +177,8 @@ final class PrivateAppManifest implements
     {
         return [
             'rental_dashboard' => 'locations',
+            'rental_properties_dashboard' => 'locations/biens/tableau-de-bord',
+            'rental_agency_dashboard' => 'locations/agence/tableau-de-bord',
             'rental_lessors' => 'locations/bailleurs',
             'rental_properties' => 'locations/biens',
             'rental_units' => 'locations/lots',

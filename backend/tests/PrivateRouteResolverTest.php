@@ -21,6 +21,8 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c/blocnote', $resolver->canonicalPath('blocnote'));
         $this->assertSame('/private-4h6F1c/files/categories', $resolver->canonicalPath('files_categories'));
         $this->assertSame('/private-4h6F1c/locations', $resolver->canonicalPath('rental_dashboard'));
+        $this->assertSame('/private-4h6F1c/locations/biens/tableau-de-bord', $resolver->canonicalPath('rental_properties_dashboard'));
+        $this->assertSame('/private-4h6F1c/locations/agence/tableau-de-bord', $resolver->canonicalPath('rental_agency_dashboard'));
         $this->assertSame('/private-4h6F1c/locations/bailleurs', $resolver->canonicalPath('rental_lessors'));
         $this->assertSame('/private-4h6F1c/locations/locataires', $resolver->canonicalPath('rental_tenants'));
         $this->assertSame('/private-4h6F1c/locations/regularisations', $resolver->canonicalPath('rental_regularizations'));
@@ -70,6 +72,8 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/files/categories' => ['methods' => ['POST'], 'handler' => 'private:files_categories'],
             '/private/files/{documentId:[A-Za-z0-9._-]+}/delete' => ['methods' => ['POST'], 'handler' => 'private:files_delete'],
             '/private/locations' => ['methods' => ['GET'], 'handler' => 'private:rental_dashboard'],
+            '/private/locations/biens/tableau-de-bord' => ['methods' => ['GET'], 'handler' => 'private:rental_properties_dashboard'],
+            '/private/locations/agence/tableau-de-bord' => ['methods' => ['GET'], 'handler' => 'private:rental_agency_dashboard'],
             '/private/locations/bailleurs' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_lessors'],
             '/private/locations/biens' => ['methods' => ['GET', 'POST'], 'handler' => 'private:rental_properties'],
             '/private/locations/biens/{propertyId:[0-9]+}/archive' => ['methods' => ['POST'], 'handler' => 'private:rental_property_archive'],

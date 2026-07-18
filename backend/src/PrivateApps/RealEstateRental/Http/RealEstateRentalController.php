@@ -76,6 +76,7 @@ final class RealEstateRentalController
         private readonly AgencyImportService $agencyImportService,
         private readonly \Closure $render,
         private readonly ?AppEventLogger $eventLogger = null,
+        private readonly ?AgencyAdvancedReconciliationService $agencyAdvancedReconciliationService = null,
         private readonly ?PrivateDocumentStorage $privateDocumentStorage = null,
     ) {
     }
@@ -161,6 +162,8 @@ final class RealEstateRentalController
     {
         return match ($page) {
             'rental_dashboard' => $this->handleRentalDashboard($request),
+            'rental_properties_dashboard' => $this->handleRentalPropertiesDashboard($request),
+            'rental_agency_dashboard' => $this->handleRentalAgencyDashboard($request),
             'rental_lessors' => $this->handleRentalLessors($request),
             'rental_properties' => $this->handleRentalProperties($request),
             'rental_property_archive' => $this->handleRentalPropertyArchive($request, (int) ($routeParams['propertyId'] ?? 0)),
@@ -349,7 +352,10 @@ final class RealEstateRentalController
             'rentalNotice' => $this->rentalNotice($notice),
             'rentalError' => $this->rentalError($error),
             'rentalUrls' => [
-                'dashboard' => private_portal_url('rental_dashboard'), 'lessors' => private_portal_url('rental_lessors'),
+                'dashboard' => private_portal_url('rental_dashboard'),
+                'propertiesDashboard' => private_portal_url('rental_properties_dashboard'),
+                'agencyDashboard' => private_portal_url('rental_agency_dashboard'),
+                'lessors' => private_portal_url('rental_lessors'),
                 'properties' => private_portal_url('rental_properties'), 'units' => private_portal_url('rental_units'),
                 'members' => private_portal_url('rental_property_members'), 'tenants' => private_portal_url('rental_tenants'),
                 'leases' => private_portal_url('rental_leases'), 'rents' => private_portal_url('rental_rents'),
@@ -391,6 +397,8 @@ final class RealEstateRentalController
     private function agencyImportRepository(): AgencyImportRepository { return $this->agencyImportRepository; }
     private function agencyMappingRepository(): AgencyMappingRepository { return $this->agencyMappingRepository; }
     private function agencyImportService(): AgencyImportService { return $this->agencyImportService; }
+    private function agencyAdvancedReconciliationService(): AgencyAdvancedReconciliationService
+    { return $this->agencyAdvancedReconciliationService ?? new AgencyAdvancedReconciliationService(); }
 
     private function canWriteProperty(int $propertyId, int $userId): bool
     {
@@ -848,6 +856,66 @@ final class RealEstateRentalController
         ));
     }
 
+    private function renderRentalPropertiesDashboard(int $userId): Response
+    {
+        $propertyIds = $this->authorizedPropertyIds($userId);
+        $properties = $propertyIds === [] ? [] : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
+        $units = $propertyIds === [] ? [] : $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
+        $tenants = $this->rentalLifecycleRepository()->listTenants($propertyIds, self::MAX_RENTAL_LIST);
+        $leases = $this->rentalLifecycleRepository()->listLeases($propertyIds, self::MAX_RENTAL_LIST);
+        $year = (int) date('Y');
+        $month = (int) date('n');
+        $dashboardStats = $this->rentalDashboardService()->build($year, $month, $propertyIds);
+        $documents = $this->rentalLifecycleRepository()->listDocuments($propertyIds, self::MAX_RENTAL_LIST);
+        return $this->render('modules/real-estate-rental/properties-dashboard', array_merge(
+            $this->rentalBaseViewModel('Tableau de bord - Biens et locations', '', ''),
+            [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'propertiesDashboard',
+                'rentalDashboardStats' => array_merge($dashboardStats, [
+                    'year' => $year, 'month' => $month, 'propertyCount' => count($properties),
+                    'unitCount' => count($units), 'tenantCount' => count($tenants),
+                    'activeLeaseCount' => count(array_filter($leases, static fn (array $lease): bool => in_array((string) ($lease['status'] ?? ''), ['draft', 'validated'], true))),
+                    'documentCount' => count($documents),
+                ]),
+                'rentalProperties' => $this->objectsToArrays($properties),
+                'rentalRecentDocuments' => array_slice($documents, 0, 8),
+            ]
+        ));
+    }
+
+    private function renderRentalAgencyDashboard(int $userId): Response
+    {
+        $agencyDocuments = $this->agencyImportRepository()->listRecentDocumentsForUser($userId, self::MAX_RENTAL_LIST);
+        $agencyBatches = $this->agencyImportRepository()->listRecentBatches($userId, 50);
+        $agencies = $this->agencyImportRepository()->listAgencies($userId, 100);
+        $unitMappings = $this->agencyImportRepository()->listUnitMappings($userId, 200);
+        $pendingAgencyDocuments = 0;
+        foreach ($agencyDocuments as $document) {
+            $status = is_array($document) && is_string($document['reviewStatus'] ?? null) ? (string) $document['reviewStatus'] : '';
+            if (in_array($status, ['pending', 'to_review', 'new'], true)) { ++$pendingAgencyDocuments; }
+        }
+        return $this->render('modules/real-estate-rental/agency-dashboard', array_merge(
+            $this->rentalBaseViewModel('Tableau de bord - Agence', '', ''),
+            [
+                'rentalCurrentSection' => 'agency',
+                'rentalCurrentSubsection' => 'agencyDashboard',
+                'agencyDashboardStats' => [
+                    'agencyCount' => count($agencies),
+                    'agencyDocumentCount' => count($agencyDocuments),
+                    'pendingAgencyDocumentCount' => $pendingAgencyDocuments,
+                    'agencyBatchCount' => count($agencyBatches),
+                    'agencyUnitMappingCount' => count($unitMappings),
+                ],
+                'agencyImportDocuments' => array_slice($agencyDocuments, 0, 10),
+                'agencyImportBatches' => array_map(
+                    static fn ($batch): array => method_exists($batch, 'toArray') ? $batch->toArray() : [],
+                    array_slice($agencyBatches, 0, 10)
+                ),
+            ]
+        ));
+    }
+
     private function renderRentalLessors(int $userId, string $notice = '', string $error = ''): Response
     {
         return $this->render('modules/real-estate-rental/lessors', array_merge(
@@ -1274,6 +1342,12 @@ final class RealEstateRentalController
     // Handle Methods
     private function handleRentalDashboard(Request $request): Response
     { $userId = $this->requireRentalModuleUser($request); if ($userId instanceof Response) { return $userId; } return $this->renderRentalDashboard($userId); }
+
+    private function handleRentalPropertiesDashboard(Request $request): Response
+    { $userId = $this->requireRentalModuleUser($request); if ($userId instanceof Response) { return $userId; } return $this->renderRentalPropertiesDashboard($userId); }
+
+    private function handleRentalAgencyDashboard(Request $request): Response
+    { $userId = $this->requireRentalModuleUser($request); if ($userId instanceof Response) { return $userId; } return $this->renderRentalAgencyDashboard($userId); }
 
     private function handleRentalLessors(Request $request): Response
     {

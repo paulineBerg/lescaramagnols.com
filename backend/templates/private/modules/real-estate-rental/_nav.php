@@ -9,13 +9,14 @@ $url = static function (string $key, string $fallback) use ($urls): string {
 
 $mainItems = [
     'dashboard' => ['Tableau de bord', $url('dashboard', 'rental_dashboard')],
-    'personal' => ['Biens et locations', $url('properties', 'rental_properties')],
-    'agency' => ['Documents agence', $url('agencyImports', 'rental_agency_imports')],
+    'personal' => ['Biens et locations', $url('propertiesDashboard', 'rental_properties_dashboard')],
+    'agency' => ['Agence', $url('agencyDashboard', 'rental_agency_dashboard')],
     'reports' => ['Rapports', $url('summary', 'rental_summary')],
 ];
 
 $subItems = match ($currentSection) {
     'agency' => [
+        'agencyDashboard' => ['Tableau de bord', $url('agencyDashboard', 'rental_agency_dashboard')],
         'agencies' => ['Agences', $url('agencies', 'rental_agencies')],
         'properties' => ['Propriétés', $url('properties', 'rental_properties')],
         'agencyImports' => ['Importer agence', $url('agencyImports', 'rental_agency_imports')],
@@ -27,6 +28,7 @@ $subItems = match ($currentSection) {
         'exportPdf' => ['Export PDF', $url('exportPdf', 'rental_export_pdf')],
     ],
     'personal' => [
+        'propertiesDashboard' => ['Tableau de bord', $url('propertiesDashboard', 'rental_properties_dashboard')],
         'lessors' => ['Bailleurs', $url('lessors', 'rental_lessors')],
         'properties' => ['Propriétés', $url('properties', 'rental_properties')],
         'units' => ['Biens locatifs', $url('units', 'rental_units')],

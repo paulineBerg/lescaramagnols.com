@@ -123,6 +123,8 @@ final class PrivatePortalController
             'documents_hub_action' => $this->documentHubController()->action($request),
             'blocnote' => $this->blocNoteController()->handle($request),
             'rental_dashboard' => $this->rentalController()->handle('rental_dashboard', $request),
+            'rental_properties_dashboard' => $this->rentalController()->handle('rental_properties_dashboard', $request),
+            'rental_agency_dashboard' => $this->rentalController()->handle('rental_agency_dashboard', $request),
             'rental_lessors' => $this->rentalController()->handle('rental_lessors', $request),
             'rental_properties' => $this->rentalController()->handle('rental_properties', $request),
             'rental_property_archive' => $this->rentalController()->handle(

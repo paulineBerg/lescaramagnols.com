@@ -71,6 +71,8 @@ final class PrivateRouteResolver
         // Ces routes devraient etre dans RealEstateRental/PrivateAppManifest::routePaths()
         $rentalRoutes = [
             'rental_dashboard' => 'locations',
+            'rental_properties_dashboard' => 'locations/biens/tableau-de-bord',
+            'rental_agency_dashboard' => 'locations/agence/tableau-de-bord',
             'rental_lessors' => 'locations/bailleurs',
             'rental_properties' => 'rental-properties',
             'rental_units' => 'rental-units',
@@ -236,6 +238,16 @@ final class PrivateRouteResolver
                 'methods' => ['GET'],
                 'path' => $this->canonicalPath('rental_dashboard'),
                 'handler' => ['type' => 'private', 'page' => 'rental_dashboard'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('rental_properties_dashboard'),
+                'handler' => ['type' => 'private', 'page' => 'rental_properties_dashboard'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('rental_agency_dashboard'),
+                'handler' => ['type' => 'private', 'page' => 'rental_agency_dashboard'],
             ],
             [
                 'methods' => ['GET', 'POST'],
