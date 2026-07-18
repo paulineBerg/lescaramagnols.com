@@ -849,7 +849,7 @@ final class RealEstateRentalController
     }
 
     private function renderRentalLessors(int $userId, string $notice = '', string $error = ''): Response
-    { return $this->render('private/rental/lessors.twig', ['lessors' => $this->rentalLessorRepository()->listForUser($userId), 'notice' => $notice, 'error' => $error]); }
+    { return $this->render('modules/real-estate-rental/lessors', ['lessors' => $this->rentalLessorRepository()->listForUser($userId), 'notice' => $notice, 'error' => $error]); }
 
     private function renderRentalProperties(int $userId, string $notice = '', string $error = ''): Response
     {
