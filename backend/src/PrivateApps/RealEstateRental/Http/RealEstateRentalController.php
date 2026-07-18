@@ -302,7 +302,7 @@ final class RealEstateRentalController
     private function rentalError(string $key): string
     {
         return match ($key) {
-            'rental_invalid_request' => 'Requête locative invalide.',
+            'rental_invalid_request' => 'Session expirée, veuillez recharger la page puis recommencer.',
             'rental_write_failed' => 'Les données locatives sont invalides ou incomplètes.',
             'rental_overpayment_requires_confirmation' => 'Surpaiement détecté : cochez la confirmation pour enregistrer.',
             'rental_archive_failed' => 'Archivage locatif impossible.',
