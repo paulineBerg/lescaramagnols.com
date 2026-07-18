@@ -247,7 +247,13 @@ function sync_private_schema(EditorialDatabase $database, bool $dryRun): array
     }
 
     $seedApplied = 0;
+    $seedSkipped = 0;
     foreach ($seedStatements as $statement) {
+        if (!table_exists($pdo, $statement['table'])) {
+            $seedSkipped++;
+            continue;
+        }
+
         $pdo->exec($statement['sql']);
         $seedApplied++;
     }
@@ -261,6 +267,7 @@ function sync_private_schema(EditorialDatabase $database, bool $dryRun): array
         'missing_tables' => [],
         'seed_count' => count($seedStatements),
         'seed_applied_count' => $seedApplied,
+        'seed_skipped_count' => $seedSkipped,
     ];
 }
 
