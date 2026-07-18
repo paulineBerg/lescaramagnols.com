@@ -143,6 +143,14 @@ make test-backend test-frontend
 
 Cible unique : **prod** (`DEPLOY_TARGET=prod`). La preprod est abandonnee depuis le 2026-07-17.
 
+Acces SSH OVH depuis ce poste :
+
+```bash
+ssh ovh-boutique
+```
+
+`ovh-boutique` est un alias SSH local gere hors depot dans `~/.ssh/config`. Ne jamais versionner de cle privee, mot de passe, host complet non public ou secret d'acces. Le backend production est dans `/home/lescaramgl-ssh/caramagnols/backend`.
+
 `backend/private/` est synchronise en mode **additif** (rsync sans `--delete`) : les fichiers runtime prives de production ne sont jamais supprimes par un deploy.
 
 Par defaut, les scripts de deploiement synchronisent aussi le schema SQL attendu par le code deploye :

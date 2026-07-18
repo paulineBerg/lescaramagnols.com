@@ -55,6 +55,10 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 ## Deploiement
 
 - La preprod est abandonnee depuis le 2026-07-17 : `prod` est la seule cible de deploiement maintenue.
+- Acces SSH OVH depuis ce poste : utiliser l'alias local `ovh-boutique`, par exemple `ssh ovh-boutique`.
+- L'alias `ovh-boutique` est gere hors depot dans la configuration SSH locale (`~/.ssh/config`) ; ne jamais versionner cle privee, mot de passe, host complet non public ou secret d'acces.
+- Chemin backend production OVH : `/home/lescaramgl-ssh/caramagnols/backend`.
+- Commande de diagnostic distante typique : `ssh ovh-boutique "cd /home/lescaramgl-ssh/caramagnols/backend && php core/tools/check_vite_assets.php --public-root=public"`.
 - `backend/private/` est synchronise vers la production par `deploy-release.sh` en mode additif uniquement (rsync sans `--delete`) : un deploy ne doit jamais supprimer ni ecraser les fichiers runtime prives distants.
 - Scripts de deploiement prod a chercher sous `backend/tools/` :
   - deploy complet : `backend/tools/deploy-release.sh` ;
