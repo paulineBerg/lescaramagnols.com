@@ -849,7 +849,16 @@ final class RealEstateRentalController
     }
 
     private function renderRentalLessors(int $userId, string $notice = '', string $error = ''): Response
-    { return $this->render('modules/real-estate-rental/lessors', ['lessors' => $this->rentalLessorRepository()->listForUser($userId), 'notice' => $notice, 'error' => $error]); }
+    {
+        return $this->render('modules/real-estate-rental/lessors', array_merge(
+            $this->rentalBaseViewModel('Bailleurs', $notice, $error),
+            [
+                'rentalCurrentSection' => 'personal',
+                'rentalCurrentSubsection' => 'lessors',
+                'rentalLessors' => $this->rentalLessorRepository()->listForUser($userId),
+            ]
+        ));
+    }
 
     private function renderRentalProperties(int $userId, string $notice = '', string $error = ''): Response
     {
