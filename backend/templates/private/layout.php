@@ -320,6 +320,15 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
     <?php $privateCspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
     <script<?php echo $privateCspNonce !== '' ? ' nonce="' . htmlspecialchars($privateCspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
       (() => {
+        window.addEventListener('pageshow', (event) => {
+          const navigationEntry = performance.getEntriesByType('navigation')[0];
+          const isHistoryRestore = event.persisted
+            || (navigationEntry && navigationEntry.type === 'back_forward');
+          if (isHistoryRestore) {
+            window.location.reload();
+          }
+        });
+
         const navToggle = document.querySelector('[data-private-nav-toggle]');
         const navCollapseLabel = <?php echo json_encode($translate('TXT_PRIVATE_NAV_COLLAPSE', 'Replier le menu'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         const navExpandLabel = <?php echo json_encode($translate('TXT_PRIVATE_NAV_EXPAND', 'Déplier le menu'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
