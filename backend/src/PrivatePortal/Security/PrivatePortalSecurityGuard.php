@@ -82,7 +82,15 @@ final class PrivatePortalSecurityGuard
         $token = $bodyToken !== null && $bodyToken !== '' ? $bodyToken : $headerToken;
 
         if (!csrf_validate($token, $scope)) {
-            $this->logSecurityRejection($request, $scope);
+            $this->logSecurityRejection($request, $scope, [
+                'has_body_token' => $bodyToken !== null && $bodyToken !== '',
+                'has_header_token' => $headerToken !== null && $headerToken !== '',
+                'session_name' => session_status() === PHP_SESSION_ACTIVE ? session_name() : '',
+                'session_has_scope' => session_status() === PHP_SESSION_ACTIVE
+                    && isset($_SESSION[sprintf('_csrf_%s', $scope)])
+                    && is_string($_SESSION[sprintf('_csrf_%s', $scope)])
+                    && $_SESSION[sprintf('_csrf_%s', $scope)] !== '',
+            ]);
             return false;
         }
 
@@ -97,17 +105,17 @@ final class PrivatePortalSecurityGuard
         return str_contains($accept, 'application/json') || $requestedWith === 'xmlhttprequest';
     }
 
-    private function logSecurityRejection(Request $request, string $scope): void
+    private function logSecurityRejection(Request $request, string $scope, array $details = []): void
     {
         $this->logSecurityEvent(
             'private.csrf.rejected',
-            [
+            array_merge([
                 'path' => request_path($request->uri()),
                 'uri' => $request->uri(),
                 'ip' => $this->requestIp($request),
                 'method' => strtoupper((string) $request->method()),
                 'scope' => $scope,
-            ]
+            ], $details)
         );
     }
 

@@ -1274,7 +1274,9 @@ final class RealEstateRentalController
         $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
         $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
         if ($request->method() !== self::METHOD_POST) { return $this->renderRentalLessors($userId, $notice, $error); }
-        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) { return $this->renderRentalLessors($userId, '', 'rental_invalid_request'); }
+        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
+            return $this->redirect(private_portal_url('rental_lessors') . '?error=rental_invalid_request');
+        }
         $body = $request->body();
         $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_lessor';
         $lessorId = $this->normalizeNumericId($body['lessor_id'] ?? null);
