@@ -214,9 +214,9 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   RSYNC_FLAGS+=(-n)
 fi
 
-# private/ est toujours exclu de la passe principale (qui utilise --delete) ;
+# /private/ est toujours exclu de la passe principale (qui utilise --delete) ;
 # il est synchronise ensuite par une passe additive dediee.
-PRIVATE_RSYNC_EXCLUDES=(--exclude="private/")
+PRIVATE_RSYNC_EXCLUDES=(--exclude="/private/")
 
 rsync "${RSYNC_FLAGS[@]}" \
   --exclude=".git/" \
