@@ -284,6 +284,11 @@ function private_schema_statements(string $schemaDir, string $tablePrefix): arra
         }
 
         foreach (split_sql_statements(rewrite_private_table_prefix($sql, $tablePrefix)) as $statement) {
+            $statement = strip_private_schema_comments($statement);
+            if ($statement === '') {
+                continue;
+            }
+
             if (
                 preg_match(
                     '/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+`?([a-zA-Z0-9_]+)`?/i',
@@ -319,6 +324,23 @@ function private_schema_statements(string $schemaDir, string $tablePrefix): arra
     }
 
     return $statements;
+}
+
+function strip_private_schema_comments(string $statement): string
+{
+    $lines = preg_split('/\r?\n/', $statement) ?: [];
+    $kept = [];
+
+    foreach ($lines as $line) {
+        $trimmed = ltrim($line);
+        if (str_starts_with($trimmed, '--')) {
+            continue;
+        }
+
+        $kept[] = $line;
+    }
+
+    return trim(implode("\n", $kept));
 }
 
 function rewrite_private_table_prefix(string $sql, string $tablePrefix): string
