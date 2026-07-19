@@ -1,6 +1,7 @@
 # Node.js / Vite
 node_modules/
 frontend/dist/
+frontend/dist_backup/
 frontend/.cache/
 frontend/.vite/
 .vite/
@@ -12,10 +13,21 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Build artefacts backend
-backend/public/assets/
 backend/public/.vite/
+backend/public/tarteaucitron/
+backend/public/assets/*
+!backend/public/assets/index.php
+!backend/public/assets/rss.php
+backend/public/uploads/**
+!backend/public/uploads/
+!backend/public/uploads/editorial/
+!backend/public/uploads/editorial/.gitkeep
+backend/public/sitemap.xml
 backend/data/search_index*.json
 backend/data/*.cache
+backend/data/logs/
+backend/data/snapshots/
+backend/data/menus.json
 frontend/coverage/
 
 # Environnements
@@ -34,11 +46,52 @@ Thumbs.db
 
 # Composer / PHP caches (si utilises plus tard)
 vendor/
-composer.lock
-
+/composer.lock
+backend/var/
 # Python venv (au cas ou)
 .venv/
 
 # Misc
 *.bak
 *.tmp
+/backups/
+/.ops-sync/
+/php
+
+# PDF assets - stockés sur l'hébergement, pas dans git
+frontend/src/assets/pdf/**
+!frontend/src/assets/pdf/
+!frontend/src/assets/pdf/.gitkeep
+backend/config/database.override.php
+backend/config/admin.override.php
+backend/config/site.override.php
+backend/public/tmp_config/
+backend/config/db.php
+
+# =============================================================================
+# STOCKAGE RUNTIME PROTÉGÉ - production est la source maîtresse des données
+# =============================================================================
+# backend/private/storage/** contient:
+#   - uploads/         : documents privés (sharding SHA-256 à 2 niveaux)
+#   - document-hub/   : hub documentaire CAS (objects/sha256/ab/cd/<hash>)
+#   - family-discussion/: pièces jointes discussions (sharding SHA-256)
+#   - backups/        : sauvegardes document-hub et autres
+#   - exports/        : exports temporaires
+# Ces dossiers sont créés à la demande par l'application et ne doivent JAMAIS
+# être versionnés, synchronisés vers la production, ou nettoyés par un deploy.
+# La production OVH est l'unique source de vérité pour ces données.
+# Local -> Production: CODE SEULEMENT, aucune donnée runtime.
+# =============================================================================
+backend/private/storage/
+
+# Documentation privée - ne pas versionner
+docs/private/
+docs/private/agence/
+
+*:Zone.Identifier
+
+# Claude Code - réglages personnels locaux (non partagés en équipe)
+.claude/settings.local.json
+
+# Temporary multi-AI task handoff
+.ai/CURRENT_TASK.md

@@ -5,11 +5,12 @@ import {
   getPersistedLanguage,
   clearTranslationCache,
   changeLanguage,
-} from '../i18n.js';
+  loadTranslationsByKeys
+} from '../i18n.ts';
 
 global.fetch = vi.fn(async () => ({
   ok: true,
-  json: async () => ({ title: 'Bonjour' }),
+  json: async () => ({ title: 'Bonjour' })
 }));
 
 describe('i18n helpers', () => {
@@ -17,9 +18,10 @@ describe('i18n helpers', () => {
     vi.restoreAllMocks();
     clearTranslationCache();
     localStorage.clear();
+    window.caramagnolsRuntime = undefined;
     Object.defineProperty(window.navigator, 'language', {
       value: 'fr-FR',
-      configurable: true,
+      configurable: true
     });
   });
 
@@ -46,7 +48,65 @@ describe('i18n helpers', () => {
     expect(document.documentElement.lang).toBe('en');
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('core/api/lang.php?lang=en'),
-      expect.any(Object),
+      expect.any(Object)
+    );
+  });
+
+  it('caches translations and avoids duplicate fetch', async () => {
+    fetch.mockClear();
+    await changeLanguage('en');
+    await changeLanguage('en');
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses runtime lang api path when provided', async () => {
+    window.caramagnolsRuntime = {
+      api: {
+        lang: '/catalogue/core/api/lang.php'
+      }
+    };
+
+    await changeLanguage('de');
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/catalogue/core/api/lang.php?lang=de'),
+      expect.any(Object)
+    );
+  });
+
+  it('loads only requested keys when key filter is provided', async () => {
+    fetch.mockClear();
+
+    await loadTranslationsByKeys('fr', {
+      keys: ['TXT_SITE_BRAND', 'TXT_NAV_OPEN_MENU']
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining('keys=TXT_SITE_BRAND%2CTXT_NAV_OPEN_MENU'),
+      expect.any(Object)
+    );
+  });
+
+  it('reloads full catalog after a keys-only fetch', async () => {
+    fetch.mockReset();
+    fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ TXT_SITE_BRAND: 'Les Caramagnols' })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ title: 'Bonjour', TXT_NAV_OPEN_MENU: 'Ouvrir le menu' })
+      });
+
+    await loadTranslationsByKeys('fr', { keys: ['TXT_SITE_BRAND'] });
+    await changeLanguage('fr');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('core/api/lang.php?lang=fr'),
+      expect.any(Object)
     );
   });
 });

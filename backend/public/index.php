@@ -1,26 +1,13 @@
 <?php
 // public/index.php
 
-// ⚙️ Chargement du bootstrap complet, incluant config, langue, routeur, helpers
+// Front-controller modernisé : tente FastRoute puis délègue au routeur public du site
 require_once __DIR__ . '/../core/bootstrap.php';
 
-// 🔀 Résolution de la route demandée
-$pageFile = resolve_route($_SERVER['REQUEST_URI']);
-$pagePath = TEMPLATES_PATH . '/' . $pageFile;
+use Caramagnols\Http\FrontController;
+use Caramagnols\Http\Request;
 
-// 🧠 Détermination du titre de page
-if (!file_exists($pagePath)) {
-    $pagePath = TEMPLATES_PATH . '/pages/404.php';
-    $pageTitle = 'Page introuvable';
-} else {
-    // Titre par défaut (peut être écrasé dans chaque page avec $pageTitle)
-    $pageTitle = ucfirst(str_replace('-', ' ', basename($pageFile, '.php')));
-}
+$request = Request::fromGlobals();
+$response = FrontController::boot()->handle($request);
 
-// 📦 Rendu du contenu dans une variable
-ob_start();
-include $pagePath;
-$content = ob_get_clean();
-
-// 📄 Affichage via layout principal (qui inclut la langue)
-require_once TEMPLATES_PATH . '/partials/layout.php';
+$response->send();

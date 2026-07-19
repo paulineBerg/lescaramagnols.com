@@ -1,9 +1,9 @@
 # Makefile - helper tasks for local development
 
-.PHONY: help install-backend install-frontend test-backend test-frontend build-frontend postbuild all
+.PHONY: help install-backend install-frontend install-git-hooks test-backend test-frontend build-frontend postbuild all
 
 help:
-	@echo "Available targets: install-backend, install-frontend, test-backend, test-frontend, build-frontend, postbuild, all"
+	@echo "Available targets: install-backend, install-frontend, install-git-hooks, test-backend, test-frontend, build-frontend, postbuild, all"
 
 install-backend:
 	@cd backend && composer install --no-interaction
@@ -11,11 +11,16 @@ install-backend:
 install-frontend:
 	@cd frontend && npm ci
 
+install-git-hooks:
+	@chmod +x .githooks/pre-commit
+	@git config --local core.hooksPath .githooks
+	@echo "Git hooks installes depuis .githooks"
+
 test-backend:
-	@cd backend && composer test || true
+	@cd backend && composer test
 
 test-frontend:
-	@cd frontend && npm run test:run || true
+	@cd frontend && npm run test:run
 
 build-frontend:
 	@cd frontend && npm run build

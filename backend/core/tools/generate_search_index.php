@@ -1,108 +1,177 @@
 <?php
-// core/tools/generate_search_index.php
 
-define('ROOT_PATH', dirname(__DIR__, 2));
-define('LANG_PATH', ROOT_PATH . '/lang/fr.php');
-define('TEMPLATE_PATH', ROOT_PATH . '/templates/pages/');
-define('OUTPUT_FILE_FULL', ROOT_PATH . '/data/search_index.json');
-define('OUTPUT_FILE_MIN', ROOT_PATH . '/data/search_index.min.json');
+declare(strict_types=1);
 
-$lang = require LANG_PATH;
-$index = [];
+require_once dirname(__DIR__) . '/bootstrap.php';
 
-// ❌ Exclure ces fichiers
-$excludeFiles = ['404.php', 'search.php', 'index.php', 'test.php'];
+$languages = function_exists('site_available_languages')
+    ? site_available_languages()
+    : [defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr'];
+$defaultLanguage = defined('DEFAULT_LANG') ? DEFAULT_LANG : 'fr';
+$repository = page_repository_for_path(pages_data_path());
 
-// ✅ Fonction pour exclure les blocs "menu UI"
-function isMenuUIBlock(string $blocContent): bool {
+/**
+ * Détermine si un bloc correspond à un menu UI (non pertinent pour la recherche).
+ */
+function isMenuUIBlock(string $blocContent): bool
+{
     return (
-        preg_match('/t\(["\']MENU_UI_/i', $blocContent) ||
-        preg_match('#/assets/images/structure/menu/#i', $blocContent) ||
-        preg_match('/id=["\']menurectanglewindows/i', $blocContent) ||
-        preg_match('/id=["\']boutonrectangle/i', $blocContent)
+        preg_match('/MENU_UI_/i', $blocContent)
+        || preg_match('#/assets/images/structure/menu/#i', $blocContent)
+        || preg_match('/id=["\']menurectanglewindows/i', $blocContent)
+        || preg_match('/id=["\']boutonrectangle/i', $blocContent)
     );
 }
 
-// 🔁 Parcours récursif des fichiers
-$rii = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(TEMPLATE_PATH));
+/**
+ * Convertit un contenu HTML en texte normalisé.
+ */
+function normalizeText(string $html): string
+{
+    $text = strip_tags($html);
+    $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $text = preg_replace('/\s+/u', ' ', $text);
 
-foreach ($rii as $file) {
-    if ($file->isDir() || $file->getExtension() !== 'php') continue;
+    return trim((string) $text);
+}
 
-    $filepath = $file->getPathname();
-    $relativePath = str_replace(TEMPLATE_PATH, '', $filepath);
-    if (in_array(basename($relativePath), $excludeFiles)) continue;
-
-    $url = '/' . str_replace('.php', '', str_replace('\\', '/', $relativePath));
-    $parts = explode('/', trim($relativePath, '/'));
-    $categorie = $parts[0] ?? 'inconnu';
-
-    $content = file_get_contents($filepath);
-
-    // 🔍 Extraire tous les blocs de type $blocks['EditRegionX'] = '...';
-    preg_match_all('/\$blocks\[\'(EditRegion\d{1,2})\'\]\s*=\s*\'(.*?)\';/s', $content, $matches, PREG_SET_ORDER);
-
-    $titre = '';
-    $texteTotal = '';
-    $image = null;
-    $blocs_utilises = [];
-
-    foreach ($matches as $match) {
-        $blocId = $match[1];
-        $blocContent = $match[2];
-
-        // ⛔ Ignore les blocs de type menu UI
-        if (isMenuUIBlock($blocContent)) continue;
-
-        $blocs_utilises[] = $blocId;
-
-        // 🔍 Cherche les traductions t("...")
-        if (preg_match_all('/t\([\'"]([^\'"]+)[\'"]\)/', $blocContent, $tMatches)) {
-            foreach ($tMatches[1] as $langKey) {
-                if (!isset($lang[$langKey])) continue;
-
-                $value = strip_tags($lang[$langKey]);
-
-                if (stripos($langKey, 'TITRE') !== false && !$titre) {
-                    $titre = $value;
-                } else {
-                    $texteTotal .= ' ' . $value;
-                }
-            }
-        }
-
-        // 📷 Cherche une image directe dans le bloc
-        if (!$image && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/', $blocContent, $imgMatch)) {
-            $image = $imgMatch[1];
-        }
+/**
+ * Récupère la première image trouvée dans un bloc HTML.
+ */
+function extractFirstImage(string $html): ?string
+{
+    if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $html, $match)) {
+        return (string) $match[1];
     }
 
-    if ($titre || $texteTotal) {
-        $index[$categorie][] = [
-            'titre' => $titre ?: '(Sans titre)',
-            'contenu' => mb_substr(trim($texteTotal), 0, 300) . '...',
-            'url' => $url,
-            'image' => $image ?? null,
-            'blocs_utilises' => array_unique($blocs_utilises),
+    return null;
+}
+
+function searchIndexCategory(string $route): string
+{
+    $normalized = normalize_public_route($route);
+    if ($normalized === null || $normalized === '/') {
+        return 'accueil';
+    }
+
+    $segment = explode('/', trim($normalized, '/'))[0] ?? 'pages';
+    $segment = preg_replace('/\.php$/i', '', $segment) ?? $segment;
+
+    return trim((string) $segment) !== '' ? (string) $segment : 'pages';
+}
+
+foreach ($languages as $language) {
+    if (!is_string($language) || trim($language) === '') {
+        continue;
+    }
+
+    $language = trim($language);
+    echo "--- Génération de l'index pour la langue : {$language} ---\n";
+
+    $outputFileFull = ROOT_PATH . "/data/search_index_{$language}.json";
+    $outputFileMin = ROOT_PATH . "/data/search_index_{$language}.min.json";
+    $index = [];
+
+    foreach ($repository->published() as $page) {
+        if (!is_array($page)) {
+            continue;
+        }
+
+        $slug = trim((string) ($page['slug'] ?? ''));
+        if ($slug === '') {
+            continue;
+        }
+
+        $rendered = $repository->findPublishedStructuredBySlug($slug, $language, $defaultLanguage);
+        if (!is_array($rendered)) {
+            continue;
+        }
+
+        $title = trim((string) ($rendered['title'] ?? ''));
+        $route = normalize_public_route((string) ($rendered['route'] ?? '')) ?? ('/' . $slug);
+        $category = searchIndexCategory($route);
+        $blocks = is_array($rendered['blocks'] ?? null) ? $rendered['blocks'] : [];
+        $textParts = [];
+        $image = null;
+        $usedBlocks = [];
+
+        foreach ($blocks as $blockId => $blockContent) {
+            if (!is_string($blockId) || !is_string($blockContent) || trim($blockContent) === '') {
+                continue;
+            }
+
+            if ($image === null) {
+                $image = extractFirstImage($blockContent);
+            }
+
+            if (isMenuUIBlock($blockContent)) {
+                continue;
+            }
+
+            $text = normalizeText($blockContent);
+            if ($text === '') {
+                continue;
+            }
+
+            $textParts[] = $text;
+            $usedBlocks[] = $blockId;
+        }
+
+        $body = trim(implode(' ', $textParts));
+        if ($title === '' && $body === '') {
+            continue;
+        }
+
+        if ($title === '') {
+            $title = $slug;
+        }
+
+        $index[$category][] = [
+            'titre' => $title,
+            'contenu' => mb_substr($body, 0, 300) . (mb_strlen($body) > 300 ? '…' : ''),
+            'url' => $route,
+            'image' => $image,
+            'blocs_utilises' => array_values(array_unique($usedBlocks)),
         ];
     }
+
+    foreach ($index as &$entries) {
+        usort(
+            $entries,
+            static fn (array $left, array $right): int => strcasecmp((string) $left['titre'], (string) $right['titre'])
+        );
+    }
+    unset($entries);
+
+    $dataPath = dirname($outputFileFull);
+    if (!is_dir($dataPath) && !mkdir($dataPath, 0755, true) && !is_dir($dataPath)) {
+        echo "❌ Impossible de créer le dossier de sortie '{$dataPath}'.\n";
+        continue;
+    }
+
+    $jsonPretty = json_encode($index, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $jsonMin = json_encode($index, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    if ($jsonPretty === false || $jsonMin === false) {
+        echo "❌ Impossible d'encoder l'index '{$language}'.\n";
+        continue;
+    }
+
+    file_put_contents($outputFileFull, $jsonPretty);
+    file_put_contents($outputFileMin, $jsonMin);
+
+    if ($language === $defaultLanguage) {
+        file_put_contents(ROOT_PATH . '/data/search_index.json', $jsonPretty);
+        file_put_contents(ROOT_PATH . '/data/search_index.min.json', $jsonMin);
+    }
+
+    $totalEntries = 0;
+    foreach ($index as $entries) {
+        $totalEntries += count($entries);
+    }
+
+    echo "✅ Index pour '{$language}' généré avec succès.\n";
+    echo "   - 📁 {$outputFileFull}\n";
+    echo "   - 📁 {$outputFileMin}\n";
+    echo '   - 📊 Catégories : ' . count($index) . " — Total éléments : {$totalEntries}\n";
 }
-
-// 🔠 Tri alphabétique
-foreach ($index as &$entries) {
-    usort($entries, fn($a, $b) => strcasecmp($a['titre'], $b['titre']));
-}
-
-// 📁 Dossier de sortie
-$dataPath = dirname(OUTPUT_FILE_FULL);
-if (!is_dir($dataPath)) mkdir($dataPath, 0755, true);
-
-// 💾 Écriture des fichiers
-file_put_contents(OUTPUT_FILE_FULL, json_encode($index, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-file_put_contents(OUTPUT_FILE_MIN, json_encode($index, JSON_UNESCAPED_UNICODE));
-
-// ✅ Résumé
-echo "✅ Index généré avec exclusion des menus UI\n";
-echo "📁 " . OUTPUT_FILE_FULL . "\n";
-echo "📁 " . OUTPUT_FILE_MIN . "\n";
-echo "📊 Catégories : " . count($index) . " — Total éléments : " . count($index, COUNT_RECURSIVE) . "\n";
