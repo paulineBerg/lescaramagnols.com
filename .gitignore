@@ -89,3 +89,9 @@ docs/private/
 docs/private/agence/
 
 *:Zone.Identifier
+
+# Claude Code - réglages personnels locaux (non partagés en équipe)
+.claude/settings.local.json
+
+# Temporary multi-AI task handoff
+.ai/CURRENT_TASK.md
