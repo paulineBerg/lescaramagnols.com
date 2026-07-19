@@ -40,3 +40,7 @@ Non déterminé
 À analyser
 
 États autorisés : `À analyser`, `Planifié`, `En cours`, `À revoir`, `Terminé`, `Bloqué`.
+
+## État Terminé
+
+lorsque terminé archiver les documents sources selon .ai\ARCHIVAGE_DOCUMENTS_SOURCE.md

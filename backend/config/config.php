@@ -806,6 +806,10 @@ $appConfig = [
     'logging' => [
         'retention_files' => max(2, min(90, (int) env('LOG_RETENTION_FILES', 14))),
         'rotation_max_bytes' => max(262144, min(104857600, (int) env('LOG_ROTATION_MAX_BYTES', 5242880))),
+        'trusted_request_id_sources' => array_values(array_filter(array_map(
+            static fn (string $value): string => trim($value),
+            explode(',', (string) env('LOG_TRUSTED_REQUEST_ID_SOURCES', ''))
+        ))),
     ],
     'backup' => [
         'root_dir' => $productionBackupConfig['root_dir'],

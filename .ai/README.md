@@ -46,3 +46,9 @@ Executer uniquement les tests, lints, formats et builds verifies dans les
 manifestes ou la documentation du projet. Si aucune commande n'est confirmee,
 indiquer `non determinee` dans `CURRENT_TASK.md`.
 
+## Archivage
+
+Quand une tache est terminee, utiliser
+`.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md` pour archiver les documents source et les
+preuves de validation. Par defaut, copier les sources dans `.ai/archives/` sans
+supprimer les originaux.

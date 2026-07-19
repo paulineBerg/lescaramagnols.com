@@ -296,11 +296,15 @@ final class RealEstateRentalController
             'document_emailed' => 'Email locatif envoyé.', 'rental_data_purged' => 'Données locatives supprimées.',
             'agency_imported' => 'Document agence importé et préparé pour revue.',
             'agency_import_ignored' => 'Fichier annexe ignoré.', 'agency_document_deleted' => 'Document agence supprimé.',
-            'agency_created' => 'Agence créée.', 'agency_unit_mapping_created' => 'Correspondance agence créée.',
+            'agency_created' => 'Agence créée.', 'agency_updated' => 'Agence mise à jour.',
+            'agency_unit_mapping_created' => 'Correspondance agence créée.',
             'agency_unit_mapping_deleted' => 'Correspondance agence supprimée.',
             'agency_statement_property_updated' => 'Rattachement du relevé mis à jour.',
             'agency_line_validated' => 'Ligne agence validée.', 'agency_line_corrected' => 'Ligne agence corrigée.',
-            'agency_line_ignored' => 'Ligne agence ignorée.', 'lessor_created' => 'Bailleur créé.',
+            'agency_line_ignored' => 'Ligne agence ignorée.',
+            'agency_deleted' => 'Agence supprimée.',
+            'agency_archived' => 'Agence archivée.',
+            'lessor_created' => 'Bailleur créé.',
             'lessor_updated' => 'Bailleur mis à jour.', 'lessor_deleted' => 'Bailleur supprimé.',
             default => '',
         };
@@ -323,6 +327,11 @@ final class RealEstateRentalController
             'expense_forbidden' => "Vous n'avez pas le droit de modifier cette charge.",
             'document_forbidden' => "Vous n'avez pas le droit de modifier ce document.",
             'agency_forbidden' => "Vous n'avez pas le droit de modifier cette agence.",
+            'agency_create_failed' => 'Échec de la création de l\'agence.',
+            'agency_update_failed' => 'Échec de la mise à jour de l\'agence.',
+            'agency_delete_failed' => 'Échec de la suppression de l\'agence.',
+            'agency_cannot_delete' => 'Impossible de supprimer cette agence : des documents ou imports y sont rattachés.',
+            'agency_archive_failed' => 'Échec de l\'archivage de l\'agence.',
             'no_property_selected' => 'Aucune propriété sélectionnée.',
             'no_unit_selected' => 'Aucun bien locatif sélectionné.',
             'no_tenant_selected' => 'Aucun locataire sélectionné.',
@@ -1284,6 +1293,17 @@ final class RealEstateRentalController
             ? []
             : $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
 
+        $unitOptions = [];
+        foreach ($units as $unit) {
+            if (!method_exists($unit, 'id') || !method_exists($unit, 'label')) {
+                continue;
+            }
+            $unitOptions[] = [
+                'id' => $unit->id,
+                'label' => $unit->label,
+            ];
+        }
+
         return $this->render(
             'modules/real-estate-rental/agency-imports', array_merge(
                 $this->rentalBaseViewModel('Importer des documents agence', $notice, $error),
@@ -1291,6 +1311,7 @@ final class RealEstateRentalController
                 'rentalCurrentSection' => 'agency',
                 'rentalCurrentSubsection' => 'agencyImports',
                 'agencyImportCurrentTab' => $this->agencyImportTab($tab),
+                'agencyImportActionUrl' => private_portal_url('rental_agency_imports'),
                 'agencyImportDocuments' => $this->agencyImportRepository()->listRecentDocumentsForUser(
                     $userId,
                     self::MAX_RENTAL_LIST
@@ -1303,6 +1324,7 @@ final class RealEstateRentalController
                 'agencyImportUnitMappings' => $this->agencyImportRepository()->listUnitMappings($userId, 200),
                 'agencyImportProperties' => $this->objectsToArrays($properties),
                 'agencyImportUnits' => $this->objectsToArrays($units),
+                'agencyImportUnitOptions' => $unitOptions,
                 ]
             )
         );
@@ -3173,6 +3195,119 @@ final class RealEstateRentalController
             );
 
             return $this->redirect($this->rentalAgencyImportsUrl('documents', 'agency_document_deleted'));
+        }
+
+        if ($action === 'update_agency') {
+            $agencyId = $this->normalizeNumericId($body['agency_id'] ?? null);
+            $agencyName = is_string($body['agency_name'] ?? null) ? trim((string) $body['agency_name']) : '';
+            $contactTitle = is_string($body['contact_title'] ?? null) ? trim((string) $body['contact_title']) : null;
+            $postalAddress = is_string($body['postal_address'] ?? null) ? trim((string) $body['postal_address']) : null;
+            $phone = is_string($body['phone'] ?? null) ? trim((string) $body['phone']) : null;
+            $email = is_string($body['email'] ?? null) ? trim((string) $body['email']) : null;
+            $advisorName = is_string($body['advisor_name'] ?? null) ? trim((string) $body['advisor_name']) : null;
+            $advisorTitle = is_string($body['advisor_title'] ?? null) ? trim((string) $body['advisor_title']) : null;
+            $advisorPhone = is_string($body['advisor_phone'] ?? null) ? trim((string) $body['advisor_phone']) : null;
+            $advisorEmail = is_string($body['advisor_email'] ?? null) ? trim((string) $body['advisor_email']) : null;
+            $notes = is_string($body['notes'] ?? null) ? trim((string) $body['notes']) : null;
+
+            $details = [];
+            if ($contactTitle !== null && $contactTitle !== '') {
+                $details['contact_title'] = $contactTitle;
+            }
+            if ($postalAddress !== null && $postalAddress !== '') {
+                $details['postal_address'] = $postalAddress;
+            }
+            if ($phone !== null && $phone !== '') {
+                $details['phone'] = $phone;
+            }
+            if ($email !== null && $email !== '') {
+                $details['email'] = $email;
+            }
+            if ($advisorName !== null && $advisorName !== '') {
+                $details['advisor_name'] = $advisorName;
+            }
+            if ($advisorTitle !== null && $advisorTitle !== '') {
+                $details['advisor_title'] = $advisorTitle;
+            }
+            if ($advisorPhone !== null && $advisorPhone !== '') {
+                $details['advisor_phone'] = $advisorPhone;
+            }
+            if ($advisorEmail !== null && $advisorEmail !== '') {
+                $details['advisor_email'] = $advisorEmail;
+            }
+            if ($notes !== null && $notes !== '') {
+                $details['notes'] = $notes;
+            }
+
+            $updated = $this->agencyImportRepository()->updateAgencyForUser($userId, $agencyId, $agencyName, $details);
+            $this->logEvent(
+                'private.rental_agency_import.agency_updated', [
+                'private_user_id' => $userId,
+                'agency_id' => $agencyId,
+                'agency_name' => $agencyName,
+                'success' => $updated,
+                ]
+            );
+
+            return $this->redirect(
+                $this->rentalAgencyImportsUrl(
+                    'agencies',
+                    $updated ? 'agency_updated' : '',
+                    $updated ? '' : 'agency_update_failed'
+                )
+            );
+        }
+
+        if ($action === 'delete_agency') {
+            $agencyId = $this->normalizeNumericId($body['agency_id'] ?? null);
+            if ($agencyId <= 0) {
+                return $this->redirect($this->rentalAgencyImportsUrl('agencies', '', 'agency_delete_failed'));
+            }
+
+            if (!$this->agencyImportRepository()->canDeleteAgency($userId, $agencyId)) {
+                return $this->redirect($this->rentalAgencyImportsUrl('agencies', '', 'agency_cannot_delete'));
+            }
+
+            $deleted = $this->agencyImportRepository()->deleteAgencyForUser($userId, $agencyId);
+            $this->logEvent(
+                'private.rental_agency_import.agency_deleted', [
+                'private_user_id' => $userId,
+                'agency_id' => $agencyId,
+                'success' => $deleted,
+                ]
+            );
+
+            return $this->redirect(
+                $this->rentalAgencyImportsUrl(
+                    'agencies',
+                    $deleted ? 'agency_deleted' : '',
+                    $deleted ? '' : 'agency_delete_failed'
+                )
+            );
+        }
+
+        if ($action === 'archive_agency') {
+            $agencyId = $this->normalizeNumericId($body['agency_id'] ?? null);
+            if ($agencyId <= 0) {
+                return $this->redirect($this->rentalAgencyImportsUrl('agencies', '', 'agency_archive_failed'));
+            }
+
+            $archived = $this->agencyImportRepository()->archiveAgencyForUser($userId, $agencyId);
+            $this->logEvent(
+                'private.rental_agency_import.agency_archived', [
+                'private_user_id' => $userId,
+                'agency_id' => $agencyId,
+                'success' => $archived,
+                ]
+            );
+
+            return $this->redirect(
+                $this->rentalAgencyImportsUrl(
+                    'agencies',
+                    $archived ? 'agency_archived' : '',
+                    $archived ? '' : 'agency_archive_failed'
+                )
+            );
         }
 
         if ($action !== 'agency_import') {

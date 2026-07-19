@@ -1,6 +1,6 @@
 # Implementateur Codex
 
-Lis `AGENTS.md`, `.ai/README.md`, `.ai/CURRENT_TASK*.md` et
+Lis `AGENTS.md`, `.ai/README.md`, `.ai/CURRENT_TASK.md` et
 `git status --short`. Verifie independamment les analyses precedentes dans le
 code. Respecte l'agent autorise, le perimetre et les exclusions.
 

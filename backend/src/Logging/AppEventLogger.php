@@ -8,11 +8,28 @@ use Monolog\Logger;
 
 final class AppEventLogger
 {
+    private const DEFAULT_SCHEMA_VERSION = 2;
+
+    /** @var array<int, string> */
+    private const PSR_LEVELS = [
+        'debug',
+        'info',
+        'notice',
+        'warning',
+        'error',
+        'critical',
+        'alert',
+        'emergency',
+    ];
+
     /** @var array<string, Logger> */
     private array $channels = [];
 
-    public function __construct(private readonly LoggerFactory $factory)
+    private readonly LogSanitizer $sanitizer;
+
+    public function __construct(private readonly LoggerFactory $factory, ?LogSanitizer $sanitizer = null)
     {
+        $this->sanitizer = $sanitizer ?? new LogSanitizer();
     }
 
     /**
@@ -37,6 +54,14 @@ final class AppEventLogger
     public function access(string $event, array $context = [], string $level = 'info'): void
     {
         $this->write('access', $event, $context, $level);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function log(string $stream, string $event, array $context = [], string $level = 'info'): void
+    {
+        $this->write($this->normalizeStream($stream), $event, $context, $level);
     }
 
     public static function maskEmail(?string $email): string
@@ -87,16 +112,31 @@ final class AppEventLogger
     private function write(string $channel, string $event, array $context, string $level): void
     {
         try {
+            $normalizedLevel = $this->normalizeLevel($level);
+            $normalizedEvent = $this->normalizeEvent($event);
             $logger = $this->logger($channel);
             $requestContext = function_exists('app_request_context_get') ? app_request_context_get() : [];
-            $mergedContext = array_merge(is_array($requestContext) ? $requestContext : [], $context);
-            $normalizedContext = $this->normalizeContext($mergedContext);
+            $mergedContext = array_merge(
+                [
+                    'schema_version' => self::DEFAULT_SCHEMA_VERSION,
+                    'stream' => $this->streamForChannel($channel),
+                    'environment' => function_exists('app_config') ? (string) app_config('env', 'development') : 'development',
+                ],
+                is_array($requestContext) ? $requestContext : [],
+                $context
+            );
+            $normalizedContext = $this->normalizeContext($mergedContext, $normalizedEvent);
 
-            match ($level) {
-                'debug' => $logger->debug($event, $normalizedContext),
-                'warning' => $logger->warning($event, $normalizedContext),
-                'error' => $logger->error($event, $normalizedContext),
-                default => $logger->info($event, $normalizedContext),
+            match ($normalizedLevel) {
+                'debug' => $logger->debug($normalizedEvent, $normalizedContext),
+                'info' => $logger->info($normalizedEvent, $normalizedContext),
+                'notice' => $logger->notice($normalizedEvent, $normalizedContext),
+                'warning' => $logger->warning($normalizedEvent, $normalizedContext),
+                'error' => $logger->error($normalizedEvent, $normalizedContext),
+                'critical' => $logger->critical($normalizedEvent, $normalizedContext),
+                'alert' => $logger->alert($normalizedEvent, $normalizedContext),
+                'emergency' => $logger->emergency($normalizedEvent, $normalizedContext),
+                default => $logger->info($normalizedEvent, $normalizedContext),
             };
         } catch (\Throwable) {
             // Le logging ne doit jamais casser l'application.
@@ -116,65 +156,76 @@ final class AppEventLogger
      * @param array<string, mixed> $context
      * @return array<string, mixed>
      */
-    private function normalizeContext(array $context): array
+    private function normalizeContext(array $context, string $event): array
     {
-        $normalized = [];
+        $normalized = $this->sanitizer->sanitizeContext($context);
 
-        foreach ($context as $key => $value) {
-            $normalized[$key] = $this->normalizeValue($value, (string) $key);
+        if (!isset($normalized['error_fingerprint'])) {
+            $fingerprint = $this->errorFingerprint($event, $normalized);
+            if ($fingerprint !== null) {
+                $normalized['error_fingerprint'] = $fingerprint;
+            }
         }
 
         return $normalized;
     }
 
-    private function normalizeValue(mixed $value, string $key = ''): mixed
+    private function normalizeLevel(string $level): string
     {
-        if ($this->isSensitiveKey($key)) {
-            return '[redacted]';
-        }
+        $level = strtolower(trim($level));
 
-        if (is_null($value) || is_scalar($value)) {
-            if (is_string($value)) {
-                return function_exists('mb_substr') ? mb_substr($value, 0, 500) : substr($value, 0, 500);
-            }
-
-            return $value;
-        }
-
-        if (is_array($value)) {
-            $normalized = [];
-
-            foreach ($value as $itemKey => $itemValue) {
-                $normalized[(string) $itemKey] = $this->normalizeValue($itemValue, (string) $itemKey);
-            }
-
-            return $normalized;
-        }
-
-        if ($value instanceof \Stringable) {
-            return (string) $value;
-        }
-
-        if (is_object($value)) {
-            return $value::class;
-        }
-
-        return gettype($value);
+        return in_array($level, self::PSR_LEVELS, true) ? $level : 'info';
     }
 
-    private function isSensitiveKey(string $key): bool
+    private function normalizeStream(string $stream): string
     {
-        $key = strtolower(trim($key));
-        if ($key === '') {
-            return false;
+        $stream = strtolower(trim($stream));
+        $stream = preg_replace('/[^a-z0-9_-]+/', '_', $stream) ?? '';
+        $stream = trim($stream, '_-');
+
+        return $stream !== '' ? $stream : 'application';
+    }
+
+    private function normalizeEvent(string $event): string
+    {
+        $event = strtolower($this->sanitizer->sanitizeText($event, 191));
+        $event = preg_replace('/[^a-z0-9_.-]+/', '.', $event) ?? '';
+        $event = trim($event, '.-');
+
+        return $event !== '' ? $event : 'application.event';
+    }
+
+    private function streamForChannel(string $channel): string
+    {
+        return match ($channel) {
+            'security' => 'security',
+            'content' => 'audit',
+            'access' => 'application',
+            default => $this->normalizeStream($channel),
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function errorFingerprint(string $event, array $context): ?string
+    {
+        $errorClass = is_string($context['error_class'] ?? null)
+            ? (string) $context['error_class']
+            : (is_string($context['exception'] ?? null) ? (string) $context['exception'] : '');
+
+        if ($errorClass === '' && !str_contains($event, 'failed') && !str_contains($event, 'error')) {
+            return null;
         }
 
-        foreach (['password', 'passwd', 'token', 'secret', 'csrf', 'authorization', 'cookie', 'hash'] as $needle) {
-            if (str_contains($key, $needle)) {
-                return true;
-            }
-        }
+        $parts = [
+            $event,
+            $errorClass,
+            is_scalar($context['error_code'] ?? null) ? (string) $context['error_code'] : '',
+            is_scalar($context['module'] ?? null) ? (string) $context['module'] : '',
+            is_scalar($context['operation'] ?? null) ? (string) $context['operation'] : '',
+        ];
 
-        return false;
+        return substr(hash('sha256', implode('|', $parts)), 0, 32);
     }
 }

@@ -10,9 +10,8 @@
 7. Pour A, implemente et valide seul. Pour B ou C, ne modifie pas le code.
 8. Complete uniquement les sections Mistral et routage du fichier de transmission.
 9. Termine par une seule prochaine consigne exacte :
-   - C : `Lis AGENTS.md, .ai/CURRENT_TASK*.md et .ai/prompts/CLAUDE_ARCHITECT.md, puis realise l'analyse en lecture seule et complete uniquement la section Claude de CURRENT_TASK*.md.`
-   - B, ou C apres Claude : `Lis AGENTS.md, .ai/CURRENT_TASK*.md et .ai/prompts/CODEX_IMPLEMENTER.md, puis verifie l'analyse, implemente le plan autorise et complete les sections resultat, tests et etat.`
+   - C : `Lis AGENTS.md, .ai/CURRENT_TASK.md et .ai/prompts/CLAUDE_ARCHITECT.md, puis realise l'analyse en lecture seule et complete uniquement la section Claude de CURRENT_TASK.md.`
+   - B, ou C apres Claude : `Lis AGENTS.md, .ai/CURRENT_TASK.md et .ai/prompts/CODEX_IMPLEMENTER.md, puis verifie l'analyse, implemente le plan autorise et complete les sections resultat, tests et etat.`
 
 Reste concis. Ne contacte pas la production, ne manipule pas de donnees et
 n'affiche aucun secret.
-

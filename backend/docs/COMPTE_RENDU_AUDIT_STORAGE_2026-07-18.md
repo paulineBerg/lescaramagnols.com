@@ -361,7 +361,7 @@ export PUSH_LOCAL_SQL_BLOCKED=1
 #### Documentation
 
 1. **`STORAGE_RUNTIME_POLICY.md`** : Politique complète du stockage
-2. **`RUNBOOK_STORAGE_MIGRATION.md`** : Procédure de migration future
+2. **`archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md`** : Procédure de migration exécutée
 3. **Tests PHPUnit** : Validation des outils CLI
 
 ### 7.3 Architecture Future Recommandée
@@ -402,7 +402,7 @@ Runtime (N'EST PAS déployé par rsync):
 | `backend/core/tools/private_storage_diagnostic.php` | Outil CLI | Diagnostic du stockage (lecture seule) |
 | `backend/core/tools/private_storage_prune.php` | Outil CLI | Nettoyage des dossiers vides |
 | `backend/docs/STORAGE_RUNTIME_POLICY.md` | Documentation | Politique complète du stockage |
-| `backend/docs/RUNBOOK_STORAGE_MIGRATION.md` | Documentation | Procédure de migration |
+| `backend/docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md` | Documentation | Procédure de migration exécutée |
 | `backend/tests/PrivateApps/Storage/PrivateStorageDiagnosticTest.php` | Tests | Tests pour l'outil diagnostic |
 | `backend/tests/PrivateApps/Storage/PrivateStoragePruneTest.php` | Tests | Tests pour l'outil prune |
 | `AGENTS.md` | Documentation | Ajout section stockage runtime |
@@ -540,7 +540,7 @@ jq '.directories | to_entries[] | {name, files: .value.total_files, dirs: .value
 
 ### 11.5 Priorité 5 : Préparation de la Migration Future (Optionnelle)
 
-Voir `backend/docs/RUNBOOK_STORAGE_MIGRATION.md` pour la procédure complète de migration vers `/home/lescaramgl-ssh/caramagnols-runtime/private-storage/`.
+Voir `backend/docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md` pour la procédure complète de migration vers `/home/lescaramgl-ssh/caramagnols-runtime/private-storage/`.
 
 **À faire uniquement après** :
 - Validation que la production fonctionne correctement

@@ -5,16 +5,18 @@ $agencies = is_array($viewModel['agencyImportAgencies'] ?? null) ? $viewModel['a
 $unitMappings = is_array($viewModel['agencyImportUnitMappings'] ?? null) ? $viewModel['agencyImportUnitMappings'] : [];
 $properties = is_array($viewModel['agencyImportProperties'] ?? null) ? $viewModel['agencyImportProperties'] : [];
 $units = is_array($viewModel['agencyImportUnits'] ?? null) ? $viewModel['agencyImportUnits'] : [];
+$unitOptions = is_array($viewModel['agencyImportUnitOptions'] ?? null) ? $viewModel['agencyImportUnitOptions'] : [];
 $csrfToken = is_string($viewModel['rentalCsrfToken'] ?? null) ? (string) $viewModel['rentalCsrfToken'] : '';
 $notice = is_string($viewModel['rentalNotice'] ?? null) ? (string) $viewModel['rentalNotice'] : '';
 $error = is_string($viewModel['rentalError'] ?? null) ? (string) $viewModel['rentalError'] : '';
 $urls = is_array($viewModel['rentalUrls'] ?? null) ? $viewModel['rentalUrls'] : [];
-$actionUrl = (string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports'));
+$actionUrl = is_string($viewModel['agencyImportActionUrl'] ?? null) ? (string) $viewModel['agencyImportActionUrl'] : (string) ($urls['agencyImports'] ?? private_portal_url('rental_agency_imports'));
 $currentTab = is_string($viewModel['agencyImportCurrentTab'] ?? null) ? (string) $viewModel['agencyImportCurrentTab'] : 'documents';
 $currentTab = in_array($currentTab, ['documents', 'imports', 'agencies'], true) ? $currentTab : 'documents';
 $tabUrl = static fn (string $tab): string => $actionUrl . '?' . http_build_query(['tab' => $tab], '', '&', PHP_QUERY_RFC3986);
 $createDialogId = 'rental-agency-import-create-dialog';
 $agencyDialogId = 'rental-agency-create-dialog';
+$editAgencyDialogId = 'rental-agency-edit-dialog';
 $mappingDialogId = 'rental-agency-unit-mapping-create-dialog';
 $propertyNames = [];
 foreach ($properties as $property) {
@@ -166,12 +168,18 @@ foreach ($units as $unit) {
             <th>Ignorés</th>
             <th>Doublons</th>
             <th>Dernière activité</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php foreach ($agencies as $agency): ?>
             <?php if (!is_array($agency)) { continue; } ?>
-            <?php $agencyName = trim((string) ($agency['name'] ?? '')); ?>
+            <?php
+            $agencyName = trim((string) ($agency['name'] ?? ''));
+            $agencyId = is_numeric($agency['id'] ?? null) ? (int) $agency['id'] : 0;
+            $isArchived = (bool) ($agency['isArchived'] ?? false);
+            $hasAttached = (int) ($agency['batchCount'] ?? 0) > 0 || (int) ($agency['fileCount'] ?? 0) > 0;
+            ?>
             <tr data-private-filter-row data-filter-text="<?php echo htmlspecialchars(strtolower($agencyName), ENT_QUOTES, 'UTF-8'); ?>">
               <td><strong><?php echo htmlspecialchars($agencyName, ENT_QUOTES, 'UTF-8'); ?></strong></td>
               <td><?php echo htmlspecialchars((string) (int) ($agency['batchCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -179,9 +187,39 @@ foreach ($units as $unit) {
               <td><?php echo htmlspecialchars((string) (int) ($agency['ignoredFileCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) (int) ($agency['duplicateFileCount'] ?? 0), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars((string) ($agency['lastActivityAt'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td class="private-actions">
+                <?php if ($agencyId > 0): ?>
+                  <button type="button" class="private-button-secondary private-button-small"
+                          data-private-dialog-open="<?php echo htmlspecialchars($editAgencyDialogId, ENT_QUOTES, 'UTF-8'); ?>"
+                          data-agency-id="<?php echo htmlspecialchars((string) $agencyId, ENT_QUOTES, 'UTF-8'); ?>"
+                          aria-label="Modifier agence">Modifier</button>
+                  <?php if (!$hasAttached): ?>
+                    <form method="post" action="<?php echo htmlspecialchars($actionUrl . '?tab=agencies', ENT_QUOTES, 'UTF-8'); ?>" class="private-inline-form">
+                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="action" value="delete_agency" />
+                      <input type="hidden" name="agency_id" value="<?php echo htmlspecialchars((string) $agencyId, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <button type="submit" class="private-button-danger private-button-small"
+                              aria-label="Supprimer agence">Supprimer</button>
+                    </form>
+                  <?php else: ?>
+                    <button type="button" class="private-button-danger private-button-small" disabled
+                            title="Impossible de supprimer : des documents ou imports sont rattachés à cette agence"
+                            aria-label="Supprimer agence">Supprimer</button>
+                  <?php endif; ?>
+                  <?php if (!$isArchived): ?>
+                    <form method="post" action="<?php echo htmlspecialchars($actionUrl . '?tab=agencies', ENT_QUOTES, 'UTF-8'); ?>" class="private-inline-form">
+                      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <input type="hidden" name="action" value="archive_agency" />
+                      <input type="hidden" name="agency_id" value="<?php echo htmlspecialchars((string) $agencyId, ENT_QUOTES, 'UTF-8'); ?>" />
+                      <button type="submit" class="private-button-secondary private-button-small"
+                              aria-label="Archiver agence">Archiver</button>
+                    </form>
+                  <?php endif; ?>
+                <?php endif; ?>
+              </td>
             </tr>
           <?php endforeach; ?>
-          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="6">Aucune agence ne correspond aux filtres.</td></tr>
+          <tr class="private-empty-row" data-private-filter-empty hidden><td colspan="7">Aucune agence ne correspond aux filtres.</td></tr>
         </tbody>
       </table>
       </div>
@@ -300,6 +338,51 @@ foreach ($units as $unit) {
     </div>
   </dialog>
 
+  <dialog class="private-dialog" id="<?php echo htmlspecialchars($editAgencyDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($editAgencyDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
+    <div class="private-dialog-panel">
+      <header class="private-dialog-header">
+        <h3 id="<?php echo htmlspecialchars($editAgencyDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">Modifier l'agence</h3>
+        <button type="button" class="private-dialog-close" data-private-dialog-close aria-label="Fermer">×</button>
+      </header>
+      <form method="post" action="<?php echo htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8'); ?>?tab=agencies">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+        <input type="hidden" name="action" value="update_agency" />
+        <input type="hidden" name="agency_id" id="<?php echo htmlspecialchars($editAgencyDialogId . '-agency-id', ENT_QUOTES, 'UTF-8'); ?>" value="" />
+        <label>Nom de l'agence
+          <input type="text" name="agency_name" id="<?php echo htmlspecialchars($editAgencyDialogId . '-agency-name', ENT_QUOTES, 'UTF-8'); ?>" maxlength="120" required />
+        </label>
+        <label>Titre de contact
+          <input type="text" name="contact_title" id="<?php echo htmlspecialchars($editAgencyDialogId . '-contact-title', ENT_QUOTES, 'UTF-8'); ?>" maxlength="120" placeholder="Ex: Directeur, Gérant" />
+        </label>
+        <label>Adresse postale
+          <textarea name="postal_address" id="<?php echo htmlspecialchars($editAgencyDialogId . '-postal-address', ENT_QUOTES, 'UTF-8'); ?>" maxlength="500" rows="2" placeholder="Adresse complète de l'agence"></textarea>
+        </label>
+        <label>Téléphone
+          <input type="tel" name="phone" id="<?php echo htmlspecialchars($editAgencyDialogId . '-phone', ENT_QUOTES, 'UTF-8'); ?>" maxlength="80" placeholder="Numéro de téléphone" />
+        </label>
+        <label>Email
+          <input type="email" name="email" id="<?php echo htmlspecialchars($editAgencyDialogId . '-email', ENT_QUOTES, 'UTF-8'); ?>" maxlength="254" placeholder="Adresse email" />
+        </label>
+        <label>Nom du conseiller
+          <input type="text" name="advisor_name" id="<?php echo htmlspecialchars($editAgencyDialogId . '-advisor-name', ENT_QUOTES, 'UTF-8'); ?>" maxlength="160" placeholder="Nom du conseiller" />
+        </label>
+        <label>Titre du conseiller
+          <input type="text" name="advisor_title" id="<?php echo htmlspecialchars($editAgencyDialogId . '-advisor-title', ENT_QUOTES, 'UTF-8'); ?>" maxlength="120" placeholder="Titre du conseiller" />
+        </label>
+        <label>Téléphone du conseiller
+          <input type="tel" name="advisor_phone" id="<?php echo htmlspecialchars($editAgencyDialogId . '-advisor-phone', ENT_QUOTES, 'UTF-8'); ?>" maxlength="80" placeholder="Téléphone du conseiller" />
+        </label>
+        <label>Email du conseiller
+          <input type="email" name="advisor_email" id="<?php echo htmlspecialchars($editAgencyDialogId . '-advisor-email', ENT_QUOTES, 'UTF-8'); ?>" maxlength="254" placeholder="Email du conseiller" />
+        </label>
+        <label>Notes
+          <textarea name="notes" id="<?php echo htmlspecialchars($editAgencyDialogId . '-notes', ENT_QUOTES, 'UTF-8'); ?>" maxlength="2000" rows="3" placeholder="Notes supplémentaires sur l'agence"></textarea>
+        </label>
+        <button type="submit">Enregistrer les modifications</button>
+      </form>
+    </div>
+  </dialog>
+
   <dialog class="private-dialog" id="<?php echo htmlspecialchars($mappingDialogId, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="<?php echo htmlspecialchars($mappingDialogId . '-title', ENT_QUOTES, 'UTF-8'); ?>">
     <div class="private-dialog-panel">
       <header class="private-dialog-header">
@@ -370,4 +453,69 @@ foreach ($units as $unit) {
     <?php endif; ?>
   </section>
   <?php endif; ?>
+
+  <script>
+  (function() {
+    'use strict';
+
+    // Store agencies data for edit dialog
+    const agenciesData = <?php echo json_encode($agencies, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    const editDialogId = '<?php echo $editAgencyDialogId; ?>';
+    const editDialog = document.getElementById(editDialogId);
+
+    if (!editDialog || !agenciesData || typeof agenciesData !== 'object') {
+      return;
+    }
+
+    // Handle edit button clicks
+    document.querySelectorAll('[data-private-dialog-open="' + CSS.escape(editDialogId) + '"]').forEach(function(button) {
+      button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const agencyId = parseInt(this.getAttribute('data-agency-id') || '0', 10);
+        if (agencyId <= 0) {
+          return;
+        }
+
+        // Find agency data
+        const agency = agenciesData.find(function(a) {
+          return a && typeof a === 'object' && parseInt(a.id || '0', 10) === agencyId;
+        });
+
+        if (!agency) {
+          return;
+        }
+
+        // Set form values
+        const setValue = function(idSuffix, value) {
+          const el = document.getElementById(editDialogId + '-' + idSuffix);
+          if (el && value !== null && value !== undefined) {
+            el.value = value;
+          }
+        };
+
+        setValue('agency-id', agencyId);
+        setValue('agency-name', agency.name || '');
+        setValue('contact-title', agency.contactTitle || '');
+        setValue('postal-address', agency.postalAddress || '');
+        setValue('phone', agency.phone || '');
+        setValue('email', agency.email || '');
+        setValue('advisor-name', agency.advisorName || '');
+        setValue('advisor-title', agency.advisorTitle || '');
+        setValue('advisor-phone', agency.advisorPhone || '');
+        setValue('advisor-email', agency.advisorEmail || '');
+        setValue('notes', agency.notes || '');
+
+        // Open dialog
+        if (typeof window.privateDialog !== 'undefined' && typeof window.privateDialog.open === 'function') {
+          window.privateDialog.open(editDialogId);
+        } else {
+          // Fallback: just show the dialog
+          if (editDialog && typeof editDialog.showModal === 'function') {
+            editDialog.showModal();
+          }
+        }
+      });
+    });
+  })();
+  </script>
 </section>

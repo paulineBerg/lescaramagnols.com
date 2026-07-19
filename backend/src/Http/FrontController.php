@@ -100,7 +100,7 @@ final class FrontController
     {
         $requestId = $this->resolveRequestId($request);
         app_request_id($requestId);
-        app_request_context_set($this->requestContext($request, $requestId));
+        app_request_context_set($this->requestContext($request, $requestId, $this->resolveCorrelationId($request, $requestId)));
         $legacyRequestState = $this->captureLegacyRequestGlobals();
         $this->applyLegacyRequestGlobals($request);
 
@@ -772,22 +772,16 @@ final class FrontController
 
     private function resolveRequestId(Request $request): string
     {
+        if (!$this->requestIdSourceTrusted($request)) {
+            return app_generate_request_id();
+        }
+
         $candidates = [
             $request->header('X-Request-Id'),
-            $request->header('X-Correlation-Id'),
         ];
 
         foreach ($candidates as $candidate) {
-            if (!is_string($candidate)) {
-                continue;
-            }
-
-            $candidate = trim($candidate);
-            if ($candidate === '') {
-                continue;
-            }
-
-            if (strlen($candidate) <= 128 && preg_match('/^[A-Za-z0-9._:-]+$/', $candidate) === 1) {
+            if ($this->validTraceIdentifier($candidate)) {
                 return $candidate;
             }
         }
@@ -795,13 +789,54 @@ final class FrontController
         return app_generate_request_id();
     }
 
+    private function resolveCorrelationId(Request $request, string $requestId): string
+    {
+        if ($this->requestIdSourceTrusted($request)) {
+            $candidate = $request->header('X-Correlation-Id');
+            if ($this->validTraceIdentifier($candidate)) {
+                return trim((string) $candidate);
+            }
+        }
+
+        return $requestId;
+    }
+
+    private function requestIdSourceTrusted(Request $request): bool
+    {
+        $trustedSources = app_config('logging.trusted_request_id_sources', []);
+        if (!is_array($trustedSources) || $trustedSources === []) {
+            return false;
+        }
+
+        $clientIp = $request->clientIp((bool) app_config('admin.trust_proxy_headers', false));
+        if (function_exists('ip_matches_allowlist')) {
+            return ip_matches_allowlist($clientIp, array_values(array_map('strval', $trustedSources)));
+        }
+
+        return is_string($clientIp) && in_array($clientIp, $trustedSources, true);
+    }
+
+    private function validTraceIdentifier(mixed $candidate): bool
+    {
+        if (!is_string($candidate)) {
+            return false;
+        }
+
+        $candidate = trim($candidate);
+
+        return $candidate !== ''
+            && strlen($candidate) <= 128
+            && preg_match('/^[A-Za-z0-9._:-]+$/', $candidate) === 1;
+    }
+
     /**
      * @return array<string, scalar|null>
      */
-    private function requestContext(Request $request, string $requestId): array
+    private function requestContext(Request $request, string $requestId, string $correlationId): array
     {
         return [
             'request_id' => $requestId,
+            'correlation_id' => $correlationId,
             'method' => $request->method(),
             'uri' => $request->uri(),
             'path' => request_path($request->uri()),

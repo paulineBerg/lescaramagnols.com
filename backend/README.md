@@ -34,12 +34,12 @@ PUSH_LOCAL_SQL_BLOCKED=1
 SYNC_EDITORIAL_UPLOADS_BLOCKED=1
 ```
 
-L'ancien chemin `backend/private/storage/` peut rester présent comme transition/rollback, mais il n'est plus la destination d'écriture attendue en production. Ne pas supprimer ni archiver l'ancien stockage sans suivre `docs/RUNBOOK_STORAGE_MIGRATION.md`.
+L'ancien chemin `backend/private/storage/` peut rester présent comme transition/rollback, mais il n'est plus la destination d'écriture attendue en production. Ne pas supprimer ni archiver l'ancien stockage sans suivre `docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md`.
 
 Références :
 
 - `docs/STORAGE_RUNTIME_POLICY.md`
-- `docs/RUNBOOK_STORAGE_MIGRATION.md`
+- `docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md`
 
 ## Documentation technique
 

@@ -133,4 +133,49 @@ final class SqlLogStoreTest extends TestCase
             @rmdir($logDir);
         }
     }
+
+    public function testAppEventLoggerPreservesPsrLevelsAndSanitizesStructuredContext(): void
+    {
+        app_request_context_set([
+            'request_id' => 'req-sql-structured',
+            'correlation_id' => 'corr-sql-structured',
+        ]);
+
+        $store = new SqlLogStore($this->editorialSqlDatabase());
+        $logDir = sys_get_temp_dir() . '/caramagnols-sql-logger-' . bin2hex(random_bytes(6));
+        mkdir($logDir, 0777, true);
+
+        try {
+            $logger = new AppEventLogger(new LoggerFactory($logDir, 'test', $store));
+            $logger->log('error', 'Private Tax.Export Failed', [
+                'application' => 'private.tax',
+                'module' => 'export',
+                'error_class' => RuntimeException::class,
+                'password' => 'not-in-logs',
+                'message' => "line one\nline two",
+            ], 'critical');
+
+            $entries = $store->listEntries(['stream' => 'error', 'application' => 'private.tax'], 10);
+
+            $this->assertCount(1, $entries);
+            $this->assertSame('critical', $entries[0]['level'] ?? null);
+            $this->assertSame('private.tax.export.failed', $entries[0]['event'] ?? null);
+            $this->assertSame('error', $entries[0]['stream'] ?? null);
+            $this->assertSame('private.tax', $entries[0]['application'] ?? null);
+            $this->assertSame('export', $entries[0]['module'] ?? null);
+            $this->assertSame('req-sql-structured', $entries[0]['requestId'] ?? null);
+            $this->assertSame('corr-sql-structured', $entries[0]['correlationId'] ?? null);
+            $this->assertSame('[redacted]', $entries[0]['context']['password'] ?? null);
+            $this->assertSame('line one line two', $entries[0]['context']['message'] ?? null);
+            $this->assertNotSame('', $entries[0]['errorFingerprint'] ?? '');
+        } finally {
+            app_request_context_clear();
+
+            foreach (glob($logDir . '/*') ?: [] as $file) {
+                @unlink($file);
+            }
+
+            @rmdir($logDir);
+        }
+    }
 }

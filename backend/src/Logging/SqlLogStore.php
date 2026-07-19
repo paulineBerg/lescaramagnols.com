@@ -32,11 +32,24 @@ final class SqlLogStore
         ?DateTimeInterface $createdAt = null
     ): bool {
         try {
+            $sanitizer = new LogSanitizer();
+            $context = $sanitizer->sanitizeContext($context);
+            $createdAt ??= new DateTimeImmutable();
+            $structured = $this->structuredColumns($channel, $level, $context);
             $this->database->ensureReady();
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'INSERT INTO `%s` (`channel`, `level`, `event`, `context_json`, `created_at`)
-                     VALUES (:channel, :level, :event, :context_json, :created_at)',
+                    'INSERT INTO `%s` (
+                        `channel`, `level`, `event`, `context_json`, `created_at`, `occurred_at`,
+                        `stream`, `application`, `module`, `request_id`, `correlation_id`,
+                        `error_class`, `error_fingerprint`, `http_status`, `duration_ms`,
+                        `actor_type`, `actor_id`, `entity_type`, `entity_id`, `schema_version`
+                     ) VALUES (
+                        :channel, :level, :event, :context_json, :created_at, :occurred_at,
+                        :stream, :application, :module, :request_id, :correlation_id,
+                        :error_class, :error_fingerprint, :http_status, :duration_ms,
+                        :actor_type, :actor_id, :entity_type, :entity_id, :schema_version
+                     )',
                     $this->database->table('log_entries')
                 )
             );
@@ -46,7 +59,22 @@ final class SqlLogStore
                 'level' => $this->sanitizeLevel($level),
                 'event' => $this->trimText($event, 191),
                 'context_json' => $context === [] ? null : $this->encodeJson($context),
-                'created_at' => ($createdAt ?? new DateTimeImmutable())->format('Y-m-d H:i:s'),
+                'created_at' => $createdAt->format('Y-m-d H:i:s'),
+                'occurred_at' => $createdAt->format('Y-m-d H:i:s'),
+                'stream' => $structured['stream'],
+                'application' => $structured['application'],
+                'module' => $structured['module'],
+                'request_id' => $structured['request_id'],
+                'correlation_id' => $structured['correlation_id'],
+                'error_class' => $structured['error_class'],
+                'error_fingerprint' => $structured['error_fingerprint'],
+                'http_status' => $structured['http_status'],
+                'duration_ms' => $structured['duration_ms'],
+                'actor_type' => $structured['actor_type'],
+                'actor_id' => $structured['actor_id'],
+                'entity_type' => $structured['entity_type'],
+                'entity_id' => $structured['entity_id'],
+                'schema_version' => $structured['schema_version'],
             ]);
 
             return true;
@@ -68,7 +96,7 @@ final class SqlLogStore
 
     /**
      * @param array<string, mixed> $filters
-     * @return array<int, array{id: int, channel: string, level: string, event: string, context: array<string, mixed>, contextJson: string, createdAt: string}>
+     * @return array<int, array{id: int, channel: string, level: string, event: string, context: array<string, mixed>, contextJson: string, createdAt: string, stream: string, application: string, module: string, requestId: string, correlationId: string, errorFingerprint: string}>
      */
     public function listEntries(array $filters = [], int $limit = 200): array
     {
@@ -78,8 +106,9 @@ final class SqlLogStore
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'SELECT `id`, `channel`, `level`, `event`, `context_json`, `created_at`
+                        , `stream`, `application`, `module`, `request_id`, `correlation_id`, `error_fingerprint`
                      FROM `%s`%s
-                     ORDER BY `created_at` DESC, `id` DESC
+                     ORDER BY `occurred_at` DESC, `id` DESC
                      LIMIT %d',
                     $this->database->table('log_entries'),
                     $query['where'],
@@ -104,6 +133,12 @@ final class SqlLogStore
                     'context' => $context,
                     'contextJson' => $context === [] ? '' : $this->encodeJson($context, true),
                     'createdAt' => (string) ($row['created_at'] ?? ''),
+                    'stream' => (string) ($row['stream'] ?? ''),
+                    'application' => (string) ($row['application'] ?? ''),
+                    'module' => (string) ($row['module'] ?? ''),
+                    'requestId' => (string) ($row['request_id'] ?? ''),
+                    'correlationId' => (string) ($row['correlation_id'] ?? ''),
+                    'errorFingerprint' => (string) ($row['error_fingerprint'] ?? ''),
                 ];
             }, $rows);
         } catch (\Throwable) {
@@ -370,6 +405,22 @@ final class SqlLogStore
             $params['level'] = $level;
         }
 
+        $stream = $this->sanitizeChannel((string) ($filters['stream'] ?? ''));
+        if ($stream !== '') {
+            $where[] = '`stream` = :stream';
+            $params['stream'] = $stream;
+        }
+
+        foreach (['application', 'module', 'request_id', 'correlation_id', 'error_fingerprint'] as $field) {
+            $value = $this->sanitizeStructuredText((string) ($filters[$field] ?? ''), $field === 'error_fingerprint' ? 64 : 191);
+            if ($value === '') {
+                continue;
+            }
+
+            $where[] = sprintf('`%s` = :%s', $field, $field);
+            $params[$field] = $value;
+        }
+
         $search = trim((string) ($filters['q'] ?? ''));
         if ($search !== '') {
             $searchValue = '%' . $this->trimText($search, 120) . '%';
@@ -410,6 +461,94 @@ final class SqlLogStore
         $value = preg_replace('/[^a-z]+/', '', $value) ?? '';
 
         return $this->trimText($value, 16);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     * @return array{
+     *     stream: string,
+     *     application: ?string,
+     *     module: ?string,
+     *     request_id: ?string,
+     *     correlation_id: ?string,
+     *     error_class: ?string,
+     *     error_fingerprint: ?string,
+     *     http_status: ?int,
+     *     duration_ms: ?int,
+     *     actor_type: ?string,
+     *     actor_id: ?string,
+     *     entity_type: ?string,
+     *     entity_id: ?string,
+     *     schema_version: int
+     * }
+     */
+    private function structuredColumns(string $channel, string $level, array $context): array
+    {
+        $stream = $this->sanitizeChannel((string) ($context['stream'] ?? ''));
+        if ($stream === '') {
+            $stream = match ($this->sanitizeChannel($channel)) {
+                'security' => 'security',
+                'content' => 'audit',
+                'access' => 'application',
+                default => 'application',
+            };
+        }
+
+        $fingerprint = $this->sanitizeStructuredText((string) ($context['error_fingerprint'] ?? ''), 64);
+        if ($fingerprint === '' && in_array($this->sanitizeLevel($level), ['error', 'critical', 'alert', 'emergency'], true)) {
+            $fingerprint = substr(hash('sha256', implode('|', [
+                $channel,
+                $level,
+                (string) ($context['error_class'] ?? $context['exception'] ?? ''),
+                (string) ($context['module'] ?? ''),
+            ])), 0, 32);
+        }
+
+        return [
+            'stream' => $stream,
+            'application' => $this->nullableStructuredText($context['application'] ?? null, 64),
+            'module' => $this->nullableStructuredText($context['module'] ?? null, 64),
+            'request_id' => $this->nullableStructuredText($context['request_id'] ?? null, 128),
+            'correlation_id' => $this->nullableStructuredText($context['correlation_id'] ?? null, 128),
+            'error_class' => $this->nullableStructuredText($context['error_class'] ?? ($context['exception'] ?? null), 191),
+            'error_fingerprint' => $fingerprint !== '' ? $fingerprint : null,
+            'http_status' => $this->nullableInt($context['http_status'] ?? ($context['status'] ?? null), 100, 599),
+            'duration_ms' => $this->nullableInt($context['duration_ms'] ?? null, 0, 3_600_000),
+            'actor_type' => $this->nullableStructuredText($context['actor_type'] ?? null, 32),
+            'actor_id' => $this->nullableStructuredText($context['actor_id'] ?? ($context['actor'] ?? null), 191),
+            'entity_type' => $this->nullableStructuredText($context['entity_type'] ?? null, 64),
+            'entity_id' => $this->nullableStructuredText($context['entity_id'] ?? null, 191),
+            'schema_version' => max(1, min(999, (int) ($context['schema_version'] ?? 2))),
+        ];
+    }
+
+    private function nullableStructuredText(mixed $value, int $maxLength): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $text = $this->sanitizeStructuredText((string) $value, $maxLength);
+
+        return $text !== '' ? $text : null;
+    }
+
+    private function sanitizeStructuredText(string $value, int $maxLength): string
+    {
+        $value = (new LogSanitizer())->sanitizeText($value, $maxLength);
+
+        return $this->trimText($value, $maxLength);
+    }
+
+    private function nullableInt(mixed $value, int $min, int $max): ?int
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $intValue = (int) $value;
+
+        return $intValue >= $min && $intValue <= $max ? $intValue : null;
     }
 
     private function trimText(string $value, int $maxLength): string

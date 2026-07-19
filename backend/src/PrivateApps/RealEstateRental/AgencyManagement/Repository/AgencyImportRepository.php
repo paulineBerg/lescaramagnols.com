@@ -382,6 +382,168 @@ final class AgencyImportRepository
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function getAgencyById(int $createdByPrivateUserId, int $agencyId): ?array
+    {
+        if ($createdByPrivateUserId <= 0 || $agencyId <= 0) {
+            return null;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT * FROM `%s`
+                     WHERE `id` = :id
+                       AND `created_by_private_user_id` = :created_by
+                     LIMIT 1',
+                    $this->agenciesTable()
+                )
+            );
+            $statement->execute([
+                'id' => $agencyId,
+                'created_by' => $createdByPrivateUserId,
+            ]);
+            $row = $statement->fetch(PDO::FETCH_ASSOC);
+            if ($row === false) {
+                return null;
+            }
+            return $this->agencyFromRow($row);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function archiveAgencyForUser(int $createdByPrivateUserId, int $agencyId): bool
+    {
+        if ($createdByPrivateUserId <= 0 || $agencyId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `is_archived` = 1, `updated_at` = CURRENT_TIMESTAMP
+                     WHERE `id` = :id
+                       AND `created_by_private_user_id` = :created_by
+                       AND `is_archived` = 0',
+                    $this->agenciesTable()
+                )
+            );
+            $statement->execute([
+                'id' => $agencyId,
+                'created_by' => $createdByPrivateUserId,
+            ]);
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function unarchiveAgencyForUser(int $createdByPrivateUserId, int $agencyId): bool
+    {
+        if ($createdByPrivateUserId <= 0 || $agencyId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s`
+                     SET `is_archived` = 0, `updated_at` = CURRENT_TIMESTAMP
+                     WHERE `id` = :id
+                       AND `created_by_private_user_id` = :created_by
+                       AND `is_archived` = 1',
+                    $this->agenciesTable()
+                )
+            );
+            $statement->execute([
+                'id' => $agencyId,
+                'created_by' => $createdByPrivateUserId,
+            ]);
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    public function canDeleteAgency(int $createdByPrivateUserId, int $agencyId): bool
+    {
+        if ($createdByPrivateUserId <= 0 || $agencyId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $agencyName = $this->agencyNameForUser($createdByPrivateUserId, $agencyId);
+            if ($agencyName === null) {
+                return false;
+            }
+
+            $pdo = $this->database->pdo();
+
+            // Check if there are any batches for this agency
+            $statement = $pdo->prepare(
+                sprintf(
+                    'SELECT COUNT(*) FROM `%s`
+                     WHERE `created_by_private_user_id` = :created_by
+                       AND LOWER(TRIM(`agency_name`)) = LOWER(:agency_name)',
+                    $this->batchesTable()
+                )
+            );
+            $statement->execute([
+                'created_by' => $createdByPrivateUserId,
+                'agency_name' => $agencyName,
+            ]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return false;
+            }
+
+            // Check if there are any imported documents for this agency
+            $statement = $pdo->prepare(
+                sprintf(
+                    'SELECT COUNT(*) FROM `%s`
+                     WHERE `created_by_private_user_id` = :created_by
+                       AND LOWER(TRIM(`detected_agency`)) = LOWER(:agency_name)',
+                    $this->documentsTable()
+                )
+            );
+            $statement->execute([
+                'created_by' => $createdByPrivateUserId,
+                'agency_name' => $agencyName,
+            ]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return false;
+            }
+
+            // Check if there are any unit mappings for this agency
+            $statement = $pdo->prepare(
+                sprintf(
+                    'SELECT COUNT(*) FROM `%s`
+                     WHERE `created_by_private_user_id` = :created_by
+                       AND LOWER(TRIM(`agency_name`)) = LOWER(:agency_name)',
+                    $this->unitMappingsTable()
+                )
+            );
+            $statement->execute([
+                'created_by' => $createdByPrivateUserId,
+                'agency_name' => $agencyName,
+            ]);
+            if ((int) $statement->fetchColumn() > 0) {
+                return false;
+            }
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function listUnitMappings(int $createdByPrivateUserId, int $limit = 200): array
@@ -503,6 +665,7 @@ final class AgencyImportRepository
             'advisorPhone' => $this->nullableStringFromRow($row['advisor_phone'] ?? null),
             'advisorEmail' => $this->nullableStringFromRow($row['advisor_email'] ?? null),
             'notes' => $this->nullableStringFromRow($row['notes'] ?? null),
+            'isArchived' => (bool) ($row['is_archived'] ?? 0),
             'createdAt' => $this->nullableStringFromRow($row['created_at'] ?? null),
             'updatedAt' => $this->nullableStringFromRow($row['updated_at'] ?? null),
         ];
@@ -1438,10 +1601,12 @@ final class AgencyImportRepository
                     `advisor_phone` VARCHAR(80) NULL,
                     `advisor_email` VARCHAR(254) NULL,
                     `notes` TEXT NULL,
+                    `is_archived` TINYINT(1) NOT NULL DEFAULT 0,
                     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     UNIQUE KEY `uq_rental_agencies_user_name` (`created_by_private_user_id`, `name`),
-                    KEY `idx_rental_agencies_user_updated` (`created_by_private_user_id`, `updated_at`)
+                    KEY `idx_rental_agencies_user_updated` (`created_by_private_user_id`, `updated_at`),
+                    KEY `idx_rental_agencies_archived` (`created_by_private_user_id`, `is_archived`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
                 $this->agenciesTable()
             )

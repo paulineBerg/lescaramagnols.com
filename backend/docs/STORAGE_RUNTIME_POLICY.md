@@ -264,7 +264,7 @@ export SYNC_EDITORIAL_UPLOADS_BLOCKED=1
 
 ### Migration du Stockage vers un Nouveau Chemin
 
-La migration vers `/home/lescaramgl-ssh/caramagnols-runtime/private-storage` a été exécutée le 2026-07-18. Le runbook et ses checklists sont dans `backend/docs/RUNBOOK_STORAGE_MIGRATION.md`.
+La migration vers `/home/lescaramgl-ssh/caramagnols-runtime/private-storage` a été exécutée le 2026-07-18. Le runbook et ses checklists sont archivés dans `backend/docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md`.
 
 Si une nouvelle migration est nécessaire :
 

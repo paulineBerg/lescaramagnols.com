@@ -60,6 +60,7 @@ final class FrontControllerHttpTest extends TestCase
             'timeout_seconds' => 8,
             'cache_path' => $this->instagramCacheFile,
         ];
+        $appConfig['logging']['trusted_request_id_sources'] = [];
 
         $this->logDir = sys_get_temp_dir() . '/caramagnols-front-controller-logs-' . bin2hex(random_bytes(6));
         mkdir($this->logDir, 0777, true);
@@ -2042,12 +2043,67 @@ final class FrontControllerHttpTest extends TestCase
         );
 
         $this->assertSame(200, $response->status);
+        $this->assertIsString($response->headers['X-Request-Id'] ?? null);
+        $this->assertNotSame('req-front-1234', $response->headers['X-Request-Id'] ?? null);
+
+        $accessLogPath = $this->logDir . '/access.log';
+        $this->assertFileExists($accessLogPath);
+        $logContents = (string) file_get_contents($accessLogPath);
+        $this->assertStringNotContainsString('"request_id":"req-front-1234"', $logContents);
+    }
+
+    public function testTrustedInternalRequestIdAndCorrelationIdArePropagated(): void
+    {
+        global $appConfig;
+        $appConfig['logging']['trusted_request_id_sources'] = ['198.51.100.25'];
+
+        file_put_contents(
+            $this->pagesFile,
+            json_encode(
+                [
+                    'meta' => ['version' => 2],
+                    'pages' => [
+                        [
+                            'slug' => 'association',
+                            'type' => 'structured_page',
+                            'status' => 'published',
+                            'layout' => 'standard_page',
+                            'route' => '/association',
+                            'translations' => [
+                                'fr' => [
+                                    'title' => 'Association',
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+            )
+        );
+
+        $response = $this->frontController()->handle(
+            $this->request(
+                'GET',
+                '/association',
+                [],
+                [],
+                '198.51.100.25',
+                [
+                    'User-Agent' => 'TraceabilityTest/1.0',
+                    'X-Request-Id' => 'req-front-1234',
+                    'X-Correlation-Id' => 'corr-front-1234',
+                ]
+            )
+        );
+
+        $this->assertSame(200, $response->status);
         $this->assertSame('req-front-1234', $response->headers['X-Request-Id'] ?? null);
 
         $accessLogPath = $this->logDir . '/access.log';
         $this->assertFileExists($accessLogPath);
         $logContents = (string) file_get_contents($accessLogPath);
         $this->assertStringContainsString('"request_id":"req-front-1234"', $logContents);
+        $this->assertStringContainsString('"correlation_id":"corr-front-1234"', $logContents);
     }
 
     public function testUnhandledRenderFailureIsLoggedAndReturnedAsHttp500(): void
@@ -2096,7 +2152,8 @@ final class FrontControllerHttpTest extends TestCase
             );
 
             $this->assertSame(500, $response->status);
-            $this->assertSame('req-front-500', $response->headers['X-Request-Id'] ?? null);
+            $this->assertIsString($response->headers['X-Request-Id'] ?? null);
+            $this->assertNotSame('req-front-500', $response->headers['X-Request-Id'] ?? null);
             $this->assertStringContainsString('Impossible actuellement de traiter cette demande.', $response->body);
 
             $accessLogPath = $this->logDir . '/access.log';
@@ -2104,7 +2161,7 @@ final class FrontControllerHttpTest extends TestCase
 
             $logContents = (string) file_get_contents($accessLogPath);
             $this->assertStringContainsString('site.request.error', $logContents);
-            $this->assertStringContainsString('"request_id":"req-front-500"', $logContents);
+            $this->assertStringNotContainsString('"request_id":"req-front-500"', $logContents);
             $this->assertStringContainsString('"status":500', $logContents);
             $this->assertStringContainsString('FailureTest/1.0', $logContents);
         } finally {
