@@ -201,8 +201,16 @@ final class AdminPrivateMembersService
             return $this->result(false, null, 'Compte invité créé, mais jeton d’invitation non généré.');
         }
 
-        $this->sendActivationEmail($email, $token, $actorIdentifier, $userId);
+        $emailSent = $this->sendActivationEmail($email, $token, $actorIdentifier, $userId);
         $this->logAction('admin.private.member_invited', $actorIdentifier, $userId, $email);
+
+        if (!$emailSent) {
+            return $this->result(
+                true,
+                $this->manualActivationMessage('Invitation privée enregistrée, mais l’email n’a pas pu être envoyé.', $token),
+                null
+            );
+        }
 
         return $this->result(true, 'Invitation privée enregistrée.', null);
     }
@@ -232,8 +240,16 @@ final class AdminPrivateMembersService
             return $this->result(false, null, 'Impossible de générer un nouveau jeton d’invitation.');
         }
 
-        $this->sendActivationEmail($email, $token, $actorIdentifier, $userId);
+        $emailSent = $this->sendActivationEmail($email, $token, $actorIdentifier, $userId);
         $this->logAction('admin.private.invite_resent', $actorIdentifier, $userId, $email);
+
+        if (!$emailSent) {
+            return $this->result(
+                true,
+                $this->manualActivationMessage('Renvoi d’invitation enregistré, mais l’email n’a pas pu être envoyé.', $token),
+                null
+            );
+        }
 
         return $this->result(true, 'Renvoi d’invitation enregistré.', null);
     }
@@ -598,15 +614,15 @@ final class AdminPrivateMembersService
         return array_values($codes);
     }
 
-    private function sendActivationEmail(string $email, string $token, ?string $actorIdentifier, int $userId): void
+    private function sendActivationEmail(string $email, string $token, ?string $actorIdentifier, int $userId): bool
     {
-        $url = app_url(private_route_resolver()->canonicalPath('activate') . '/' . rawurlencode($token));
+        $url = $this->activationUrl($token);
         $message = $this->renderPrivateMailTemplate($this->privateMailTemplate(
             'admin_invite_body',
             "Bonjour,\n\nVotre espace privé est prêt.\n\nIdentifiant de connexion : {{email}}\nLien d'activation : {{activation_url}}\n\nChoisissez votre mot de passe depuis ce lien sécurisé."
         ), $email, ['activation_url' => $url]);
 
-        $this->sendPrivateEmail(
+        return $this->sendPrivateEmail(
             $email,
             $this->renderPrivateMailTemplate(
                 $this->privateMailSubject('admin_invite_subject', 'Activation de votre espace privé'),
@@ -618,6 +634,16 @@ final class AdminPrivateMembersService
             $actorIdentifier,
             $userId
         );
+    }
+
+    private function activationUrl(string $token): string
+    {
+        return app_url(private_route_resolver()->canonicalPath('activate') . '/' . rawurlencode($token));
+    }
+
+    private function manualActivationMessage(string $prefix, string $token): string
+    {
+        return $prefix . ' Lien d’activation à transmettre manuellement : ' . $this->activationUrl($token);
     }
 
     private function sendPasswordResetEmail(string $email, string $token, ?string $actorIdentifier, int $userId): bool
@@ -652,7 +678,9 @@ final class AdminPrivateMembersService
     ): bool {
         $mailConfig = app_config('private.mail', []);
         if (!is_array($mailConfig) || !($mailConfig['enabled'] ?? false)) {
-            $this->logAction($event . '_failed', $actorIdentifier, $userId, $email, 'warning');
+            $this->logAction($event . '_failed', $actorIdentifier, $userId, $email, 'warning', [
+                'mail_error' => 'private mail disabled',
+            ]);
 
             return false;
         }
@@ -667,7 +695,9 @@ final class AdminPrivateMembersService
         $sent = function_exists('send_private_email')
             ? send_private_email($email, $subject, $html)
             : false;
-        $mailError = !$sent && function_exists('private_mail_last_error') ? private_mail_last_error() : null;
+        $mailError = !$sent
+            ? (function_exists('private_mail_last_error') ? private_mail_last_error() : 'private mail function missing')
+            : null;
 
         $this->logAction(
             $sent ? $event . '_sent' : $event . '_failed',

@@ -3808,11 +3808,18 @@ final class PrivatePortalController
             : $this->privateMailTemplate('discussion_invite_body');
         $message = $this->renderPrivateMailTemplate($message, $variables);
         $sent = $this->sendPrivateMail($email, $subject, $this->plainTextToHtml($message), []);
-        $this->logEvent($sent ? 'private.discussion.invite_email_sent' : 'private.discussion.invite_email_failed', [
+        $logContext = [
             'private_user_id' => $actorUserId,
             'invited_private_user_id' => $userId,
             'recipient' => AppEventLogger::maskIdentifier($email),
-        ]);
+        ];
+        if (!$sent) {
+            $mailError = function_exists('private_mail_last_error') ? private_mail_last_error() : 'private mail function missing';
+            if ($mailError !== null) {
+                $logContext['mail_error'] = $mailError;
+            }
+        }
+        $this->logEvent($sent ? 'private.discussion.invite_email_sent' : 'private.discussion.invite_email_failed', $logContext);
 
         return $sent;
     }

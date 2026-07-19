@@ -17,8 +17,21 @@ final class PrivatePortalMembersTest extends TestCase
 {
     use EditorialSqlTestTrait;
 
+    /** @var array<string, mixed> */
+    private array $previousAppConfig = [];
+
+    protected function setUp(): void
+    {
+        global $appConfig;
+
+        $this->previousAppConfig = is_array($appConfig) ? $appConfig : [];
+    }
+
     protected function tearDown(): void
     {
+        global $appConfig;
+
+        $appConfig = $this->previousAppConfig;
         $this->cleanupEditorialSqlDatabase();
     }
 
@@ -53,6 +66,47 @@ final class PrivatePortalMembersTest extends TestCase
         ], 'admin@example.com');
 
         $this->assertFalse($duplicate['success']);
+    }
+
+    public function testInviteAndResendReturnManualActivationLinkWhenEmailFails(): void
+    {
+        global $appConfig;
+
+        $appConfig['base_url'] = 'https://preprod.lescaramagnols.com';
+        $appConfig['site']['url'] = [];
+        $appConfig['private']['enabled'] = true;
+        $appConfig['private']['base_path'] = 'private';
+        $appConfig['private']['mail'] = ['enabled' => false];
+
+        $database = $this->editorialSqlDatabase();
+        $repository = new PrivateUserRepository($database);
+        $service = new AdminPrivateMembersService(
+            $repository,
+            new PrivateModulePermissionRepository($database, new PrivateModuleRegistry())
+        );
+
+        $invite = $service->handleAction([
+            'private_member_action' => 'invite',
+            'email' => 'manual-link@example.com',
+        ], 'admin@example.com');
+
+        $this->assertTrue($invite['success']);
+        $this->assertIsString($invite['message']);
+        $this->assertStringContainsString('Lien d’activation à transmettre manuellement', $invite['message']);
+        $this->assertStringContainsString('https://preprod.lescaramagnols.com/private/activate/', $invite['message']);
+
+        $member = $repository->findByEmail('manual-link@example.com');
+        $this->assertIsArray($member);
+
+        $resend = $service->handleAction([
+            'private_member_action' => 'resend',
+            'private_user_id' => (string) ($member['id'] ?? ''),
+        ], 'admin@example.com');
+
+        $this->assertTrue($resend['success']);
+        $this->assertIsString($resend['message']);
+        $this->assertStringContainsString('Renvoi d’invitation enregistré', $resend['message']);
+        $this->assertStringContainsString('Lien d’activation à transmettre manuellement', $resend['message']);
     }
 
     public function testInviteActivationAndPasswordResetUseHashedTokens(): void
