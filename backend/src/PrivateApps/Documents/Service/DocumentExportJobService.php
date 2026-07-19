@@ -25,8 +25,7 @@ final class DocumentExportJobService
 
     public function __construct(
         private readonly EditorialDatabase $database,
-        private readonly DocumentExportService $exportService,
-        private readonly DocumentStorageService $storage
+        private readonly DocumentExportService $exportService
     ) {
     }
 
@@ -39,8 +38,9 @@ final class DocumentExportJobService
         $this->database->ensureReady();
         $pdo = $this->database->pdo();
 
-        $pdo->exec(sprintf(
-            'CREATE TABLE IF NOT EXISTS `%s` (
+        $pdo->exec(
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS `%s` (
                 `id` INT AUTO_INCREMENT PRIMARY KEY,
                 `job_uid` VARCHAR(64) NOT NULL,
                 `private_user_id` INT NOT NULL,
@@ -63,8 +63,9 @@ final class DocumentExportJobService
                 KEY `idx_document_export_jobs_user` (`private_user_id`, `created_at`),
                 KEY `idx_document_export_jobs_created` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
-            $this->table()
-        ));
+                $this->table()
+            )
+        );
 
         $this->schemaReady = true;
     }
@@ -75,8 +76,9 @@ final class DocumentExportJobService
     }
 
     /**
-     * @param array<string, mixed> $filters Filtres à appliquer à l'export
-     * @param string $exportType Type d'export : 'full', 'by_entity', 'by_category', 'by_year'
+     * @param  array<string, mixed> $filters    Filtres à appliquer à
+     *                                          l'export
+     * @param  string               $exportType Type d'export : 'full', 'by_entity', 'by_category', 'by_year'
      * @return array<string, mixed>
      */
     public function createJob(int $privateUserId, array $filters, string $exportType = 'full', string $label = ''): array
@@ -90,20 +92,24 @@ final class DocumentExportJobService
         }
 
         try {
-            $statement = $this->database->pdo()->prepare(sprintf(
-                'INSERT INTO `%s`
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'INSERT INTO `%s`
                  (`job_uid`, `private_user_id`, `export_type`, `filters_json`, `status`, `created_at`, `updated_at`)
                  VALUES (:job_uid, :user_id, :export_type, :filters_json, :status, NOW(), NOW())',
-                $this->table()
-            ));
+                    $this->table()
+                )
+            );
 
-            $statement->execute([
+            $statement->execute(
+                [
                 'job_uid' => $jobUid,
                 'user_id' => $privateUserId,
                 'export_type' => $exportType,
                 'filters_json' => $filtersJson,
                 'status' => self::STATUS_PENDING,
-            ]);
+                ]
+            );
 
             return [
                 'success' => true,
@@ -111,7 +117,6 @@ final class DocumentExportJobService
                 'status' => self::STATUS_PENDING,
                 'created_at' => date('c'),
             ];
-
         } catch (\Throwable $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
@@ -125,10 +130,12 @@ final class DocumentExportJobService
         $this->ensureSchema();
 
         try {
-            $statement = $this->database->pdo()->prepare(sprintf(
-                'SELECT * FROM `%s` WHERE `job_uid` = :job_uid LIMIT 1',
-                $this->table()
-            ));
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT * FROM `%s` WHERE `job_uid` = :job_uid LIMIT 1',
+                    $this->table()
+                )
+            );
             $statement->execute(['job_uid' => $jobUid]);
             $row = $statement->fetch(\PDO::FETCH_ASSOC);
 
@@ -141,7 +148,6 @@ final class DocumentExportJobService
             $row['result'] = $this->decodeJson($row['result_json'] ?? '{}');
 
             return $row;
-
         } catch (\Throwable) {
             return null;
         }
@@ -177,13 +183,15 @@ final class DocumentExportJobService
         $limitClause = "LIMIT {$limit} OFFSET {$offset}";
 
         try {
-            $statement = $this->database->pdo()->prepare(sprintf(
-                'SELECT * FROM `%s` %s %s %s',
-                $this->table(),
-                $where,
-                $order,
-                $limitClause
-            ));
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT * FROM `%s` %s %s %s',
+                    $this->table(),
+                    $where,
+                    $order,
+                    $limitClause
+                )
+            );
             $statement->execute($params);
             $rows = $statement->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -198,7 +206,6 @@ final class DocumentExportJobService
             }
 
             return $rows;
-
         } catch (\Throwable) {
             return [];
         }
@@ -240,14 +247,15 @@ final class DocumentExportJobService
         }
 
         try {
-            $statement = $this->database->pdo()->prepare(sprintf(
-                'UPDATE `%s` SET %s, `updated_at` = NOW() WHERE `job_uid` = :job_uid',
-                $this->table(),
-                implode(', ', $assignments)
-            ));
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'UPDATE `%s` SET %s, `updated_at` = NOW() WHERE `job_uid` = :job_uid',
+                    $this->table(),
+                    implode(', ', $assignments)
+                )
+            );
 
             return $statement->execute($params);
-
         } catch (\Throwable) {
             return false;
         }
@@ -256,8 +264,9 @@ final class DocumentExportJobService
     /**
      * Exécute un job en arrière-plan.
      *
-     * @param string $jobUid UID du job à exécuter
-     * @param bool $isCli Si vrai, l'exécution est en CLI (peuvent avoir des limites différentes)
+     * @param  string $jobUid UID du job à exécuter
+     * @param  bool   $isCli  Si vrai, l'exécution est en CLI (peuvent avoir des
+     *                        limites différentes)
      * @return array<string, mixed>
      */
     public function executeJob(string $jobUid, bool $isCli = false): array
@@ -281,13 +290,15 @@ final class DocumentExportJobService
         }
 
         // Mettre à jour l'état pour indiquer le début
-        $this->updateJob($jobUid, [
+        $this->updateJob(
+            $jobUid, [
             'status' => self::STATUS_PROCESSING,
             'progress_percent' => 0,
             'started_at' => date('Y-m-d H:i:s'),
             'error_code' => null,
             'error_message' => null,
-        ]);
+            ]
+        );
 
         try {
             $privateUserId = (int) ($job['private_user_id'] ?? 0);
@@ -299,13 +310,15 @@ final class DocumentExportJobService
 
             if (!($exportResult['ok'] ?? false)) {
                 $errorCode = (string) ($exportResult['error_code'] ?? 'export_failed');
-                $this->updateJob($jobUid, [
+                $this->updateJob(
+                    $jobUid, [
                     'status' => self::STATUS_FAILED,
                     'error_code' => $errorCode,
                     'error_message' => $errorCode,
                     'progress_percent' => 100,
                     'completed_at' => date('Y-m-d H:i:s'),
-                ]);
+                    ]
+                );
 
                 return [
                     'success' => false,
@@ -339,7 +352,8 @@ final class DocumentExportJobService
                 'encrypted' => $encrypted,
             ];
 
-            $this->updateJob($jobUid, [
+            $this->updateJob(
+                $jobUid, [
                 'status' => self::STATUS_COMPLETED,
                 'progress_percent' => 100,
                 'file_path' => $finalPath,
@@ -347,7 +361,8 @@ final class DocumentExportJobService
                 'file_sha256' => $fileSha256,
                 'result_json' => json_encode($resultData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 'completed_at' => date('Y-m-d H:i:s'),
-            ]);
+                ]
+            );
 
             return [
                 'success' => true,
@@ -358,15 +373,16 @@ final class DocumentExportJobService
                 'file_sha256' => $fileSha256,
                 'encrypted' => $encrypted,
             ];
-
         } catch (\Throwable $e) {
-            $this->updateJob($jobUid, [
+            $this->updateJob(
+                $jobUid, [
                 'status' => self::STATUS_FAILED,
                 'error_code' => 'exception',
                 'error_message' => $e->getMessage(),
                 'progress_percent' => 100,
                 'completed_at' => date('Y-m-d H:i:s'),
-            ]);
+                ]
+            );
 
             return [
                 'success' => false,
@@ -391,10 +407,12 @@ final class DocumentExportJobService
             return false;
         }
 
-        return $this->updateJob($jobUid, [
+        return $this->updateJob(
+            $jobUid, [
             'status' => self::STATUS_CANCELLED,
             'completed_at' => date('Y-m-d H:i:s'),
-        ]);
+            ]
+        );
     }
 
     /**
@@ -415,10 +433,12 @@ final class DocumentExportJobService
 
         // Supprimer l'entrée de la base
         try {
-            $statement = $this->database->pdo()->prepare(sprintf(
-                'DELETE FROM `%s` WHERE `job_uid` = :job_uid',
-                $this->table()
-            ));
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'DELETE FROM `%s` WHERE `job_uid` = :job_uid',
+                    $this->table()
+                )
+            );
             return $statement->execute(['job_uid' => $jobUid]);
         } catch (\Throwable) {
             return false;
@@ -439,10 +459,12 @@ final class DocumentExportJobService
 
         try {
             // Trouver les jobs à supprimer
-            $statement = $this->database->pdo()->prepare(sprintf(
-                'SELECT * FROM `%s` WHERE `created_at` < :threshold AND `status` IN (\'completed\', \'failed\', \'cancelled\')',
-                $this->table()
-            ));
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT * FROM `%s` WHERE `created_at` < :threshold AND `status` IN (\'completed\', \'failed\', \'cancelled\')',
+                    $this->table()
+                )
+            );
             $statement->execute(['threshold' => $threshold]);
             $jobs = $statement->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -454,7 +476,6 @@ final class DocumentExportJobService
                 $this->deleteJob((string) ($job['job_uid'] ?? ''));
                 $deleted++;
             }
-
         } catch (\Throwable) {
             // Ignorer les erreurs de nettoyage
         }
@@ -468,15 +489,16 @@ final class DocumentExportJobService
     public function canEncryptZip(): bool
     {
         return class_exists(\ZipArchive::class)
-            && defined(\ZipArchive::class, 'EM_AES_256')
+            && defined(\ZipArchive::class . '::EM_AES_256')
             && is_int(\ZipArchive::EM_AES_256);
     }
 
     /**
      * Chiffre une archive ZIP avec AES-256.
      *
-     * @param string $zipPath Chemin vers le fichier ZIP à chiffrer
-     * @param string $password Mot de passe de chiffrement
+     * @param  string $zipPath  Chemin vers le fichier ZIP à
+     *                          chiffrer
+     * @param  string $password Mot de passe de chiffrement
      * @return string|null Chemin vers le fichier chiffré, ou null en cas d'échec
      */
     public function encryptZip(string $zipPath, string $password = ''): ?string
@@ -559,7 +581,6 @@ final class DocumentExportJobService
             }
 
             return $encryptedPath;
-
         } catch (\Throwable) {
             if (is_file($encryptedPath)) {
                 @unlink($encryptedPath);

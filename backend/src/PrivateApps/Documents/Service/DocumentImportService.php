@@ -124,6 +124,11 @@ final class DocumentImportService
         // Quarantaine puis empreinte en flux.
         $quarantinePath = $this->storage->moveToQuarantine($tmpPath, true);
         if ($quarantinePath === null) {
+            $this->logEvent('private.document_hub.quarantine_failed', [
+                'private_user_id' => $privateUserId,
+                'storage_reason' => $this->storage->lastError() ?? 'unknown',
+            ], 'error');
+
             return $this->reject($jobId, $originalName, 'quarantine_failed', DocumentHubRepository::JOB_STATUS_FAILED);
         }
 

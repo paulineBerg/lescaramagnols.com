@@ -249,8 +249,8 @@ final class DocumentValidationService
             return 'unreadable_image';
         }
 
-        $width = is_numeric($info[0] ?? null) ? (int) $info[0] : 0;
-        $height = is_numeric($info[1] ?? null) ? (int) $info[1] : 0;
+        $width = is_numeric($info[0]) ? (int) $info[0] : 0;
+        $height = is_numeric($info[1]) ? (int) $info[1] : 0;
         if ($width <= 0 || $height <= 0) {
             return 'unreadable_image';
         }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Caramagnols\PrivateApps\Documents\Service;
 
+use Caramagnols\PrivateApps\Documents\Repository\DocumentHubRepository;
+
 /**
  * Service de génération de dérivés (miniatures/aperçus) pour le hub documentaire.
  *
@@ -57,7 +59,7 @@ final class DocumentDerivativeService
         if (!$this->gdAvailable) {
             return [
                 'generated' => [],
-                'skipped' => ['preview', 'thumb'],
+                'skipped' => ['preview' => 'gd_unavailable', 'thumb' => 'gd_unavailable'],
                 'errors' => [],
             ];
         }
@@ -93,7 +95,7 @@ final class DocumentDerivativeService
         if (!self::isImageMimeType($mimeType)) {
             return [
                 'generated' => [],
-                'skipped' => ['preview', 'thumb'],
+                'skipped' => ['preview' => 'not_image', 'thumb' => 'not_image'],
                 'errors' => [],
             ];
         }
@@ -346,7 +348,7 @@ final class DocumentDerivativeService
         $validSha256s = [];
 
         try {
-            $objects = $this->repository->listObjects([], 0, PHP_INT_MAX);
+            $objects = $this->repository->allObjects(PHP_INT_MAX);
             foreach ($objects as $object) {
                 $validSha256s[] = (string) ($object['sha256'] ?? '');
             }

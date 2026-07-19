@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Outil de diagnostic du stockage runtime privé.
  *
@@ -21,6 +19,8 @@ declare(strict_types=1);
  *   --json           Sortie au format JSON
  *   --dry-run        Mode diagnostic uniquement (toujours vrai pour cet outil)
  */
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/../../core/bootstrap.php';
 
@@ -54,16 +54,20 @@ class PrivateStorageDiagnostic
             return 1;
         }
 
-        $this->log('info', 'private.storage.diagnostic.started', [
+        $this->log(
+            'info', 'private.storage.diagnostic.started', [
             'root_path' => $this->rootPath,
-        ]);
+            ]
+        );
 
         $report = $this->analyzeStorage();
         $this->outputReport($report);
 
-        $this->log('info', 'private.storage.diagnostic.completed', [
+        $this->log(
+            'info', 'private.storage.diagnostic.completed', [
             'summary' => $report['summary'],
-        ]);
+            ]
+        );
 
         return 0;
     }
@@ -381,11 +385,13 @@ class PrivateStorageDiagnostic
                 echo "    Extensions: ";
                 $extensions = $dirReport['files_by_extension'];
                 arsort($extensions);
-                echo implode(', ', array_map(
-                    fn($ext, $count) => "$ext ($count)",
-                    array_keys($extensions),
-                    $extensions
-                )) . "\n";
+                echo implode(
+                    ', ', array_map(
+                        fn($ext, $count) => "$ext ($count)",
+                        array_keys($extensions),
+                        $extensions
+                    )
+                ) . "\n";
             }
         }
         echo "\n";
@@ -487,7 +493,6 @@ try {
 
     $diagnostic = new PrivateStorageDiagnostic($rootPath, $jsonOutput, $logger);
     exit($diagnostic->run());
-
 } catch (\Throwable $e) {
     if (isset($options['json'])) {
         echo json_encode(['error' => $e->getMessage()]) . "\n";

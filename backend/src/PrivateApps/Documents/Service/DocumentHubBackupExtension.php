@@ -114,7 +114,6 @@ final class DocumentHubBackupExtension
             }
 
             return $result;
-
         } finally {
             $this->releaseLock($lockPath);
         }
@@ -357,25 +356,28 @@ final class DocumentHubBackupExtension
             // Copier les objets CAS
             $objectsPath = $this->storage->rootPath() . '/objects';
             if (is_dir($objectsPath)) {
-                $report = array_merge($report, $this->copyDirectory(
-                    $objectsPath,
-                    $targetDirectory . '/objects',
-                    ['include_pattern' => '/\.\w+$/']
-                ));
+                $report = array_merge(
+                    $report, $this->copyDirectory(
+                        $objectsPath,
+                        $targetDirectory . '/objects',
+                        ['include_pattern' => '/\.\w+$/']
+                    )
+                );
             }
 
             // Copier les dérivés si demandé
             if ($includeDerivatives) {
                 $derivativesPath = $this->storage->rootPath() . '/derivatives';
                 if (is_dir($derivativesPath)) {
-                    $report = array_merge($report, $this->copyDirectory(
-                        $derivativesPath,
-                        $targetDirectory . '/derivatives',
-                        ['include_pattern' => '/\.(jpg|jpeg|png|webp|gif)$/i']
-                    ));
+                    $report = array_merge(
+                        $report, $this->copyDirectory(
+                            $derivativesPath,
+                            $targetDirectory . '/derivatives',
+                            ['include_pattern' => '/\.(jpg|jpeg|png|webp|gif)$/i']
+                        )
+                    );
                 }
             }
-
         } catch (\Throwable $e) {
             $report['errors'][] = 'copy_failed: ' . $e->getMessage();
         }
@@ -427,7 +429,6 @@ final class DocumentHubBackupExtension
                 @chmod($checksumsPath, 0600);
                 return ['generated' => true, 'verified' => $verified, 'path' => $checksumsPath];
             }
-
         } catch (\Throwable $e) {
             // Ignorer les erreurs de génération de checksums
         }
@@ -552,7 +553,6 @@ final class DocumentHubBackupExtension
                     $report['errors'][] = "Failed to copy: {$relPath}";
                 }
             }
-
         } catch (\Throwable $e) {
             $report['errors'][] = $e->getMessage();
         }

@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Script de maintenance combiné pour le Document Hub.
  * Exécute : intégrité, garbage collection, purge de corbeille.
@@ -18,6 +16,8 @@ declare(strict_types=1);
  *   --delete-unreferenced  Supprime les objets non référencés (necessite --no-dry-run)
  *   --help, -h     Affiche cette aide
  */
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/../bootstrap.php';
 
@@ -85,6 +85,9 @@ try {
     // Service de notification non disponible, continuer sans
 }
 
+/**
+ * @var array<string, mixed> $report
+*/
 $report = [
     'started_at' => date('c'),
     'mode' => $options['dry-run'] ? 'dry-run' : 'live',
@@ -220,7 +223,9 @@ function runIntegrityCheck(
                 $allSha256s[] = (string) ($obj['sha256'] ?? '');
             }
             foreach ($files as $file) {
-                if (!$file->isFile()) continue;
+                if (!$file->isFile()) {
+                    continue;
+                }
                 $path = $file->getPathname();
                 if (preg_match('/objects\/sha256\/([a-f0-9]{2})\/([a-f0-9]{2})\/([a-f0-9]{64})/', $path, $m)) {
                     $sha256 = $m[1] . $m[2] . $m[3];
@@ -237,7 +242,7 @@ function runIntegrityCheck(
             $objectId = (int) ($doc['object_id'] ?? 0);
             if ($objectId <= 0) {
                 $report['documents_without_object']++;
-            } elseif ($repository->getObjectById($objectId) === null) {
+            } elseif ($repository->findObjectById($objectId) === null) {
                 $report['documents_without_object']++;
             }
         }
@@ -245,10 +250,12 @@ function runIntegrityCheck(
         // 4. Vérifier les liens orphelins
         $linksTable = $repository->linksTable();
         $documentsTable = $repository->documentsTable();
-        $stmt = $pdo->query(sprintf(
-            'SELECT COUNT(*) as cnt FROM `%s` l LEFT JOIN `%s` d ON d.`id` = l.`document_id` WHERE d.`id` IS NULL',
-            $linksTable, $documentsTable
-        ));
+        $stmt = $pdo->query(
+            sprintf(
+                'SELECT COUNT(*) as cnt FROM `%s` l LEFT JOIN `%s` d ON d.`id` = l.`document_id` WHERE d.`id` IS NULL',
+                $linksTable, $documentsTable
+            )
+        );
         if ($stmt !== false) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             $report['orphan_links'] = (int) ($row['cnt'] ?? 0);
@@ -256,10 +263,12 @@ function runIntegrityCheck(
 
         // 5. Vérifier les jobs bloqués
         $jobsTable = $repository->jobsTable();
-        $stmt = $pdo->query(sprintf(
-            "SELECT * FROM `%s` WHERE `status` IN ('quarantined', 'validating', 'processing')",
-            $jobsTable
-        ));
+        $stmt = $pdo->query(
+            sprintf(
+                "SELECT * FROM `%s` WHERE `status` IN ('quarantined', 'validating', 'processing')",
+                $jobsTable
+            )
+        );
         if ($stmt !== false) {
             $stuckJobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($stuckJobs as $job) {
@@ -275,7 +284,6 @@ function runIntegrityCheck(
                 }
             }
         }
-
     } catch (\Throwable $e) {
         $report['error'] = $e->getMessage();
     }
@@ -325,11 +333,15 @@ function purgeExpiredTrash(
         foreach ($trashedDocuments as $document) {
             $report['checked_count']++;
             $documentId = (int) ($document['id'] ?? 0);
-            if ($documentId <= 0) continue;
+            if ($documentId <= 0) {
+                continue;
+            }
 
             $categoryCode = (string) ($document['category_code'] ?? 'inbox');
             $trashedAt = $document['trashed_at'] ?? null;
-            if (empty($trashedAt)) continue;
+            if (empty($trashedAt)) {
+                continue;
+            }
 
             try {
                 $trashedDate = new \DateTimeImmutable($trashedAt);

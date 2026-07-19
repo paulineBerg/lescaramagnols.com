@@ -688,6 +688,51 @@ final class DocumentHubRepository
     }
 
     /**
+     * Indique si au moins un document visible (actif, clos ou archivé, donc
+     * pas encore purgé) est rattaché à cette entité métier. Utilisé pour
+     * empêcher la suppression d'un élément (propriété, bien locatif, bail...)
+     * tant qu'un document du hub y est encore rattaché.
+     */
+    public function hasVisibleLinkForEntity(string $entityType, string $entityId): bool
+    {
+        $entityType = trim($entityType);
+        $entityId = trim($entityId);
+        if ($entityType === '' || $entityId === '') {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT 1
+                     FROM `%s` l
+                     INNER JOIN `%s` d ON d.`id` = l.`document_id`
+                     WHERE l.`entity_type` = :entity_type
+                       AND l.`entity_id` = :entity_id
+                       AND d.`status` IN (:status_active, :status_closed, :status_archived)
+                     LIMIT 1',
+                    $this->linksTable(),
+                    $this->documentsTable()
+                )
+            );
+            $statement->execute([
+                'entity_type' => $entityType,
+                'entity_id' => $entityId,
+                'status_active' => self::DOC_STATUS_ACTIVE,
+                'status_closed' => self::DOC_STATUS_CLOSED,
+                'status_archived' => self::DOC_STATUS_ARCHIVED,
+            ]);
+
+            return $statement->fetchColumn() !== false;
+        } catch (\Throwable) {
+            // En cas de doute (erreur technique), on bloque la suppression
+            // plutôt que de risquer de perdre un rattachement documentaire.
+            return true;
+        }
+    }
+
+    /**
      * Documents visibles rattachés à une entité (liste filtrée d'un onglet métier).
      *
      * @return array<int, array<string, mixed>>

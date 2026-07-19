@@ -128,16 +128,30 @@ final class DocumentStorageService
      */
     public function moveToQuarantine(string $sourcePath, bool $isUploadedFile): ?string
     {
+        $this->lastError = null;
+
         if ($this->legacyMode) {
             $this->lastError = 'legacy_mode_readonly';
             return null;
         }
 
         if (!is_file($sourcePath) || !is_readable($sourcePath)) {
+            $this->lastError = 'source_unreadable';
             return null;
         }
 
-        $target = $this->quarantineDirectory() . '/' . bin2hex(random_bytes(16)) . '.tmp';
+        // Le dossier de quarantaine peut avoir disparu entre le démarrage du
+        // process (ensureDirectories() au constructeur) et cet appel, par
+        // exemple après un nettoyage externe des dossiers vides du stockage
+        // runtime. On le recrée ici pour ne jamais échouer un import valide
+        // à cause d'un dossier manquant.
+        $quarantineDir = $this->quarantineDirectory();
+        if (!is_dir($quarantineDir) && !@mkdir($quarantineDir, self::DIRECTORY_PERMISSIONS, true) && !is_dir($quarantineDir)) {
+            $this->lastError = 'quarantine_directory_unavailable';
+            return null;
+        }
+
+        $target = $quarantineDir . '/' . bin2hex(random_bytes(16)) . '.tmp';
 
         $moved = false;
         if ($isUploadedFile && is_uploaded_file($sourcePath)) {
@@ -156,6 +170,7 @@ final class DocumentStorageService
         }
 
         if (!$moved || !is_file($target)) {
+            $this->lastError = 'quarantine_write_denied';
             return null;
         }
 

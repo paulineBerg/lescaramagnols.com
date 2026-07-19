@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Outil de nettoyage des dossiers vides dans le stockage runtime privé.
  *
@@ -31,6 +29,8 @@ declare(strict_types=1);
  *   - La racine du stockage n'est jamais supprimée
  *   - Les chemins dangereux (/ , /home, /var, etc.) sont refusés
  */
+
+declare(strict_types=1);
 
 $privateStoragePruneProcessAppEnv = getenv('APP_ENV');
 if (!defined('PRIVATE_STORAGE_PRUNE_PROCESS_APP_ENV')) {
@@ -131,13 +131,15 @@ class PrivateStoragePrune
             }
         }
 
-        $this->log('info', 'private.storage.prune.started', [
+        $this->log(
+            'info', 'private.storage.prune.started', [
             'root_path' => $this->rootPath,
             'dry_run' => $this->dryRun,
             'apply' => $this->apply,
             'min_age_seconds' => $this->minAgeSeconds,
             'max_depth' => $this->maxDepth,
-        ]);
+            ]
+        );
 
         // Exécuter le nettoyage
         $this->pruneEmptyDirectories();
@@ -145,12 +147,14 @@ class PrivateStoragePrune
         // Sortir le rapport
         $this->outputReport();
 
-        $this->log('info', 'private.storage.prune.completed', [
+        $this->log(
+            'info', 'private.storage.prune.completed', [
             'dry_run' => $this->dryRun,
             'would_remove_count' => count($this->wouldRemoveDirectories),
             'removed_count' => count($this->removedDirectories),
             'errors' => $this->errors,
-        ]);
+            ]
+        );
 
         // Retourner un code d'erreur si des erreurs ou si rien n'a été fait en mode apply
         if (!empty($this->errors)) {
@@ -257,11 +261,6 @@ class PrivateStoragePrune
                 }
             }
 
-            // Vérifier que c'est toujours vide (race condition)
-            if (!$this->isDirectoryEmpty($path)) {
-                continue;
-            }
-
             // Ne pas suivre les liens symboliques
             if (is_link($path)) {
                 continue;
@@ -273,15 +272,19 @@ class PrivateStoragePrune
                 // Suppression effective
                 if (@rmdir($path)) {
                     $this->removedDirectories[] = $path;
-                    $this->log('info', 'private.storage.prune.removed', [
+                    $this->log(
+                        'info', 'private.storage.prune.removed', [
                         'path' => $path,
-                    ]);
+                        ]
+                    );
                 } else {
                     $this->errors[] = "Échec de la suppression de: $path";
-                    $this->log('error', 'private.storage.prune.failed', [
+                    $this->log(
+                        'error', 'private.storage.prune.failed', [
                         'path' => $path,
                         'error' => error_get_last()['message'] ?? 'unknown',
-                    ]);
+                        ]
+                    );
                 }
             }
         }
@@ -315,7 +318,8 @@ class PrivateStoragePrune
     private function outputReport(): void
     {
         if ($this->jsonOutput) {
-            echo json_encode([
+            echo json_encode(
+                [
                 'root_path' => $this->rootPath,
                 'dry_run' => $this->dryRun,
                 'apply' => $this->apply,
@@ -325,7 +329,8 @@ class PrivateStoragePrune
                 'removed' => $this->removedDirectories,
                 'errors' => $this->errors,
                 'completed_at' => date('c'),
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ) . "\n";
             return;
         }
 
@@ -404,7 +409,8 @@ class PrivateStoragePrune
 // =============================================================================
 
 try {
-    $options = getopt('', [
+    $options = getopt(
+        '', [
         'root:',
         'dry-run',
         'apply',
@@ -412,7 +418,8 @@ try {
         'json',
         'min-age:',
         'max-depth:',
-    ]);
+        ]
+    );
 
     $rootPath = $options['root'] ?? (defined('ROOT_PATH') ? ROOT_PATH . '/private/storage' : __DIR__ . '/../../private/storage');
     $dryRun = !isset($options['apply']);
@@ -439,7 +446,6 @@ try {
     );
 
     exit($prune->run());
-
 } catch (\Throwable $e) {
     $isJson = isset($options['json']);
     if ($isJson) {

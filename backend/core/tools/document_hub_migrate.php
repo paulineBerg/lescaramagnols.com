@@ -61,6 +61,7 @@ if ($apply) {
     $taxonomyRepository->seedSystemCategories();
 }
 
+/** @var array<string, mixed> $report */
 $report = [
     'mode' => $apply ? 'apply' : 'dry-run',
     'started_at' => date('c'),
@@ -89,6 +90,16 @@ $migrateOne = static function (
     &$report
 ): void {
     $report['totals']['inventoried']++;
+    if (!isset($report['sources'][$source]) || !is_array($report['sources'][$source])) {
+        $report['sources'][$source] = [
+            'inventoried' => 0,
+            'already_migrated' => 0,
+            'would_migrate' => 0,
+            'migrated' => 0,
+            'missing_files' => [],
+            'errors' => [],
+        ];
+    }
     $sourceReport = &$report['sources'][$source];
     $sourceReport['inventoried'] = ($sourceReport['inventoried'] ?? 0) + 1;
 

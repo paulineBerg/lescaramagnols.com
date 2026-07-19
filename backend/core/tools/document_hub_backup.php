@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 /**
  * Script de sauvegarde dédié pour le Document Hub.
  *
@@ -16,6 +14,8 @@ declare(strict_types=1);
  *   --quiet, -q     Mode silencieux
  *   --help, -h      Affiche cette aide
  */
+
+declare(strict_types=1);
 
 require_once __DIR__ . '/../bootstrap.php';
 
