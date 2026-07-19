@@ -174,12 +174,12 @@ Objectif : maintenir le niveau atteint ; pas de chantier ponctuel.
 
 Checklist recurrente (mensuelle ou a chaque deploiement) :
 
-- [ ] `composer check-security-headers` sur la prod.
-- [ ] `composer check-env -- --strict-prod-security` sur la prod.
-- [ ] Revue de `security.log` et des alertes (`composer check-log-alerts`).
-- [ ] `composer audit` (backend) et `npm audit` (frontend) ; traiter les vulnerabilites hautes/critiques.
-- [ ] Verifier la rotation et la restaurabilite des sauvegardes (`composer backup-production`, runbook de restauration).
-- [ ] Verifier l'expiration des certificats et le bon fonctionnement du challenge ACME.
+- [x] `composer check-security-headers` sur la prod. — 2026-07-19 : OK, GET HTTP local vers `https://www.lescaramagnols.com`, statut 200 et headers requis presents.
+- [ ] `composer check-env -- --strict-prod-security` sur la prod. — reporte : necessite SSH lecture seule OVH, non autorise explicitement dans ce lot.
+- [ ] Revue de `security.log` et des alertes (`composer check-log-alerts`). — reporte : necessite SSH lecture seule OVH et anonymisation avant archivage.
+- [x] `composer audit` (backend) et `npm audit` (frontend) ; traiter les vulnerabilites hautes/critiques. — 2026-07-19 : backend 0 advisory ; frontend 11 vulnerabilites toutes devDependencies, a traiter par mise a jour outillage dans une tache dediee.
+- [ ] Verifier la rotation et la restaurabilite des sauvegardes (`composer backup-production`, runbook de restauration). — reporte : necessite SSH lecture seule OVH ; la restaurabilite reelle exige un test de restauration dedie.
+- [ ] Verifier l'expiration des certificats et le bon fonctionnement du challenge ACME. — 2026-07-19 : certificat Let's Encrypt servi valide jusqu'au 2026-10-02 ; challenge ACME non verifiable depuis le depot.
 
 ## Regles transverses d'execution
 

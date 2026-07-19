@@ -2819,59 +2819,6 @@ final class PrivatePortalController
         ]);
     }
 
-    private function renderRentalDashboard(int $userId): Response
-    {
-        $propertyIds = $this->authorizedPropertyIds($userId);
-        $properties = $propertyIds === []
-            ? []
-            : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
-        $units = $propertyIds === []
-            ? []
-            : $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
-        $tenants = $this->rentalLifecycleRepository()->listTenants($propertyIds, self::MAX_RENTAL_LIST);
-        $leases = $this->rentalLifecycleRepository()->listLeases($propertyIds, self::MAX_RENTAL_LIST);
-        $year = (int) date('Y');
-        $month = (int) date('n');
-        $dashboardStats = $this->rentalDashboardService()->build($year, $month, $propertyIds);
-        $documents = $this->rentalLifecycleRepository()->listDocuments($propertyIds, self::MAX_RENTAL_LIST);
-        $agencyDocuments = $this->agencyImportRepository()->listRecentDocumentsForUser($userId, self::MAX_RENTAL_LIST);
-
-        $pendingAgencyDocuments = 0;
-        foreach ($agencyDocuments as $document) {
-            $status = is_array($document) && is_string($document['reviewStatus'] ?? null)
-                ? (string) $document['reviewStatus']
-                : '';
-            if (in_array($status, ['pending', 'to_review', 'new'], true)) {
-                ++$pendingAgencyDocuments;
-            }
-        }
-
-        return $this->render('modules/real-estate-rental/dashboard', array_merge(
-            $this->rentalBaseViewModel('Tableau de bord locatif', '', ''),
-            [
-                'rentalCurrentSection' => 'dashboard',
-                'rentalDashboardStats' => array_merge($dashboardStats, [
-                    'year' => $year,
-                    'month' => $month,
-                    'propertyCount' => count($properties),
-                    'unitCount' => count($units),
-                    'tenantCount' => count($tenants),
-                    'activeLeaseCount' => count(array_filter(
-                        $leases,
-                        static fn (array $lease): bool => in_array((string) ($lease['status'] ?? ''), ['draft', 'validated'], true)
-                    )),
-                    'documentCount' => count($documents),
-                    'agencyDocumentCount' => count($agencyDocuments),
-                    'pendingAgencyDocumentCount' => $pendingAgencyDocuments,
-                    'taxSummaryUrl' => private_portal_url('tax_dashboard'),
-                ]),
-                'rentalProperties' => $this->objectsToArrays($properties),
-                'rentalRecentDocuments' => array_slice($documents, 0, 8),
-                'agencyImportDocuments' => array_slice($agencyDocuments, 0, 8),
-            ]
-        ));
-    }
-
     private function renderRentalProperties(int $userId, string $notice = '', string $error = ''): Response
     {
         $propertyIds = $this->authorizedPropertyIds($userId);
@@ -2889,24 +2836,6 @@ final class PrivatePortalController
                 'rentalLessors' => $lessors,
             ]
         ));
-    }
-
-    /**
-     * @param array<string, mixed> $body
-     * @return array<string, mixed>
-     */
-    private function rentalUnitDetailsFromBody(array $body): array
-    {
-        return [
-            'tax_identifier' => is_string($body['tax_identifier'] ?? null) ? (string) $body['tax_identifier'] : null,
-            'room_count' => $body['room_count'] ?? null,
-            'designation' => is_string($body['designation'] ?? null) ? (string) $body['designation'] : null,
-            'other_details' => is_string($body['other_details'] ?? null) ? (string) $body['other_details'] : null,
-            'equipment_elements' => is_string($body['equipment_elements'] ?? null) ? (string) $body['equipment_elements'] : null,
-            'heating_production_mode' => is_string($body['heating_production_mode'] ?? null) ? (string) $body['heating_production_mode'] : null,
-            'hot_water_production_mode' => is_string($body['hot_water_production_mode'] ?? null) ? (string) $body['hot_water_production_mode'] : null,
-            'sanitation' => is_string($body['sanitation'] ?? null) ? (string) $body['sanitation'] : null,
-        ];
     }
 
     /**
@@ -2940,30 +2869,6 @@ final class PrivatePortalController
         }
 
         return is_string($body['full_name'] ?? null) ? (string) $body['full_name'] : '';
-    }
-
-    /**
-     * @param array<int, object> $properties
-     * @param array<int, object> $units
-     */
-    private function renderRentalUnits(
-        int $userId,
-        array $properties,
-        array $units,
-        string $notice = '',
-        string $error = ''
-    ): Response {
-        unset($userId);
-
-        return $this->render('modules/real-estate-rental/units', array_merge(
-            $this->rentalBaseViewModel('Biens locatifs', $notice, $error),
-            [
-                'rentalCurrentSection' => 'personal',
-                'rentalCurrentSubsection' => 'units',
-                'rentalProperties' => $this->objectsToArrays($properties),
-                'rentalUnits' => $this->objectsToArrays($units),
-            ]
-        ));
     }
 
     /**
@@ -3270,11 +3175,6 @@ final class PrivatePortalController
             ]
         ));
     }
-
-    /**
-     * @param array<string, mixed> $summary
-     */
-    /**
 
     private function renderTaxYear(int $userId, int $year, string $notice = '', string $error = ''): Response
     {
@@ -4287,17 +4187,6 @@ final class PrivatePortalController
             && is_numeric($lease['rentalUnitId'] ?? null)
             && (int) $lease['rentalPropertyId'] === $propertyId
             && (int) $lease['rentalUnitId'] === $unitId;
-    }
-
-    private function yearFromRequest(Request $request): int
-    {
-        $query = $request->query();
-        $year = is_numeric($query['year'] ?? null) ? (int) $query['year'] : (int) date('Y');
-        if ($year < 2000 || $year > 2100) {
-            return (int) date('Y');
-        }
-
-        return $year;
     }
 
     private function rentalAgencyReviewUrl(int $documentId = 0, string $notice = '', string $error = ''): string

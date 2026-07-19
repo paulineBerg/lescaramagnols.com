@@ -1564,7 +1564,7 @@ final class RealEstateRentalController
                 (string) ($body['ownership_mode'] ?? ''),
                 $statusValue !== '' ? $statusValue : 'draft',
                 is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
-                $rentalLessorId > 0 ? $rentalLessorId : null
+                $rentalLessorId
             );
             if (!($created instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalProperty)) {
                 return $this->renderRentalProperties($userId, '', 'rental_write_failed');
