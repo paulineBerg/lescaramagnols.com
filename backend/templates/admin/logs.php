@@ -190,6 +190,49 @@ $extractContextDetails = static function (array $context) use ($priorityContextK
 
     return $details;
 };
+$buildLogDetailPayload = static function (array $entry, array $contextDetails, string $createdAtLabel) use ($levelLabels): array {
+    $level = (string) ($entry['level'] ?? '');
+    $metadata = [];
+    foreach (
+        [
+            'stream' => 'Stream',
+            'application' => 'Application',
+            'module' => 'Module',
+            'requestId' => 'Request ID',
+            'correlationId' => 'Correlation ID',
+            'errorFingerprint' => 'Fingerprint',
+        ] as $key => $label
+    ) {
+        $value = trim((string) ($entry[$key] ?? ''));
+        if ($value === '') {
+            continue;
+        }
+
+        $metadata[] = [
+            'label' => $label,
+            'value' => $value,
+        ];
+    }
+
+    return [
+        'id' => (int) ($entry['id'] ?? 0),
+        'createdAt' => $createdAtLabel,
+        'channel' => strtoupper((string) ($entry['channel'] ?? '')),
+        'level' => $levelLabels[$level] ?? $level,
+        'event' => (string) ($entry['event'] ?? ''),
+        'metadata' => $metadata,
+        'contextDetails' => $contextDetails,
+        'contextJson' => (string) ($entry['contextJson'] ?? ''),
+    ];
+};
+$encodeLogDetailPayload = static function (array $payload) use ($escape): string {
+    $encoded = json_encode(
+        $payload,
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    );
+
+    return $escape(is_string($encoded) ? $encoded : '{}');
+};
 $channelCounts = [
     'security' => 0,
     'content' => 0,
@@ -368,95 +411,97 @@ foreach ($entries as $entry) {
   <?php if ($entries === []): ?>
   <p class="notice-muted"><?php echo $escape($translate('TXT_ADMIN_LOGS_NO_RESULTS', 'Aucune entrée ne correspond aux filtres courants.')); ?></p>
   <?php else: ?>
-  <div class="table-shell">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th class="admin-table-checkbox-cell">
-            <input id="logs-select-all-head" type="checkbox" data-log-select-all aria-label="<?php echo $escape($translate('TXT_ADMIN_LOGS_SELECT_VISIBLE_ARIA', 'Sélectionner toutes les lignes visibles')); ?>" />
-          </th>
-          <th><?php echo $escape($translate('TXT_ADMIN_COMMON_DATE', 'Date')); ?></th>
-          <th><?php echo $escape($translate('TXT_ADMIN_LOGS_CHANNEL_LABEL', 'Canal')); ?></th>
-          <th><?php echo $escape($translate('TXT_ADMIN_LOGS_LEVEL_LABEL', 'Niveau')); ?></th>
-          <th><?php echo $escape($translate('TXT_ADMIN_LOGS_EVENT_LABEL', 'Événement')); ?></th>
-          <th><?php echo $escape($translate('TXT_ADMIN_LOGS_CONTEXT_LABEL', 'Contexte')); ?></th>
-          <th><?php echo $escape($translate('TXT_ADMIN_COMMON_ACTION', 'Action')); ?></th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($entries as $entry): ?>
-        <?php
-        $context = is_array($entry['context'] ?? null) ? $entry['context'] : [];
-        $contextDetails = $extractContextDetails($context);
-        $createdAt = (string) ($entry['createdAt'] ?? '');
-        $timestamp = $createdAt !== '' ? strtotime($createdAt) : false;
-        $createdAtLabel = is_int($timestamp) ? date('d/m/Y H:i:s', $timestamp) : '—';
-        $entryId = (int) ($entry['id'] ?? 0);
-        $level = strtolower(trim((string) ($entry['level'] ?? '')));
-        ?>
-        <tr data-log-row>
-          <td class="admin-table-checkbox-cell">
-            <input
-              type="checkbox"
-              name="log_ids[]"
-              value="<?php echo $entryId; ?>"
-              form="<?php echo $escape($bulkSelectionFormId); ?>"
-              data-log-select-row
-              aria-label="<?php echo $escape($translateFormat('TXT_ADMIN_LOGS_SELECT_ENTRY_ARIA', 'Sélectionner l’entrée %d', $entryId)); ?>"
-            />
-          </td>
-          <td><time datetime="<?php echo $escape($createdAt); ?>"><?php echo $escape($createdAtLabel); ?></time></td>
-          <td><span class="tag"><?php echo strtoupper($escape((string) ($entry['channel'] ?? ''))); ?></span></td>
-          <td>
-            <span class="log-level-pill log-level-pill--<?php echo $escape($level !== '' ? $level : 'info'); ?>">
-              <?php echo $escape($levelLabels[(string) ($entry['level'] ?? '')] ?? (string) ($entry['level'] ?? '')); ?>
-            </span>
-          </td>
-          <td>
-            <div class="log-event-cell">
-              <code><?php echo $escape((string) ($entry['event'] ?? '')); ?></code>
-              <span class="notice-muted">
-                <?php echo $escape($translateFormat(
-                    'TXT_ADMIN_LOGS_CHANNEL_LEVEL_DETAIL',
-                    'Canal %s · niveau %s',
-                    strtoupper((string) ($entry['channel'] ?? '')),
-                    $levelLabels[(string) ($entry['level'] ?? '')] ?? (string) ($entry['level'] ?? '')
-                )); ?>
-              </span>
-            </div>
-          </td>
-          <td>
-            <?php if ($context === []): ?>
-            <span class="notice-muted"><?php echo $escape($translate('TXT_ADMIN_LOGS_NO_CONTEXT', 'Sans contexte')); ?></span>
-            <?php else: ?>
-            <div class="log-detail-list">
-              <?php foreach (array_slice($contextDetails, 0, 6) as $detail): ?>
-              <div class="log-detail-item">
-                <span class="log-detail-item__label"><?php echo $escape((string) ($detail['label'] ?? '')); ?></span>
-                <span class="log-detail-item__value"><?php echo $escape((string) ($detail['value'] ?? '')); ?></span>
-              </div>
-              <?php endforeach; ?>
-            </div>
-            <details class="log-context-details">
-              <summary><?php echo $escape($formatContextSummary($context)); ?> · <?php echo $escape($translate('TXT_ADMIN_LOGS_RAW_JSON', 'JSON brut')); ?></summary>
-              <pre class="log-context"><?php echo $escape((string) ($entry['contextJson'] ?? '')); ?></pre>
-            </details>
-            <?php endif; ?>
-          </td>
-          <td>
-            <form method="post" action="<?php echo $escape((string) ($adminLogsUrl ?? admin_url('logs'))); ?>">
-              <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
-              <input type="hidden" name="log_action" value="delete_selected" />
-              <input type="hidden" name="log_ids[]" value="<?php echo $entryId; ?>" />
-              <input type="hidden" name="page" value="<?php echo $escape((string) $page); ?>" />
-              <?php $renderFilterFields($filters); ?>
-              <button class="button-danger button-small" type="submit"><?php echo $escape($translate('TXT_ADMIN_COMMON_DELETE', 'Supprimer')); ?></button>
-            </form>
-          </td>
-        </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+  <div class="admin-logs-list">
+    <div class="admin-logs-list-head">
+      <label class="checkbox-field" for="logs-select-all-head">
+        <input id="logs-select-all-head" type="checkbox" data-log-select-all aria-label="<?php echo $escape($translate('TXT_ADMIN_LOGS_SELECT_VISIBLE_ARIA', 'Sélectionner toutes les lignes visibles')); ?>" />
+        <span><?php echo $escape($translate('TXT_ADMIN_LOGS_VISIBLE_ENTRIES', 'Entrées visibles')); ?></span>
+      </label>
+      <span><?php echo $escape($translate('TXT_ADMIN_LOGS_DOUBLE_CLICK_HINT', 'Double-clic sur une entrée pour ouvrir le log complet.')); ?></span>
+    </div>
+
+    <?php foreach ($entries as $entry): ?>
+    <?php
+    $context = is_array($entry['context'] ?? null) ? $entry['context'] : [];
+    $contextDetails = $extractContextDetails($context);
+    $createdAt = (string) ($entry['createdAt'] ?? '');
+    $timestamp = $createdAt !== '' ? strtotime($createdAt) : false;
+    $createdAtLabel = is_int($timestamp) ? date('d/m/Y H:i:s', $timestamp) : '—';
+    $entryId = (int) ($entry['id'] ?? 0);
+    $level = strtolower(trim((string) ($entry['level'] ?? '')));
+    $levelLabel = $levelLabels[(string) ($entry['level'] ?? '')] ?? (string) ($entry['level'] ?? '');
+    $payload = $buildLogDetailPayload($entry, $contextDetails, $createdAtLabel);
+    $metadata = array_filter(
+        [
+            'stream' => trim((string) ($entry['stream'] ?? '')),
+            'application' => trim((string) ($entry['application'] ?? '')),
+            'module' => trim((string) ($entry['module'] ?? '')),
+            'request' => trim((string) ($entry['requestId'] ?? '')),
+            'correlation' => trim((string) ($entry['correlationId'] ?? '')),
+            'fingerprint' => trim((string) ($entry['errorFingerprint'] ?? '')),
+        ],
+        static fn (string $value): bool => $value !== ''
+    );
+    ?>
+    <article class="admin-log-entry" data-log-row data-log-detail="<?php echo $encodeLogDetailPayload($payload); ?>" tabindex="0">
+      <div class="admin-log-entry__select">
+        <input
+          type="checkbox"
+          name="log_ids[]"
+          value="<?php echo $entryId; ?>"
+          form="<?php echo $escape($bulkSelectionFormId); ?>"
+          data-log-select-row
+          aria-label="<?php echo $escape($translateFormat('TXT_ADMIN_LOGS_SELECT_ENTRY_ARIA', 'Sélectionner l’entrée %d', $entryId)); ?>"
+        />
+      </div>
+
+      <div class="admin-log-entry__main">
+        <div class="admin-log-entry__header">
+          <div class="admin-log-entry__title">
+            <code><?php echo $escape((string) ($entry['event'] ?? '')); ?></code>
+            <time datetime="<?php echo $escape($createdAt); ?>"><?php echo $escape($createdAtLabel); ?></time>
+          </div>
+          <div class="admin-log-entry__badges">
+            <span class="tag"><?php echo strtoupper($escape((string) ($entry['channel'] ?? ''))); ?></span>
+            <span class="log-level-pill log-level-pill--<?php echo $escape($level !== '' ? $level : 'info'); ?>"><?php echo $escape($levelLabel); ?></span>
+          </div>
+        </div>
+
+        <?php if ($metadata !== []): ?>
+        <div class="admin-log-entry__metadata" aria-label="<?php echo $escape($translate('TXT_ADMIN_LOGS_TECHNICAL_DETAILS', 'Détails techniques')); ?>">
+          <?php foreach (array_slice($metadata, 0, 4, true) as $metadataKey => $metadataValue): ?>
+          <span><strong><?php echo $escape((string) $metadataKey); ?></strong> <?php echo $escape((string) $metadataValue); ?></span>
+          <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($contextDetails === []): ?>
+        <p class="notice-muted admin-log-entry__empty-context"><?php echo $escape($translate('TXT_ADMIN_LOGS_NO_CONTEXT', 'Sans contexte')); ?></p>
+        <?php else: ?>
+        <dl class="admin-log-entry__details">
+          <?php foreach (array_slice($contextDetails, 0, 6) as $detail): ?>
+          <div>
+            <dt><?php echo $escape((string) ($detail['label'] ?? '')); ?></dt>
+            <dd><?php echo $escape((string) ($detail['value'] ?? '')); ?></dd>
+          </div>
+          <?php endforeach; ?>
+        </dl>
+        <?php endif; ?>
+      </div>
+
+      <div class="admin-log-entry__actions">
+        <button class="button-small button-muted" type="button" data-log-open><?php echo $escape($translate('TXT_ADMIN_LOGS_OPEN_FULL_LOG', 'Détail')); ?></button>
+        <form method="post" action="<?php echo $escape((string) ($adminLogsUrl ?? admin_url('logs'))); ?>">
+          <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
+          <input type="hidden" name="log_action" value="delete_selected" />
+          <input type="hidden" name="log_ids[]" value="<?php echo $entryId; ?>" />
+          <input type="hidden" name="page" value="<?php echo $escape((string) $page); ?>" />
+          <?php $renderFilterFields($filters); ?>
+          <button class="button-danger button-small" type="submit"><?php echo $escape($translate('TXT_ADMIN_COMMON_DELETE', 'Supprimer')); ?></button>
+        </form>
+      </div>
+    </article>
+    <?php endforeach; ?>
   </div>
   <?php endif; ?>
 
@@ -535,10 +580,154 @@ foreach ($entries as $entry) {
   <?php endif; ?>
 </section>
 
+<dialog class="admin-log-dialog" data-log-dialog aria-labelledby="admin-log-dialog-title">
+  <div class="admin-log-dialog__header">
+    <div>
+      <p class="tag" data-log-dialog-channel></p>
+      <h2 id="admin-log-dialog-title" data-log-dialog-event><?php echo $escape($translate('TXT_ADMIN_LOGS_FULL_LOG_TITLE', 'Log complet')); ?></h2>
+      <p class="notice-muted" data-log-dialog-meta></p>
+    </div>
+    <button class="button-small button-muted" type="button" data-log-dialog-close aria-label="<?php echo $escape($translate('TXT_ADMIN_COMMON_CLOSE', 'Fermer')); ?>">×</button>
+  </div>
+  <div class="admin-log-dialog__body">
+    <section>
+      <h3><?php echo $escape($translate('TXT_ADMIN_LOGS_TECHNICAL_DETAILS', 'Détails techniques')); ?></h3>
+      <dl class="admin-log-dialog__list" data-log-dialog-metadata></dl>
+    </section>
+    <section>
+      <h3><?php echo $escape($translate('TXT_ADMIN_LOGS_CONTEXT_LABEL', 'Contexte')); ?></h3>
+      <dl class="admin-log-dialog__list" data-log-dialog-context></dl>
+      <pre class="log-context admin-log-dialog__json" data-log-dialog-json></pre>
+    </section>
+  </div>
+</dialog>
+
 <?php $cspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
 <script<?php echo $cspNonce !== '' ? ' nonce="' . $escape($cspNonce) . '"' : ''; ?>>
   (() => {
     const selectedCountTemplate = <?php echo json_encode($translate('TXT_ADMIN_LOGS_SELECTED_COUNT', '%d sélectionnée(s)'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const fullLogTitle = <?php echo json_encode($translate('TXT_ADMIN_LOGS_FULL_LOG_TITLE', 'Log complet'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const emptyContextLabel = <?php echo json_encode($translate('TXT_ADMIN_LOGS_NO_CONTEXT', 'Sans contexte'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+    const dialog = document.querySelector('[data-log-dialog]');
+    const dialogEvent = document.querySelector('[data-log-dialog-event]');
+    const dialogChannel = document.querySelector('[data-log-dialog-channel]');
+    const dialogMeta = document.querySelector('[data-log-dialog-meta]');
+    const dialogMetadata = document.querySelector('[data-log-dialog-metadata]');
+    const dialogContext = document.querySelector('[data-log-dialog-context]');
+    const dialogJson = document.querySelector('[data-log-dialog-json]');
+    const dialogCloseButton = document.querySelector('[data-log-dialog-close]');
+
+    const appendDetails = (target, details, emptyLabel) => {
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      target.textContent = '';
+
+      if (!Array.isArray(details) || details.length === 0) {
+        const wrapper = document.createElement('div');
+        const term = document.createElement('dt');
+        const definition = document.createElement('dd');
+        term.textContent = emptyLabel;
+        definition.textContent = '';
+        wrapper.append(term, definition);
+        target.append(wrapper);
+        return;
+      }
+
+      details.forEach((detail) => {
+        const wrapper = document.createElement('div');
+        const term = document.createElement('dt');
+        const definition = document.createElement('dd');
+        term.textContent = typeof detail.label === 'string' ? detail.label : '';
+        definition.textContent = typeof detail.value === 'string' ? detail.value : '';
+        wrapper.append(term, definition);
+        target.append(wrapper);
+      });
+    };
+
+    const openLogDialog = (entry) => {
+      if (!(dialog instanceof HTMLDialogElement)) {
+        return;
+      }
+
+      let payload = {};
+      try {
+        payload = JSON.parse(entry.dataset.logDetail || '{}');
+      } catch (error) {
+        payload = {};
+      }
+
+      if (dialogEvent instanceof HTMLElement) {
+        dialogEvent.textContent = typeof payload.event === 'string' && payload.event !== '' ? payload.event : fullLogTitle;
+      }
+
+      if (dialogChannel instanceof HTMLElement) {
+        const channel = typeof payload.channel === 'string' ? payload.channel : '';
+        const level = typeof payload.level === 'string' ? payload.level : '';
+        dialogChannel.textContent = [channel, level].filter(Boolean).join(' · ');
+      }
+
+      if (dialogMeta instanceof HTMLElement) {
+        const id = Number.isFinite(Number(payload.id)) && Number(payload.id) > 0 ? `#${payload.id}` : '';
+        const createdAt = typeof payload.createdAt === 'string' ? payload.createdAt : '';
+        dialogMeta.textContent = [id, createdAt].filter(Boolean).join(' · ');
+      }
+
+      appendDetails(dialogMetadata, payload.metadata, emptyContextLabel);
+      appendDetails(dialogContext, payload.contextDetails, emptyContextLabel);
+
+      if (dialogJson instanceof HTMLElement) {
+        dialogJson.textContent = typeof payload.contextJson === 'string' && payload.contextJson !== ''
+          ? payload.contextJson
+          : '{}';
+      }
+
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+    };
+
+    document.querySelectorAll('[data-log-detail]').forEach((entry) => {
+      if (!(entry instanceof HTMLElement)) {
+        return;
+      }
+
+      entry.addEventListener('dblclick', (event) => {
+        if (event.target instanceof Element && event.target.closest('button, input, a, form')) {
+          return;
+        }
+
+        openLogDialog(entry);
+      });
+
+      entry.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') {
+          return;
+        }
+
+        if (event.target instanceof Element && event.target.closest('button, input, a, form')) {
+          return;
+        }
+
+        openLogDialog(entry);
+      });
+
+      const openButton = entry.querySelector('[data-log-open]');
+      if (openButton instanceof HTMLButtonElement) {
+        openButton.addEventListener('click', () => openLogDialog(entry));
+      }
+    });
+
+    if (dialogCloseButton instanceof HTMLButtonElement && dialog instanceof HTMLDialogElement) {
+      dialogCloseButton.addEventListener('click', () => dialog.close());
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) {
+          dialog.close();
+        }
+      });
+    }
+
     const root = document.querySelector('[data-log-selection-root]');
     if (!(root instanceof HTMLFormElement)) {
       return;

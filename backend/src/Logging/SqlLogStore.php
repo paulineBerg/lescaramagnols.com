@@ -102,18 +102,28 @@ final class SqlLogStore
     {
         try {
             $this->database->ensureReady();
-            $query = $this->buildFilterQuery($filters);
+            $columns = $this->tableColumns();
+            $query = $this->buildFilterQuery($filters, $columns);
             $normalizedLimit = min(500, max(1, $limit));
             $normalizedOffset = max(0, $offset);
+            $orderColumn = in_array('occurred_at', $columns, true) ? 'occurred_at' : 'created_at';
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT `id`, `channel`, `level`, `event`, `context_json`, `created_at`
-                        , `stream`, `application`, `module`, `request_id`, `correlation_id`, `error_fingerprint`
+                    'SELECT `id`, `channel`, `level`, `event`, `context_json`, `created_at`,
+                        %s AS `stream`, %s AS `application`, %s AS `module`,
+                        %s AS `request_id`, %s AS `correlation_id`, %s AS `error_fingerprint`
                      FROM `%s`%s
-                     ORDER BY `occurred_at` DESC, `id` DESC
+                     ORDER BY `%s` DESC, `id` DESC
                      LIMIT %d OFFSET %d',
+                    $this->selectColumnOrEmpty($columns, 'stream'),
+                    $this->selectColumnOrEmpty($columns, 'application'),
+                    $this->selectColumnOrEmpty($columns, 'module'),
+                    $this->selectColumnOrEmpty($columns, 'request_id'),
+                    $this->selectColumnOrEmpty($columns, 'correlation_id'),
+                    $this->selectColumnOrEmpty($columns, 'error_fingerprint'),
                     $this->database->table('log_entries'),
                     $query['where'],
+                    $orderColumn,
                     $normalizedLimit,
                     $normalizedOffset
                 )
@@ -156,7 +166,7 @@ final class SqlLogStore
     {
         try {
             $this->database->ensureReady();
-            $query = $this->buildFilterQuery($filters);
+            $query = $this->buildFilterQuery($filters, $this->tableColumns());
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'SELECT COUNT(*) FROM `%s`%s',
@@ -232,7 +242,7 @@ final class SqlLogStore
     {
         try {
             $this->database->ensureReady();
-            $query = $this->buildFilterQuery($filters);
+            $query = $this->buildFilterQuery($filters, $this->tableColumns());
             if ($query['where'] === '') {
                 return 0;
             }
@@ -389,9 +399,10 @@ final class SqlLogStore
 
     /**
      * @param array<string, mixed> $filters
+     * @param array<int, string> $columns
      * @return array{where: string, params: array<string, mixed>}
      */
-    private function buildFilterQuery(array $filters): array
+    private function buildFilterQuery(array $filters, array $columns): array
     {
         $where = [];
         $params = [];
@@ -410,8 +421,12 @@ final class SqlLogStore
 
         $stream = $this->sanitizeChannel((string) ($filters['stream'] ?? ''));
         if ($stream !== '') {
-            $where[] = '`stream` = :stream';
-            $params['stream'] = $stream;
+            if (in_array('stream', $columns, true)) {
+                $where[] = '`stream` = :stream';
+                $params['stream'] = $stream;
+            } else {
+                $where[] = '0 = 1';
+            }
         }
 
         foreach (['application', 'module', 'request_id', 'correlation_id', 'error_fingerprint'] as $field) {
@@ -420,8 +435,12 @@ final class SqlLogStore
                 continue;
             }
 
-            $where[] = sprintf('`%s` = :%s', $field, $field);
-            $params[$field] = $value;
+            if (in_array($field, $columns, true)) {
+                $where[] = sprintf('`%s` = :%s', $field, $field);
+                $params[$field] = $value;
+            } else {
+                $where[] = '0 = 1';
+            }
         }
 
         $search = trim((string) ($filters['q'] ?? ''));
@@ -448,6 +467,34 @@ final class SqlLogStore
             'where' => $where === [] ? '' : ' WHERE ' . implode(' AND ', $where),
             'params' => $params,
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function tableColumns(): array
+    {
+        try {
+            $statement = $this->database->pdo()->query(
+                sprintf('SHOW COLUMNS FROM `%s`', $this->database->table('log_entries'))
+            );
+            $columns = $statement === false ? [] : $statement->fetchAll(PDO::FETCH_COLUMN);
+            if (!is_array($columns) || $columns === []) {
+                return ['id', 'channel', 'level', 'event', 'context_json', 'created_at'];
+            }
+
+            return array_values(array_map('strval', $columns));
+        } catch (\Throwable) {
+            return ['id', 'channel', 'level', 'event', 'context_json', 'created_at'];
+        }
+    }
+
+    /**
+     * @param array<int, string> $columns
+     */
+    private function selectColumnOrEmpty(array $columns, string $column): string
+    {
+        return in_array($column, $columns, true) ? sprintf('`%s`', $column) : "''";
     }
 
     private function sanitizeChannel(string $value): string

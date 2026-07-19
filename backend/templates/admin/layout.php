@@ -1163,6 +1163,266 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         white-space: normal;
       }
 
+      .log-selection-toolbar,
+      .admin-logs-list-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        margin-bottom: 1rem;
+      }
+
+      .log-selection-toolbar__meta,
+      .admin-log-entry__badges,
+      .admin-log-entry__actions,
+      .admin-log-entry__metadata {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+      }
+
+      .log-selection-toolbar__count {
+        font-weight: 700;
+        color: var(--admin-primary-dark);
+      }
+
+      .admin-logs-list {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .admin-logs-list-head {
+        margin: 0 0 0.25rem;
+        color: var(--admin-muted);
+        font-size: 0.9rem;
+      }
+
+      .admin-log-entry {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 0.85rem;
+        align-items: start;
+        border: 1px solid rgba(19, 41, 75, 0.1);
+        border-radius: 10px;
+        padding: 0.85rem;
+        background: #fff;
+        transition: border 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .admin-log-entry:hover,
+      .admin-log-entry:focus-visible {
+        border-color: rgba(29, 111, 141, 0.35);
+        box-shadow: 0 12px 28px rgba(19, 41, 75, 0.1);
+        outline: none;
+      }
+
+      .admin-log-entry.is-selected {
+        border-color: rgba(29, 111, 141, 0.4);
+        background: rgba(29, 111, 141, 0.06);
+      }
+
+      .admin-log-entry__select {
+        padding-top: 0.18rem;
+      }
+
+      .admin-log-entry__main {
+        display: grid;
+        min-width: 0;
+        gap: 0.55rem;
+      }
+
+      .admin-log-entry__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.8rem;
+        align-items: flex-start;
+      }
+
+      .admin-log-entry__title {
+        display: grid;
+        gap: 0.25rem;
+        min-width: 0;
+      }
+
+      .admin-log-entry__title code,
+      .admin-log-dialog h2 {
+        overflow-wrap: anywhere;
+      }
+
+      .admin-log-entry__title time,
+      .admin-log-entry__metadata,
+      .admin-log-entry__empty-context {
+        color: var(--admin-muted);
+        font-size: 0.88rem;
+      }
+
+      .admin-log-entry__metadata span {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+
+      .admin-log-entry__details,
+      .admin-log-dialog__list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+        gap: 0.45rem 0.8rem;
+        margin: 0;
+      }
+
+      .admin-log-entry__details div,
+      .admin-log-dialog__list div {
+        min-width: 0;
+      }
+
+      .admin-log-entry__details dt,
+      .admin-log-dialog__list dt {
+        color: var(--admin-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .admin-log-entry__details dd,
+      .admin-log-dialog__list dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .admin-log-entry__actions {
+        justify-content: flex-end;
+      }
+
+      .log-level-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.75rem;
+        border-radius: 999px;
+        padding: 0.25rem 0.7rem;
+        background: rgba(19, 41, 75, 0.08);
+        color: var(--admin-primary-dark);
+        font-size: 0.78rem;
+        font-weight: 700;
+      }
+
+      .log-level-pill--warning {
+        background: rgba(180, 112, 0, 0.14);
+        color: #7a4b00;
+      }
+
+      .log-level-pill--error,
+      .log-level-pill--critical,
+      .log-level-pill--alert,
+      .log-level-pill--emergency {
+        background: rgba(161, 26, 42, 0.12);
+        color: var(--admin-danger);
+      }
+
+      .pagination-list {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        list-style: none;
+        margin: 1rem 0 0;
+        padding: 0;
+      }
+
+      .pagination-link,
+      .pagination-item--ellipsis span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2.35rem;
+        min-height: 2.35rem;
+        border-radius: 10px;
+        border: 1px solid rgba(19, 41, 75, 0.12);
+        padding: 0.45rem 0.7rem;
+        text-decoration: none;
+        font-weight: 700;
+      }
+
+      .pagination-link {
+        background: #fff;
+        color: var(--admin-primary-dark);
+      }
+
+      .pagination-link:hover,
+      .pagination-link:focus-visible {
+        border-color: rgba(29, 111, 141, 0.35);
+        box-shadow: 0 8px 18px rgba(19, 41, 75, 0.1);
+        outline: none;
+      }
+
+      .pagination-link--active {
+        background: var(--admin-primary);
+        border-color: var(--admin-primary);
+        color: #fff;
+      }
+
+      .pagination-item--ellipsis span {
+        border-color: transparent;
+        color: var(--admin-muted);
+      }
+
+      .admin-log-dialog {
+        width: min(58rem, calc(100vw - 2rem));
+        max-height: min(42rem, calc(100vh - 2rem));
+        border: 0;
+        border-radius: 12px;
+        padding: 0;
+        color: var(--admin-text);
+        box-shadow: 0 24px 60px rgba(19, 41, 75, 0.28);
+      }
+
+      .admin-log-dialog::backdrop {
+        background: rgba(19, 41, 75, 0.42);
+      }
+
+      .admin-log-dialog__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.1rem;
+        border-bottom: 1px solid var(--admin-border);
+      }
+
+      .admin-log-dialog__header h2 {
+        margin: 0.55rem 0 0.15rem;
+        font-size: 1.15rem;
+        color: var(--admin-primary-dark);
+      }
+
+      .admin-log-dialog__header .tag {
+        margin: 0;
+      }
+
+      .admin-log-dialog__body {
+        display: grid;
+        gap: 1rem;
+        max-height: calc(min(42rem, calc(100vh - 2rem)) - 6.5rem);
+        overflow: auto;
+        padding: 1rem 1.1rem 1.15rem;
+      }
+
+      .admin-log-dialog__body h3 {
+        margin: 0 0 0.6rem;
+        color: var(--admin-primary-dark);
+        font-size: 0.95rem;
+      }
+
+      .log-context,
+      .admin-log-dialog__json {
+        max-width: 100%;
+        overflow: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        border-radius: 10px;
+        background: rgba(19, 41, 75, 0.06);
+        padding: 0.75rem;
+        font-size: 0.84rem;
+      }
+
       .admin-articles-filters-card {
         padding: 1.35rem 1.5rem;
       }
@@ -3338,6 +3598,28 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         .admin-logs-filters-actions .button-link,
         .admin-logs-filters-actions button {
           flex-basis: 100%;
+        }
+
+        .log-selection-toolbar,
+        .admin-logs-list-head,
+        .admin-log-entry__header,
+        .admin-log-entry__actions {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .admin-log-entry {
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .admin-log-entry__actions {
+          grid-column: 1 / -1;
+        }
+
+        .admin-log-entry__actions .button-small,
+        .admin-log-entry__actions form,
+        .admin-log-entry__actions form button {
+          width: 100%;
         }
 
         .admin-articles-filters-grid {

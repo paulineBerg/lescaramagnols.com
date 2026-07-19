@@ -57,6 +57,60 @@ final class SqlLogStoreTest extends TestCase
         $this->assertContains('warning', $store->listLevels());
     }
 
+    public function testListEntriesSupportsLegacyLogTableWithoutStructuredColumns(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $pdo = $database->pdo();
+        $table = $database->table('log_entries');
+
+        foreach (
+            [
+                'occurred_at',
+                'stream',
+                'application',
+                'module',
+                'request_id',
+                'correlation_id',
+                'error_class',
+                'error_fingerprint',
+                'http_status',
+                'duration_ms',
+                'actor_type',
+                'actor_id',
+                'entity_type',
+                'entity_id',
+                'schema_version',
+            ] as $column
+        ) {
+            $pdo->exec(sprintf('ALTER TABLE `%s` DROP COLUMN `%s`', $table, $column));
+        }
+
+        $statement = $pdo->prepare(
+            sprintf(
+                'INSERT INTO `%s` (`channel`, `level`, `event`, `context_json`, `created_at`)
+                 VALUES (:channel, :level, :event, :context_json, :created_at)',
+                $table
+            )
+        );
+        $statement->execute([
+            'channel' => 'security',
+            'level' => 'warning',
+            'event' => 'legacy.security.warning',
+            'context_json' => '{"ip":"127.0.0.1"}',
+            'created_at' => '2026-03-18 10:30:00',
+        ]);
+
+        $store = new SqlLogStore($database);
+        $entries = $store->listEntries(['channel' => 'security', 'level' => 'warning'], 10);
+
+        $this->assertSame(1, $store->countEntries(['channel' => 'security', 'level' => 'warning']));
+        $this->assertCount(1, $entries);
+        $this->assertSame('legacy.security.warning', $entries[0]['event'] ?? null);
+        $this->assertSame('127.0.0.1', $entries[0]['context']['ip'] ?? null);
+        $this->assertSame('', $entries[0]['stream'] ?? null);
+        $this->assertSame('', $entries[0]['requestId'] ?? null);
+    }
+
     public function testDeleteEntriesByIdAndByFilters(): void
     {
         $store = new SqlLogStore($this->editorialSqlDatabase());
