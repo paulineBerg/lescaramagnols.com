@@ -257,10 +257,12 @@ final class RealEstateRentalController
 
     private function handleModuleAccessDenied(string $module): Response
     {
-        $this->logEvent('private.module.access_denied', [
+        $this->logEvent(
+            'private.module.access_denied', [
             'module' => $module,
             'identifier' => AppEventLogger::maskIdentifier((string) $this->auth->currentIdentifier()),
-        ]);
+            ]
+        );
 
         return $this->redirect(private_portal_url('login'));
     }
@@ -274,8 +276,10 @@ final class RealEstateRentalController
     {
         return match ($key) {
             'property_created' => 'Propriété créée.', 'property_updated' => 'Propriété mise à jour.',
-            'property_archived' => 'Propriété archivée.', 'unit_created' => 'Bien locatif créé.',
+            'property_archived' => 'Propriété archivée.', 'property_deleted' => 'Propriété supprimée.',
+            'unit_created' => 'Bien locatif créé.',
             'unit_updated' => 'Bien locatif mis à jour.', 'unit_archived' => 'Bien locatif archivé.',
+            'unit_deleted' => 'Bien locatif supprimé.',
             'member_created' => 'Membre locatif ajouté.', 'member_updated' => 'Accès membre mis à jour.',
             'member_deleted' => 'Accès membre supprimé.', 'tenant_created' => 'Locataire créé.',
             'tenant_updated' => 'Locataire mis à jour.', 'tenant_deleted' => 'Locataire supprimé.',
@@ -329,18 +333,44 @@ final class RealEstateRentalController
             'rental_upload_failed' => "L'envoi du document a échoué.",
             'rental_purge_confirmation_required' => 'Saisissez SUPPRIMER pour confirmer.',
             'rental_delete_failed' => 'Suppression impossible.',
-            'hub_forbidden_extension' => 'Format de fichier non autorisé.',
-            'hub_mime_mismatch' => "Le contenu du fichier ne correspond pas à son extension.",
-            'hub_invalid_signature' => 'Le fichier est corrompu ou son format est invalide.',
-            'hub_macro_detected' => 'Les documents contenant des macros sont refusés.',
-            'hub_encrypted_document' => 'Les fichiers protégés par mot de passe ou chiffrés sont refusés.',
-            'hub_file_too_large' => 'Fichier trop volumineux.',
-            'hub_batch_too_large' => 'Le lot dépasse la taille maximale autorisée.',
-            'hub_image_too_many_pixels' => 'Image trop grande (nombre de pixels).',
-            'hub_infected' => 'Fichier bloqué par le contrôle antivirus.',
-            'hub_entity_forbidden' => "Vous n'avez pas accès à cet élément.",
-            'hub_entity_not_found' => 'Élément métier introuvable.',
-            default => str_starts_with($key, 'hub_') ? "L'import a échoué (" . substr($key, 4) . ').' : '',
+            'lessor_forbidden' => "Ce bailleur est introuvable ou vous n'y avez pas accès.",
+            'lessor_has_properties' => "Ce bailleur est rattaché à au moins une propriété active. Détachez-le de ces propriétés (ou supprimez ces propriétés) avant de le supprimer.",
+            'lessor_delete_failed' => "La suppression du bailleur a échoué. Rechargez la page puis réessayez.",
+            'property_lessor_required' => "Sélectionnez un bailleur avant de créer la propriété : chaque propriété doit être rattachée à un bailleur.",
+            'property_has_dependents' => "Cette propriété est encore rattachée à au moins un bien locatif, un locataire, un bail ou un document. Supprimez d'abord ces éléments avant de supprimer la propriété.",
+            'unit_has_dependents' => "Ce bien locatif est encore rattaché à au moins un locataire, un bail ou un document. Supprimez d'abord ces éléments avant de supprimer le bien locatif.",
+            'tenant_has_dependents' => "Ce locataire est encore rattaché à au moins un bail. Supprimez d'abord le ou les baux de ce locataire avant de le supprimer.",
+            'lease_has_dependents' => "Ce bail est encore rattaché à au moins un loyer, un paiement ou un document. Supprimez d'abord ces éléments avant de supprimer le bail.",
+            'hub_forbidden_extension' => "Ce type de fichier n'est pas autorisé. Utilisez un PDF, une image (JPG, PNG, HEIC...) ou un document bureautique courant (Word, Excel, ODT...).",
+            'hub_mime_mismatch' => "Le contenu du fichier ne correspond pas à son extension (fichier renommé ou altéré). Vérifiez le fichier puis réessayez.",
+            'hub_invalid_signature' => 'Le fichier est corrompu ou son format est invalide. Réessayez avec le fichier original.',
+            'hub_macro_detected' => 'Ce document contient des macros et a été refusé pour des raisons de sécurité. Enregistrez-le sans macro puis réessayez.',
+            'hub_encrypted_document' => 'Les fichiers protégés par mot de passe ou chiffrés sont refusés. Retirez la protection puis réessayez.',
+            'hub_file_too_large' => 'Le fichier est trop volumineux. Réduisez sa taille (compression, résolution) puis réessayez.',
+            'hub_batch_too_large' => "L'ensemble des fichiers envoyés dépasse la taille maximale autorisée. Envoyez-les en plusieurs fois.",
+            'hub_image_too_many_pixels' => "Cette image dépasse la définition maximale autorisée. Réduisez sa résolution puis réessayez.",
+            'hub_infected' => 'Le contrôle antivirus a détecté un problème dans ce fichier et son envoi a été bloqué.',
+            'hub_entity_forbidden' => "Vous n'avez pas accès à cet élément du dossier locatif.",
+            'hub_entity_not_found' => "L'élément auquel rattacher ce document est introuvable. Rechargez la page puis réessayez.",
+            'hub_invalid_original_name' => 'Le nom du fichier est invalide. Renommez-le (lettres, chiffres, espaces, tirets) puis réessayez.',
+            'hub_invalid_tmp_file' => "Le fichier envoyé n'a pas pu être lu par le serveur. Réessayez l'envoi.",
+            'hub_empty_file' => 'Le fichier est vide (0 octet). Vérifiez le fichier puis réessayez.',
+            'hub_container_inspection_unavailable' => 'Le serveur ne peut pas vérifier ce type de fichier pour le moment. Réessayez plus tard ou contactez le support.',
+            'hub_unreadable_container' => 'Le fichier semble corrompu et ne peut pas être ouvert. Réessayez avec une autre copie du fichier.',
+            'hub_invalid_container_structure' => "Le fichier ne respecte pas le format attendu et a été refusé. Réessayez avec le fichier d'origine, sans le modifier.",
+            'hub_unreadable_image' => "L'image n'a pas pu être lue ou est endommagée. Vérifiez le fichier puis réessayez.",
+            'hub_binary_content_in_text' => 'Le fichier texte contient des données inattendues et a été refusé.',
+            'hub_upload_error' => "L'envoi du fichier a été interrompu (connexion coupée ou fichier trop volumineux). Vérifiez votre connexion puis réessayez.",
+            'hub_quarantine_failed' => "Le serveur n'a pas pu réceptionner votre fichier (espace de stockage temporairement indisponible). Réessayez dans quelques instants ; si le problème persiste, contactez le support.",
+            'hub_hash_failed' => 'Une erreur technique a empêché la vérification du fichier. Réessayez.',
+            'hub_storage_failed' => "Le fichier n'a pas pu être enregistré définitivement sur le serveur. Réessayez dans quelques instants.",
+            'hub_database_failed' => "Une erreur technique a empêché l'enregistrement du document. Réessayez ; si le problème persiste, contactez le support.",
+            'hub_missing_context' => "Impossible de déterminer à quel élément rattacher ce document. Rechargez la page puis réessayez.",
+            'hub_invalid_context' => 'Le rattachement du document est invalide. Rechargez la page puis réessayez.',
+            'hub_unknown_entity_type' => "Le type d'élément associé à ce document est inconnu. Rechargez la page puis réessayez.",
+            'hub_unknown_profile' => "Cet emplacement d'import de document n'est pas reconnu. Rechargez la page puis réessayez.",
+            'hub_multiple_not_allowed' => 'Un seul fichier à la fois est autorisé ici. Envoyez vos fichiers un par un.',
+            default => str_starts_with($key, 'hub_') ? "L'import du document a échoué pour une raison technique inattendue. Réessayez ; si le problème persiste, contactez le support." : '',
         };
     }
 
@@ -373,32 +403,72 @@ final class RealEstateRentalController
 
     private function objectsToArrays(array $objects): array
     {
-        return array_values(array_map(
-            static fn ($object): array => is_object($object) && method_exists($object, 'toArray')
+        return array_values(
+            array_map(
+                static fn ($object): array => is_object($object) && method_exists($object, 'toArray')
                 ? $object->toArray()
                 : (is_array($object) ? $object : []),
-            $objects
-        ));
+                $objects
+            )
+        );
     }
 
-    private function rentalPropertyRepository(): RentalPropertyRepository { return $this->rentalPropertyRepository; }
-    private function rentalPropertyMemberRepository(): RentalPropertyMemberRepository { return $this->rentalPropertyMemberRepository; }
-    private function rentalUnitRepository(): RentalUnitRepository { return $this->rentalUnitRepository; }
-    private function rentalLifecycleRepository(): RentalLifecycleRepository { return $this->rentalLifecycleRepository; }
-    private function rentalLessorRepository(): RentalLessorRepository { return $this->rentalLessorRepository; }
-    private function rentalAnnualSummaryService(): RentalAnnualSummaryService { return $this->rentalAnnualSummaryService; }
-    private function rentalDashboardService(): RentalDashboardService { return $this->rentalDashboardService; }
-    private function rentalExportService(): RentalExportService { return $this->rentalExportService; }
-    private function rentalPaymentRequestService(): RentalPaymentRequestService { return $this->rentalPaymentRequestService; }
-    private function rentalReceiptService(): RentalReceiptService { return $this->rentalReceiptService; }
-    private function chargeRegularizationService(): ChargeRegularizationService { return $this->chargeRegularizationService; }
-    private function rentScheduleService(): RentScheduleService { return $this->rentScheduleService; }
-    private function rentPaymentStatusService(): RentPaymentStatusService { return $this->rentPaymentStatusService; }
-    private function agencyImportRepository(): AgencyImportRepository { return $this->agencyImportRepository; }
-    private function agencyMappingRepository(): AgencyMappingRepository { return $this->agencyMappingRepository; }
-    private function agencyImportService(): AgencyImportService { return $this->agencyImportService; }
+    private function rentalPropertyRepository(): RentalPropertyRepository
+    {
+        return $this->rentalPropertyRepository;
+    }
+    private function rentalPropertyMemberRepository(): RentalPropertyMemberRepository
+    {
+        return $this->rentalPropertyMemberRepository;
+    }
+    private function rentalUnitRepository(): RentalUnitRepository
+    {
+        return $this->rentalUnitRepository;
+    }
+    private function rentalLifecycleRepository(): RentalLifecycleRepository
+    {
+        return $this->rentalLifecycleRepository;
+    }
+    private function rentalLessorRepository(): RentalLessorRepository
+    {
+        return $this->rentalLessorRepository;
+    }
+    private function rentalAnnualSummaryService(): RentalAnnualSummaryService
+    {
+        return $this->rentalAnnualSummaryService;
+    }
+    private function rentalDashboardService(): RentalDashboardService
+    {
+        return $this->rentalDashboardService;
+    }
+    private function rentalExportService(): RentalExportService
+    {
+        return $this->rentalExportService;
+    }
+    private function rentalPaymentRequestService(): RentalPaymentRequestService
+    {
+        return $this->rentalPaymentRequestService;
+    }
+    private function chargeRegularizationService(): ChargeRegularizationService
+    {
+        return $this->chargeRegularizationService;
+    }
+    private function rentScheduleService(): RentScheduleService
+    {
+        return $this->rentScheduleService;
+    }
+    private function rentPaymentStatusService(): RentPaymentStatusService
+    {
+        return $this->rentPaymentStatusService;
+    }
+    private function agencyImportRepository(): AgencyImportRepository
+    {
+        return $this->agencyImportRepository;
+    }
     private function agencyAdvancedReconciliationService(): AgencyAdvancedReconciliationService
-    { return $this->agencyAdvancedReconciliationService ?? new AgencyAdvancedReconciliationService(); }
+    {
+        return $this->agencyAdvancedReconciliationService ?? new AgencyAdvancedReconciliationService();
+    }
 
     private function canWriteProperty(int $propertyId, int $userId): bool
     {
@@ -644,32 +714,6 @@ final class RealEstateRentalController
         return $ids;
     }
 
-    private function leaseBelongsToProperty(int $leaseId, int $propertyId): bool
-    {
-        if ($leaseId <= 0 || $propertyId <= 0) {
-            return false;
-        }
-
-        $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
-        return is_array($lease)
-            && is_numeric($lease['rentalPropertyId'] ?? null)
-            && (int) $lease['rentalPropertyId'] === $propertyId;
-    }
-
-    private function leaseBelongsToUnit(int $leaseId, int $unitId, int $propertyId): bool
-    {
-        if ($leaseId <= 0 || $unitId <= 0 || $propertyId <= 0) {
-            return false;
-        }
-
-        $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
-        return is_array($lease)
-            && is_numeric($lease['rentalPropertyId'] ?? null)
-            && is_numeric($lease['rentalUnitId'] ?? null)
-            && (int) $lease['rentalPropertyId'] === $propertyId
-            && (int) $lease['rentalUnitId'] === $unitId;
-    }
-
     /**
      * Téléchargement streamé d'un document du hub central si l'identifiant en
      * est un ; null sinon (le flux legacy prend le relais).
@@ -704,21 +748,27 @@ final class RealEstateRentalController
             $mimeType = 'application/octet-stream';
         }
 
-        $this->logEvent('private.rental_document.downloaded', [
+        $this->logEvent(
+            'private.rental_document.downloaded', [
             'private_user_id' => $userId,
             'document_id' => $documentId,
             'source' => 'document_hub',
-        ]);
+            ]
+        );
 
         $filename = $this->sanitizeDownloadFilename((string) ($document['original_filename'] ?? 'document'));
 
-        return $this->withPrivateHeaders(new StreamedFileResponse($absolutePath, 200, [
-            'Content-Type' => $mimeType,
-            'Content-Length' => (string) (int) ($document['stored_size'] ?? 0),
-            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
-            'Cache-Control' => 'private, no-store, no-cache, must-revalidate',
-            'X-Content-Type-Options' => 'nosniff',
-        ]));
+        return $this->withPrivateHeaders(
+            new StreamedFileResponse(
+                $absolutePath, 200, [
+                'Content-Type' => $mimeType,
+                'Content-Length' => (string) (int) ($document['stored_size'] ?? 0),
+                'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+                'Cache-Control' => 'private, no-store, no-cache, must-revalidate',
+                'X-Content-Type-Options' => 'nosniff',
+                ]
+            )
+        );
     }
 
     private function deleteRentalDocuments(array $documentIds, array $propertyIds, int $userId): int
@@ -729,19 +779,20 @@ final class RealEstateRentalController
                 $hubDocument = $this->documentHubRepository()->findDocumentByUid((string) $documentId);
                 if ($hubDocument !== null) {
                     $hubDocument['links'] = $this->documentHubRepository()->linksForDocument((int) $hubDocument['id']);
-                    if (
-                        $this->documentHubLinkService()->userCanAccessDocument($hubDocument, $userId)
+                    if ($this->documentHubLinkService()->userCanAccessDocument($hubDocument, $userId)
                         && $this->documentHubRepository()->transitionStatus(
                             (int) $hubDocument['id'],
                             DocumentHubRepository::DOC_STATUS_TRASHED
                         )
                     ) {
                         ++$deleted;
-                        $this->logEvent('private.rental_document.deleted', [
+                        $this->logEvent(
+                            'private.rental_document.deleted', [
                             'private_user_id' => $userId,
                             'document_id' => (string) $documentId,
                             'source' => 'document_hub_trash',
-                        ]);
+                            ]
+                        );
                     }
 
                     continue;
@@ -763,11 +814,13 @@ final class RealEstateRentalController
             // Note: privateDocumentStorage() is not available in this controller
             // For now, we'll skip the storage deletion
             ++$deleted;
-            $this->logEvent('private.rental_document.deleted', [
+            $this->logEvent(
+                'private.rental_document.deleted', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
                 'document_id' => $documentId,
-            ]);
+                ]
+            );
         }
 
         return $deleted;
@@ -836,24 +889,30 @@ final class RealEstateRentalController
         $pendingAgencyDocuments = 0;
         foreach ($agencyDocuments as $document) {
             $status = is_array($document) && is_string($document['reviewStatus'] ?? null) ? (string) $document['reviewStatus'] : '';
-            if (in_array($status, ['pending', 'to_review', 'new'], true)) { ++$pendingAgencyDocuments; }
+            if (in_array($status, ['pending', 'to_review', 'new'], true)) {
+                ++$pendingAgencyDocuments;
+            }
         }
-        return $this->render('modules/real-estate-rental/dashboard', array_merge(
-            $this->rentalBaseViewModel('Tableau de bord locatif', '', ''),
-            [
+        return $this->render(
+            'modules/real-estate-rental/dashboard', array_merge(
+                $this->rentalBaseViewModel('Tableau de bord locatif', '', ''),
+                [
                 'rentalCurrentSection' => 'dashboard',
-                'rentalDashboardStats' => array_merge($dashboardStats, [
+                'rentalDashboardStats' => array_merge(
+                    $dashboardStats, [
                     'year' => $year, 'month' => $month, 'propertyCount' => count($properties),
                     'unitCount' => count($units), 'tenantCount' => count($tenants),
                     'activeLeaseCount' => count(array_filter($leases, static fn (array $lease): bool => in_array((string) ($lease['status'] ?? ''), ['draft', 'validated'], true))),
                     'documentCount' => count($documents), 'agencyDocumentCount' => count($agencyDocuments),
                     'pendingAgencyDocumentCount' => $pendingAgencyDocuments, 'taxSummaryUrl' => private_portal_url('tax_dashboard'),
-                ]),
+                    ]
+                ),
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalRecentDocuments' => array_slice($documents, 0, 8),
                 'agencyImportDocuments' => array_slice($agencyDocuments, 0, 8),
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function renderRentalPropertiesDashboard(int $userId): Response
@@ -867,21 +926,25 @@ final class RealEstateRentalController
         $month = (int) date('n');
         $dashboardStats = $this->rentalDashboardService()->build($year, $month, $propertyIds);
         $documents = $this->rentalLifecycleRepository()->listDocuments($propertyIds, self::MAX_RENTAL_LIST);
-        return $this->render('modules/real-estate-rental/properties-dashboard', array_merge(
-            $this->rentalBaseViewModel('Tableau de bord - Biens et locations', '', ''),
-            [
+        return $this->render(
+            'modules/real-estate-rental/properties-dashboard', array_merge(
+                $this->rentalBaseViewModel('Tableau de bord - Biens et locations', '', ''),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'propertiesDashboard',
-                'rentalDashboardStats' => array_merge($dashboardStats, [
+                'rentalDashboardStats' => array_merge(
+                    $dashboardStats, [
                     'year' => $year, 'month' => $month, 'propertyCount' => count($properties),
                     'unitCount' => count($units), 'tenantCount' => count($tenants),
                     'activeLeaseCount' => count(array_filter($leases, static fn (array $lease): bool => in_array((string) ($lease['status'] ?? ''), ['draft', 'validated'], true))),
                     'documentCount' => count($documents),
-                ]),
+                    ]
+                ),
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalRecentDocuments' => array_slice($documents, 0, 8),
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function renderRentalAgencyDashboard(int $userId): Response
@@ -893,11 +956,14 @@ final class RealEstateRentalController
         $pendingAgencyDocuments = 0;
         foreach ($agencyDocuments as $document) {
             $status = is_array($document) && is_string($document['reviewStatus'] ?? null) ? (string) $document['reviewStatus'] : '';
-            if (in_array($status, ['pending', 'to_review', 'new'], true)) { ++$pendingAgencyDocuments; }
+            if (in_array($status, ['pending', 'to_review', 'new'], true)) {
+                ++$pendingAgencyDocuments;
+            }
         }
-        return $this->render('modules/real-estate-rental/agency-dashboard', array_merge(
-            $this->rentalBaseViewModel('Tableau de bord - Agence', '', ''),
-            [
+        return $this->render(
+            'modules/real-estate-rental/agency-dashboard', array_merge(
+                $this->rentalBaseViewModel('Tableau de bord - Agence', '', ''),
+                [
                 'rentalCurrentSection' => 'agency',
                 'rentalCurrentSubsection' => 'agencyDashboard',
                 'agencyDashboardStats' => [
@@ -912,20 +978,23 @@ final class RealEstateRentalController
                     static fn ($batch): array => method_exists($batch, 'toArray') ? $batch->toArray() : [],
                     array_slice($agencyBatches, 0, 10)
                 ),
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function renderRentalLessors(int $userId, string $notice = '', string $error = ''): Response
     {
-        return $this->render('modules/real-estate-rental/lessors', array_merge(
-            $this->rentalBaseViewModel('Bailleurs', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/lessors', array_merge(
+                $this->rentalBaseViewModel('Bailleurs', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'lessors',
                 'rentalLessors' => $this->rentalLessorRepository()->listForUser($userId),
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function renderRentalProperties(int $userId, string $notice = '', string $error = ''): Response
@@ -933,11 +1002,13 @@ final class RealEstateRentalController
         $propertyIds = $this->authorizedPropertyIds($userId);
         $properties = $propertyIds === [] ? [] : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
         $lessors = $this->rentalLessorRepository()->listForUser($userId, self::MAX_RENTAL_LIST);
-        return $this->render('modules/real-estate-rental/properties', array_merge(
-            $this->rentalBaseViewModel('Propriétés', $notice, $error),
-            ['rentalCurrentSection' => 'personal', 'rentalCurrentSubsection' => 'properties',
-             'rentalProperties' => $this->objectsToArrays($properties), 'rentalLessors' => $lessors,]
-        ));
+        return $this->render(
+            'modules/real-estate-rental/properties', array_merge(
+                $this->rentalBaseViewModel('Propriétés', $notice, $error),
+                ['rentalCurrentSection' => 'personal', 'rentalCurrentSubsection' => 'properties',
+                'rentalProperties' => $this->objectsToArrays($properties), 'rentalLessors' => $lessors,]
+            )
+        );
     }
 
     // Render Methods
@@ -948,15 +1019,17 @@ final class RealEstateRentalController
         string $notice = '',
         string $error = ''
     ): Response {
-        return $this->render('modules/real-estate-rental/units', array_merge(
-            $this->rentalBaseViewModel('Biens locatifs', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/units', array_merge(
+                $this->rentalBaseViewModel('Biens locatifs', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'units',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
-            ]
-        ));
+                ]
+            )
+        );
     }
     private function renderRentalMembers(int $userId, array $members, string $notice = '', string $error = ''): Response
     {
@@ -965,16 +1038,18 @@ final class RealEstateRentalController
             ? []
             : $this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST);
 
-        return $this->render('modules/real-estate-rental/property-members', array_merge(
-            $this->rentalBaseViewModel('Membres locatifs', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/property-members', array_merge(
+                $this->rentalBaseViewModel('Membres locatifs', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'members',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalMembers' => $members,
                 'rentalCurrentPrivateUserId' => $userId,
-            ]
-        ));
+                ]
+            )
+        );
     }
     private function renderRentalTenants(
         array $properties,
@@ -983,16 +1058,18 @@ final class RealEstateRentalController
         string $notice = '',
         string $error = ''
     ): Response {
-        return $this->render('modules/real-estate-rental/tenants', array_merge(
-            $this->rentalBaseViewModel('Locataires locatifs', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/tenants', array_merge(
+                $this->rentalBaseViewModel('Locataires locatifs', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'tenants',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
                 'rentalTenants' => $tenants,
-            ]
-        ));
+                ]
+            )
+        );
     }
     private function renderRentalLeases(
         array $properties,
@@ -1002,9 +1079,10 @@ final class RealEstateRentalController
         string $notice = '',
         string $error = ''
     ): Response {
-        return $this->render('modules/real-estate-rental/leases', array_merge(
-            $this->rentalBaseViewModel('Baux locatifs', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/leases', array_merge(
+                $this->rentalBaseViewModel('Baux locatifs', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'leases',
                 'rentalProperties' => $this->objectsToArrays($properties),
@@ -1012,8 +1090,9 @@ final class RealEstateRentalController
                 'rentalTenants' => $tenants,
                 'rentalLeases' => $leases,
                 'rentalLeaseTypes' => RentalLeaseTypeCatalog::options(),
-            ]
-        ));
+                ]
+            )
+        );
     }
     private function renderRentalRents(
         array $leases,
@@ -1038,22 +1117,24 @@ final class RealEstateRentalController
         $paymentRequestPreviews = $propertyIds !== [] ? $this->rentalPaymentRequestPreviews($rents, $propertyIds) : [];
         $paymentRequestHistory = $this->rentalPaymentRequestHistory($rentIds);
 
-        return $this->render('modules/real-estate-rental/rents', array_merge(
-            $this->rentalBaseViewModel('Loyers locatifs', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/rents', array_merge(
+                $this->rentalBaseViewModel('Loyers locatifs', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'rents',
                 'rentalLeases' => $leases,
                 'rentalRents' => $rents,
                 'rentalPaymentRequestPreviews' => $paymentRequestPreviews,
                 'rentalPaymentRequestHistory' => $paymentRequestHistory,
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     /**
-     * @param array<int, array<string, mixed>> $rents
-     * @param array<int, int> $propertyIds
+     * @param  array<int, array<string, mixed>> $rents
+     * @param  array<int, int>                  $propertyIds
      * @return array<int, array<string, mixed>>
      */
     private function rentalPaymentRequestPreviews(array $rents, array $propertyIds): array
@@ -1074,7 +1155,7 @@ final class RealEstateRentalController
     }
 
     /**
-     * @param array<int, int> $rentIds
+     * @param  array<int, int> $rentIds
      * @return array<int, array<int, array<string, mixed>>>
      */
     private function rentalPaymentRequestHistory(array $rentIds): array
@@ -1106,16 +1187,18 @@ final class RealEstateRentalController
         string $error = '',
         int $prefillRentId = 0
     ): Response {
-        return $this->render('modules/real-estate-rental/payments', array_merge(
-            $this->rentalBaseViewModel('Paiements locatifs', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/payments', array_merge(
+                $this->rentalBaseViewModel('Paiements locatifs', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'payments',
                 'rentalRents' => $rents,
                 'rentalPayments' => $payments,
                 'rentalPaymentPrefillRentId' => $prefillRentId,
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function renderRentalExpenses(
@@ -1125,17 +1208,19 @@ final class RealEstateRentalController
         string $notice = '',
         string $error = ''
     ): Response {
-        return $this->render('modules/real-estate-rental/expenses', array_merge(
-            $this->rentalBaseViewModel('Charges locatives', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/expenses', array_merge(
+                $this->rentalBaseViewModel('Charges locatives', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'expenses',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
                 'rentalExpenses' => $expenses,
                 'rentalExpenseCategories' => \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalExpenseCategoryCatalog::options(),
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function renderRentalRegularizations(
@@ -1146,17 +1231,19 @@ final class RealEstateRentalController
         string $notice = '',
         string $error = ''
     ): Response {
-        return $this->render('modules/real-estate-rental/regularizations', array_merge(
-            $this->rentalBaseViewModel('Régularisations de charges', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/regularizations', array_merge(
+                $this->rentalBaseViewModel('Régularisations de charges', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'regularizations',
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalUnits' => $this->objectsToArrays($units),
                 'rentalRegularizations' => $regularizations,
                 'rentalRegularizationPreview' => $preview,
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function renderRentalDocuments(
@@ -1167,9 +1254,10 @@ final class RealEstateRentalController
         string $notice = '',
         string $error = ''
     ): Response {
-        return $this->render('modules/real-estate-rental/documents', array_merge(
-            $this->rentalBaseViewModel('Documents locatifs', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/documents', array_merge(
+                $this->rentalBaseViewModel('Documents locatifs', $notice, $error),
+                [
                 'rentalCurrentSection' => 'personal',
                 'rentalCurrentSubsection' => 'documents',
                 'rentalProperties' => $this->objectsToArrays($properties),
@@ -1177,8 +1265,9 @@ final class RealEstateRentalController
                 'rentalLeases' => $leases,
                 'rentalDocuments' => $documents,
                 'rentalDocumentCategories' => $this->documentTaxonomyRepository()->listActive(),
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function renderRentalAgencyImports(
@@ -1195,9 +1284,10 @@ final class RealEstateRentalController
             ? []
             : $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
 
-        return $this->render('modules/real-estate-rental/agency-imports', array_merge(
-            $this->rentalBaseViewModel('Importer des documents agence', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/agency-imports', array_merge(
+                $this->rentalBaseViewModel('Importer des documents agence', $notice, $error),
+                [
                 'rentalCurrentSection' => 'agency',
                 'rentalCurrentSubsection' => 'agencyImports',
                 'agencyImportCurrentTab' => $this->agencyImportTab($tab),
@@ -1213,8 +1303,9 @@ final class RealEstateRentalController
                 'agencyImportUnitMappings' => $this->agencyImportRepository()->listUnitMappings($userId, 200),
                 'agencyImportProperties' => $this->objectsToArrays($properties),
                 'agencyImportUnits' => $this->objectsToArrays($units),
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function agencyImportTab(mixed $value): string
@@ -1268,9 +1359,10 @@ final class RealEstateRentalController
             ? []
             : $this->rentalUnitRepository()->listByPropertyIds($propertyIds, self::MAX_RENTAL_LIST);
 
-        return $this->render('modules/real-estate-rental/agency-review', array_merge(
-            $this->rentalBaseViewModel('Documents agence à classer', $notice, $error),
-            [
+        return $this->render(
+            'modules/real-estate-rental/agency-review', array_merge(
+                $this->rentalBaseViewModel('Documents agence à classer', $notice, $error),
+                [
                 'rentalCurrentSection' => 'agency',
                 'rentalCurrentSubsection' => 'agencyReview',
                 'agencyReviewDocuments' => $documents,
@@ -1285,8 +1377,9 @@ final class RealEstateRentalController
                 'agencyReviewLineFeedbackId' => $lineFeedbackId,
                 'agencyReviewLineNotice' => $this->rentalNotice($lineNotice),
                 'agencyReviewLineError' => $this->rentalError($lineError),
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     private function rentalAgencyReviewUrl(int $documentId, string $notice = '', string $error = ''): string
@@ -1305,58 +1398,62 @@ final class RealEstateRentalController
         return private_portal_url('rental_agency_review') . '?' . http_build_query($query);
     }
 
-    private function rentalAgencyReviewLineUrl(
-        int $documentId,
-        int $lineId,
-        string $notice = '',
-        string $error = ''
-    ): string {
-        $query = ['document_id' => $documentId];
-        if ($lineId > 0) {
-            $query['line_id'] = $lineId;
-        }
-        if ($notice !== '') {
-            $query['line_notice'] = $notice;
-        }
-        if ($error !== '') {
-            $query['line_error'] = $error;
-        }
-
-        return private_portal_url('rental_agency_review') . '?' . http_build_query($query);
-    }
-
     private function renderRentalSummary(array $summary, array $properties = [], array $tenants = []): Response
     {
-        return $this->render('modules/real-estate-rental/summary', array_merge(
-            $this->rentalBaseViewModel('Synthèse annuelle locative', '', ''),
-            [
+        return $this->render(
+            'modules/real-estate-rental/summary', array_merge(
+                $this->rentalBaseViewModel('Synthèse annuelle locative', '', ''),
+                [
                 'rentalCurrentSection' => 'reports',
                 'rentalCurrentSubsection' => 'summary',
                 'rentalSummary' => $summary,
                 'rentalProperties' => $this->objectsToArrays($properties),
                 'rentalTenants' => $tenants,
-            ]
-        ));
+                ]
+            )
+        );
     }
 
     // Handle Methods
     private function handleRentalDashboard(Request $request): Response
-    { $userId = $this->requireRentalModuleUser($request); if ($userId instanceof Response) { return $userId; } return $this->renderRentalDashboard($userId); }
+    {
+        $userId = $this->requireRentalModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+        return $this->renderRentalDashboard($userId);
+    }
 
     private function handleRentalPropertiesDashboard(Request $request): Response
-    { $userId = $this->requireRentalModuleUser($request); if ($userId instanceof Response) { return $userId; } return $this->renderRentalPropertiesDashboard($userId); }
+    {
+        $userId = $this->requireRentalModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+        return $this->renderRentalPropertiesDashboard($userId);
+    }
 
     private function handleRentalAgencyDashboard(Request $request): Response
-    { $userId = $this->requireRentalModuleUser($request); if ($userId instanceof Response) { return $userId; } return $this->renderRentalAgencyDashboard($userId); }
+    {
+        $userId = $this->requireRentalModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+        return $this->renderRentalAgencyDashboard($userId);
+    }
 
     private function handleRentalLessors(Request $request): Response
     {
         $userId = $this->requireRentalModuleUser($request);
-        if ($userId instanceof Response) { return $userId; }
+        if ($userId instanceof Response) {
+            return $userId;
+        }
         $query = $request->query();
         $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
         $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
-        if ($request->method() !== self::METHOD_POST) { return $this->renderRentalLessors($userId, $notice, $error); }
+        if ($request->method() !== self::METHOD_POST) {
+            return $this->renderRentalLessors($userId, $notice, $error);
+        }
         if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
             return $this->redirect(private_portal_url('rental_lessors') . '?error=rental_invalid_request');
         }
@@ -1364,6 +1461,12 @@ final class RealEstateRentalController
         $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_lessor';
         $lessorId = $this->normalizeNumericId($body['lessor_id'] ?? null);
         if ($action === 'delete_lessor') {
+            if ($lessorId <= 0 || $this->rentalLessorRepository()->findForUser($lessorId, $userId) === null) {
+                return $this->redirect(private_portal_url('rental_lessors') . '?error=lessor_forbidden');
+            }
+            if ($this->rentalLessorRepository()->hasLinkedProperties($lessorId)) {
+                return $this->redirect(private_portal_url('rental_lessors') . '?error=lessor_has_properties');
+            }
             $deleted = $this->rentalLessorRepository()->deleteForUser($lessorId, $userId);
             $this->logEvent('private.rental_lessor.deleted', ['private_user_id' => $userId, 'rental_lessor_id' => $lessorId]);
             return $this->redirect(private_portal_url('rental_lessors') . ($deleted ? '?notice=lessor_deleted' : '?error=lessor_delete_failed'));
@@ -1376,7 +1479,9 @@ final class RealEstateRentalController
         $saved = $action === 'update_lessor' && $lessorId > 0
             ? $this->rentalLessorRepository()->update($lessorId, $userId, $payload['last_name'], $payload['first_name'], $payload['address'], $payload['phone'], $payload['email'])
             : $this->rentalLessorRepository()->create($userId, $payload['last_name'], $payload['first_name'], $payload['address'], $payload['phone'], $payload['email']);
-        if (!is_array($saved)) { return $this->renderRentalLessors($userId, '', 'rental_write_failed'); }
+        if (!is_array($saved)) {
+            return $this->renderRentalLessors($userId, '', 'rental_write_failed');
+        }
         $this->logEvent($action === 'update_lessor' ? 'private.rental_lessor.updated' : 'private.rental_lessor.created', ['private_user_id' => $userId, 'rental_lessor_id' => (int) ($saved['id'] ?? 0)]);
         return $this->redirect(private_portal_url('rental_lessors') . ($action === 'update_lessor' ? '?notice=lessor_updated' : '?notice=lessor_created'));
     }
@@ -1416,7 +1521,37 @@ final class RealEstateRentalController
             return $this->renderRentalProperties($userId, '', 'property_forbidden');
         }
 
+        if ($action === 'delete_property' && $propertyId > 0) {
+            if (!$this->canDeleteProperty($propertyId, $userId)) {
+                return $this->forbiddenOrUnauthorized(private_portal_url('rental_properties') . '?error=property_forbidden');
+            }
+
+            if ($this->rentalUnitRepository()->hasActiveForProperty($propertyId)
+                || $this->rentalLifecycleRepository()->propertyHasLifecycleData($propertyId)
+                || $this->documentHubRepository()->hasVisibleLinkForEntity(RentalDocumentIntegration::ENTITY_PROPERTY, (string) $propertyId)
+            ) {
+                return $this->renderRentalProperties($userId, '', 'property_has_dependents');
+            }
+
+            if (!$this->rentalPropertyRepository()->delete($propertyId, $userId)) {
+                return $this->renderRentalProperties($userId, '', 'rental_delete_failed');
+            }
+
+            $this->logEvent(
+                'private.rental_property.deleted', [
+                'private_user_id' => $userId,
+                'rental_property_id' => $propertyId,
+                ]
+            );
+
+            return $this->redirect(private_portal_url('rental_properties') . '?notice=property_deleted');
+        }
+
         if ($action === 'create_property') {
+            if ($rentalLessorId <= 0) {
+                return $this->renderRentalProperties($userId, '', 'property_lessor_required');
+            }
+
             if ($createDefaultUnit && $defaultUnitSurface <= 0) {
                 return $this->renderRentalProperties($userId, '', 'rental_write_failed');
             }
@@ -1453,10 +1588,12 @@ final class RealEstateRentalController
                 }
             }
 
-            $this->logEvent('private.rental_property.created', [
+            $this->logEvent(
+                'private.rental_property.created', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $created->id,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_properties') . '?notice=property_created');
         }
@@ -1481,10 +1618,12 @@ final class RealEstateRentalController
                 return $this->renderRentalProperties($userId, '', 'rental_write_failed');
             }
 
-            $this->logEvent('private.rental_property.updated', [
+            $this->logEvent(
+                'private.rental_property.updated', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_properties') . '?notice=property_updated');
         }
@@ -1498,8 +1637,7 @@ final class RealEstateRentalController
             return $userId instanceof Response ? $userId : $this->handleModuleAccessDenied('real_estate_rental');
         }
 
-        if (
-            !$this->guard()->validateCsrf($request, self::CSRF_RENTAL)
+        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)
             || $propertyId <= 0
             || !$this->canDeleteProperty($propertyId, $userId)
         ) {
@@ -1508,10 +1646,12 @@ final class RealEstateRentalController
 
         if ($this->rentalPropertyRepository()->archive($propertyId, $userId)) {
             $this->rentalUnitRepository()->archiveByPropertyId($propertyId, $userId);
-            $this->logEvent('private.rental_property.archived', [
+            $this->logEvent(
+                'private.rental_property.archived', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
-            ]);
+                ]
+            );
             return $this->redirect(private_portal_url('rental_properties') . '?notice=property_archived');
         }
 
@@ -1556,6 +1696,33 @@ final class RealEstateRentalController
         $unitDetails = $this->rentalUnitDetailsFromBody($body);
         $unavailableUntil = is_string($body['unavailable_until'] ?? null) ? (string) $body['unavailable_until'] : null;
 
+        if ($action === 'delete_unit') {
+            $target = $this->rentalUnitRepository()->findById($unitId);
+            if ($target === null || !$this->canWriteByPropertyId($target->rentalPropertyId, $userId)) {
+                return $this->renderRentalUnits($userId, $properties, $units, '', 'unit_forbidden');
+            }
+
+            if ($this->rentalLifecycleRepository()->unitHasLifecycleData($unitId)
+                || $this->documentHubRepository()->hasVisibleLinkForEntity(RentalDocumentIntegration::ENTITY_UNIT, (string) $unitId)
+            ) {
+                return $this->renderRentalUnits($userId, $properties, $units, '', 'unit_has_dependents');
+            }
+
+            if (!$this->rentalUnitRepository()->delete($unitId, $userId)) {
+                return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_delete_failed');
+            }
+
+            $this->logEvent(
+                'private.rental_unit.deleted', [
+                'private_user_id' => $userId,
+                'rental_unit_id' => $unitId,
+                'rental_property_id' => $target->rentalPropertyId,
+                ]
+            );
+
+            return $this->redirect(private_portal_url('rental_units') . '?notice=unit_deleted');
+        }
+
         if (!$this->canWriteByPropertyId($propertyId, $userId)) {
             return $this->renderRentalUnits($userId, $properties, $units, '', 'unit_forbidden');
         }
@@ -1581,11 +1748,13 @@ final class RealEstateRentalController
                 return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_write_failed');
             }
 
-            $this->logEvent('private.rental_unit.created', [
+            $this->logEvent(
+                'private.rental_unit.created', [
                 'private_user_id' => $userId,
                 'rental_unit_id' => $created->id,
                 'rental_property_id' => $created->rentalPropertyId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_units') . '?notice=unit_created');
         }
@@ -1612,11 +1781,13 @@ final class RealEstateRentalController
                 return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_write_failed');
             }
 
-            $this->logEvent('private.rental_unit.updated', [
+            $this->logEvent(
+                'private.rental_unit.updated', [
                 'private_user_id' => $userId,
                 'rental_unit_id' => $unitId,
                 'rental_property_id' => $propertyId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_units') . '?notice=unit_updated');
         }
@@ -1640,11 +1811,13 @@ final class RealEstateRentalController
         }
 
         if ($this->rentalUnitRepository()->archive($unitId, $userId)) {
-            $this->logEvent('private.rental_unit.archived', [
+            $this->logEvent(
+                'private.rental_unit.archived', [
                 'private_user_id' => $userId,
                 'rental_unit_id' => $unitId,
                 'rental_property_id' => $unit->rentalPropertyId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_units') . '?notice=unit_archived');
         }
@@ -1701,11 +1874,13 @@ final class RealEstateRentalController
                     return $this->renderRentalMembers($userId, $members, '', 'member_delete_failed');
                 }
 
-                $this->logEvent('private.rental_property_member.deleted', [
+                $this->logEvent(
+                    'private.rental_property_member.deleted', [
                     'private_user_id' => $userId,
                     'rental_property_id' => $member->rentalPropertyId,
                     'member_user_id' => $member->privateUserId,
-                ]);
+                    ]
+                );
 
                 return $this->redirect(private_portal_url('rental_property_members') . '?notice=member_deleted');
             }
@@ -1720,11 +1895,13 @@ final class RealEstateRentalController
                 return $this->renderRentalMembers($userId, $members, '', 'member_update_failed');
             }
 
-            $this->logEvent('private.rental_property_member.updated', [
+            $this->logEvent(
+                'private.rental_property_member.updated', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $member->rentalPropertyId,
                 'member_user_id' => $member->privateUserId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_property_members') . '?notice=member_updated');
         }
@@ -1757,11 +1934,13 @@ final class RealEstateRentalController
             return $this->renderRentalMembers($userId, $members, '', 'member_create_failed');
         }
 
-        $this->logEvent('private.rental_property_member.created', [
+        $this->logEvent(
+            'private.rental_property_member.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'member_user_id' => $privateUserId,
-        ]);
+            ]
+        );
 
         return $this->redirect(private_portal_url('rental_property_members') . '?notice=member_created');
     }
@@ -1822,26 +2001,44 @@ final class RealEstateRentalController
                 return $this->renderRentalTenants($properties, $units, $tenants, '', 'tenant_update_failed');
             }
 
-            $this->logEvent('private.rental_tenant.updated', [
+            $this->logEvent(
+                'private.rental_tenant.updated', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
                 'rental_unit_id' => $unitId,
                 'rental_tenant_id' => $tenantId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_tenants') . '?notice=tenant_updated#rental-feedback');
         }
 
         if ($action === 'delete_tenant') {
             $tenantId = $this->normalizeNumericId($body['tenant_id'] ?? null);
-            if ($tenantId <= 0 || !$this->rentalLifecycleRepository()->deleteTenant($tenantId, $propertyIds)) {
+            $tenant = $this->rentalLifecycleRepository()->findTenantById($tenantId);
+            $tenantPropertyId = is_array($tenant) && is_numeric($tenant['rentalPropertyId'] ?? null)
+                ? (int) $tenant['rentalPropertyId']
+                : 0;
+            if ($tenantId <= 0 || !is_array($tenant) || !in_array($tenantPropertyId, $propertyIds, true) || !$this->canWriteByPropertyId($tenantPropertyId, $userId)) {
+                return $this->renderRentalTenants($properties, $units, $tenants, '', 'tenant_forbidden');
+            }
+
+            if ($this->rentalLifecycleRepository()->tenantHasLease($tenantId)
+                || $this->documentHubRepository()->hasVisibleLinkForEntity(RentalDocumentIntegration::ENTITY_TENANT, (string) $tenantId)
+            ) {
+                return $this->renderRentalTenants($properties, $units, $tenants, '', 'tenant_has_dependents');
+            }
+
+            if (!$this->rentalLifecycleRepository()->deleteTenant($tenantId, $propertyIds)) {
                 return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_delete_failed');
             }
 
-            $this->logEvent('private.rental_tenant.deleted', [
+            $this->logEvent(
+                'private.rental_tenant.deleted', [
                 'private_user_id' => $userId,
                 'rental_tenant_id' => $tenantId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_tenants') . '?notice=tenant_deleted#rental-feedback');
         }
@@ -1875,12 +2072,14 @@ final class RealEstateRentalController
             return $this->renderRentalTenants($properties, $units, $tenants, '', 'rental_write_failed');
         }
 
-        $this->logEvent('private.rental_tenant.created', [
+        $this->logEvent(
+            'private.rental_tenant.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_unit_id' => $unitId,
             'rental_tenant_id' => (int) ($created['id'] ?? 0),
-        ]);
+            ]
+        );
 
         return $this->redirect(private_portal_url('rental_tenants') . '?notice=tenant_created');
     }
@@ -1913,14 +2112,30 @@ final class RealEstateRentalController
 
         if ($action === 'delete_lease') {
             $leaseId = $this->normalizeNumericId($body['lease_id'] ?? null);
-            if ($leaseId <= 0 || !$this->rentalLifecycleRepository()->deleteLease($leaseId, $propertyIds)) {
+            $lease = $this->rentalLifecycleRepository()->findLeaseById($leaseId);
+            $leasePropertyId = is_array($lease) && is_numeric($lease['rentalPropertyId'] ?? null)
+                ? (int) $lease['rentalPropertyId']
+                : 0;
+            if ($leaseId <= 0 || !is_array($lease) || !in_array($leasePropertyId, $propertyIds, true) || !$this->canWriteByPropertyId($leasePropertyId, $userId)) {
+                return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'lease_forbidden');
+            }
+
+            if ($this->rentalLifecycleRepository()->leaseHasRentsOrPayments($leaseId)
+                || $this->documentHubRepository()->hasVisibleLinkForEntity(RentalDocumentIntegration::ENTITY_LEASE, (string) $leaseId)
+            ) {
+                return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'lease_has_dependents');
+            }
+
+            if (!$this->rentalLifecycleRepository()->deleteLease($leaseId, $propertyIds)) {
                 return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_delete_failed');
             }
 
-            $this->logEvent('private.rental_lease.deleted', [
+            $this->logEvent(
+                'private.rental_lease.deleted', [
                 'private_user_id' => $userId,
                 'rental_lease_id' => $leaseId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_deleted');
         }
@@ -1967,11 +2182,13 @@ final class RealEstateRentalController
                 return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_write_failed');
             }
 
-            $this->logEvent('private.rental_lease.adjusted', [
+            $this->logEvent(
+                'private.rental_lease.adjusted', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $leasePropertyId,
                 'rental_lease_id' => $leaseId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_adjusted');
         }
@@ -2014,11 +2231,13 @@ final class RealEstateRentalController
                 return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_write_failed');
             }
 
-            $this->logEvent('private.rental_lease.updated', [
+            $this->logEvent(
+                'private.rental_lease.updated', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
                 'rental_lease_id' => $leaseId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_updated');
         }
@@ -2058,11 +2277,13 @@ final class RealEstateRentalController
             return $this->renderRentalLeases($properties, $units, $tenants, $leases, '', 'rental_write_failed');
         }
 
-        $this->logEvent('private.rental_lease.created', [
+        $this->logEvent(
+            'private.rental_lease.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_lease_id' => (int) ($created['id'] ?? 0),
-        ]);
+            ]
+        );
 
         return $this->redirect(private_portal_url('rental_leases') . '?notice=lease_created');
     }
@@ -2099,10 +2320,12 @@ final class RealEstateRentalController
                 return $this->renderRentalRents($leases, $rents, '', 'rental_delete_failed');
             }
 
-            $this->logEvent('private.rental_rent.deleted', [
+            $this->logEvent(
+                'private.rental_rent.deleted', [
                 'private_user_id' => $userId,
                 'rental_rent_id' => $rentId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_rents') . '?notice=rent_deleted');
         }
@@ -2123,7 +2346,8 @@ final class RealEstateRentalController
             }
 
             $result = $this->rentScheduleService()->generateForLeasePeriod($leaseId, $periodYear, $periodMonth, $userId);
-            $this->logEvent('private.rental_rent_schedule.generated', [
+            $this->logEvent(
+                'private.rental_rent_schedule.generated', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
                 'rental_lease_id' => $leaseId,
@@ -2132,7 +2356,8 @@ final class RealEstateRentalController
                 'created' => (int) ($result['created'] ?? 0),
                 'existing' => (int) ($result['existing'] ?? 0),
                 'skipped' => (int) ($result['skipped'] ?? 0),
-            ]);
+                ]
+            );
             $this->rentPaymentStatusService()->refreshPropertyRents([$propertyId]);
 
             return $this->redirect(private_portal_url('rental_rents') . '?notice=' . $this->rentScheduleNotice($result));
@@ -2150,7 +2375,8 @@ final class RealEstateRentalController
             }
 
             $result = $this->rentScheduleService()->generateForMonth($writablePropertyIds, $periodYear, $periodMonth, $userId);
-            $this->logEvent('private.rental_rent_schedule.generated', [
+            $this->logEvent(
+                'private.rental_rent_schedule.generated', [
                 'private_user_id' => $userId,
                 'period_year' => $periodYear,
                 'period_month' => $periodMonth,
@@ -2158,7 +2384,8 @@ final class RealEstateRentalController
                 'created' => (int) ($result['created'] ?? 0),
                 'existing' => (int) ($result['existing'] ?? 0),
                 'skipped' => (int) ($result['skipped'] ?? 0),
-            ]);
+                ]
+            );
             $this->rentPaymentStatusService()->refreshPropertyRents($writablePropertyIds);
 
             return $this->redirect(private_portal_url('rental_rents') . '?notice=' . $this->rentScheduleNotice($result));
@@ -2203,11 +2430,13 @@ final class RealEstateRentalController
         }
         $this->rentPaymentStatusService()->refreshRentStatus((int) ($created['id'] ?? 0));
 
-        $this->logEvent('private.rental_rent.created', [
+        $this->logEvent(
+            'private.rental_rent.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_rent_id' => (int) ($created['id'] ?? 0),
-        ]);
+            ]
+        );
 
         return $this->redirect(private_portal_url('rental_rents') . '?notice=rent_created');
     }
@@ -2251,10 +2480,12 @@ final class RealEstateRentalController
                 $this->rentPaymentStatusService()->refreshRentStatus($rentId);
             }
 
-            $this->logEvent('private.rental_payment.deleted', [
+            $this->logEvent(
+                'private.rental_payment.deleted', [
                 'private_user_id' => $userId,
                 'rental_payment_id' => $paymentId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_deleted');
         }
@@ -2280,11 +2511,13 @@ final class RealEstateRentalController
                 $this->rentPaymentStatusService()->refreshRentStatus($rentId);
             }
 
-            $this->logEvent('private.rental_payment.cancelled', [
+            $this->logEvent(
+                'private.rental_payment.cancelled', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
                 'rental_payment_id' => $paymentId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_cancelled');
         }
@@ -2299,8 +2532,7 @@ final class RealEstateRentalController
                 ? (int) $payment['rentalRentId']
                 : 0;
             $paymentData = $this->rentalPaymentDataFromBody($body);
-            if (
-                $paymentId <= 0
+            if ($paymentId <= 0
                 || $rentId <= 0
                 || $paymentData === null
                 || !in_array($propertyId, $propertyIds, true)
@@ -2308,8 +2540,7 @@ final class RealEstateRentalController
             ) {
                 return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
             }
-            if (
-                $paymentData['status'] === 'validated'
+            if ($paymentData['status'] === 'validated'
                 && !$paymentData['confirmOverpayment']
                 && $this->rentPaymentStatusService()->wouldOverpay(
                     $rentId,
@@ -2338,13 +2569,15 @@ final class RealEstateRentalController
             }
             $this->rentPaymentStatusService()->refreshRentStatus($rentId);
 
-            $this->logEvent('private.rental_payment.updated', [
+            $this->logEvent(
+                'private.rental_payment.updated', [
                 'private_user_id' => $userId,
                 'rental_property_id' => $propertyId,
                 'rental_payment_id' => $paymentId,
                 'payment_kind' => $paymentData['paymentKind'],
                 'payment_method' => $paymentData['paymentMethod'],
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_updated');
         }
@@ -2370,8 +2603,7 @@ final class RealEstateRentalController
         $periodMonth = is_array($rent) && is_numeric($rent['periodMonth'] ?? null)
             ? (int) $rent['periodMonth']
             : 0;
-        if (
-            !$this->canWriteByPropertyId($propertyId, $userId)
+        if (!$this->canWriteByPropertyId($propertyId, $userId)
             || $unitId <= 0
             || !in_array($propertyId, $propertyIds, true)
             || (is_array($rent) && ($rent['status'] ?? '') === 'cancelled')
@@ -2383,8 +2615,7 @@ final class RealEstateRentalController
         if ($paymentData === null) {
             return $this->renderRentalPayments($rents, $payments, '', 'rental_write_failed', $prefillRentId);
         }
-        if (
-            $paymentData['status'] === 'validated'
+        if ($paymentData['status'] === 'validated'
             && !$paymentData['confirmOverpayment']
             && $this->rentPaymentStatusService()->wouldOverpay($rentId, $paymentData['amountPaid'], $paymentData['paymentKind'])
         ) {
@@ -2413,13 +2644,15 @@ final class RealEstateRentalController
         }
         $this->rentPaymentStatusService()->refreshRentStatus($rentId);
 
-        $this->logEvent('private.rental_payment.created', [
+        $this->logEvent(
+            'private.rental_payment.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_payment_id' => (int) ($created['id'] ?? 0),
             'payment_kind' => $paymentData['paymentKind'],
             'payment_method' => $paymentData['paymentMethod'],
-        ]);
+            ]
+        );
 
         return $this->redirect(private_portal_url('rental_payments') . '?notice=payment_created');
     }
@@ -2454,10 +2687,12 @@ final class RealEstateRentalController
                 return $this->renderRentalExpenses($properties, $units, $expenses, '', 'rental_delete_failed');
             }
 
-            $this->logEvent('private.rental_expense.deleted', [
+            $this->logEvent(
+                'private.rental_expense.deleted', [
                 'private_user_id' => $userId,
                 'rental_expense_id' => $expenseId,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_expenses') . '?notice=expense_deleted');
         }
@@ -2493,11 +2728,13 @@ final class RealEstateRentalController
             return $this->renderRentalExpenses($properties, $units, $expenses, '', 'rental_write_failed');
         }
 
-        $this->logEvent('private.rental_expense.created', [
+        $this->logEvent(
+            'private.rental_expense.created', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_expense_id' => (int) ($created['id'] ?? 0),
-        ]);
+            ]
+        );
 
         return $this->redirect(private_portal_url('rental_expenses') . '?notice=expense_created');
     }
@@ -2567,11 +2804,13 @@ final class RealEstateRentalController
             return $this->renderRentalRegularizations($properties, $units, $regularizations, $preview, '', 'rental_write_failed');
         }
 
-        $this->logEvent('private.rental_charge_regularization.generated', [
+        $this->logEvent(
+            'private.rental_charge_regularization.generated', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_charge_regularization_id' => is_numeric($regularization['id'] ?? null) ? (int) $regularization['id'] : 0,
-        ]);
+            ]
+        );
 
         return $this->redirect(private_portal_url('rental_regularizations') . '?notice=regularization_generated');
     }
@@ -2614,13 +2853,15 @@ final class RealEstateRentalController
             }
 
             $documentIds = $action === 'delete_all_documents'
-                ? array_values(array_filter(
-                    array_map(
-                        static fn (array $document): string => is_string($document['documentId'] ?? null) ? (string) $document['documentId'] : '',
-                        $documents
-                    ),
-                    static fn (string $documentId): bool => $documentId !== ''
-                ))
+                ? array_values(
+                    array_filter(
+                        array_map(
+                            static fn (array $document): string => is_string($document['documentId'] ?? null) ? (string) $document['documentId'] : '',
+                            $documents
+                        ),
+                        static fn (string $documentId): bool => $documentId !== ''
+                    )
+                )
                 : $this->documentIdsFromPayload($body['document_ids'] ?? $body['document_id'] ?? []);
 
             $deletedCount = $this->deleteRentalDocuments($documentIds, $propertyIds, $userId);
@@ -2639,10 +2880,12 @@ final class RealEstateRentalController
 
             $deleted = $this->rentalLifecycleRepository()->deleteLifecycleDataByPropertyIds($propertyIds);
 
-            $this->logEvent('private.rental_data.purged', [
+            $this->logEvent(
+                'private.rental_data.purged', [
                 'private_user_id' => $userId,
                 'counts' => $deleted,
-            ]);
+                ]
+            );
 
             return $this->redirect(private_portal_url('rental_documents') . '?notice=rental_data_purged');
         }
@@ -2714,7 +2957,7 @@ final class RealEstateRentalController
      * Documents du hub central rattachés aux biens autorisés, au format attendu
      * par le gabarit de l'onglet Documents (fusion avec les documents legacy).
      *
-     * @param array<int, int> $propertyIds
+     * @param  array<int, int> $propertyIds
      * @return array<int, array<string, mixed>>
      */
     private function hubDocumentsForRentalList(array $propertyIds): array
@@ -2848,17 +3091,21 @@ final class RealEstateRentalController
         if ($action === 'create_agency') {
             $agencyName = is_string($body['agency_name'] ?? null) ? trim((string) $body['agency_name']) : '';
             $created = $this->agencyImportRepository()->createAgency($userId, $agencyName);
-            $this->logEvent('private.rental_agency_import.agency_created', [
+            $this->logEvent(
+                'private.rental_agency_import.agency_created', [
                 'private_user_id' => $userId,
                 'agency_name' => $agencyName,
                 'success' => $created,
-            ]);
+                ]
+            );
 
-            return $this->redirect($this->rentalAgencyImportsUrl(
-                'agencies',
-                $created ? 'agency_created' : '',
-                $created ? '' : 'agency_create_failed'
-            ));
+            return $this->redirect(
+                $this->rentalAgencyImportsUrl(
+                    'agencies',
+                    $created ? 'agency_created' : '',
+                    $created ? '' : 'agency_create_failed'
+                )
+            );
         }
 
         if ($action === 'create_agency_unit_mapping') {
@@ -2870,36 +3117,44 @@ final class RealEstateRentalController
             $created = $unit !== null
                 && $this->canWriteByPropertyId($propertyId, $userId)
                 && $this->agencyImportRepository()->createUnitMapping($userId, $agencyName, $matchText, $propertyId, $unitId);
-            $this->logEvent('private.rental_agency_import.unit_mapping_created', [
+            $this->logEvent(
+                'private.rental_agency_import.unit_mapping_created', [
                 'private_user_id' => $userId,
                 'agency_name' => $agencyName,
                 'match_text' => $matchText,
                 'rental_property_id' => $propertyId,
                 'rental_unit_id' => $unitId,
                 'success' => $created,
-            ]);
+                ]
+            );
 
-            return $this->redirect($this->rentalAgencyImportsUrl(
-                'agencies',
-                $created ? 'agency_unit_mapping_created' : '',
-                $created ? '' : 'agency_unit_mapping_failed'
-            ));
+            return $this->redirect(
+                $this->rentalAgencyImportsUrl(
+                    'agencies',
+                    $created ? 'agency_unit_mapping_created' : '',
+                    $created ? '' : 'agency_unit_mapping_failed'
+                )
+            );
         }
 
         if ($action === 'delete_agency_unit_mapping') {
             $mappingId = $this->normalizeNumericId($body['agency_unit_mapping_id'] ?? null);
             $deleted = $this->agencyImportRepository()->deleteUnitMappingForUser($userId, $mappingId);
-            $this->logEvent('private.rental_agency_import.unit_mapping_deleted', [
+            $this->logEvent(
+                'private.rental_agency_import.unit_mapping_deleted', [
                 'private_user_id' => $userId,
                 'agency_unit_mapping_id' => $mappingId,
                 'success' => $deleted,
-            ]);
+                ]
+            );
 
-            return $this->redirect($this->rentalAgencyImportsUrl(
-                'agencies',
-                $deleted ? 'agency_unit_mapping_deleted' : '',
-                $deleted ? '' : 'agency_unit_mapping_delete_failed'
-            ));
+            return $this->redirect(
+                $this->rentalAgencyImportsUrl(
+                    'agencies',
+                    $deleted ? 'agency_unit_mapping_deleted' : '',
+                    $deleted ? '' : 'agency_unit_mapping_delete_failed'
+                )
+            );
         }
 
         if ($action === 'delete_agency_document') {
@@ -2909,11 +3164,13 @@ final class RealEstateRentalController
                 return $this->redirect($this->rentalAgencyImportsUrl('documents', '', 'agency_document_delete_failed'));
             }
 
-            $this->logEvent('private.rental_agency_import.document_deleted', [
+            $this->logEvent(
+                'private.rental_agency_import.document_deleted', [
                 'private_user_id' => $userId,
                 'agency_imported_document_id' => $deletedDocument->id,
                 'private_document_id' => $deletedDocument->privateDocumentId,
-            ]);
+                ]
+            );
 
             return $this->redirect($this->rentalAgencyImportsUrl('documents', 'agency_document_deleted'));
         }
@@ -2970,18 +3227,22 @@ final class RealEstateRentalController
             }
 
             $updated = $repository->updateStatementPropertyForDocument($userId, $documentId, $propertyId);
-            $this->logEvent('private.rental_agency_review.property_updated', [
+            $this->logEvent(
+                'private.rental_agency_review.property_updated', [
                 'private_user_id' => $userId,
                 'agency_imported_document_id' => $documentId,
                 'rental_property_id' => $propertyId,
                 'success' => $updated,
-            ]);
+                ]
+            );
 
-            return $this->redirect($this->rentalAgencyReviewUrl(
-                $documentId,
-                $updated ? 'agency_statement_property_updated' : '',
-                $updated ? '' : 'agency_review_failed'
-            ));
+            return $this->redirect(
+                $this->rentalAgencyReviewUrl(
+                    $documentId,
+                    $updated ? 'agency_statement_property_updated' : '',
+                    $updated ? '' : 'agency_review_failed'
+                )
+            );
         }
 
         // Autres actions (validate_line, correct_line, ignore_line) - pour l'instant, retourner une erreur
@@ -3024,17 +3285,23 @@ final class RealEstateRentalController
         $filename = $this->sanitizeDownloadFilename((string) ($document['originalName'] ?? 'document'));
         $mimeType = is_string($document['mimeType'] ?? null) ? (string) $document['mimeType'] : 'application/octet-stream';
 
-        $this->logEvent('private.rental_document.downloaded', [
+        $this->logEvent(
+            'private.rental_document.downloaded', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'document_id' => $documentId,
-        ]);
+            ]
+        );
 
-        return $this->withPrivateHeaders(new Response(200, [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
-            'X-Content-Type-Options' => 'nosniff',
-        ], $body));
+        return $this->withPrivateHeaders(
+            new Response(
+                200, [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+                'X-Content-Type-Options' => 'nosniff',
+                ], $body
+            )
+        );
     }
 
     private function handleRentalRegularizationFile(Request $request, string $documentId): Response
@@ -3060,18 +3327,24 @@ final class RealEstateRentalController
 
         $filename = $this->sanitizeDownloadFilename((string) ($document['originalName'] ?? 'regularisation-charges.pdf'));
         $propertyId = is_numeric($document['rentalPropertyId'] ?? null) ? (int) $document['rentalPropertyId'] : 0;
-        $this->logEvent('private.rental_charge_regularization.downloaded', [
+        $this->logEvent(
+            'private.rental_charge_regularization.downloaded', [
             'private_user_id' => $userId,
             'rental_property_id' => $propertyId,
             'rental_charge_regularization_id' => is_numeric($document['id'] ?? null) ? (int) $document['id'] : 0,
             'document_id' => $documentId,
-        ]);
+            ]
+        );
 
-        return $this->withPrivateHeaders(new Response(200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
-            'X-Content-Type-Options' => 'nosniff',
-        ], $body));
+        return $this->withPrivateHeaders(
+            new Response(
+                200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+                'X-Content-Type-Options' => 'nosniff',
+                ], $body
+            )
+        );
     }
 
     private function handleRentalSummary(Request $request): Response
@@ -3112,53 +3385,67 @@ final class RealEstateRentalController
             $tenantId > 0 ? $tenantId : null
         );
         if (($export['error'] ?? '') === 'draft_data') {
-            $this->logEvent('private.rental_export.rejected', [
+            $this->logEvent(
+                'private.rental_export.rejected', [
                 'private_user_id' => $userId,
                 'year' => $year,
                 'format' => $format,
                 'reason' => 'draft_data',
-            ]);
+                ]
+            );
 
-            return $this->withPrivateHeaders(new Response(
-                409,
-                ['Content-Type' => 'text/plain; charset=UTF-8'],
-                'Export bloque : donnees locatives brouillon.'
-            ));
+            return $this->withPrivateHeaders(
+                new Response(
+                    409,
+                    ['Content-Type' => 'text/plain; charset=UTF-8'],
+                    'Export bloque : donnees locatives brouillon.'
+                )
+            );
         }
         if (!($export['success'] ?? false)) {
-            $this->logEvent('private.rental_export.rejected', [
+            $this->logEvent(
+                'private.rental_export.rejected', [
                 'private_user_id' => $userId,
                 'year' => $year,
                 'format' => $format,
                 'kind' => $kind,
                 'reason' => (string) ($export['error'] ?? 'export_failed'),
-            ]);
+                ]
+            );
 
             $status = ($export['error'] ?? '') === 'forbidden' ? 403 : 422;
 
-            return $this->withPrivateHeaders(new Response(
-                $status,
-                ['Content-Type' => 'text/plain; charset=UTF-8'],
-                $status === 403 ? 'Export refuse.' : 'Export locatif impossible.'
-            ));
+            return $this->withPrivateHeaders(
+                new Response(
+                    $status,
+                    ['Content-Type' => 'text/plain; charset=UTF-8'],
+                    $status === 403 ? 'Export refuse.' : 'Export locatif impossible.'
+                )
+            );
         }
 
-        $this->logEvent('private.rental_export.created', [
+        $this->logEvent(
+            'private.rental_export.created', [
             'private_user_id' => $userId,
             'year' => $year,
             'format' => (string) ($export['format'] ?? $format),
             'kind' => (string) ($export['kind'] ?? $kind),
-        ]);
+            ]
+        );
 
         $content = is_string($export['content'] ?? null) ? (string) $export['content'] : '';
         $filename = $this->sanitizeDownloadFilename((string) ($export['filename'] ?? ('export-locatif.' . $format)));
         $mimeType = is_string($export['mimeType'] ?? null) ? (string) $export['mimeType'] : 'application/octet-stream';
         $this->rentalExportService()->cleanup($export);
 
-        return $this->withPrivateHeaders(new Response(200, [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
-            'X-Content-Type-Options' => 'nosniff',
-        ], $content));
+        return $this->withPrivateHeaders(
+            new Response(
+                200, [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
+                'X-Content-Type-Options' => 'nosniff',
+                ], $content
+            )
+        );
     }
 }

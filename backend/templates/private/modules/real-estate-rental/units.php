@@ -18,6 +18,20 @@ $unitTypes = [
     'other' => 'Autre',
 ];
 $createDialogId = 'rental-unit-create-dialog';
+$truncateWords = static function (string $text, int $maxWords = 6, int $maxChars = 40): string {
+    $text = trim($text);
+    if ($text === '') {
+        return '';
+    }
+    $words = preg_split('/\s+/u', $text) ?: [];
+    if (count($words) > $maxWords) {
+        $text = implode(' ', array_slice($words, 0, $maxWords)) . '…';
+    }
+    if (function_exists('mb_strlen') && mb_strlen($text, 'UTF-8') > $maxChars) {
+        $text = mb_substr($text, 0, $maxChars, 'UTF-8') . '…';
+    }
+    return $text;
+};
 $propertyNames = [];
 foreach ($properties as $property) {
     if (is_array($property) && is_numeric($property['id'] ?? null)) {
@@ -118,8 +132,8 @@ foreach ($properties as $property) {
               <td><strong><?php echo htmlspecialchars((string) ($unit['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
               <td><?php echo htmlspecialchars((string) ($propertyNames[$propertyId] ?? ('Propriété #' . $propertyId)), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($typeLabel, ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars($designation, ENT_QUOTES, 'UTF-8'); ?></td>
-              <td><?php echo htmlspecialchars($locationLabel, ENT_QUOTES, 'UTF-8'); ?></td>
+              <td title="<?php echo htmlspecialchars($designation, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($truncateWords($designation), ENT_QUOTES, 'UTF-8'); ?></td>
+              <td title="<?php echo htmlspecialchars($locationLabel, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($truncateWords($locationLabel), ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo htmlspecialchars($taxIdentifier, ENT_QUOTES, 'UTF-8'); ?></td>
               <td><?php echo $roomCount !== null ? htmlspecialchars((string) $roomCount, ENT_QUOTES, 'UTF-8') : ''; ?></td>
               <td><?php echo htmlspecialchars((string) ($unit['surface'] ?? ''), ENT_QUOTES, 'UTF-8'); ?> m²</td>
@@ -213,6 +227,13 @@ foreach ($properties as $property) {
               <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
               <button type="submit" class="private-button-danger">Archiver</button>
             </form>
+            <form method="post" action="<?php echo htmlspecialchars($unitsUrl, ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="delete_unit" />
+              <input type="hidden" name="unit_id" value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" />
+              <button type="submit" class="private-button-danger">Supprimer</button>
+            </form>
+            <p class="muted">La suppression n'est possible que si ce bien locatif n'a plus aucun locataire, bail ou document rattaché.</p>
           </div>
         </dialog>
       <?php endforeach; ?>

@@ -280,6 +280,7 @@ $createDialogId = 'rental-lease-create-dialog';
               <input type="hidden" name="lease_id" value="<?php echo htmlspecialchars((string) $leaseId, ENT_QUOTES, 'UTF-8'); ?>" />
               <button type="submit" class="private-button-danger">Supprimer le bail</button>
             </form>
+            <p class="muted">La suppression n'est possible que si ce bail n'a plus aucun loyer, paiement ou document rattaché.</p>
           </div>
         </dialog>
       <?php endforeach; ?>

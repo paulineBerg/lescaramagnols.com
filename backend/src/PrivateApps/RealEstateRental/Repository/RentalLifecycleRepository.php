@@ -2142,6 +2142,114 @@ final class RentalLifecycleRepository
     }
 
     /**
+     * Indique si cette propriété a encore des données locatives rattachées
+     * (locataires, baux, documents, charges, régularisations de charges).
+     * Utilisé pour empêcher la suppression d'une propriété en cours d'usage.
+     */
+    public function propertyHasLifecycleData(int $propertyId): bool
+    {
+        if ($propertyId <= 0) {
+            return true;
+        }
+
+        return $this->anyRowExists(
+            [
+            [$this->tenantsTable(), 'rental_property_id', true],
+            [$this->leasesTable(), 'rental_property_id', false],
+            [$this->documentsTable(), 'rental_property_id', true],
+            [$this->expensesTable(), 'rental_property_id', false],
+            [$this->chargeRegularizationsTable(), 'rental_property_id', true],
+            ],
+            $propertyId
+        );
+    }
+
+    /**
+     * Indique si ce bien locatif a encore des données locatives rattachées
+     * (locataires, baux, documents, charges, régularisations de charges).
+     * Utilisé pour empêcher la suppression d'un bien locatif en cours d'usage.
+     */
+    public function unitHasLifecycleData(int $unitId): bool
+    {
+        if ($unitId <= 0) {
+            return true;
+        }
+
+        return $this->anyRowExists(
+            [
+            [$this->tenantsTable(), 'rental_unit_id', true],
+            [$this->leasesTable(), 'rental_unit_id', false],
+            [$this->documentsTable(), 'rental_unit_id', true],
+            [$this->expensesTable(), 'rental_unit_id', false],
+            [$this->chargeRegularizationsTable(), 'rental_unit_id', true],
+            ],
+            $unitId
+        );
+    }
+
+    /**
+     * Indique si ce locataire est encore rattaché à au moins un bail.
+     * Utilisé pour empêcher la suppression d'un locataire en cours d'usage.
+     */
+    public function tenantHasLease(int $tenantId): bool
+    {
+        if ($tenantId <= 0) {
+            return true;
+        }
+
+        return $this->anyRowExists([[$this->leasesTable(), 'rental_tenant_id', false]], $tenantId);
+    }
+
+    /**
+     * Indique si ce bail a encore des loyers, paiements, documents ou
+     * demandes de paiement rattachés. Utilisé pour empêcher la suppression
+     * d'un bail en cours d'usage.
+     */
+    public function leaseHasRentsOrPayments(int $leaseId): bool
+    {
+        if ($leaseId <= 0) {
+            return true;
+        }
+
+        return $this->anyRowExists(
+            [
+            [$this->rentsTable(), 'rental_lease_id', false],
+            [$this->paymentsTable(), 'rental_lease_id', false],
+            [$this->documentsTable(), 'rental_lease_id', true],
+            [$this->generatedDocumentsTable(), 'rental_lease_id', true],
+            [$this->paymentRequestsTable(), 'rental_lease_id', false],
+            ],
+            $leaseId
+        );
+    }
+
+    /**
+     * @param array<int, array{0: string, 1: string, 2: bool}> $checks table, colonne, filtrer sur is_active=1
+     */
+    private function anyRowExists(array $checks, int $id): bool
+    {
+        try {
+            $this->ensureSchema();
+            $pdo = $this->database->pdo();
+            foreach ($checks as [$table, $column, $activeOnly]) {
+                $sql = sprintf('SELECT 1 FROM `%s` WHERE `%s` = :id', $table, $column);
+                if ($activeOnly) {
+                    $sql .= ' AND `is_active` = 1';
+                }
+                $statement = $pdo->prepare($sql . ' LIMIT 1');
+                $statement->execute(['id' => $id]);
+                if ($statement->fetchColumn() !== false) {
+                    return true;
+                }
+            }
+        } catch (\Throwable) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @param array<int, int> $propertyIds
      */
     public function deleteTenant(int $tenantId, array $propertyIds): bool

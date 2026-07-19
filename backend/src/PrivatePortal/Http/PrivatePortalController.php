@@ -103,7 +103,8 @@ final class PrivatePortalController
         private readonly ?ChargeRegularizationService $chargeRegularizationService = null,
         private readonly ?RentalDashboardService $rentalDashboardService = null,
         private readonly ?RentalExportService $rentalExportService = null,
-        private readonly ?BlocNoteRepository $blocNoteRepository = null
+        private readonly ?BlocNoteRepository $blocNoteRepository = null,
+        private readonly ?RentalLessorRepository $rentalLessorRepository = null
     ) {
     }
 
@@ -165,6 +166,9 @@ final class PrivatePortalController
                 $request,
                 ['format' => (string) ($routeParams['format'] ?? '')]
             ),
+            'rental_export_csv' => $this->rentalController()->handle('rental_export', $request, ['format' => 'csv']),
+            'rental_export_pdf' => $this->rentalController()->handle('rental_export', $request, ['format' => 'pdf']),
+            'rental_export_zip' => $this->rentalController()->handle('rental_export', $request, ['format' => 'zip']),
             'logout' => $this->handleLogout($request),
             'activate' => $this->handleActivate($request, (string) ($routeParams['token'] ?? '')),
             'password_forgot' => $this->handlePasswordForgot($request),
@@ -179,10 +183,6 @@ final class PrivatePortalController
                 $request,
                 (string) ($routeParams['documentId'] ?? '')
             ),
-            'rental_summary' => $this->handleRentalSummary($request),
-            'rental_export_csv' => $this->handleRentalExport($request, 'csv'),
-            'rental_export_pdf' => $this->handleRentalExport($request, 'pdf'),
-            'rental_export_zip' => $this->handleRentalExport($request, 'zip'),
             'tax_dashboard' => $this->handleTaxDashboard($request),
             'tax_year' => $this->handleTaxYear($request, (int) ($routeParams['year'] ?? 0)),
             'tax_manual_entries' => $this->handleTaxManualEntries($request, (int) ($routeParams['year'] ?? 0)),
@@ -395,198 +395,6 @@ final class PrivatePortalController
         return $this->redirect(private_portal_url('member_settings') . '?notice=profile_saved');
     }
 
-    private function handleRentalDashboard(Request $request): Response
-    {
-        $userId = $this->requireRentalModuleUser($request);
-        if ($userId instanceof Response) {
-            return $userId;
-        }
-
-        return $this->renderRentalDashboard($userId);
-    }
-
-    private function handleRentalLessors(Request $request): Response
-    {
-        $userId = $this->requireRentalModuleUser($request);
-        if ($userId instanceof Response) {
-            return $userId;
-        }
-
-        $query = $request->query();
-        $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
-        $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
-
-        if ($request->method() !== self::METHOD_POST) {
-            return $this->renderRentalLessors($userId, $notice, $error);
-        }
-
-        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
-            return $this->renderRentalLessors($userId, '', 'rental_invalid_request');
-        }
-
-        $body = $request->body();
-        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : 'create_lessor';
-        $lessorId = $this->normalizeNumericId($body['lessor_id'] ?? null);
-
-        if ($action === 'delete_lessor') {
-            $deleted = $this->rentalLessorRepository()->deleteForUser($lessorId, $userId);
-            $this->logEvent('private.rental_lessor.deleted', [
-                'private_user_id' => $userId,
-                'rental_lessor_id' => $lessorId,
-            ]);
-
-            return $this->redirect(private_portal_url('rental_lessors') . ($deleted ? '?notice=lessor_deleted' : '?error=lessor_delete_failed'));
-        }
-
-        $payload = [
-            'last_name' => is_string($body['last_name'] ?? null) ? (string) $body['last_name'] : '',
-            'first_name' => is_string($body['first_name'] ?? null) ? (string) $body['first_name'] : '',
-            'address' => is_string($body['address'] ?? null) ? (string) $body['address'] : '',
-            'phone' => is_string($body['phone'] ?? null) ? (string) $body['phone'] : '',
-            'email' => is_string($body['email'] ?? null) ? (string) $body['email'] : '',
-        ];
-
-        $saved = $action === 'update_lessor' && $lessorId > 0
-            ? $this->rentalLessorRepository()->update(
-                $lessorId,
-                $userId,
-                $payload['last_name'],
-                $payload['first_name'],
-                $payload['address'],
-                $payload['phone'],
-                $payload['email']
-            )
-            : $this->rentalLessorRepository()->create(
-                $userId,
-                $payload['last_name'],
-                $payload['first_name'],
-                $payload['address'],
-                $payload['phone'],
-                $payload['email']
-            );
-
-        if (!is_array($saved)) {
-            return $this->renderRentalLessors($userId, '', 'rental_write_failed');
-        }
-
-        $this->logEvent($action === 'update_lessor' ? 'private.rental_lessor.updated' : 'private.rental_lessor.created', [
-            'private_user_id' => $userId,
-            'rental_lessor_id' => (int) ($saved['id'] ?? 0),
-        ]);
-
-        return $this->redirect(private_portal_url('rental_lessors') . ($action === 'update_lessor' ? '?notice=lessor_updated' : '?notice=lessor_created'));
-    }
-
-    private function handleRentalProperties(Request $request): Response
-    {
-        $userId = $this->requireRentalModuleUser($request);
-        if ($userId instanceof Response) {
-            return $userId;
-        }
-
-        $body = $request->body();
-        $query = $request->query();
-        $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
-        $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
-
-        if ($request->method() !== self::METHOD_POST) {
-            return $this->renderRentalProperties($userId, $notice, $error);
-        }
-
-        $action = strtolower(trim((string) ($body['action'] ?? '')));
-        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
-            return $this->renderRentalProperties($userId, '', 'rental_invalid_request');
-        }
-
-        $status = $body['status'] ?? '';
-        $statusValue = is_string($status) ? strtolower(trim($status)) : '';
-        $propertyId = $this->normalizeNumericId($body['property_id'] ?? null);
-        $rentalLessorId = $this->normalizeNumericId($body['rental_lessor_id'] ?? null);
-        $createDefaultUnit = isset($body['create_default_unit']) && (int) $body['create_default_unit'] === 1;
-        $defaultUnitSurface = is_numeric($body['default_unit_surface'] ?? null)
-            ? (float) $body['default_unit_surface']
-            : 0.0;
-        $defaultUnitFurnished = isset($body['default_unit_furnished']) && (int) $body['default_unit_furnished'] === 1;
-        if ($rentalLessorId > 0 && $this->rentalLessorRepository()->findForUser($rentalLessorId, $userId) === null) {
-            return $this->renderRentalProperties($userId, '', 'property_forbidden');
-        }
-
-        if ($action === 'create_property') {
-            if ($createDefaultUnit && $defaultUnitSurface <= 0) {
-                return $this->renderRentalProperties($userId, '', 'rental_write_failed');
-            }
-
-            $created = $this->rentalPropertyRepository()->create(
-                $userId,
-                (string) ($body['name'] ?? ''),
-                (string) ($body['address'] ?? ''),
-                (string) ($body['property_type'] ?? ''),
-                (string) ($body['ownership_mode'] ?? ''),
-                $statusValue !== '' ? $statusValue : 'draft',
-                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
-                $rentalLessorId > 0 ? $rentalLessorId : null
-            );
-            if (!($created instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalProperty)) {
-                return $this->renderRentalProperties($userId, '', 'rental_write_failed');
-            }
-
-            $this->rentalPropertyMemberRepository()->create($created->id, $userId, 'owner', $userId);
-            if ($createDefaultUnit) {
-                $createdUnit = $this->rentalUnitRepository()->create(
-                    $created->id,
-                    'Maison entière',
-                    $defaultUnitSurface,
-                    $defaultUnitFurnished,
-                    'available',
-                    null,
-                    $userId,
-                    'house',
-                    (string) ($body['address'] ?? '')
-                );
-                if (!($createdUnit instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalUnit)) {
-                    return $this->renderRentalProperties($userId, '', 'rental_write_failed');
-                }
-            }
-
-            $this->logEvent('private.rental_property.created', [
-                'private_user_id' => $userId,
-                'rental_property_id' => $created->id,
-            ]);
-
-            return $this->redirect(private_portal_url('rental_properties') . '?notice=property_created');
-        }
-
-        if ($action === 'update_property' && $propertyId > 0) {
-            if (!$this->canWriteProperty($propertyId, $userId)) {
-                return $this->forbiddenOrUnauthorized(private_portal_url('rental_properties') . '?error=property_forbidden');
-            }
-
-            $updated = $this->rentalPropertyRepository()->update(
-                $propertyId,
-                $userId,
-                (string) ($body['name'] ?? ''),
-                (string) ($body['address'] ?? ''),
-                (string) ($body['property_type'] ?? ''),
-                (string) ($body['ownership_mode'] ?? ''),
-                $statusValue !== '' ? $statusValue : 'draft',
-                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
-                $rentalLessorId > 0 ? $rentalLessorId : null
-            );
-            if (!($updated instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalProperty)) {
-                return $this->renderRentalProperties($userId, '', 'rental_write_failed');
-            }
-
-            $this->logEvent('private.rental_property.updated', [
-                'private_user_id' => $userId,
-                'rental_property_id' => $propertyId,
-            ]);
-
-            return $this->redirect(private_portal_url('rental_properties') . '?notice=property_updated');
-        }
-
-        return $this->renderRentalProperties($userId, '', 'rental_invalid_request');
-    }
-
     private function handleRentalPropertyArchive(Request $request, int $propertyId): Response
     {
         $userId = $this->requireRentalModuleUser($request);
@@ -612,142 +420,6 @@ final class PrivatePortalController
         }
 
         return $this->renderRentalProperties($userId, '', 'rental_archive_failed');
-    }
-
-    private function handleRentalUnits(Request $request): Response
-    {
-        $userId = $this->requireRentalModuleUser($request);
-        if ($userId instanceof Response) {
-            return $userId;
-        }
-
-        $authorizedProperties = $this->authorizedPropertyIds($userId);
-        $units = $authorizedProperties === []
-            ? []
-            : $this->rentalUnitRepository()->listByPropertyIds($authorizedProperties, self::MAX_RENTAL_LIST);
-        $properties = $this->rentalPropertyRepository()->listByIds($authorizedProperties, self::MAX_RENTAL_LIST);
-
-        $body = $request->body();
-        $query = $request->query();
-        $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : '';
-        $error = is_string($query['error'] ?? null) ? (string) $query['error'] : '';
-
-        if ($request->method() !== self::METHOD_POST) {
-            return $this->renderRentalUnits($userId, $properties, $units, $notice, $error);
-        }
-
-        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL)) {
-            return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_invalid_request');
-        }
-
-        $action = strtolower(trim((string) ($body['action'] ?? '')));
-        $propertyId = $this->normalizeNumericId($body['rental_property_id'] ?? null);
-        $unitId = $this->normalizeNumericId($body['unit_id'] ?? null);
-        $surfaceRaw = is_numeric($body['surface'] ?? null) ? (float) $body['surface'] : 0.0;
-        $furnished = isset($body['furnished']) && (int) $body['furnished'] === 1;
-        $unitType = is_string($body['unit_type'] ?? null) ? (string) $body['unit_type'] : 'other';
-        $unitAddress = is_string($body['address'] ?? null) ? (string) $body['address'] : null;
-        $unitBuilding = is_string($body['building'] ?? null) ? (string) $body['building'] : null;
-        $unitFloor = is_string($body['floor'] ?? null) ? (string) $body['floor'] : null;
-        $unitDoor = is_string($body['door'] ?? null) ? (string) $body['door'] : null;
-        $unitDetails = $this->rentalUnitDetailsFromBody($body);
-        $unavailableUntil = is_string($body['unavailable_until'] ?? null) ? (string) $body['unavailable_until'] : null;
-
-        if (!$this->canWriteByPropertyId($propertyId, $userId)) {
-            return $this->renderRentalUnits($userId, $properties, $units, '', 'unit_forbidden');
-        }
-
-        if ($action === 'create_unit') {
-            $created = $this->rentalUnitRepository()->create(
-                $propertyId,
-                (string) ($body['label'] ?? ''),
-                $surfaceRaw,
-                $furnished,
-                strtolower(trim((string) ($body['status'] ?? 'available'))),
-                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
-                $userId,
-                $unitType,
-                $unitAddress,
-                $unitBuilding,
-                $unitFloor,
-                $unitDoor,
-                $unitDetails,
-                $unavailableUntil
-            );
-            if (!($created instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalUnit)) {
-                return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_write_failed');
-            }
-
-            $this->logEvent('private.rental_unit.created', [
-                'private_user_id' => $userId,
-                'rental_unit_id' => $created->id,
-                'rental_property_id' => $created->rentalPropertyId,
-            ]);
-
-            return $this->redirect(private_portal_url('rental_units') . '?notice=unit_created');
-        }
-
-        if ($action === 'update_unit' && $unitId > 0) {
-            $updated = $this->rentalUnitRepository()->update(
-                $unitId,
-                $userId,
-                $propertyId,
-                (string) ($body['label'] ?? ''),
-                $surfaceRaw,
-                $furnished,
-                strtolower(trim((string) ($body['status'] ?? 'available'))),
-                is_string($body['notes'] ?? null) ? (string) $body['notes'] : null,
-                $unitType,
-                $unitAddress,
-                $unitBuilding,
-                $unitFloor,
-                $unitDoor,
-                $unitDetails,
-                $unavailableUntil
-            );
-            if (!($updated instanceof \Caramagnols\PrivateApps\RealEstateRental\Domain\RentalUnit)) {
-                return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_write_failed');
-            }
-
-            $this->logEvent('private.rental_unit.updated', [
-                'private_user_id' => $userId,
-                'rental_unit_id' => $unitId,
-                'rental_property_id' => $propertyId,
-            ]);
-
-            return $this->redirect(private_portal_url('rental_units') . '?notice=unit_updated');
-        }
-
-        return $this->renderRentalUnits($userId, $properties, $units, '', 'rental_invalid_request');
-    }
-
-    private function handleRentalUnitArchive(Request $request, int $unitId): Response
-    {
-        $userId = $this->requireRentalModuleUser($request);
-        if ($userId instanceof Response || $request->method() !== self::METHOD_POST) {
-            return $userId instanceof Response ? $userId : $this->handleModuleAccessDenied('real_estate_rental');
-        }
-
-        if (!$this->guard()->validateCsrf($request, self::CSRF_RENTAL) || $unitId <= 0) {
-            return $this->forbiddenOrUnauthorized(private_portal_url('rental_units') . '?error=unit_forbidden');
-        }
-
-        $unit = $this->rentalUnitRepository()->findById($unitId);
-        if ($unit === null || !$this->canWriteByPropertyId($unit->rentalPropertyId, $userId)) {
-            return $this->forbiddenOrUnauthorized(private_portal_url('rental_units') . '?error=unit_forbidden');
-        }
-
-        if ($this->rentalUnitRepository()->archive($unitId, $userId)) {
-            $this->logEvent('private.rental_unit.archived', [
-                'private_user_id' => $userId,
-                'rental_unit_id' => $unitId,
-                'rental_property_id' => $unit->rentalPropertyId,
-            ]);
-
-            return $this->redirect(private_portal_url('rental_units') . '?notice=unit_archived');
-        }
-
-        return $this->redirect(private_portal_url('rental_units') . '?error=unit_archive_failed');
     }
 
     private function handleRentalPropertyMembers(Request $request): Response
@@ -2287,94 +1959,6 @@ final class PrivatePortalController
         ], $body));
     }
 
-    private function handleRentalSummary(Request $request): Response
-    {
-        $userId = $this->requireRentalModuleUser($request);
-        if ($userId instanceof Response) {
-            return $userId;
-        }
-
-        $propertyIds = $this->authorizedPropertyIds($userId);
-        $summary = $this->rentalAnnualSummaryService()->build($this->yearFromRequest($request), $propertyIds);
-
-        return $this->renderRentalSummary(
-            $summary,
-            $this->objectsToArrays($this->rentalPropertyRepository()->listByIds($propertyIds, self::MAX_RENTAL_LIST)),
-            $this->rentalLifecycleRepository()->listTenants($propertyIds, self::MAX_RENTAL_LIST)
-        );
-    }
-
-    private function handleRentalExport(Request $request, string $format): Response
-    {
-        $userId = $this->requireRentalModuleUser($request);
-        if ($userId instanceof Response) {
-            return $userId;
-        }
-
-        $year = $this->yearFromRequest($request);
-        $query = $request->query();
-        $kind = is_string($query['kind'] ?? null) ? (string) $query['kind'] : 'summary_' . $format;
-        $propertyId = $this->normalizeNumericId($query['property_id'] ?? null);
-        $tenantId = $this->normalizeNumericId($query['tenant_id'] ?? null);
-        $export = $this->rentalExportService()->create(
-            $userId,
-            $year,
-            $kind,
-            $this->authorizedPropertyIds($userId),
-            $propertyId > 0 ? $propertyId : null,
-            $tenantId > 0 ? $tenantId : null
-        );
-        if (($export['error'] ?? '') === 'draft_data') {
-            $this->logEvent('private.rental_export.rejected', [
-                'private_user_id' => $userId,
-                'year' => $year,
-                'format' => $format,
-                'reason' => 'draft_data',
-            ]);
-
-            return $this->withPrivateHeaders(new Response(
-                409,
-                ['Content-Type' => 'text/plain; charset=UTF-8'],
-                'Export bloque : donnees locatives brouillon.'
-            ));
-        }
-        if (!($export['success'] ?? false)) {
-            $this->logEvent('private.rental_export.rejected', [
-                'private_user_id' => $userId,
-                'year' => $year,
-                'format' => $format,
-                'kind' => $kind,
-                'reason' => (string) ($export['error'] ?? 'export_failed'),
-            ]);
-
-            $status = ($export['error'] ?? '') === 'forbidden' ? 403 : 422;
-
-            return $this->withPrivateHeaders(new Response(
-                $status,
-                ['Content-Type' => 'text/plain; charset=UTF-8'],
-                $status === 403 ? 'Export refuse.' : 'Export locatif impossible.'
-            ));
-        }
-
-        $this->logEvent('private.rental_export.created', [
-            'private_user_id' => $userId,
-            'year' => $year,
-            'format' => (string) ($export['format'] ?? $format),
-            'kind' => (string) ($export['kind'] ?? $kind),
-        ]);
-
-        $content = is_string($export['content'] ?? null) ? (string) $export['content'] : '';
-        $filename = $this->sanitizeDownloadFilename((string) ($export['filename'] ?? ('export-locatif.' . $format)));
-        $mimeType = is_string($export['mimeType'] ?? null) ? (string) $export['mimeType'] : 'application/octet-stream';
-        $this->rentalExportService()->cleanup($export);
-
-        return $this->withPrivateHeaders(new Response(200, [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'attachment; filename="' . str_replace('"', '', $filename) . '"',
-            'X-Content-Type-Options' => 'nosniff',
-        ], $content));
-    }
-
     private function handleTaxDashboard(Request $request): Response
     {
         $userId = $this->requireTaxModuleUser($request);
@@ -3358,20 +2942,6 @@ final class PrivatePortalController
         return is_string($body['full_name'] ?? null) ? (string) $body['full_name'] : '';
     }
 
-    private function renderRentalLessors(int $userId, string $notice = '', string $error = ''): Response
-    {
-        $lessors = $this->rentalLessorRepository()->listForUser($userId, self::MAX_RENTAL_LIST);
-
-        return $this->render('modules/real-estate-rental/lessors', array_merge(
-            $this->rentalBaseViewModel('Bailleurs', $notice, $error),
-            [
-                'rentalCurrentSection' => 'personal',
-                'rentalCurrentSubsection' => 'lessors',
-                'rentalLessors' => $lessors,
-            ]
-        ));
-    }
-
     /**
      * @param array<int, object> $properties
      * @param array<int, object> $units
@@ -3705,23 +3275,6 @@ final class PrivatePortalController
      * @param array<string, mixed> $summary
      */
     /**
-     * @param array<string, mixed> $summary
-     * @param array<int, array<string, mixed>> $properties
-     * @param array<int, array<string, mixed>> $tenants
-     */
-    private function renderRentalSummary(array $summary, array $properties = [], array $tenants = []): Response
-    {
-        return $this->render('modules/real-estate-rental/summary', array_merge(
-            $this->rentalBaseViewModel('Synthèse annuelle locative', '', ''),
-            [
-                'rentalCurrentSection' => 'reports',
-                'rentalCurrentSubsection' => 'summary',
-                'rentalSummary' => $summary,
-                'rentalProperties' => $properties,
-                'rentalTenants' => $tenants,
-            ]
-        ));
-    }
 
     private function renderTaxYear(int $userId, int $year, string $notice = '', string $error = ''): Response
     {
@@ -5590,7 +5143,7 @@ final class PrivatePortalController
 
     private function rentalLessorRepository(): RentalLessorRepository
     {
-        return new RentalLessorRepository(editorial_database());
+        return $this->rentalLessorRepository ?? new RentalLessorRepository(editorial_database());
     }
 
     private function rentalPropertyMemberRepository(): RentalPropertyMemberRepository

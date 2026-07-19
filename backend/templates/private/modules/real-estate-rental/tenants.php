@@ -163,6 +163,7 @@ $createDialogId = 'rental-tenant-create-dialog';
               <input type="hidden" name="tenant_id" value="<?php echo htmlspecialchars((string) $tenantId, ENT_QUOTES, 'UTF-8'); ?>" />
               <button type="submit" class="private-button-danger">Supprimer</button>
             </form>
+            <p class="muted">La suppression n'est possible que si ce locataire n'a plus aucun bail rattaché.</p>
           </div>
         </dialog>
       <?php endforeach; ?>

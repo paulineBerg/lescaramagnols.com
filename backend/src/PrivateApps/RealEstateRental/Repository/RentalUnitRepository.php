@@ -229,6 +229,55 @@ final class RentalUnitRepository
         return $this->findById($id);
     }
 
+    /**
+     * Indique si cette propriété a encore au moins un bien locatif actif.
+     */
+    public function hasActiveForProperty(int $propertyId): bool
+    {
+        if ($propertyId <= 0) {
+            return true;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT 1 FROM `%s` WHERE `rental_property_id` = :id AND `is_active` = 1 LIMIT 1',
+                    $this->table()
+                )
+            );
+            $statement->execute(['id' => $propertyId]);
+
+            return $statement->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
+    /**
+     * Suppression définitive d'un bien locatif. L'appelant doit s'être
+     * assuré au préalable (hasDependents ailleurs) qu'aucun locataire, bail
+     * ou document n'y est plus rattaché.
+     */
+    public function delete(int $unitId, int $actorPrivateUserId): bool
+    {
+        if ($unitId <= 0 || $actorPrivateUserId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf('DELETE FROM `%s` WHERE `id` = :id', $this->table())
+            );
+            $statement->execute(['id' => $unitId]);
+
+            return $statement->rowCount() > 0;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public function archive(int $unitId, int $actorPrivateUserId): bool
     {
         if ($unitId <= 0 || $actorPrivateUserId <= 0) {

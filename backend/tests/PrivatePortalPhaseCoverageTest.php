@@ -6,6 +6,10 @@ use Caramagnols\Admin\AdminController;
 use Caramagnols\Admin\AdminRouteResolver;
 use Caramagnols\Blog\BlogApiController;
 use Caramagnols\Blog\BlogSaveService;
+use Caramagnols\PrivatePortal\Http\PrivatePortalController;
+use Caramagnols\PrivatePortal\Http\PrivateRouteResolver;
+use Caramagnols\PrivatePortal\Security\PrivateAuth;
+use Caramagnols\PrivatePortal\Security\PrivateSession;
 use Caramagnols\Http\FrontController;
 use Caramagnols\Http\Request;
 use Caramagnols\Logging\AppEventLogger;
@@ -253,17 +257,26 @@ final class PrivatePortalPhaseCoverageTest extends TestCase
 
     private function frontController(): FrontController
     {
-        $routeResolver = new AdminRouteResolver('admin');
+        $adminRouteResolver = new AdminRouteResolver('admin');
         $logger = new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
 
+        // Le portail privé est injecté explicitement pour que le test ne
+        // dépende pas de private_portal_enabled() dans la config globale.
+        $privateAuth = new PrivateAuth(
+            new PrivateSession((string) app_config('private.session_name', 'caramagnols_private')),
+            $logger
+        );
+
         return new FrontController(
-            $routeResolver,
-            new AdminController($routeResolver),
+            $adminRouteResolver,
+            new AdminController($adminRouteResolver),
             new BlogApiController(
                 new BlogSaveService(blog_repository(), $logger),
                 $logger
             ),
-            $logger
+            $logger,
+            new PrivateRouteResolver('private'),
+            new PrivatePortalController($privateAuth, null, $logger)
         );
     }
 }

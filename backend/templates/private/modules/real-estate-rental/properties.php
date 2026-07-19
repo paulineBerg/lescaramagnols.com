@@ -202,6 +202,13 @@ $createDialogId = 'rental-property-create-dialog';
               <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
               <button type="submit" class="private-button-danger">Archiver</button>
             </form>
+            <form method="post" action="<?php echo htmlspecialchars($propertiesUrl, ENT_QUOTES, 'UTF-8'); ?>">
+              <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
+              <input type="hidden" name="action" value="delete_property" />
+              <input type="hidden" name="property_id" value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" />
+              <button type="submit" class="private-button-danger">Supprimer</button>
+            </form>
+            <p class="muted">La suppression n'est possible que si cette propriété n'a plus aucun bien locatif, locataire, bail ou document rattaché.</p>
           </div>
         </dialog>
       <?php endforeach; ?>
@@ -219,14 +226,18 @@ $createDialogId = 'rental-property-create-dialog';
         <input type="hidden" name="action" value="create_property" />
         <label>Nom <input type="text" name="name" maxlength="160" required /></label>
         <label>Adresse <input type="text" name="address" maxlength="255" required /></label>
-        <label>Bailleur
-          <select name="rental_lessor_id">
-            <option value="">Aucun bailleur rattaché</option>
-            <?php foreach ($lessorNames as $id => $name): ?>
-              <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
-            <?php endforeach; ?>
-          </select>
-        </label>
+        <?php if ($lessorNames === []): ?>
+          <p class="notice notice-error">Créez d'abord un <a href="<?php echo htmlspecialchars((string) ($urls['lessors'] ?? private_portal_url('rental_lessors')), ENT_QUOTES, 'UTF-8'); ?>">bailleur</a> : chaque propriété doit être rattachée à un bailleur.</p>
+        <?php else: ?>
+          <label>Bailleur
+            <select name="rental_lessor_id" required>
+              <option value="">Choisir un bailleur</option>
+              <?php foreach ($lessorNames as $id => $name): ?>
+                <option value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($name, ENT_QUOTES, 'UTF-8'); ?></option>
+              <?php endforeach; ?>
+            </select>
+          </label>
+        <?php endif; ?>
         <label>Type
           <select name="property_type" required>
             <option value="">Choisir un type</option>

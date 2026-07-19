@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Caramagnols\Http\Request;
+use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLessorRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalLifecycleRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyMemberRepository;
 use Caramagnols\PrivateApps\RealEstateRental\Repository\RentalPropertyRepository;
@@ -459,11 +460,17 @@ final class RealEstateRentalModuleTest extends TestCase
         $ownerId = $this->createPrivateUser($userRepository, 'whole-house@example.com');
         $this->assertTrue($moduleRepository->setUserModules($ownerId, ['real_estate_rental'], 'admin@example.com'));
 
+        $lessorRepository = new RentalLessorRepository($database);
+        $lessor = $lessorRepository->create($ownerId, 'Dupont', 'Jean', '', '', '');
+        $this->assertIsArray($lessor);
+        $lessorId = (int) $lessor['id'];
+
         $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
             auth: $this->privateAuth($userRepository, 'whole-house@example.com'),
             privateUserRepository: $userRepository,
             modulePermissionRepository: $moduleRepository,
             rentalPropertyRepository: $propertyRepository,
+            rentalLessorRepository: $lessorRepository,
             rentalPropertyMemberRepository: $memberRepository,
             rentalUnitRepository: $unitRepository
         );
@@ -478,6 +485,7 @@ final class RealEstateRentalModuleTest extends TestCase
                 'property_type' => 'Maison',
                 'ownership_mode' => 'Pleine propriété',
                 'status' => 'active',
+                'rental_lessor_id' => (string) $lessorId,
                 'create_default_unit' => '1',
                 'default_unit_surface' => '88.50',
                 'default_unit_furnished' => '1',

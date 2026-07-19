@@ -270,6 +270,38 @@ final class RentalPropertyRepository
         return $this->findById($propertyId);
     }
 
+    /**
+     * Suppression définitive d'une propriété. L'appelant doit s'être assuré
+     * au préalable (hasDependents ailleurs) qu'aucun bien locatif, locataire,
+     * bail ou document n'y est plus rattaché.
+     */
+    public function delete(int $propertyId, int $actorUserId): bool
+    {
+        if ($propertyId <= 0 || $actorUserId <= 0) {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $pdo = $this->database->pdo();
+            $statement = $pdo->prepare(
+                sprintf('DELETE FROM `%s` WHERE `id` = :id', $this->table())
+            );
+            $statement->execute(['id' => $propertyId]);
+            $deleted = $statement->rowCount() > 0;
+
+            if ($deleted) {
+                $pdo->prepare(
+                    sprintf('DELETE FROM `%s` WHERE `rental_property_id` = :id', $this->database->table('rental_property_members'))
+                )->execute(['id' => $propertyId]);
+            }
+
+            return $deleted;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     public function archive(int $propertyId, int $actorUserId): bool
     {
         if ($propertyId <= 0 || $actorUserId <= 0) {

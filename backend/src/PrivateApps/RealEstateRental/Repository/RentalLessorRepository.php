@@ -116,6 +116,33 @@ final class RentalLessorRepository
         return $this->save($lessorId, $privateUserId, $lastName, $firstName, $address, $phone, $email);
     }
 
+    /**
+     * Indique si ce bailleur est encore rattaché à au moins une propriété
+     * active. Utilisé pour empêcher la suppression d'un bailleur en cours
+     * d'usage.
+     */
+    public function hasLinkedProperties(int $lessorId): bool
+    {
+        if ($lessorId <= 0) {
+            return true;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT 1 FROM `%s` WHERE `rental_lessor_id` = :id AND `is_active` = 1 LIMIT 1',
+                    $this->database->table('rental_properties')
+                )
+            );
+            $statement->execute(['id' => $lessorId]);
+
+            return $statement->fetchColumn() !== false;
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
     public function deleteForUser(int $lessorId, int $privateUserId): bool
     {
         if ($lessorId <= 0 || $privateUserId <= 0) {

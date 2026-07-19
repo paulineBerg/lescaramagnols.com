@@ -84,8 +84,9 @@ $createDialogId = 'rental-lessor-create-dialog';
               <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>" />
               <input type="hidden" name="action" value="delete_lessor" />
               <input type="hidden" name="lessor_id" value="<?php echo htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8'); ?>" />
-              <button class="private-button-danger" type="submit">Archiver</button>
+              <button class="private-button-danger" type="submit">Supprimer</button>
             </form>
+            <p class="muted">La suppression n'est possible que si ce bailleur n'est rattaché à aucune propriété active.</p>
           <?php endif; ?>
         </div>
       </dialog>
