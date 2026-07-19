@@ -2032,6 +2032,9 @@ final class AdminController
 
         $filters = $filterState['filters'];
 
+        $page = (int) ($request->query()['page'] ?? 1);
+        $page = max(1, $page);
+
         if ($request->method() === 'POST') {
             $body = $request->body();
             $token = $body['csrf_token'] ?? '';
@@ -2106,7 +2109,7 @@ final class AdminController
                 'csrfToken' => admin_csrf_token(),
                 'message' => $message,
                 'error' => $error,
-                'logsView' => $this->logService->viewModel($filters),
+                'logsView' => $this->logService->viewModel($filters, $page),
                 'logsResetUrl' => $this->buildFilterResetUrl($this->routeResolver->canonicalPath('logs')),
             ]
         );

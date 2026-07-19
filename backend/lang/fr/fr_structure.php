@@ -14,11 +14,11 @@ return [
     //---------------------------------------------------------
     'TXT_BANNIERE'                  => 'VOYAGE DANS LE GOLFE DE SAINT-TROPEZ ET NOS VOITURES DE COLLECTION',
     'TXT_MENUGAUCHE'                => 'NOS VOITURES',
-    'TXT_MENUDROIT'                 => 'PAR MARQUE',  
-    'MENU_RECHERCHER'               => 'Rechercher',    
-    'MENU_RECHERCHE'                => 'Recherche',       
+    'TXT_MENUDROIT'                 => 'PAR MARQUE',
+    'MENU_RECHERCHER'               => 'Rechercher',
+    'MENU_RECHERCHE'                => 'Recherche',
     'MENU_ACCUEIL'                  => 'ACCUEIL',
-//autoretro    
+//autoretro
     'MENU_AUTORETRO'                => 'AUTO-RETRO',
     'MENU_STORY'                    => 'Il était une fois...',
     'MENU_SIMCA'                    => 'Simca',
@@ -591,6 +591,12 @@ return [
     'TXT_ADMIN_COMMON_AUTHOR' => 'Auteur',
     'TXT_ADMIN_COMMON_MESSAGE' => 'Message',
     'TXT_ADMIN_COMMON_DATES' => 'Dates',
+    'TXT_ADMIN_COMMON_PAGINATION' => 'Pagination',
+    'TXT_ADMIN_COMMON_PAGINATION_INFO' => 'Page %d sur %d (%d résultats)',
+    'TXT_ADMIN_COMMON_PREVIOUS_PAGE' => 'Page précédente',
+    'TXT_ADMIN_COMMON_PREVIOUS' => 'Précédent',
+    'TXT_ADMIN_COMMON_NEXT_PAGE' => 'Page suivante',
+    'TXT_ADMIN_COMMON_NEXT' => 'Suivant',
     'TXT_ADMIN_PAGES_REGISTRY_TITLE' => 'Registre éditorial',
     'TXT_ADMIN_PAGES_REGISTRY_BODY' => 'Le registre éditorial pilote les pages structurées. Selon la configuration, il est servi depuis JSON, SQL ou double écriture. Le workflow brouillon / publié est porté ici.',
     'TXT_ADMIN_PAGES_CREATE' => 'Créer une page',

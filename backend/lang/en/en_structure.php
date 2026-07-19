@@ -14,11 +14,11 @@ return [
     //---------------------------------------------------------
     'TXT_BANNIERE'                  => 'JOURNEY IN THE GULF OF SAINT-TROPEZ AND OUR CLASSIC CARS',
     'TXT_MENUGAUCHE'                => 'OUR CARS',
-    'TXT_MENUDROIT'                 => 'BY BRAND',  
-    'MENU_RECHERCHER'               => 'Search',    
-    'MENU_RECHERCHE'                => 'Search',       
+    'TXT_MENUDROIT'                 => 'BY BRAND',
+    'MENU_RECHERCHER'               => 'Search',
+    'MENU_RECHERCHE'                => 'Search',
     'MENU_ACCUEIL'                  => 'HOME',
-//autoretro    
+//autoretro
     'MENU_AUTORETRO'                => 'AUTO-RETRO',
     'MENU_STORY'                    => 'Once upon a time...',
     'MENU_SIMCA'                    => 'Simca',
@@ -591,6 +591,12 @@ return [
     'TXT_ADMIN_COMMON_AUTHOR' => 'Author',
     'TXT_ADMIN_COMMON_MESSAGE' => 'Message',
     'TXT_ADMIN_COMMON_DATES' => 'Dates',
+    'TXT_ADMIN_COMMON_PAGINATION' => 'Pagination',
+    'TXT_ADMIN_COMMON_PAGINATION_INFO' => 'Page %d of %d (%d results)',
+    'TXT_ADMIN_COMMON_PREVIOUS_PAGE' => 'Previous page',
+    'TXT_ADMIN_COMMON_PREVIOUS' => 'Previous',
+    'TXT_ADMIN_COMMON_NEXT_PAGE' => 'Next page',
+    'TXT_ADMIN_COMMON_NEXT' => 'Next',
     'TXT_ADMIN_PAGES_REGISTRY_TITLE' => 'Editorial registry',
     'TXT_ADMIN_PAGES_REGISTRY_BODY' => 'The editorial registry drives structured pages. Depending on configuration, it is served from JSON, SQL or dual write. The draft / published workflow lives here.',
     'TXT_ADMIN_PAGES_CREATE' => 'Create a page',

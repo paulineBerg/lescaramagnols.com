@@ -14,11 +14,11 @@ return [
     //---------------------------------------------------------
     'TXT_BANNIERE'                  => 'REISE IN DEN GOLF VON SAINT-TROPEZ UND UNSERE SAMMLERAUTOS',
     'TXT_MENUGAUCHE'                => 'UNSERE AUTOS',
-    'TXT_MENUDROIT'                 => 'NACH MARKE',  
-    'MENU_RECHERCHER'               => 'Suchen',    
-    'MENU_RECHERCHE'                => 'Suche',       
+    'TXT_MENUDROIT'                 => 'NACH MARKE',
+    'MENU_RECHERCHER'               => 'Suchen',
+    'MENU_RECHERCHE'                => 'Suche',
     'MENU_ACCUEIL'                  => 'STARTSEITE',
-//autoretro    
+//autoretro
     'MENU_AUTORETRO'                => 'AUTO-RETRO',
     'MENU_STORY'                    => 'Es war einmal...',
     'MENU_SIMCA'                    => 'Simca',
@@ -589,6 +589,12 @@ return [
     'TXT_ADMIN_COMMON_AUTHOR' => 'Autor',
     'TXT_ADMIN_COMMON_MESSAGE' => 'Nachricht',
     'TXT_ADMIN_COMMON_DATES' => 'Daten',
+    'TXT_ADMIN_COMMON_PAGINATION' => 'Seitenumbruch',
+    'TXT_ADMIN_COMMON_PAGINATION_INFO' => 'Seite %d von %d (%d Ergebnisse)',
+    'TXT_ADMIN_COMMON_PREVIOUS_PAGE' => 'Vorherige Seite',
+    'TXT_ADMIN_COMMON_PREVIOUS' => 'Zurück',
+    'TXT_ADMIN_COMMON_NEXT_PAGE' => 'Nächste Seite',
+    'TXT_ADMIN_COMMON_NEXT' => 'Weiter',
     'TXT_ADMIN_PAGES_REGISTRY_TITLE' => 'Editorial-Register',
     'TXT_ADMIN_PAGES_REGISTRY_BODY' => 'Das Editorial-Register steuert strukturierte Seiten. Je nach Konfiguration wird es aus JSON, SQL oder Doppel-Schreiben bereitgestellt. Der Entwurf / Veroeffentlicht-Workflow lebt hier.',
     'TXT_ADMIN_PAGES_CREATE' => 'Seite erstellen',

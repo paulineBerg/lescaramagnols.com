@@ -98,21 +98,24 @@ final class SqlLogStore
      * @param array<string, mixed> $filters
      * @return array<int, array{id: int, channel: string, level: string, event: string, context: array<string, mixed>, contextJson: string, createdAt: string, stream: string, application: string, module: string, requestId: string, correlationId: string, errorFingerprint: string}>
      */
-    public function listEntries(array $filters = [], int $limit = 200): array
+    public function listEntries(array $filters = [], int $limit = 200, int $offset = 0): array
     {
         try {
             $this->database->ensureReady();
             $query = $this->buildFilterQuery($filters);
+            $normalizedLimit = min(500, max(1, $limit));
+            $normalizedOffset = max(0, $offset);
             $statement = $this->database->pdo()->prepare(
                 sprintf(
                     'SELECT `id`, `channel`, `level`, `event`, `context_json`, `created_at`
                         , `stream`, `application`, `module`, `request_id`, `correlation_id`, `error_fingerprint`
                      FROM `%s`%s
                      ORDER BY `occurred_at` DESC, `id` DESC
-                     LIMIT %d',
+                     LIMIT %d OFFSET %d',
                     $this->database->table('log_entries'),
                     $query['where'],
-                    min(500, max(1, $limit))
+                    $normalizedLimit,
+                    $normalizedOffset
                 )
             );
             $statement->execute($query['params']);

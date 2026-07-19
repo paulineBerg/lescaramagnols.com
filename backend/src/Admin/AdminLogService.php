@@ -32,26 +32,53 @@ final class AdminLogService
     }
 
     /**
+     * @param array<string, mixed> $input
+     * @return array{q: string, channel: string, level: string, date_from: string, date_to: string, page: int}
+     */
+    public function normalizeFiltersWithPage(array $input): array
+    {
+        $filters = $this->normalizeFilters($input);
+        $page = $this->normalizePage((int) ($input['page'] ?? 1));
+        $filters['page'] = $page;
+
+        return $filters;
+    }
+
+    private function normalizePage(int $page): int
+    {
+        return max(1, $page);
+    }
+
+    /**
      * @param array<string, mixed> $filters
      * @return array<string, mixed>
      */
-    public function viewModel(array $filters = []): array
+    public function viewModel(array $filters = [], ?int $page = null): array
     {
         $filters = $this->normalizeFilters($filters);
         $storageAvailable = $this->store->isAvailable();
-        $entries = $storageAvailable ? $this->store->listEntries($filters, $this->limit) : [];
+
+        $normalizedPage = $page !== null ? max(1, (int) $page) : 1;
+        $offset = ($normalizedPage - 1) * $this->limit;
+
+        $entries = $storageAvailable ? $this->store->listEntries($filters, $this->limit, $offset) : [];
+        $filteredCount = $storageAvailable ? $this->store->countEntries($filters) : 0;
 
         return [
             'filters' => $filters,
             'entries' => $entries,
             'availableChannels' => $storageAvailable ? $this->store->listChannels() : [],
             'availableLevels' => $storageAvailable ? $this->store->listLevels() : [],
-            'filteredCount' => $storageAvailable ? $this->store->countEntries($filters) : 0,
+            'filteredCount' => $filteredCount,
             'totalCount' => $storageAvailable ? $this->store->countEntries([]) : 0,
             'storageAvailable' => $storageAvailable,
             'storageMessage' => $storageAvailable ? null : 'Le stockage SQL des logs est indisponible.',
             'hasActiveFilters' => $this->hasActiveFilters($filters),
             'limit' => $this->limit,
+            'page' => $normalizedPage,
+            'totalPages' => $filteredCount > 0 ? (int) ceil($filteredCount / $this->limit) : 0,
+            'hasPreviousPage' => $normalizedPage > 1,
+            'hasNextPage' => $filteredCount > ($normalizedPage * $this->limit),
         ];
     }
 

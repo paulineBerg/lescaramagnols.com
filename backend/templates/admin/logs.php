@@ -15,6 +15,10 @@ $hasActiveFilters = (bool) ($logsView['hasActiveFilters'] ?? false);
 $filteredCount = (int) ($logsView['filteredCount'] ?? 0);
 $totalCount = (int) ($logsView['totalCount'] ?? 0);
 $limit = (int) ($logsView['limit'] ?? 200);
+$page = (int) ($logsView['page'] ?? 1);
+$totalPages = (int) ($logsView['totalPages'] ?? 0);
+$hasPreviousPage = (bool) ($logsView['hasPreviousPage'] ?? false);
+$hasNextPage = (bool) ($logsView['hasNextPage'] ?? false);
 $storageMessage = is_string($logsView['storageMessage'] ?? null) ? $logsView['storageMessage'] : null;
 $cronLogsUrl = (string) ($adminLogsUrl ?? admin_url('logs')) . '?q=cron.';
 $translate = static function (string $key, string $fallback): string {
@@ -119,6 +123,15 @@ $renderFilterFields = static function (array $currentFilters) use ($escape): voi
     foreach ($currentFilters as $name => $value) {
         echo '<input type="hidden" name="filters[' . $escape((string) $name) . ']" value="' . $escape((string) $value) . '" />';
     }
+};
+
+$buildFilterQuery = static function (array $filters) use ($escape): string {
+    $filtered = array_filter($filters, static fn ($v) => $v !== '');
+    if ($filtered === []) {
+        return '';
+    }
+    $query = http_build_query($filtered);
+    return $query !== '' ? '&' . $query : '';
 };
 $formatContextSummary = static function (array $context) use ($translate): string {
     if ($context === []) {
@@ -250,6 +263,7 @@ foreach ($entries as $entry) {
       <form method="post" action="<?php echo $escape((string) ($adminLogsUrl ?? admin_url('logs'))); ?>">
         <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
         <input type="hidden" name="log_action" value="purge_filtered" />
+        <input type="hidden" name="page" value="<?php echo $escape((string) $page); ?>" />
         <?php $renderFilterFields($filters); ?>
         <button class="button-danger" type="submit"><?php echo $escape($translate('TXT_ADMIN_LOGS_DELETE_FILTERED_RESULTS', 'Supprimer les résultats filtrés')); ?></button>
       </form>
@@ -276,6 +290,7 @@ foreach ($entries as $entry) {
   <h2><?php echo $escape($translate('TXT_ADMIN_COMMON_FILTERS', 'Filtres')); ?></h2>
 
   <form class="admin-form-grid admin-logs-filters-grid" method="get" action="<?php echo $escape((string) ($adminLogsUrl ?? admin_url('logs'))); ?>">
+    <input type="hidden" name="page" value="1" />
     <div class="field admin-logs-filters-search">
       <label for="logs-q"><?php echo $escape($translate('TXT_ADMIN_COMMON_SEARCH', 'Recherche')); ?></label>
       <input id="logs-q" name="q" type="text" value="<?php echo $escape((string) ($filters['q'] ?? '')); ?>" placeholder="<?php echo $escape($translate('TXT_ADMIN_LOGS_SEARCH_PLACEHOLDER', 'événement, acteur, URI, slug')); ?>" />
@@ -334,6 +349,7 @@ foreach ($entries as $entry) {
   >
     <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
     <input type="hidden" name="log_action" value="delete_selected" />
+    <input type="hidden" name="page" value="<?php echo $escape((string) $page); ?>" />
     <?php $renderFilterFields($filters); ?>
 
     <div class="log-selection-toolbar">
@@ -432,6 +448,7 @@ foreach ($entries as $entry) {
               <input type="hidden" name="csrf_token" value="<?php echo $escape((string) ($csrfToken ?? '')); ?>" />
               <input type="hidden" name="log_action" value="delete_selected" />
               <input type="hidden" name="log_ids[]" value="<?php echo $entryId; ?>" />
+              <input type="hidden" name="page" value="<?php echo $escape((string) $page); ?>" />
               <?php $renderFilterFields($filters); ?>
               <button class="button-danger button-small" type="submit"><?php echo $escape($translate('TXT_ADMIN_COMMON_DELETE', 'Supprimer')); ?></button>
             </form>
@@ -441,6 +458,80 @@ foreach ($entries as $entry) {
       </tbody>
     </table>
   </div>
+  <?php endif; ?>
+
+  <?php if ($totalPages > 1): ?>
+  <nav class="pagination" aria-label="<?php echo $escape($translate('TXT_ADMIN_COMMON_PAGINATION', 'Pagination')); ?>">
+    <ul class="pagination-list">
+      <?php if ($hasPreviousPage): ?>
+      <li class="pagination-item">
+        <a
+          class="pagination-link pagination-link--previous"
+          href="<?php echo $escape((string) ($adminLogsUrl ?? admin_url('logs')) . '?page=' . max(1, $page - 1) . $buildFilterQuery($filters)); ?>"
+          aria-label="<?php echo $escape($translate('TXT_ADMIN_COMMON_PREVIOUS_PAGE', 'Page précédente')); ?>"
+        >
+          <?php echo $escape($translate('TXT_ADMIN_COMMON_PREVIOUS', 'Précédent')); ?>
+        </a>
+      </li>
+      <?php endif; ?>
+
+      <?php
+      $maxVisiblePages = 5;
+      $halfVisible = (int) floor($maxVisiblePages / 2);
+      $startPage = max(1, min($page - $halfVisible, $totalPages - $maxVisiblePages + 1));
+      $endPage = min($totalPages, $startPage + $maxVisiblePages - 1);
+
+      if ($startPage > 1) {
+          echo '<li class="pagination-item"><a class="pagination-link" href="' . $escape((string) ($adminLogsUrl ?? admin_url('logs')) . '?page=1' . $buildFilterQuery($filters)) . '">1</a></li>';
+          if ($startPage > 2) {
+              echo '<li class="pagination-item pagination-item--ellipsis"><span>...</span></li>';
+          }
+      }
+
+      for ($p = $startPage; $p <= $endPage; $p++):
+      ?>
+      <li class="pagination-item <?php echo $p === $page ? 'pagination-item--active' : ''; ?>">
+        <a
+          class="pagination-link <?php echo $p === $page ? 'pagination-link--active' : ''; ?>"
+          href="<?php echo $escape((string) ($adminLogsUrl ?? admin_url('logs')) . '?page=' . $p . $buildFilterQuery($filters)); ?>"
+          aria-current="<?php echo $p === $page ? 'page' : ''; ?>"
+        >
+          <?php echo $p; ?>
+        </a>
+      </li>
+      <?php endfor; ?>
+
+      <?php
+      if ($endPage < $totalPages) {
+          if ($endPage < $totalPages - 1) {
+              echo '<li class="pagination-item pagination-item--ellipsis"><span>...</span></li>';
+          }
+          echo '<li class="pagination-item"><a class="pagination-link" href="' . $escape((string) ($adminLogsUrl ?? admin_url('logs')) . '?page=' . $totalPages . $buildFilterQuery($filters)) . '">' . $totalPages . '</a></li>';
+      }
+      ?>
+
+      <?php if ($hasNextPage): ?>
+      <li class="pagination-item">
+        <a
+          class="pagination-link pagination-link--next"
+          href="<?php echo $escape((string) ($adminLogsUrl ?? admin_url('logs')) . '?page=' . ($page + 1) . $buildFilterQuery($filters)); ?>"
+          aria-label="<?php echo $escape($translate('TXT_ADMIN_COMMON_NEXT_PAGE', 'Page suivante')); ?>"
+        >
+          <?php echo $escape($translate('TXT_ADMIN_COMMON_NEXT', 'Suivant')); ?>
+        </a>
+      </li>
+      <?php endif; ?>
+    </ul>
+  </nav>
+  <p class="pagination-info notice-muted">
+    <?php echo $escape($translateFormat(
+        'TXT_ADMIN_COMMON_PAGINATION_INFO',
+        'Page %d sur %d (%d résultats)',
+        $page,
+        $totalPages,
+        $filteredCount
+    )); ?>
+  </p>
   <?php endif; ?>
 </section>
 
