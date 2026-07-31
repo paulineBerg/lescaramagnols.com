@@ -1,21 +1,45 @@
 # Tâche en cours
 
-## Demande originale
+## Identité
 
+- ID :
+- Demande originale :
+- Projet et périmètre :
+- Hors périmètre :
 
-## Projet et périmètre
+## Sources de vérité et état initial
 
+- `AGENTS.md` et guides chargés :
+- Horodatage de début (ISO 8601 avec fuseau) :
+- Branche :
+- Référence du commit initial :
+- État Git initial (`git status --short`) :
+- Modifications préexistantes à préserver :
+- Propriétaire du comportement :
 
-## Niveau de routage
+## Classifications
 
-A, B ou C - non déterminé
+- Routage multi-IA : `A`, `B` ou `C` — non déterminé.
+- Niveau de risque : `R0`, `R1`, `R2` ou `R3` — non déterminé.
+- Déclencheurs et justification :
 
-## Agent autorisé à modifier
+## Rôles et autorisations
 
-Non déterminé
+- Agent autorisé à modifier : non déterminé.
+- Relecteur indépendant requis : oui/non — non déterminé.
+- Décision ou approbation humaine requise :
+- Actions distantes, destructives ou de production autorisées : aucune par défaut.
 
-## Contraintes et exclusions
+## Données, dépendances et rollback
 
+- Données et classification :
+- Dépendances ou services externes :
+- Sauvegarde ou retour arrière :
+- Critères d'arrêt :
+
+## Critères d'acceptation
+
+1.
 
 ## Inventaire Mistral
 
@@ -29,11 +53,31 @@ Non déterminé
 ## Résultat Codex ou Mistral
 
 
-## Tests et validations
+## Validations et preuves
 
+| Porte | Contrôle ou commande | État | Preuve ou résultat synthétique |
+|---|---|---|---|
+| G0 | | absent | |
+| G1 | | absent | |
+| G2 | | absent | |
+| G3 | | absent | |
+| G4 | | absent | |
+| G5 | | absent | |
 
-## Revue finale
+États autorisés : `réussi`, `échoué`, `impossible`, `absent`, `non applicable`.
 
+## Décisions, dérogations et dette
+
+- Décisions :
+- Dérogations :
+- Dette ou risques résiduels :
+
+## Revue finale indépendante
+
+- Relecteur :
+- Constats :
+- Corrections de l'auteur :
+- Avis : en attente.
 
 ## État
 
