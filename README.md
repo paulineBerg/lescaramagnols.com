@@ -77,7 +77,9 @@ cd frontend
 npm run build      # genere dist/ avec manifest et assets versionnes
 npm run postbuild  # recopie dist/assets et dist/.vite vers backend/public
 ```
-Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la recherche) sur votre hebergement PHP.
+Après validation locale, proposer le déploiement de `backend/public` (ainsi que
+`backend/data/` si la recherche est utilisée). Une demande explicite distincte
+reste obligatoire avant tout déploiement ou écriture distante.
    php -S 127.0.0.1:8000 -t backend/public backend/public/dev-router.php
 
  tuer le processus qui occupe le port 
@@ -88,15 +90,25 @@ Deployer ensuite `backend/public` (ainsi que `backend/data/` si vous utilisez la
 taskkill /PID <PID> /F pour le fermer, ex : taskkill /PID 17984 /F
 
 ```
-GITHUB
+
+### Publication GitHub
+
+Les commandes suivantes sont des repères historiques. Elles ne valent pas
+autorisation : un commit ou un push exige une demande explicite pour la tâche
+courante.
+
+```bash
 Github : paulineBerg
 git add .
 git commit -m "Initial commit"
 # creation du repo git remote add origin https://github.com/paulineBerg/lescaramagnols.com.git
 git branch -M main
 git push -u origin main
+```
 
-git push --force --set-upstream origin main     # ou pour ecraser tout
+Ne pas utiliser de force-push comme procédure nominale. Toute réécriture
+d'historique exige une demande séparée, une cible vérifiée et un plan de retour
+arrière.
 
 ##  🧪 Tests
 - **Frontend (Vitest)** :
