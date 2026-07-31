@@ -108,15 +108,14 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 <!-- BEGIN MANAGED MULTI-AI WORKFLOW -->
 ## Workflow multi-IA
 
-- Lire `.ai/README.md` et `.ai/CURRENT_TASK.md` avant toute intervention.
-- Mistral route la demande : A (simple), B (implementation Codex) ou C (analyse Claude puis implementation Codex).
-- Le fichier `.ai/CURRENT_TASK.md` doit nommer un seul agent autorise a modifier le code.
-- Pour A, Mistral peut etre l'unique auteur. Pour B et C, Codex est l'unique auteur du code.
-- Claude intervient par defaut en lecture seule pour l'architecture, les risques et la revue critique.
-- Deux agents ne modifient jamais simultanement le meme worktree.
-- Avant d'ecrire : lire les regles applicables, verifier `git status --short` et respecter les changements utilisateur existants.
-- Utiliser uniquement les commandes de validation reellement presentes dans le depot ou documentees par le projet ; sinon noter `non determinee`.
-- Ne jamais inclure de secret, jeton, mot de passe, donnee runtime ou contenu sensible dans les prompts et rapports.
-- Aucun commit, push, deploiement, acces production, migration, import/export ou synchronisation de donnees sans demande explicite.
-- Les details et prompts operationnels se trouvent dans `.ai/`.
+- Lire `.ai/README.md`, `.ai/CURRENT_TASK.md`, les règles applicables et l'état Git avant toute intervention.
+- Classer séparément le routage `A/B/C` des agents et le risque `R0/R1/R2/R3` des contrôles ; justifier les deux.
+- Le fichier `.ai/CURRENT_TASK.md` nomme un seul auteur et les éventuels relecteur indépendant ou décideur humain.
+- Pour A, Mistral peut être l'auteur. Pour B et C, Codex est l'auteur par défaut ; Claude intervient en lecture seule.
+- Deux agents ne modifient jamais simultanément le même worktree. Pour `R2` et `R3`, l'auteur ne réalise pas sa revue indépendante.
+- Préserver les changements existants et n'exécuter que les validations réellement disponibles.
+- Étiqueter chaque contrôle `réussi`, `échoué`, `impossible`, `absent` ou `non applicable` ; ne jamais inventer une preuve.
+- Ne placer aucun secret, donnée personnelle, dump, log ou contenu sensible dans les prompts ou rapports.
+- Aucun commit, push, déploiement, accès production, migration, import/export ou synchronisation sans autorisation applicable.
+- Les détails opératoires sont dans `.ai/` ; les règles normatives restent dans le guide central.
 <!-- END MANAGED MULTI-AI WORKFLOW -->
