@@ -41,16 +41,16 @@
 
 1.
 
-## Inventaire Mistral
+## Inventaire du routeur
 
 
-## Analyse d'architecture Claude
+## Analyse de l'architecte
 
 
 ## Plan d'implémentation validé
 
 
-## Résultat Codex ou Mistral
+## Résultat de l'auteur ou implémentateur
 
 
 ## Validations et preuves
@@ -91,3 +91,15 @@
 À analyser
 
 États autorisés : `À analyser`, `Planifié`, `En cours`, `À revoir`, `Terminé`, `Bloqué`.
+
+## Archiver
+
+Lorsque l'état est `Terminé`, appliquer l'archivage selon
+`.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md` et consigner son résultat.
+
+## Git et production
+
+Après un archivage réussi et seulement si la demande le justifie, évaluer
+séparément le nettoyage, le commit, le push et le déploiement. Chacune de ces
+actions exige son autorisation explicite, sa cible vérifiée et les portes
+applicables ; l'archivage ne les autorise jamais implicitement.
