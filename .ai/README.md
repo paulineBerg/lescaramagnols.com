@@ -11,6 +11,12 @@ Les fichiers `CURRENT_TASK*.md` sont locaux, temporaires et ignorés. Seul
 conserver qu'une tâche terminée, bloquée ou en attente ; un travail parallèle
 utilise une branche et un worktree distincts.
 
+Une transmission `Terminé` est déplacée sous
+`.ai/archive/transmissions/YYYY/MM/` après application de
+`ARCHIVAGE_DOCUMENTS_SOURCE.md`. Les transmissions non terminées restent à la
+racine `.ai/` pour rester découvrables. Les archives locales ne sont ni
+distribuées ni versionnées.
+
 ## Rôles
 
 - Le **routeur** inventorie, classe `A/B/C`, propose le risque `R0`–`R3`, nomme
@@ -60,7 +66,8 @@ Utiliser seulement `réussi`, `échoué`, `impossible`, `absent` et
 `non applicable`. Pour `R2/R3`, la revue indépendante est bloquante ; pour
 `R3`, l'acceptation humaine et le rollback vérifié le sont également. Avant
 `Terminé`, appliquer `ARCHIVAGE_DOCUMENTS_SOURCE.md` et consigner `réussi`,
-`non applicable` ou le blocage. Aucun archivage n'est automatique.
+`non applicable` ou le blocage. Le déplacement vers la destination
+conventionnelle n'est effectué qu'après ce contrôle.
 
 ## Compatibilité des anciens prompts
 

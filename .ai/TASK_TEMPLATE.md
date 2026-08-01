@@ -96,6 +96,8 @@
 
 Lorsque l'état est `Terminé`, appliquer l'archivage selon
 `.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md` et consigner son résultat.
+Une transmission terminée est ensuite déplacée sous
+`.ai/archive/transmissions/YYYY/MM/` en conservant son nom suffixé.
 
 ## Git et production
 
