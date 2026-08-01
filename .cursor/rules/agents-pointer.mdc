@@ -1,0 +1,10 @@
+---
+description: Pointeur vers les regles du projet (source unique AGENTS.md)
+alwaysApply: true
+---
+
+<!-- BEGIN MANAGED AI GOVERNANCE -->
+Lire et appliquer `AGENTS.md` à la racine du dépôt avant toute action.
+Ce fichier est uniquement un pont natif Cursor ; les règles ne sont pas
+dupliquées ici. Le bloc central de `AGENTS.md` référence le routeur du socle.
+<!-- END MANAGED AI GOVERNANCE -->
