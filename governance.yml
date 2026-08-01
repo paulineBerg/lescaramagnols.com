@@ -1,0 +1,164 @@
+{
+  "schema_version": "1.0",
+  "governance_version": "2.0.0",
+  "project": {
+    "id": "caramagnols-web-worktree",
+    "name": "Les Caramagnols — worktree web",
+    "type": "website",
+    "purpose": "Maintenir la copie web du site Les Caramagnols avec ses règles spécialisées.",
+    "criticality": "moderate"
+  },
+  "owners": {
+    "business": {
+      "role": "propriétaire métier",
+      "contact_ref": null
+    },
+    "technical": {
+      "role": "mainteneur technique",
+      "contact_ref": null
+    }
+  },
+  "technology": {
+    "languages": [
+      {
+        "name": "PHP",
+        "version": "8.1+"
+      },
+      {
+        "name": "JavaScript",
+        "version": "ECMAScript moderne"
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "Vite",
+        "version": "version verrouillée"
+      }
+    ],
+    "package_managers": [
+      "Composer",
+      "npm"
+    ]
+  },
+  "architecture": {
+    "styles": [
+      "modular-monolith"
+    ],
+    "components": [
+      {
+        "name": "application",
+        "responsibility": "servir le site public et son administration",
+        "interfaces": [
+          "site web",
+          "back-office"
+        ]
+      }
+    ],
+    "interfaces": [
+      "site web",
+      "back-office"
+    ]
+  },
+  "platforms": {
+    "operating_systems": [
+      "Linux"
+    ],
+    "environments": [
+      "local",
+      "test"
+    ],
+    "containers": false,
+    "cloud": null,
+    "ci_cd": false,
+    "infrastructure_as_code": false
+  },
+  "data": {
+    "categories": [
+      "contenu associatif",
+      "comptes"
+    ],
+    "personal_data": true,
+    "sensitivity": "confidential",
+    "stores": [
+      {
+        "type": "database",
+        "technology": "MySQL/MariaDB",
+        "purpose": "contenu et comptes"
+      }
+    ],
+    "flows": [],
+    "retention_policy": null
+  },
+  "exposure": {
+    "network": "internet",
+    "public_interfaces": [
+      "site",
+      "back-office"
+    ],
+    "privilege_level": "user"
+  },
+  "risk": {
+    "declared_class": "R3",
+    "criteria": {
+      "exposure": 2,
+      "data": 2,
+      "privileges": 1,
+      "financial": 0,
+      "criticality": 1,
+      "reversibility": 1,
+      "attack_surface": 1,
+      "external_dependencies": 1,
+      "blast_radius": 1
+    },
+    "rationale": "Copie reliée à un site public avec administration et données personnelles."
+  },
+  "profiles": {
+    "architecture": [
+      "architecture:modular-monolith"
+    ],
+    "platform": [],
+    "technology": [
+      "technology:php",
+      "technology:javascript",
+      "technology:nodejs"
+    ],
+    "data": [
+      "data:mysql-mariadb"
+    ],
+    "exposure": [
+      "exposure:public-site",
+      "exposure:back-office"
+    ],
+    "business": [
+      "business:association",
+      "business:content"
+    ]
+  },
+  "commands": {
+    "format": [],
+    "lint": [],
+    "static_analysis": [],
+    "test": [],
+    "build": [],
+    "verify": []
+  },
+  "budgets": {},
+  "evidence": {
+    "root": ".governance/evidence",
+    "retention": "selon la politique locale documentée",
+    "formats": [
+      "json",
+      "markdown",
+      "text"
+    ]
+  },
+  "decisions": [],
+  "exceptions": [],
+  "local_rules": [],
+  "extensions": {
+    "x-inventory": {
+      "relation": "worktree web de LesCaramagnols.com",
+      "governed_path": "/home/surfacepro8/www/caramagnols"
+    }
+  }
+}

@@ -121,3 +121,14 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 - Avant `Terminé`, appliquer `.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md` et consigner le résultat ; aucun déplacement n'est automatique.
 - Les détails opératoires sont dans `.ai/` ; les règles normatives restent dans le guide central.
 <!-- END MANAGED MULTI-AI WORKFLOW -->
+
+<!-- BEGIN MANAGED CENTRAL GUIDE -->
+## Gouvernance centrale
+
+Lire le routeur `../../Workspace/pauline-ai-governance/guide-architecture/README.md`, appliquer
+`../../Workspace/pauline-ai-governance/guide-architecture/core/00-essentiel.md`, puis charger le
+profil, les guides et la checklist sélectionnés. Les règles locales du présent
+projet restent applicables et spécialisent le socle sans réduire ses
+protections. Si `governance.yml` existe, exécuter le validateur et le résolveur
+du socle sans lancer automatiquement les commandes déclarées.
+<!-- END MANAGED CENTRAL GUIDE -->
