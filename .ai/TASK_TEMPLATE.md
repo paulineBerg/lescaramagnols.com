@@ -79,6 +79,13 @@
 - Corrections de l'auteur :
 - Avis : en attente.
 
+## Archivage de clôture
+
+- État : absent.
+- Sources ou preuves à conserver :
+- Cible, durée et niveau de confidentialité :
+- Contrôle de la copie et procédure de restauration :
+
 ## État
 
 À analyser

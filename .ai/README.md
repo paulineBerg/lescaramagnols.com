@@ -65,6 +65,8 @@ manifestes ou la documentation du projet. Chaque contrôle prend l'état
 `R3`, la revue finale doit être indépendante ; pour `R3`, l'acceptation humaine
 et le rollback requis restent bloquants.
 
-Une fois la tâche réellement terminée, appliquer
-[`ARCHIVAGE_DOCUMENTS_SOURCE.md`](ARCHIVAGE_DOCUMENTS_SOURCE.md) si des sources
-ou preuves doivent être conservées. L'archivage n'est jamais automatique.
+Avant de déclarer une tâche `Terminé`, appliquer obligatoirement
+[`ARCHIVAGE_DOCUMENTS_SOURCE.md`](ARCHIVAGE_DOCUMENTS_SOURCE.md) et consigner le
+résultat dans la transmission. Un archivage vérifié est `réussi`; l'absence
+justifiée de source ou preuve à conserver est `non applicable`; une conservation
+requise sans cible sûre reste bloquante. L'archivage n'est jamais automatique.

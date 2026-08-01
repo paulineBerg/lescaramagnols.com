@@ -5,6 +5,19 @@ déplacement hors périmètre. Les règles actives restent dans leur propriétai
 normatif. Un audit, une preuve ou une source historique archivée ne doit jamais
 concurrencer la version active.
 
+## Application obligatoire
+
+Toute tâche déclarée `Terminé` applique la présente procédure et consigne son
+résultat dans la transmission : `réussi` si un archivage vérifié a été réalisé,
+`non applicable` si aucun document source ou preuve ne doit être conservé, ou
+un état bloquant si une exigence d'archivage ne peut pas être satisfaite. Une
+tâche ne peut pas omettre silencieusement ce contrôle.
+
+Cette obligation impose une décision et une preuve, pas un déplacement
+automatique. Les fichiers `CURRENT_TASK*.md` restent locaux et ignorés ; un nom
+suffixé peut conserver une transmission historique sans devenir une archive
+normative ou versionnée.
+
 ## Avant d'archiver
 
 1. Confirmer que la tâche est terminée selon les portes `G0` à `G5` et qu'aucune
@@ -13,7 +26,9 @@ concurrencer la version active.
    temporaire et donnée interdite.
 3. Définir propriétaire, cible d'archive, durée de conservation, accès et
    procédure de restauration. Sans convention projet, proposer l'archivage mais
-   ne pas inventer de cible.
+   ne pas inventer de cible ; consigner alors le contrôle comme bloquant si la
+   conservation est obligatoire, ou `non applicable` si aucun élément ne doit
+   être conservé.
 4. Retirer ou masquer secrets, données personnelles, dumps, logs bruts, chemins
    privés et configurations runtime. Leur présence bloque l'archivage dans Git.
 

@@ -22,5 +22,6 @@
 - Étiqueter chaque contrôle `réussi`, `échoué`, `impossible`, `absent` ou `non applicable` ; ne jamais inventer une preuve.
 - Ne placer aucun secret, donnée personnelle, dump, log ou contenu sensible dans les prompts ou rapports.
 - Aucun commit, push, déploiement, accès production, migration, import/export ou synchronisation sans autorisation applicable.
+- Avant l'état `Terminé`, appliquer `.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md` et consigner un archivage `réussi`, `non applicable` ou bloquant ; aucun déplacement n'est automatique.
 - Les détails opératoires sont dans `.ai/` ; les règles normatives restent dans le guide central.
 <!-- END MANAGED MULTI-AI WORKFLOW -->
