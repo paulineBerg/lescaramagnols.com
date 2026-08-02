@@ -380,5 +380,5 @@ Etats autorisés : `À analyser`, `Planifié`, `En cours`, `À revoir`, `Termin�
 ---
 *Créé : 2026-07-19*
 *Agent : Mistral Vibe*
-*Route par : MISTRAL_ROUTER.md (niveau C, agent Codex)*
+*Route par : ROUTER.md (niveau C, agent Codex)*
 *Source : RUNBOOK_STORAGE_MIGRATION.md, COMPTE_RENDU_AUDIT_STORAGE_2026-07-18.md, prompt-audit-stockage-runtime-deploiement-production-maitre.md*

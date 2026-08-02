@@ -164,7 +164,7 @@ backend/templates/private/components/
 
 #### État du git status
 ```
- M .ai/prompts/MISTRAL_ROUTER.md
+ M .ai/prompts/ROUTER.md
  M backend/config/config.php
  M backend/docs/audit-sql-2026-07-17.md
  M backend/src/Http/FrontController.php
@@ -439,7 +439,7 @@ Planifié
 
 *Créé : 2026-07-19*
 *Agent : Mistral Vibe*
-*Route par : MISTRAL_ROUTER.md (niveau C, agent Codex)*
+*Route par : ROUTER.md (niveau C, agent Codex)*
 *Source : import-export-optimisation.md, IMPLEMENTATION_SUMMARY_2026-07-18.md, prompt-optimisation-import-export-locations-immobilieres.md*
 
 ---
