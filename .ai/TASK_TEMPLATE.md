@@ -25,10 +25,39 @@
 
 ## Rôles et autorisations
 
-- Agent autorisé à modifier : non déterminé.
+| Rôle | Identifiant local attribué | État | Périmètre ou contrainte |
+|---|---|---|---|
+| Routeur | non attribué | absent | cadrage et transmission |
+| Architecte | non attribué | absent | lecture seule |
+| Auteur ou implémentateur | non attribué | absent | unique rôle autorisé à modifier et à livrer selon autorisations |
+| Vérificateur | non attribué | absent | contrôles documentés |
+| Relecteur indépendant | non attribué | absent | distinct de l'auteur pour `R2/R3` |
+| Décideur humain | non attribué | absent | décisions réservées |
+
+L'identifiant local désigne une session, un compte ou une personne sans rendre
+son fournisseur normatif. Changer d'outil consiste à remplacer cet identifiant
+et à consigner le relais ; cela ne modifie ni le rôle ni ses permissions.
+
+- Phase active : `routage`, `architecture`, `implementation`, `verification`,
+  `revue_independante`, `decision_humaine` ou `cloture` — non déterminée.
+- Prompt actif : chemin canonique `.ai/prompts/*.md` — non attribué.
+- Identifiant local actif : non attribué.
+- Passage de relais entrant : absent.
+- Périmètre d'écriture de la phase : aucun par défaut.
+
+Un rôle n'est activé que par la concordance de ces champs, de son attribution
+dans la table et d'une instruction courante référençant son prompt canonique.
+Le nom d'un fournisseur, d'un modèle ou d'un agent, une mention narrative ou la
+simple lecture d'un prompt ne valent jamais activation. Une invocation ne passe
+pas implicitement au rôle suivant.
+
 - Relecteur indépendant requis : oui/non — non déterminé.
 - Décision ou approbation humaine requise :
-- Actions distantes, destructives ou de production autorisées : aucune par défaut.
+- Clôture Git : portée uniquement par l'auteur ou implémentateur après réussite
+  des portes, selon la spécialisation globale du rôle.
+- Dépôt, branche et upstream de clôture : à vérifier avant action.
+- Environnement et cible de déploiement autorisés : aucun par défaut.
+- Actions destructives ou de production autorisées : aucune par défaut.
 
 ## Données, dépendances et rollback
 
@@ -72,9 +101,18 @@
 - Dérogations :
 - Dette ou risques résiduels :
 
+### Questions soumises au décideur humain
+
+| ID | Question bornée | Réponses possibles et impacts | Recommandation justifiée | Porte bloquée | Réponse, rôle et date |
+|---|---|---|---|---|---|
+| | | | | | En attente |
+
+Une absence de réponse ou une option par défaut ne vaut pas décision.
+
 ## Revue finale indépendante
 
-- Relecteur :
+- Identifiant local du relecteur :
+- Indépendance vérifiée par rapport à l'auteur : absent.
 - Constats :
 - Corrections de l'auteur :
 - Avis : en attente.
@@ -101,7 +139,8 @@ Une transmission terminée est ensuite déplacée sous
 
 ## Git et production
 
-Après un archivage réussi et seulement si la demande le justifie, évaluer
-séparément le nettoyage, le commit, le push et le déploiement. Chacune de ces
-actions exige son autorisation explicite, sa cible vérifiée et les portes
-applicables ; l'archivage ne les autorise jamais implicitement.
+Après un archivage réussi, l'auteur ou implémentateur évalue puis applique la
+clôture Git autorisée par la spécialisation globale du rôle. Il traite chaque
+dépôt séparément et vérifie branche, upstream, diff et portes avant nettoyage,
+commit ou push. Il ne déploie que si la transmission nomme explicitement le
+périmètre, l'environnement et la cible ; l'archivage ne crée aucune cible.
