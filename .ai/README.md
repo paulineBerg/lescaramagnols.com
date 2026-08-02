@@ -1,54 +1,31 @@
-# Collaboration multi-IA
+# Workflow multi-IA spécialisé — Les Caramagnols
 
-Ce dossier organise la transmission d'une tache entre Mistral Vibe, Codex et
-Claude Code. `CURRENT_TASK.md` est local, temporaire et ignore par Git. Les
-autres fichiers sont destines a etre versionnes.
+Ce dossier est une projection locale spécialisée. Les règles communes, les
+rôles, le routage `A/B/C`, le risque `R0`–`R3`, les preuves, les autorisations
+et l'archivage sont définis exclusivement dans
+`../../../Workspace/pauline-ai-governance/`.
 
-## Roles
+En cas d'écart, appliquer le guide central et corriger cette projection. Les
+noms d'outils éventuellement associés aux rôles sont une préférence locale et
+n'accordent aucune autorité.
 
-- Mistral Vibe Pro : recoit la demande, fait un inventaire court, choisit le
-  niveau et execute seul les taches A.
-- Codex : verifie l'analyse, implemente les niveaux B et C, adapte les tests,
-  valide et examine le diff.
-- Claude Code : analyse en lecture seule l'architecture, la securite, les flux
-  de donnees et les cas limites ; il peut revoir un changement critique.
+## Spécialisation du projet
 
-## Routage
+- Lire `../AGENTS.md`, le profil central Les Caramagnols, `../governance.yml`
+  et l'état Git avant toute intervention.
+- Un seul `CURRENT_TASK.md` peut être actif dans ce worktree.
+- Les modules sous `backend/src/PrivateApps/` chargent aussi leur `AGENTS.md`
+  descendant lorsqu'il existe.
+- La production reste la source fonctionnelle et éditoriale observée, mais son
+  observation ne constitue jamais une autorisation d'écriture ou de déploiement.
+- Les données privées, bases, uploads, exports, caches, logs et secrets restent
+  hors de `.ai/`, des rapports et de Git.
 
-- Niveau A : documentation, texte, CSS simple, inventaire, recherche, petite
-  correction ou test simple, en principe sur trois fichiers au maximum.
-- Niveau B : fonctionnalite, bug non trivial, plusieurs fichiers, interface
-  d'administration, refactoring ou tests importants.
-- Niveau C : authentification, jetons, permissions, securite, RGPD, migration,
-  import/export, base de donnees, synchronisation, production ou risque de
-  perte de donnees.
+## Autorisations et validation
 
-## Regle d'auteur unique
+Une commande documentée dans un README, un script ou une ancienne transmission
+ne vaut pas autorisation. Utiliser uniquement les contrôles confirmés par le
+projet et consigner leur état avec le vocabulaire central.
 
-Le champ `Agent autorise a modifier` de `CURRENT_TASK.md` fait foi. Pour A,
-Mistral peut ecrire. Pour B et C, Codex ecrit le code et les autres agents
-restent en lecture seule. Les mises a jour du fichier de transmission ne valent
-pas autorisation de modifier le code.
-
-Avant toute modification, lire `AGENTS.md`, `CURRENT_TASK.md` et
-`git status --short`. Ne jamais ecraser les changements existants. Les branches
-ou worktrees distincts sont obligatoires pour un futur travail parallele.
-
-## Securite et validation
-
-Ne jamais placer de secrets, donnees personnelles, dumps, uploads, caches,
-logs, sauvegardes ou chemins sensibles dans ce dossier. Les sujets production,
-authentification, permissions, jetons et donnees sont automatiquement de niveau
-C. Aucun commit, push, deploiement ou ecriture distante sans autorisation
-explicite.
-
-Executer uniquement les tests, lints, formats et builds verifies dans les
-manifestes ou la documentation du projet. Si aucune commande n'est confirmee,
-indiquer `non determinee` dans `CURRENT_TASK.md`.
-
-## Archivage
-
-Quand une tache est terminee, utiliser
-`.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md` pour archiver les documents source et les
-preuves de validation. Par defaut, copier les sources dans `.ai/archives/` sans
-supprimer les originaux.
+Avant `Terminé`, appliquer `ARCHIVAGE_DOCUMENTS_SOURCE.md`, qui relaie la
+procédure centrale.
