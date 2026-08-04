@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "governance_version": "2.0.0",
+  "governance_version": "2.3.0",
   "project": {
     "id": "caramagnols-web-worktree",
     "name": "Les Caramagnols — worktree web",

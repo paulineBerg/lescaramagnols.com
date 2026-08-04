@@ -14,6 +14,11 @@ use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionAccessPolicy;
 use Caramagnols\PrivateApps\FamilyDiscussion\Service\DiscussionService;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalLeaseTypeCatalog;
 use Caramagnols\PrivateApps\RealEstateRental\Domain\RentalExpenseCategoryCatalog;
+use Caramagnols\PrivateApps\WebDevelopment\Http\PreviewOpenController;
+use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewTicketRepository;
+use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewTicketRepositoryInterface;
+use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepository;
+use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepositoryInterface;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivateApps\Documents\Http\DocumentHubController;
@@ -226,6 +231,10 @@ final class PrivatePortalController
                 $request,
                 (string) ($routeParams['attachmentId'] ?? ''),
                 true
+            ),
+            'web_development_preview' => $this->handleWebDevelopmentPreview(
+                $request,
+                (string) ($routeParams['projectKey'] ?? '')
             ),
             'privacy_export' => $this->handlePrivacyExport($request),
             'ops_backup' => $this->handleOpsBackup($request),
@@ -2558,6 +2567,18 @@ final class PrivatePortalController
         ], $fileContent));
     }
 
+    private function handleWebDevelopmentPreview(Request $request, string $projectKey): Response
+    {
+        $userId = $this->requireWebDevelopmentModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $projectKey = strtolower(trim($projectKey));
+
+        return $this->webDevelopmentPreviewController()->open($request, $userId, $projectKey);
+    }
+
     private function handlePrivacyExport(Request $request): Response
     {
         $userId = $this->requireAuthenticatedUser($request);
@@ -4648,6 +4669,16 @@ final class PrivatePortalController
         return $result;
     }
 
+    private function requireWebDevelopmentModuleUser(Request $request): int|Response
+    {
+        $result = $this->requireModuleOrUnauthorized($request, 'web_development');
+        if ($result === null) {
+            return $this->handleModuleAccessDenied('web_development');
+        }
+
+        return $result;
+    }
+
     private function requireAuthenticatedUser(Request $request): int|Response
     {
         $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), true);
@@ -4987,6 +5018,27 @@ final class PrivatePortalController
             fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
             $this->eventLogger
         );
+    }
+
+    private function webDevelopmentPreviewController(): PreviewOpenController
+    {
+        return new PreviewOpenController(
+            $this->webDevelopmentProjectRepository(),
+            $this->webDevelopmentPreviewTicketRepository(),
+            (string) app_config('web_development.preview_host', ''),
+            (int) app_config('web_development.preview_ticket_ttl_seconds', 60),
+            private_portal_url('web_development')
+        );
+    }
+
+    private function webDevelopmentProjectRepository(): WebDevelopmentProjectRepositoryInterface
+    {
+        return new WebDevelopmentProjectRepository(editorial_database());
+    }
+
+    private function webDevelopmentPreviewTicketRepository(): PreviewTicketRepositoryInterface
+    {
+        return new PreviewTicketRepository(editorial_database());
     }
 
     private function rentalController(): RealEstateRentalController

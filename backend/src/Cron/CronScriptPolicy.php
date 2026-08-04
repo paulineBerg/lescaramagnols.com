@@ -50,6 +50,7 @@ final class CronScriptPolicy
             'core/tools/purge_sql_logs.php',
             'core/tools/purge_private_account_deletion_backups.php',
             'core/tools/purge_private_discussions.php',
+            'core/tools/purge_web_development_previews.php',
             'core/tools/plan_next_blog_article.php',
             'core/tools/generate_search_index.php',
             'core/tools/generate_sitemap.php',

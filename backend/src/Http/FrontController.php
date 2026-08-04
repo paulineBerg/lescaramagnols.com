@@ -12,6 +12,12 @@ use Caramagnols\Blog\BlogSaveService;
 use Caramagnols\Feed\RssFeedService;
 use Caramagnols\Feed\SitemapService;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivateApps\WebDevelopment\Http\PreviewGatewayController;
+use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewSessionRepository;
+use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewTicketRepository;
+use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepository;
+use Caramagnols\PrivateApps\WebDevelopment\Security\PreviewAccessGuard;
+use Caramagnols\PrivateApps\WebDevelopment\Service\PreviewFileService;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
@@ -31,6 +37,7 @@ final class FrontController
     private Dispatcher $dispatcher;
     private AppEventLogger $eventLogger;
     private ?PrivateHttpBoundary $privateHttpBoundary;
+    private PreviewGatewayController $previewGateway;
 
     public function __construct(
         private readonly AdminRouteResolver $adminRouteResolver,
@@ -39,7 +46,8 @@ final class FrontController
         ?AppEventLogger $eventLogger = null,
         ?PrivateRouteResolver $privateRouteResolver = null,
         ?PrivatePortalController $privatePortalController = null,
-        ?PrivateHttpBoundary $privateHttpBoundary = null
+        ?PrivateHttpBoundary $privateHttpBoundary = null,
+        ?PreviewGatewayController $previewGateway = null
     ) {
         $this->eventLogger = $eventLogger ?? app_event_logger();
         $privateEnabled = private_portal_enabled() || $privatePortalController instanceof PrivatePortalController;
@@ -52,6 +60,7 @@ final class FrontController
             null,
             $this->eventLogger
         );
+        $this->previewGateway = $previewGateway ?? $this->createPreviewGatewayController();
 
         $this->dispatcher = \FastRoute\simpleDispatcher(function (RouteCollector $routes): void {
             $routes->addRoute('GET', '/core/api/lang.php', ['type' => 'api-lang']);
@@ -123,6 +132,10 @@ final class FrontController
 
     private function dispatch(Request $request): Response
     {
+        if ($this->previewGateway->matchesPreviewHost($request)) {
+            return $this->previewGateway->handle($request);
+        }
+
         $canonicalRedirect = $this->canonicalRedirectResponse($request);
         if ($canonicalRedirect !== null) {
             return $canonicalRedirect;
@@ -265,6 +278,25 @@ final class FrontController
             $privateModulePermissionRepository,
             new PrivateDocumentRepository(editorial_database()),
             PrivateDocumentStorage::fromAppConfig($this->eventLogger)
+        );
+    }
+
+    private function createPreviewGatewayController(): PreviewGatewayController
+    {
+        $database = editorial_database();
+        $projectRepository = new WebDevelopmentProjectRepository($database);
+
+        return new PreviewGatewayController(
+            (string) app_config('web_development.preview_host', ''),
+            new PreviewAccessGuard(
+                $projectRepository,
+                new PreviewTicketRepository($database),
+                new PreviewSessionRepository($database),
+                (string) app_config('web_development.preview_session_name', 'caramagnols_preview'),
+                (int) app_config('web_development.preview_session_ttl_seconds', 14400)
+            ),
+            new PreviewFileService((string) app_config('web_development.deployments_root', '')),
+            $projectRepository
         );
     }
 

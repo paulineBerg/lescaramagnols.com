@@ -42,6 +42,11 @@ final class PrivateModuleRegistry
                 'name' => 'Aide impôts',
                 'description' => 'Aide annuelle non officielle à la préparation des données fiscales privées.',
             ],
+            [
+                'code' => 'web_development',
+                'name' => 'Web development',
+                'description' => 'Gestion des projets web statiques et de leurs previsualisations privees.',
+            ],
         ];
     }
 

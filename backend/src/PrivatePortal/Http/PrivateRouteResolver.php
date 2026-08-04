@@ -235,6 +235,11 @@ final class PrivateRouteResolver
                 'handler' => ['type' => 'private', 'page' => 'documents_hub_action'],
             ],
             [
+                'methods' => ['POST'],
+                'path' => $this->canonicalPath('web_development') . '/preview/{projectKey:[a-z0-9][a-z0-9_-]{1,80}}',
+                'handler' => ['type' => 'private', 'page' => 'web_development_preview'],
+            ],
+            [
                 'methods' => ['GET'],
                 'path' => $this->canonicalPath('rental_dashboard'),
                 'handler' => ['type' => 'private', 'page' => 'rental_dashboard'],

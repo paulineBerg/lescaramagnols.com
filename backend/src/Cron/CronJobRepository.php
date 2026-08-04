@@ -370,6 +370,15 @@ final class CronJobRepository
                 'timeout_seconds' => 300,
             ],
             [
+                'code' => 'purge_web_development_previews',
+                'name' => 'Purge previews WebDevelopment',
+                'description' => 'Nettoie les tickets et sessions de prévisualisation WebDevelopment expirés, révoqués ou consommés.',
+                'script_path' => 'core/tools/purge_web_development_previews.php',
+                'arguments' => ['args' => ['--quiet']],
+                'schedule_expression' => '50 3 * * *',
+                'timeout_seconds' => 300,
+            ],
+            [
                 'code' => 'purge_private_account_deletion_backups',
                 'name' => 'Suppressions comptes privés',
                 'description' => 'Avertit à J+20 puis supprime les données, le compte et la sauvegarde après 30 jours de rétention.',

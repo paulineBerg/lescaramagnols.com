@@ -821,6 +821,16 @@ $appConfig = [
         'sql_dir' => $productionBackupConfig['sql_dir'],
         'manifest_dir' => $productionBackupConfig['manifest_dir'],
     ],
+    'web_development' => [
+        'preview_host' => strtolower(trim((string) env('WEB_DEVELOPMENT_PREVIEW_HOST', ''))),
+        'deployments_root' => rtrim(str_replace('\\', '/', trim((string) env(
+            'WEB_DEVELOPMENT_DEPLOYMENTS_ROOT',
+            ($privateStorageRootPath !== '' ? $privateStorageRootPath : $privateStorageDirectoryPath) . '/web-development/deployments'
+        ))), '/'),
+        'preview_session_name' => trim((string) env('WEB_DEVELOPMENT_PREVIEW_SESSION_NAME', 'caramagnols_preview')),
+        'preview_ticket_ttl_seconds' => max(30, min(600, (int) env('WEB_DEVELOPMENT_PREVIEW_TICKET_TTL_SECONDS', 60))),
+        'preview_session_ttl_seconds' => max(300, min(86400, (int) env('WEB_DEVELOPMENT_PREVIEW_SESSION_TTL_SECONDS', 14400))),
+    ],
 ];
 
 define('APP_ENV', $appConfig['env']);

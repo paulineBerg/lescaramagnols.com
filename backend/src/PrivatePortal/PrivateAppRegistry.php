@@ -25,6 +25,7 @@ final class PrivateAppRegistry
         \Caramagnols\PrivateApps\FamilyDiscussion\PrivateAppManifest::class,
         \Caramagnols\PrivateApps\RealEstateRental\PrivateAppManifest::class,
         \Caramagnols\PrivateApps\TaxDeclarationHelper\PrivateAppManifest::class,
+        \Caramagnols\PrivateApps\WebDevelopment\PrivateAppManifest::class,
     ];
 
     /**
