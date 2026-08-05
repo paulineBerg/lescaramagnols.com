@@ -188,7 +188,7 @@ final class WebDevelopmentProjectRepository implements WebDevelopmentProjectRepo
             return false;
         }
 
-        $publicPath = sprintf('web-development/deployments/%s/releases/current/public', $projectKey);
+        $publicPath = sprintf('%s/releases/current/public', $projectKey);
 
         try {
             $statement = $this->database->pdo()->prepare(

@@ -151,7 +151,7 @@ if ($privateHasModule('Web development')) {
     $privateNavItems[] = [
         'label' => 'Projets web',
         'href' => private_portal_url('web_development'),
-        'icon' => 'WEB',
+        'icon' => '',
         'active' => $privateCurrentPath !== ''
             && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('web_development'))),
     ];
@@ -239,7 +239,9 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
                     ?>
                   <li>
                     <a class="<?php echo $mobileNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($mobileNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $mobileNavIsActive ? ' aria-current="page"' : ''; ?>>
-                      <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($mobileNavIcon, ENT_QUOTES, 'UTF-8'); ?></span>
+                      <?php if ($mobileNavIcon !== '') : ?>
+                        <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($mobileNavIcon, ENT_QUOTES, 'UTF-8'); ?></span>
+                      <?php endif; ?>
                       <span><?php echo htmlspecialchars($mobileNavLabel, ENT_QUOTES, 'UTF-8'); ?></span>
                     </a>
                   </li>
@@ -260,7 +262,9 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
                 ?>
               <li>
                 <a class="<?php echo $navIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>">
-                  <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($navIcon, ENT_QUOTES, 'UTF-8'); ?></span>
+                  <?php if ($navIcon !== '') : ?>
+                    <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($navIcon, ENT_QUOTES, 'UTF-8'); ?></span>
+                  <?php endif; ?>
                   <span><?php echo htmlspecialchars($navLabel, ENT_QUOTES, 'UTF-8'); ?></span>
                 </a>
               </li>

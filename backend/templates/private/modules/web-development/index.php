@@ -57,7 +57,7 @@ $errorMessage = $errorMessages[$errorCode] ?? '';
           <?php else: ?>
             <p class="muted">Version de travail réservée aux membres autorisés.</p>
           <?php endif; ?>
-          <form method="post" action="<?php echo $escape($baseUrl . '/preview/' . rawurlencode($projectKey)); ?>">
+          <form method="post" action="<?php echo $escape($baseUrl . '/preview/' . rawurlencode($projectKey)); ?>" target="_blank">
             <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
             <button type="submit">Ouvrir la prévisualisation</button>
           </form>

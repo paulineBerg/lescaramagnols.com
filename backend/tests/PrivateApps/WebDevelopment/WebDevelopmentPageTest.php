@@ -73,6 +73,9 @@ final class WebDevelopmentPageTest extends TestCase
         self::assertSame(200, $response->status);
         self::assertStringContainsString('Lor de la Roche', $response->body);
         self::assertStringContainsString('/private/web-development/preview/lordelaroche', $response->body);
+        self::assertStringContainsString('target="_blank"', $response->body);
+        self::assertStringContainsString('>Projets web</span>', $response->body);
+        self::assertStringNotContainsString('>WEB</span>', $response->body);
         self::assertStringContainsString('name="csrf_token"', $response->body);
         self::assertSame('noindex, nofollow, noarchive', $response->headers['X-Robots-Tag'] ?? null);
     }

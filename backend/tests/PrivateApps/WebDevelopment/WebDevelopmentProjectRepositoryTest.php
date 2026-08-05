@@ -115,7 +115,7 @@ final class WebDevelopmentProjectRepositoryTest extends TestCase
         self::assertSame('Lordelaroche', $saved['display_name']);
         self::assertSame('Prévisualisation privée', $saved['description']);
         self::assertSame(
-            'web-development/deployments/lordelaroche/releases/current/public',
+            'lordelaroche/releases/current/public',
             $saved['current_public_path']
         );
         self::assertSame(42, (int) $saved['created_by_private_user_id']);
