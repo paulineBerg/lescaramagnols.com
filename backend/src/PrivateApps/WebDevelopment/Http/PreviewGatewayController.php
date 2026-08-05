@@ -102,28 +102,15 @@ final class PreviewGatewayController
     private function projectResponse(string $projectKey, string $assetPath, Request $request): Response
     {
         if (!$this->accessGuard->canAccessProject($request, $projectKey)) {
-            return $this->diagnosticNotFound('access-denied');
+            return $this->fileService->notFound();
         }
 
         $project = $this->projectRepository->findPreviewProjectByKey($projectKey);
         if (!is_array($project)) {
-            return $this->diagnosticNotFound('project-not-found');
+            return $this->fileService->notFound();
         }
 
-        $response = $this->fileService->serve($project, $assetPath, $request->method());
-        if ($response->status === 404) {
-            $response->headers['X-Preview-Diagnostic'] = 'file-not-found';
-        }
-
-        return $response;
-    }
-
-    private function diagnosticNotFound(string $reason): Response
-    {
-        $response = $this->fileService->notFound();
-        $response->headers['X-Preview-Diagnostic'] = $reason;
-
-        return $response;
+        return $this->fileService->serve($project, $assetPath, $request->method());
     }
 
     private function normalizeHost(string $host): string

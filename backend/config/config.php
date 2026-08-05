@@ -823,10 +823,18 @@ $appConfig = [
     ],
     'web_development' => [
         'preview_host' => strtolower(trim((string) env('WEB_DEVELOPMENT_PREVIEW_HOST', ''))),
-        'deployments_root' => rtrim(str_replace('\\', '/', trim((string) env(
-            'WEB_DEVELOPMENT_DEPLOYMENTS_ROOT',
-            ($privateStorageRootPath !== '' ? $privateStorageRootPath : $privateStorageDirectoryPath) . '/web-development/deployments'
-        ))), '/'),
+        'deployments_root' => (static function () use ($privateStorageRootPath, $privateStorageDirectoryPath): string {
+            $root = trim((string) env(
+                'WEB_DEVELOPMENT_DEPLOYMENTS_ROOT',
+                ($privateStorageRootPath !== '' ? $privateStorageRootPath : $privateStorageDirectoryPath) . '/web-development/deployments'
+            ));
+            $root = str_replace('\\', '/', $root);
+            if ($root !== '' && !str_starts_with($root, '/')) {
+                $root = ROOT_PATH . '/' . ltrim($root, '/');
+            }
+
+            return rtrim($root, '/');
+        })(),
         'preview_session_name' => trim((string) env('WEB_DEVELOPMENT_PREVIEW_SESSION_NAME', 'caramagnols_preview')),
         'preview_ticket_ttl_seconds' => max(30, min(600, (int) env('WEB_DEVELOPMENT_PREVIEW_TICKET_TTL_SECONDS', 60))),
         'preview_session_ttl_seconds' => max(300, min(86400, (int) env('WEB_DEVELOPMENT_PREVIEW_SESSION_TTL_SECONDS', 14400))),
