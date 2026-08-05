@@ -74,6 +74,7 @@ final class WebDevelopmentPageTest extends TestCase
         self::assertStringContainsString('Lor de la Roche', $response->body);
         self::assertStringContainsString('/private/web-development/preview/lordelaroche', $response->body);
         self::assertStringContainsString('target="_blank"', $response->body);
+        self::assertStringContainsString('>🌐</span>', $response->body);
         self::assertStringContainsString('>Projets web</span>', $response->body);
         self::assertStringNotContainsString('>WEB</span>', $response->body);
         self::assertStringContainsString('name="csrf_token"', $response->body);

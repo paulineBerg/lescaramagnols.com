@@ -151,7 +151,7 @@ if ($privateHasModule('Web development')) {
     $privateNavItems[] = [
         'label' => 'Projets web',
         'href' => private_portal_url('web_development'),
-        'icon' => '',
+        'icon' => '🌐',
         'active' => $privateCurrentPath !== ''
             && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('web_development'))),
     ];
