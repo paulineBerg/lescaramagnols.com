@@ -61,7 +61,6 @@ final class AdminSettingsService
                 'totpSecret' => '',
                 'totpSecretFallback' => $this->configuredAdminTotpSecret(),
                 'inactivityTimeoutSeconds' => (string) $this->configuredAdminInactivityTimeoutSeconds(),
-                'reauthTimeoutSeconds' => (string) $this->configuredAdminReauthTimeoutSeconds(),
             ],
             $this->configuredUrlSettings(),
             [
@@ -1132,7 +1131,6 @@ final class AdminSettingsService
             'totpSecret' => $this->secretFormValue($adminPayload['totp_secret'] ?? ''),
             'totpSecretFallback' => $this->configuredAdminTotpSecret(),
             'inactivityTimeoutSeconds' => trim((string) ($adminPayload['inactivity_timeout_seconds'] ?? $this->configuredAdminInactivityTimeoutSeconds())),
-            'reauthTimeoutSeconds' => trim((string) ($adminPayload['reauth_timeout_seconds'] ?? $this->configuredAdminReauthTimeoutSeconds())),
         ];
         $urlForm = [
             'domain' => trim((string) ($urlPayload['domain'] ?? ($configuredUrl['domain'] ?? ''))),
@@ -1273,7 +1271,6 @@ final class AdminSettingsService
         $previousAdminTotpEnabled = $this->configuredAdminTotpEnabled();
         $previousAdminTotpSecret = $this->configuredAdminTotpSecret();
         $previousAdminInactivityTimeout = $this->configuredAdminInactivityTimeoutSeconds();
-        $previousAdminReauthTimeout = $this->configuredAdminReauthTimeoutSeconds();
         $previousUrl = $configuredUrl;
         $previousHeadMetadataHtml = $this->configuredHeadMetadataHtml();
         $previousTarteaucitron = $configuredTarteaucitron;
@@ -1316,7 +1313,6 @@ final class AdminSettingsService
             'totp_enabled' => (bool) $adminConfig['data']['totpEnabled'],
             'totp_secret' => (string) $adminConfig['data']['totpSecret'],
             'inactivity_timeout_seconds' => (int) $adminConfig['data']['inactivityTimeoutSeconds'],
-            'reauth_timeout_seconds' => (int) $adminConfig['data']['reauthTimeoutSeconds'],
         ];
         $existingSiteOverride = $this->readPhpArrayFile($this->siteOverridePath);
         $existingPrivateOverride = is_array($existingSiteOverride['private'] ?? null)
@@ -1439,7 +1435,6 @@ final class AdminSettingsService
                     'totp_enabled' => $previousAdminTotpEnabled !== $adminOverride['totp_enabled'],
                     'totp_secret' => $previousAdminTotpSecret !== $adminOverride['totp_secret'],
                     'inactivity_timeout_seconds' => $previousAdminInactivityTimeout !== $adminOverride['inactivity_timeout_seconds'],
-                    'reauth_timeout_seconds' => $previousAdminReauthTimeout !== $adminOverride['reauth_timeout_seconds'],
                 ],
                 'site_changes' => [
                     'url' => [
@@ -1953,7 +1948,6 @@ final class AdminSettingsService
             'totpSecret' => $this->secretFormValue($adminPayload['totp_secret'] ?? ''),
             'totpSecretFallback' => $this->configuredAdminTotpSecret(),
             'inactivityTimeoutSeconds' => trim((string) ($adminPayload['inactivity_timeout_seconds'] ?? $this->configuredAdminInactivityTimeoutSeconds())),
-            'reauthTimeoutSeconds' => trim((string) ($adminPayload['reauth_timeout_seconds'] ?? $this->configuredAdminReauthTimeoutSeconds())),
         ];
         $urlForm = [
             'domain' => trim((string) ($urlPayload['domain'] ?? ($configuredUrl['domain'] ?? ''))),
@@ -2072,10 +2066,6 @@ final class AdminSettingsService
         $adminPasswordConfigured = ((string) app_config('admin.password_hash', '')) !== '';
         $adminTotpSecretConfigured = trim((string) ($admin['totpSecretFallback'] ?? '')) !== '';
         $adminInactivityTimeoutSeconds = max(60, (int) ($admin['inactivityTimeoutSeconds'] ?? 7200));
-        $adminReauthTimeoutSeconds = max(60, (int) ($admin['reauthTimeoutSeconds'] ?? 7200));
-        if ($adminReauthTimeoutSeconds > $adminInactivityTimeoutSeconds) {
-            $adminReauthTimeoutSeconds = $adminInactivityTimeoutSeconds;
-        }
         $discussionRecaptchaSecretConfigured = trim((string) ($discussions['recaptchaSecretKey'] ?? '')) !== '';
         $instagramAccessTokenConfigured = trim((string) ($instagram['accessToken'] ?? '')) !== '';
         $logAlertsNotifyOn = strtolower(trim((string) ($logAlerts['notifyOn'] ?? 'alerts')));
@@ -2129,7 +2119,6 @@ final class AdminSettingsService
                 'totpSecret' => $this->secretFieldDisplayValue($adminTotpSecretConfigured),
                 'totpSecretConfigured' => $adminTotpSecretConfigured,
                 'inactivityTimeoutSeconds' => $adminInactivityTimeoutSeconds,
-                'reauthTimeoutSeconds' => $adminReauthTimeoutSeconds,
             ],
             'url' => [
                 'domain' => $url['domain'],
@@ -2292,8 +2281,7 @@ final class AdminSettingsService
      *     allowedIps: array<int, string>,
      *     totpEnabled: bool,
      *     totpSecret: string,
-     *     inactivityTimeoutSeconds: int,
-     *     reauthTimeoutSeconds: int
+     *     inactivityTimeoutSeconds: int
      *   },
      *   error: null
      * }|array{
@@ -2338,17 +2326,6 @@ final class AdminSettingsService
             return ['data' => [], 'error' => 'Le timeout d’inactivité admin doit être un entier entre 60 et 86400 secondes.'];
         }
 
-        $reauthTimeoutSeconds = filter_var((string) ($admin['reauthTimeoutSeconds'] ?? ''), FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 60, 'max_range' => 86400],
-        ]);
-        if ($reauthTimeoutSeconds === false) {
-            return ['data' => [], 'error' => 'La fenêtre de ré-authentification doit être un entier entre 60 et 86400 secondes.'];
-        }
-
-        if ($reauthTimeoutSeconds > $inactivityTimeoutSeconds) {
-            return ['data' => [], 'error' => 'La fenêtre de ré-authentification ne peut pas dépasser le timeout d’inactivité.'];
-        }
-
         $totpEnabled = (bool) ($admin['totpEnabled'] ?? false);
         $totpSecret = $this->normalizeTotpSecret((string) ($admin['totpSecret'] ?? ''));
         $totpSecretFallback = $this->normalizeTotpSecret((string) ($admin['totpSecretFallback'] ?? ''));
@@ -2372,7 +2349,6 @@ final class AdminSettingsService
                 'totpEnabled' => $totpEnabled,
                 'totpSecret' => $totpSecret,
                 'inactivityTimeoutSeconds' => (int) $inactivityTimeoutSeconds,
-                'reauthTimeoutSeconds' => (int) $reauthTimeoutSeconds,
             ],
             'error' => null,
         ];
@@ -2415,10 +2391,6 @@ final class AdminSettingsService
         ]);
         $appConfig['database_prefix'] = (string) ($databaseOverride['prefix'] ?? $appConfig['database_prefix'] ?? 'car_');
         $runtimeAdminInactivityTimeout = max(60, min(86400, (int) ($adminOverride['inactivity_timeout_seconds'] ?? 7200)));
-        $runtimeAdminReauthTimeout = max(60, min(86400, (int) ($adminOverride['reauth_timeout_seconds'] ?? 7200)));
-        if ($runtimeAdminReauthTimeout > $runtimeAdminInactivityTimeout) {
-            $runtimeAdminReauthTimeout = $runtimeAdminInactivityTimeout;
-        }
 
         $appConfig['admin'] = array_merge((array) ($appConfig['admin'] ?? []), [
             'identifier' => (string) ($adminOverride['identifier'] ?? ''),
@@ -2428,7 +2400,6 @@ final class AdminSettingsService
             'totp_enabled' => $this->normalizeBooleanValue($adminOverride['totp_enabled'] ?? false, false),
             'totp_secret' => $this->normalizeTotpSecret((string) ($adminOverride['totp_secret'] ?? '')),
             'inactivity_timeout_seconds' => $runtimeAdminInactivityTimeout,
-            'reauth_timeout_seconds' => $runtimeAdminReauthTimeout,
         ]);
         $appConfig['site'] = array_merge((array) ($appConfig['site'] ?? []), [
             'url' => [
@@ -2837,14 +2808,6 @@ final class AdminSettingsService
     private function configuredAdminInactivityTimeoutSeconds(): int
     {
         return max(60, min(86400, (int) app_config('admin.inactivity_timeout_seconds', 7200)));
-    }
-
-    private function configuredAdminReauthTimeoutSeconds(): int
-    {
-        $timeout = max(60, min(86400, (int) app_config('admin.reauth_timeout_seconds', 7200)));
-        $inactivityTimeout = $this->configuredAdminInactivityTimeoutSeconds();
-
-        return $timeout > $inactivityTimeout ? $inactivityTimeout : $timeout;
     }
 
     /**

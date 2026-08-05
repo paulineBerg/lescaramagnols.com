@@ -357,9 +357,6 @@ final class AdminController
 
         $error = null;
         $notice = $this->noticeMessageFromCode(admin_pop_notice_code());
-        if ($notice === null && (($request->query()['reauth'] ?? null) === '1')) {
-            $notice = $this->noticeMessageFromCode('reauth_required');
-        }
         $submittedIdentifier = admin_configured_identifier();
         $totpRequired = admin_totp_should_challenge();
         $passwordRequired = !admin_local_passwordless_localhost_allowed();
@@ -2054,11 +2051,6 @@ final class AdminController
                 $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
                 $filters = $this->logService->normalizeFilters(is_array($body) ? $body : []);
             } else {
-                $sensitiveGuard = $this->guardSensitiveAction($request, 'logs.write');
-                if ($sensitiveGuard !== null) {
-                    return $sensitiveGuard;
-                }
-
                 $action = is_string($body['log_action'] ?? null) ? $body['log_action'] : '';
                 $result = match ($action) {
                     'delete_selected' => $this->logService->deleteSelected(is_array($body) ? $body : []),
@@ -2244,24 +2236,7 @@ final class AdminController
             return null;
         }
 
-        if (admin_reauth_is_fresh()) {
-            return null;
-        }
-
-        $this->eventLogger->security(
-            'admin.reauth.required',
-            [
-                'action' => $action,
-                'uri' => $request->uri(),
-                'method' => $request->method(),
-                'actor' => admin_current_masked_identifier(),
-            ],
-            'warning'
-        );
-
-        admin_logout('reauth_required');
-
-        return $this->redirect($this->routeResolver->canonicalPath('login') . '?reauth=1', 302);
+        return null;
     }
 
     private function noticeMessageFromCode(?string $noticeCode): ?string
@@ -2269,10 +2244,9 @@ final class AdminController
         return match ($noticeCode) {
             'inactive_timeout' => $this->adminTextf(
                 'TXT_ADMIN_NOTICE_INACTIVE_TIMEOUT',
-                'Session expirée après inactivité (%d minutes). Merci de vous reconnecter.',
+                'Session expirée après inactivité (%d minutes).',
                 (int) floor(admin_inactivity_timeout_seconds() / 60)
             ),
-            'reauth_required' => $this->adminText('TXT_ADMIN_NOTICE_REAUTH_REQUIRED', 'Veuillez vous reconnecter pour valider une action sensible.'),
             default => null,
         };
     }
@@ -2365,7 +2339,7 @@ final class AdminController
             'adminSessionWarningCountdownTemplate' => $this->adminText('TXT_ADMIN_SESSION_WARNING_COUNTDOWN_TEMPLATE', 'Déconnexion automatique dans %d secondes.'),
             'adminSessionWarningConfirmLabel' => $this->adminText('TXT_ADMIN_SESSION_WARNING_CONFIRM', 'Oui, prolonger'),
             'adminSessionWarningLogoutLabel' => $this->adminText('TXT_ADMIN_SESSION_WARNING_LOGOUT', 'Non, se déconnecter'),
-            'adminSessionWarningNetworkError' => $this->adminText('TXT_ADMIN_SESSION_WARNING_NETWORK_ERROR', 'Session expirée ou inaccessible. Merci de vous reconnecter.'),
+            'adminSessionWarningNetworkError' => $this->adminText('TXT_ADMIN_SESSION_WARNING_NETWORK_ERROR', 'Session expirée ou inaccessible.'),
         ];
 
         $body = $this->renderTemplate(

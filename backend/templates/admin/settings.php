@@ -224,7 +224,6 @@ $adminTotpSecretSummary = !empty($admin['totpSecretConfigured'])
     ? $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_SET', 'secret enregistré')
     : $translate('TXT_ADMIN_SETTINGS_ADMIN_TOTP_SECRET_MISSING', 'secret absent');
 $adminInactivitySummary = max(60, (int) ($admin['inactivityTimeoutSeconds'] ?? 1200));
-$adminReauthSummary = max(60, (int) ($admin['reauthTimeoutSeconds'] ?? 600));
 $urlSummaryParts = [];
 if (trim((string) ($url['domain'] ?? '')) !== '') {
     $urlSummaryParts[] = 'HTTP ' . trim((string) $url['domain']);
@@ -328,9 +327,8 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
       <?php
       echo htmlspecialchars(
           sprintf(
-              $translate('TXT_ADMIN_SETTINGS_ADMIN_TIMEOUTS_TEMPLATE', 'Timeout %1$ss · Ré-auth %2$ss'),
-              (int) $adminInactivitySummary,
-              (int) $adminReauthSummary
+              $translate('TXT_ADMIN_SETTINGS_ADMIN_TIMEOUT_TEMPLATE', 'Timeout %1$ss'),
+              (int) $adminInactivitySummary
           ),
           ENT_QUOTES,
           'UTF-8'
@@ -785,11 +783,6 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
             <label for="admin_inactivity_timeout_seconds"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_INACTIVITY_TIMEOUT_LABEL', 'Timeout d’inactivité (secondes)'), ENT_QUOTES, 'UTF-8'); ?></label>
             <input id="admin_inactivity_timeout_seconds" name="admin[inactivity_timeout_seconds]" type="number" min="60" max="86400" value="<?php echo htmlspecialchars((string) ($admin['inactivityTimeoutSeconds'] ?? 1200), ENT_QUOTES, 'UTF-8'); ?>" required />
             <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_INACTIVITY_TIMEOUT_HELP', '1200 = 20 minutes.'), ENT_QUOTES, 'UTF-8'); ?></small>
-          </div>
-          <div class="field">
-            <label for="admin_reauth_timeout_seconds"><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_REAUTH_TIMEOUT_LABEL', 'Fenêtre de ré-authentification (secondes)'), ENT_QUOTES, 'UTF-8'); ?></label>
-            <input id="admin_reauth_timeout_seconds" name="admin[reauth_timeout_seconds]" type="number" min="60" max="86400" value="<?php echo htmlspecialchars((string) ($admin['reauthTimeoutSeconds'] ?? 600), ENT_QUOTES, 'UTF-8'); ?>" required />
-            <small><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_ADMIN_REAUTH_TIMEOUT_HELP', 'Doit être inférieure ou égale au timeout d’inactivité.'), ENT_QUOTES, 'UTF-8'); ?></small>
           </div>
         </div>
       </div>
@@ -1730,7 +1723,6 @@ $autostartAttr = static function (string $section, ?string $openSection, ?string
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_PASSWORD_HASHED', 'Le mot de passe admin est hashé via password_hash() avant écriture.'), ENT_QUOTES, 'UTF-8'); ?></li>
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_TOTP_LOCALHOST', 'Le Code 2FA est désactivé par défaut, activable depuis les paramètres admin, et bypassé en localhost quand le bypass local est configuré.'), ENT_QUOTES, 'UTF-8'); ?></li>
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_SESSION_TIMEOUT', 'La session admin coupe automatiquement après inactivité (20 min par défaut).'), ENT_QUOTES, 'UTF-8'); ?></li>
-        <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_REAUTH', 'Les actions sensibles forcent une ré-authentification périodique.'), ENT_QUOTES, 'UTF-8'); ?></li>
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_DATABASE_PASSWORD', 'Le mot de passe BDD n’est jamais réaffiché dans l’interface.'), ENT_QUOTES, 'UTF-8'); ?></li>
         <li><?php echo htmlspecialchars(sprintf($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_OUTSIDE_WEBROOT', 'La sauvegarde est écrite hors webroot : %s.'), !empty($storage['outsideWebroot']) ? $translate('TXT_ADMIN_SETTINGS_SECURITY_YES', 'oui') : $translate('TXT_ADMIN_SETTINGS_SECURITY_TO_VERIFY', 'à vérifier')), ENT_QUOTES, 'UTF-8'); ?></li>
         <li><?php echo htmlspecialchars($translate('TXT_ADMIN_SETTINGS_SECURITY_RULE_LOGGING', 'Chaque changement sensible est journalisé dans backend/data/logs/security.log.'), ENT_QUOTES, 'UTF-8'); ?></li>
