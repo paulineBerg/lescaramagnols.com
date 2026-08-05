@@ -147,6 +147,16 @@ if ($privateHasModule('Aide impôts')) {
     ];
 }
 
+if ($privateHasModule('Web development')) {
+    $privateNavItems[] = [
+        'label' => 'Projets web',
+        'href' => private_portal_url('web_development'),
+        'icon' => 'WEB',
+        'active' => $privateCurrentPath !== ''
+            && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('web_development'))),
+    ];
+}
+
 if ($privateMemberSettingsEnabled) {
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_SETTINGS_NAV', 'Paramètres'),

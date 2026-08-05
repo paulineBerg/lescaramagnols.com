@@ -107,6 +107,18 @@ final class PreviewOpenFakeProjectRepository implements WebDevelopmentProjectRep
     ) {
     }
 
+    public function findPreviewProjectsForUser(int $privateUserId): array
+    {
+        return $privateUserId === $this->allowedUserId
+            ? [[
+                'id' => $this->allowedProjectId,
+                'projectKey' => 'project-000123-lor-de-la-roche',
+                'displayName' => 'Lor de la Roche',
+                'description' => '',
+            ]]
+            : [];
+    }
+
     public function findPreviewProjectById(int $projectId): ?array
     {
         return $projectId === $this->allowedProjectId

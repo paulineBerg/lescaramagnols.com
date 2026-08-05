@@ -84,6 +84,40 @@ final class PreviewGatewayControllerTest extends TestCase
         self::assertSame('noindex, nofollow, noarchive, noimageindex', $response->headers['X-Robots-Tag'] ?? null);
     }
 
+    public function testPublicHostOnlyMatchesPrivatePreviewPaths(): void
+    {
+        global $appConfig;
+        $previousBaseUrl = $appConfig['base_url'] ?? null;
+        $appConfig['base_url'] = 'https://www.lescaramagnols.com';
+
+        try {
+            $gateway = $this->gateway('www.lescaramagnols.com');
+
+            self::assertFalse($gateway->matchesPreviewHost(
+                $this->request('GET', '/', ['Host' => 'www.lescaramagnols.com'])
+            ));
+            self::assertFalse($gateway->matchesPreviewHost(
+                $this->request('GET', '/robots.txt', ['Host' => 'www.lescaramagnols.com'])
+            ));
+            self::assertTrue($gateway->matchesPreviewHost(
+                $this->request(
+                    'GET',
+                    '/_access/abcdefghijklmnopqrstuvwxyzABCDEF012345',
+                    ['Host' => 'www.lescaramagnols.com']
+                )
+            ));
+            self::assertTrue($gateway->matchesPreviewHost(
+                $this->request('GET', '/p/lordelaroche/', ['Host' => 'www.lescaramagnols.com'])
+            ));
+        } finally {
+            if ($previousBaseUrl === null) {
+                unset($appConfig['base_url']);
+            } else {
+                $appConfig['base_url'] = $previousBaseUrl;
+            }
+        }
+    }
+
     public function testProjectPreviewRequiresAuthorizedPreviewSession(): void
     {
         $this->accessGuard->allowProjectAccess = false;
@@ -128,10 +162,10 @@ final class PreviewGatewayControllerTest extends TestCase
         self::assertStringContainsString('SameSite=Lax', $response->headers['Set-Cookie'] ?? '');
     }
 
-    private function gateway(): PreviewGatewayController
+    private function gateway(string $previewHost = 'preview.lescaramagnols.com'): PreviewGatewayController
     {
         return new PreviewGatewayController(
-            'preview.lescaramagnols.com',
+            $previewHost,
             $this->accessGuard,
             new PreviewFileService($this->tmpRoot),
             $this->projectRepository
@@ -210,6 +244,18 @@ final class FakeProjectRepository implements WebDevelopmentProjectRepositoryInte
      */
     public function __construct(private readonly array $project)
     {
+    }
+
+    public function findPreviewProjectsForUser(int $privateUserId): array
+    {
+        return $privateUserId > 0
+            ? [[
+                'id' => $this->project['id'],
+                'projectKey' => $this->project['projectKey'],
+                'displayName' => 'Lor de la Roche',
+                'description' => '',
+            ]]
+            : [];
     }
 
     public function findPreviewProjectById(int $projectId): ?array

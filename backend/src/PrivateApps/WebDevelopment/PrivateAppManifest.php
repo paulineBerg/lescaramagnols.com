@@ -93,6 +93,8 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
         return [
             'PreviewGatewayControllerTest',
             'PreviewOpenControllerTest',
+            'WebDevelopmentPageTest',
+            'WebDevelopmentProjectRepositoryTest',
         ];
     }
 

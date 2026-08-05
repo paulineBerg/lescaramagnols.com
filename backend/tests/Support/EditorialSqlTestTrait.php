@@ -71,6 +71,10 @@ trait EditorialSqlTestTrait
 
             foreach (
                 [
+                    'web_development_preview_sessions',
+                    'web_development_preview_tickets',
+                    'web_development_releases',
+                    'web_development_projects',
                     'cron_runs',
                     'cron_jobs',
                     'cron_scheduler_state',

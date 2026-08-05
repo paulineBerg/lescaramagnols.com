@@ -27,7 +27,20 @@ final class PreviewGatewayController
             return false;
         }
 
-        return $this->normalizeHost((string) ($request->header('Host') ?? $request->server('HTTP_HOST', ''))) === $configuredHost;
+        $requestHost = $this->normalizeHost(
+            (string) ($request->header('Host') ?? $request->server('HTTP_HOST', ''))
+        );
+        if ($requestHost !== $configuredHost) {
+            return false;
+        }
+
+        if ($configuredHost !== $this->publicHost()) {
+            return true;
+        }
+
+        $path = \request_path($request->uri());
+
+        return preg_match('#\A/(?:_access|p)(?:/|\z)#', $path) === 1;
     }
 
     public function handle(Request $request): Response
@@ -127,5 +140,17 @@ final class PreviewGatewayController
         }
 
         return (string) $request->server('SERVER_PORT', '') === '443';
+    }
+
+    private function publicHost(): string
+    {
+        $baseUrl = app_config('base_url', '');
+        if (!is_string($baseUrl) || trim($baseUrl) === '') {
+            return '';
+        }
+
+        $host = parse_url($baseUrl, PHP_URL_HOST);
+
+        return is_string($host) ? $this->normalizeHost($host) : '';
     }
 }

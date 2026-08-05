@@ -109,7 +109,8 @@ final class PrivatePortalController
         private readonly ?RentalDashboardService $rentalDashboardService = null,
         private readonly ?RentalExportService $rentalExportService = null,
         private readonly ?BlocNoteRepository $blocNoteRepository = null,
-        private readonly ?RentalLessorRepository $rentalLessorRepository = null
+        private readonly ?RentalLessorRepository $rentalLessorRepository = null,
+        private readonly ?WebDevelopmentProjectRepositoryInterface $webDevelopmentProjectRepository = null
     ) {
     }
 
@@ -128,6 +129,7 @@ final class PrivatePortalController
             ),
             'documents_hub_action' => $this->documentHubController()->action($request),
             'blocnote' => $this->blocNoteController()->handle($request),
+            'web_development' => $this->handleWebDevelopment($request),
             'rental_dashboard' => $this->rentalController()->handle('rental_dashboard', $request),
             'rental_properties_dashboard' => $this->rentalController()->handle('rental_properties_dashboard', $request),
             'rental_agency_dashboard' => $this->rentalController()->handle('rental_agency_dashboard', $request),
@@ -2577,6 +2579,32 @@ final class PrivatePortalController
         $projectKey = strtolower(trim($projectKey));
 
         return $this->webDevelopmentPreviewController()->open($request, $userId, $projectKey);
+    }
+
+    private function handleWebDevelopment(Request $request): Response
+    {
+        $userId = $this->requireWebDevelopmentModuleUser($request);
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+        $errorCode = is_string($request->query()['error'] ?? null)
+            ? strtolower(trim((string) $request->query()['error']))
+            : '';
+
+        return $this->render('modules/web-development/index', [
+            'privatePageTitle' => 'Projets web privés',
+            'privatePageDescription' => 'Prévisualisations confidentielles accessibles uniquement aux membres autorisés.',
+            'privateUserIdentifier' => is_string($this->auth->currentIdentifier())
+                ? (string) $this->auth->currentIdentifier()
+                : '',
+            'privateModules' => $this->privateModuleNamesForUser($userId),
+            'privateLogoutCsrfToken' => csrf_token('private_logout'),
+            'webDevelopmentProjects' => $this->webDevelopmentProjectRepository()->findPreviewProjectsForUser($userId),
+            'webDevelopmentBaseUrl' => private_portal_url('web_development'),
+            'webDevelopmentCsrfToken' => csrf_token('private_web_development_preview'),
+            'webDevelopmentErrorCode' => $errorCode,
+        ]);
     }
 
     private function handlePrivacyExport(Request $request): Response
@@ -5033,7 +5061,7 @@ final class PrivatePortalController
 
     private function webDevelopmentProjectRepository(): WebDevelopmentProjectRepositoryInterface
     {
-        return new WebDevelopmentProjectRepository(editorial_database());
+        return $this->webDevelopmentProjectRepository ?? new WebDevelopmentProjectRepository(editorial_database());
     }
 
     private function webDevelopmentPreviewTicketRepository(): PreviewTicketRepositoryInterface

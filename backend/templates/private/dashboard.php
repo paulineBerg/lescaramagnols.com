@@ -42,6 +42,7 @@ $privateModuleCodeByName = [
     'Discussions' => 'discussions',
     'Locations immobilières' => 'real_estate_rental',
     'Aide impôts' => 'tax_declaration_helper',
+    'Web development' => 'web_development',
 ];
 
 // Ajouter les modules depuis le registre si disponibles
@@ -211,6 +212,17 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
       </p>
       <p class="private-actions">
         <a href="<?php echo htmlspecialchars(private_portal_url('tax_dashboard'), ENT_QUOTES, 'UTF-8'); ?>">Préparer une synthèse annuelle</a>
+      </p>
+    </section>
+    <?php endif; ?>
+
+    <?php if (in_array('Web development', $privateModules, true)): ?>
+    <section class="card">
+      <span class="tag">Prévisualisation</span>
+      <h2>Projets web privés</h2>
+      <p class="muted">Consultez les sites de travail qui vous ont été confiés, sans les rendre publics ni indexables.</p>
+      <p class="private-actions">
+        <a href="<?php echo htmlspecialchars(private_portal_url('web_development'), ENT_QUOTES, 'UTF-8'); ?>">Voir mes projets web</a>
       </p>
     </section>
     <?php endif; ?>
