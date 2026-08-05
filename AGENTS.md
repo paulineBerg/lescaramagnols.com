@@ -49,6 +49,8 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 
 - `backend/src/PrivatePortal` est reserve au socle de l'espace prive : HTTP, routes, securite, sessions, utilisateurs, permissions et operations transverses.
 - Les modules applicatifs prives doivent vivre sous `backend/src/PrivateApps`.
+- Pour une intervention sous `backend/src/PrivateApps/`, charger aussi le
+  `AGENTS.md` descendant lorsqu'il existe.
 - Ne pas ajouter de nouvelle logique metier applicative dans `PrivatePortal` sans justification explicite ; preferer un module dedie dans `PrivateApps`.
 - Regles detaillees et architecture des modules : `backend/src/PrivateApps/AGENTS.md` et `backend/src/PrivateApps/README.md`.
 
@@ -105,24 +107,6 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
 - Voir `backend/docs/STORAGE_RUNTIME_POLICY.md` pour les détails complets et `backend/docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md` pour l'historique de migration et les checklists.
 - **Règle critique** : Local -> Production = CODE SEULEMENT, aucune donnée SQL, aucun upload, aucun document runtime.
 
-<!-- BEGIN MANAGED MULTI-AI WORKFLOW -->
-## Workflow multi-IA
-
-- Ce bloc est une projection gérée de `pauline-ai-governance` : le guide central
-  reste l'unique source normative et toute divergence locale doit être corrigée.
-- Lire `.ai/README.md`, `.ai/CURRENT_TASK.md`, les règles applicables et l'état Git avant toute intervention.
-- Classer séparément le routage `A/B/C` et le risque `R0/R1/R2/R3` ; justifier les deux.
-- Attribuer explicitement les rôles utiles : routeur, architecte, auteur/implémentateur, vérificateur, relecteur indépendant et décideur humain.
-- `.ai/CURRENT_TASK.md` nomme un seul auteur ; l'outil associé à chaque rôle reste une configuration locale non normative.
-- Deux rôles ne modifient jamais simultanément le même worktree. Pour `R2/R3`, auteur et relecteur indépendant sont distincts.
-- Aucun agent ne s'attribue une approbation humaine, une revue indépendante, une permission externe ou une preuve non obtenue.
-- Préserver les changements existants et n'exécuter que les validations réellement documentées.
-- Étiqueter chaque contrôle `réussi`, `échoué`, `impossible`, `absent` ou `non applicable`.
-- Ne placer aucun secret, donnée personnelle, dump, log ou contenu sensible dans les prompts ou rapports.
-- Aucun commit, push, déploiement, production, migration, transfert ou destruction sans autorisation applicable.
-- Avant `Terminé`, appliquer `.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md` et consigner le résultat ; aucun déplacement n'est automatique.
-- Les détails opératoires sont dans `.ai/` ; les règles normatives restent dans le guide central.
-<!-- END MANAGED MULTI-AI WORKFLOW -->
 
 <!-- BEGIN MANAGED CENTRAL GUIDE -->
 ## Gouvernance centrale
@@ -133,4 +117,12 @@ profil, les guides et la checklist sélectionnés. Les règles locales du prése
 projet restent applicables et spécialisent le socle sans réduire ses
 protections. Si `governance.yml` existe, exécuter le validateur et le résolveur
 du socle sans lancer automatiquement les commandes déclarées.
+
+Le workflow, le modèle de tâche et les prompts sont lus directement dans
+`../../Workspace/pauline-ai-governance/.ai/README.md`, `../../Workspace/pauline-ai-governance/.ai/TASK_TEMPLATE.md` et
+`../../Workspace/pauline-ai-governance/.ai/prompts/` ; ils ne sont pas recopiés dans le projet. Pour toute
+modification ou livraison, créer ou mettre à jour `.ai/CURRENT_TASK.md` dans le
+présent projet. Ses transmissions terminées vont dans
+`.ai/archive/transmissions/YYYY/MM/` du même projet selon la procédure centrale
+`../../Workspace/pauline-ai-governance/.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md`.
 <!-- END MANAGED CENTRAL GUIDE -->

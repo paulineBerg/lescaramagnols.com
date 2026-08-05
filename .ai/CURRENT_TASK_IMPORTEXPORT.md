@@ -1,3 +1,20 @@
+<!-- BEGIN MANAGED CENTRAL TASK CONTEXT -->
+> **Gouvernance active 2.4** — Workflow et prompts :
+> `../../Workspace/pauline-ai-governance/.ai/README.md` et `../../Workspace/pauline-ai-governance/.ai/prompts/`.
+> La présente transmission et son archive restent locales à ce projet.
+>
+> **Mode** : mono-agent par défaut. Pour toute demande explicitement activée,
+> l'agent principal `/root` peut cumuler routage, architecture,
+> implémentation, vérification, corrections et clôture sans nouveau relais.
+> Une revue indépendante reste facultative. Les anciennes mentions de
+> fournisseurs, de prompts successifs ou de relecteur obligatoire ci-dessous
+> sont remplacées par cette règle, sans modifier le besoin ni les preuves.
+>
+> **Limites** : cette attribution n'active pas une tâche seulement planifiée et
+> n'autorise ni production, déploiement, migration, destruction, action externe
+> ou décision humaine. Ces actions restent soumises à leur demande explicite.
+<!-- END MANAGED CENTRAL TASK CONTEXT -->
+
 # Tache en cours - Finalisation Document Hub (Import/Export/Archivage)
 
 ## Demande originale
