@@ -180,6 +180,42 @@ final class PrivatePortalMembersTest extends TestCase
         $this->assertNull($repository->resetPasswordByToken($resetToken, $resetHash, '127.0.0.1'));
     }
 
+    public function testInvitedAccountCannotReceiveOrConsumePasswordResetToken(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $repository = new PrivateUserRepository($database);
+        $passwordHash = password_hash('TempPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $repository->create('invited-reset@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $legacyResetToken = $repository->createPasswordResetToken($userId, '127.0.0.1', 'phpunit');
+        $this->assertIsString($legacyResetToken);
+        $this->assertTrue($repository->updateStatus($userId, 'invited'));
+
+        $this->assertNull($repository->createPasswordResetToken($userId, '127.0.0.1', 'phpunit'));
+        $diagnostic = $repository->diagnosePasswordResetToken($legacyResetToken);
+        $this->assertSame('account_not_resettable', $diagnostic['reason'] ?? null);
+        $this->assertSame('invited', $diagnostic['account_status'] ?? null);
+        $this->assertSame('unused', $diagnostic['link_state'] ?? null);
+
+        $replacementHash = password_hash('Replacement1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($replacementHash);
+        $this->assertNull($repository->resetPasswordByToken($legacyResetToken, $replacementHash, '127.0.0.1'));
+
+        $service = new AdminPrivateMembersService(
+            $repository,
+            new PrivateModulePermissionRepository($database, new PrivateModuleRegistry())
+        );
+        $result = $service->handleAction([
+            'private_member_action' => 'reset',
+            'private_user_id' => (string) $userId,
+        ], 'admin@example.com', '127.0.0.1', 'phpunit');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('Renvoyez plutôt son invitation', (string) $result['error']);
+    }
+
     public function testModuleAssignmentAndMfaBackupCodeAreServerSideOnly(): void
     {
         $database = $this->editorialSqlDatabase();

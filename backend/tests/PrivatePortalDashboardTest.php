@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Caramagnols\Http\Request;
+use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\Logging\LoggerFactory;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\Http\PrivatePortalController;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
@@ -238,6 +240,92 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertSame(200, $unknownResponse->status);
         $this->assertStringContainsString('Si le compte existe', $knownResponse->body);
         $this->assertSame($knownResponse->body, $unknownResponse->body);
+    }
+
+    public function testPasswordForgotRenewsActivationInsteadOfResetForInvitedAccount(): void
+    {
+        global $appConfig;
+
+        $appConfig['private']['mail'] = [];
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('Temporary1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('pending@example.com', $passwordHash, 'invited');
+        $this->assertIsInt($userId);
+
+        $session = new PrivateSession('_private_dashboard_test');
+        $controller = new PrivatePortalController(
+            new PrivateAuth($session, null, $userRepository),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository
+        );
+        $response = $controller->handle('password_forgot', $this->request('POST', '/private/password/forgot', [
+            'identifier' => 'pending@example.com',
+            'csrf_token' => $this->privateCsrfToken($session, 'private_password'),
+        ]));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Si le compte existe', $response->body);
+        $resetCount = $database->pdo()
+            ->query(sprintf('SELECT COUNT(*) FROM `%s`', $database->table('private_password_resets')))
+            ->fetchColumn();
+        $invite = $database->pdo()
+            ->query(sprintf('SELECT `status` FROM `%s` ORDER BY `id` DESC LIMIT 1', $database->table('private_user_invites')))
+            ->fetchColumn();
+        $this->assertSame(0, (int) $resetCount);
+        $this->assertSame('pending', $invite);
+    }
+
+    public function testFailedPasswordResetLogsDetailedNonSensitiveDiagnostic(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('Temporary1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('diagnostic@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $resetToken = $userRepository->createPasswordResetToken($userId, '127.0.0.1', 'phpunit');
+        $this->assertIsString($resetToken);
+        $this->assertTrue($userRepository->updateStatus($userId, 'invited'));
+
+        $logDir = sys_get_temp_dir() . '/caramagnols-private-reset-' . bin2hex(random_bytes(8));
+        $session = new PrivateSession('_private_dashboard_test');
+        $controller = new PrivatePortalController(
+            new PrivateAuth($session, null, $userRepository),
+            null,
+            new AppEventLogger(new LoggerFactory($logDir, 'test')),
+            $userRepository,
+            $moduleRepository
+        );
+        $response = $controller->handle(
+            'password_reset',
+            $this->request('POST', '/private/password/reset/' . $resetToken, [
+                'password' => 'ReplacementPwd1!',
+                'password_confirm' => 'ReplacementPwd1!',
+                'csrf_token' => $this->privateCsrfToken($session, 'private_password'),
+            ]),
+            ['token' => $resetToken]
+        );
+
+        try {
+            $this->assertSame(200, $response->status);
+            $log = (string) file_get_contents($logDir . '/security.log');
+            $this->assertStringContainsString('private.password_reset.completed_failed', $log);
+            $this->assertStringContainsString('account_not_resettable', $log);
+            $this->assertStringContainsString('"account_status":"invited"', $log);
+            $this->assertStringContainsString(substr(hash('sha256', $resetToken), 0, 16), $log);
+            $this->assertStringNotContainsString($resetToken, $log);
+        } finally {
+            foreach (glob($logDir . '/*') ?: [] as $path) {
+                @unlink($path);
+            }
+            @rmdir($logDir);
+        }
     }
 
     /**

@@ -4596,7 +4596,7 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         const countdownTemplate = countdownTemplateRaw.includes('%d')
           ? countdownTemplateRaw
           : `${countdownTemplateRaw} (%d)`;
-        const networkErrorMessage = <?php echo json_encode((string) ($adminSessionWarningNetworkError ?? 'Session expirée. Merci de vous reconnecter.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
+        const networkErrorMessage = <?php echo json_encode((string) ($adminSessionWarningNetworkError ?? 'Session expirée ou inaccessible.'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 
         if (pingUrl === '' || logoutUrl === '' || csrfToken === '') {
           return;

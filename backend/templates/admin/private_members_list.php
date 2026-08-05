@@ -658,15 +658,17 @@ $statusLabels = [
                       <button class="button-small button-muted" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_SUSPEND', 'Suspendre')); ?></button>
                     </form>
 
-                    <form method="POST" action="<?php echo $escape($membersUrl); ?>">
-                      <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
-                      <input type="hidden" name="private_member_action" value="reset" />
-                      <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
-                      <?php if ($memberFragment !== ''): ?>
-                        <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
-                      <?php endif; ?>
-                      <button class="button-small button-muted" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_RESET', 'Reset password')); ?></button>
-                    </form>
+                    <?php if ($statusValue === 'active'): ?>
+                      <form method="POST" action="<?php echo $escape($membersUrl); ?>">
+                        <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+                        <input type="hidden" name="private_member_action" value="reset" />
+                        <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
+                        <?php if ($memberFragment !== ''): ?>
+                          <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
+                        <?php endif; ?>
+                        <button class="button-small button-muted" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_RESET', 'Reset password')); ?></button>
+                      </form>
+                    <?php endif; ?>
                   <?php endif; ?>
                 </div>
               </td>

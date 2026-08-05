@@ -451,14 +451,44 @@ final class AdminPrivateMembersService
 
         $userId = (int) $member['id'];
         $email = (string) $member['email'];
+        $accountStatus = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
+        if (!in_array($accountStatus, ['active', 'suspended'], true)) {
+            $this->logAction(
+                'admin.private.password_reset_blocked',
+                $actorIdentifier,
+                $userId,
+                $email,
+                'warning',
+                [
+                    'reason' => 'account_not_resettable',
+                    'account_status' => $accountStatus !== '' ? $accountStatus : 'unknown',
+                ]
+            );
+
+            return $this->result(
+                false,
+                null,
+                $accountStatus === 'invited'
+                    ? 'Ce compte n’est pas encore activé. Renvoyez plutôt son invitation.'
+                    : 'Ce compte ne peut pas recevoir de lien de réinitialisation.'
+            );
+        }
+
         $token = $this->privateUserRepository->createPasswordResetToken($userId, $clientIp, $userAgent);
         if ($token === null) {
-            $this->logAction('admin.private.password_reset_failed', $actorIdentifier, $userId, $email, 'warning');
+            $this->logAction(
+                'admin.private.password_reset_failed',
+                $actorIdentifier,
+                $userId,
+                $email,
+                'warning',
+                ['reason' => 'generation_failed', 'account_status' => $accountStatus]
+            );
 
             return $this->result(false, null, 'Impossible de générer un jeton de réinitialisation.');
         }
 
-        $emailSent = $this->sendPasswordResetEmail($email, $token, $actorIdentifier, $userId);
+        $emailSent = $this->sendPasswordResetEmail($email, $token, $actorIdentifier, $userId, $accountStatus);
         if (!$emailSent) {
             $this->logAction(
                 'admin.private.password_reset_manual_link_issued',
@@ -476,7 +506,18 @@ final class AdminPrivateMembersService
             );
         }
 
-        $this->logAction('admin.private.password_reset_requested', $actorIdentifier, $userId, $email);
+        $this->logAction(
+            'admin.private.password_reset_requested',
+            $actorIdentifier,
+            $userId,
+            $email,
+            'info',
+            [
+                'account_status' => $accountStatus,
+                'link_reference' => $this->linkReference($token),
+                'ttl_minutes' => max(1, (int) app_config('private.password_reset_token_ttl_minutes', 30)),
+            ]
+        );
 
         return $this->result(true, 'Demande de réinitialisation envoyée.', null);
     }
@@ -724,7 +765,12 @@ final class AdminPrivateMembersService
             $this->plainTextToHtml($message),
             'admin.private.invite_email',
             $actorIdentifier,
-            $userId
+            $userId,
+            [
+                'account_status' => 'invited',
+                'link_reference' => $this->linkReference($token),
+                'ttl_hours' => max(1, (int) app_config('private.invite_token_ttl_hours', 168)),
+            ]
         );
     }
 
@@ -738,7 +784,13 @@ final class AdminPrivateMembersService
         return $prefix . ' Lien d’activation à transmettre manuellement : ' . $this->activationUrl($token);
     }
 
-    private function sendPasswordResetEmail(string $email, string $token, ?string $actorIdentifier, int $userId): bool
+    private function sendPasswordResetEmail(
+        string $email,
+        string $token,
+        ?string $actorIdentifier,
+        int $userId,
+        string $accountStatus
+    ): bool
     {
         $url = $this->passwordResetUrl($token);
         $message = $this->renderPrivateMailTemplate($this->privateMailTemplate(
@@ -756,7 +808,12 @@ final class AdminPrivateMembersService
             $this->plainTextToHtml($message),
             'admin.private.password_reset_email',
             $actorIdentifier,
-            $userId
+            $userId,
+            [
+                'account_status' => $accountStatus,
+                'link_reference' => $this->linkReference($token),
+                'ttl_minutes' => max(1, (int) app_config('private.password_reset_token_ttl_minutes', 30)),
+            ]
         );
     }
 
@@ -766,11 +823,13 @@ final class AdminPrivateMembersService
         string $html,
         string $event,
         ?string $actorIdentifier,
-        int $userId
+        int $userId,
+        array $eventContext = []
     ): bool {
         $mailConfig = app_config('private.mail', []);
         if (!is_array($mailConfig) || !($mailConfig['enabled'] ?? false)) {
             $this->logAction($event . '_failed', $actorIdentifier, $userId, $email, 'warning', [
+                ...$eventContext,
                 'mail_error' => 'private mail disabled',
             ]);
 
@@ -797,7 +856,7 @@ final class AdminPrivateMembersService
             $userId,
             $email,
             $sent ? 'info' : 'warning',
-            $mailError !== null ? ['mail_error' => $mailError] : []
+            array_merge($eventContext, $mailError !== null ? ['mail_error' => $mailError] : [])
         );
 
         return $sent;
@@ -806,6 +865,11 @@ final class AdminPrivateMembersService
     private function passwordResetUrl(string $token): string
     {
         return app_url(private_portal_url('password_reset') . '/' . rawurlencode($token));
+    }
+
+    private function linkReference(string $token): string
+    {
+        return substr(hash('sha256', $token), 0, 16);
     }
 
     /**

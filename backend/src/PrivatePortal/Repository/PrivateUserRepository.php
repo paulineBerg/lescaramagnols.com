@@ -370,6 +370,12 @@ final class PrivateUserRepository
             return null;
         }
 
+        $user = $this->findById($userId);
+        $status = is_array($user) ? $this->normalizeOptionalStatus((string) ($user['status'] ?? '')) : '';
+        if (!in_array($status, ['active', 'suspended'], true)) {
+            return null;
+        }
+
         $token = $this->randomToken();
         if ($token === '') {
             return null;
@@ -591,6 +597,127 @@ final class PrivateUserRepository
         }
 
         return $this->findById($userId);
+    }
+
+    /**
+     * Retourne uniquement des métadonnées non sensibles destinées au diagnostic des journaux.
+     *
+     * @return array{reason: string, account_status?: string, link_state?: string}
+     */
+    public function diagnoseInviteToken(string $token): array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return ['reason' => 'invalid_format'];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT i.`token_hash`, i.`status`, i.`expires_at`, u.`status` AS `account_status`
+                     FROM `%s` i
+                     LEFT JOIN `%s` u ON u.`id` = i.`private_user_id`
+                     ORDER BY i.`requested_at` DESC
+                     LIMIT 50',
+                    $this->inviteTable(),
+                    $this->table()
+                )
+            );
+            $statement->execute();
+            $row = $this->matchingTokenRow($statement->fetchAll(PDO::FETCH_ASSOC), $token);
+            if ($row === null) {
+                return ['reason' => 'not_found'];
+            }
+
+            $linkState = strtolower(trim((string) ($row['status'] ?? 'unknown')));
+            $accountStatus = $this->normalizeOptionalStatus((string) ($row['account_status'] ?? ''));
+            $context = [
+                'reason' => 'ready',
+                'link_state' => $linkState !== '' ? $linkState : 'unknown',
+                'account_status' => $accountStatus !== '' ? $accountStatus : 'missing',
+            ];
+            if ($linkState !== 'pending') {
+                $context['reason'] = match ($linkState) {
+                    'accepted' => 'already_used',
+                    'cancelled' => 'cancelled',
+                    'expired' => 'expired',
+                    default => 'invalid_state',
+                };
+
+                return $context;
+            }
+            if ((string) ($row['expires_at'] ?? '') < $this->currentDateTime()) {
+                $context['reason'] = 'expired';
+
+                return $context;
+            }
+            if ($accountStatus !== 'invited') {
+                $context['reason'] = 'account_not_invited';
+            }
+
+            return $context;
+        } catch (\Throwable) {
+            return ['reason' => 'storage_error'];
+        }
+    }
+
+    /**
+     * Retourne uniquement des métadonnées non sensibles destinées au diagnostic des journaux.
+     *
+     * @return array{reason: string, account_status?: string, link_state?: string}
+     */
+    public function diagnosePasswordResetToken(string $token): array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return ['reason' => 'invalid_format'];
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT r.`token_hash`, r.`expires_at`, r.`used_at`, u.`status` AS `account_status`
+                     FROM `%s` r
+                     LEFT JOIN `%s` u ON u.`id` = r.`private_user_id`
+                     ORDER BY r.`created_at` DESC
+                     LIMIT 50',
+                    $this->passwordResetTable(),
+                    $this->table()
+                )
+            );
+            $statement->execute();
+            $row = $this->matchingTokenRow($statement->fetchAll(PDO::FETCH_ASSOC), $token);
+            if ($row === null) {
+                return ['reason' => 'not_found'];
+            }
+
+            $accountStatus = $this->normalizeOptionalStatus((string) ($row['account_status'] ?? ''));
+            $used = is_string($row['used_at'] ?? null) && trim((string) $row['used_at']) !== '';
+            $context = [
+                'reason' => 'ready',
+                'link_state' => $used ? 'used' : 'unused',
+                'account_status' => $accountStatus !== '' ? $accountStatus : 'missing',
+            ];
+            if ($used) {
+                $context['reason'] = 'already_used';
+
+                return $context;
+            }
+            if ((string) ($row['expires_at'] ?? '') < $this->currentDateTime()) {
+                $context['reason'] = 'expired';
+
+                return $context;
+            }
+            if (!in_array($accountStatus, ['active', 'suspended'], true)) {
+                $context['reason'] = 'account_not_resettable';
+            }
+
+            return $context;
+        } catch (\Throwable) {
+            return ['reason' => 'storage_error'];
+        }
     }
 
     public function activateWithPassword(int $userId, string $passwordHash): bool

@@ -2734,6 +2734,7 @@ final class PrivatePortalController
                     if (is_array($user)) {
                         $this->logEvent('private.invite.accepted', [
                             'identifier' => AppEventLogger::maskIdentifier((string) ($user['email'] ?? '')),
+                            'link_reference' => $this->linkReference($token),
                         ]);
 
                         return $this->render('notice', [
@@ -2744,7 +2745,13 @@ final class PrivatePortalController
                         ]);
                     }
 
-                    $this->logEvent('private.invite.accept_failed', ['reason' => 'invalid_or_expired_token']);
+                    $this->logEvent(
+                        'private.invite.accept_failed',
+                        array_merge(
+                            ['link_reference' => $this->linkReference($token)],
+                            $this->privateUserRepository()->diagnoseInviteToken($token)
+                        )
+                    );
                     $error = $this->translate('TXT_PRIVATE_ACTIVATE_ERROR', 'Lien d’activation invalide ou expiré.');
                 }
             }
@@ -2776,18 +2783,46 @@ final class PrivatePortalController
             $user = $this->privateUserRepository()->findByEmail($identifier);
             if (is_array($user) && strtolower((string) ($user['status'] ?? '')) !== 'deleted') {
                 $userId = is_numeric($user['id'] ?? null) ? (int) $user['id'] : 0;
+                $accountStatus = strtolower(trim((string) ($user['status'] ?? '')));
                 if ($userId > 0) {
-                    $token = $this->privateUserRepository()->createPasswordResetToken(
-                        $userId,
-                        $request->clientIp((bool) app_config('private.trust_proxy_headers', false)),
-                        (string) ($request->server('HTTP_USER_AGENT', '') ?? '')
-                    );
-                    if ($token !== null) {
-                        $this->sendPasswordResetEmail($identifier, $token);
+                    if ($accountStatus === 'invited') {
+                        $token = $this->privateUserRepository()->createInviteToken($userId, $identifier);
+                        if ($token !== null) {
+                            $this->sendActivationEmail($identifier, $token);
+                        }
+                        $this->logEvent(
+                            $token !== null
+                                ? 'private.invite.requested_from_password_forgot'
+                                : 'private.invite.requested_from_password_forgot_failed',
+                            [
+                                'identifier' => AppEventLogger::maskIdentifier($identifier),
+                                'account_status' => $accountStatus,
+                                'link_reference' => $token !== null ? $this->linkReference($token) : '',
+                                'ttl_hours' => max(1, (int) app_config('private.invite_token_ttl_hours', 168)),
+                            ]
+                        );
+                    } elseif (in_array($accountStatus, ['active', 'suspended'], true)) {
+                        $token = $this->privateUserRepository()->createPasswordResetToken(
+                            $userId,
+                            $request->clientIp((bool) app_config('private.trust_proxy_headers', false)),
+                            (string) ($request->server('HTTP_USER_AGENT', '') ?? '')
+                        );
+                        if ($token !== null) {
+                            $this->sendPasswordResetEmail($identifier, $token, $accountStatus);
+                        }
+                        $this->logEvent($token !== null ? 'private.password_reset.requested' : 'private.password_reset.failed', [
+                            'identifier' => AppEventLogger::maskIdentifier($identifier),
+                            'account_status' => $accountStatus,
+                            'link_reference' => $token !== null ? $this->linkReference($token) : '',
+                            'ttl_minutes' => max(1, (int) app_config('private.password_reset_token_ttl_minutes', 30)),
+                        ]);
+                    } else {
+                        $this->logEvent('private.password_reset.request_blocked', [
+                            'identifier' => AppEventLogger::maskIdentifier($identifier),
+                            'account_status' => $accountStatus !== '' ? $accountStatus : 'unknown',
+                            'reason' => 'account_not_resettable',
+                        ]);
                     }
-                    $this->logEvent($token !== null ? 'private.password_reset.requested' : 'private.password_reset.failed', [
-                        'identifier' => AppEventLogger::maskIdentifier($identifier),
-                    ]);
                 }
             } else {
                 $this->logEvent('private.password_reset.requested_unknown', [
@@ -2844,6 +2879,8 @@ final class PrivatePortalController
                 if (is_array($user)) {
                     $this->logEvent('private.password_reset.completed', [
                         'identifier' => AppEventLogger::maskIdentifier((string) ($user['email'] ?? '')),
+                        'account_status' => strtolower((string) ($user['status'] ?? 'active')),
+                        'link_reference' => $this->linkReference($token),
                     ]);
 
                     return $this->render('notice', [
@@ -2853,7 +2890,13 @@ final class PrivatePortalController
                     ]);
                 }
 
-                $this->logEvent('private.password_reset.completed_failed', ['reason' => 'invalid_or_expired_token']);
+                $this->logEvent(
+                    'private.password_reset.completed_failed',
+                    array_merge(
+                        ['link_reference' => $this->linkReference($token)],
+                        $this->privateUserRepository()->diagnosePasswordResetToken($token)
+                    )
+                );
                 $error = $this->translate('TXT_PRIVATE_PASSWORD_RESET_ERROR', 'Lien de réinitialisation invalide ou expiré.');
             }
         }
@@ -5322,15 +5365,68 @@ final class PrivatePortalController
         return $translated;
     }
 
-    private function sendPasswordResetEmail(string $email, string $token): void
+    private function sendActivationEmail(string $email, string $token): bool
     {
         $mailConfig = app_config('private.mail', []);
+        $logContext = [
+            'identifier' => AppEventLogger::maskIdentifier($email),
+            'account_status' => 'invited',
+            'link_reference' => $this->linkReference($token),
+        ];
         if (!is_array($mailConfig) || $mailConfig === []) {
-            $this->logEvent('private.password_reset.email_failed', [
-                'identifier' => AppEventLogger::maskIdentifier($email),
-            ]);
+            $this->logEvent('private.invite.email_failed', $logContext + ['reason' => 'mail_not_configured']);
 
-            return;
+            return false;
+        }
+
+        if (!function_exists('send_private_email')) {
+            $mailerPath = ROOT_PATH . '/core/mailer.php';
+            if (is_file($mailerPath)) {
+                require_once $mailerPath;
+            }
+        }
+
+        $url = app_url(private_portal_url('activate') . '/' . rawurlencode($token));
+        $variables = [
+            'activation_url' => $url,
+            'email' => $email,
+        ];
+        $subject = $this->renderPrivateMailTemplate(
+            $this->privateMailTemplate('admin_invite_subject', 'Activation de votre espace privé'),
+            $variables
+        );
+        $message = $this->renderPrivateMailTemplate(
+            $this->privateMailTemplate(
+                'admin_invite_body',
+                "Bonjour,\n\nVotre espace privé est prêt.\n\nIdentifiant de connexion : {{email}}\nLien d'activation : {{activation_url}}\n\nChoisissez votre mot de passe depuis ce lien sécurisé."
+            ),
+            $variables
+        );
+        $sent = function_exists('send_private_email')
+            ? send_private_email(
+                $email,
+                sanitize_text_field($subject, 180),
+                $this->plainTextToHtml($message)
+            )
+            : false;
+
+        $this->logEvent($sent ? 'private.invite.email_sent' : 'private.invite.email_failed', $logContext);
+
+        return $sent;
+    }
+
+    private function sendPasswordResetEmail(string $email, string $token, string $accountStatus): bool
+    {
+        $mailConfig = app_config('private.mail', []);
+        $logContext = [
+            'identifier' => AppEventLogger::maskIdentifier($email),
+            'account_status' => $accountStatus,
+            'link_reference' => $this->linkReference($token),
+        ];
+        if (!is_array($mailConfig) || $mailConfig === []) {
+            $this->logEvent('private.password_reset.email_failed', $logContext + ['reason' => 'mail_not_configured']);
+
+            return false;
         }
 
         if (!function_exists('send_private_email')) {
@@ -5364,9 +5460,14 @@ final class PrivatePortalController
             )
             : false;
 
-        $this->logEvent($sent ? 'private.password_reset.email_sent' : 'private.password_reset.email_failed', [
-            'identifier' => AppEventLogger::maskIdentifier($email),
-        ]);
+        $this->logEvent($sent ? 'private.password_reset.email_sent' : 'private.password_reset.email_failed', $logContext);
+
+        return $sent;
+    }
+
+    private function linkReference(string $token): string
+    {
+        return substr(hash('sha256', $token), 0, 16);
     }
 
     private function logEvent(string $event, array $context): void
