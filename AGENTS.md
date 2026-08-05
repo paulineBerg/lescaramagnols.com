@@ -10,24 +10,6 @@
   privés, caches, journaux, sauvegardes, dumps, secrets ou données générées.
 - Toute suppression ou tout nettoyage requiert une validation explicite.
 
-<!-- BEGIN MANAGED MULTI-AI WORKFLOW -->
-## Workflow multi-IA
-
-- Ce bloc est une projection gérée de `pauline-ai-governance` : le guide central
-  reste l'unique source normative et toute divergence locale doit être corrigée.
-- Lire `.ai/README.md`, `.ai/CURRENT_TASK.md`, les règles applicables et l'état Git avant toute intervention.
-- Classer séparément le routage `A/B/C` et le risque `R0/R1/R2/R3` ; justifier les deux.
-- Attribuer explicitement les rôles utiles : routeur, architecte, auteur/implémentateur, vérificateur, relecteur indépendant et décideur humain.
-- `.ai/CURRENT_TASK.md` nomme un seul auteur ; l'outil associé à chaque rôle reste une configuration locale non normative.
-- Deux rôles ne modifient jamais simultanément le même worktree. Pour `R2/R3`, auteur et relecteur indépendant sont distincts.
-- Aucun agent ne s'attribue une approbation humaine, une revue indépendante, une permission externe ou une preuve non obtenue.
-- Préserver les changements existants et n'exécuter que les validations réellement documentées.
-- Étiqueter chaque contrôle `réussi`, `échoué`, `impossible`, `absent` ou `non applicable`.
-- Ne placer aucun secret, donnée personnelle, dump, log ou contenu sensible dans les prompts ou rapports.
-- Aucun commit, push, déploiement, production, migration, transfert ou destruction sans autorisation applicable.
-- Avant `Terminé`, appliquer `.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md` et consigner le résultat ; aucun déplacement n'est automatique.
-- Les détails opératoires sont dans `.ai/` ; les règles normatives restent dans le guide central.
-<!-- END MANAGED MULTI-AI WORKFLOW -->
 
 <!-- BEGIN MANAGED CENTRAL GUIDE -->
 ## Gouvernance centrale
@@ -38,4 +20,12 @@ profil, les guides et la checklist sélectionnés. Les règles locales du prése
 projet restent applicables et spécialisent le socle sans réduire ses
 protections. Si `governance.yml` existe, exécuter le validateur et le résolveur
 du socle sans lancer automatiquement les commandes déclarées.
+
+Le workflow, le modèle de tâche et les prompts sont lus directement dans
+`../pauline-ai-governance/.ai/README.md`, `../pauline-ai-governance/.ai/TASK_TEMPLATE.md` et
+`../pauline-ai-governance/.ai/prompts/` ; ils ne sont pas recopiés dans le projet. Pour toute
+modification ou livraison, créer ou mettre à jour `.ai/CURRENT_TASK.md` dans le
+présent projet. Ses transmissions terminées vont dans
+`.ai/archive/transmissions/YYYY/MM/` du même projet selon la procédure centrale
+`../pauline-ai-governance/.ai/ARCHIVAGE_DOCUMENTS_SOURCE.md`.
 <!-- END MANAGED CENTRAL GUIDE -->
