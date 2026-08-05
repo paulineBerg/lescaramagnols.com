@@ -114,6 +114,8 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/discussions/api/conversations/{conversationId:[0-9]+}/read' => ['methods' => ['POST'], 'handler' => 'private:discussion_api_read'],
             '/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}' => ['methods' => ['GET'], 'handler' => 'private:discussion_file'],
             '/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}/preview' => ['methods' => ['GET'], 'handler' => 'private:discussion_file_preview'],
+            '/private/web-development' => ['methods' => ['GET'], 'handler' => 'private:web_development'],
+            '/private/web-development/preview/{projectKey:[a-z0-9][a-z0-9_-]{1,80}}' => ['methods' => ['POST'], 'handler' => 'private:web_development_preview'],
             '/private/privacy/export' => ['methods' => ['GET'], 'handler' => 'private:privacy_export'],
             '/private/ops/backup' => ['methods' => ['GET'], 'handler' => 'private:ops_backup'],
         ];

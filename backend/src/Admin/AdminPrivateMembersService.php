@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Caramagnols\Admin;
 
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepository;
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
@@ -15,14 +16,19 @@ final class AdminPrivateMembersService
     private const ALLOWED_STATUS_FILTERS = ['invited', 'active', 'suspended', 'disabled'];
 
     /** @var array<int, string> */
-    private const ALLOWED_ACTIONS = ['invite', 'resend', 'suspend', 'reactivate', 'delete_suspended', 'reset', 'modules'];
+    private const ALLOWED_ACTIONS = ['invite', 'resend', 'suspend', 'reactivate', 'delete_suspended', 'reset', 'modules', 'web_development_project'];
+
+    private WebDevelopmentProjectRepository $webDevelopmentProjectRepository;
 
     public function __construct(
         private readonly PrivateUserRepository $privateUserRepository,
         private readonly PrivateModulePermissionRepository $modulePermissionRepository,
         private readonly ?AppEventLogger $eventLogger = null,
-        private ?PrivateDataProtectionService $dataProtectionService = null
+        private ?PrivateDataProtectionService $dataProtectionService = null,
+        ?WebDevelopmentProjectRepository $webDevelopmentProjectRepository = null
     ) {
+        $this->webDevelopmentProjectRepository = $webDevelopmentProjectRepository
+            ?? new WebDevelopmentProjectRepository($privateUserRepository->database());
     }
 
     /**
@@ -32,7 +38,9 @@ final class AdminPrivateMembersService
      *   members: array<int, array<string, mixed>>,
      *   stats: array<string, int>,
      *   memberEmailChoices: array<int, string>,
-     *   moduleRegistry: array<int, array<string, mixed>>
+     *   moduleRegistry: array<int, array<string, mixed>>,
+     *   webDevelopmentProjects: array<int, array<string, mixed>>,
+     *   webDevelopmentMemberOptions: array<int, array{id: int, email: string}>
      * }
      */
     public function listMembersViewModel(?string $statusFilter = null, string $searchQuery = ''): array
@@ -57,13 +65,23 @@ final class AdminPrivateMembersService
             fn (array $member): bool => $this->normalizeStatusFilter((string) ($member['status'] ?? '')) !== ''
         ));
         $memberEmailChoices = [];
+        $webDevelopmentMemberOptions = [];
         foreach ($allMembers as $member) {
             $email = is_string($member['email'] ?? null) ? trim((string) $member['email']) : '';
             if ($email !== '' && !in_array($email, $memberEmailChoices, true)) {
                 $memberEmailChoices[] = $email;
             }
+            $id = is_numeric($member['id'] ?? null) ? (int) $member['id'] : 0;
+            $status = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
+            if ($id > 0 && $email !== '' && $status === 'active') {
+                $webDevelopmentMemberOptions[] = ['id' => $id, 'email' => $email];
+            }
         }
         usort($memberEmailChoices, static fn (string $left, string $right): int => strcasecmp($left, $right));
+        usort(
+            $webDevelopmentMemberOptions,
+            static fn (array $left, array $right): int => strcasecmp($left['email'], $right['email'])
+        );
 
         return [
             'statusFilter' => $normalizedStatusFilter,
@@ -72,6 +90,8 @@ final class AdminPrivateMembersService
             'stats' => $this->membersStats($members),
             'memberEmailChoices' => $memberEmailChoices,
             'moduleRegistry' => $this->modulePermissionRepository->listRegistryModuleStates(),
+            'webDevelopmentProjects' => $this->webDevelopmentProjectRepository->listProjectsForAdministration(),
+            'webDevelopmentMemberOptions' => $webDevelopmentMemberOptions,
         ];
     }
 
@@ -98,6 +118,7 @@ final class AdminPrivateMembersService
             'delete_suspended' => $this->deleteSuspended($payload, $actorIdentifier),
             'reset' => $this->resetPassword($payload, $actorIdentifier, $clientIp, $userAgent),
             'modules' => $this->assignModules($payload, $actorIdentifier),
+            'web_development_project' => $this->configureWebDevelopmentProject($payload, $actorIdentifier),
             default => $this->result(false, null, 'Action privée inconnue.'),
         };
     }
@@ -509,6 +530,77 @@ final class AdminPrivateMembersService
         );
 
         return $this->result(true, 'Modules privés mis à jour.', null);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, message: ?string, error: ?string}
+     */
+    private function configureWebDevelopmentProject(array $payload, ?string $actorIdentifier): array
+    {
+        $projectKey = strtolower(trim((string) ($payload['project_key'] ?? '')));
+        $displayName = trim((string) ($payload['display_name'] ?? ''));
+        $description = trim((string) ($payload['description'] ?? ''));
+        if (preg_match('/\A[a-z0-9][a-z0-9_-]{1,79}\z/', $projectKey) !== 1) {
+            return $this->result(false, null, 'Clé projet invalide : utilisez 2 à 80 caractères minuscules, chiffres, tirets ou underscores.');
+        }
+        if ($displayName === '' || mb_strlen($displayName) > 160) {
+            return $this->result(false, null, 'Le nom du projet est obligatoire et limité à 160 caractères.');
+        }
+        if (mb_strlen($description) > 2000) {
+            return $this->result(false, null, 'La description est limitée à 2 000 caractères.');
+        }
+
+        $ownerUserId = $this->positiveId($payload['owner_user_id'] ?? null);
+        $ownerEmail = '';
+        if ($ownerUserId !== null) {
+            $owner = $this->privateUserRepository->findById($ownerUserId);
+            if (!is_array($owner) || $this->normalizeStatusFilter((string) ($owner['status'] ?? '')) !== 'active') {
+                return $this->result(false, null, 'Le client autorisé doit être un compte privé actif.');
+            }
+            $ownerEmail = trim((string) ($owner['email'] ?? ''));
+        }
+
+        $active = (string) ($payload['is_active'] ?? '0') === '1';
+        if (!$this->webDevelopmentProjectRepository->saveProjectConfiguration(
+            $projectKey,
+            $displayName,
+            $description,
+            $ownerUserId,
+            $active
+        )) {
+            $this->logAction(
+                'admin.private.web_development_project_update_failed',
+                $actorIdentifier,
+                $ownerUserId ?? 0,
+                $ownerEmail,
+                'warning',
+                ['project_key' => $projectKey]
+            );
+
+            return $this->result(false, null, 'Impossible d’enregistrer le projet web privé.');
+        }
+
+        $this->logAction(
+            'admin.private.web_development_project_updated',
+            $actorIdentifier,
+            $ownerUserId ?? 0,
+            $ownerEmail,
+            'info',
+            [
+                'project_key' => $projectKey,
+                'active' => $active,
+                'shared_with_module_members' => $ownerUserId === null,
+            ]
+        );
+
+        return $this->result(
+            true,
+            $ownerUserId === null
+                ? 'Projet web enregistré. Il est partagé avec tous les membres autorisés au module.'
+                : 'Projet web enregistré et affecté au client sélectionné.',
+            null
+        );
     }
 
     /**

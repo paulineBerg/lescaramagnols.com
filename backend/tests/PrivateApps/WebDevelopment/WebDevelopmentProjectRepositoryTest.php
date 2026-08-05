@@ -31,8 +31,8 @@ final class WebDevelopmentProjectRepositoryTest extends TestCase
 
         $pdo->exec(sprintf(
             'CREATE TABLE `%s` (
-                `id` INT PRIMARY KEY,
-                `project_key` VARCHAR(80) NOT NULL,
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `project_key` VARCHAR(80) NOT NULL UNIQUE,
                 `display_name` VARCHAR(160) NOT NULL DEFAULT \'\',
                 `description` TEXT NULL,
                 `current_public_path` VARCHAR(255) NOT NULL DEFAULT \'\',
@@ -87,5 +87,38 @@ final class WebDevelopmentProjectRepositoryTest extends TestCase
         self::assertNotNull($repository->findPreviewProjectByKeyForUser(7, 'lordelaroche'));
         self::assertNull($repository->findPreviewProjectByKeyForUser(7, 'client-prive'));
         self::assertNotNull($repository->findPreviewProjectByKeyForUser(42, 'client-prive'));
+
+        $adminProjects = $repository->listProjectsForAdministration();
+        self::assertSame(['client-prive', 'lordelaroche'], array_column($adminProjects, 'projectKey'));
+        self::assertTrue($repository->saveProjectConfiguration(
+            'lordelaroche',
+            'Lordelaroche',
+            'Prévisualisation privée',
+            42,
+            true
+        ));
+        self::assertTrue($repository->saveProjectConfiguration(
+            'nouveau-client',
+            'Nouveau client',
+            '',
+            42,
+            false
+        ));
+        self::assertFalse($repository->saveProjectConfiguration('Clé invalide', 'Projet', '', null, true));
+
+        $saved = $pdo->query(sprintf(
+            'SELECT `display_name`, `description`, `current_public_path`, `created_by_private_user_id`, `is_active`
+             FROM `%s` WHERE `project_key` = \'lordelaroche\'',
+            $projectsTable
+        ))->fetch(\PDO::FETCH_ASSOC);
+        self::assertIsArray($saved);
+        self::assertSame('Lordelaroche', $saved['display_name']);
+        self::assertSame('Prévisualisation privée', $saved['description']);
+        self::assertSame(
+            'web-development/deployments/lordelaroche/releases/current/public',
+            $saved['current_public_path']
+        );
+        self::assertSame(42, (int) $saved['created_by_private_user_id']);
+        self::assertSame(1, (int) $saved['is_active']);
     }
 }

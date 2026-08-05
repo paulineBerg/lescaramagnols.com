@@ -3,6 +3,9 @@ $members = is_array($privateMembers ?? null) ? $privateMembers : [];
 $memberEmailChoices = is_array($privateMemberEmailChoices ?? null) ? array_values(array_filter($privateMemberEmailChoices, 'is_string')) : [];
 $stats = is_array($privateMembersStats ?? null) ? $privateMembersStats : [];
 $moduleRegistry = is_array($privateModuleRegistry ?? null) ? $privateModuleRegistry : [];
+$webDevelopmentProjects = is_array($webDevelopmentProjects ?? null) ? $webDevelopmentProjects : [];
+$webDevelopmentMemberOptions = is_array($webDevelopmentMemberOptions ?? null) ? $webDevelopmentMemberOptions : [];
+$webDevelopmentModuleUrl = is_string($adminWebDevelopmentUrl ?? null) ? $adminWebDevelopmentUrl : '#';
 $privateMail = is_array($privateMail ?? null) ? $privateMail : [];
 $privateSecurity = is_array($privateSecurity ?? null) ? $privateSecurity : [];
 $privateMailTemplates = is_array($privateMail['templates'] ?? null) ? $privateMail['templates'] : [];
@@ -331,6 +334,133 @@ $statusLabels = [
       <?php endforeach; ?>
     </ul>
   <?php endif; ?>
+</section>
+
+<section id="web-development-projects" class="card">
+  <div class="admin-private-members-intro-header">
+    <div>
+      <span class="tag"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_TAG', 'Accès client')); ?></span>
+      <h2><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECTS_TITLE', 'Projets web privés')); ?></h2>
+    </div>
+    <a class="button-link button-link-muted" href="<?php echo $escape($webDevelopmentModuleUrl); ?>" target="_blank" rel="noopener noreferrer">
+      <?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_OPEN_MODULE', 'Ouvrir le module privé')); ?>
+    </a>
+  </div>
+  <p>
+    <?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECTS_HELP', 'Affectez chaque projet à un client actif. Le lien de prévisualisation est généré après sa connexion et n’est jamais une adresse publique directe.')); ?>
+  </p>
+  <p class="notice notice-warning">
+    <?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_SHARED_WARNING', 'Attention : « Tous les membres autorisés au module » rend le projet visible à chaque compte ayant la case Web development. Sélectionnez un client pour un accès exclusif.')); ?>
+  </p>
+
+  <?php if ($webDevelopmentProjects === []): ?>
+    <p class="notice-muted"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECTS_EMPTY', 'Aucun projet web déclaré.')); ?></p>
+  <?php endif; ?>
+
+  <?php foreach ($webDevelopmentProjects as $project): ?>
+    <?php
+    $projectKey = trim((string) ($project['projectKey'] ?? ''));
+    $ownerUserId = (int) ($project['ownerUserId'] ?? 0);
+    if ($projectKey === '') {
+        continue;
+    }
+    ?>
+    <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="filters-form">
+      <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+      <input type="hidden" name="private_member_action" value="web_development_project" />
+      <input type="hidden" name="private_member_return_fragment" value="web-development-projects" />
+      <div class="form-grid">
+        <div class="field">
+          <label for="web-project-key-<?php echo (int) ($project['id'] ?? 0); ?>"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_KEY', 'Clé du projet')); ?></label>
+          <input id="web-project-key-<?php echo (int) ($project['id'] ?? 0); ?>" name="project_key" type="text" value="<?php echo $escape($projectKey); ?>" readonly />
+        </div>
+        <div class="field">
+          <label for="web-project-name-<?php echo (int) ($project['id'] ?? 0); ?>"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_NAME', 'Nom affiché au client')); ?></label>
+          <input id="web-project-name-<?php echo (int) ($project['id'] ?? 0); ?>" name="display_name" type="text" maxlength="160" value="<?php echo $escape((string) ($project['displayName'] ?? $projectKey)); ?>" required />
+        </div>
+        <div class="field">
+          <label for="web-project-owner-<?php echo (int) ($project['id'] ?? 0); ?>"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_OWNER', 'Client autorisé')); ?></label>
+          <select id="web-project-owner-<?php echo (int) ($project['id'] ?? 0); ?>" name="owner_user_id">
+            <option value=""<?php echo $ownerUserId <= 0 ? ' selected' : ''; ?>><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_SHARED', 'Tous les membres autorisés au module')); ?></option>
+            <?php foreach ($webDevelopmentMemberOptions as $memberOption): ?>
+              <?php $memberOptionId = (int) ($memberOption['id'] ?? 0); ?>
+              <?php if ($memberOptionId <= 0) {
+                  continue;
+              } ?>
+              <option value="<?php echo $memberOptionId; ?>"<?php echo $memberOptionId === $ownerUserId ? ' selected' : ''; ?>><?php echo $escape((string) ($memberOption['email'] ?? '')); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="field">
+          <label for="web-project-description-<?php echo (int) ($project['id'] ?? 0); ?>"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_DESCRIPTION', 'Description')); ?></label>
+          <textarea id="web-project-description-<?php echo (int) ($project['id'] ?? 0); ?>" name="description" rows="2" maxlength="2000"><?php echo $escape((string) ($project['description'] ?? '')); ?></textarea>
+        </div>
+      </div>
+      <p class="notice-muted">
+        <?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_DEPLOYMENT_PATH', 'Dossier calculé côté serveur :')); ?>
+        <code><?php echo $escape((string) ($project['publicPath'] ?? '')); ?></code>
+      </p>
+      <div class="inline-form">
+        <input type="hidden" name="is_active" value="0" />
+        <label>
+          <input type="checkbox" name="is_active" value="1"<?php echo !empty($project['active']) ? ' checked' : ''; ?> />
+          <?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_ACTIVE', 'Projet accessible')); ?>
+        </label>
+        <button type="submit"><?php echo $escape($translate('TXT_ADMIN_SETTINGS_SAVE', 'Enregistrer')); ?></button>
+      </div>
+    </form>
+  <?php endforeach; ?>
+
+  <details>
+    <summary><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_ADD', 'Déclarer un autre projet')); ?></summary>
+    <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="filters-form">
+      <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+      <input type="hidden" name="private_member_action" value="web_development_project" />
+      <input type="hidden" name="private_member_return_fragment" value="web-development-projects" />
+      <div class="form-grid">
+        <div class="field">
+          <label for="web-project-key-new"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_KEY', 'Clé du projet')); ?></label>
+          <input id="web-project-key-new" name="project_key" type="text" minlength="2" maxlength="80" pattern="[a-z0-9][a-z0-9_-]+" placeholder="nom-du-projet" required />
+        </div>
+        <div class="field">
+          <label for="web-project-name-new"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_NAME', 'Nom affiché au client')); ?></label>
+          <input id="web-project-name-new" name="display_name" type="text" maxlength="160" required />
+        </div>
+        <div class="field">
+          <label for="web-project-owner-new"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_OWNER', 'Client autorisé')); ?></label>
+          <select id="web-project-owner-new" name="owner_user_id">
+            <option value=""><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_SHARED', 'Tous les membres autorisés au module')); ?></option>
+            <?php foreach ($webDevelopmentMemberOptions as $memberOption): ?>
+              <?php $memberOptionId = (int) ($memberOption['id'] ?? 0); ?>
+              <?php if ($memberOptionId <= 0) {
+                  continue;
+              } ?>
+              <option value="<?php echo $memberOptionId; ?>"><?php echo $escape((string) ($memberOption['email'] ?? '')); ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="field">
+          <label for="web-project-description-new"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_DESCRIPTION', 'Description')); ?></label>
+          <textarea id="web-project-description-new" name="description" rows="2" maxlength="2000"></textarea>
+        </div>
+      </div>
+      <input type="hidden" name="is_active" value="0" />
+      <label><input type="checkbox" name="is_active" value="1" checked /> <?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_ACTIVE', 'Projet accessible')); ?></label>
+      <button type="submit"><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_PROJECT_CREATE', 'Déclarer le projet')); ?></button>
+    </form>
+  </details>
+
+  <details>
+    <summary><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_USAGE_TITLE', 'Mode d’emploi et informations techniques')); ?></summary>
+    <ol>
+      <li><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_USAGE_1', 'Invitez le client et attendez que son compte soit actif.')); ?></li>
+      <li><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_USAGE_2', 'Cochez Web development dans ses modules puis enregistrez.')); ?></li>
+      <li><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_USAGE_3', 'Sélectionnez ce client sur le projet et laissez Projet accessible coché.')); ?></li>
+      <li><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_USAGE_4', 'Le client se connecte à l’espace privé, ouvre Projets web puis utilise le bouton de prévisualisation.')); ?></li>
+    </ol>
+    <h3><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_TECHNICAL_TITLE', 'Informations techniques')); ?></h3>
+    <p><?php echo $escape($translate('TXT_ADMIN_WEB_DEVELOPMENT_TECHNICAL_HELP', 'La passerelle crée un ticket à usage unique, pose une session courte et ajoute les en-têtes noindex, nofollow, noarchive et noimageindex. Déclarer un projet ne déploie pas ses fichiers.')); ?></p>
+  </details>
 </section>
 
 <section id="private-members-results" class="card admin-private-members-card">

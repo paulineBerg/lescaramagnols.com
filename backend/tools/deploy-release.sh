@@ -225,6 +225,7 @@ rsync "${RSYNC_FLAGS[@]}" \
   --exclude="config/database.override.php" \
   --exclude="config/admin.override.php" \
   --exclude="config/site.override.php" \
+  --exclude="vendor/" \
   --exclude="node_modules/" \
   --exclude="tests/" \
   --exclude="docs/" \
