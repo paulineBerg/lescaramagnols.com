@@ -43,7 +43,6 @@ final class PreviewFileService
         $body = $method === 'HEAD' ? '' : (string) file_get_contents($targetPath);
         $headers = [
             'Content-Type' => $this->mimeType($targetPath),
-            'Content-Length' => (string) filesize($targetPath),
         ];
 
         return $this->withPreviewHeaders(new Response(200, $headers, $body));

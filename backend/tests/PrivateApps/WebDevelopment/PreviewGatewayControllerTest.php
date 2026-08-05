@@ -147,6 +147,8 @@ final class PreviewGatewayControllerTest extends TestCase
         self::assertSame(200, $asset->status);
         self::assertSame('console.log("preview");', $asset->body);
         self::assertSame('text/javascript; charset=UTF-8', $asset->headers['Content-Type'] ?? null);
+        self::assertArrayNotHasKey('Content-Length', $index->headers);
+        self::assertArrayNotHasKey('Content-Length', $asset->headers);
     }
 
     public function testAccessTicketCreatesPreviewSessionCookieAndRedirectsToProject(): void
