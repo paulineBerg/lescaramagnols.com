@@ -350,7 +350,75 @@ avant toute migration documentaire en production.
 
 ## Résultat Codex ou Mistral
 
-*À compléter par Codex après implémentation.*
+### Clôture Codex du 2026-08-06
+
+État final : **terminé et déployé**.
+
+Décisions prises :
+
+- Suppression définitive du fallback applicatif legacy dans :
+  - `backend/src/PrivateApps/Documents/PrivateDocumentStorage.php` ;
+  - `backend/src/PrivateApps/Documents/Service/DocumentStorageService.php` ;
+  - `backend/src/PrivateApps/FamilyDiscussion/Attachment/DiscussionAttachmentStorage.php`.
+- Conservation de `isLegacyMode()` avec retour `false` pour compatibilité d'interface/tests.
+- Garde-fou production maintenu :
+  - un chemin sous `ROOT_PATH` est refusé dès la construction ;
+  - un runtime externe absent est refusé au premier usage de stockage, sans casser les pages publiques.
+- Aucun fichier runtime, upload ou donnée production n'a été supprimé, déplacé ou synchronisé depuis le local.
+- L'ancien chemin production reste présent comme archive de rollback historique, sans fallback applicatif.
+- Les documents source actifs ont été archivés dans `backend/docs/archive/2026-07-storage/`.
+- `squizlabs/php_codesniffer` a été mis à jour de `3.13.5` vers `3.13.6` pour corriger l'audit Composer.
+
+Commits :
+
+- `59e2822` `fix(private): finalize runtime storage migration`
+- `f5c9650` `fix(private): defer runtime storage availability checks`
+
+Déploiement :
+
+- Cible : `prod`, `ovh-boutique:/home/lescaramgl-ssh/caramagnols/backend`
+- Script : `backend/tools/deploy-release.sh`
+- Résultat : `cache_cleared`, `autoload_ok`, `deploy-release completed`
+
+Validations locales exécutées :
+
+- `php -l` sur les 3 services de stockage et le test ajouté : OK.
+- `vendor/bin/phpunit` complet : 735 tests, 5977 assertions, OK.
+- `vendor/bin/phpunit tests/PrivateApps/Storage tests/PrivateApps/Documents/DocumentStorageServiceTest.php tests/PrivatePortalStorageTest.php tests/PrivateApps/FamilyDiscussion/FamilyDiscussionModuleTest.php` : 48 tests, 398 assertions, OK après hotfix.
+- `composer phpstan --working-dir=backend` : OK.
+- `composer phpcs --working-dir=backend` : OK.
+- `composer audit --working-dir=backend` : OK après mise à jour de PHP_CodeSniffer.
+- `npm run hygiene:repo` depuis `frontend/` : OK.
+- `git diff --check` : OK.
+
+Contrôles production :
+
+- `curl` public avec User-Agent navigateur : `HTTP/2 200`.
+- GET smoke `/?codex_smoke=storage-final` : `200`, 91222 octets.
+- Log applicatif confirmé :
+  `site.visit.page`, `request_id=1f60cac6cd41cdc38bbc0338`, `status=200`.
+- Instanciation CLI `PrivateDocumentStorage::fromAppConfig()` : `runtime`.
+- Diagnostic lecture seule :
+  `/home/lescaramgl-ssh/caramagnols-runtime/private-storage`, 3 fichiers, 234 dossiers, 2147836 octets.
+- Derniers `private.documents.legacy_mode_activated` : avant déploiement hotfix, dernier vu à `2026-08-06T14:41:32+02:00`.
+
+Limites restantes :
+
+- Le diagnostic historique signale toujours `web-development` comme répertoire inattendu sous
+  `private-storage`; le module WebDevelopment documente que ce chemin est historique et ne doit pas
+  être réactivé. Aucune suppression distante n'a été faite.
+- Le test fonctionnel réel d'upload via navigateur reste à réaliser manuellement si un fichier de test
+  doit être créé en production. Le code est prêt et échouera explicitement en cas d'indisponibilité
+  du runtime.
+
+Rollback :
+
+- Revenir au commit précédant `59e2822` ou redéployer une révision antérieure si une restauration
+  applicative legacy est indispensable.
+- Désactiver toute opération d'upload pendant le rollback.
+- Ne pas supprimer la migration SQL ni les fichiers runtime.
+- Conserver `PRIVATE_STORAGE_ROOT=/home/lescaramgl-ssh/caramagnols-runtime/private-storage`.
+- Vérifier ensuite `curl`, `data/logs/access.log`, `data/logs/security.log` et le diagnostic stockage.
 
 ---
 
@@ -384,13 +452,14 @@ git status --short
 
 ## Revue finale
 
-*À compléter après validation complète.*
+Revue finale effectuée par Codex le 2026-08-06 après validation locale, push,
+déploiement production et smoke test public. La tâche est clôturable.
 
 ---
 
 ## État
 
-**Planifié**
+**Terminé**
 
 Etats autorisés : `À analyser`, `Planifié`, `En cours`, `À revoir`, `Terminé`, `Bloqué`.
 
