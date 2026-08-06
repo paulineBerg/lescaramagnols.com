@@ -2827,16 +2827,26 @@ final class PrivatePortalController
                         )
                         : null;
                     if (is_array($user)) {
+                        $activatedEmail = is_string($user['email'] ?? null)
+                            ? strtolower(trim((string) $user['email']))
+                            : '';
                         $this->logEvent('private.invite.accepted', [
-                            'identifier' => AppEventLogger::maskIdentifier((string) ($user['email'] ?? '')),
+                            'identifier' => AppEventLogger::maskIdentifier($activatedEmail),
                             'link_reference' => $this->linkReference($token),
                         ]);
 
-                        return $this->render('notice', [
-                            'privatePageTitle' => $this->translate('TXT_PRIVATE_ACTIVATE_TITLE', 'Activation privée'),
-                            'privateNoticeTitle' => $this->translate('TXT_PRIVATE_ACTIVATE_TITLE', 'Activation privée'),
-                            'privateNoticeBody' => $this->translate('TXT_PRIVATE_ACTIVATE_SUCCESS', 'Votre espace privé est activé.'),
+                        return $this->render('login', [
+                            'privatePageTitle' => $this->translate('TXT_PRIVATE_LOGIN_PAGE_TITLE', 'Espace privé'),
+                            'notice' => $this->translate(
+                                'TXT_PRIVATE_ACTIVATE_LOGIN_READY',
+                                'Votre mot de passe est créé. Validez la connexion pour ouvrir votre espace privé.'
+                            ),
+                            'identifier' => $activatedEmail,
+                            'privateLoginPassword' => $password,
+                            'csrfToken' => csrf_token('private'),
                             'privatePasswordForgotUrl' => private_portal_url('password_forgot'),
+                            'privateMfaEnabled' => (bool) app_config('private.mfa_totp_enabled', false),
+                            'persistentPrivateEnabled' => persistent_session_service()->enabled(SessionScope::PRIVATE),
                         ]);
                     }
 
@@ -5008,6 +5018,9 @@ final class PrivatePortalController
         $identifier = is_string($viewModel['identifier'] ?? null)
             ? $viewModel['identifier']
             : '';
+        $privateLoginPassword = is_string($viewModel['privateLoginPassword'] ?? null)
+            ? $viewModel['privateLoginPassword']
+            : '';
         $errorKey = is_string($viewModel['errorKey'] ?? null)
             ? $viewModel['errorKey']
             : null;
@@ -5060,8 +5073,10 @@ final class PrivatePortalController
         $privateFormError = is_string($viewModel['privateFormError'] ?? null)
             ? $viewModel['privateFormError']
             : null;
-        $privateDashboardNotice = is_string($viewModel['notice'] ?? null) ? (string) $viewModel['notice'] : '';
-        $privateDashboardErrorMessage = is_string($viewModel['errorMessage'] ?? null) ? (string) $viewModel['errorMessage'] : '';
+        $notice = is_string($viewModel['notice'] ?? null) ? (string) $viewModel['notice'] : '';
+        $errorMessage = is_string($viewModel['errorMessage'] ?? null) ? (string) $viewModel['errorMessage'] : '';
+        $privateDashboardNotice = $notice;
+        $privateDashboardErrorMessage = $errorMessage;
         $persistentPrivateEnabled = (bool) ($viewModel['persistentPrivateEnabled'] ?? false);
         $privateDevices = is_array($viewModel['privateDevices'] ?? null) ? $viewModel['privateDevices'] : [];
         $privateDevicesCsrfToken = is_string($viewModel['privateDevicesCsrfToken'] ?? null)

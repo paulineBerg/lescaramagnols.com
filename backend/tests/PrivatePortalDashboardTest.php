@@ -280,6 +280,46 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertSame('pending', $invite);
     }
 
+    public function testActivationShowsLoginWithIdentifierAndCopiedPassword(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('Temporary1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('pending@example.com', $passwordHash, 'invited');
+        $this->assertIsInt($userId);
+        $inviteToken = $userRepository->createInviteToken($userId, 'pending@example.com');
+        $this->assertIsString($inviteToken);
+
+        $session = new PrivateSession('_private_dashboard_test');
+        $auth = new PrivateAuth($session, null, $userRepository);
+        $controller = new PrivatePortalController($auth, null, null, $userRepository, $moduleRepository);
+        $password = 'FreshPassword1!&';
+        $response = $controller->handle(
+            'activate',
+            $this->request('POST', '/private/activate/' . $inviteToken, [
+                'password' => $password,
+                'password_confirm' => $password,
+                'csrf_token' => $this->privateCsrfToken($session, 'private_activate'),
+            ]),
+            ['token' => $inviteToken]
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Votre mot de passe est créé', $response->body);
+        $this->assertStringContainsString('action="/private/login"', $response->body);
+        $this->assertStringContainsString('value="pending@example.com"', $response->body);
+        $this->assertStringContainsString('value="FreshPassword1!&amp;"', $response->body);
+        $this->assertStringNotContainsString($inviteToken, $response->body);
+        $this->assertFalse($auth->isAuthenticated());
+
+        $activated = $userRepository->findById($userId);
+        $this->assertIsArray($activated);
+        $this->assertSame('active', $activated['status'] ?? null);
+        $this->assertTrue(password_verify($password, (string) ($activated['password_hash'] ?? '')));
+    }
+
     public function testFailedPasswordResetLogsDetailedNonSensitiveDiagnostic(): void
     {
         $database = $this->editorialSqlDatabase();

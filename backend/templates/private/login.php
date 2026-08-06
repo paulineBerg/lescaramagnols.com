@@ -16,6 +16,7 @@ $privateLoginUrl = is_string($privateLoginUrl ?? null) ? (string) $privateLoginU
 $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null)
     ? (string) $privatePasswordForgotUrl
     : private_portal_url('password_forgot');
+$privateLoginPassword = is_string($privateLoginPassword ?? null) ? (string) $privateLoginPassword : '';
 ?>
 <section>
   <p class="muted">
@@ -47,7 +48,14 @@ $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null)
         <?php echo htmlspecialchars($translate('TXT_PRIVATE_PASSWORD_LABEL', 'Mot de passe'), ENT_QUOTES, 'UTF-8'); ?>
       </label>
       <div class="private-password-field">
-        <input id="password" name="password" type="password" required autocomplete="current-password" />
+        <input
+          id="password"
+          name="password"
+          type="password"
+          required
+          autocomplete="current-password"
+          value="<?php echo htmlspecialchars($privateLoginPassword, ENT_QUOTES, 'UTF-8'); ?>"
+        />
         <button
           class="private-password-toggle"
           type="button"
