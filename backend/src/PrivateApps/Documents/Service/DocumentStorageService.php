@@ -26,18 +26,6 @@ final class DocumentStorageService
 
     private string $rootPath;
 
-    /**
-     * Mode legacy : lecture depuis l'ancien chemin, écriture bloquée.
-     * Activé automatiquement si le nouveau chemin n'existe pas mais que l'ancien existe.
-     */
-    private bool $legacyMode = false;
-
-    /**
-     * Chemin legacy pour la compatibilité pendant la migration.
-     */
-    private const LEGACY_STORAGE_ROOT = ROOT_PATH . '/private';
-    private const LEGACY_STORAGE_DIR = 'storage/document-hub';
-
     private ?string $lastError = null;
 
     public function __construct(string $rootPath)
@@ -47,37 +35,10 @@ final class DocumentStorageService
             throw new \InvalidArgumentException('Racine de stockage documentaire vide.');
         }
 
-        // Vérifier si le chemin principal existe, sinon essayer le fallback legacy
-        $this->checkLegacyFallback($rootPath);
+        $this->assertProductionStoragePath($rootPath);
+        $this->rootPath = $rootPath;
 
         $this->ensureDirectories();
-    }
-
-    /**
-     * Vérifie si le chemin principal existe, sinon bascule vers le chemin legacy.
-     * Le mode legacy permet la lecture mais bloque l'écriture.
-     */
-    private function checkLegacyFallback(string $configuredRootPath): void
-    {
-        $appEnv = function_exists('app_config') ? strtolower((string) app_config('env', '')) : '';
-        if (!in_array($appEnv, ['production', 'prod', 'live'], true)) {
-            $this->rootPath = $configuredRootPath;
-            return;
-        }
-
-        // Chemin principal
-        $mainRootPath = $configuredRootPath;
-
-        // Chemin legacy
-        $legacyRootPath = self::LEGACY_STORAGE_ROOT . '/' . self::LEGACY_STORAGE_DIR;
-
-        // Si le chemin principal n'existe pas mais que le legacy existe, basculer
-        if (!is_dir($mainRootPath) && is_dir($legacyRootPath)) {
-            $this->rootPath = $legacyRootPath;
-            $this->legacyMode = true;
-        } else {
-            $this->rootPath = $mainRootPath;
-        }
     }
 
     public static function fromAppConfig(): self
@@ -99,7 +60,44 @@ final class DocumentStorageService
 
     public function isLegacyMode(): bool
     {
-        return $this->legacyMode;
+        return false;
+    }
+
+    private function assertProductionStoragePath(string $path): void
+    {
+        if (!$this->isProductionEnvironment()) {
+            return;
+        }
+
+        if ($this->isPathInsideRootPath($path)) {
+            throw new \RuntimeException('Le stockage Document Hub production ne peut pas être sous ROOT_PATH.');
+        }
+
+        if (!is_dir($path)) {
+            throw new \RuntimeException('Le stockage Document Hub production configuré est absent.');
+        }
+    }
+
+    private function isProductionEnvironment(): bool
+    {
+        $appEnv = function_exists('app_config') ? strtolower((string) app_config('env', '')) : '';
+
+        return in_array($appEnv, ['production', 'prod', 'live'], true);
+    }
+
+    private function isPathInsideRootPath(string $path): bool
+    {
+        $normalizedPath = $this->normalizePath($path);
+        $rootPath = $this->normalizePath(ROOT_PATH);
+
+        return $normalizedPath === $rootPath || str_starts_with($normalizedPath, $rootPath . '/');
+    }
+
+    private function normalizePath(string $path): string
+    {
+        $normalized = rtrim(str_replace('\\', '/', trim($path)), '/');
+
+        return $normalized !== '' ? $normalized : '/';
     }
 
     public function lastError(): ?string
@@ -129,11 +127,6 @@ final class DocumentStorageService
     public function moveToQuarantine(string $sourcePath, bool $isUploadedFile): ?string
     {
         $this->lastError = null;
-
-        if ($this->legacyMode) {
-            $this->lastError = 'legacy_mode_readonly';
-            return null;
-        }
 
         if (!is_file($sourcePath) || !is_readable($sourcePath)) {
             $this->lastError = 'source_unreadable';
@@ -210,11 +203,6 @@ final class DocumentStorageService
      */
     public function promoteFromQuarantine(string $quarantinePath, string $sha256): ?string
     {
-        if ($this->legacyMode) {
-            $this->lastError = 'legacy_mode_readonly';
-            return null;
-        }
-
         $quarantinePath = str_replace('\\', '/', $quarantinePath);
         if (!str_starts_with($quarantinePath, $this->quarantineDirectory() . '/') || !is_file($quarantinePath)) {
             return null;
@@ -313,10 +301,6 @@ final class DocumentStorageService
      */
     public function deleteUnreferencedObjectFile(string $storageKey): bool
     {
-        if ($this->legacyMode) {
-            return false;
-        }
-
         $absolute = $this->absolutePathForKey($storageKey);
         if ($absolute === null || !is_file($absolute)) {
             return false;
@@ -332,10 +316,6 @@ final class DocumentStorageService
      */
     public function purgeQuarantine(int $maxAgeSeconds = 86400): int
     {
-        if ($this->legacyMode) {
-            return 0;
-        }
-
         return $this->purgeDirectory($this->quarantineDirectory(), $maxAgeSeconds);
     }
 
@@ -344,10 +324,6 @@ final class DocumentStorageService
      */
     public function purgeExpiredExports(int $maxAgeSeconds = 3600): int
     {
-        if ($this->legacyMode) {
-            return 0;
-        }
-
         return $this->purgeDirectory($this->exportsTempDirectory(), $maxAgeSeconds);
     }
 

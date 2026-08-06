@@ -31,15 +31,15 @@ Le code reste sous :
 
 Cette séparation est volontaire : `caramagnols-runtime/` n'est pas un doublon du projet, mais le conteneur des données utilisateurs et fichiers générés. Il ne doit pas être synchronisé par les scripts de déploiement du code.
 
-### Emplacement Legacy
+### Ancien Emplacement
 
-L'ancien stockage peut encore exister pendant la période de transition :
+L'ancien stockage peut encore exister comme archive de rollback historique :
 
 ```text
 /home/lescaramgl-ssh/caramagnols/backend/private/storage/
 ```
 
-Il sert uniquement de fallback/rollback tant que le runbook ne demande pas explicitement son archivage. Il ne doit plus être considéré comme destination d'écriture production.
+Il ne sert plus de fallback applicatif. En production, si `PRIVATE_STORAGE_ROOT` est absent, inexistant ou configuré sous `ROOT_PATH`, les services de stockage privés échouent explicitement au lieu de recréer ou réutiliser `backend/private/storage/**`. Il ne doit plus être considéré comme destination d'écriture production.
 
 En local, le chemin historique suivant peut rester utilisé pour le développement :
 
@@ -251,6 +251,20 @@ app_config('private.discussions', [
 ]);
 ```
 
+### Garde-fou de Production
+
+Depuis la finalisation du 2026-08-06, les services suivants refusent un stockage production sous l'arborescence du backend et n'activent plus de lecture legacy :
+
+- `PrivateApps/Documents/PrivateDocumentStorage.php`
+- `PrivateApps/Documents/Service/DocumentStorageService.php`
+- `PrivateApps/FamilyDiscussion/Attachment/DiscussionAttachmentStorage.php`
+
+Le comportement attendu en production est donc :
+
+- `PRIVATE_STORAGE_ROOT` configuré vers `/home/lescaramgl-ssh/caramagnols-runtime/private-storage` : fonctionnement normal ;
+- `PRIVATE_STORAGE_ROOT` absent ou invalide : échec explicite, sans écriture sous `backend/private/storage/**` ;
+- ancien chemin présent : aucune lecture ou écriture automatique par les services applicatifs.
+
 ### Configuration Recommandée pour la Production
 
 ```bash
@@ -277,8 +291,8 @@ Si une nouvelle migration est nécessaire :
    - Synchroniser les fichiers existants
    - Mettre à jour la configuration
    - Vérifier que tout fonctionne
-   - Maintenir l'ancien chemin en lecture seule pendant une période de transition
-   - Ne supprimer l'ancien stockage qu'après le délai prévu par le runbook
+   - Maintenir l'ancien chemin hors du flux applicatif
+   - Ne supprimer l'ancien stockage qu'après sauvegarde, validation explicite et procédure dédiée
 
 ### Nettoyage des Dossiers Vides
 

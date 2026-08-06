@@ -35,7 +35,7 @@ En production depuis le 2026-07-18 :
 /home/lescaramgl-ssh/caramagnols-runtime/private-storage/
 ```
 
-Ce chemin est fourni par `PRIVATE_STORAGE_ROOT`. Il remplace l'usage production historique de `backend/private/storage/`, qui ne doit rester qu'un chemin local ou un fallback temporaire documenté par le runbook.
+Ce chemin est fourni par `PRIVATE_STORAGE_ROOT`. Il remplace l'usage production historique de `backend/private/storage/`, qui ne doit rester qu'un chemin local de développement ou un périmètre de rollback décidé par procédure.
 
 Structure attendue :
 
@@ -53,7 +53,7 @@ Règles :
 - ne jamais versionner, générer dans Git, ni déployer de données runtime privées ;
 - ne jamais pousser de documents locaux vers la production ;
 - conserver les permissions runtime `770` pour les dossiers et `660` pour les fichiers ;
-- suivre `backend/docs/STORAGE_RUNTIME_POLICY.md` et `backend/docs/RUNBOOK_STORAGE_MIGRATION.md` avant toute migration, archive ou nettoyage.
+- suivre `backend/docs/STORAGE_RUNTIME_POLICY.md` avant toute migration, archive ou nettoyage. L'historique de migration est conservé dans `backend/docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md`.
 
 ## Ajouter un module
 

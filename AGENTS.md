@@ -97,7 +97,7 @@ Ce fichier complete les regles communes de `~/www/AGENTS.md` pour ce depot.
   - runtime : `/home/lescaramgl-ssh/caramagnols-runtime/private-storage/`.
 - Le dossier `caramagnols-runtime/` est volontaire : il protège les documents utilisateurs des déploiements, nettoyages, rsync et opérations Git sur le backend.
 - `PRIVATE_STORAGE_ROOT` doit pointer vers `/home/lescaramgl-ssh/caramagnols-runtime/private-storage` en production.
-- L'ancien chemin `/home/lescaramgl-ssh/caramagnols/backend/private/storage/` est conservé uniquement comme transition/rollback tant qu'une procédure de rollback validée ne demande pas explicitement son archivage.
+- L'ancien chemin `/home/lescaramgl-ssh/caramagnols/backend/private/storage/` peut subsister comme archive de rollback historique, mais il ne doit plus être utilisé comme fallback applicatif ni destination d'écriture production.
 - Ne jamais recréer, déplacer, supprimer, archiver ou synchroniser `caramagnols-runtime/private-storage/**` sans suivre la politique `backend/docs/STORAGE_RUNTIME_POLICY.md` et, pour l'historique de migration, le runbook archivé `backend/docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md`.
 - La production OVH est l'unique source de vérité pour ces données (invariant absolu).
 - `backend/private/storage/**` et tout export/copie locale de données runtime sont exclus du versionnage Git et ne doivent JAMAIS être déployés vers la production.

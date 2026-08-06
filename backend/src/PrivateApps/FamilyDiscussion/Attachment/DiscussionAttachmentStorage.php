@@ -36,18 +36,6 @@ final class DiscussionAttachmentStorage
     private ?string $lastError = null;
 
     /**
-     * Mode legacy : lecture depuis l'ancien chemin, écriture bloquée.
-     * Activé automatiquement si le nouveau chemin n'existe pas mais que l'ancien existe.
-     */
-    private bool $legacyMode = false;
-
-    /**
-     * Chemin legacy pour la compatibilité pendant la migration.
-     */
-    private const LEGACY_STORAGE_ROOT = ROOT_PATH . '/private';
-    private const LEGACY_STORAGE_DIR = 'storage/family-discussion';
-
-    /**
      * @param array<int, string> $allowedExtensions
      * @param array<int, string> $allowedMimeTypes
      */
@@ -61,11 +49,13 @@ final class DiscussionAttachmentStorage
     ) {
         $storageRootPath = trim(str_replace('\\', '/', $storageRootPath));
         if ($storageRootPath === '') {
+            $this->assertProductionStorageRootConfigured($storageRootPath);
             $storageRootPath = ROOT_PATH . '/private';
         }
 
-        // Vérifier si le chemin principal existe, sinon essayer le fallback legacy
-        $this->checkLegacyFallback($storageRootPath, $storageDirectory);
+        $storageDirectory = $this->sanitizeDirectoryName($storageDirectory, 'storage');
+        $this->rootPath = rtrim($storageRootPath, '/') . '/' . $storageDirectory . '/family-discussion';
+        $this->assertProductionStoragePath($this->rootPath);
 
         $this->maxUploadBytes = max(1, $maxUploadBytes);
         $this->allowedExtensions = $this->normalizeExtensions($allowedExtensions);
@@ -79,34 +69,6 @@ final class DiscussionAttachmentStorage
         $this->encryptionKey = $this->deriveEncryptionKey($this->resolveEncryptionSecret($encryptionSecret));
 
         $this->ensureRoot();
-    }
-
-    /**
-     * Vérifie si le chemin principal existe, sinon bascule vers le chemin legacy.
-     * Le mode legacy permet la lecture mais bloque l'écriture.
-     */
-    private function checkLegacyFallback(string $storageRootPath, string $storageDirectory): void
-    {
-        $storageDirectory = $this->sanitizeDirectoryName($storageDirectory, 'storage');
-        $appEnv = function_exists('app_config') ? strtolower((string) app_config('env', '')) : '';
-        if (!in_array($appEnv, ['production', 'prod', 'live'], true)) {
-            $this->rootPath = rtrim($storageRootPath, '/') . '/' . $storageDirectory . '/family-discussion';
-            return;
-        }
-
-        // Chemin principal
-        $mainRootPath = rtrim($storageRootPath, '/') . '/' . $storageDirectory . '/family-discussion';
-
-        // Chemin legacy
-        $legacyRootPath = self::LEGACY_STORAGE_ROOT . '/' . self::LEGACY_STORAGE_DIR;
-
-        // Si le chemin principal n'existe pas mais que le legacy existe, basculer
-        if (!is_dir($mainRootPath) && is_dir($legacyRootPath)) {
-            $this->rootPath = $legacyRootPath;
-            $this->legacyMode = true;
-        } else {
-            $this->rootPath = $mainRootPath;
-        }
     }
 
     public static function fromAppConfig(): self
@@ -148,7 +110,55 @@ final class DiscussionAttachmentStorage
 
     public function isLegacyMode(): bool
     {
-        return $this->legacyMode;
+        return false;
+    }
+
+    private function assertProductionStorageRootConfigured(string $storageRootPath): void
+    {
+        if (!$this->isProductionEnvironment()) {
+            return;
+        }
+
+        if (trim($storageRootPath) === '') {
+            throw new \RuntimeException('PRIVATE_STORAGE_ROOT est obligatoire en production.');
+        }
+    }
+
+    private function assertProductionStoragePath(string $path): void
+    {
+        if (!$this->isProductionEnvironment()) {
+            return;
+        }
+
+        if ($this->isPathInsideRootPath($path)) {
+            throw new \RuntimeException('Le stockage des discussions production ne peut pas être sous ROOT_PATH.');
+        }
+
+        if (!is_dir($path)) {
+            throw new \RuntimeException('Le stockage des discussions production configuré est absent.');
+        }
+    }
+
+    private function isProductionEnvironment(): bool
+    {
+        $appEnv = function_exists('app_config') ? strtolower((string) app_config('env', '')) : '';
+
+        return in_array($appEnv, ['production', 'prod', 'live'], true);
+    }
+
+    private function isPathInsideRootPath(string $path): bool
+    {
+        $normalizedPath = $this->normalizePath($path);
+        $rootPath = $this->normalizePath(ROOT_PATH);
+
+        return $normalizedPath === $rootPath || str_starts_with($normalizedPath, $rootPath . '/');
+    }
+
+    private function normalizePath(string $path): string
+    {
+        $normalized = rtrim(str_replace('\\', '/', trim($path)), '/');
+
+        return $normalized !== '' ? $normalized : '/';
     }
 
     public function uploadsDirectory(): string
@@ -253,11 +263,6 @@ final class DiscussionAttachmentStorage
     public function store(array $metadata, string $attachmentId): ?array
     {
         $this->lastError = null;
-
-        if ($this->legacyMode) {
-            $this->lastError = 'legacy_mode_readonly';
-            return null;
-        }
 
         $attachmentId = $this->normalizeAttachmentId($attachmentId);
         if ($attachmentId === '') {
@@ -368,10 +373,6 @@ final class DiscussionAttachmentStorage
 
     public function delete(string $storagePath): bool
     {
-        if ($this->legacyMode) {
-            return false;
-        }
-
         $absolutePath = $this->absolutePath($storagePath);
         if ($absolutePath === null || !is_file($absolutePath)) {
             return false;
