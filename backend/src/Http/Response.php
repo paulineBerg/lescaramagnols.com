@@ -23,7 +23,17 @@ class Response
     {
         http_response_code($this->status);
         foreach ($this->headers as $name => $value) {
-            header($name . ': ' . $value, true);
+            $values = is_array($value) ? $value : [$value];
+            foreach ($values as $headerValue) {
+                if (!is_scalar($headerValue)) {
+                    continue;
+                }
+
+                header(
+                    $name . ': ' . (string) $headerValue,
+                    strtolower((string) $name) !== 'set-cookie'
+                );
+            }
         }
         echo $this->body;
     }
