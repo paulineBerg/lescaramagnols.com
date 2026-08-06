@@ -64,7 +64,7 @@ while ($i < count($arguments)) {
         // Options avec valeurs
         if (str_contains($optionName, '=')) {
             [$name, $value] = explode('=', $optionName, 2);
-            if (isset($options[$name])) {
+            if (array_key_exists($name, $options)) {
                 $options[$name] = $value;
                 $i++;
                 continue;
@@ -122,13 +122,12 @@ try {
     // Service de notification non disponible, continuer sans
 }
 
-// Exécuter la sauvegarde
-$report = $backupExtension->createDocumentBackup($target, $options['include-derivatives']);
-
-// Si dry-run, marquer comme tel
 if ($options['dry-run']) {
+    $report = $backupExtension->planDocumentBackup($target, $options['include-derivatives']);
     $report['mode'] = 'dry-run';
     $report['note'] = 'Aucune écriture effectuée en mode dry-run';
+} else {
+    $report = $backupExtension->createDocumentBackup($target, $options['include-derivatives']);
 }
 
 // Notifier la fin

@@ -31,6 +31,32 @@ final class DocumentHubBackupExtension
     /**
      * @return array<string, mixed>
      */
+    public function planDocumentBackup(string $targetDirectory, bool $includeDerivatives = false): array
+    {
+        $targetDirectory = rtrim(str_replace('\\', '/', trim($targetDirectory)), '/');
+        if ($targetDirectory === '') {
+            return ['success' => false, 'error' => 'missing_target_directory'];
+        }
+
+        $objectsManifest = $this->createObjectsManifest($includeDerivatives);
+        $tablesPayload = $this->dumpHubTables();
+
+        return [
+            'success' => true,
+            'path' => $targetDirectory,
+            'objects_count' => $objectsManifest['count'],
+            'objects_size_bytes' => $objectsManifest['total_size_bytes'],
+            'files_backed_up' => 0,
+            'would_backup_files' => $objectsManifest['count'],
+            'tables' => $tablesPayload,
+            'include_derivatives' => $includeDerivatives,
+            'duration_seconds' => 0,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function createDocumentBackup(string $targetDirectory, bool $includeDerivatives = false): array
     {
         $targetDirectory = rtrim(str_replace('\\', '/', trim($targetDirectory)), '/');

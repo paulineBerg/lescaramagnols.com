@@ -66,7 +66,7 @@ $report = [
     'mode' => $apply ? 'apply' : 'dry-run',
     'started_at' => date('c'),
     'sources' => [],
-    'totals' => ['inventoried' => 0, 'migrated' => 0, 'already_migrated' => 0, 'missing_files' => 0, 'errors' => 0],
+    'totals' => ['inventoried' => 0, 'migrated' => 0, 'already_migrated' => 0, 'missing_files' => 0, 'skipped' => 0, 'errors' => 0],
 ];
 
 /**
@@ -97,6 +97,7 @@ $migrateOne = static function (
             'would_migrate' => 0,
             'migrated' => 0,
             'missing_files' => [],
+            'skipped' => 0,
             'errors' => [],
         ];
     }
@@ -238,6 +239,8 @@ try {
 foreach (is_array($rows) ? $rows : [] as $row) {
     $userId = (int) ($row['private_user_id'] ?? 0);
     if ($userId <= 0) {
+        $report['totals']['skipped']++;
+        $report['sources']['private_documents']['skipped'] = (int) ($report['sources']['private_documents']['skipped'] ?? 0) + 1;
         continue;
     }
 
@@ -271,6 +274,8 @@ foreach (is_array($rows) ? $rows : [] as $row) {
     $propertyId = (int) ($row['rental_property_id'] ?? 0);
     $userId = (int) ($row['uploaded_by_private_user_id'] ?? 0);
     if ($propertyId <= 0 || $userId <= 0) {
+        $report['totals']['skipped']++;
+        $report['sources']['rental_documents']['skipped'] = (int) ($report['sources']['rental_documents']['skipped'] ?? 0) + 1;
         continue;
     }
 
@@ -311,12 +316,13 @@ foreach ($report['sources'] as $source => $data) {
 }
 echo str_repeat('-', 60) . "\n";
 printf(
-    "Inventoriés : %d | Migrés%s : %d | Déjà migrés : %d | Fichiers manquants : %d | Erreurs : %d\n",
+    "Inventoriés : %d | Migrés%s : %d | Déjà migrés : %d | Fichiers manquants : %d | Ignorés : %d | Erreurs : %d\n",
     $report['totals']['inventoried'],
     $apply ? '' : ' (simulation)',
     $report['totals']['migrated'],
     $report['totals']['already_migrated'],
     $report['totals']['missing_files'],
+    $report['totals']['skipped'],
     $report['totals']['errors']
 );
 if (!$apply) {

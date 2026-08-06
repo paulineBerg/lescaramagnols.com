@@ -7,6 +7,7 @@ $csrfToken = is_string($viewModel['taxCsrfToken'] ?? null) ? (string) $viewModel
 $notice = is_string($viewModel['taxNotice'] ?? null) ? (string) $viewModel['taxNotice'] : '';
 $error = is_string($viewModel['taxError'] ?? null) ? (string) $viewModel['taxError'] : '';
 $mailDefaults = is_array($viewModel['taxMailDefaults'] ?? null) ? $viewModel['taxMailDefaults'] : [];
+$taxDocumentHub = is_array($viewModel['taxDocumentHub'] ?? null) ? $viewModel['taxDocumentHub'] : [];
 $taxCurrentSubsection = 'documents';
 ?>
 <section>
@@ -34,6 +35,25 @@ $taxCurrentSubsection = 'documents';
 
   <section class="card">
     <h2>Documents et justificatifs</h2>
+    <?php
+      $documentImportUrl = is_string($taxDocumentHub['import_url'] ?? null) ? (string) $taxDocumentHub['import_url'] : '';
+      $documentImportCsrfToken = is_string($taxDocumentHub['csrf_token'] ?? null) ? (string) $taxDocumentHub['csrf_token'] : '';
+      $documentImportProfileCode = is_string($taxDocumentHub['profile_code'] ?? null) ? (string) $taxDocumentHub['profile_code'] : '';
+      $documentImportReturnRoute = is_string($taxDocumentHub['return_route'] ?? null) ? (string) $taxDocumentHub['return_route'] : 'tax_documents';
+      $documentImportContext = [[
+          'entity_type' => (string) ($taxDocumentHub['entity_type'] ?? ''),
+          'entity_id' => (string) ($taxDocumentHub['entity_id'] ?? ''),
+          'link_role' => 'tax_support',
+      ]];
+      $documentImportCategories = is_array($taxDocumentHub['categories'] ?? null) ? $taxDocumentHub['categories'] : [];
+      $documentImportDefaultCategory = is_string($taxDocumentHub['default_category'] ?? null) ? (string) $taxDocumentHub['default_category'] : 'tax';
+      $documentImportAllowedCategories = is_array($taxDocumentHub['allowed_categories'] ?? null) ? $taxDocumentHub['allowed_categories'] : [];
+      $documentImportReturnUrl = is_string($urls['documents'] ?? null) ? (string) $urls['documents'] : '';
+      $documentImportAllowMultiple = true;
+      $documentImportTitle = 'Importer des justificatifs fiscaux ' . $year;
+      $h = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+      require ROOT_PATH . '/templates/private/components/document-import.php';
+    ?>
     <?php if ($documents === []): ?><p class="notice notice-success">Aucun justificatif manquant detecte.</p><?php else: ?>
       <ul>
         <?php foreach ($documents as $document): ?>

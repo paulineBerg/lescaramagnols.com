@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Caramagnols\PrivateApps\TaxDeclarationHelper;
 
-final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppManifest
+use Caramagnols\PrivateApps\Documents\Contract\DocumentIntegration;
+use Caramagnols\PrivateApps\Documents\Contract\ProvidesDocumentIntegration;
+
+final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppManifest, ProvidesDocumentIntegration
 {
     public function migrationCode(): string
     {
@@ -148,5 +151,10 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     public function notes(): string
     {
         return 'Module d\'aide à la déclaration fiscale, extrait de PrivatePortal le 2026-07-17.';
+    }
+
+    public function documentIntegration(): DocumentIntegration
+    {
+        return new TaxDocumentIntegration();
     }
 }

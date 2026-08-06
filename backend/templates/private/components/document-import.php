@@ -8,6 +8,7 @@
  * - string $documentImportCsrfToken    jeton CSRF « private_document_hub »
  * - string $documentImportProfileCode  code du profil d'import
  * - string $documentImportReturnRoute  nom de route de retour après import
+ * - string $documentImportReturnUrl    URL locale optionnelle de retour
  * - array  $documentImportContext     [['entity_type','entity_id','link_role'?], ...] (contexte prérempli, non redemandé)
  * - array  $documentImportCategories  lignes de taxonomie active (code, parent_code, label)
  * - string $documentImportDefaultCategory  code présélectionné ('' = laisser choisir/classement auto)
@@ -22,6 +23,7 @@ $documentImportUrl = is_string($documentImportUrl ?? null) ? (string) $documentI
 $documentImportCsrfToken = is_string($documentImportCsrfToken ?? null) ? (string) $documentImportCsrfToken : '';
 $documentImportProfileCode = is_string($documentImportProfileCode ?? null) ? (string) $documentImportProfileCode : '';
 $documentImportReturnRoute = is_string($documentImportReturnRoute ?? null) ? (string) $documentImportReturnRoute : 'documents_hub';
+$documentImportReturnUrl = is_string($documentImportReturnUrl ?? null) ? (string) $documentImportReturnUrl : '';
 $documentImportContext = is_array($documentImportContext ?? null) ? $documentImportContext : [];
 $documentImportCategories = is_array($documentImportCategories ?? null) ? $documentImportCategories : [];
 $documentImportDefaultCategory = is_string($documentImportDefaultCategory ?? null) ? (string) $documentImportDefaultCategory : '';
@@ -60,6 +62,9 @@ foreach ($documentImportCategories as $categoryRow) {
     <input type="hidden" name="csrf_token" value="<?php echo $h($documentImportCsrfToken); ?>" />
     <input type="hidden" name="profile_code" value="<?php echo $h($documentImportProfileCode); ?>" />
     <input type="hidden" name="return_route" value="<?php echo $h($documentImportReturnRoute); ?>" />
+    <?php if ($documentImportReturnUrl !== ''): ?>
+      <input type="hidden" name="return_url" value="<?php echo $h($documentImportReturnUrl); ?>" />
+    <?php endif; ?>
     <?php foreach ($documentImportContext as $contextRef): ?>
       <?php
         $refType = is_string($contextRef['entity_type'] ?? null) ? (string) $contextRef['entity_type'] : '';

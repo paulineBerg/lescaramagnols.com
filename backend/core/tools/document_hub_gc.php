@@ -72,6 +72,7 @@ echo "Garbage collector documentaire — mode {$report['mode']}\n";
 printf("Quarantaine purgée : %d fichier(s)\n", $report['quarantine_purged']);
 printf("Exports temporaires purgés : %d fichier(s)\n", $report['exports_purged']);
 printf("Objets non référencés : %d\n", count($report['unreferenced_objects']));
+printf("Objets non référencés trop récents : %d\n", $report['young_unreferenced_objects']);
 printf("Objets supprimés : %d\n", $report['deleted_objects']);
 if (!$deleteUnreferenced && $report['unreferenced_objects'] !== []) {
     echo "Aucune suppression : relancer avec --delete-unreferenced après sauvegarde.\n";

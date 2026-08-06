@@ -154,8 +154,9 @@ final class DocumentHubController
         }
 
         $returnRoute = $this->normalizeReturnRoute($request->body()['return_route'] ?? null);
+        $returnUrl = $this->normalizeReturnUrl($request->body()['return_url'] ?? null);
         if ($request->method() !== self::METHOD_POST || !$this->securityGuard->validateCsrf($request, self::CSRF_HUB)) {
-            return $this->redirectTo($returnRoute, ['error' => 'invalid_request']);
+            return $this->redirectTo($returnRoute, ['error' => 'invalid_request'], $returnUrl);
         }
 
         $body = $request->body();
@@ -164,7 +165,7 @@ final class DocumentHubController
 
         $files = $this->normalizeUploadedFiles($request->files()[self::UPLOAD_FIELD] ?? null);
         if ($files === []) {
-            return $this->redirectTo($returnRoute, ['error' => 'missing_file']);
+            return $this->redirectTo($returnRoute, ['error' => 'missing_file'], $returnUrl);
         }
 
         $meta = [
@@ -199,7 +200,7 @@ final class DocumentHubController
             $params = ['error' => $firstError !== '' ? $firstError : 'upload_failed'];
         }
 
-        return $this->redirectTo($returnRoute, $params);
+        return $this->redirectTo($returnRoute, $params, $returnUrl);
     }
 
     public function download(Request $request, string $documentUid): Response
@@ -518,14 +519,41 @@ final class DocumentHubController
         return preg_match('/\A[a-z0-9_]{1,64}\z/', $route) === 1 ? $route : 'documents_hub';
     }
 
+    private function normalizeReturnUrl(mixed $value): ?string
+    {
+        $url = is_string($value) ? trim($value) : '';
+        if ($url === '' || preg_match('/[\x00-\x1F\x7F]/', $url) === 1) {
+            return null;
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts) || isset($parts['scheme']) || isset($parts['host'])) {
+            return null;
+        }
+
+        $path = is_string($parts['path'] ?? null) ? (string) $parts['path'] : '';
+        $privateBase = rtrim(dirname(private_portal_url('login')), '/');
+        if ($privateBase === '' || $privateBase === '.') {
+            $privateBase = '/';
+        }
+        if (!str_starts_with($path, $privateBase . '/')) {
+            return null;
+        }
+
+        $query = is_string($parts['query'] ?? null) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+
+        return $path . $query;
+    }
+
     /**
      * @param array<string, string> $params
      */
-    private function redirectTo(string $routeName, array $params): Response
+    private function redirectTo(string $routeName, array $params, ?string $returnUrl = null): Response
     {
-        $url = private_portal_url($routeName);
+        $url = $returnUrl ?? private_portal_url($routeName);
         if ($params !== []) {
-            $url .= '?' . http_build_query($params);
+            $url .= str_contains($url, '?') ? '&' : '?';
+            $url .= http_build_query($params);
         }
 
         return PrivateResponseHeaders::apply(new Response(302, ['Location' => $url], ''));

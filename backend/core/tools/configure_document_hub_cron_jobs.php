@@ -63,9 +63,9 @@ $documentHubJobs = [
     [
         'code' => 'document_hub_maintenance',
         'name' => 'Maintenance Document Hub',
-        'description' => 'Exécute l\'intégrité, la garbage collection et la purge de corbeille pour le Document Hub. Vérifie la cohérence des objets, documents et fichiers.',
+        'description' => 'Exécute l\'intégrité, la garbage collection report-only et la purge de corbeille en simulation pour le Document Hub.',
         'script_path' => 'core/tools/document_hub_maintenance.php',
-        'arguments' => ['args' => ['--json', '--delete-unreferenced']],
+        'arguments' => ['args' => ['--json', '--dry-run']],
         'schedule_expression' => '30 2 * * *', // Tous les jours à 2h30
         'timeout_seconds' => 1800, // 30 minutes
         'status' => 'active',
@@ -73,19 +73,19 @@ $documentHubJobs = [
     [
         'code' => 'document_hub_integrity_check',
         'name' => 'Vérification Intégrité Document Hub',
-        'description' => 'Vérifie l\'intégrité des objets et documents sans modification. Détecte les incohérences entre la base et le stockage.',
+        'description' => 'Vérifie quotidiennement l\'intégrité des objets et documents sans modification ni recalcul SHA-256 complet.',
         'script_path' => 'core/tools/document_hub_integrity.php',
         'arguments' => ['args' => ['--json']],
-        'schedule_expression' => '*/4 * * * *', // Toutes les 4 heures
+        'schedule_expression' => '15 3 * * *', // Tous les jours à 3h15
         'timeout_seconds' => 600, // 10 minutes
         'status' => 'active',
     ],
     [
         'code' => 'document_hub_garbage_collection',
         'name' => 'Garbage Collection Document Hub',
-        'description' => 'Nettoyage des fichiers temporaires (quarantaine, exports expirés) et des objets non référencés.',
+        'description' => 'Nettoyage report-only des fichiers temporaires expirés et inventaire des objets non référencés.',
         'script_path' => 'core/tools/document_hub_gc.php',
-        'arguments' => ['args' => ['--json', '--delete-unreferenced', '--delete-quarantine', '--delete-exports']],
+        'arguments' => ['args' => ['--json']],
         'schedule_expression' => '45 2 * * *', // Tous les jours à 2h45
         'timeout_seconds' => 900, // 15 minutes
         'status' => 'active',

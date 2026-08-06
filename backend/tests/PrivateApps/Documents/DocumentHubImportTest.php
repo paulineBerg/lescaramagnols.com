@@ -17,6 +17,7 @@ use Caramagnols\PrivateApps\Documents\Service\DocumentPolicy;
 use Caramagnols\PrivateApps\Documents\Service\DocumentStorageService;
 use Caramagnols\PrivateApps\Documents\Service\DocumentValidationService;
 use Caramagnols\PrivatePortal\PrivateAppRegistry;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\TaxDocumentIntegration;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
@@ -233,6 +234,35 @@ final class DocumentHubImportTest extends TestCase
         self::assertTrue($hubRepository->transitionStatus((int) $document['id'], DocumentHubRepository::DOC_STATUS_ARCHIVED));
         self::assertTrue($hubRepository->transitionStatus((int) $document['id'], DocumentHubRepository::DOC_STATUS_TRASHED));
         self::assertGreaterThan(0, $hubRepository->objectReferenceCount((int) $document['object_id']));
+    }
+
+    public function testTaxYearDocumentsAreScopedToTheOwnerUser(): void
+    {
+        $this->createPrivateUsersTable();
+        [$importService, $hubRepository, $linkService] = $this->buildServices();
+
+        $ownerId = $this->insertUser('tax-owner@example.test');
+        $strangerId = $this->insertUser('tax-stranger@example.test');
+        $taxRef = [DocumentEntityRef::of(TaxDocumentIntegration::ENTITY_YEAR, $ownerId . '-2026', 'tax_support')];
+
+        $results = $importService->importBatch(
+            $ownerId,
+            TaxDocumentIntegration::PROFILE_TAX_YEAR,
+            [$this->fixtureUpload('taxe-fonciere-2026.txt', "Taxe fonciere 2026\n")],
+            $taxRef,
+            ['document_date' => '2026-10-15']
+        );
+
+        self::assertCount(1, $results);
+        self::assertTrue($results[0]['ok'], $results[0]['error_code']);
+
+        $document = $hubRepository->findDocumentByUid($results[0]['document_uid']);
+        self::assertNotNull($document);
+        $document['links'] = $hubRepository->linksForDocument((int) $document['id']);
+
+        self::assertTrue($linkService->userCanAccessDocument($document, $ownerId));
+        self::assertFalse($linkService->userCanAccessDocument($document, $strangerId));
+        self::assertSame('tax', (string) $document['category_code']);
     }
 
     public function testTaxonomyIsGlobalAndSeeded(): void

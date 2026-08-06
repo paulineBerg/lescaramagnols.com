@@ -59,6 +59,7 @@ use Caramagnols\PrivateApps\TaxDeclarationHelper\Service\TaxDeclarationSummarySe
 use Caramagnols\PrivateApps\BlocNote\BlocNoteRepository;
 use Caramagnols\PrivateApps\BlocNote\Http\BlocNoteController;
 use Caramagnols\PrivateApps\Documents\Http\DocumentsController;
+use Caramagnols\PrivateApps\TaxDeclarationHelper\TaxDocumentIntegration;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Repository\AgencyMappingRepository;
 use Caramagnols\PrivateApps\RealEstateRental\AgencyManagement\Service\AgencyStatementValidationService;
 use Caramagnols\PrivateApps\RealEstateRental\Http\RealEstateRentalController;
@@ -3418,6 +3419,17 @@ final class PrivatePortalController
                 'recipientEmail' => $this->auth->currentIdentifier(),
                 'subject' => $this->privateMailTemplate('tax_subject', 'Aide impôts - document PDF'),
                 'message' => $this->privateMailTemplate('tax_body'),
+            ],
+            'taxDocumentHub' => [
+                'import_url' => private_portal_url('documents_hub_import'),
+                'csrf_token' => csrf_token('private_document_hub'),
+                'profile_code' => TaxDocumentIntegration::PROFILE_TAX_YEAR,
+                'entity_type' => TaxDocumentIntegration::ENTITY_YEAR,
+                'entity_id' => $userId . '-' . $year,
+                'return_route' => 'tax_documents',
+                'categories' => (new DocumentTaxonomyRepository(editorial_database()))->listActive(),
+                'default_category' => 'tax',
+                'allowed_categories' => ['tax', 'tax.property_tax', 'tax.cfe', 'charges', 'works.invoice', 'bank', 'other', 'inbox'],
             ],
             'taxUrls' => [
                 'dashboard' => private_portal_url('tax_dashboard'),
