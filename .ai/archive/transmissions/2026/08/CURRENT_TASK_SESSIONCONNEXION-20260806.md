@@ -100,10 +100,11 @@ Synthèse de l'audit :
 
 ## Résultat de l'auteur ou implémentateur
 
-- Implémentation locale réalisée.
-- Feature flags ajoutés et désactivés par défaut.
+- Implémentation réalisée, committée, poussée et déployée en production OVH.
+- Feature flags ajoutés, désactivés par défaut dans le code, puis activés explicitement en production à la demande humaine.
 - Login classique conservé si les flags sont à `false`.
-- Déploiement, push et écriture SQL distante non réalisés.
+- Migration SQL additive `015_persistent_auth.sql` synchronisée en production par `deploy-release.sh`.
+- Hotfix post-activation appliqué pour préserver plusieurs en-têtes `Set-Cookie` et éviter la perte du cookie de session courte lors de la rotation persistante.
 
 ## Validations et preuves
 
@@ -113,8 +114,19 @@ Synthèse de l'audit :
 | G1 | syntaxe, statique, diff, secrets | OK | `php -l` ciblé OK ; `composer phpstan --working-dir=backend` OK ; `composer phpcs --working-dir=backend` OK |
 | G2 | tests fonctionnels et refus | OK | `./vendor/bin/phpunit` dans `backend` : 730 tests, 5966 assertions |
 | G3 | sécurité, données, observabilité, accessibilité | OK partiel | `composer audit --working-dir=backend` OK ; `npm audit --audit-level=high` OK ; logs/alertes mis à jour |
-| G4 | compatibilité, rollback, migrations, déploiement | OK local | migration additive ; flags désactivés ; rollback documenté ; `purge_persistent_auth.php --dry-run --json` OK ; déploiement non autorisé/non fait |
-| G5 | diff relu, documentation, preuves, risques | OK | docs et `.env.example` mis à jour ; recherche secrets ciblée sans fuite de token brut |
+| G4 | compatibilité, rollback, migrations, déploiement | OK prod | migration additive ; flags désactivables ; rollback documenté ; `purge_persistent_auth.php --dry-run --json` OK local et prod ; déploiement prod OK |
+| G5 | diff relu, documentation, preuves, risques | OK | docs et `.env.example` mis à jour ; recherche secrets ciblée sans fuite de token brut ; hotfix cookies relu et validé |
+
+## Clôture Git et production
+
+- Commit principal : `ad5fc6f feat: add persistent trusted device sessions`.
+- Commit hotfix : `a1a97c9 fix: preserve session cookies during persistent auth`.
+- Branche poussée : `origin/restore-prod-master-20260716`.
+- Déploiement : `DEPLOY_TARGET=prod`, `REMOTE_HOST=ovh-boutique`, `REMOTE_BACKEND=/home/lescaramgl-ssh/caramagnols/backend`.
+- Résultat déploiement : `deploy-release completed`, `cache_cleared`, `autoload_ok`.
+- Vérification prod : site public `HTTP/2 200`, schema sync `current=15 target=15 pending=0`, hash distant `src/Http/Response.php` identique au local.
+- Activation prod demandée après déploiement : `PERSISTENT_AUTH_ENABLED=true`, `PRIVATE_PERSISTENT_AUTH_ENABLED=true`, `ADMIN_PERSISTENT_AUTH_ENABLED=true`.
+- Sauvegarde `.env` prod avant activation : `.env.backup-persistent-auth-20260806-113304`.
 
 ## Décisions, dérogations et dette
 
@@ -130,8 +142,9 @@ Synthèse de l'audit :
 
 ## Archivage de clôture
 
-- État : absent.
+- État : demandé le 2026-08-06.
+- Destination : `.ai/archive/transmissions/2026/08/CURRENT_TASK_SESSIONCONNEXION-20260806.md`.
 
 ## État
 
-Implémentation et validations locales terminées ; clôture Git non effectuée dans cette session.
+Implémentation, validations, commit, push, déploiement, activation production et hotfix terminés.
