@@ -144,6 +144,16 @@ final class PrivateAuth
         $this->failureReason = null;
     }
 
+    public function trustPasswordTokenLogin(string $identifier, ?string $clientIp = null): void
+    {
+        $identifier = $this->normalizeIdentifier($identifier);
+        if ($identifier === '') {
+            return;
+        }
+
+        $this->establishSession($identifier, $clientIp);
+    }
+
     public function canAttemptLogin(?string $identifier, ?string $clientIp): bool
     {
         $normalized = $this->normalizeIdentifier($identifier);

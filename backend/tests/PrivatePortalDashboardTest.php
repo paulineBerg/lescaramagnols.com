@@ -280,8 +280,11 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertSame('pending', $invite);
     }
 
-    public function testActivationShowsLoginWithIdentifierAndCopiedPassword(): void
+    public function testActivationOpensDashboardEvenAfterPreviousFailedAttempt(): void
     {
+        global $appConfig;
+
+        $appConfig['private']['account_lockout_attempts'] = 1;
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
@@ -296,6 +299,9 @@ final class PrivatePortalDashboardTest extends TestCase
         $auth = new PrivateAuth($session, null, $userRepository);
         $controller = new PrivatePortalController($auth, null, null, $userRepository, $moduleRepository);
         $password = 'FreshPassword1!&';
+        $this->assertFalse($auth->login('pending@example.com', 'wrong-password', '127.0.0.1'));
+        $this->assertSame('invalid_credentials', $auth->failureReason());
+
         $response = $controller->handle(
             'activate',
             $this->request('POST', '/private/activate/' . $inviteToken, [
@@ -306,18 +312,60 @@ final class PrivatePortalDashboardTest extends TestCase
             ['token' => $inviteToken]
         );
 
-        $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('Votre mot de passe est créé', $response->body);
-        $this->assertStringContainsString('action="/private/login"', $response->body);
-        $this->assertStringContainsString('value="pending@example.com"', $response->body);
-        $this->assertStringContainsString('value="FreshPassword1!&amp;"', $response->body);
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/private/dashboard', $response->headers['Location'] ?? null);
         $this->assertStringNotContainsString($inviteToken, $response->body);
-        $this->assertFalse($auth->isAuthenticated());
+        $this->assertTrue($auth->isAuthenticated());
+        $this->assertSame('pending@example.com', $auth->currentIdentifier());
 
         $activated = $userRepository->findById($userId);
         $this->assertIsArray($activated);
         $this->assertSame('active', $activated['status'] ?? null);
         $this->assertTrue(password_verify($password, (string) ($activated['password_hash'] ?? '')));
+    }
+
+    public function testPasswordResetOpensDashboardEvenAfterPreviousFailedAttempt(): void
+    {
+        global $appConfig;
+
+        $appConfig['private']['account_lockout_attempts'] = 1;
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('Temporary1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('reset@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $resetToken = $userRepository->createPasswordResetToken($userId, '127.0.0.1', 'phpunit');
+        $this->assertIsString($resetToken);
+
+        $session = new PrivateSession('_private_dashboard_test');
+        $auth = new PrivateAuth($session, null, $userRepository);
+        $controller = new PrivatePortalController($auth, null, null, $userRepository, $moduleRepository);
+        $this->assertFalse($auth->login('reset@example.com', 'wrong-password', '127.0.0.1'));
+        $this->assertSame('invalid_credentials', $auth->failureReason());
+
+        $password = 'ResetPassword1!&';
+        $response = $controller->handle(
+            'password_reset',
+            $this->request('POST', '/private/password/reset/' . $resetToken, [
+                'password' => $password,
+                'password_confirm' => $password,
+                'csrf_token' => $this->privateCsrfToken($session, 'private_password'),
+            ]),
+            ['token' => $resetToken]
+        );
+
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/private/dashboard', $response->headers['Location'] ?? null);
+        $this->assertStringNotContainsString($resetToken, $response->body);
+        $this->assertTrue($auth->isAuthenticated());
+        $this->assertSame('reset@example.com', $auth->currentIdentifier());
+
+        $updated = $userRepository->findById($userId);
+        $this->assertIsArray($updated);
+        $this->assertSame('active', $updated['status'] ?? null);
+        $this->assertTrue(password_verify($password, (string) ($updated['password_hash'] ?? '')));
     }
 
     public function testFailedPasswordResetLogsDetailedNonSensitiveDiagnostic(): void

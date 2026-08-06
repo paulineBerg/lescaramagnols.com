@@ -16,7 +16,13 @@ $privateFormAction = is_string($privateFormAction ?? null) ? (string) $privateFo
 $privateFormCsrfToken = is_string($privateFormCsrfToken ?? null) ? (string) $privateFormCsrfToken : '';
 $privateFormSubmitLabel = is_string($privateFormSubmitLabel ?? null) ? (string) $privateFormSubmitLabel : $translate('TXT_PRIVATE_FORM_SUBMIT', 'Valider');
 $privateFormError = is_string($privateFormError ?? null) ? (string) $privateFormError : null;
+$privateFormIntro = is_string($privateFormIntro ?? null) ? (string) $privateFormIntro : '';
+$privateFormHelp = is_string($privateFormHelp ?? null) ? (string) $privateFormHelp : '';
 ?>
+
+<?php if ($privateFormIntro !== ''): ?>
+  <p class="muted"><?php echo htmlspecialchars($privateFormIntro, ENT_QUOTES, 'UTF-8'); ?></p>
+<?php endif; ?>
 
 <?php if ($privateFormError !== null): ?>
   <div class="notice notice-error" role="alert"><?php echo htmlspecialchars($privateFormError, ENT_QUOTES, 'UTF-8'); ?></div>
@@ -58,5 +64,11 @@ $privateFormError = is_string($privateFormError ?? null) ? (string) $privateForm
       </button>
     </div>
   </div>
-  <button type="submit"><?php echo htmlspecialchars($privateFormSubmitLabel, ENT_QUOTES, 'UTF-8'); ?></button>
+  <?php if ($privateFormHelp !== ''): ?>
+    <p class="muted"><?php echo htmlspecialchars($privateFormHelp, ENT_QUOTES, 'UTF-8'); ?></p>
+  <?php endif; ?>
+
+  <div class="private-actions">
+    <button type="submit"><?php echo htmlspecialchars($privateFormSubmitLabel, ENT_QUOTES, 'UTF-8'); ?></button>
+  </div>
 </form>

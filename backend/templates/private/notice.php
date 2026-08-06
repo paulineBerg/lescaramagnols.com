@@ -23,5 +23,13 @@ $translate = static function (string $key, string $fallback): string {
         <code><?php echo htmlspecialchars((string) $privateNoticeToken, ENT_QUOTES, 'UTF-8'); ?></code>
       </p>
     <?php endif; ?>
+
+    <?php if (($privateNoticeActionUrl ?? '') !== '' && ($privateNoticeActionLabel ?? '') !== ''): ?>
+      <p class="private-actions">
+        <a href="<?php echo htmlspecialchars((string) $privateNoticeActionUrl, ENT_QUOTES, 'UTF-8'); ?>">
+          <?php echo htmlspecialchars((string) $privateNoticeActionLabel, ENT_QUOTES, 'UTF-8'); ?>
+        </a>
+      </p>
+    <?php endif; ?>
   </div>
 </section>

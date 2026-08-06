@@ -16,7 +16,6 @@ $privateLoginUrl = is_string($privateLoginUrl ?? null) ? (string) $privateLoginU
 $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null)
     ? (string) $privatePasswordForgotUrl
     : private_portal_url('password_forgot');
-$privateLoginPassword = is_string($privateLoginPassword ?? null) ? (string) $privateLoginPassword : '';
 ?>
 <section>
   <p class="muted">
@@ -54,7 +53,6 @@ $privateLoginPassword = is_string($privateLoginPassword ?? null) ? (string) $pri
           type="password"
           required
           autocomplete="current-password"
-          value="<?php echo htmlspecialchars($privateLoginPassword, ENT_QUOTES, 'UTF-8'); ?>"
         />
         <button
           class="private-password-toggle"

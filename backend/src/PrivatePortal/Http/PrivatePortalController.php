@@ -2817,12 +2817,13 @@ final class PrivatePortalController
                 if ($errors !== []) {
                     $error = $policy->errorMessage($errors);
                 } else {
+                    $clientIp = $request->clientIp((bool) app_config('private.trust_proxy_headers', false));
                     $hash = password_hash($password, PASSWORD_ARGON2ID);
                     $user = is_string($hash)
                         ? $this->privateUserRepository()->activateByInviteToken(
                             $token,
                             $hash,
-                            $request->clientIp((bool) app_config('private.trust_proxy_headers', false)),
+                            $clientIp,
                             (string) ($request->server('HTTP_USER_AGENT', '') ?? '')
                         )
                         : null;
@@ -2835,19 +2836,9 @@ final class PrivatePortalController
                             'link_reference' => $this->linkReference($token),
                         ]);
 
-                        return $this->render('login', [
-                            'privatePageTitle' => $this->translate('TXT_PRIVATE_LOGIN_PAGE_TITLE', 'Espace privé'),
-                            'notice' => $this->translate(
-                                'TXT_PRIVATE_ACTIVATE_LOGIN_READY',
-                                'Votre mot de passe est créé. Validez la connexion pour ouvrir votre espace privé.'
-                            ),
-                            'identifier' => $activatedEmail,
-                            'privateLoginPassword' => $password,
-                            'csrfToken' => csrf_token('private'),
-                            'privatePasswordForgotUrl' => private_portal_url('password_forgot'),
-                            'privateMfaEnabled' => (bool) app_config('private.mfa_totp_enabled', false),
-                            'persistentPrivateEnabled' => persistent_session_service()->enabled(SessionScope::PRIVATE),
-                        ]);
+                        $this->auth->trustPasswordTokenLogin($activatedEmail, $clientIp);
+
+                        return $this->redirect(private_portal_url('dashboard'));
                     }
 
                     $this->logEvent(
@@ -2863,11 +2854,22 @@ final class PrivatePortalController
         }
 
         return $this->render('password_form', [
-            'privatePageTitle' => $this->translate('TXT_PRIVATE_ACTIVATE_TITLE', 'Activation privée'),
-            'privateNoticeTitle' => $this->translate('TXT_PRIVATE_ACTIVATE_TITLE', 'Activation privée'),
+            'privatePageTitle' => $this->translate('TXT_PRIVATE_ACTIVATE_TITLE', 'Créer votre mot de passe'),
+            'privateNoticeTitle' => $this->translate('TXT_PRIVATE_ACTIVATE_TITLE', 'Créer votre mot de passe'),
+            'privateFormIntro' => $this->translate(
+                'TXT_PRIVATE_ACTIVATE_INTRO',
+                'Choisissez votre mot de passe. Après validation, votre espace privé s’ouvre automatiquement.'
+            ),
+            'privateFormHelp' => $this->translate(
+                'TXT_PRIVATE_PASSWORD_RULES_HELP',
+                'Utilisez au moins 14 caractères avec une majuscule, une minuscule, un chiffre et un symbole.'
+            ),
             'privateFormAction' => private_portal_url('activate') . '/' . rawurlencode($token),
             'privateFormCsrfToken' => csrf_token('private_activate'),
-            'privateFormSubmitLabel' => $this->translate('TXT_PRIVATE_ACTIVATE_SUBMIT', 'Activer'),
+            'privateFormSubmitLabel' => $this->translate(
+                'TXT_PRIVATE_ACTIVATE_SUBMIT',
+                'Créer le mot de passe et ouvrir l’espace privé'
+            ),
             'privateFormError' => $error,
         ]);
     }
@@ -2879,6 +2881,8 @@ final class PrivatePortalController
                 'privatePageTitle' => $this->translate('TXT_PRIVATE_PASSWORD_FORGOT_TITLE', 'Réinitialisation privée'),
                 'privateNoticeTitle' => $this->translate('TXT_PRIVATE_ERROR_CSRF', 'Requête invalide'),
                 'privateNoticeBody' => $this->translate('TXT_PRIVATE_ERROR_CSRF', 'Requête invalide'),
+                'privateNoticeActionUrl' => private_portal_url('password_forgot'),
+                'privateNoticeActionLabel' => $this->translate('TXT_PRIVATE_PASSWORD_FORGOT_RETRY', 'Recommencer'),
             ]);
         }
 
@@ -2938,7 +2942,12 @@ final class PrivatePortalController
             return $this->render('notice', [
                 'privatePageTitle' => $this->translate('TXT_PRIVATE_PASSWORD_FORGOT_TITLE', 'Réinitialisation privée'),
                 'privateNoticeTitle' => $this->translate('TXT_PRIVATE_PASSWORD_FORGOT_TITLE', 'Réinitialisation privée'),
-                'privateNoticeBody' => $this->translate('TXT_PRIVATE_PASSWORD_FORGOT_NEUTRAL', 'Si le compte existe, une réinitialisation a été préparée.'),
+                'privateNoticeBody' => $this->translate(
+                    'TXT_PRIVATE_PASSWORD_FORGOT_NEUTRAL',
+                    'Si le compte existe, un lien vient d’être envoyé. Ouvrez ce lien pour créer votre mot de passe et accéder directement à l’espace privé.'
+                ),
+                'privateNoticeActionUrl' => private_portal_url('login'),
+                'privateNoticeActionLabel' => $this->translate('TXT_PRIVATE_NOTICE_LOGIN_ACTION', 'Retour à la connexion'),
             ]);
         }
 
@@ -2960,6 +2969,8 @@ final class PrivatePortalController
                 'privatePageTitle' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_TITLE', 'Réinitialisation privée'),
                 'privateNoticeTitle' => $this->translate('TXT_PRIVATE_ERROR_CSRF', 'Requête invalide'),
                 'privateNoticeBody' => $this->translate('TXT_PRIVATE_ERROR_CSRF', 'Requête invalide'),
+                'privateNoticeActionUrl' => private_portal_url('password_forgot'),
+                'privateNoticeActionLabel' => $this->translate('TXT_PRIVATE_PASSWORD_FORGOT_RETRY', 'Recommencer'),
             ]);
         }
 
@@ -2973,12 +2984,13 @@ final class PrivatePortalController
             if ($errors !== []) {
                 $error = $policy->errorMessage($errors);
             } else {
+                $clientIp = $request->clientIp((bool) app_config('private.trust_proxy_headers', false));
                 $hash = password_hash($password, PASSWORD_ARGON2ID);
                 $user = is_string($hash)
                     ? $this->privateUserRepository()->resetPasswordByToken(
                         $token,
                         $hash,
-                        $request->clientIp((bool) app_config('private.trust_proxy_headers', false))
+                        $clientIp
                     )
                     : null;
                 if (is_array($user)) {
@@ -3001,11 +3013,9 @@ final class PrivatePortalController
                         'link_reference' => $this->linkReference($token),
                     ]);
 
-                    return $this->render('notice', [
-                        'privatePageTitle' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_TITLE', 'Réinitialisation privée'),
-                        'privateNoticeTitle' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_TITLE', 'Réinitialisation privée'),
-                        'privateNoticeBody' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_SUCCESS', 'Le mot de passe privé a été remplacé.'),
-                    ]);
+                    $this->auth->trustPasswordTokenLogin($email, $clientIp);
+
+                    return $this->redirect(private_portal_url('dashboard'));
                 }
 
                 $this->logEvent(
@@ -3020,11 +3030,22 @@ final class PrivatePortalController
         }
 
         return $this->render('password_form', [
-            'privatePageTitle' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_TITLE', 'Réinitialisation privée'),
-            'privateNoticeTitle' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_TITLE', 'Réinitialisation privée'),
+            'privatePageTitle' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_TITLE', 'Créer un nouveau mot de passe'),
+            'privateNoticeTitle' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_TITLE', 'Créer un nouveau mot de passe'),
+            'privateFormIntro' => $this->translate(
+                'TXT_PRIVATE_PASSWORD_RESET_INTRO',
+                'Saisissez votre nouveau mot de passe. Après validation, votre espace privé s’ouvre automatiquement.'
+            ),
+            'privateFormHelp' => $this->translate(
+                'TXT_PRIVATE_PASSWORD_RULES_HELP',
+                'Utilisez au moins 14 caractères avec une majuscule, une minuscule, un chiffre et un symbole.'
+            ),
             'privateFormAction' => private_portal_url('password_reset') . '/' . rawurlencode($token),
             'privateFormCsrfToken' => csrf_token('private_password'),
-            'privateFormSubmitLabel' => $this->translate('TXT_PRIVATE_PASSWORD_RESET_SUBMIT', 'Remplacer le mot de passe'),
+            'privateFormSubmitLabel' => $this->translate(
+                'TXT_PRIVATE_PASSWORD_RESET_SUBMIT',
+                'Enregistrer et ouvrir l’espace privé'
+            ),
             'privateFormError' => $error,
         ]);
     }
@@ -5015,11 +5036,14 @@ final class PrivatePortalController
         $privateNoticeToken = is_string($viewModel['privateNoticeToken'] ?? null)
             ? $viewModel['privateNoticeToken']
             : '';
+        $privateNoticeActionUrl = is_string($viewModel['privateNoticeActionUrl'] ?? null)
+            ? $viewModel['privateNoticeActionUrl']
+            : '';
+        $privateNoticeActionLabel = is_string($viewModel['privateNoticeActionLabel'] ?? null)
+            ? $viewModel['privateNoticeActionLabel']
+            : '';
         $identifier = is_string($viewModel['identifier'] ?? null)
             ? $viewModel['identifier']
-            : '';
-        $privateLoginPassword = is_string($viewModel['privateLoginPassword'] ?? null)
-            ? $viewModel['privateLoginPassword']
             : '';
         $errorKey = is_string($viewModel['errorKey'] ?? null)
             ? $viewModel['errorKey']
@@ -5073,6 +5097,12 @@ final class PrivatePortalController
         $privateFormError = is_string($viewModel['privateFormError'] ?? null)
             ? $viewModel['privateFormError']
             : null;
+        $privateFormIntro = is_string($viewModel['privateFormIntro'] ?? null)
+            ? $viewModel['privateFormIntro']
+            : '';
+        $privateFormHelp = is_string($viewModel['privateFormHelp'] ?? null)
+            ? $viewModel['privateFormHelp']
+            : '';
         $notice = is_string($viewModel['notice'] ?? null) ? (string) $viewModel['notice'] : '';
         $errorMessage = is_string($viewModel['errorMessage'] ?? null) ? (string) $viewModel['errorMessage'] : '';
         $privateDashboardNotice = $notice;
