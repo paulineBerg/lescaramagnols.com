@@ -361,6 +361,15 @@ final class CronJobRepository
                 'timeout_seconds' => 300,
             ],
             [
+                'code' => 'purge_persistent_auth',
+                'name' => 'Purge authentification persistante',
+                'description' => 'Nettoie les jetons persistants expirés ou révoqués et les appareils déjà révoqués hors rétention.',
+                'script_path' => 'core/tools/purge_persistent_auth.php',
+                'arguments' => ['args' => ['--json']],
+                'schedule_expression' => '50 3 * * *',
+                'timeout_seconds' => 300,
+            ],
+            [
                 'code' => 'purge_private_discussions',
                 'name' => 'Purge discussions privées',
                 'description' => 'Purge les messages et fichiers FamilyDiscussion arrivés au terme de la rétention 60 jours.',

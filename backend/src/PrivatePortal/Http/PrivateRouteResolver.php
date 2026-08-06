@@ -15,6 +15,7 @@ final class PrivateRouteResolver
         'login' => 'login',
         'dashboard' => 'dashboard',
         'member_settings' => 'parametres',
+        'member_devices' => 'parametres/appareils',
         'logout' => 'logout',
         'activate' => 'activate',
         'password_forgot' => 'password/forgot',
@@ -158,6 +159,11 @@ final class PrivateRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('member_settings'),
                 'handler' => ['type' => 'private', 'page' => 'member_settings'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('member_devices'),
+                'handler' => ['type' => 'private', 'page' => 'member_devices'],
             ],
             [
                 'methods' => ['GET'],

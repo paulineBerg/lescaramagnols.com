@@ -64,6 +64,14 @@ $translate = static function (string $key, string $fallback): string {
     <input id="totp_code" name="totp_code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="<?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_TOTP_PLACEHOLDER', '123456'), ENT_QUOTES, 'UTF-8'); ?>" required />
   </div>
   <?php endif; ?>
+  <?php if (!empty($persistentAdminEnabled)): ?>
+  <div class="field">
+    <label class="checkbox-inline">
+      <input type="checkbox" name="trust_admin_device" value="1" />
+      <?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_TRUST_DEVICE', 'Autoriser cet appareil pour l’administration pendant 30 jours'), ENT_QUOTES, 'UTF-8'); ?>
+    </label>
+  </div>
+  <?php endif; ?>
   <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
   <div class="actions">
     <button class="button-block" type="submit"><?php echo htmlspecialchars($translate('TXT_ADMIN_LOGIN_SUBMIT', 'Se connecter'), ENT_QUOTES, 'UTF-8'); ?></button>

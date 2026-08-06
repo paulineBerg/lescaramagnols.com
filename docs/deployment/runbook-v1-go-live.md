@@ -180,3 +180,25 @@ Politique :
 ## TODO
 
 - valider la reception effective des notifications sur le canal ops cible (webhook/email) apres activation timer.
+
+## Runbook Connexion Persistante
+
+Avant activation :
+
+- verifier la migration `015_persistent_auth.sql` appliquee ;
+- verifier les flags persistants a `false` par defaut ;
+- executer `php backend/core/tools/purge_persistent_auth.php --dry-run --json` ;
+- confirmer TOTP Admin et allowlist IP.
+
+Pendant activation :
+
+- Private d'abord, Admin ensuite ;
+- surveiller `auth.token.reuse_detected`, `auth.admin.session_restored`, `auth.private.session_restored` ;
+- verifier que les actions sensibles Admin redemandent une authentification recente apres restauration.
+
+Incident :
+
+1. Desactiver `PERSISTENT_AUTH_ENABLED`.
+2. Revoquer via les ecrans appareils ou par requete SQL auditee si incident global.
+3. Changer mot de passe/TOTP selon le scope affecte.
+4. Conserver les tables pour analyse.

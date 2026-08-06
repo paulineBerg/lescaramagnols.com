@@ -164,6 +164,12 @@ if ($privateMemberSettingsEnabled) {
         'icon' => '⚙',
         'active' => $privatePathIs(private_portal_url('member_settings')),
     ];
+    $privateNavItems[] = [
+        'label' => $translate('TXT_PRIVATE_DEVICES_NAV', 'Mes appareils'),
+        'href' => private_portal_url('member_devices'),
+        'icon' => '▣',
+        'active' => $privatePathIs(private_portal_url('member_devices')),
+    ];
 }
 
 $privateDashboardNavLabel = is_string($privateNavItems[0]['label'] ?? null)

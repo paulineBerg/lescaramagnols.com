@@ -210,7 +210,7 @@ final class PrivatePortalSecurityTest extends TestCase
         $this->assertFalse($auth->isAuthenticated());
     }
 
-    public function testReauthTimeoutInvalidatesAuthenticatedSession(): void
+    public function testReauthTimeoutKeepsSessionButRefusesFreshness(): void
     {
         $this->configurePrivatePasswordHash(password_hash('secret123', PASSWORD_ARGON2ID));
         $this->setPrivateConfigValue('reauth_timeout_seconds', 301);
@@ -223,7 +223,8 @@ final class PrivatePortalSecurityTest extends TestCase
         $context['last_reauth_at'] = time() - 302;
         $_SESSION['private_user'] = $context;
 
-        $this->assertFalse($auth->isAuthenticated());
+        $this->assertTrue($auth->isAuthenticated());
+        $this->assertFalse($auth->isReauthFresh());
     }
 
     public function testPasswordPolicyRejectsWeakPasswordsAndMismatchedConfirmation(): void

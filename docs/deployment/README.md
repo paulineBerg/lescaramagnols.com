@@ -724,3 +724,22 @@ Notes :
   - chantier images historiques poursuivi (suppression artefacts `Zone.Identifier`, audit archive `131`)
   - checklist "documentation saine" passee en tout coche avec preuves `132` a `134`
   - controles fin de tache mission maintenance (`autoload`, tests, controllers, HTTP/HTTPS, hygiene assets, cache clear final) archives `135` a `142`
+
+## Activation Connexion Persistante
+
+Ordre recommande :
+
+1. Deployer code + migration `015_persistent_auth.sql` sans activer les flags.
+2. Executer `composer test`, `composer phpstan`, `composer phpcs`, `composer audit`.
+3. Verifier `php backend/core/tools/purge_persistent_auth.php --dry-run --json`.
+4. Activer `PERSISTENT_AUTH_ENABLED=true` en preproduction.
+5. Activer `PRIVATE_PERSISTENT_AUTH_ENABLED=true`, observer `security.log`.
+6. Activer `ADMIN_PERSISTENT_AUTH_ENABLED=true`, observer TOTP, allowlist IP et reauth sensible.
+7. Planifier le job Cron Center `purge_persistent_auth`.
+
+Rollback :
+
+- remettre `PERSISTENT_AUTH_ENABLED=false` ;
+- supprimer les cookies `caramagnols_private_persistent` et `caramagnols_admin_persistent` ;
+- conserver les sessions classiques et les tables SQL ;
+- ne faire aucun rollback SQL destructif sans sauvegarde et autorisation explicite.

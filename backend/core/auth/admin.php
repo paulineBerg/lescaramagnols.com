@@ -279,6 +279,24 @@ function admin_mark_reauthenticated(): void
     $_SESSION[$key]['last_reauth_at'] = time();
 }
 
+function admin_restore_session(string $identifier, bool $freshReauth = false): void
+{
+    ensure_session_started();
+
+    if (function_exists('session_regenerate_id')) {
+        session_regenerate_id(true);
+    }
+
+    $now = time();
+    $_SESSION[admin_session_key()] = [
+        'identifier' => admin_configured_identifier(),
+        'email' => $identifier,
+        'login_at' => $now,
+        'last_activity_at' => $now,
+        'last_reauth_at' => $freshReauth ? $now : 0,
+    ];
+}
+
 function admin_reauth_is_fresh(): bool
 {
     $key = admin_session_key();

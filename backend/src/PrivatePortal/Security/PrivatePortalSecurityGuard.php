@@ -7,12 +7,16 @@ namespace Caramagnols\PrivatePortal\Security;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
+use Caramagnols\Identity\PersistentSession\PersistentSessionGuard;
+use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 
 final class PrivatePortalSecurityGuard
 {
     public function __construct(
         private readonly PrivateAuth $auth,
-        private readonly ?AppEventLogger $eventLogger = null
+        private readonly ?AppEventLogger $eventLogger = null,
+        private readonly ?PersistentSessionGuard $persistentGuard = null,
+        private readonly ?PrivateUserRepository $userRepository = null
     ) {
     }
 
@@ -34,6 +38,13 @@ final class PrivatePortalSecurityGuard
         string $loginUrl,
         bool $requireFreshSession = false
     ): ?Response {
+        if (!$this->auth->isAuthenticated() && $this->persistentGuard instanceof PersistentSessionGuard && $this->userRepository instanceof PrivateUserRepository) {
+            $cookie = $this->persistentGuard->restorePrivate($request, $this->auth, $this->userRepository);
+            if (is_string($cookie) && $cookie !== '') {
+                $GLOBALS['private_persistent_set_cookie_header'] = $cookie;
+            }
+        }
+
         if ($this->auth->isAuthenticated()) {
             if (!$requireFreshSession || $this->auth->isReauthFresh()) {
                 return null;

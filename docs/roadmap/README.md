@@ -422,3 +422,14 @@ La modernisation sera reussie si :
 - le backend a un coeur technique plus coherent
 - le frontend reste un pipeline d'assets moderne, pas une couche de rendu concurrente
 - les nouvelles evolutions peuvent etre faites sans replonger dans les duplications legacy
+
+## Mise A Jour 2026-08-06
+
+Connexion persistante securisee livree en feature flags :
+
+- migration SQL `015_persistent_auth.sql` ;
+- domaine `backend/src/Identity` ;
+- integration BO Private et BO Admin ;
+- ecrans appareils par scope ;
+- purge Cron Center `purge_persistent_auth` ;
+- alertes logs pour reutilisation de jeton et revocations globales.

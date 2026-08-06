@@ -225,3 +225,14 @@ Couverture HTTP admin etendue dans `backend/tests/FrontControllerHttpTest.php` :
 - POST blog :
   - route canonique `/<base_path>/<ADMIN_LOGIN_PATH>/articles/save`
   - alias legacy `/core/blog/save_article.php`
+
+## Connexion Persistante
+
+La connexion persistante Private/Admin ne modifie pas les entrypoints publics.
+
+- Restauration Admin : branchee dans `AdminController::guardAuthenticated()` et `login()`.
+- Restauration Private : branchee dans `PrivatePortalSecurityGuard::requireAuthenticated()` et `PrivatePortalController::handleLogin()`.
+- Routes nouvelles derriere les resolvers existants :
+  - Admin `security_devices` => `/.../securite/appareils-sessions`
+  - Private `member_devices` => `/.../parametres/appareils`
+- Aucun token n'est accepte en URL ou parametre GET.

@@ -7,8 +7,7 @@ namespace Caramagnols\PrivateApps\WebDevelopment\Repository;
 use Caramagnols\Database\EditorialDatabase;
 use PDO;
 
-final class PreviewTicketRepository
-    implements PreviewTicketRepositoryInterface
+final class PreviewTicketRepository implements PreviewTicketRepositoryInterface
 {
     public function __construct(private readonly EditorialDatabase $database)
     {

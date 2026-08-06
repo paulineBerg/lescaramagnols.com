@@ -6,6 +6,7 @@ namespace Caramagnols\PrivatePortal\Http;
 
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
+use Caramagnols\Identity\SessionScope;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\PrivateApps\FamilyDiscussion\Attachment\DiscussionAttachmentStorage;
 use Caramagnols\PrivateApps\FamilyDiscussion\Repository\DiscussionRepository;
@@ -120,6 +121,7 @@ final class PrivatePortalController
             'login' => $this->handleLogin($request),
             'dashboard' => $this->handleDashboard($request),
             'member_settings' => $this->handleMemberSettings($request),
+            'member_devices' => $this->handleMemberDevices($request),
             'documents' => $this->documentsController()->index($request),
             'documents_hub' => $this->documentHubController()->index($request),
             'documents_hub_import' => $this->documentHubController()->import($request),
@@ -248,7 +250,15 @@ final class PrivatePortalController
 
     private function handleLogin(Request $request): Response
     {
-        if ($this->auth->isAuthenticated()) {
+        if ($this->privateAuthenticated()) {
+            return $this->redirect(private_portal_url('dashboard'));
+        }
+
+        $restoreCookie = persistent_session_guard()->restorePrivate($request, $this->auth, $this->privateUserRepository());
+        if (is_string($restoreCookie) && $restoreCookie !== '') {
+            $GLOBALS['private_persistent_set_cookie_header'] = $restoreCookie;
+        }
+        if ($restoreCookie !== null && $this->auth->currentIdentifier() !== null) {
             return $this->redirect(private_portal_url('dashboard'));
         }
 
@@ -278,6 +288,21 @@ final class PrivatePortalController
                 } else {
                     $mfaCode = is_string($body['mfa_code'] ?? null) ? (string) $body['mfa_code'] : null;
                     if ($this->auth->login($identifier, $password, $clientIp ?? null, $mfaCode)) {
+                        if ($this->postedBoolean($body['trust_private_device'] ?? null)) {
+                            $userId = $this->currentPrivateUserId();
+                            if ($userId !== null) {
+                                $remembered = persistent_session_service()->rememberAfterLogin(
+                                    SessionScope::PRIVATE,
+                                    SessionScope::PRIVATE,
+                                    $userId,
+                                    $identifier,
+                                    $request
+                                );
+                                if (is_array($remembered) && is_string($remembered['set_cookie'] ?? null)) {
+                                    $GLOBALS['private_persistent_set_cookie_header'] = $remembered['set_cookie'];
+                                }
+                            }
+                        }
                         return $this->redirect(private_portal_url('dashboard'));
                     } else {
                         $error = in_array($this->auth->failureReason(), ['mfa_required', 'mfa_invalid'], true)
@@ -295,13 +320,14 @@ final class PrivatePortalController
             'csrfToken' => csrf_token('private'),
             'privatePasswordForgotUrl' => private_portal_url('password_forgot'),
             'privateMfaEnabled' => (bool) app_config('private.mfa_totp_enabled', false),
+            'persistentPrivateEnabled' => persistent_session_service()->enabled(SessionScope::PRIVATE),
         ]);
     }
 
     private function handleDashboard(Request $request): Response
     {
         $guard = $this->guard();
-        $required = $guard->requireAuthenticated($request, private_portal_url('login'), true);
+        $required = $guard->requireAuthenticated($request, private_portal_url('login'), false);
         if ($required !== null) {
             return $required;
         }
@@ -404,6 +430,69 @@ final class PrivatePortalController
         $this->logEvent('private.member_settings.saved', ['private_user_id' => $userId]);
 
         return $this->redirect(private_portal_url('member_settings') . '?notice=profile_saved');
+    }
+
+    private function handleMemberDevices(Request $request): Response
+    {
+        $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), false);
+        if ($required !== null) {
+            return $this->withPrivateHeaders($required);
+        }
+
+        $userId = $this->currentPrivateUserId();
+        $identifier = $this->auth->currentIdentifier();
+        if ($userId === null || !is_string($identifier) || trim($identifier) === '') {
+            return $this->redirect(private_portal_url('login'));
+        }
+
+        $message = null;
+        $error = null;
+        if ($request->method() === self::METHOD_POST) {
+            if (!$this->auth->isReauthFresh()) {
+                $this->logEvent('auth.reauthentication.required', ['scope' => SessionScope::PRIVATE, 'path' => request_path($request->uri())], 'warning');
+                return $this->redirect(private_portal_url('login'));
+            }
+
+            if (!$this->guard()->validateCsrf($request, 'private_devices')) {
+                $error = 'invalid_request';
+            } else {
+                $body = $request->body();
+                $devices = trusted_device_service()->listForUser(SessionScope::PRIVATE, $userId, $identifier);
+                $allowedIds = array_map(static fn (array $device): int => (int) ($device['id'] ?? 0), $devices);
+                $action = is_string($body['device_action'] ?? null) ? trim((string) $body['device_action']) : '';
+                $deviceId = is_numeric($body['device_id'] ?? null) ? (int) $body['device_id'] : 0;
+                $audit = new \Caramagnols\Identity\Audit\SessionAuditService($this->eventLogger);
+
+                if ($action === 'rename' && in_array($deviceId, $allowedIds, true)) {
+                    $name = is_string($body['device_name'] ?? null) ? (string) $body['device_name'] : '';
+                    $message = trusted_device_service()->rename($deviceId, $name, SessionScope::PRIVATE) ? 'device_renamed' : null;
+                    $error = $message === null ? 'device_action_failed' : null;
+                } elseif ($action === 'revoke' && in_array($deviceId, $allowedIds, true)) {
+                    $message = device_revocation_service()->revokeDevice($deviceId, 'private_revoked', SessionScope::PRIVATE) ? 'device_revoked' : null;
+                    $error = $message === null ? 'device_action_failed' : null;
+                } elseif ($action === 'revoke_all') {
+                    $count = device_revocation_service()->revokeAllForUser(
+                        SessionScope::PRIVATE,
+                        $userId,
+                        $audit->hashIdentifier($identifier),
+                        'private_revoked_all',
+                        SessionScope::PRIVATE
+                    );
+                    $GLOBALS['private_persistent_set_cookie_header'] = persistent_session_service()->clearCookieHeader(SessionScope::PRIVATE);
+                    $message = 'devices_revoked:' . $count;
+                } else {
+                    $error = 'device_action_failed';
+                }
+            }
+        }
+
+        return $this->render('devices', [
+            'privatePageTitle' => $this->translate('TXT_PRIVATE_DEVICES_TITLE', 'Mes appareils'),
+            'privateDevices' => trusted_device_service()->listForUser(SessionScope::PRIVATE, $userId, $identifier),
+            'privateDevicesCsrfToken' => csrf_token('private_devices'),
+            'notice' => $message,
+            'errorKey' => $error,
+        ]);
     }
 
     private function handleRentalPropertyArchive(Request $request, int $propertyId): Response
@@ -2697,6 +2786,11 @@ final class PrivatePortalController
             ]);
         }
 
+        $GLOBALS['private_persistent_set_cookie_header'] = persistent_session_service()->revokePresentedToken(
+            $request,
+            SessionScope::PRIVATE,
+            'private_logout'
+        );
         $this->auth->logout('manual');
 
         return $this->redirect(private_portal_url('login'));
@@ -2877,6 +2971,19 @@ final class PrivatePortalController
                     )
                     : null;
                 if (is_array($user)) {
+                    $userId = is_numeric($user['id'] ?? null) ? (int) $user['id'] : 0;
+                    $email = is_string($user['email'] ?? null) ? (string) $user['email'] : '';
+                    if ($userId > 0 && $email !== '' && persistent_session_service()->enabled(SessionScope::PRIVATE)) {
+                        $audit = new \Caramagnols\Identity\Audit\SessionAuditService($this->eventLogger);
+                        device_revocation_service()->revokeAllForUser(
+                            SessionScope::PRIVATE,
+                            $userId,
+                            $audit->hashIdentifier($email),
+                            'private_password_changed',
+                            SessionScope::PRIVATE
+                        );
+                        $GLOBALS['private_persistent_set_cookie_header'] = persistent_session_service()->clearCookieHeader(SessionScope::PRIVATE);
+                    }
                     $this->logEvent('private.password_reset.completed', [
                         'identifier' => AppEventLogger::maskIdentifier((string) ($user['email'] ?? '')),
                         'account_status' => strtolower((string) ($user['status'] ?? 'active')),
@@ -4693,7 +4800,7 @@ final class PrivatePortalController
 
     private function requireModuleOrUnauthorized(Request $request, string $module): int|Response|null
     {
-        $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), true);
+        $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), false);
         if ($required !== null) {
             return $required;
         }
@@ -4752,7 +4859,7 @@ final class PrivatePortalController
 
     private function requireAuthenticatedUser(Request $request): int|Response
     {
-        $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), true);
+        $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), false);
         if ($required !== null) {
             return $this->withPrivateHeaders($required);
         }
@@ -4943,6 +5050,11 @@ final class PrivatePortalController
             : null;
         $privateDashboardNotice = is_string($viewModel['notice'] ?? null) ? (string) $viewModel['notice'] : '';
         $privateDashboardErrorMessage = is_string($viewModel['errorMessage'] ?? null) ? (string) $viewModel['errorMessage'] : '';
+        $persistentPrivateEnabled = (bool) ($viewModel['persistentPrivateEnabled'] ?? false);
+        $privateDevices = is_array($viewModel['privateDevices'] ?? null) ? $viewModel['privateDevices'] : [];
+        $privateDevicesCsrfToken = is_string($viewModel['privateDevicesCsrfToken'] ?? null)
+            ? (string) $viewModel['privateDevicesCsrfToken']
+            : '';
 
         ob_start();
         include $contentTemplate;
@@ -4986,12 +5098,40 @@ final class PrivatePortalController
 
     private function withPrivateHeaders(Response $response): Response
     {
-        return PrivateResponseHeaders::apply($response);
+        $response = PrivateResponseHeaders::apply($response);
+        $cookieHeader = is_string($GLOBALS['private_persistent_set_cookie_header'] ?? null)
+            ? (string) $GLOBALS['private_persistent_set_cookie_header']
+            : '';
+        if ($cookieHeader !== '') {
+            $response->headers['Set-Cookie'] = $cookieHeader;
+            unset($GLOBALS['private_persistent_set_cookie_header']);
+        }
+
+        return $response;
+    }
+
+    private function postedBoolean(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        return in_array(strtolower(trim((string) $value)), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function privateAuthenticated(): bool
+    {
+        return $this->auth->isAuthenticated();
     }
 
     private function guard(): PrivatePortalSecurityGuard
     {
-        return $this->securityGuard ?? new PrivatePortalSecurityGuard($this->auth, $this->eventLogger);
+        return $this->securityGuard ?? new PrivatePortalSecurityGuard(
+            $this->auth,
+            $this->eventLogger,
+            persistent_session_guard(),
+            $this->privateUserRepository()
+        );
     }
 
     private function currentPrivateUserId(): ?int
@@ -5470,13 +5610,13 @@ final class PrivatePortalController
         return substr(hash('sha256', $token), 0, 16);
     }
 
-    private function logEvent(string $event, array $context): void
+    private function logEvent(string $event, array $context, string $level = 'warning'): void
     {
         $logger = $this->eventLogger ?? (function_exists('app_event_logger') ? app_event_logger() : null);
         if ($logger === null) {
             return;
         }
 
-        $logger->security($event, $context, 'warning');
+        $logger->security($event, $context, $level);
     }
 }

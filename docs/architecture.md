@@ -35,3 +35,15 @@ Le projet suit un modele hybride:
 - conserver la centralisation i18n backend/frontend
 - maintenir la separation code produit / artefacts generes / donnees sensibles
 - garantir les regles SEO (canonical sans `#`, JSON-LD centralise)
+
+## Domaine Identity Et Sessions Persistantes
+
+Le domaine `backend/src/Identity/` porte l'authentification persistante ajoutee le 2026-08-06.
+
+- `Device/` : enregistrement, renommage, revocation des appareils.
+- `PersistentSession/` : cookies, rotation, consommation et garde de restauration.
+- `Repository/` : acces SQL `trusted_devices` et `persistent_session_tokens`.
+- `Audit/` : journalisation securisee et hachage des identifiants techniques.
+- `SessionScope` definit `identity`, `private`, `admin`.
+
+Les controllers Admin et Private appellent le garde de restauration puis continuent avec les sessions existantes. Aucune logique metier n'est ajoutee dans `backend/public`.

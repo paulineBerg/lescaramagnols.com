@@ -210,3 +210,14 @@ Guides principaux:
 - Durcissement securite admin (session, re-auth, 2FA, anti brute-force)
 - Separation `PrivatePortal` (socle) / `PrivateApps` (metier) et non-exposition publique de `/private`
 - Separation code/runtime privé : ne pas supprimer, synchroniser ou versionner `caramagnols-runtime/private-storage`
+
+## Connexion persistante securisee
+
+Depuis 2026-08-06, le backend supporte une authentification persistante optionnelle pour BO Private et BO Admin.
+
+- Flags desactives par defaut : `PERSISTENT_AUTH_ENABLED`, `PRIVATE_PERSISTENT_AUTH_ENABLED`, `ADMIN_PERSISTENT_AUTH_ENABLED`.
+- Cookies persistants separes : `caramagnols_private_persistent` et `caramagnols_admin_persistent`.
+- Jetons rotatifs stockes uniquement sous forme de hash, avec selector public et detection de reutilisation.
+- Migration SQL versionnee : `backend/sql/editorial/015_persistent_auth.sql`.
+- Maintenance : `php backend/core/tools/purge_persistent_auth.php --dry-run --json`.
+- Rollback : desactiver les flags, supprimer les cookies persistants, conserver les sessions classiques et les tables pour audit.

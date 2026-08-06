@@ -41,6 +41,9 @@ $thresholds = [
     'private_backup_failed' => max(1, (int) ($options['private-backup-failed-threshold'] ?? 1)),
     'private_backup_warning' => max(1, (int) ($options['private-backup-warning-threshold'] ?? 1)),
     'private_purge_failed' => max(1, (int) ($options['private-purge-failed-threshold'] ?? 1)),
+    'persistent_token_reuse' => max(1, (int) ($options['persistent-token-reuse-threshold'] ?? 1)),
+    'persistent_restore_refused' => max(1, (int) ($options['persistent-restore-refused-threshold'] ?? 5)),
+    'persistent_global_revocation' => max(1, (int) ($options['persistent-global-revocation-threshold'] ?? 1)),
     'http_403' => max(1, (int) ($options['http-403-threshold'] ?? 30)),
     'http_429' => max(1, (int) ($options['http-429-threshold'] ?? 10)),
     'cron_failed' => max(1, (int) ($options['cron-failed-threshold'] ?? 1)),
@@ -56,6 +59,9 @@ $severities = [
     'private_backup_failed' => 'critical',
     'private_backup_warning' => 'warning',
     'private_purge_failed' => 'critical',
+    'persistent_token_reuse' => 'critical',
+    'persistent_restore_refused' => 'warning',
+    'persistent_global_revocation' => 'critical',
     'http_403' => 'warning',
     'http_429' => 'warning',
     'cron_failed' => 'error',
@@ -76,6 +82,7 @@ read_log_file($logDir . '/security.log', $sinceTimestamp, static function (strin
     }
 
     collect_private_observability_counts($line, $counts);
+    collect_persistent_auth_counts($line, $counts);
 });
 
 read_log_file($logDir . '/access.log', $sinceTimestamp, static function (string $line) use (&$counts): void {
@@ -94,6 +101,7 @@ read_log_file($logDir . '/content.log', $sinceTimestamp, static function (string
     }
 
     collect_private_observability_counts($line, $counts);
+    collect_persistent_auth_counts($line, $counts);
 });
 
 $alerts = [];
@@ -239,6 +247,9 @@ if ($jsonOutput) {
     fwrite(STDOUT, sprintf("- http 403: %d (seuil=%d)\n", $counts['http_403'], $thresholds['http_403']));
     fwrite(STDOUT, sprintf("- http 429: %d (seuil=%d)\n", $counts['http_429'], $thresholds['http_429']));
     fwrite(STDOUT, sprintf("- cron failed: %d (seuil=%d)\n", $counts['cron_failed'], $thresholds['cron_failed']));
+    fwrite(STDOUT, sprintf("- auth.token.reuse_detected: %d (seuil=%d)\n", $counts['persistent_token_reuse'], $thresholds['persistent_token_reuse']));
+    fwrite(STDOUT, sprintf("- auth persistent refused: %d (seuil=%d)\n", $counts['persistent_restore_refused'], $thresholds['persistent_restore_refused']));
+    fwrite(STDOUT, sprintf("- auth global revocation: %d (seuil=%d)\n", $counts['persistent_global_revocation'], $thresholds['persistent_global_revocation']));
     fwrite(STDOUT, sprintf("- severite globale: %s\n", $overallSeverity));
 
     if ($alerts === []) {
@@ -347,6 +358,34 @@ function collect_private_observability_counts(string $line, array &$counts): voi
 
     if (str_contains($line, 'private.account_deletion_backups_purge.failed')) {
         $counts['private_purge_failed']++;
+    }
+}
+
+/**
+ * @param array<string, int> $counts
+ */
+function collect_persistent_auth_counts(string $line, array &$counts): void
+{
+    if (str_contains($line, 'auth.token.reuse_detected')) {
+        $counts['persistent_token_reuse']++;
+    }
+
+    if (
+        (str_contains($line, 'auth.private.session_restored') || str_contains($line, 'auth.admin.session_restored'))
+        && (
+            str_contains($line, 'account_refused')
+            || str_contains($line, 'rejected')
+            || str_contains($line, 'invalid')
+        )
+    ) {
+        $counts['persistent_restore_refused']++;
+    }
+
+    if (
+        (str_contains($line, 'auth.device.revoked') || str_contains($line, 'auth.token.revoked'))
+        && (str_contains($line, 'revoked_all') || str_contains($line, 'security_incident') || str_contains($line, 'bulk'))
+    ) {
+        $counts['persistent_global_revocation']++;
     }
 }
 

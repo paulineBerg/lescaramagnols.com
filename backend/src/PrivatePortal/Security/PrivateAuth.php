@@ -75,20 +75,6 @@ final class PrivateAuth
             return false;
         }
 
-        $lastReauthAt = (int) ($context[self::SESSION_LAST_REAUTH_AT_KEY] ?? $loginAt);
-        if ($lastReauthAt <= 0) {
-            $lastReauthAt = $loginAt;
-            $context[self::SESSION_LAST_REAUTH_AT_KEY] = $loginAt;
-        }
-
-        if (($now - $lastReauthAt) > $this->reauthTimeoutSeconds) {
-            $this->logout('reauth_timeout');
-
-            $this->log('private.session.expired', ['reason' => 'reauth_timeout']);
-
-            return false;
-        }
-
         $context[self::SESSION_LAST_ACTIVITY_AT_KEY] = $now;
         $this->session->setAll($context);
 
@@ -123,6 +109,29 @@ final class PrivateAuth
         $normalized = trim($identifier);
 
         return $normalized === '' ? null : $normalized;
+    }
+
+    public function restorePersistentSession(string $identifier, ?string $clientIp): void
+    {
+        $this->session->start();
+
+        if (function_exists('session_regenerate_id')) {
+            session_regenerate_id(true);
+        }
+
+        $now = time();
+        $this->session->setAll([
+            self::SESSION_IDENTIFIER_KEY => $identifier,
+            self::SESSION_LOGIN_AT_KEY => $now,
+            self::SESSION_LAST_ACTIVITY_AT_KEY => $now,
+            self::SESSION_LAST_REAUTH_AT_KEY => 0,
+        ]);
+
+        $this->failureReason = null;
+        $this->log('private.session.restored', [
+            'identifier' => $this->maskIdentifier($identifier),
+            'ip' => $clientIp ?? '',
+        ]);
     }
 
     public function failureReason(): ?string

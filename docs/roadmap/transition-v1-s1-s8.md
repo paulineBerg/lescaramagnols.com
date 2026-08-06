@@ -391,3 +391,9 @@ Statut cloture S1 (2026-03-21) :
 
 - Decision passage S1 -> S2 : `GO`.
 - Decision deploiement production immediat : `GO` (confirme apres addendum go-live du 2026-03-21, preuves `114` a `117`).
+
+## Note 2026-08-06 - Identite Persistante
+
+La transition V1 conserve le rendu serveur et les front-controllers existants.
+La connexion persistante est activee par flags et ne remplace pas les sessions classiques.
+Private et Admin restent separes par scope, cookie et garde serveur.

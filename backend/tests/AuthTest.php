@@ -174,4 +174,12 @@ final class AuthTest extends TestCase
 
         $this->assertFalse(admin_reauth_is_fresh());
     }
+
+    public function testAdminPersistentRestoreCreatesNonFreshSession(): void
+    {
+        admin_restore_session('admin@example.com', false);
+
+        $this->assertTrue(admin_is_authenticated());
+        $this->assertFalse(admin_reauth_is_fresh());
+    }
 }

@@ -60,7 +60,7 @@
     "readdirp": "^4.1.2",
     "rollup": "^4.45.1",
     "sass": "^1.89.2",
-    "sharp": "^0.34.4",
+    "sharp": "^0.35.3",
     "source-map-js": "^1.2.1",
     "stylelint": "^16.10.0",
     "stylelint-config-standard": "^36.0.0",

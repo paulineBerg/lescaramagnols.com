@@ -35,6 +35,7 @@ $adminMenu = [
         'href' => is_string($adminPrivateMembersUrl ?? null) ? $adminPrivateMembersUrl : '#',
         'icon' => '🔒',
     ],
+    ['id' => 'security_devices', 'label' => $translate('TXT_ADMIN_NAV_SECURITY_DEVICES', 'Sécurité'), 'href' => $adminSecurityDevicesUrl ?? admin_url('security_devices'), 'icon' => '🛡️'],
     ['id' => 'settings', 'label' => $translate('TXT_ADMIN_NAV_SETTINGS', 'Paramètres'), 'href' => $adminSettingsUrl ?? admin_url('settings'), 'icon' => '⚙️'],
 ];
 $adminDashboardNavLabel = is_string($adminMenu[0]['label'] ?? null)

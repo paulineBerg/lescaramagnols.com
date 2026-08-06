@@ -1505,6 +1505,11 @@ final class AdminSettingsService
             'error' => null,
             'view' => $this->viewModel(),
             'adminIdentifier' => $adminOverride['identifier'],
+            'adminSecurityChanges' => [
+                'password' => $adminConfig['data']['password'] !== '',
+                'totp_enabled' => $previousAdminTotpEnabled !== $adminOverride['totp_enabled'],
+                'totp_secret' => $previousAdminTotpSecret !== $adminOverride['totp_secret'],
+            ],
         ];
     }
 

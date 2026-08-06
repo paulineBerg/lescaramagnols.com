@@ -237,3 +237,18 @@ Mise a jour 2026-03-21 :
 - Les formulaires contact (page legacy + composant `contact_form` structure) passent maintenant par les helpers CSRF communs (`csrf_token`/`csrf_validate`).
 - Le script `composer check-env -- --env=production` enforce des points durs: `FORCE_HTTPS=true`, TOTP activee + secret valide, hygiene des overrides trackes.
 - Le mode `composer check-env -- --env=production --strict-prod-security` rend aussi bloquants `ADMIN_SESSION_KEY` trop court et `ADMIN_ALLOWED_IPS` vide/loopback-only.
+
+## Authentification Persistante Private/Admin
+
+Ajoutee le 2026-08-06, desactivee par defaut.
+
+- Scopes separes : `identity`, `private`, `admin`.
+- Sessions courtes conservees ; la reconnaissance persistante recree seulement une session courte.
+- Cookies persistants `HttpOnly`, `SameSite=Strict`, `Secure` en production, chemin limite au perimetre Admin ou Private.
+- Format cookie : `selector.secret`; le secret brut n'est jamais stocke ni loggue.
+- Stockage SQL : `trusted_devices` et `persistent_session_tokens`, via migration `015_persistent_auth.sql`.
+- Rotation stricte a chaque consommation ; reutilisation d'un ancien jeton => famille revoquee, alerte `auth.token.reuse_detected`.
+- Admin conserve mot de passe, TOTP, allowlist IP, timeout et reauth sensible. Une session restauree met `last_reauth_at=0`.
+- Private conserve MFA, lockout et permissions module serveur. Une session Private ne cree jamais de session Admin.
+
+Rollback : remettre les flags d'activation a `false`, purger les cookies persistants navigateur, laisser les tables SQL en place pour audit.

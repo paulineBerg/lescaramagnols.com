@@ -32,6 +32,7 @@ final class AdminRouteResolver
             'menus' => $basePath . '/menus',
             'logs' => $basePath . '/logs',
             'settings' => $basePath . '/settings',
+            'security_devices' => $basePath . '/securite/appareils-sessions',
             'private_members' => $basePath . '/parametres/espace-prive',
             'logout' => $basePath . '/logout',
             'session_ping' => $basePath . '/session/ping',
@@ -101,6 +102,7 @@ final class AdminRouteResolver
         $menusPath = $this->canonicalPath('menus');
         $logsPath = $this->canonicalPath('logs');
         $settingsPath = $this->canonicalPath('settings');
+        $securityDevicesPath = $this->canonicalPath('security_devices');
         $privateMembersPath = $this->canonicalPath('private_members');
         $logoutPath = $this->canonicalPath('logout');
         $blogSavePath = $this->blogSavePath();
@@ -226,6 +228,11 @@ final class AdminRouteResolver
                 'methods' => ['GET', 'POST'],
                 'path' => $settingsPath,
                 'handler' => ['type' => 'admin', 'page' => 'settings'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $securityDevicesPath,
+                'handler' => ['type' => 'admin', 'page' => 'security_devices'],
             ],
             [
                 'methods' => ['GET', 'POST'],

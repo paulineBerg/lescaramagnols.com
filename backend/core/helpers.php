@@ -19,6 +19,15 @@ use Caramagnols\Database\EditorialDatabase;
 use Caramagnols\Database\EditorialSchemaManager;
 use Caramagnols\Http\Request;
 use Caramagnols\Http\RoutePathHelper;
+use Caramagnols\Identity\Audit\SessionAuditService;
+use Caramagnols\Identity\Device\DeviceRevocationService;
+use Caramagnols\Identity\Device\TrustedDeviceService;
+use Caramagnols\Identity\PersistentSession\PersistentSessionCookieManager;
+use Caramagnols\Identity\PersistentSession\PersistentSessionGuard;
+use Caramagnols\Identity\PersistentSession\PersistentSessionService;
+use Caramagnols\Identity\PersistentSession\PersistentTokenRotator;
+use Caramagnols\Identity\Repository\PersistentTokenRepository;
+use Caramagnols\Identity\Repository\TrustedDeviceRepository;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Logging\LoggerFactory;
 use Caramagnols\Logging\SqlLogStore;
@@ -333,6 +342,65 @@ function private_portal_url(string $page = 'login'): string
     }
 
     return private_route_resolver()->canonicalPath($page);
+}
+
+function persistent_session_service(): PersistentSessionService
+{
+    static $service = null;
+
+    if (!$service instanceof PersistentSessionService) {
+        $devices = new TrustedDeviceRepository(editorial_database());
+        $tokens = new PersistentTokenRepository(editorial_database());
+        $audit = new SessionAuditService(app_event_logger());
+        $trustedDevices = new TrustedDeviceService($devices, $tokens, $audit);
+        $service = new PersistentSessionService(
+            $devices,
+            $tokens,
+            new PersistentSessionCookieManager(),
+            new PersistentTokenRotator($tokens),
+            $audit,
+            $trustedDevices
+        );
+    }
+
+    return $service;
+}
+
+function persistent_session_guard(): PersistentSessionGuard
+{
+    static $guard = null;
+
+    if (!$guard instanceof PersistentSessionGuard) {
+        $guard = new PersistentSessionGuard(persistent_session_service(), new SessionAuditService(app_event_logger()));
+    }
+
+    return $guard;
+}
+
+function trusted_device_service(): TrustedDeviceService
+{
+    static $service = null;
+
+    if (!$service instanceof TrustedDeviceService) {
+        $devices = new TrustedDeviceRepository(editorial_database());
+        $tokens = new PersistentTokenRepository(editorial_database());
+        $service = new TrustedDeviceService($devices, $tokens, new SessionAuditService(app_event_logger()));
+    }
+
+    return $service;
+}
+
+function device_revocation_service(): DeviceRevocationService
+{
+    static $service = null;
+
+    if (!$service instanceof DeviceRevocationService) {
+        $devices = new TrustedDeviceRepository(editorial_database());
+        $tokens = new PersistentTokenRepository(editorial_database());
+        $service = new DeviceRevocationService($devices, $tokens, new SessionAuditService(app_event_logger()));
+    }
+
+    return $service;
 }
 
 function admin_blog_save_url(): string

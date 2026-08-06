@@ -71,6 +71,15 @@ $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null)
     </div>
     <?php endif; ?>
 
+    <?php if (!empty($persistentPrivateEnabled)): ?>
+    <div>
+      <label>
+        <input type="checkbox" name="trust_private_device" value="1" />
+        <?php echo htmlspecialchars($translate('TXT_PRIVATE_LOGIN_TRUST_DEVICE', 'Faire confiance à cet appareil'), ENT_QUOTES, 'UTF-8'); ?>
+      </label>
+    </div>
+    <?php endif; ?>
+
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) ($csrfToken ?? ''), ENT_QUOTES, 'UTF-8'); ?>" />
 
     <div class="private-actions">

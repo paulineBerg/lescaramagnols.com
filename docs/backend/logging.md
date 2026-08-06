@@ -220,3 +220,15 @@ Par defaut, le service accepte les retours `0` et `2` (`--strict` + seuil depass
 ## TODO
 
 - raccorder le webhook a la destination monitoring definitive (selon infra cible : Slack/Teams/ELK/Prometheus Alertmanager, etc.)
+
+## Evenements Authentification Persistante
+
+Les evenements suivants sont journalises via `AppEventLogger` sans token, secret, mot de passe, cookie complet ni secret TOTP :
+
+- `auth.device.registered`, `auth.device.renamed`, `auth.device.revoked`
+- `auth.token.created`, `auth.token.rotated`, `auth.token.revoked`, `auth.token.expired`, `auth.token.reuse_detected`
+- `auth.private.session_restored`, `auth.admin.session_restored`
+- `auth.reauthentication.required`
+- `auth.persistent_maintenance.completed`
+
+`check_log_alerts.php` compte maintenant la reutilisation de jeton, les refus successifs de restauration persistante et les revocations globales/bulk.

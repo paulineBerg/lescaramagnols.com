@@ -1091,3 +1091,15 @@ Le chantier sera considere reussi quand :
 - desktop et mobile consomment le meme arbre de navigation
 - le menu haut est accessible clavier et tactile
 - les templates PHP legacy encore utiles restent compatibles pendant la transition
+
+## Appareils Et Sessions Admin
+
+Depuis 2026-08-06, le BO Admin supporte une connexion persistante optionnelle, separee de Private.
+
+- Activation progressive : `PERSISTENT_AUTH_ENABLED=true` puis `ADMIN_PERSISTENT_AUTH_ENABLED=true`.
+- Le login Admin propose `Autoriser cet appareil pour l’administration pendant 30 jours` uniquement si le scope est actif.
+- L'appareil Admin n'est enregistre qu'apres mot de passe valide, TOTP valide si configure, allowlist IP valide et compte Admin configure.
+- Restauration : jeton Admin valide, scope `admin`, appareil non revoque, allowlist IP encore respectee, puis session Admin courte recreee.
+- Une restauration Admin n'est pas une reauthentification recente ; les POST sensibles passent par `guardSensitiveAction()`.
+- Ecran : `Admin > Sécurité > Appareils et sessions` (`security_devices`) pour lister, renommer et revoquer les appareils Admin du compte courant.
+- Changement de mot de passe Admin ou de TOTP : revocation des appareils/jetons Admin si le scope persistant est actif.
