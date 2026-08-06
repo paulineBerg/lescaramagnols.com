@@ -134,8 +134,11 @@ final class PrivateDocumentStorage
         if ($this->isPathInsideRootPath($path)) {
             throw new \RuntimeException('Le stockage privé production ne peut pas être sous ROOT_PATH.');
         }
+    }
 
-        if (!is_dir($path)) {
+    private function assertProductionStorageAvailable(string $path): void
+    {
+        if ($this->isProductionEnvironment() && !is_dir($path)) {
             throw new \RuntimeException('Le stockage privé production configuré est absent.');
         }
     }
@@ -322,6 +325,8 @@ final class PrivateDocumentStorage
      */
     public function storeUploadedFile(array $metadata, string $documentId): ?array
     {
+        $this->assertProductionStorageAvailable($this->uploadsDirectoryPath);
+
         $documentId = $this->normalizeDocumentId($documentId);
         if ($documentId === '') {
             $this->uploadError = 'invalid_document_id';
@@ -435,6 +440,7 @@ final class PrivateDocumentStorage
         string $mimeType = 'application/pdf'
     ): ?array {
         $this->uploadError = null;
+        $this->assertProductionStorageAvailable($this->uploadsDirectoryPath);
 
         $documentId = $this->normalizeDocumentId($documentId);
         $originalName = $this->normalizeOriginalName($originalName);
@@ -527,6 +533,8 @@ final class PrivateDocumentStorage
 
     public function deleteStoredDocument(string $storagePath, ?string $documentId = null): bool
     {
+        $this->assertProductionStorageAvailable($this->uploadsDirectoryPath);
+
         $absolutePath = $this->absolutePath($storagePath);
         if ($absolutePath === null || !is_file($absolutePath)) {
             return false;
@@ -544,6 +552,8 @@ final class PrivateDocumentStorage
 
     public function deleteStoredDocumentByDocumentId(string $documentId): bool
     {
+        $this->assertProductionStorageAvailable($this->uploadsDirectoryPath);
+
         $documentId = $this->normalizeDocumentId($documentId);
         if ($documentId === '' || !is_dir($this->uploadsDirectoryPath)) {
             return false;

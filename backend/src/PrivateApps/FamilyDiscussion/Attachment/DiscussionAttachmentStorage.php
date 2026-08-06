@@ -133,8 +133,11 @@ final class DiscussionAttachmentStorage
         if ($this->isPathInsideRootPath($path)) {
             throw new \RuntimeException('Le stockage des discussions production ne peut pas être sous ROOT_PATH.');
         }
+    }
 
-        if (!is_dir($path)) {
+    private function assertProductionStorageAvailable(): void
+    {
+        if ($this->isProductionEnvironment() && !is_dir($this->rootPath)) {
             throw new \RuntimeException('Le stockage des discussions production configuré est absent.');
         }
     }
@@ -263,6 +266,7 @@ final class DiscussionAttachmentStorage
     public function store(array $metadata, string $attachmentId): ?array
     {
         $this->lastError = null;
+        $this->assertProductionStorageAvailable();
 
         $attachmentId = $this->normalizeAttachmentId($attachmentId);
         if ($attachmentId === '') {
@@ -373,6 +377,8 @@ final class DiscussionAttachmentStorage
 
     public function delete(string $storagePath): bool
     {
+        $this->assertProductionStorageAvailable();
+
         $absolutePath = $this->absolutePath($storagePath);
         if ($absolutePath === null || !is_file($absolutePath)) {
             return false;

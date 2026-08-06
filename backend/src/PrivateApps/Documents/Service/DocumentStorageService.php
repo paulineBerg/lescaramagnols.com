@@ -72,8 +72,11 @@ final class DocumentStorageService
         if ($this->isPathInsideRootPath($path)) {
             throw new \RuntimeException('Le stockage Document Hub production ne peut pas être sous ROOT_PATH.');
         }
+    }
 
-        if (!is_dir($path)) {
+    private function assertProductionStorageAvailable(): void
+    {
+        if ($this->isProductionEnvironment() && !is_dir($this->rootPath)) {
             throw new \RuntimeException('Le stockage Document Hub production configuré est absent.');
         }
     }
@@ -127,6 +130,7 @@ final class DocumentStorageService
     public function moveToQuarantine(string $sourcePath, bool $isUploadedFile): ?string
     {
         $this->lastError = null;
+        $this->assertProductionStorageAvailable();
 
         if (!is_file($sourcePath) || !is_readable($sourcePath)) {
             $this->lastError = 'source_unreadable';
@@ -189,6 +193,8 @@ final class DocumentStorageService
 
     public function objectExists(string $sha256): bool
     {
+        $this->assertProductionStorageAvailable();
+
         $absolute = $this->absolutePathForKey($this->storageKeyForHash($sha256));
 
         return $absolute !== null && is_file($absolute);
@@ -203,6 +209,8 @@ final class DocumentStorageService
      */
     public function promoteFromQuarantine(string $quarantinePath, string $sha256): ?string
     {
+        $this->assertProductionStorageAvailable();
+
         $quarantinePath = str_replace('\\', '/', $quarantinePath);
         if (!str_starts_with($quarantinePath, $this->quarantineDirectory() . '/') || !is_file($quarantinePath)) {
             return null;
@@ -269,6 +277,8 @@ final class DocumentStorageService
      */
     public function streamObject(string $storageKey): ?int
     {
+        $this->assertProductionStorageAvailable();
+
         $absolute = $this->absolutePathForKey($storageKey);
         if ($absolute === null || !is_file($absolute) || !is_readable($absolute)) {
             return null;
@@ -301,6 +311,8 @@ final class DocumentStorageService
      */
     public function deleteUnreferencedObjectFile(string $storageKey): bool
     {
+        $this->assertProductionStorageAvailable();
+
         $absolute = $this->absolutePathForKey($storageKey);
         if ($absolute === null || !is_file($absolute)) {
             return false;
@@ -316,6 +328,8 @@ final class DocumentStorageService
      */
     public function purgeQuarantine(int $maxAgeSeconds = 86400): int
     {
+        $this->assertProductionStorageAvailable();
+
         return $this->purgeDirectory($this->quarantineDirectory(), $maxAgeSeconds);
     }
 
@@ -324,6 +338,8 @@ final class DocumentStorageService
      */
     public function purgeExpiredExports(int $maxAgeSeconds = 3600): int
     {
+        $this->assertProductionStorageAvailable();
+
         return $this->purgeDirectory($this->exportsTempDirectory(), $maxAgeSeconds);
     }
 

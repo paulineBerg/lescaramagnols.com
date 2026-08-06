@@ -54,14 +54,26 @@ final class RuntimeStorageFailFastTest extends TestCase
         new PrivateDocumentStorage(ROOT_PATH . '/private', 'storage', 'uploads', 'exports');
     }
 
-    public function testDocumentHubRejectsMissingProductionRoot(): void
+    public function testPrivateDocumentsRejectMissingProductionRootOnWrite(): void
     {
         $this->useProductionEnvironment();
+        $storage = new PrivateDocumentStorage('/dev/null', 'private-storage', 'uploads', 'exports');
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('absent');
 
-        new DocumentStorageService($this->tempRoot . '/missing-document-hub');
+        $storage->storeGeneratedDocument('contenu', 'document-test', 'document.pdf');
+    }
+
+    public function testDocumentHubRejectsMissingProductionRootOnUse(): void
+    {
+        $this->useProductionEnvironment();
+        $storage = new DocumentStorageService('/dev/null/document-hub');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('absent');
+
+        $storage->objectExists(hash('sha256', 'missing'));
     }
 
     public function testFamilyDiscussionRejectsRootPathStorageInProduction(): void
@@ -72,6 +84,27 @@ final class RuntimeStorageFailFastTest extends TestCase
         $this->expectExceptionMessage('ROOT_PATH');
 
         new DiscussionAttachmentStorage(ROOT_PATH . '/private', storageDirectory: 'storage');
+    }
+
+    public function testFamilyDiscussionRejectsMissingProductionRootOnWrite(): void
+    {
+        $this->useProductionEnvironment();
+        $storage = new DiscussionAttachmentStorage('/dev/null', storageDirectory: 'private-storage');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('absent');
+
+        $storage->store([
+            'tmpPath' => __FILE__,
+            'originalFilename' => 'attachment.txt',
+            'extension' => 'txt',
+            'mimeType' => 'text/plain',
+            'sizeBytes' => 1,
+            'sha256' => hash('sha256', 'attachment'),
+            'width' => null,
+            'height' => null,
+            'isImage' => false,
+        ], 'attachment-test');
     }
 
     public function testProductionRuntimeStorageOutsideRootPathIsAccepted(): void
