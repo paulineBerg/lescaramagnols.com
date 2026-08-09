@@ -253,6 +253,57 @@
     font-size: 0.84rem;
   }
 
+  .private-top-nav {
+    background: #fff;
+    border-bottom: 1px solid var(--private-border);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    padding: 0.55rem clamp(1rem, 2.6vw, 1.75rem);
+    position: sticky;
+    scrollbar-width: thin;
+    top: 3.75rem;
+    z-index: 38;
+  }
+
+  .private-top-nav ul {
+    align-items: center;
+    display: flex;
+    gap: 0.45rem;
+    list-style: none;
+    margin: 0;
+    min-width: max-content;
+    padding: 0;
+  }
+
+  .private-top-nav a {
+    align-items: center;
+    background: #edf6f8;
+    border: 1px solid rgb(29 111 141 / 16%);
+    border-radius: 8px;
+    color: #123d6b;
+    display: inline-flex;
+    font-size: 0.9rem;
+    font-weight: 700;
+    gap: 0.45rem;
+    min-height: 2.35rem;
+    padding: 0.5rem 0.75rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .private-top-nav a.active {
+    background: var(--private-primary-dark);
+    border-color: var(--private-primary-dark);
+    color: #fff;
+  }
+
+  .private-top-nav a:hover,
+  .private-top-nav a:focus-visible {
+    border-color: var(--private-primary);
+    box-shadow: 0 0 0 3px rgb(36 160 181 / 18%);
+    outline: none;
+  }
+
   .private-main {
     flex: 1;
     max-width: 100%;
@@ -271,7 +322,7 @@
 
   .private-main > .private-screen-notice {
     position: sticky;
-    top: 4.35rem;
+    top: 7.35rem;
     z-index: 35;
     box-shadow: 0 12px 24px rgb(19 41 75 / 12%);
   }
@@ -441,7 +492,7 @@
 
   .private-module-nav {
     position: sticky;
-    top: 4.35rem;
+    top: 7.35rem;
     z-index: 30;
     background: rgb(246 249 252 / 96%);
     border: 1px solid rgb(19 41 75 / 8%);
@@ -1251,6 +1302,11 @@
 
     .private-nav-menu {
       display: none;
+    }
+
+    .private-top-nav {
+      padding: 0.55rem 0.9rem;
+      position: static;
     }
 
     .private-mobile-breadcrumb {

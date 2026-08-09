@@ -23,7 +23,10 @@ final class PrivateUiGuardTest extends TestCase
             $stylesheet
         );
         self::assertStringContainsString('.private-screen-notice', $stylesheet);
-        self::assertStringContainsString('top: 4.35rem;', $stylesheet);
+        self::assertStringContainsString('top: 7.35rem;', $stylesheet);
+        self::assertStringContainsString('.private-top-nav', $stylesheet);
+        self::assertMatchesRegularExpression('/\\.private-top-nav\\s*\\{[^}]*position:\\s*sticky;/s', $stylesheet);
+        self::assertMatchesRegularExpression('/\\.private-top-nav\\s*\\{[^}]*overflow-x:\\s*auto;/s', $stylesheet);
         self::assertStringContainsString(
             'grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));',
             $stylesheet
@@ -41,6 +44,10 @@ final class PrivateUiGuardTest extends TestCase
         );
         self::assertMatchesRegularExpression(
             '/@media \\(width <= 900px\\)\\s*\\{.*?\\.private-content\\s*\\{[^}]*margin-left:\\s*0;/s',
+            $stylesheet
+        );
+        self::assertMatchesRegularExpression(
+            '/@media \\(width <= 900px\\)\\s*\\{.*?\\.private-top-nav\\s*\\{[^}]*position:\\s*static;/s',
             $stylesheet
         );
         self::assertMatchesRegularExpression(
@@ -76,6 +83,11 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('data-private-nav-toggle', $layout);
         self::assertStringContainsString('type="button"', $layout);
         self::assertStringContainsString('caramagnols.private.navCollapsed', $layout);
+        self::assertStringContainsString('class="private-top-nav"', $layout);
+        self::assertStringContainsString('TXT_PRIVATE_TOP_NAV_LABEL', $layout);
+        self::assertMatchesRegularExpression('/class="private-top-nav".*aria-current="page"/s', $layout);
+        self::assertStringContainsString('$topNavLabel', $layout);
+        self::assertGreaterThanOrEqual(2, substr_count($layout, 'foreach ($privateNavItems as $privateNavItem)'));
         self::assertStringContainsString('data-private-auto-submit', $layout);
         self::assertStringContainsString('form.requestSubmit(submitter);', $layout);
     }

@@ -407,6 +407,9 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertStringNotContainsString('outsider@example.com', $index->body);
         $this->assertStringNotContainsString('pending@example.com', $index->body);
         $this->assertStringContainsString('Conversations', $index->body);
+        $this->assertStringContainsString('class="private-top-nav"', $index->body);
+        $this->assertStringContainsString('href="/private/discussions" aria-current="page"', $index->body);
+        $this->assertStringNotContainsString('href="/private/documents"', $index->body);
 
         $post = $controller->handle(
             'discussion_index',
@@ -431,6 +434,8 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertStringContainsString('Envoyer un message', $detail->body);
         $this->assertStringContainsString('data-encrypted-body', $detail->body);
         $this->assertStringContainsString('nonce="testnonce"', $detail->body);
+        $this->assertStringContainsString('class="private-top-nav"', $detail->body);
+        $this->assertStringContainsString('href="/private/discussions" aria-current="page"', $detail->body);
     }
 
     /**

@@ -82,6 +82,8 @@ final class PrivatePortalController
     private const CSRF_DISCUSSIONS = 'private_discussions';
     private const CSRF_MEMBER_SETTINGS = 'private_member_settings';
 
+    private string $currentRequestUri = '';
+
     public function __construct(
         private readonly PrivateAuth $auth,
         private readonly ?PrivatePortalSecurityGuard $securityGuard = null,
@@ -118,6 +120,8 @@ final class PrivatePortalController
 
     public function handle(string $page, Request $request, array $routeParams = []): Response
     {
+        $this->currentRequestUri = $request->uri();
+
         $response = match ($page) {
             'login' => $this->handleLogin($request),
             'dashboard' => $this->handleDashboard($request),
@@ -5142,6 +5146,7 @@ final class PrivatePortalController
         }
         $privateDashboardUrl = private_portal_url('dashboard');
         $privateLoginUrl = private_portal_url('login');
+        $privateCurrentRequestUri = $this->currentRequestUri;
         include ROOT_PATH . '/templates/private/layout.php';
         $body = (string) ob_get_clean();
 

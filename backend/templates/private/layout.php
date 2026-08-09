@@ -48,7 +48,10 @@ $privateNormalizePath = static function (string $url): string {
 
     return rtrim($path, '/') !== '' ? rtrim($path, '/') : '/';
 };
-$privateCurrentPathRaw = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+$privateRequestUri = is_string($privateCurrentRequestUri ?? null) && trim((string) $privateCurrentRequestUri) !== ''
+    ? (string) $privateCurrentRequestUri
+    : (string) ($_SERVER['REQUEST_URI'] ?? '');
+$privateCurrentPathRaw = parse_url($privateRequestUri, PHP_URL_PATH);
 $privateCurrentPath = is_string($privateCurrentPathRaw) && trim($privateCurrentPathRaw) !== ''
     ? (rtrim($privateCurrentPathRaw, '/') !== '' ? rtrim($privateCurrentPathRaw, '/') : '/')
     : '';
@@ -106,7 +109,11 @@ if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)
         'label' => $translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'),
         'href' => private_portal_url('documents'),
         'icon' => '🗂️',
-        'active' => $privatePathIs(private_portal_url('documents')),
+        'active' => $privatePathIs(private_portal_url('documents'))
+            || (
+                $privateCurrentPath !== ''
+                && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('documents_hub')))
+            ),
     ];
 }
 
@@ -267,7 +274,7 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
                 }
                 ?>
               <li>
-                <a class="<?php echo $navIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>">
+                <a class="<?php echo $navIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $navIsActive ? ' aria-current="page"' : ''; ?>>
                   <?php if ($navIcon !== '') : ?>
                     <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($navIcon, ENT_QUOTES, 'UTF-8'); ?></span>
                   <?php endif; ?>
@@ -296,6 +303,30 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
               </button>
             </form>
           </header>
+
+          <nav class="private-top-nav" aria-label="<?php echo htmlspecialchars($translate('TXT_PRIVATE_TOP_NAV_LABEL', 'Pages de l’espace privé'), ENT_QUOTES, 'UTF-8'); ?>">
+            <ul>
+              <?php foreach ($privateNavItems as $privateNavItem) : ?>
+                  <?php
+                  $topNavLabel = is_string($privateNavItem['label'] ?? null) ? (string) $privateNavItem['label'] : '';
+                  $topNavHref = is_string($privateNavItem['href'] ?? null) ? (string) $privateNavItem['href'] : '#';
+                  $topNavIcon = is_string($privateNavItem['icon'] ?? null) ? (string) $privateNavItem['icon'] : '';
+                  $topNavIsActive = (bool) ($privateNavItem['active'] ?? false);
+                  if ($topNavLabel === '') {
+                      continue;
+                  }
+                  ?>
+                <li>
+                  <a class="<?php echo $topNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($topNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $topNavIsActive ? ' aria-current="page"' : ''; ?>>
+                    <?php if ($topNavIcon !== '') : ?>
+                      <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($topNavIcon, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
+                    <span><?php echo htmlspecialchars($topNavLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                  </a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          </nav>
 
           <main class="private-main">
             <?php echo $privateContent; ?>
