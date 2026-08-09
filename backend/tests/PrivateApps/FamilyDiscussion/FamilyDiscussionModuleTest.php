@@ -88,10 +88,13 @@ final class FamilyDiscussionModuleTest extends TestCase
         $conversation = $service->createDirectConversation($aliceId, $bobId);
         $this->assertIsArray($conversation);
         $conversationId = (int) $conversation['id'];
+        $this->assertMatchesRegularExpression('/\A[a-f0-9]{64}\z/', (string) ($conversation['encryptionSecret'] ?? ''));
+        $this->assertSame('Conversation avec bob@example.com', $conversation['displayTitle'] ?? '');
 
         $duplicate = $service->createDirectConversation($bobId, $aliceId);
         $this->assertIsArray($duplicate);
         $this->assertSame($conversationId, (int) $duplicate['id']);
+        $this->assertSame('Conversation avec alice@example.com', $duplicate['displayTitle'] ?? '');
 
         $this->assertNull($service->sendMessage($aliceId, $conversationId, 'Bonjour Bob'));
 
@@ -285,6 +288,31 @@ final class FamilyDiscussionModuleTest extends TestCase
 
         $conversations = $service->listConversations($bobId);
         $this->assertSame('[message chiffre]', $conversations[0]['lastBody'] ?? '');
+        $this->assertSame('Conversation avec alice@example.com', $conversations[0]['displayTitle'] ?? '');
+        $this->assertArrayNotHasKey('encryptionSecret', $conversations[0]);
+    }
+
+    public function testOnlyGroupCreatorCanRenameGroup(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $repository = new DiscussionRepository($database);
+        $service = new DiscussionService($repository, $userRepository, $this->storage());
+
+        $ownerId = $this->createPrivateUser($userRepository, 'owner@example.com');
+        $memberId = $this->createPrivateUser($userRepository, 'member@example.com');
+
+        $conversation = $service->createGroupConversation($ownerId, 'Famille', [$memberId]);
+        $this->assertIsArray($conversation);
+        $conversationId = (int) $conversation['id'];
+
+        $this->assertFalse($service->updateGroupTitle($memberId, $conversationId, 'Nom refuse'));
+        $this->assertTrue($service->updateGroupTitle($ownerId, $conversationId, 'Groupe famille'));
+
+        $ownerConversation = $repository->findConversationForUser($conversationId, $ownerId);
+        $this->assertIsArray($ownerConversation);
+        $this->assertSame('Groupe famille', $ownerConversation['title'] ?? '');
+        $this->assertSame('Groupe famille', $ownerConversation['displayTitle'] ?? '');
     }
 
     public function testConversationCryptoKeysAreScopedToParticipantDevices(): void
@@ -402,7 +430,7 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertSame(200, $index->status);
         $this->assertStringContainsString('Chiffrement des discussions', $index->body);
         $this->assertStringContainsString('Nouvelle discussion', $index->body);
-        $this->assertStringContainsString('name="recipient_ids[]"', $index->body);
+        $this->assertStringContainsString('type="radio" name="recipient_id"', $index->body);
         $this->assertStringContainsString('bob@example.com', $index->body);
         $this->assertStringNotContainsString('outsider@example.com', $index->body);
         $this->assertStringNotContainsString('pending@example.com', $index->body);
@@ -434,6 +462,10 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertStringContainsString('Envoyer un message', $detail->body);
         $this->assertStringContainsString('data-encrypted-body', $detail->body);
         $this->assertStringContainsString('nonce="testnonce"', $detail->body);
+        $this->assertStringContainsString('Conversation avec bob@example.com', $detail->body);
+        $this->assertStringContainsString('const conversationSecret = "', $detail->body);
+        $this->assertStringNotContainsString('indexedDB.open', $detail->body);
+        $this->assertStringNotContainsString('sur cet appareil', $detail->body);
         $this->assertStringContainsString('class="private-top-nav"', $detail->body);
         $this->assertStringContainsString('href="/private/discussions" aria-current="page"', $detail->body);
     }

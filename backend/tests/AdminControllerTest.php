@@ -34,6 +34,8 @@ final class AdminControllerTest extends TestCase
     private string $adminOverrideFile;
     private string $siteOverrideFile;
     private ?string $previousBlogDataDir = null;
+    private mixed $previousBaseUrl = null;
+    private bool $hadPreviousBaseUrl = false;
     /** @var array<int, string> */
     private array $uploadedRuntimeFiles = [];
 
@@ -43,11 +45,15 @@ final class AdminControllerTest extends TestCase
         $_SESSION = [];
 
         global $appConfig;
+        $appConfig = is_array($appConfig ?? null) ? $appConfig : [];
         if (self::$baselineDatabaseConfig === null) {
             self::$baselineDatabaseConfig = is_array($appConfig['database'] ?? null) ? $appConfig['database'] : [];
             self::$baselineDatabasePrefix = (string) ($appConfig['database_prefix'] ?? 'car_');
         }
 
+        $this->hadPreviousBaseUrl = array_key_exists('base_url', $appConfig);
+        $this->previousBaseUrl = $appConfig['base_url'] ?? null;
+        $appConfig['base_url'] = '/';
         $appConfig['database'] = self::$baselineDatabaseConfig;
         $appConfig['database_prefix'] = self::$baselineDatabasePrefix ?? 'car_';
         $appConfig['admin']['email'] = 'admin@example.com';
@@ -112,6 +118,12 @@ final class AdminControllerTest extends TestCase
     {
         $_SESSION = [];
         global $appConfig;
+        $appConfig = is_array($appConfig ?? null) ? $appConfig : [];
+        if ($this->hadPreviousBaseUrl) {
+            $appConfig['base_url'] = $this->previousBaseUrl;
+        } else {
+            unset($appConfig['base_url']);
+        }
         $appConfig['database'] = self::$baselineDatabaseConfig ?? [];
         $appConfig['database_prefix'] = self::$baselineDatabasePrefix ?? 'car_';
         $appConfig['site']['head_metadata_html'] = '';
@@ -253,6 +265,42 @@ final class AdminControllerTest extends TestCase
         $this->assertSame('smtp-secret', $siteOverride['private']['mail']['smtp_password'] ?? null);
         $this->assertSame('private@lescaramagnols.com', $siteOverride['private']['mail']['reply_to'] ?? null);
         $this->assertSame('Accès privé', $siteOverride['private']['mail']['templates']['admin_invite_subject'] ?? null);
+    }
+
+    public function testPrivateMembersEmailTabRendersClickableTemplatePreviewLinks(): void
+    {
+        global $appConfig;
+
+        $appConfig['base_url'] = 'https://preprod.lescaramagnols.com';
+        $appConfig['private']['enabled'] = true;
+        $appConfig['private']['base_path'] = 'private';
+        $appConfig['private']['mail'] = [
+            'enabled' => true,
+            'smtp_host' => 'ssl0.ovh.net',
+            'smtp_port' => 465,
+            'smtp_user' => 'ne-pas-repondre@lescaramagnols.com',
+            'smtp_password' => 'configured-secret',
+            'smtp_encryption' => 'ssl',
+            'from_address' => 'ne-pas-repondre@lescaramagnols.com',
+            'from_name' => 'Les Caramagnols',
+            'reply_to' => 'private@lescaramagnols.com',
+            'templates' => [],
+        ];
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'private_members',
+            $this->request('GET', '/admin/parametres/espace-prive?tab=email', ['tab' => 'email'])
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Configuration email de l’espace privé', $response->body);
+        $this->assertStringContainsString(
+            '<a href="https://preprod.lescaramagnols.com/private/activate/preview-token" target="_blank" rel="noopener noreferrer">https://preprod.lescaramagnols.com/private/activate/preview-token</a>',
+            $response->body
+        );
+        $this->assertStringContainsString('<a href="mailto:private@lescaramagnols.com">private@lescaramagnols.com</a>', $response->body);
     }
 
     public function testPrivateMembersEmailTabKeepsSmtpPasswordWhenMaskIsSubmitted(): void

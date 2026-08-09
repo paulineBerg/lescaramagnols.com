@@ -10,11 +10,17 @@ require_once __DIR__ . '/../core/bootstrap.php';
 final class AppBaseUrlHelperTest extends TestCase
 {
     private array $previousSiteUrl = [];
+    private mixed $previousBaseUrl = null;
+    private bool $hadPreviousBaseUrl = false;
 
     protected function setUp(): void
     {
         global $appConfig;
+        $appConfig = is_array($appConfig ?? null) ? $appConfig : [];
 
+        $this->hadPreviousBaseUrl = array_key_exists('base_url', $appConfig);
+        $this->previousBaseUrl = $appConfig['base_url'] ?? null;
+        $appConfig['base_url'] = '/';
         $this->previousSiteUrl = is_array($appConfig['site']['url'] ?? null) ? $appConfig['site']['url'] : [];
         $_SERVER['HTTP_HOST'] = 'fallback.local';
         unset($_SERVER['HTTPS'], $_SERVER['SERVER_PORT']);
@@ -23,7 +29,13 @@ final class AppBaseUrlHelperTest extends TestCase
     protected function tearDown(): void
     {
         global $appConfig;
+        $appConfig = is_array($appConfig ?? null) ? $appConfig : [];
 
+        if ($this->hadPreviousBaseUrl) {
+            $appConfig['base_url'] = $this->previousBaseUrl;
+        } else {
+            unset($appConfig['base_url']);
+        }
         $appConfig['site']['url'] = $this->previousSiteUrl;
         unset($_SERVER['HTTP_HOST'], $_SERVER['HTTPS'], $_SERVER['SERVER_PORT']);
     }

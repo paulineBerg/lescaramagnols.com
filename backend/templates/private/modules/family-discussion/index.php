@@ -32,6 +32,11 @@ $formatDate = static function (mixed $value): string {
 };
 
 $conversationTitle = static function (array $conversation): string {
+    $displayTitle = is_string($conversation['displayTitle'] ?? null) ? trim((string) $conversation['displayTitle']) : '';
+    if ($displayTitle !== '') {
+        return $displayTitle;
+    }
+
     $title = is_string($conversation['title'] ?? null) ? trim((string) $conversation['title']) : '';
     if ($title !== '') {
         return $title;
@@ -146,6 +151,7 @@ $conversationTypeLabel = static fn (string $type): string => $type === 'group' ?
           'csrf' => 'Session expirée, veuillez recommencer.',
           'rate_limited' => 'Trop de créations successives, veuillez patienter.',
           'invite' => 'Invitation impossible.',
+          'conversation' => 'Choisissez un seul correspondant, ou creez un groupe avec un nom.',
           default => 'La conversation n’a pas pu être créée.',
       };
       echo $h($errorMessage);
@@ -232,7 +238,7 @@ $conversationTypeLabel = static fn (string $type): string => $type === 'group' ?
   <aside class="notice private-discussion-security" aria-label="<?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions')); ?>">
     <strong><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TITLE', 'Chiffrement des discussions')); ?></strong>
     <ul>
-      <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TEXT', 'Les nouveaux messages texte sont chiffrés dans le navigateur avant envoi: le serveur ne stocke pas leur corps en clair.')); ?></li>
+      <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_TEXT', 'Les nouveaux messages texte sont chiffrés dans le navigateur avec la clé de cette discussion, accessible aux membres actifs.')); ?></li>
       <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_FILES', 'Les images et fichiers joints sont chiffrés sur disque côté serveur, stockés hors webroot, puis déchiffrés seulement lors d’un téléchargement autorisé.')); ?></li>
       <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_METADATA', 'Les métadonnées techniques restent nécessaires au fonctionnement: participants, dates, titres de groupes, noms de fichiers, types et tailles.')); ?></li>
       <li><?php echo $h($translate('TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION', 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par conversation.')); ?></li>
@@ -256,13 +262,13 @@ $conversationTypeLabel = static fn (string $type): string => $type === 'group' ?
             <?php foreach ($members as $member): ?>
               <?php if (!is_array($member) || !is_numeric($member['id'] ?? null)) { continue; } ?>
               <label class="private-checkbox-inline">
-                <input type="checkbox" name="recipient_ids[]" value="<?php echo $h((string) (int) $member['id']); ?>" />
+                <input type="radio" name="recipient_id" value="<?php echo $h((string) (int) $member['id']); ?>" required />
                 <span><?php echo $h($memberLabel($member)); ?></span>
               </label>
             <?php endforeach; ?>
           </fieldset>
           <p class="muted">
-            <?php echo $h($translate('TXT_PRIVATE_DISCUSSION_DIRECT_CHECKBOX_HELP', 'Cochez un seul membre pour ouvrir une discussion privée.')); ?>
+            <?php echo $h($translate('TXT_PRIVATE_DISCUSSION_DIRECT_CHECKBOX_HELP', 'Choisissez un seul membre pour ouvrir une discussion privée.')); ?>
           </p>
           <button type="submit">Créer</button>
         </form>

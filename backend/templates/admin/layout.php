@@ -1928,6 +1928,23 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         margin-bottom: 0;
       }
 
+      .admin-private-mail-preview-body {
+        margin-top: 0.75rem;
+        padding: 0.85rem;
+        border: 1px solid rgba(39, 75, 109, 0.12);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.72);
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+      }
+
+      .admin-private-mail-preview-body a {
+        color: var(--admin-primary-dark);
+        font-weight: 700;
+        text-decoration: underline;
+      }
+
       .private-checkbox-inline {
         display: inline-flex;
         align-items: center;
@@ -1936,7 +1953,8 @@ $adminActiveIsDashboard = $adminActiveMenuLabel === $adminDashboardNavLabel;
         margin: 0.25rem 0;
       }
 
-      .private-checkbox-inline input[type="checkbox"] {
+      .private-checkbox-inline input[type="checkbox"],
+      .private-checkbox-inline input[type="radio"] {
         flex: 0 0 auto;
         width: 1rem;
         height: 1rem;

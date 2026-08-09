@@ -134,6 +134,28 @@ final class DiscussionService
         return $added;
     }
 
+    public function updateGroupTitle(int $actorId, int $conversationId, string $title): bool
+    {
+        $conversation = $this->repository->findConversationForUser($conversationId, $actorId);
+        if (
+            !is_array($conversation)
+            || ($conversation['type'] ?? '') !== 'group'
+            || (int) ($conversation['createdByPrivateUserId'] ?? 0) !== $actorId
+        ) {
+            $this->logAccessDenied($actorId, $conversationId);
+            return false;
+        }
+
+        $updated = $this->repository->updateGroupTitle($conversationId, $actorId, $title);
+        if ($updated) {
+            $this->log('private.discussion.group.title_updated', [
+                'conversation_id' => $conversationId,
+            ]);
+        }
+
+        return $updated;
+    }
+
     /**
      * @param array<string, mixed> $encryption
      */

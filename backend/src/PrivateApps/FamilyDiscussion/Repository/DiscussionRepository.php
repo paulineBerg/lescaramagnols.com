@@ -30,6 +30,7 @@ final class DiscussionRepository
                 `type` VARCHAR(16) NOT NULL,
                 `direct_key` VARCHAR(64) NULL,
                 `title` VARCHAR(160) NULL,
+                `encryption_secret` CHAR(64) NULL,
                 `created_by_private_user_id` INT NOT NULL,
                 `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -41,6 +42,8 @@ final class DiscussionRepository
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
             $this->conversationTable()
         ));
+        $this->ensureColumn($pdo, $this->conversationTable(), 'encryption_secret', '`encryption_secret` CHAR(64) NULL AFTER `title`');
+        $this->ensureConversationSecrets($pdo);
 
         $pdo->exec(sprintf(
             "CREATE TABLE IF NOT EXISTS `%s` (
@@ -232,7 +235,10 @@ final class DiscussionRepository
             return [];
         }
 
-        return $this->hydrateConversations(is_array($rows) ? $rows : []);
+        return array_values(array_map(
+            fn (array $conversation): array => $this->decorateConversationForUser($conversation, $userId),
+            $this->hydrateConversations(is_array($rows) ? $rows : [])
+        ));
     }
 
     public function findConversationForUser(int $conversationId, int $userId): ?array
@@ -244,7 +250,7 @@ final class DiscussionRepository
         try {
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(sprintf(
-                "SELECT c.*, cm.`role`, cm.`last_opened_at`, 0 AS unread_count, NULL AS last_body
+                "SELECT c.*, cm.`role`, cm.`last_opened_at`, 0 AS unread_count, NULL AS last_body, 1 AS include_encryption_secret
                  FROM `%s` c
                  INNER JOIN `%s` cm ON cm.`conversation_id` = c.`id`
                  WHERE c.`id` = :conversation_id
@@ -261,7 +267,9 @@ final class DiscussionRepository
             return null;
         }
 
-        return is_array($row) ? $this->hydrateConversation($row) : null;
+        $conversation = is_array($row) ? $this->hydrateConversation($row) : null;
+
+        return is_array($conversation) ? $this->decorateConversationForUser($conversation, $userId) : null;
     }
 
     public function userRoleInConversation(int $conversationId, int $userId): ?string
@@ -316,13 +324,14 @@ final class DiscussionRepository
                 $now = $this->now();
                 $statement = $pdo->prepare(sprintf(
                     "INSERT INTO `%s`
-                        (`type`, `direct_key`, `title`, `created_by_private_user_id`, `created_at`, `updated_at`)
+                        (`type`, `direct_key`, `title`, `encryption_secret`, `created_by_private_user_id`, `created_at`, `updated_at`)
                      VALUES
-                        ('direct', :direct_key, NULL, :creator_id, :created_at, :updated_at)",
+                        ('direct', :direct_key, NULL, :encryption_secret, :creator_id, :created_at, :updated_at)",
                     $this->conversationTable()
                 ));
                 $statement->execute([
                     'direct_key' => $directKey,
+                    'encryption_secret' => $this->generateConversationSecret(),
                     'creator_id' => $creatorId,
                     'created_at' => $now,
                     'updated_at' => $now,
@@ -363,13 +372,14 @@ final class DiscussionRepository
             $now = $this->now();
             $statement = $pdo->prepare(sprintf(
                 "INSERT INTO `%s`
-                    (`type`, `direct_key`, `title`, `created_by_private_user_id`, `created_at`, `updated_at`)
+                    (`type`, `direct_key`, `title`, `encryption_secret`, `created_by_private_user_id`, `created_at`, `updated_at`)
                  VALUES
-                    ('group', NULL, :title, :creator_id, :created_at, :updated_at)",
+                    ('group', NULL, :title, :encryption_secret, :creator_id, :created_at, :updated_at)",
                 $this->conversationTable()
             ));
             $statement->execute([
                 'title' => $title,
+                'encryption_secret' => $this->generateConversationSecret(),
                 'creator_id' => $creatorId,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -388,6 +398,59 @@ final class DiscussionRepository
         }
 
         return $conversationId > 0 ? $this->findConversationForUser($conversationId, $creatorId) : null;
+    }
+
+    public function updateGroupTitle(int $conversationId, int $actorUserId, string $title): bool
+    {
+        $title = $this->normalizeTitle($title);
+        if ($conversationId <= 0 || $actorUserId <= 0 || $title === '') {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "UPDATE `%s`
+                 SET `title` = :title,
+                     `updated_at` = :updated_at
+                 WHERE `id` = :conversation_id
+                   AND `type` = 'group'
+                   AND `created_by_private_user_id` = :actor_user_id
+                   AND `archived_at` IS NULL",
+                $this->conversationTable()
+            ));
+            $statement->execute([
+                'title' => $title,
+                'updated_at' => $this->now(),
+                'conversation_id' => $conversationId,
+                'actor_user_id' => $actorUserId,
+            ]);
+
+            if ($statement->rowCount() > 0) {
+                return true;
+            }
+
+            $check = $this->database->pdo()->prepare(sprintf(
+                "SELECT 1
+                 FROM `%s`
+                 WHERE `id` = :conversation_id
+                   AND `type` = 'group'
+                   AND `created_by_private_user_id` = :actor_user_id
+                   AND `title` = :title
+                   AND `archived_at` IS NULL
+                 LIMIT 1",
+                $this->conversationTable()
+            ));
+            $check->execute([
+                'conversation_id' => $conversationId,
+                'actor_user_id' => $actorUserId,
+                'title' => $title,
+            ]);
+
+            return (bool) $check->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**
@@ -1290,6 +1353,11 @@ final class DiscussionRepository
         return $this->database->table('discussion_conversation_keys');
     }
 
+    private function privateUserTable(): string
+    {
+        return $this->database->table('private_users');
+    }
+
     private function conversationIdByDirectKey(PDO $pdo, string $directKey): ?int
     {
         $statement = $pdo->prepare(sprintf(
@@ -1509,7 +1577,85 @@ final class DiscussionRepository
             'lastOpenedAt' => is_string($row['last_opened_at'] ?? null) ? (string) $row['last_opened_at'] : '',
             'unreadCount' => max(0, (int) ($row['unread_count'] ?? 0)),
             'lastBody' => is_string($row['last_body'] ?? null) ? (string) $row['last_body'] : '',
-        ];
+        ] + ((int) ($row['include_encryption_secret'] ?? 0) === 1 ? [
+            'encryptionSecret' => $this->normalizeConversationSecret(
+                is_string($row['encryption_secret'] ?? null) ? (string) $row['encryption_secret'] : ''
+            ),
+        ] : []);
+    }
+
+    /**
+     * @return array<int, array{id:int,email:string,role:string}>
+     */
+    private function listParticipantSummaries(int $conversationId): array
+    {
+        if ($conversationId <= 0) {
+            return [];
+        }
+
+        try {
+            $statement = $this->database->pdo()->prepare(sprintf(
+                "SELECT u.`id`, u.`email`, cm.`role`
+                 FROM `%s` cm
+                 INNER JOIN `%s` u ON u.`id` = cm.`private_user_id`
+                 WHERE cm.`conversation_id` = :conversation_id
+                   AND cm.`left_at` IS NULL
+                 ORDER BY cm.`role` DESC, u.`email` ASC",
+                $this->memberTable(),
+                $this->privateUserTable()
+            ));
+            $statement->execute(['conversation_id' => $conversationId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $participants = [];
+        foreach (is_array($rows) ? $rows : [] as $row) {
+            if (!is_array($row) || !is_numeric($row['id'] ?? null)) {
+                continue;
+            }
+
+            $email = is_string($row['email'] ?? null) ? trim((string) $row['email']) : '';
+            if ($email === '') {
+                continue;
+            }
+
+            $participants[] = [
+                'id' => (int) $row['id'],
+                'email' => $email,
+                'role' => is_string($row['role'] ?? null) ? (string) $row['role'] : 'member',
+            ];
+        }
+
+        return $participants;
+    }
+
+    /**
+     * @param array<string, mixed> $conversation
+     * @return array<string, mixed>
+     */
+    private function decorateConversationForUser(array $conversation, int $userId): array
+    {
+        $participants = $this->listParticipantSummaries((int) ($conversation['id'] ?? 0));
+        $conversation['participants'] = $participants;
+        $displayTitle = trim((string) ($conversation['title'] ?? ''));
+        if (($conversation['type'] ?? '') === 'direct') {
+            foreach ($participants as $participant) {
+                if ((int) $participant['id'] !== $userId) {
+                    $displayTitle = 'Conversation avec ' . (string) $participant['email'];
+                    break;
+                }
+            }
+        }
+        if ($displayTitle === '') {
+            $id = (int) ($conversation['id'] ?? 0);
+            $displayTitle = $id > 0 ? 'Conversation #' . $id : 'Conversation';
+        }
+
+        $conversation['displayTitle'] = $displayTitle;
+
+        return $conversation;
     }
 
     private function hydrateMessage(array $row): ?array
@@ -1625,6 +1771,18 @@ final class DiscussionRepository
         $title = trim((string) preg_replace('/\s+/', ' ', $title));
 
         return strlen($title) <= 160 ? $title : '';
+    }
+
+    private function generateConversationSecret(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
+    private function normalizeConversationSecret(string $secret): string
+    {
+        $secret = strtolower(trim($secret));
+
+        return preg_match('/\A[a-f0-9]{64}\z/', $secret) === 1 ? $secret : '';
     }
 
     private function normalizeBody(string $body): string
@@ -1751,6 +1909,46 @@ final class DiscussionRepository
             }
 
             $pdo->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $table, $definition));
+        } catch (\Throwable) {
+            return;
+        }
+    }
+
+    private function ensureConversationSecrets(PDO $pdo): void
+    {
+        try {
+            $statement = $pdo->prepare(sprintf(
+                "SELECT `id`
+                 FROM `%s`
+                 WHERE `encryption_secret` IS NULL
+                    OR `encryption_secret` = ''
+                 LIMIT 500",
+                $this->conversationTable()
+            ));
+            $statement->execute();
+            $ids = $statement->fetchAll(PDO::FETCH_COLUMN);
+            if (!is_array($ids) || $ids === []) {
+                return;
+            }
+
+            $update = $pdo->prepare(sprintf(
+                "UPDATE `%s`
+                 SET `encryption_secret` = :encryption_secret
+                 WHERE `id` = :id
+                   AND (`encryption_secret` IS NULL OR `encryption_secret` = '')",
+                $this->conversationTable()
+            ));
+            foreach ($ids as $id) {
+                $conversationId = is_numeric($id) ? (int) $id : 0;
+                if ($conversationId <= 0) {
+                    continue;
+                }
+
+                $update->execute([
+                    'encryption_secret' => $this->generateConversationSecret(),
+                    'id' => $conversationId,
+                ]);
+            }
         } catch (\Throwable) {
             return;
         }

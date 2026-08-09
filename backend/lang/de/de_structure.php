@@ -1236,13 +1236,13 @@ return [
     'TXT_PRIVATE_SETTINGS_ERROR_PHONE' => 'Die Telefonnummer enthaelt nicht erlaubte Zeichen.',
     'TXT_PRIVATE_SETTINGS_ERROR_SAVE' => 'Die Einstellungen konnten nicht gespeichert werden.',
     'TXT_PRIVATE_DISCUSSION_ACCEPTED_MEMBERS_LEGEND' => 'Mitglieder, die die Einladung angenommen haben',
-    'TXT_PRIVATE_DISCUSSION_DIRECT_CHECKBOX_HELP' => 'Waehlen Sie ein Mitglied aus, um eine private Diskussion zu oeffnen.',
+    'TXT_PRIVATE_DISCUSSION_DIRECT_CHECKBOX_HELP' => 'Waehlen Sie genau ein Mitglied aus, um eine private Diskussion zu oeffnen.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_TITLE' => 'Verschluesselung der Diskussionen',
-    'TXT_PRIVATE_DISCUSSION_SECURITY_TEXT' => 'Neue Textnachrichten werden vor dem Senden im Browser verschluesselt: Der Server speichert ihren Inhalt nicht im Klartext.',
+    'TXT_PRIVATE_DISCUSSION_SECURITY_TEXT' => 'Neue Textnachrichten werden im Browser mit dem Schluessel dieser Diskussion verschluesselt, der aktiven Mitgliedern zur Verfuegung steht.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_FILES' => 'Bilder und Anhaenge werden serverseitig auf dem Datentraeger verschluesselt, ausserhalb des Webroots gespeichert und nur fuer einen autorisierten Download entschluesselt.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_METADATA' => 'Technische Metadaten bleiben fuer den Betrieb notwendig: Teilnehmer, Daten, Gruppentitel, Dateinamen, Typen und Groessen.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION' => 'Nachrichten und Dateien haben eine kurze Aufbewahrung von 60 Tagen, mit automatischer Bereinigung und manueller Loeschung pro Unterhaltung.',
-    'TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP' => 'Textnachrichten werden im Browser verschluesselt. Anhaenge werden auf dem Datentraeger verschluesselt und nur ueber serverseitige Zugriffskontrolle ausgeliefert.',
+    'TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP' => 'Textnachrichten werden mit dem Schluessel dieser Diskussion verschluesselt. Anhaenge werden auf dem Datentraeger verschluesselt und nur ueber serverseitige Zugriffskontrolle ausgeliefert.',
 
     // Instagram
     'TXT_INSTAGRAM_LATEST_POSTS' => 'Neueste Instagram-Posts',

@@ -48,6 +48,51 @@ $translate = static function (string $key, string $fallback): string {
 };
 
 $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+$renderLinkedText = static function (string $value) use ($escape): string {
+    $pattern = '~(https?://[^\s<>"\']+|mailto:[^\s<>"\']+|[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})~i';
+    $parts = preg_split($pattern, $value, -1, PREG_SPLIT_DELIM_CAPTURE);
+    if (!is_array($parts)) {
+        return nl2br($escape($value), false);
+    }
+
+    $html = '';
+    foreach ($parts as $part) {
+        if ($part === '') {
+            continue;
+        }
+
+        if (preg_match($pattern, $part) !== 1) {
+            $html .= nl2br($escape($part), false);
+            continue;
+        }
+
+        $linkText = $part;
+        $trailing = '';
+        while ($linkText !== '' && preg_match('/[.,;:!?)]\z/', $linkText) === 1) {
+            $trailing = substr($linkText, -1) . $trailing;
+            $linkText = substr($linkText, 0, -1);
+        }
+
+        if ($linkText === '') {
+            $html .= $escape($part);
+            continue;
+        }
+
+        $href = str_starts_with(strtolower($linkText), 'mailto:')
+            ? $linkText
+            : (str_contains($linkText, '@') && !str_starts_with(strtolower($linkText), 'http') ? 'mailto:' . $linkText : $linkText);
+        $isExternalUrl = preg_match('~^https?://~i', $href) === 1;
+        $html .= sprintf(
+            '<a href="%s"%s>%s</a>%s',
+            $escape($href),
+            $isExternalUrl ? ' target="_blank" rel="noopener noreferrer"' : '',
+            $escape($linkText),
+            $escape($trailing)
+        );
+    }
+
+    return $html;
+};
 $renderSecretToggleButton = static function (string $inputId) use ($translate, $escape): string {
     $showLabel = $escape($translate('TXT_ADMIN_PASSWORD_SHOW', 'Afficher'));
     $hideLabel = $escape($translate('TXT_ADMIN_PASSWORD_HIDE', 'Masquer'));
@@ -220,7 +265,7 @@ $statusLabels = [
             <details class="admin-private-mail-preview">
               <summary><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_PREVIEW_TITLE', 'Aperçu sans envoi')); ?></summary>
               <p><strong><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MAIL_PREVIEW_SUBJECT', 'Sujet')); ?> :</strong> <?php echo $escape((string) ($preview['subject'] ?? '')); ?></p>
-              <pre><?php echo $escape((string) ($preview['body'] ?? '')); ?></pre>
+              <div class="admin-private-mail-preview-body"><?php echo $renderLinkedText((string) ($preview['body'] ?? '')); ?></div>
             </details>
           </div>
         </div>

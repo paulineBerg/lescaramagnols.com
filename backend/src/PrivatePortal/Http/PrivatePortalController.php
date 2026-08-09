@@ -2376,6 +2376,15 @@ final class PrivatePortalController
 
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($deletedCount > 0 ? '?notice=deleted' : '?error=delete'));
             }
+            if ($action === 'update_title') {
+                $updated = $this->discussionService()->updateGroupTitle(
+                    $userId,
+                    $conversationId,
+                    is_string($body['title'] ?? null) ? (string) $body['title'] : ''
+                );
+
+                return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . ($updated ? '?notice=title_updated' : '?error=title'));
+            }
             if ($action !== 'send_message') {
                 return $this->redirect(private_portal_url('discussion_index') . '/' . $conversationId . '?error=message');
             }
@@ -2403,6 +2412,7 @@ final class PrivatePortalController
             'privatePageTitle' => 'Discussion',
             'conversation' => $conversation,
             'messages' => $messages,
+            'conversationMembers' => is_array($conversation['participants'] ?? null) ? $conversation['participants'] : [],
             'members' => $this->discussionService()->listActiveMembers($userId),
             'error' => is_string($request->query()['error'] ?? null) ? (string) $request->query()['error'] : '',
             'notice' => is_string($request->query()['notice'] ?? null) ? (string) $request->query()['notice'] : '',

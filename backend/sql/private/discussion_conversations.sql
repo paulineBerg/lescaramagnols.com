@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS car_discussion_conversations (
     type VARCHAR(16) NOT NULL,
     direct_key VARCHAR(64) NULL,
     title VARCHAR(160) NULL,
+    encryption_secret CHAR(64) NULL,
     created_by_private_user_id INT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

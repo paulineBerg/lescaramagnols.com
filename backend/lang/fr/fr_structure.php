@@ -1238,13 +1238,13 @@ return [
     'TXT_PRIVATE_SETTINGS_ERROR_PHONE' => 'Le téléphone contient des caractères non autorisés.',
     'TXT_PRIVATE_SETTINGS_ERROR_SAVE' => 'Les paramètres n’ont pas pu être enregistrés.',
     'TXT_PRIVATE_DISCUSSION_ACCEPTED_MEMBERS_LEGEND' => 'Membres ayant accepté l’invitation',
-    'TXT_PRIVATE_DISCUSSION_DIRECT_CHECKBOX_HELP' => 'Cochez un seul membre pour ouvrir une discussion privée.',
+    'TXT_PRIVATE_DISCUSSION_DIRECT_CHECKBOX_HELP' => 'Choisissez un seul membre pour ouvrir une discussion privée.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_TITLE' => 'Chiffrement des discussions',
-    'TXT_PRIVATE_DISCUSSION_SECURITY_TEXT' => 'Les nouveaux messages texte sont chiffrés dans le navigateur avant envoi: le serveur ne stocke pas leur corps en clair.',
+    'TXT_PRIVATE_DISCUSSION_SECURITY_TEXT' => 'Les nouveaux messages texte sont chiffrés dans le navigateur avec la clé de cette discussion, accessible aux membres actifs.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_FILES' => 'Les images et fichiers joints sont chiffrés sur disque côté serveur, stockés hors webroot, puis déchiffrés seulement lors d’un téléchargement autorisé.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_METADATA' => 'Les métadonnées techniques restent nécessaires au fonctionnement: participants, dates, titres de groupes, noms de fichiers, types et tailles.',
     'TXT_PRIVATE_DISCUSSION_SECURITY_RETENTION' => 'Les messages et fichiers gardent une rétention courte de 60 jours, avec purge automatique et suppression manuelle possible par conversation.',
-    'TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP' => 'Les messages texte sont chiffrés dans le navigateur. Les fichiers joints sont chiffrés sur disque et restent servis uniquement par contrôle d’accès serveur.',
+    'TXT_PRIVATE_DISCUSSION_FORM_SECURITY_HELP' => 'Les messages texte sont chiffrés avec la clé de cette discussion. Les fichiers joints sont chiffrés sur disque et restent servis uniquement par contrôle d’accès serveur.',
 
     // Instagram
     'TXT_INSTAGRAM_LATEST_POSTS' => 'Derniers posts Instagram',
