@@ -78,7 +78,7 @@ final class BlocNoteControllerTest extends TestCase
         $this->assertStringContainsString('name="action" value="save_note"', $response->body);
     }
 
-    public function testBlocNoteRouteUsesDedicatedTopNavigationWithMultipleModules(): void
+    public function testBlocNoteRouteUsesDedicatedModuleNavigationWithoutGlobalTopNavigation(): void
     {
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
@@ -99,17 +99,12 @@ final class BlocNoteControllerTest extends TestCase
         );
 
         $response = $controller->handle('blocnote', $this->request('GET', '/private/blocnote?view=notes'));
-        $topNav = $this->topNavigationHtml($response->body);
-
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('Pages du bloc-note', $topNav);
-        $this->assertStringContainsString('Mes notes', $topNav);
-        $this->assertStringContainsString('Catégories', $topNav);
-        $this->assertStringContainsString('Aide', $topNav);
-        $this->assertStringNotContainsString('Documents', $topNav);
-        $this->assertStringNotContainsString('Discussions', $topNav);
-        $this->assertStringContainsString('>Documents</span>', $response->body);
-        $this->assertStringContainsString('>Discussions</span>', $response->body);
+        $this->assertStringNotContainsString('class="private-top-nav"', $response->body);
+        $this->assertStringContainsString('class="private-module-nav"', $response->body);
+        $this->assertStringContainsString('Mes notes</a>', $response->body);
+        $this->assertStringContainsString('Catégories</a>', $response->body);
+        $this->assertStringContainsString('Aide</a>', $response->body);
     }
 
     public function testBlocNoteRouteRedirectsWithoutModuleAssignment(): void
@@ -117,7 +112,8 @@ final class BlocNoteControllerTest extends TestCase
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
-        $this->createPrivateUser($userRepository, 'no-blocnote@example.com');
+        $userId = $this->createPrivateUser($userRepository, 'no-blocnote@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['dashboard'], 'admin@example.com'));
 
         $controller = new PrivatePortalController(
             $this->privateAuth($userRepository, 'no-blocnote@example.com'),
@@ -171,13 +167,4 @@ final class BlocNoteControllerTest extends TestCase
         );
     }
 
-    private function topNavigationHtml(string $html): string
-    {
-        $start = strpos($html, '<nav class="private-top-nav"');
-        $this->assertIsInt($start);
-        $end = strpos($html, '</nav>', $start);
-        $this->assertIsInt($end);
-
-        return substr($html, $start, $end - $start + 6);
-    }
 }

@@ -407,6 +407,7 @@ final class RealEstateRentalController
             ],
             'privateTopNavLabel' => 'Pages locations immobilières',
             'privateTopNavItems' => $this->rentalTopNavItems(),
+            'privateTopNavEnabled' => false,
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ];

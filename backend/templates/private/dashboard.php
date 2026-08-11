@@ -13,6 +13,11 @@ $translate = static function (string $key, string $fallback): string {
 };
 
 $privateModules = is_array($privateModules ?? null) ? $privateModules : [];
+$privateModuleCodes = is_array($privateModuleCodes ?? null) ? $privateModuleCodes : [];
+$privateNormalizedModuleCodes = array_values(array_filter(array_map(
+    static fn (mixed $value): string => strtolower(trim((string) $value)),
+    $privateModuleCodes
+)));
 $privateModuleDataCounts = is_array($viewModel['privateModuleDataCounts'] ?? null) ? $viewModel['privateModuleDataCounts'] : [];
 $privateUserIdentifier = is_string($privateUserIdentifier ?? null) ? (string) $privateUserIdentifier : '';
 $privatePasswordForgotUrl = is_string($privatePasswordForgotUrl ?? null) ? (string) $privatePasswordForgotUrl : private_portal_url('password_forgot');
@@ -58,6 +63,10 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
     $count = max(0, (int) ($privateModuleDataCounts[$code] ?? 0));
 
     return $count . ' ' . ($count > 1 ? $plural : $singular);
+};
+$privateHasModuleCode = static function (string $code, string $fallbackName) use ($privateNormalizedModuleCodes, $privateModules): bool {
+    return in_array(strtolower(trim($code)), $privateNormalizedModuleCodes, true)
+        || in_array($fallbackName, $privateModules, true);
 };
 ?>
 <section class="private-dashboard">
@@ -126,7 +135,7 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
       <?php endif; ?>
     </section>
 
-    <?php if (in_array('Documents', $privateModules, true)): ?>
+    <?php if ($privateHasModuleCode('documents', 'Documents')): ?>
     <section class="card">
       <span class="tag"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DASHBOARD_FILES_TAG', 'Fichiers'), ENT_QUOTES, 'UTF-8'); ?></span>
       <h2><?php echo htmlspecialchars($translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'), ENT_QUOTES, 'UTF-8'); ?></h2>
@@ -145,7 +154,7 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
     </section>
     <?php endif; ?>
 
-    <?php if (in_array('Bloc-note', $privateModules, true)): ?>
+    <?php if ($privateHasModuleCode('blocnote', 'Bloc-note')): ?>
     <section class="card">
       <span class="tag">Notes</span>
       <h2>Bloc-note</h2>
@@ -162,7 +171,7 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
     </section>
     <?php endif; ?>
 
-    <?php if (in_array('Discussions', $privateModules, true)): ?>
+    <?php if ($privateHasModuleCode('discussions', 'Discussions')): ?>
     <section class="card">
       <span class="tag">Messages</span>
       <h2>Discussions famille</h2>
@@ -177,7 +186,7 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
     </section>
     <?php endif; ?>
 
-    <?php if (in_array('Locations immobilières', $privateModules, true)): ?>
+    <?php if ($privateHasModuleCode('real_estate_rental', 'Locations immobilières')): ?>
     <section class="card">
       <span class="tag"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DASHBOARD_RENTAL_TAG', 'Gestion'), ENT_QUOTES, 'UTF-8'); ?></span>
       <h2>Locations immobilières</h2>
@@ -201,7 +210,7 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
     </section>
     <?php endif; ?>
 
-    <?php if (in_array('Aide impôts', $privateModules, true)): ?>
+    <?php if ($privateHasModuleCode('tax_declaration_helper', 'Aide impôts')): ?>
     <section class="card">
       <span class="tag"><?php echo htmlspecialchars($translate('TXT_PRIVATE_DASHBOARD_TAX_TAG', 'Préparation'), ENT_QUOTES, 'UTF-8'); ?></span>
       <h2>Aide impôts</h2>
@@ -216,7 +225,7 @@ $privateModuleStat = static function (string $code, string $singular, string $pl
     </section>
     <?php endif; ?>
 
-    <?php if (in_array('Web development', $privateModules, true)): ?>
+    <?php if ($privateHasModuleCode('web_development', 'Web development')): ?>
     <section class="card">
       <span class="tag">Prévisualisation</span>
       <h2>Projets web privés</h2>

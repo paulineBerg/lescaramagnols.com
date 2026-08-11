@@ -76,6 +76,39 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertStringNotContainsString('Discussions', $dashboard->body);
     }
 
+    public function testDashboardLeftMenuLinksAssignedWebappsToDedicatedRoutes(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('left-menu@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $this->assertTrue($moduleRepository->setUserModules(
+            $userId,
+            ['blocnote', 'documents', 'real_estate_rental'],
+            'admin@example.com'
+        ));
+
+        $session = new PrivateSession('_private_dashboard_test');
+        $auth = new PrivateAuth($session, null, $userRepository);
+        $controller = new PrivatePortalController($auth, null, null, $userRepository, $moduleRepository);
+
+        $login = $controller->handle('login', $this->request('POST', '/private/login', [
+            'identifier' => 'left-menu@example.com',
+            'password' => 'StrongPassword1!',
+            'csrf_token' => $this->privateCsrfToken($session, 'private'),
+        ]));
+        $this->assertSame(302, $login->status);
+
+        $dashboard = $controller->handle('dashboard', $this->request('GET', '/private/dashboard'));
+        $this->assertSame(200, $dashboard->status);
+        $this->assertStringContainsString('href="/private/blocnote"', $dashboard->body);
+        $this->assertStringContainsString('href="/private/documents"', $dashboard->body);
+        $this->assertStringContainsString('href="/private/locations"', $dashboard->body);
+    }
+
     public function testDashboardShowsDocumentManagementForDocumentsModule(): void
     {
         $database = $this->editorialSqlDatabase();

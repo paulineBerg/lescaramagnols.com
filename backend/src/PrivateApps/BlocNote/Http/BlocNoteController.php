@@ -227,6 +227,7 @@ final class BlocNoteController
                 ['label' => 'Catégories', 'href' => $this->blocNoteUrl(['view' => 'categories']), 'icon' => '🏷', 'active' => $view === 'categories'],
                 ['label' => 'Aide', 'href' => $this->blocNoteUrl(['view' => 'help']), 'icon' => '?', 'active' => $view === 'help'],
             ],
+            'privateTopNavEnabled' => false,
             'blocNote' => [
                 'view' => $view,
                 'baseUrl' => private_portal_url('blocnote'),

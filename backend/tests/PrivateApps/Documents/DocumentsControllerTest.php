@@ -75,6 +75,34 @@ final class DocumentsControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Documents', $response->body);
+        $this->assertStringNotContainsString('class="private-top-nav"', $response->body);
+        $this->assertStringContainsString('class="private-module-nav"', $response->body);
+        $this->assertStringContainsString('href="#private-documents"', $response->body);
+    }
+
+    public function testDocumentHubShowsDedicatedNavigationWithoutTopNavigation(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $userId = $this->createPrivateUser($userRepository, 'documents-hub@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
+
+        $controller = new PrivatePortalController(
+            $this->privateAuth($userRepository, 'documents-hub@example.com'),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository
+        );
+
+        $response = $controller->handle('documents_hub', $this->request('GET', '/private/documents/bibliotheque'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Bibliothèque de documents', $response->body);
+        $this->assertStringNotContainsString('class="private-top-nav"', $response->body);
+        $this->assertStringContainsString('class="private-module-nav"', $response->body);
+        $this->assertStringContainsString('href="/private/documents/bibliotheque"', $response->body);
     }
 
     public function testDocumentsRouteRedirectsWithoutModuleAssignment(): void
@@ -82,7 +110,8 @@ final class DocumentsControllerTest extends TestCase
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
-        $this->createPrivateUser($userRepository, 'no-documents@example.com');
+        $userId = $this->createPrivateUser($userRepository, 'no-documents@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['dashboard'], 'admin@example.com'));
 
         $controller = new PrivatePortalController(
             $this->privateAuth($userRepository, 'no-documents@example.com'),
@@ -94,8 +123,7 @@ final class DocumentsControllerTest extends TestCase
 
         $response = $controller->handle('documents', $this->request('GET', '/private/documents'));
 
-        $this->assertSame(302, $response->status);
-        $this->assertSame('/private/login', $response->headers['Location'] ?? null);
+        $this->assertSame(403, $response->status);
     }
 
     public function testFilesUploadRouteRejectsWithoutModuleAssignment(): void
@@ -103,7 +131,8 @@ final class DocumentsControllerTest extends TestCase
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
-        $this->createPrivateUser($userRepository, 'no-upload@example.com');
+        $userId = $this->createPrivateUser($userRepository, 'no-upload@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['dashboard'], 'admin@example.com'));
 
         $controller = new PrivatePortalController(
             $this->privateAuth($userRepository, 'no-upload@example.com'),
@@ -115,7 +144,8 @@ final class DocumentsControllerTest extends TestCase
 
         $response = $controller->handle('files_upload', $this->request('POST', '/private/files/upload'));
 
-        $this->assertSame(403, $response->status);
+        $this->assertSame(302, $response->status);
+        $this->assertSame('/private/login', $response->headers['Location'] ?? null);
     }
 
     private function createPrivateUser(PrivateUserRepository $repository, string $email): int

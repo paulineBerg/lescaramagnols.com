@@ -123,6 +123,7 @@ final class DocumentHubController
                 ['label' => 'Archives', 'href' => private_portal_url('documents_hub') . '?vue=archives', 'icon' => '🗄', 'active' => $view === 'archives'],
                 ['label' => 'Corbeille', 'href' => private_portal_url('documents_hub') . '?vue=corbeille', 'icon' => '🗑', 'active' => $view === 'corbeille'],
             ],
+            'privateTopNavEnabled' => false,
             'hubDocuments' => $documents,
             'hubCategories' => $this->taxonomy->listActive(),
             'hubStats' => $this->repository->stats(),

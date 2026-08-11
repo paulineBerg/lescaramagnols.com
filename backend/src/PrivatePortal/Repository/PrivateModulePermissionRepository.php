@@ -32,9 +32,11 @@ final class PrivateModulePermissionRepository
             $this->ensureSchema();
             $statement = $this->database->pdo()->prepare(
                 sprintf(
-                    'SELECT m.`code`, m.`is_active` AS module_active, p.`is_active` AS permission_active
+                    'SELECT m.`code`, m.`is_active` AS module_active, p.`is_active` AS permission_active, p.`id` AS permission_id
                      FROM `%s` m
-                     LEFT JOIN `%s` p ON p.`private_module_id` = m.`id` AND p.`private_user_id` = :user_id',
+                     LEFT JOIN `%s` p
+                        ON p.`private_module_id` = m.`id`
+                       AND p.`private_user_id` = :user_id',
                     $this->moduleTable(),
                     $this->permissionTable()
                 )
@@ -45,18 +47,60 @@ final class PrivateModulePermissionRepository
             return array_values($states);
         }
 
+        $hasExplicitPermissions = false;
+        $canonicalAssigned = [];
+        $legacyAssigned = [];
+        $canonicalActive = [];
         foreach ($rows as $row) {
             if (!is_array($row)) {
                 continue;
             }
 
-            $code = is_string($row['code'] ?? null) ? strtolower(trim($row['code'])) : '';
+            $hasPermission = is_numeric($row['permission_id'] ?? null);
+            if ($hasPermission) {
+                $hasExplicitPermissions = true;
+            }
+
+            $rawCode = is_string($row['code'] ?? null) ? (string) $row['code'] : '';
+            $code = $this->normalizeModuleCode($rawCode);
             if ($code === '' || !isset($states[$code])) {
                 continue;
             }
 
-            $states[$code]['active'] = $this->truthy($row['module_active'] ?? null);
-            $states[$code]['assigned'] = $this->truthy($row['permission_active'] ?? null);
+            $hasCanonicalCode = $code === $this->sanitizeModuleCode($rawCode);
+            if ($hasCanonicalCode) {
+                $states[$code]['active'] = $this->truthy($row['module_active'] ?? null);
+                $canonicalActive[$code] = true;
+            } elseif (!($canonicalActive[$code] ?? false)) {
+                $states[$code]['active'] = $this->truthy($row['module_active'] ?? null);
+            }
+
+            if ($hasPermission) {
+                $assigned = $this->truthy($row['permission_active'] ?? null);
+
+                if ($hasCanonicalCode) {
+                    $canonicalAssigned[$code] = $assigned;
+                } else {
+                    $legacyAssigned[$code] = ($legacyAssigned[$code] ?? false) || $assigned;
+                }
+            }
+        }
+
+        if (!$hasExplicitPermissions) {
+            foreach ($states as $code => $module) {
+                $states[$code]['assigned'] = (bool) ($module['active'] ?? false);
+            }
+        } else {
+            foreach ($states as $code => $module) {
+                if (array_key_exists($code, $canonicalAssigned)) {
+                    $states[$code]['assigned'] = (bool) $canonicalAssigned[$code];
+                    continue;
+                }
+
+                if (array_key_exists($code, $legacyAssigned)) {
+                    $states[$code]['assigned'] = (bool) $legacyAssigned[$code];
+                }
+            }
         }
 
         return array_values($states);
@@ -87,7 +131,7 @@ final class PrivateModulePermissionRepository
                 continue;
             }
 
-            $code = is_string($row['code'] ?? null) ? strtolower(trim($row['code'])) : '';
+            $code = $this->normalizeModuleCode(is_string($row['code'] ?? null) ? (string) $row['code'] : '');
             if ($code === '' || !isset($states[$code])) {
                 continue;
             }
@@ -188,36 +232,25 @@ final class PrivateModulePermissionRepository
 
     public function userHasModuleAccess(int $userId, string $moduleCode): bool
     {
-        $module = $this->moduleRegistry->moduleCode($moduleCode);
+        $normalizedCode = $this->normalizeModuleCode($moduleCode);
+        $module = $this->moduleRegistry->moduleCode($normalizedCode);
         if ($userId <= 0 || !is_array($module)) {
             return false;
         }
 
-        try {
-            $this->ensureSchema();
-            $statement = $this->database->pdo()->prepare(
-                sprintf(
-                    'SELECT 1
-                     FROM `%s` m
-                     INNER JOIN `%s` p ON p.`private_module_id` = m.`id`
-                     WHERE p.`private_user_id` = :user_id
-                       AND m.`code` = :code
-                       AND m.`is_active` = 1
-                       AND p.`is_active` = 1
-                     LIMIT 1',
-                    $this->moduleTable(),
-                    $this->permissionTable()
-                )
-            );
-            $statement->execute([
-                'user_id' => $userId,
-                'code' => strtolower(trim($moduleCode)),
-            ]);
-
-            return (bool) $statement->fetchColumn();
-        } catch (\Throwable) {
+        $code = is_string($normalizedCode) ? $normalizedCode : '';
+        if ($code === '') {
             return false;
         }
+
+        foreach ($this->listModuleStatesForUser($userId) as $state) {
+            $stateCode = is_string($state['code'] ?? null) ? strtolower(trim($state['code'])) : '';
+            if ($stateCode === $code) {
+                return (bool) (($state['active'] ?? false) && ($state['assigned'] ?? false));
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -393,7 +426,7 @@ final class PrivateModulePermissionRepository
         $normalized = [];
 
         foreach ($moduleCodes as $moduleCode) {
-            $code = strtolower(trim((string) $moduleCode));
+            $code = $this->normalizeModuleCode((string) $moduleCode);
             if ($code === '' || !in_array($code, $allowed, true)) {
                 continue;
             }
@@ -463,6 +496,69 @@ final class PrivateModulePermissionRepository
         }
 
         return $ids;
+    }
+
+    private function normalizeModuleCode(string $moduleCode): string
+    {
+        $code = $this->sanitizeModuleCode($moduleCode);
+        if ($code === '') {
+            return '';
+        }
+
+        return match ($code) {
+            'bloc_note', 'blocnotes', 'notes_privees' => 'blocnote',
+            'document', 'document_hub', 'documents_hub', 'fichiers', 'files', 'private_documents' => 'documents',
+            'discussion', 'family_discussion', 'family_discussions', 'discussions_familiales' => 'discussions',
+            'location', 'locations', 'locations_immobilieres', 'location_immobiliere',
+            'real_estate', 'rental', 'rentals', 'rental_dashboard' => 'real_estate_rental',
+            'aide_impot', 'aide_impots', 'fiscal', 'impot', 'impots', 'tax', 'tax_declaration' => 'tax_declaration_helper',
+            'web', 'web_dev', 'webdevelopment', 'projets_web' => 'web_development',
+            default => $code,
+        };
+    }
+
+    private function sanitizeModuleCode(string $moduleCode): string
+    {
+        $code = strtr(trim($moduleCode), [
+            'À' => 'A',
+            'Á' => 'A',
+            'Â' => 'A',
+            'Ä' => 'A',
+            'Ç' => 'C',
+            'È' => 'E',
+            'É' => 'E',
+            'Ê' => 'E',
+            'Ë' => 'E',
+            'Î' => 'I',
+            'Ï' => 'I',
+            'Ô' => 'O',
+            'Ö' => 'O',
+            'Ù' => 'U',
+            'Û' => 'U',
+            'Ü' => 'U',
+            'à' => 'a',
+            'á' => 'a',
+            'â' => 'a',
+            'ä' => 'a',
+            'ç' => 'c',
+            'è' => 'e',
+            'é' => 'e',
+            'ê' => 'e',
+            'ë' => 'e',
+            'î' => 'i',
+            'ï' => 'i',
+            'ô' => 'o',
+            'ö' => 'o',
+            'ù' => 'u',
+            'û' => 'u',
+            'ü' => 'u',
+        ]);
+        $code = strtolower($code);
+        $code = str_replace(['-', ' '], '_', $code);
+        $code = preg_replace('/[^a-z0-9_]+/', '_', $code) ?? '';
+        $code = preg_replace('/_+/', '_', $code) ?? '';
+
+        return trim($code, '_');
     }
 
     private function permissionId(PDO $pdo, int $userId, int $moduleId): ?int

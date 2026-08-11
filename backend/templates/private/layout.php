@@ -218,6 +218,13 @@ $privateTopNavigationItems = is_array($privateTopNavItems ?? null) && $privateTo
 $privateTopNavigationLabel = is_string($privateTopNavLabel ?? null) && trim((string) $privateTopNavLabel) !== ''
     ? trim((string) $privateTopNavLabel)
     : $translate('TXT_PRIVATE_TOP_NAV_LABEL', 'Pages de l’espace privé');
+$privateTopNavigationEnabled = is_bool($privateTopNavEnabled ?? null)
+    ? (bool) $privateTopNavEnabled
+    : true;
+if (!$privateTopNavigationEnabled) {
+    $privateTopNavigationItems = [];
+}
+$privateTopNavigationHasItems = $privateTopNavigationItems !== [];
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($language, ENT_QUOTES, 'UTF-8'); ?>">
@@ -307,7 +314,7 @@ $privateTopNavigationLabel = is_string($privateTopNavLabel ?? null) && trim((str
           </ul>
         </nav>
 
-        <div class="private-content">
+        <div class="private-content<?php echo $privateTopNavigationHasItems ? '' : ' private-content-no-top-nav'; ?>">
           <header class="private-header">
             <div>
               <h1><?php echo htmlspecialchars((string) ($privatePageTitle ?? 'Espace privé'), ENT_QUOTES, 'UTF-8'); ?></h1>
@@ -326,31 +333,33 @@ $privateTopNavigationLabel = is_string($privateTopNavLabel ?? null) && trim((str
             </form>
           </header>
 
-          <nav class="private-top-nav" aria-label="<?php echo htmlspecialchars($privateTopNavigationLabel, ENT_QUOTES, 'UTF-8'); ?>">
-            <ul>
-              <?php foreach ($privateTopNavigationItems as $privateNavItem) : ?>
-                    <?php
-                    $topNavLabel = is_string($privateNavItem['label'] ?? null) ? (string) $privateNavItem['label'] : '';
-                    $topNavHref = is_string($privateNavItem['href'] ?? null) ? (string) $privateNavItem['href'] : '#';
-                    $topNavIcon = is_string($privateNavItem['icon'] ?? null) ? (string) $privateNavItem['icon'] : '';
-                    $topNavIsActive = array_key_exists('active', $privateNavItem)
-                        ? (bool) $privateNavItem['active']
-                        : $privatePathIs($topNavHref);
-                    if ($topNavLabel === '') {
-                        continue;
-                    }
-                    ?>
-                <li>
-                  <a data-private-nav-link class="<?php echo $topNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($topNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $topNavIsActive ? ' aria-current="page"' : ''; ?>>
-                    <?php if ($topNavIcon !== '') : ?>
-                      <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($topNavIcon, ENT_QUOTES, 'UTF-8'); ?></span>
-                    <?php endif; ?>
-                    <span><?php echo htmlspecialchars($topNavLabel, ENT_QUOTES, 'UTF-8'); ?></span>
-                  </a>
-                </li>
-              <?php endforeach; ?>
-            </ul>
-          </nav>
+          <?php if ($privateTopNavigationHasItems) : ?>
+            <nav class="private-top-nav" aria-label="<?php echo htmlspecialchars($privateTopNavigationLabel, ENT_QUOTES, 'UTF-8'); ?>">
+              <ul>
+                <?php foreach ($privateTopNavigationItems as $privateNavItem) : ?>
+                      <?php
+                      $topNavLabel = is_string($privateNavItem['label'] ?? null) ? (string) $privateNavItem['label'] : '';
+                      $topNavHref = is_string($privateNavItem['href'] ?? null) ? (string) $privateNavItem['href'] : '#';
+                      $topNavIcon = is_string($privateNavItem['icon'] ?? null) ? (string) $privateNavItem['icon'] : '';
+                      $topNavIsActive = array_key_exists('active', $privateNavItem)
+                          ? (bool) $privateNavItem['active']
+                          : $privatePathIs($topNavHref);
+                      if ($topNavLabel === '') {
+                          continue;
+                      }
+                      ?>
+                    <li>
+                      <a data-private-nav-link class="<?php echo $topNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($topNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $topNavIsActive ? ' aria-current="page"' : ''; ?>>
+                        <?php if ($topNavIcon !== '') : ?>
+                          <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($topNavIcon, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endif; ?>
+                        <span><?php echo htmlspecialchars($topNavLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                      </a>
+                    </li>
+                  <?php endforeach; ?>
+              </ul>
+            </nav>
+          <?php endif; ?>
 
           <main class="private-main">
             <?php echo $privateContent; ?>

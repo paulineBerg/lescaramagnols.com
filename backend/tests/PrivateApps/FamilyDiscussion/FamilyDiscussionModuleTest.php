@@ -410,6 +410,7 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertIsInt($userRepository->create('pending@example.com', $inviteHash, 'invited'));
         $this->assertTrue($moduleRepository->setUserModules($aliceId, ['discussions'], 'admin@example.com'));
         $this->assertTrue($moduleRepository->setUserModules($bobId, ['discussions'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($outsiderId, ['documents'], 'admin@example.com'));
 
         $conversation = $service->createDirectConversation($aliceId, $bobId);
         $this->assertIsArray($conversation);
@@ -435,8 +436,8 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertStringNotContainsString('outsider@example.com', $index->body);
         $this->assertStringNotContainsString('pending@example.com', $index->body);
         $this->assertStringContainsString('Conversations', $index->body);
-        $this->assertStringContainsString('class="private-top-nav"', $index->body);
-        $this->assertStringContainsString('href="/private/discussions" aria-current="page"', $index->body);
+        $this->assertStringNotContainsString('class="private-top-nav"', $index->body);
+        $this->assertStringContainsString('class="private-module-nav"', $index->body);
         $this->assertStringNotContainsString('href="/private/documents"', $index->body);
 
         $post = $controller->handle(
@@ -466,8 +467,8 @@ final class FamilyDiscussionModuleTest extends TestCase
         $this->assertStringContainsString('const conversationSecret = "', $detail->body);
         $this->assertStringNotContainsString('indexedDB.open', $detail->body);
         $this->assertStringNotContainsString('sur cet appareil', $detail->body);
-        $this->assertStringContainsString('class="private-top-nav"', $detail->body);
-        $this->assertStringContainsString('href="/private/discussions" aria-current="page"', $detail->body);
+        $this->assertStringNotContainsString('class="private-top-nav"', $detail->body);
+        $this->assertStringContainsString('class="private-module-nav"', $detail->body);
     }
 
     /**

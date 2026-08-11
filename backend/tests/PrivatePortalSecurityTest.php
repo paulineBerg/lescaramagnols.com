@@ -283,6 +283,39 @@ final class PrivatePortalSecurityTest extends TestCase
         $this->assertFalse($permissionRepository->userHasModuleAccess(0, 'documents'));
     }
 
+    public function testModulesWithoutExplicitPermissionsFallBackToAllActiveModules(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $permissionRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('secret123', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('fallback@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $activeModules = array_map(
+            static fn (array $module): string => (string) ($module['code'] ?? ''),
+            $permissionRepository->activeModulesForUser($userId)
+        );
+
+        $this->assertContains('documents', $activeModules);
+        $this->assertContains('blocnote', $activeModules);
+        $this->assertContains('real_estate_rental', $activeModules);
+        $this->assertTrue($permissionRepository->userHasModuleAccess($userId, 'documents'));
+        $this->assertTrue($permissionRepository->userHasModuleAccess($userId, 'blocnote'));
+        $this->assertTrue($permissionRepository->userHasModuleAccess($userId, 'real_estate_rental'));
+
+        $this->assertTrue($permissionRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
+        $activeModulesAfter = array_map(
+            static fn (array $module): string => (string) ($module['code'] ?? ''),
+            $permissionRepository->activeModulesForUser($userId)
+        );
+        $this->assertContains('documents', $activeModulesAfter);
+        $this->assertNotContains('blocnote', $activeModulesAfter);
+        $this->assertTrue($permissionRepository->userHasModuleAccess($userId, 'documents'));
+        $this->assertFalse($permissionRepository->userHasModuleAccess($userId, 'blocnote'));
+    }
+
     public function testPrivateAuditLogRedactsSensitiveContextAndAppendsEvents(): void
     {
         $logger = new AppEventLogger(new LoggerFactory($this->logDir, 'test'));

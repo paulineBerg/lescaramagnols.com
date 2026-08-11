@@ -58,6 +58,7 @@ final class DocumentsController
                 ['label' => 'Documents', 'href' => private_portal_url('documents') . '#private-documents', 'icon' => '🗂️', 'active' => false],
                 ['label' => 'Bibliothèque', 'href' => private_portal_url('documents_hub'), 'icon' => '📚'],
             ],
+            'privateTopNavEnabled' => false,
             'privateDocumentsEnabled' => true,
             'privateDocuments' => $this->repository->listActiveByUser($userId, self::MAX_DOCUMENT_LIST),
             'privateDocumentCategories' => $this->repository->listCategoriesForUser($userId),

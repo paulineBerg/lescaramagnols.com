@@ -339,10 +339,12 @@ final class PrivatePortalController
 
         $identifier = $this->auth->currentIdentifier();
         $privateModules = [];
+        $privateModuleCodes = [];
         $privateModuleDataCounts = [];
         $userId = $this->currentPrivateUserId();
         if ($userId !== null) {
             $privateModules = $this->privateModuleNamesForUser($userId);
+            $privateModuleCodes = $this->privateModuleCodesForUser($userId);
             $privateModuleDataCounts = $this->modulePermissionRepository()->moduleDataCountsForUser($userId);
         }
 
@@ -354,6 +356,7 @@ final class PrivatePortalController
             'privatePageTitle' => $this->translate('TXT_PRIVATE_DASHBOARD_TITLE', 'Tableau de bord privé'),
             'privateUserIdentifier' => is_string($identifier) ? $identifier : '',
             'privateModules' => $privateModules,
+            'privateModuleCodes' => $privateModuleCodes,
             'privateModuleDataCounts' => $privateModuleDataCounts,
             'notice' => match ($notice) {
                 'document_uploaded' => $this->translate('TXT_PRIVATE_DOCUMENT_UPLOAD_SUCCESS', 'Document envoyé.'),
@@ -2080,6 +2083,7 @@ final class PrivatePortalController
             'taxBaseUrl' => private_portal_url('tax_dashboard'),
             'privateTopNavLabel' => 'Pages aide impôts',
             'privateTopNavItems' => $this->taxTopNavItems((int) date('Y'), 'dashboard'),
+            'privateTopNavEnabled' => false,
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ]);
@@ -3493,6 +3497,7 @@ final class PrivatePortalController
             ],
             'privateTopNavLabel' => 'Pages aide impôts',
             'privateTopNavItems' => $this->taxTopNavItems($year, $this->taxTopNavCurrentFromTitle($title)),
+            'privateTopNavEnabled' => false,
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ];
@@ -3563,6 +3568,7 @@ final class PrivatePortalController
                 ['label' => 'Conversations', 'href' => private_portal_url('discussion_index') . '#private-discussion-conversations', 'icon' => '✉', 'active' => false],
                 ['label' => 'Conversation', 'href' => $conversationUrl, 'icon' => '💬', 'active' => $conversationId > 0],
             ],
+            'privateTopNavEnabled' => false,
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ], $extra);
@@ -5010,6 +5016,17 @@ final class PrivatePortalController
     }
 
     /**
+     * @return array<int, string>
+     */
+    private function privateModuleCodesForUser(int $userId): array
+    {
+        return array_values(array_filter(array_map(
+            static fn (array $module): string => (string) $module['code'],
+            $this->modulePermissionRepository()->activeModulesForUser($userId)
+        )));
+    }
+
+    /**
      * @param array{email: string, fullName: string, postalAddress: string, phone: string} $formValues
      */
     private function renderMemberSettings(int $userId, array $formValues, string $notice, string $error): Response
@@ -5121,6 +5138,7 @@ final class PrivatePortalController
             ? $viewModel['privateUserIdentifier']
             : '';
         $privateModules = is_array($viewModel['privateModules'] ?? null) ? $viewModel['privateModules'] : [];
+        $privateModuleCodes = is_array($viewModel['privateModuleCodes'] ?? null) ? $viewModel['privateModuleCodes'] : [];
         $privateNavigationModuleCodes = [];
         $privateTopNavItems = is_array($viewModel['privateTopNavItems'] ?? null)
             ? $viewModel['privateTopNavItems']
@@ -5128,6 +5146,9 @@ final class PrivatePortalController
         $privateTopNavLabel = is_string($viewModel['privateTopNavLabel'] ?? null)
             ? $viewModel['privateTopNavLabel']
             : '';
+        $privateTopNavEnabled = is_bool($viewModel['privateTopNavEnabled'] ?? null)
+            ? (bool) $viewModel['privateTopNavEnabled']
+            : true;
         $privateDocumentsEnabled = is_bool($viewModel['privateDocumentsEnabled'] ?? null)
             ? (bool) $viewModel['privateDocumentsEnabled']
             : false;

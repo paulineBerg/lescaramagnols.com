@@ -327,6 +327,11 @@
     box-shadow: 0 12px 24px rgb(19 41 75 / 12%);
   }
 
+  .private-content-no-top-nav .private-main > .private-screen-notice,
+  .private-content-no-top-nav .private-module-nav {
+    top: 3.75rem;
+  }
+
   .notice-success {
     background: rgb(13 108 48 / 12%);
     color: var(--private-success);
