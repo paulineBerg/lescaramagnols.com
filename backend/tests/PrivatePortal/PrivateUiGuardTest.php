@@ -88,7 +88,16 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('$privateTopNavigationItems', $layout);
         self::assertStringContainsString('$privateTopNavItems', $layout);
         self::assertStringContainsString('$privateTopNavLabel', $layout);
+        self::assertStringContainsString('$privateNavigationModuleCodes', $layout);
+        self::assertStringContainsString('$privateHasModuleCode', $layout);
+        self::assertStringContainsString('if ($privateHasModuleCode(\'blocnote\', \'Bloc-note\'))', $layout);
+        self::assertStringContainsString(
+            'if ($privateHasModuleCode(\'real_estate_rental\', \'Locations immobilières\'))',
+            $layout
+        );
         self::assertMatchesRegularExpression('/class="private-top-nav".*aria-current="page"/s', $layout);
+        self::assertStringContainsString('data-private-nav-link', $layout);
+        self::assertStringContainsString("window.location.assign(targetUrl.href);", $layout);
         self::assertStringContainsString('$topNavLabel', $layout);
         self::assertGreaterThanOrEqual(1, substr_count($layout, 'foreach ($privateNavItems as $privateNavItem)'));
         self::assertGreaterThanOrEqual(1, substr_count($layout, 'foreach ($privateTopNavigationItems as $privateNavItem)'));

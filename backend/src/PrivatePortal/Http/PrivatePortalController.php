@@ -5121,6 +5121,7 @@ final class PrivatePortalController
             ? $viewModel['privateUserIdentifier']
             : '';
         $privateModules = is_array($viewModel['privateModules'] ?? null) ? $viewModel['privateModules'] : [];
+        $privateNavigationModuleCodes = [];
         $privateTopNavItems = is_array($viewModel['privateTopNavItems'] ?? null)
             ? $viewModel['privateTopNavItems']
             : [];
@@ -5206,9 +5207,14 @@ final class PrivatePortalController
             $currentUserId = $this->currentPrivateUserId();
             if ($currentUserId !== null) {
                 $privateMemberSettingsEnabled = true;
+                $activeModules = $this->modulePermissionRepository()->activeModulesForUser($currentUserId);
                 $privateNavigationModules = array_map(
                     static fn (array $module): string => (string) $module['name'],
-                    $this->modulePermissionRepository()->activeModulesForUser($currentUserId)
+                    $activeModules
+                );
+                $privateNavigationModuleCodes = array_map(
+                    static fn (array $module): string => (string) $module['code'],
+                    $activeModules
                 );
             }
         }

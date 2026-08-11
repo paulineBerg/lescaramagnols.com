@@ -30,6 +30,9 @@ $privateUserIdentifier = is_string($privateUserIdentifier ?? null) ? trim((strin
 $privateNavigationModules = is_array($privateNavigationModules ?? null)
     ? $privateNavigationModules
     : (is_array($privateModules ?? null) ? $privateModules : []);
+$privateNavigationModuleCodes = is_array($privateNavigationModuleCodes ?? null)
+    ? $privateNavigationModuleCodes
+    : [];
 $privateMemberSettingsEnabled = (bool) ($privateMemberSettingsEnabled ?? false);
 $privateNavigationModuleNames = [];
 foreach ($privateNavigationModules as $moduleName) {
@@ -39,7 +42,20 @@ foreach ($privateNavigationModules as $moduleName) {
 
     $privateNavigationModuleNames[] = trim($moduleName);
 }
+$privateNormalizedModuleCodes = [];
+foreach ($privateNavigationModuleCodes as $moduleCode) {
+    if (!is_string($moduleCode) || trim($moduleCode) === '') {
+        continue;
+    }
+
+    $privateNormalizedModuleCodes[] = strtolower(trim($moduleCode));
+}
 $privateHasModule = static fn (string $name): bool => in_array($name, $privateNavigationModuleNames, true);
+$privateHasModuleCode = static fn (string $code, string $fallbackName): bool => in_array(
+    strtolower(trim($code)),
+    $privateNormalizedModuleCodes,
+    true
+) || $privateHasModule($fallbackName);
 $privateNormalizePath = static function (string $url): string {
     $path = parse_url($url, PHP_URL_PATH);
     if (!is_string($path) || trim($path) === '') {
@@ -85,7 +101,7 @@ $privateNavItems = [
     ],
 ];
 
-if ($privateHasModule('Bloc-note')) {
+if ($privateHasModuleCode('blocnote', 'Bloc-note')) {
     $privateNavItems[] = [
         'label' => 'Bloc-note',
         'href' => private_portal_url('blocnote'),
@@ -94,7 +110,7 @@ if ($privateHasModule('Bloc-note')) {
     ];
 }
 
-if ($privateHasModule('Discussions')) {
+if ($privateHasModuleCode('discussions', 'Discussions')) {
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_NAV_DISCUSSIONS', 'Discussions'),
         'href' => private_portal_url('discussion_index'),
@@ -104,7 +120,7 @@ if ($privateHasModule('Discussions')) {
     ];
 }
 
-if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)) {
+if ($privateHasModuleCode('documents', 'Documents') || (bool) ($privateDocumentsEnabled ?? false)) {
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'),
         'href' => private_portal_url('documents'),
@@ -117,7 +133,7 @@ if ($privateHasModule('Documents') || (bool) ($privateDocumentsEnabled ?? false)
     ];
 }
 
-if ($privateHasModule('Locations immobilières')) {
+if ($privateHasModuleCode('real_estate_rental', 'Locations immobilières')) {
     $privateRentalPaths = [
         private_portal_url('rental_dashboard'),
         private_portal_url('rental_lessors'),
@@ -144,7 +160,7 @@ if ($privateHasModule('Locations immobilières')) {
     ];
 }
 
-if ($privateHasModule('Aide impôts')) {
+if ($privateHasModuleCode('tax_declaration_helper', 'Aide impôts')) {
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_NAV_TAX', 'Aide impôts'),
         'href' => private_portal_url('tax_dashboard'),
@@ -154,7 +170,7 @@ if ($privateHasModule('Aide impôts')) {
     ];
 }
 
-if ($privateHasModule('Web development')) {
+if ($privateHasModuleCode('web_development', 'Web development')) {
     $privateNavItems[] = [
         'label' => 'Projets web',
         'href' => private_portal_url('web_development'),
@@ -257,7 +273,7 @@ $privateTopNavigationLabel = is_string($privateTopNavLabel ?? null) && trim((str
                     }
                     ?>
                   <li>
-                    <a class="<?php echo $mobileNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($mobileNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $mobileNavIsActive ? ' aria-current="page"' : ''; ?>>
+                    <a data-private-nav-link class="<?php echo $mobileNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($mobileNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $mobileNavIsActive ? ' aria-current="page"' : ''; ?>>
                       <?php if ($mobileNavIcon !== '') : ?>
                         <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($mobileNavIcon, ENT_QUOTES, 'UTF-8'); ?></span>
                       <?php endif; ?>
@@ -280,7 +296,7 @@ $privateTopNavigationLabel = is_string($privateTopNavLabel ?? null) && trim((str
                 }
                 ?>
               <li>
-                <a class="<?php echo $navIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $navIsActive ? ' aria-current="page"' : ''; ?>>
+                <a data-private-nav-link class="<?php echo $navIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($navHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $navIsActive ? ' aria-current="page"' : ''; ?>>
                   <?php if ($navIcon !== '') : ?>
                     <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($navIcon, ENT_QUOTES, 'UTF-8'); ?></span>
                   <?php endif; ?>
@@ -325,7 +341,7 @@ $privateTopNavigationLabel = is_string($privateTopNavLabel ?? null) && trim((str
                     }
                     ?>
                 <li>
-                  <a class="<?php echo $topNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($topNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $topNavIsActive ? ' aria-current="page"' : ''; ?>>
+                  <a data-private-nav-link class="<?php echo $topNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($topNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $topNavIsActive ? ' aria-current="page"' : ''; ?>>
                     <?php if ($topNavIcon !== '') : ?>
                       <span class="private-nav-icon" aria-hidden="true"><?php echo htmlspecialchars($topNavIcon, ENT_QUOTES, 'UTF-8'); ?></span>
                     <?php endif; ?>
@@ -423,6 +439,48 @@ $privateTopNavigationLabel = is_string($privateTopNavLabel ?? null) && trim((str
             writeNavCollapsed(isCollapsed);
           });
         }
+
+        document.addEventListener('click', (event) => {
+          if (!(event instanceof MouseEvent) || event.defaultPrevented || event.button !== 0) {
+            return;
+          }
+
+          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+          }
+
+          const link = event.target instanceof Element
+            ? event.target.closest('[data-private-nav-link]')
+            : null;
+          if (!(link instanceof HTMLAnchorElement) || link.target !== '') {
+            return;
+          }
+
+          const rawHref = link.getAttribute('href') || '';
+          if (rawHref === '' || rawHref === '#') {
+            return;
+          }
+
+          let targetUrl;
+          try {
+            targetUrl = new URL(link.href, window.location.href);
+          } catch (_error) {
+            return;
+          }
+
+          if (targetUrl.origin !== window.location.origin) {
+            return;
+          }
+
+          const sameDocument = targetUrl.pathname === window.location.pathname
+            && targetUrl.search === window.location.search;
+          if (sameDocument) {
+            return;
+          }
+
+          event.preventDefault();
+          window.location.assign(targetUrl.href);
+        }, { capture: true });
 
         document.addEventListener('click', (event) => {
           const button = event.target instanceof Element
