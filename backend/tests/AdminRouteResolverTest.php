@@ -23,6 +23,7 @@ final class AdminRouteResolverTest extends TestCase
         $this->assertSame('/admin-moderne/logs', $resolver->canonicalPath('logs'));
         $this->assertSame('/admin-moderne/settings', $resolver->canonicalPath('settings'));
         $this->assertSame('/admin-moderne/parametres/espace-prive', $resolver->canonicalPath('private_members'));
+        $this->assertSame('/admin-moderne/pbgestion', $resolver->canonicalPath('pbgestion'));
         $this->assertSame('/admin-moderne/logout', $resolver->canonicalPath('logout'));
         $this->assertSame('/admin-moderne/session/ping', $resolver->sessionPingPath());
         $this->assertSame('/admin-moderne/pages/new', $resolver->pageCreatePath());
@@ -66,6 +67,7 @@ final class AdminRouteResolverTest extends TestCase
         $this->assertNotContains('/legacy-admin/settings.php', $paths);
         $this->assertContains('/admin/session/ping', $paths);
         $this->assertContains('/admin/articles/save', $paths);
+        $this->assertContains('/admin/pbgestion', $paths);
     }
 
     public function testTilesIndexRouteAcceptsPostForCatalogActions(): void
@@ -102,6 +104,24 @@ final class AdminRouteResolverTest extends TestCase
 
         $this->assertIsArray($privateMembersRoute);
         $this->assertSame(['GET', 'POST'], $privateMembersRoute['methods'] ?? null);
+    }
+
+    public function testPbGestionRouteAcceptsPostForMaintenanceActions(): void
+    {
+        $resolver = new AdminRouteResolver('admin');
+        $pbGestionRoute = null;
+
+        foreach ($resolver->routeDefinitions() as $route) {
+            if (($route['path'] ?? null) !== '/admin/pbgestion') {
+                continue;
+            }
+
+            $pbGestionRoute = $route;
+            break;
+        }
+
+        $this->assertIsArray($pbGestionRoute);
+        $this->assertSame(['GET', 'POST'], $pbGestionRoute['methods'] ?? null);
     }
 
     public function testLegacySegmentConfiguredAsLoginPathIsOnlyUsedAsCanonicalPath(): void

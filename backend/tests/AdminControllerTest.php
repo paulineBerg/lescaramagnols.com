@@ -10,6 +10,7 @@ use Caramagnols\Cron\CronJobRepository;
 use Caramagnols\Http\Request;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Logging\LoggerFactory;
+use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\Social\InstagramFeedService;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
@@ -217,6 +218,19 @@ final class AdminControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Groupes de tuiles', $response->body);
+    }
+
+    public function testPbGestionAdminPageRendersWhenAuthenticated(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller(pbGestionRepository: new PbGestionRepository($this->editorialSqlDatabase()));
+
+        $response = $controller->handle('pbgestion', $this->request('GET', '/admin/pbgestion'));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('PB Gestion', $response->body);
+        $this->assertStringContainsString('Maintenance des détails temporaires', $response->body);
+        $this->assertStringContainsString('Versions disponibles', $response->body);
     }
 
     public function testPrivateMembersEmailTabSavesPrivateMailSettings(): void
@@ -3727,7 +3741,8 @@ final class AdminControllerTest extends TestCase
     private function controller(
         ?AdminSettingsService $settingsService = null,
         ?AppEventLogger $logger = null,
-        ?AdminCronCenterService $cronCenterService = null
+        ?AdminCronCenterService $cronCenterService = null,
+        ?PbGestionRepository $pbGestionRepository = null
     ): AdminController {
         $logger = $logger ?? new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
         $settingsService = $settingsService ?? new AdminSettingsService(
@@ -3751,7 +3766,8 @@ final class AdminControllerTest extends TestCase
             null,
             null,
             null,
-            $cronCenterService
+            $cronCenterService,
+            $pbGestionRepository
         );
     }
 

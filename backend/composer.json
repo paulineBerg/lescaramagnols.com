@@ -1,5 +1,7 @@
 {
   "name": "lescaramagnols/backend",
+  "description": "Backend privé et public du site Les Caramagnols.",
+  "license": "proprietary",
   "type": "project",
   "require": {
     "php": "^8.1",

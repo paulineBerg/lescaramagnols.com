@@ -11,6 +11,7 @@ use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
 use Caramagnols\Identity\SessionScope;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
@@ -48,7 +49,8 @@ final class AdminController
         ?AdminEditorialImageService $editorialImageService = null,
         ?AdminTileService $tileService = null,
         ?AdminPrivateMembersService $privateMembersService = null,
-        ?AdminCronCenterService $cronCenterService = null
+        ?AdminCronCenterService $cronCenterService = null,
+        private readonly ?PbGestionRepository $pbGestionRepository = null
     ) {
         require_once ROOT_PATH . '/core/auth/admin.php';
         require_once ROOT_PATH . '/core/menu_loader.php';
@@ -338,6 +340,7 @@ final class AdminController
             'logs' => $this->logs($request),
             'settings' => $this->settings($request),
             'security_devices' => $this->securityDevices($request),
+            'pbgestion' => $this->pbGestion($request),
             'private_members' => $this->privateMembers($request),
             'session_ping' => $this->sessionPing($request),
             'logout' => $this->logout($request),
@@ -2100,6 +2103,63 @@ final class AdminController
         );
     }
 
+    private function pbGestion(Request $request): Response
+    {
+        $guard = $this->guardAuthenticated($request, 'pbgestion');
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $repository = $this->pbGestionRepository ?? new PbGestionRepository(editorial_database());
+        $message = null;
+        $error = null;
+
+        if ($request->method() === 'POST') {
+            if (($sensitive = $this->guardSensitiveAction($request, 'pbgestion.admin')) !== null) {
+                return $sensitive;
+            }
+
+            $body = $request->body();
+            $token = is_string($body['csrf_token'] ?? null) ? $body['csrf_token'] : null;
+            if (!admin_validate_csrf_token($token)) {
+                $this->eventLogger->security(
+                    'admin.pbgestion.invalid_csrf',
+                    ['actor' => admin_current_masked_identifier()],
+                    'warning'
+                );
+                $error = $this->adminText('TXT_ADMIN_MESSAGE_SESSION_EXPIRED', 'Session expirée, merci de réessayer.');
+            } else {
+                $action = is_string($body['pbgestion_action'] ?? null) ? trim((string) $body['pbgestion_action']) : '';
+                if ($action === 'purge_expired_details') {
+                    $purged = $repository->purgeExpiredDetails(false, 500);
+                    $this->eventLogger->security(
+                        'admin.pbgestion.details_purged',
+                        ['actor' => admin_current_masked_identifier(), 'count' => $purged]
+                    );
+                    $message = sprintf('%d détail(s) temporaire(s) expiré(s) purgé(s).', $purged);
+                } elseif ($action === 'dry_run_expired_details') {
+                    $purgeable = $repository->purgeExpiredDetails(true);
+                    $message = sprintf('%d détail(s) temporaire(s) expiré(s) peuvent être purgé(s).', $purgeable);
+                } else {
+                    $error = 'Action PB Gestion inconnue.';
+                }
+            }
+        }
+
+        return $this->renderPage(
+            'pbgestion.php',
+            [
+                'pageTitle' => 'PB Gestion · Pilotage sécurité',
+                'activeMenu' => 'pbgestion',
+                'adminPbGestionUrl' => $this->routeResolver->canonicalPath('pbgestion'),
+                'csrfToken' => admin_csrf_token(),
+                'message' => $message,
+                'error' => $error,
+                'pbGestionDashboard' => $repository->adminDashboard(),
+            ]
+        );
+    }
+
     /**
      * @param array<string, mixed> $view
      * @param array<string, mixed>|null $cronCenterView
@@ -2467,6 +2527,7 @@ final class AdminController
             'adminLogsUrl' => $this->routeResolver->canonicalPath('logs'),
             'adminSettingsUrl' => $this->routeResolver->canonicalPath('settings'),
             'adminSecurityDevicesUrl' => $this->routeResolver->canonicalPath('security_devices'),
+            'adminPbGestionUrl' => $this->routeResolver->canonicalPath('pbgestion'),
             'adminPrivateMembersUrl' => $this->routeResolver->canonicalPath('private_members'),
             'adminLogoutUrl' => $this->routeResolver->canonicalPath('logout'),
             'adminSessionPingUrl' => $this->routeResolver->sessionPingPath(),

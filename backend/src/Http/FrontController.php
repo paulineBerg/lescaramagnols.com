@@ -12,6 +12,8 @@ use Caramagnols\Blog\BlogSaveService;
 use Caramagnols\Feed\RssFeedService;
 use Caramagnols\Feed\SitemapService;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PbGestion\Api\PbGestionAgentApiController;
+use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\PrivateApps\WebDevelopment\Http\PreviewGatewayController;
 use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewSessionRepository;
 use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewTicketRepository;
@@ -67,6 +69,12 @@ final class FrontController
             $routes->addRoute('POST', '/core/blog/save_article.php', ['type' => 'blog', 'action' => 'save_article']);
             $routes->addRoute('POST', '/core/blog/submit_discussion.php', ['type' => 'blog', 'action' => 'submit_discussion']);
             $routes->addRoute('POST', '/core/blog/log_discussion_client.php', ['type' => 'blog', 'action' => 'log_discussion_client']);
+            $routes->addRoute('POST', '/api/pbgestion/v1/enrollment/claim', ['type' => 'pbgestion_agent_api', 'action' => 'enrollment_claim']);
+            $routes->addRoute('POST', '/api/pbgestion/v1/sync', ['type' => 'pbgestion_agent_api', 'action' => 'sync']);
+            $routes->addRoute('POST', '/api/pbgestion/v1/commands/poll', ['type' => 'pbgestion_agent_api', 'action' => 'commands_poll']);
+            $routes->addRoute('POST', '/api/pbgestion/v1/commands/ack', ['type' => 'pbgestion_agent_api', 'action' => 'commands_ack']);
+            $routes->addRoute('POST', '/api/pbgestion/v1/details/upload', ['type' => 'pbgestion_agent_api', 'action' => 'details_upload']);
+            $routes->addRoute('POST', '/api/pbgestion/v1/recovery/prepare', ['type' => 'pbgestion_agent_api', 'action' => 'recovery_prepare']);
 
             $routes->addRoute('GET', '/rss', ['type' => 'rss']);
             $routes->addRoute('GET', '/rss.php', ['type' => 'redirect', 'location' => '/rss', 'status' => 301]);
@@ -218,6 +226,13 @@ final class FrontController
                 return Response::json(['error' => 'Action blog inconnue.'], 404);
             }
 
+            if (is_array($handler) && ($handler['type'] ?? null) === 'pbgestion_agent_api') {
+                return $this->createPbGestionAgentApiController()->handle(
+                    (string) ($handler['action'] ?? ''),
+                    $request
+                );
+            }
+
             if (
                 is_array($handler)
                 && $this->privateHttpBoundary instanceof PrivateHttpBoundary
@@ -297,6 +312,14 @@ final class FrontController
             ),
             new PreviewFileService((string) app_config('web_development.deployments_root', '')),
             $projectRepository
+        );
+    }
+
+    private function createPbGestionAgentApiController(): PbGestionAgentApiController
+    {
+        return new PbGestionAgentApiController(
+            new PbGestionRepository(editorial_database()),
+            $this->eventLogger
         );
     }
 

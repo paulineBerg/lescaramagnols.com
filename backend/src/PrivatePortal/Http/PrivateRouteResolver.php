@@ -246,6 +246,61 @@ final class PrivateRouteResolver
                 'handler' => ['type' => 'private', 'page' => 'web_development'],
             ],
             [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_dashboard'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_dashboard'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_coverage'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_coverage'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_networks'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_networks'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_devices'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_devices'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_computers'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_computers'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_alerts'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_alerts'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_scans'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_scans'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_backups'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_backups'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('pbgestion_agents'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_agents'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('pbgestion_settings'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_settings'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('pbgestion_help'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_help'],
+            ],
+            [
                 'methods' => ['POST'],
                 'path' => $this->canonicalPath('web_development') . '/preview/{projectKey:[a-z0-9][a-z0-9_-]{1,80}}',
                 'handler' => ['type' => 'private', 'page' => 'web_development_preview'],

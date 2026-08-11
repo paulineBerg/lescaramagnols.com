@@ -20,6 +20,8 @@ use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewTicketRepository;
 use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewTicketRepositoryInterface;
 use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepository;
 use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepositoryInterface;
+use Caramagnols\PrivateApps\PbGestion\Http\PbGestionController;
+use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
 use Caramagnols\PrivateApps\Documents\Http\DocumentHubController;
@@ -114,7 +116,8 @@ final class PrivatePortalController
         private readonly ?RentalExportService $rentalExportService = null,
         private readonly ?BlocNoteRepository $blocNoteRepository = null,
         private readonly ?RentalLessorRepository $rentalLessorRepository = null,
-        private readonly ?WebDevelopmentProjectRepositoryInterface $webDevelopmentProjectRepository = null
+        private readonly ?WebDevelopmentProjectRepositoryInterface $webDevelopmentProjectRepository = null,
+        private readonly ?PbGestionRepository $pbGestionRepository = null
     ) {
     }
 
@@ -137,6 +140,17 @@ final class PrivatePortalController
             'documents_hub_action' => $this->documentHubController()->action($request),
             'blocnote' => $this->blocNoteController()->handle($request),
             'web_development' => $this->handleWebDevelopment($request),
+            'pbgestion_dashboard',
+            'pbgestion_coverage',
+            'pbgestion_networks',
+            'pbgestion_devices',
+            'pbgestion_computers',
+            'pbgestion_alerts',
+            'pbgestion_scans',
+            'pbgestion_backups',
+            'pbgestion_agents',
+            'pbgestion_settings',
+            'pbgestion_help' => $this->pbGestionController()->handle($page, $request),
             'rental_dashboard' => $this->rentalController()->handle('rental_dashboard', $request),
             'rental_properties_dashboard' => $this->rentalController()->handle('rental_properties_dashboard', $request),
             'rental_agency_dashboard' => $this->rentalController()->handle('rental_agency_dashboard', $request),
@@ -4964,12 +4978,17 @@ final class PrivatePortalController
 
     private function requireWebDevelopmentModuleUser(Request $request): int|Response
     {
-        $result = $this->requireModuleOrUnauthorized($request, 'web_development');
-        if ($result === null) {
+        $required = $this->guard()->requireAuthenticated($request, private_portal_url('login'), false);
+        if ($required !== null) {
+            return $required;
+        }
+
+        $userId = $this->currentPrivateUserId();
+        if ($userId === null || !$this->modulePermissionRepository()->userHasExplicitModuleAccess($userId, 'web_development')) {
             return $this->handleModuleAccessDenied('web_development');
         }
 
-        return $result;
+        return $userId;
     }
 
     private function requireAuthenticatedUser(Request $request): int|Response
@@ -5335,6 +5354,19 @@ final class PrivatePortalController
             $this->privateUserRepository(),
             $this->modulePermissionRepository(),
             $this->blocNoteRepository(),
+            fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
+            $this->eventLogger
+        );
+    }
+
+    private function pbGestionController(): PbGestionController
+    {
+        return new PbGestionController(
+            $this->auth,
+            $this->guard(),
+            $this->privateUserRepository(),
+            $this->modulePermissionRepository(),
+            $this->pbGestionRepository ?? new PbGestionRepository(editorial_database()),
             fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
             $this->eventLogger
         );

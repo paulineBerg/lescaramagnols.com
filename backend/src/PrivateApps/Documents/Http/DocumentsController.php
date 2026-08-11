@@ -197,7 +197,12 @@ final class DocumentsController
     {
         $userId = $this->userIdOrAccessDenied($request);
         if ($userId === null) {
-            return $this->accessDenied();
+            $files = $request->files();
+            if (isset($files[self::DOCUMENT_UPLOAD_FIELD])) {
+                return $this->accessDenied();
+            }
+
+            return $this->redirect(private_portal_url('login'));
         }
 
         if ($request->method() !== self::METHOD_POST || !$this->securityGuard->validateCsrf($request, self::CSRF_DOCUMENTS)) {
@@ -465,7 +470,16 @@ final class DocumentsController
             'identifier' => AppEventLogger::maskIdentifier((string) $this->auth->currentIdentifier()),
         ]);
 
-        return $this->redirect(private_portal_url('login'));
+        $userId = $this->currentPrivateUserId();
+        if ($userId !== null && $this->repository->listActiveByUser($userId, 1) !== []) {
+            return $this->redirect(private_portal_url('login'));
+        }
+
+        return $this->withPrivateHeaders(new Response(
+            403,
+            ['Content-Type' => 'text/plain; charset=UTF-8'],
+            'Forbidden'
+        ));
     }
 
     private function accessDenied(?string $documentId = null): Response

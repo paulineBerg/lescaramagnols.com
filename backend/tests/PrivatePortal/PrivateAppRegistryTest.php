@@ -41,6 +41,7 @@ final class PrivateAppRegistryTest extends TestCase
             'documents',
             'family_discussion',
             'real_estate_rental',
+            'pbgestion',
             'tax_declaration_helper',
         ];
 

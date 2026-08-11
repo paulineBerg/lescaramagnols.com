@@ -193,6 +193,10 @@ final class PrivateModulePermissionRepository
             + $this->countRows('tax_annual_summaries', '`private_user_id` = :user_id', ['user_id' => $userId])
             + $this->countRows('tax_export_logs', '`private_user_id` = :user_id', ['user_id' => $userId]);
 
+        $counts['pbgestion'] = $this->countRows('pb_agents', '`owner_id` = :user_id', ['user_id' => $userId])
+            + $this->countRows('security_networks', '`owner_id` = :user_id', ['user_id' => $userId])
+            + $this->countRows('security_alerts', '`owner_id` = :user_id AND `status` = \'open\'', ['user_id' => $userId]);
+
         return $counts;
     }
 
@@ -248,6 +252,47 @@ final class PrivateModulePermissionRepository
             if ($stateCode === $code) {
                 return (bool) (($state['active'] ?? false) && ($state['assigned'] ?? false));
             }
+        }
+
+        return false;
+    }
+
+    public function userHasExplicitModuleAccess(int $userId, string $moduleCode): bool
+    {
+        $expectedCode = $this->normalizeModuleCode($moduleCode);
+        if ($userId <= 0 || $expectedCode === '') {
+            return false;
+        }
+
+        try {
+            $this->ensureSchema();
+            $statement = $this->database->pdo()->prepare(
+                sprintf(
+                    'SELECT m.`code`, m.`is_active` AS module_active, p.`is_active` AS permission_active
+                     FROM `%s` p
+                     INNER JOIN `%s` m ON m.`id` = p.`private_module_id`
+                     WHERE p.`private_user_id` = :user_id',
+                    $this->permissionTable(),
+                    $this->moduleTable()
+                )
+            );
+            $statement->execute(['user_id' => $userId]);
+            $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $code = $this->normalizeModuleCode(is_string($row['code'] ?? null) ? (string) $row['code'] : '');
+            if ($code !== $expectedCode) {
+                continue;
+            }
+
+            return $this->truthy($row['module_active'] ?? null) && $this->truthy($row['permission_active'] ?? null);
         }
 
         return false;
@@ -513,6 +558,7 @@ final class PrivateModulePermissionRepository
             'real_estate', 'rental', 'rentals', 'rental_dashboard' => 'real_estate_rental',
             'aide_impot', 'aide_impots', 'fiscal', 'impot', 'impots', 'tax', 'tax_declaration' => 'tax_declaration_helper',
             'web', 'web_dev', 'webdevelopment', 'projets_web' => 'web_development',
+            'pb_gestion', 'pb-gestion', 'gestion_pb', 'security_center', 'securitycenter' => 'pbgestion',
             default => $code,
         };
     }

@@ -47,6 +47,11 @@ final class PrivateModuleRegistry
                 'name' => 'Web development',
                 'description' => 'Gestion des projets web statiques et de leurs previsualisations privees.',
             ],
+            [
+                'code' => 'pbgestion',
+                'name' => 'PB Gestion',
+                'description' => 'Agents locaux, couverture, alertes, sauvegardes et syntheses de securite.',
+            ],
         ];
     }
 

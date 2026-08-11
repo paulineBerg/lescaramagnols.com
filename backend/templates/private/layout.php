@@ -180,6 +180,16 @@ if ($privateHasModuleCode('web_development', 'Web development')) {
     ];
 }
 
+if ($privateHasModuleCode('pbgestion', 'PB Gestion')) {
+    $privateNavItems[] = [
+        'label' => 'PB Gestion',
+        'href' => private_portal_url('pbgestion_dashboard'),
+        'icon' => '🛡',
+        'active' => $privateCurrentPath !== ''
+            && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('pbgestion_dashboard'))),
+    ];
+}
+
 if ($privateMemberSettingsEnabled) {
     $privateNavItems[] = [
         'label' => $translate('TXT_PRIVATE_SETTINGS_NAV', 'Paramètres'),

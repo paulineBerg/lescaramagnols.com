@@ -85,6 +85,26 @@ final class PrivateMigrationService
             'tax_summary_lines',
             'tax_export_logs',
         ],
+        'pbgestion' => [
+            'pb_agents',
+            'pb_agent_capabilities',
+            'pb_agent_sync_state',
+            'pb_agent_request_log',
+            'pb_enrollment_tokens',
+            'pb_commands',
+            'pb_policies',
+            'pb_agent_policy_state',
+            'pb_backup_status',
+            'pb_agent_versions',
+            'security_networks',
+            'security_network_collectors',
+            'security_devices_current',
+            'security_device_changes',
+            'security_posture_current',
+            'security_scan_summaries',
+            'security_alerts',
+            'security_detail_requests',
+        ],
     ];
 
     public function __construct(
