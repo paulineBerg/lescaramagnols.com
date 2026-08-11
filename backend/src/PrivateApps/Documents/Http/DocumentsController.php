@@ -52,6 +52,12 @@ final class DocumentsController
             'privatePageTitle' => $this->translate('TXT_PRIVATE_DASHBOARD_DOCUMENTS_TITLE', 'Documents'),
             'privateUserIdentifier' => is_string($this->auth->currentIdentifier()) ? (string) $this->auth->currentIdentifier() : '',
             'privateModules' => $this->privateModuleNamesForUser($userId),
+            'privateTopNavLabel' => 'Pages des documents',
+            'privateTopNavItems' => [
+                ['label' => 'Tableau de bord', 'href' => private_portal_url('documents') . '#private-documents-dashboard', 'icon' => '📊', 'active' => true],
+                ['label' => 'Documents', 'href' => private_portal_url('documents') . '#private-documents', 'icon' => '🗂️', 'active' => false],
+                ['label' => 'Bibliothèque', 'href' => private_portal_url('documents_hub'), 'icon' => '📚'],
+            ],
             'privateDocumentsEnabled' => true,
             'privateDocuments' => $this->repository->listActiveByUser($userId, self::MAX_DOCUMENT_LIST),
             'privateDocumentCategories' => $this->repository->listCategoriesForUser($userId),

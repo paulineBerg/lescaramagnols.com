@@ -85,9 +85,13 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('caramagnols.private.navCollapsed', $layout);
         self::assertStringContainsString('class="private-top-nav"', $layout);
         self::assertStringContainsString('TXT_PRIVATE_TOP_NAV_LABEL', $layout);
+        self::assertStringContainsString('$privateTopNavigationItems', $layout);
+        self::assertStringContainsString('$privateTopNavItems', $layout);
+        self::assertStringContainsString('$privateTopNavLabel', $layout);
         self::assertMatchesRegularExpression('/class="private-top-nav".*aria-current="page"/s', $layout);
         self::assertStringContainsString('$topNavLabel', $layout);
-        self::assertGreaterThanOrEqual(2, substr_count($layout, 'foreach ($privateNavItems as $privateNavItem)'));
+        self::assertGreaterThanOrEqual(1, substr_count($layout, 'foreach ($privateNavItems as $privateNavItem)'));
+        self::assertGreaterThanOrEqual(1, substr_count($layout, 'foreach ($privateTopNavigationItems as $privateNavItem)'));
         self::assertStringContainsString('data-private-auto-submit', $layout);
         self::assertStringContainsString('form.requestSubmit(submitter);', $layout);
     }

@@ -196,6 +196,12 @@ $privateActiveNavLabel = is_array($privateActiveNavItem) && is_string($privateAc
     ? (string) $privateActiveNavItem['label']
     : $privateDashboardNavLabel;
 $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel;
+$privateTopNavigationItems = is_array($privateTopNavItems ?? null) && $privateTopNavItems !== []
+    ? $privateTopNavItems
+    : $privateNavItems;
+$privateTopNavigationLabel = is_string($privateTopNavLabel ?? null) && trim((string) $privateTopNavLabel) !== ''
+    ? trim((string) $privateTopNavLabel)
+    : $translate('TXT_PRIVATE_TOP_NAV_LABEL', 'Pages de l’espace privé');
 ?>
 <!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($language, ENT_QUOTES, 'UTF-8'); ?>">
@@ -204,7 +210,7 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex,nofollow,noarchive" />
     <title><?php echo htmlspecialchars((string) ($privatePageTitle ?? 'Espace privé'), ENT_QUOTES, 'UTF-8'); ?></title>
-    <?php foreach (vite_css('src/scss/private.scss') as $privateStylesheetUrl): ?>
+    <?php foreach (vite_css('src/scss/private.scss') as $privateStylesheetUrl) : ?>
       <link rel="stylesheet" href="<?php echo htmlspecialchars($privateStylesheetUrl, ENT_QUOTES, 'UTF-8'); ?>" />
     <?php endforeach; ?>
   </head>
@@ -304,18 +310,20 @@ $privateActiveIsDashboard = $privateActiveNavLabel === $privateDashboardNavLabel
             </form>
           </header>
 
-          <nav class="private-top-nav" aria-label="<?php echo htmlspecialchars($translate('TXT_PRIVATE_TOP_NAV_LABEL', 'Pages de l’espace privé'), ENT_QUOTES, 'UTF-8'); ?>">
+          <nav class="private-top-nav" aria-label="<?php echo htmlspecialchars($privateTopNavigationLabel, ENT_QUOTES, 'UTF-8'); ?>">
             <ul>
-              <?php foreach ($privateNavItems as $privateNavItem) : ?>
-                  <?php
-                  $topNavLabel = is_string($privateNavItem['label'] ?? null) ? (string) $privateNavItem['label'] : '';
-                  $topNavHref = is_string($privateNavItem['href'] ?? null) ? (string) $privateNavItem['href'] : '#';
-                  $topNavIcon = is_string($privateNavItem['icon'] ?? null) ? (string) $privateNavItem['icon'] : '';
-                  $topNavIsActive = (bool) ($privateNavItem['active'] ?? false);
-                  if ($topNavLabel === '') {
-                      continue;
-                  }
-                  ?>
+              <?php foreach ($privateTopNavigationItems as $privateNavItem) : ?>
+                    <?php
+                    $topNavLabel = is_string($privateNavItem['label'] ?? null) ? (string) $privateNavItem['label'] : '';
+                    $topNavHref = is_string($privateNavItem['href'] ?? null) ? (string) $privateNavItem['href'] : '#';
+                    $topNavIcon = is_string($privateNavItem['icon'] ?? null) ? (string) $privateNavItem['icon'] : '';
+                    $topNavIsActive = array_key_exists('active', $privateNavItem)
+                        ? (bool) $privateNavItem['active']
+                        : $privatePathIs($topNavHref);
+                    if ($topNavLabel === '') {
+                        continue;
+                    }
+                    ?>
                 <li>
                   <a class="<?php echo $topNavIsActive ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($topNavHref, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $topNavIsActive ? ' aria-current="page"' : ''; ?>>
                     <?php if ($topNavIcon !== '') : ?>

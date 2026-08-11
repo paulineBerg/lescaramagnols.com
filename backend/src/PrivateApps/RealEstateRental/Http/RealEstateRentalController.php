@@ -405,8 +405,36 @@ final class RealEstateRentalController
                 'exportCsv' => private_portal_url('rental_export_csv'), 'exportPdf' => private_portal_url('rental_export_pdf'),
                 'exportZip' => private_portal_url('rental_export_zip'),
             ],
+            'privateTopNavLabel' => 'Pages locations immobilières',
+            'privateTopNavItems' => $this->rentalTopNavItems(),
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
+        ];
+    }
+
+    /**
+     * @return array<int, array{label: string, href: string, icon: string}>
+     */
+    private function rentalTopNavItems(): array
+    {
+        return [
+            ['label' => 'Tableau de bord', 'href' => private_portal_url('rental_dashboard'), 'icon' => '📊'],
+            ['label' => 'Biens', 'href' => private_portal_url('rental_properties_dashboard'), 'icon' => '🏠'],
+            ['label' => 'Bailleurs', 'href' => private_portal_url('rental_lessors'), 'icon' => '👤'],
+            ['label' => 'Propriétés', 'href' => private_portal_url('rental_properties'), 'icon' => '🏘'],
+            ['label' => 'Lots', 'href' => private_portal_url('rental_units'), 'icon' => '▣'],
+            ['label' => 'Locataires', 'href' => private_portal_url('rental_tenants'), 'icon' => '👥'],
+            ['label' => 'Baux', 'href' => private_portal_url('rental_leases'), 'icon' => '📄'],
+            ['label' => 'Loyers', 'href' => private_portal_url('rental_rents'), 'icon' => '€'],
+            ['label' => 'Paiements', 'href' => private_portal_url('rental_payments'), 'icon' => '✓'],
+            ['label' => 'Charges', 'href' => private_portal_url('rental_expenses'), 'icon' => '🧾'],
+            ['label' => 'Régularisations', 'href' => private_portal_url('rental_regularizations'), 'icon' => '⇄'],
+            ['label' => 'Documents', 'href' => private_portal_url('rental_documents'), 'icon' => '🗂️'],
+            ['label' => 'Agence', 'href' => private_portal_url('rental_agency_dashboard'), 'icon' => '🏢'],
+            ['label' => 'Agences', 'href' => private_portal_url('rental_agencies'), 'icon' => '🏢'],
+            ['label' => 'Imports', 'href' => private_portal_url('rental_agency_imports'), 'icon' => '⬆'],
+            ['label' => 'Classer', 'href' => private_portal_url('rental_agency_review'), 'icon' => '✓'],
+            ['label' => 'Synthèse', 'href' => private_portal_url('rental_summary'), 'icon' => '📈'],
         ];
     }
 

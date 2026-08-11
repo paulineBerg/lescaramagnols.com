@@ -2078,6 +2078,8 @@ final class PrivatePortalController
             'taxYears' => $this->taxDeclarationRepository()->listYearsForUser($userId),
             'taxCurrentYear' => (int) date('Y'),
             'taxBaseUrl' => private_portal_url('tax_dashboard'),
+            'privateTopNavLabel' => 'Pages aide impôts',
+            'privateTopNavItems' => $this->taxTopNavItems((int) date('Y'), 'dashboard'),
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ]);
@@ -2703,6 +2705,10 @@ final class PrivatePortalController
                 ? (string) $this->auth->currentIdentifier()
                 : '',
             'privateModules' => $this->privateModuleNamesForUser($userId),
+            'privateTopNavLabel' => 'Pages des projets web',
+            'privateTopNavItems' => [
+                ['label' => 'Projets web', 'href' => private_portal_url('web_development'), 'icon' => '🌐', 'active' => true],
+            ],
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
             'webDevelopmentProjects' => $this->webDevelopmentProjectRepository()->findPreviewProjectsForUser($userId),
             'webDevelopmentBaseUrl' => private_portal_url('web_development'),
@@ -3485,9 +3491,43 @@ final class PrivatePortalController
                 'exportCsv' => $this->taxYearUrl($year) . '/export?format=csv',
                 'exportPdf' => $this->taxYearUrl($year) . '/export?format=pdf',
             ],
+            'privateTopNavLabel' => 'Pages aide impôts',
+            'privateTopNavItems' => $this->taxTopNavItems($year, $this->taxTopNavCurrentFromTitle($title)),
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
         ];
+    }
+
+    /**
+     * @return array<int, array{label: string, href: string, icon: string, active: bool}>
+     */
+    private function taxTopNavItems(int $year, string $current): array
+    {
+        $yearUrl = $this->taxYearUrl($year);
+
+        return [
+            ['label' => 'Tableau de bord', 'href' => private_portal_url('tax_dashboard'), 'icon' => '📊', 'active' => $current === 'dashboard'],
+            ['label' => 'Synthèse ' . $year, 'href' => $yearUrl, 'icon' => '€', 'active' => $current === 'year'],
+            ['label' => 'Revenus manuels', 'href' => $this->taxManualUrl($year), 'icon' => '✍', 'active' => $current === 'manual'],
+            ['label' => 'Contrôle', 'href' => $yearUrl . '/controle', 'icon' => '✓', 'active' => $current === 'controls'],
+            ['label' => 'Documents', 'href' => $yearUrl . '/documents', 'icon' => '🗂️', 'active' => $current === 'documents'],
+        ];
+    }
+
+    private function taxTopNavCurrentFromTitle(string $title): string
+    {
+        $normalized = strtolower($title);
+        if (str_contains($normalized, 'revenus manuels')) {
+            return 'manual';
+        }
+        if (str_contains($normalized, 'controle') || str_contains($normalized, 'contrôle')) {
+            return 'controls';
+        }
+        if (str_contains($normalized, 'documents')) {
+            return 'documents';
+        }
+
+        return 'year';
     }
 
     /**
@@ -3496,6 +3536,12 @@ final class PrivatePortalController
      */
     private function discussionViewModel(int $userId, array $extra = []): array
     {
+        $conversation = is_array($extra['conversation'] ?? null) ? $extra['conversation'] : [];
+        $conversationId = is_numeric($conversation['id'] ?? null) ? (int) $conversation['id'] : 0;
+        $conversationUrl = $conversationId > 0
+            ? private_portal_url('discussion_index') . '/' . $conversationId
+            : private_portal_url('discussion_index');
+
         return array_merge([
             'privatePageTitle' => 'Discussions famille',
             'discussionCurrentUserId' => $userId,
@@ -3510,6 +3556,12 @@ final class PrivatePortalController
             'discussionInviteDefaults' => [
                 'subject' => $this->privateMailTemplate('discussion_invite_subject', 'Invitation à rejoindre les discussions famille'),
                 'message' => $this->privateMailTemplate('discussion_invite_body'),
+            ],
+            'privateTopNavLabel' => 'Pages des discussions',
+            'privateTopNavItems' => [
+                ['label' => 'Tableau de bord', 'href' => private_portal_url('discussion_index'), 'icon' => '📊', 'active' => $conversationId <= 0],
+                ['label' => 'Conversations', 'href' => private_portal_url('discussion_index') . '#private-discussion-conversations', 'icon' => '✉', 'active' => false],
+                ['label' => 'Conversation', 'href' => $conversationUrl, 'icon' => '💬', 'active' => $conversationId > 0],
             ],
             'privateDashboardLogoutUrl' => private_portal_url('logout'),
             'privateLogoutCsrfToken' => csrf_token('private_logout'),
@@ -5069,6 +5121,12 @@ final class PrivatePortalController
             ? $viewModel['privateUserIdentifier']
             : '';
         $privateModules = is_array($viewModel['privateModules'] ?? null) ? $viewModel['privateModules'] : [];
+        $privateTopNavItems = is_array($viewModel['privateTopNavItems'] ?? null)
+            ? $viewModel['privateTopNavItems']
+            : [];
+        $privateTopNavLabel = is_string($viewModel['privateTopNavLabel'] ?? null)
+            ? $viewModel['privateTopNavLabel']
+            : '';
         $privateDocumentsEnabled = is_bool($viewModel['privateDocumentsEnabled'] ?? null)
             ? (bool) $viewModel['privateDocumentsEnabled']
             : false;

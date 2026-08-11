@@ -78,6 +78,40 @@ final class BlocNoteControllerTest extends TestCase
         $this->assertStringContainsString('name="action" value="save_note"', $response->body);
     }
 
+    public function testBlocNoteRouteUsesDedicatedTopNavigationWithMultipleModules(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $userId = $this->createPrivateUser($userRepository, 'blocnote-nav@example.com');
+        $this->assertTrue($moduleRepository->setUserModules(
+            $userId,
+            ['blocnote', 'documents', 'discussions'],
+            'admin@example.com'
+        ));
+
+        $controller = new PrivatePortalController(
+            $this->privateAuth($userRepository, 'blocnote-nav@example.com'),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository
+        );
+
+        $response = $controller->handle('blocnote', $this->request('GET', '/private/blocnote?view=notes'));
+        $topNav = $this->topNavigationHtml($response->body);
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Pages du bloc-note', $topNav);
+        $this->assertStringContainsString('Mes notes', $topNav);
+        $this->assertStringContainsString('Catégories', $topNav);
+        $this->assertStringContainsString('Aide', $topNav);
+        $this->assertStringNotContainsString('Documents', $topNav);
+        $this->assertStringNotContainsString('Discussions', $topNav);
+        $this->assertStringContainsString('>Documents</span>', $response->body);
+        $this->assertStringContainsString('>Discussions</span>', $response->body);
+    }
+
     public function testBlocNoteRouteRedirectsWithoutModuleAssignment(): void
     {
         $database = $this->editorialSqlDatabase();
@@ -135,5 +169,15 @@ final class BlocNoteControllerTest extends TestCase
             [],
             ['Host' => '127.0.0.1:8000']
         );
+    }
+
+    private function topNavigationHtml(string $html): string
+    {
+        $start = strpos($html, '<nav class="private-top-nav"');
+        $this->assertIsInt($start);
+        $end = strpos($html, '</nav>', $start);
+        $this->assertIsInt($end);
+
+        return substr($html, $start, $end - $start + 6);
     }
 }

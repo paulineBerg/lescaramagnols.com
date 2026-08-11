@@ -116,6 +116,13 @@ final class DocumentHubController
             'privatePageTitle' => 'Bibliothèque de documents',
             'privateUserIdentifier' => is_string($this->auth->currentIdentifier()) ? (string) $this->auth->currentIdentifier() : '',
             'privateModules' => $this->moduleNamesForUser($userId),
+            'privateTopNavLabel' => 'Vues de la bibliothèque de documents',
+            'privateTopNavItems' => [
+                ['label' => 'Tous', 'href' => private_portal_url('documents_hub'), 'icon' => '🗂️', 'active' => $view === ''],
+                ['label' => 'À classer', 'href' => private_portal_url('documents_hub') . '?vue=a-classer', 'icon' => '📥', 'active' => $view === 'a-classer'],
+                ['label' => 'Archives', 'href' => private_portal_url('documents_hub') . '?vue=archives', 'icon' => '🗄', 'active' => $view === 'archives'],
+                ['label' => 'Corbeille', 'href' => private_portal_url('documents_hub') . '?vue=corbeille', 'icon' => '🗑', 'active' => $view === 'corbeille'],
+            ],
             'hubDocuments' => $documents,
             'hubCategories' => $this->taxonomy->listActive(),
             'hubStats' => $this->repository->stats(),

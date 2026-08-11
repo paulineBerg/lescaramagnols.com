@@ -220,6 +220,13 @@ final class BlocNoteController
                 ? (string) $this->auth->currentIdentifier()
                 : '',
             'privateModules' => $this->privateModuleNamesForUser($userId),
+            'privateTopNavLabel' => 'Pages du bloc-note',
+            'privateTopNavItems' => [
+                ['label' => 'Tableau de bord', 'href' => $this->blocNoteUrl(['view' => 'dashboard']), 'icon' => '📊', 'active' => $view === 'dashboard'],
+                ['label' => 'Mes notes', 'href' => $this->blocNoteUrl(['view' => 'notes']), 'icon' => '📝', 'active' => $view === 'notes'],
+                ['label' => 'Catégories', 'href' => $this->blocNoteUrl(['view' => 'categories']), 'icon' => '🏷', 'active' => $view === 'categories'],
+                ['label' => 'Aide', 'href' => $this->blocNoteUrl(['view' => 'help']), 'icon' => '?', 'active' => $view === 'help'],
+            ],
             'blocNote' => [
                 'view' => $view,
                 'baseUrl' => private_portal_url('blocnote'),
