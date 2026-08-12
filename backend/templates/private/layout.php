@@ -462,48 +462,6 @@ $privateTopNavigationHasItems = $privateTopNavigationItems !== [];
         }
 
         document.addEventListener('click', (event) => {
-          if (!(event instanceof MouseEvent) || event.defaultPrevented || event.button !== 0) {
-            return;
-          }
-
-          if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-            return;
-          }
-
-          const link = event.target instanceof Element
-            ? event.target.closest('[data-private-nav-link]')
-            : null;
-          if (!(link instanceof HTMLAnchorElement) || link.target !== '') {
-            return;
-          }
-
-          const rawHref = link.getAttribute('href') || '';
-          if (rawHref === '' || rawHref === '#') {
-            return;
-          }
-
-          let targetUrl;
-          try {
-            targetUrl = new URL(link.href, window.location.href);
-          } catch (_error) {
-            return;
-          }
-
-          if (targetUrl.origin !== window.location.origin) {
-            return;
-          }
-
-          const sameDocument = targetUrl.pathname === window.location.pathname
-            && targetUrl.search === window.location.search;
-          if (sameDocument) {
-            return;
-          }
-
-          event.preventDefault();
-          window.location.assign(targetUrl.href);
-        }, { capture: true });
-
-        document.addEventListener('click', (event) => {
           const button = event.target instanceof Element
             ? event.target.closest('[data-private-password-toggle]')
             : null;
