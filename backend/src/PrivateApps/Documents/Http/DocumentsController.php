@@ -427,7 +427,11 @@ final class DocumentsController
 
     private function requireDocumentsModuleUser(Request $request): int|Response
     {
-        $required = $this->securityGuard->requireAuthenticated($request, private_portal_url('login'), true);
+        $required = $this->securityGuard->requireAuthenticated(
+            $request,
+            private_portal_url('login'),
+            strtoupper($request->method()) !== 'GET'
+        );
         if ($required !== null) {
             return $required;
         }
@@ -446,7 +450,11 @@ final class DocumentsController
 
     private function userIdOrAccessDenied(Request $request): ?int
     {
-        $required = $this->securityGuard->requireAuthenticated($request, private_portal_url('login'), true);
+        $required = $this->securityGuard->requireAuthenticated(
+            $request,
+            private_portal_url('login'),
+            strtoupper($request->method()) !== 'GET'
+        );
         if ($required !== null) {
             return null;
         }

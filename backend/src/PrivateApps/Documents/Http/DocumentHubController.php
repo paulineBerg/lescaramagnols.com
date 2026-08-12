@@ -391,7 +391,11 @@ final class DocumentHubController
 
     private function requireUser(Request $request): int|Response
     {
-        $required = $this->securityGuard->requireAuthenticated($request, private_portal_url('login'), true);
+        $required = $this->securityGuard->requireAuthenticated(
+            $request,
+            private_portal_url('login'),
+            strtoupper($request->method()) !== 'GET'
+        );
         if ($required !== null) {
             return $required;
         }

@@ -76,6 +76,8 @@ final class RealEstateRentalModuleTest extends TestCase
         $this->assertNotNull($memberRepository->create($visible->id, $guestId, 'occupant', $ownerId));
 
         $auth = $this->privateAuth($userRepository, 'guest@example.com');
+        $_SESSION['private_user']['last_reauth_at'] = 0;
+        $this->assertFalse($auth->isReauthFresh());
         $controller = new \Caramagnols\PrivatePortal\Http\PrivatePortalController(
             $auth,
             null,

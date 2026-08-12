@@ -63,8 +63,12 @@ final class DocumentsControllerTest extends TestCase
         $userId = $this->createPrivateUser($userRepository, 'documents@example.com');
         $this->assertTrue($moduleRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
 
+        $auth = $this->privateAuth($userRepository, 'documents@example.com');
+        $_SESSION['private_user']['last_reauth_at'] = 0;
+        $this->assertFalse($auth->isReauthFresh());
+
         $controller = new PrivatePortalController(
-            $this->privateAuth($userRepository, 'documents@example.com'),
+            $auth,
             null,
             null,
             $userRepository,
@@ -89,8 +93,12 @@ final class DocumentsControllerTest extends TestCase
         $userId = $this->createPrivateUser($userRepository, 'documents-hub@example.com');
         $this->assertTrue($moduleRepository->setUserModules($userId, ['documents'], 'admin@example.com'));
 
+        $auth = $this->privateAuth($userRepository, 'documents-hub@example.com');
+        $_SESSION['private_user']['last_reauth_at'] = 0;
+        $this->assertFalse($auth->isReauthFresh());
+
         $controller = new PrivatePortalController(
-            $this->privateAuth($userRepository, 'documents-hub@example.com'),
+            $auth,
             null,
             null,
             $userRepository,

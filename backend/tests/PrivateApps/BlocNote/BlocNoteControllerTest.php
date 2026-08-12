@@ -63,8 +63,12 @@ final class BlocNoteControllerTest extends TestCase
         $userId = $this->createPrivateUser($userRepository, 'blocnote@example.com');
         $this->assertTrue($moduleRepository->setUserModules($userId, ['blocnote'], 'admin@example.com'));
 
+        $auth = $this->privateAuth($userRepository, 'blocnote@example.com');
+        $_SESSION['private_user']['last_reauth_at'] = 0;
+        $this->assertFalse($auth->isReauthFresh());
+
         $controller = new PrivatePortalController(
-            $this->privateAuth($userRepository, 'blocnote@example.com'),
+            $auth,
             null,
             null,
             $userRepository,
@@ -76,6 +80,10 @@ final class BlocNoteControllerTest extends TestCase
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Bloc-note', $response->body);
         $this->assertStringContainsString('name="action" value="save_note"', $response->body);
+
+        $writeResponse = $controller->handle('blocnote', $this->request('POST', '/private/blocnote'));
+        $this->assertSame(302, $writeResponse->status);
+        $this->assertSame('/private/login', $writeResponse->headers['Location'] ?? null);
     }
 
     public function testBlocNoteRouteUsesDedicatedModuleNavigationWithoutGlobalTopNavigation(): void
@@ -166,5 +174,4 @@ final class BlocNoteControllerTest extends TestCase
             ['Host' => '127.0.0.1:8000']
         );
     }
-
 }

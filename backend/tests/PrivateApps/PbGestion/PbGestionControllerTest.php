@@ -64,8 +64,12 @@ final class PbGestionControllerTest extends TestCase
         $userId = $this->createPrivateUser($userRepository, 'pbgestion@example.com');
         $this->assertTrue($moduleRepository->setUserModules($userId, ['pbgestion', 'documents'], 'admin@example.com'));
 
+        $auth = $this->privateAuth($userRepository, 'pbgestion@example.com');
+        $_SESSION['private_user']['last_reauth_at'] = 0;
+        $this->assertFalse($auth->isReauthFresh());
+
         $controller = new PrivatePortalController(
-            $this->privateAuth($userRepository, 'pbgestion@example.com'),
+            $auth,
             null,
             null,
             $userRepository,
@@ -82,6 +86,10 @@ final class PbGestionControllerTest extends TestCase
         $this->assertStringContainsString('Vue d’ensemble</a>', $response->body);
         $this->assertStringContainsString('Agents et installation</a>', $response->body);
         $this->assertStringContainsString('Sauvegardes</a>', $response->body);
+
+        $writeResponse = $controller->handle('pbgestion_dashboard', $this->request('POST', '/private/pbgestion'));
+        $this->assertSame(302, $writeResponse->status);
+        $this->assertSame('/private/login', $writeResponse->headers['Location'] ?? null);
     }
 
     public function testPbGestionRouteRedirectsWithoutModuleAssignment(): void
