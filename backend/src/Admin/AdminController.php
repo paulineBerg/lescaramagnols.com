@@ -2141,7 +2141,7 @@ final class AdminController
                     $purgeable = $repository->purgeExpiredDetails(true);
                     $message = sprintf('%d détail(s) temporaire(s) expiré(s) peuvent être purgé(s).', $purgeable);
                 } else {
-                    $error = 'Action PB Gestion inconnue.';
+                    $error = 'Action Sécurité réseau inconnue.';
                 }
             }
         }
@@ -2149,7 +2149,7 @@ final class AdminController
         return $this->renderPage(
             'pbgestion.php',
             [
-                'pageTitle' => 'PB Gestion · Pilotage sécurité',
+                'pageTitle' => 'Sécurité réseau · Pilotage sécurité',
                 'activeMenu' => 'pbgestion',
                 'adminPbGestionUrl' => $this->routeResolver->canonicalPath('pbgestion'),
                 'csrfToken' => admin_csrf_token(),

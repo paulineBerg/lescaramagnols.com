@@ -10,7 +10,7 @@ $postures = is_array($dashboard['postures'] ?? null) ? $dashboard['postures'] : 
 $retentions = is_array($dashboard['retentions'] ?? null) ? $dashboard['retentions'] : [];
 $adminPbGestionUrl = is_string($adminPbGestionUrl ?? null) ? $adminPbGestionUrl : admin_url('pbgestion');
 ?>
-<h1>PB Gestion</h1>
+<h1>Sécurité réseau</h1>
 
 <?php if (($message ?? null) !== null): ?>
 <div class="notice notice-success" role="status"><?php echo $escape($message); ?></div>
@@ -54,7 +54,7 @@ $adminPbGestionUrl = is_string($adminPbGestionUrl ?? null) ? $adminPbGestionUrl 
 <section class="admin-section">
   <h2>Agents</h2>
   <?php if ($agents === []): ?>
-    <p class="muted">Aucun agent PB Gestion appairé.</p>
+    <p class="muted">Aucun agent Sécurité réseau appairé.</p>
   <?php else: ?>
     <table class="admin-table">
       <thead>
@@ -70,7 +70,7 @@ $adminPbGestionUrl = is_string($adminPbGestionUrl ?? null) ? $adminPbGestionUrl 
       <tbody>
         <?php foreach ($agents as $agent): ?>
         <tr>
-          <td><?php echo $escape($agent['display_name'] ?? 'Agent PB Gestion'); ?></td>
+          <td><?php echo $escape($agent['display_name'] ?? 'Agent Sécurité réseau'); ?></td>
           <td>#<?php echo (int) ($agent['owner_id'] ?? 0); ?></td>
           <td><?php echo $escape($agent['status'] ?? ''); ?></td>
           <td><?php echo $escape(trim((string) ($agent['os_family'] ?? '') . ' ' . (string) ($agent['os_version'] ?? ''))); ?></td>
@@ -218,7 +218,7 @@ $adminPbGestionUrl = is_string($adminPbGestionUrl ?? null) ? $adminPbGestionUrl 
       <tbody>
         <?php foreach ($revokedAgents as $agent): ?>
         <tr>
-          <td><?php echo $escape($agent['display_name'] ?? 'Agent PB Gestion'); ?></td>
+          <td><?php echo $escape($agent['display_name'] ?? 'Agent Sécurité réseau'); ?></td>
           <td>#<?php echo (int) ($agent['owner_id'] ?? 0); ?></td>
           <td><?php echo $escape($agent['revoked_reason'] ?? '-'); ?></td>
           <td><?php echo $escape($agent['revoked_at'] ?? '-'); ?></td>

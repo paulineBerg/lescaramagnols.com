@@ -18,7 +18,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
 
     public function moduleName(): string
     {
-        return 'PB Gestion';
+        return 'Sécurité réseau';
     }
 
     public function moduleDescription(): string
@@ -38,7 +38,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
 
     public function title(): string
     {
-        return 'PB Gestion';
+        return 'Sécurité réseau';
     }
 
     public function order(): int
@@ -174,7 +174,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     public function dashboardTileData(): array
     {
         return [
-            'label' => 'PB Gestion',
+            'label' => 'Sécurité réseau',
             'description' => 'Couverture locale, agents, alertes et sauvegardes',
             'stat_code' => 'private.pbgestion.agent_count',
         ];
@@ -182,6 +182,6 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
 
     public function notes(): string
     {
-        return 'Webapp PB Gestion livree cote Caramagnols; le depot agent Rust reste separe.';
+        return 'Webapp Sécurité réseau livree cote Caramagnols; le depot agent Rust reste separe.';
     }
 }

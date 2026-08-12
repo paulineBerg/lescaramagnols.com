@@ -126,7 +126,7 @@ final class PbGestionController
         $dashboard = $this->repository->dashboardForOwner($userId);
 
         return ($this->render)('modules/pbgestion/index', [
-            'privatePageTitle' => 'PB Gestion',
+            'privatePageTitle' => 'Sécurité réseau',
             'privateUserIdentifier' => is_string($this->auth->currentIdentifier()) ? (string) $this->auth->currentIdentifier() : '',
             'privateModules' => $this->privateModuleNamesForUser($userId),
             'privateNavigationModuleCodes' => $this->privateModuleCodesForUser($userId),
@@ -301,7 +301,7 @@ final class PbGestionController
     {
         return match ($key) {
             'invalid_request' => 'Requête invalide.',
-            'command_rejected' => 'La commande a été refusée par la politique PB Gestion.',
+            'command_rejected' => 'La commande a été refusée par la politique Sécurité réseau.',
             'agent_revoke_failed' => 'L’agent n’a pas pu être révoqué.',
             default => null,
         };

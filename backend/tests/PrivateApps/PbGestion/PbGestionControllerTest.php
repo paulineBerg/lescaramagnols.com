@@ -80,7 +80,7 @@ final class PbGestionControllerTest extends TestCase
         $response = $controller->handle('pbgestion_dashboard', $this->request('GET', '/private/pbgestion'));
 
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('PB Gestion', $response->body);
+        $this->assertStringContainsString('Sécurité réseau', $response->body);
         $this->assertStringNotContainsString('class="private-top-nav"', $response->body);
         $this->assertStringContainsString('class="private-module-nav"', $response->body);
         $this->assertStringContainsString('Vue d’ensemble</a>', $response->body);

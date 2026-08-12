@@ -1,4 +1,4 @@
--- Security Center summaries for PB Gestion.
+-- Security Center summaries for Sécurité réseau.
 -- Durable server storage keeps pseudonymous tokens and summaries only.
 
 CREATE TABLE IF NOT EXISTS car_security_networks (

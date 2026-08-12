@@ -44,7 +44,7 @@ final class PbGestionRepository
         $expiresAt = gmdate('Y-m-d H:i:s', time() + 600);
         $hash = password_hash($code, PASSWORD_DEFAULT);
         if (!is_string($hash)) {
-            throw new RuntimeException('Impossible de generer le hash du code PB Gestion.');
+            throw new RuntimeException('Impossible de generer le hash du code Sécurité réseau.');
         }
 
         $statement = $this->pdo()->prepare(
@@ -823,12 +823,12 @@ final class PbGestionRepository
         $this->ensurePrivateModuleRegistryTables();
         foreach ([ROOT_PATH . '/sql/private/pbgestion.sql', ROOT_PATH . '/sql/private/security_center.sql'] as $filePath) {
             if (!is_file($filePath)) {
-                throw new RuntimeException('Migration PB Gestion introuvable: ' . $filePath);
+                throw new RuntimeException('Migration Sécurité réseau introuvable: ' . $filePath);
             }
 
             $sql = file_get_contents($filePath);
             if ($sql === false) {
-                throw new RuntimeException('Migration PB Gestion illisible: ' . $filePath);
+                throw new RuntimeException('Migration Sécurité réseau illisible: ' . $filePath);
             }
 
             foreach ($this->splitSql($this->rewritePrefix($sql)) as $statement) {
@@ -878,7 +878,7 @@ final class PbGestionRepository
 
             $now = $this->now();
             $agentUid = bin2hex(random_bytes(16));
-            $displayName = $this->shortText((string) ($payload['display_name'] ?? 'Agent PB Gestion'), 160) ?: 'Agent PB Gestion';
+            $displayName = $this->shortText((string) ($payload['display_name'] ?? 'Agent Sécurité réseau'), 160) ?: 'Agent Sécurité réseau';
             $capabilities = is_array($payload['capabilities'] ?? null) ? array_values($payload['capabilities']) : [];
             $insert = $pdo->prepare(
                 sprintf(
@@ -1301,7 +1301,7 @@ final class PbGestionRepository
             'alert_uid' => bin2hex(random_bytes(16)),
             'logical_key' => $logicalKey,
             'severity' => $severity,
-            'title' => $this->shortText((string) ($alert['title'] ?? 'Alerte PB Gestion'), 190) ?: 'Alerte PB Gestion',
+            'title' => $this->shortText((string) ($alert['title'] ?? 'Alerte Sécurité réseau'), 190) ?: 'Alerte Sécurité réseau',
             'summary' => $this->shortText((string) ($alert['summary'] ?? 'Un signal de securite demande une verification.'), 500),
             'opened_at' => $this->dateOrNow($alert['opened_at'] ?? null),
             'last_seen_at' => $now,

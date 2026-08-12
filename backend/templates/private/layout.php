@@ -182,9 +182,9 @@ if ($privateHasModuleCode('web_development', 'Web development')) {
     ];
 }
 
-if ($privateHasModuleCode('pbgestion', 'PB Gestion')) {
+if ($privateHasModuleCode('pbgestion', 'Sécurité réseau')) {
     $privateNavItems[] = [
-        'label' => 'PB Gestion',
+        'label' => 'Sécurité réseau',
         'href' => private_portal_url('pbgestion_dashboard'),
         'icon' => '🛡',
         'active' => $privateCurrentPath !== ''

@@ -41,7 +41,7 @@ $statusLabel = static function (string $status): string {
 };
 ?>
 <section class="private-dashboard pbgestion-module" data-pbgestion-root>
-  <nav class="private-module-nav" aria-label="Navigation PB Gestion">
+  <nav class="private-module-nav" aria-label="Navigation Sécurité réseau">
     <div class="private-module-nav-row">
       <a class="<?php echo $isActive('overview'); ?>" href="<?php echo $h($url('overview')); ?>">Vue d’ensemble</a>
       <a class="<?php echo $isActive('coverage'); ?>" href="<?php echo $h($url('coverage')); ?>">Couverture</a>
@@ -61,7 +61,7 @@ $statusLabel = static function (string $status): string {
     <section class="private-module-dashboard">
       <div class="private-list-header">
         <div>
-          <span class="tag">PB Gestion</span>
+          <span class="tag">Sécurité réseau</span>
           <h2>Vue d’ensemble</h2>
           <p class="muted">Etat utile des agents locaux, sans conserver les détails réseau bruts sur OVH.</p>
         </div>
@@ -231,8 +231,8 @@ $statusLabel = static function (string $status): string {
     </section>
   <?php else: ?>
     <section class="card private-card-wide">
-      <h2>Aide PB Gestion</h2>
-      <p class="muted">PB Gestion affiche l’état local utile transmis par les agents. Les données brutes réseau restent locales par défaut.</p>
+      <h2>Aide Sécurité réseau</h2>
+      <p class="muted">Sécurité réseau affiche l’état local utile transmis par les agents. Les données brutes réseau restent locales par défaut.</p>
       <h3>Avant de commencer</h3>
       <p>Installez un agent, créez un code d’appairage, puis vérifiez que le dernier contact apparaît dans la vue d’ensemble.</p>
       <h3>Commandes</h3>

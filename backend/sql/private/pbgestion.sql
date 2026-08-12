@@ -1,4 +1,4 @@
--- PB Gestion webapp schema.
+-- Sécurité réseau webapp schema.
 -- Raw local network details stay on the agent by default; server tables keep
 -- opaque identifiers, state, summaries and short-lived encrypted details.
 
@@ -179,4 +179,4 @@ CREATE TABLE IF NOT EXISTS car_pb_agent_versions (
 
 INSERT IGNORE INTO car_private_modules (`code`, `is_active`, `display_name`, `description`)
     VALUES
-        ('pbgestion', 1, 'PB Gestion', 'Pilotage des agents locaux, couverture, alertes et synthèses de sécurité.');
+        ('pbgestion', 1, 'Sécurité réseau', 'Pilotage des agents locaux, couverture, alertes et synthèses de sécurité.');

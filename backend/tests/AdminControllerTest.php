@@ -228,7 +228,7 @@ final class AdminControllerTest extends TestCase
         $response = $controller->handle('pbgestion', $this->request('GET', '/admin/pbgestion'));
 
         $this->assertSame(200, $response->status);
-        $this->assertStringContainsString('PB Gestion', $response->body);
+        $this->assertStringContainsString('Sécurité réseau', $response->body);
         $this->assertStringContainsString('Maintenance des détails temporaires', $response->body);
         $this->assertStringContainsString('Versions disponibles', $response->body);
     }

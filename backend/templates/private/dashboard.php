@@ -236,17 +236,17 @@ $privateHasModuleCode = static function (string $code, string $fallbackName) use
     </section>
     <?php endif; ?>
 
-    <?php if ($privateHasModuleCode('pbgestion', 'PB Gestion')): ?>
+    <?php if ($privateHasModuleCode('pbgestion', 'Sécurité réseau')): ?>
     <section class="card">
       <span class="tag">Sécurité locale</span>
-      <h2>PB Gestion</h2>
+      <h2>Sécurité réseau</h2>
       <p class="muted">Suivez les agents locaux, la couverture réelle, les alertes et les sauvegardes sans stocker les détails réseau bruts.</p>
       <p class="muted">
         <strong>Statistique :</strong>
         <?php echo htmlspecialchars($privateModuleStat('pbgestion', 'élément suivi', 'éléments suivis'), ENT_QUOTES, 'UTF-8'); ?>.
       </p>
       <p class="private-actions">
-        <a href="<?php echo htmlspecialchars(private_portal_url('pbgestion_dashboard'), ENT_QUOTES, 'UTF-8'); ?>">Ouvrir PB Gestion</a>
+        <a href="<?php echo htmlspecialchars(private_portal_url('pbgestion_dashboard'), ENT_QUOTES, 'UTF-8'); ?>">Ouvrir Sécurité réseau</a>
       </p>
     </section>
     <?php endif; ?>

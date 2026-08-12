@@ -49,7 +49,7 @@ final class PrivateModuleRegistry
             ],
             [
                 'code' => 'pbgestion',
-                'name' => 'PB Gestion',
+                'name' => 'Sécurité réseau',
                 'description' => 'Agents locaux, couverture, alertes, sauvegardes et syntheses de securite.',
             ],
         ];
