@@ -31,7 +31,7 @@ final class TrustedDeviceRepository
         string $trustedUntil
     ): int {
         $this->ensureSchema();
-        $existing = $this->findReusable($userScope, $userId, $identifierHash, $userAgentHash);
+        $existing = $this->findReusable($userScope, $userId, $identifierHash, $userAgentHash, $ipHash);
         $now = $this->now();
 
         if (is_array($existing) && (int) ($existing['id'] ?? 0) > 0) {
@@ -123,29 +123,36 @@ final class TrustedDeviceRepository
         return array_values(array_filter($statement->fetchAll(PDO::FETCH_ASSOC) ?: [], 'is_array'));
     }
 
-    public function touch(int $id, string $ipHash, string $trustedUntil): void
+    public function touch(int $id, string $ipHash, ?string $trustedUntil = null): void
     {
         if ($id <= 0) {
             return;
         }
 
         $this->ensureSchema();
+        $trustedUntilSql = $trustedUntil !== null && trim($trustedUntil) !== ''
+            ? ', `trusted_until` = :trusted_until'
+            : '';
         $statement = $this->database->pdo()->prepare(
             sprintf(
                 'UPDATE `%s`
                  SET `last_seen_at` = :last_seen_at,
-                     `last_ip_hash` = :last_ip_hash,
-                     `trusted_until` = :trusted_until
+                     `last_ip_hash` = :last_ip_hash
+                     %s
                  WHERE `id` = :id AND `revoked_at` IS NULL',
-                $this->table()
+                $this->table(),
+                $trustedUntilSql
             )
         );
-        $statement->execute([
+        $params = [
             'last_seen_at' => $this->now(),
             'last_ip_hash' => $ipHash,
-            'trusted_until' => $trustedUntil,
             'id' => $id,
-        ]);
+        ];
+        if ($trustedUntilSql !== '') {
+            $params['trusted_until'] = (string) $trustedUntil;
+        }
+        $statement->execute($params);
     }
 
     public function rename(int $id, string $name): bool
@@ -215,13 +222,14 @@ final class TrustedDeviceRepository
     /**
      * @return array<string, mixed>|null
      */
-    private function findReusable(string $userScope, ?int $userId, string $identifierHash, string $userAgentHash): ?array
+    private function findReusable(string $userScope, ?int $userId, string $identifierHash, string $userAgentHash, string $ipHash): ?array
     {
-        $where = '`user_scope` = :user_scope AND `user_identifier_hash` = :identifier_hash AND `user_agent_hash` = :user_agent_hash AND `revoked_at` IS NULL';
+        $where = '`user_scope` = :user_scope AND `user_identifier_hash` = :identifier_hash AND `user_agent_hash` = :user_agent_hash AND `last_ip_hash` = :last_ip_hash AND `revoked_at` IS NULL';
         $params = [
             'user_scope' => $userScope,
             'identifier_hash' => $identifierHash,
             'user_agent_hash' => $userAgentHash,
+            'last_ip_hash' => $ipHash,
         ];
         if ($userId !== null && $userId > 0) {
             $where .= ' AND `user_id` = :user_id';

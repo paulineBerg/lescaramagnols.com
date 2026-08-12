@@ -32,7 +32,8 @@ final class PersistentSessionService
             return null;
         }
 
-        $ttl = $this->trustedTtl($scope);
+        $trustedTtl = $this->trustedTtl($scope);
+        $trustedUntil = time() + $trustedTtl;
         $deviceId = $this->devices->upsert(
             $userScope,
             $userId,
@@ -41,15 +42,15 @@ final class PersistentSessionService
             $this->trustedDevices->deviceType($request),
             $this->audit->hashUserAgent($request->header('User-Agent')),
             $this->audit->hashIp($request->clientIp((bool) app_config($scope . '.trust_proxy_headers', false))),
-            gmdate('Y-m-d H:i:s', time() + $ttl)
+            gmdate('Y-m-d H:i:s', $trustedUntil)
         );
-        $token = $this->tokens->create($deviceId, $scope, $ttl);
+        $token = $this->tokens->create($deviceId, $scope, $this->tokenTtl($scope, $trustedUntil));
 
         $this->audit->security('auth.device.registered', ['trusted_device_id' => $deviceId, 'scope' => $scope, 'result' => 'success']);
         $this->audit->security('auth.token.created', ['trusted_device_id' => $deviceId, 'scope' => $scope, 'result' => 'success']);
 
         return [
-            'set_cookie' => $this->cookies->issueHeader($scope, $token['selector'], $token['secret'], strtotime($token['expires_at']) ?: time() + $ttl),
+            'set_cookie' => $this->cookies->issueHeader($scope, $token['selector'], $token['secret'], strtotime($token['expires_at']) ?: $trustedUntil),
             'device_id' => $deviceId,
         ];
     }
@@ -100,12 +101,11 @@ final class PersistentSessionService
             return ['status' => 'expired', 'set_cookie' => $this->cookies->clearHeader($scope), 'token' => $token, 'device' => $device];
         }
 
-        $ttl = $this->trustedTtl($scope);
-        $new = $this->rotator->rotate($token, $ttl);
+        $trustedUntil = strtotime((string) ($device['trusted_until'] ?? '')) ?: time();
+        $new = $this->rotator->rotate($token, $this->tokenTtl($scope, $trustedUntil));
         $this->devices->touch(
             (int) ($device['id'] ?? 0),
-            $this->audit->hashIp($request->clientIp((bool) app_config($scope . '.trust_proxy_headers', false))),
-            gmdate('Y-m-d H:i:s', time() + $ttl)
+            $this->audit->hashIp($request->clientIp((bool) app_config($scope . '.trust_proxy_headers', false)))
         );
 
         $this->audit->security('auth.token.rotated', [
@@ -116,7 +116,7 @@ final class PersistentSessionService
 
         return [
             'status' => 'valid',
-            'set_cookie' => $this->cookies->issueHeader($scope, $new['selector'], $new['secret'], strtotime($new['expires_at']) ?: time() + $ttl),
+            'set_cookie' => $this->cookies->issueHeader($scope, $new['selector'], $new['secret'], strtotime($new['expires_at']) ?: $trustedUntil),
             'token' => $token,
             'device' => $device,
         ];
@@ -162,6 +162,18 @@ final class PersistentSessionService
         $fallback = $scope === SessionScope::ADMIN ? 2592000 : 7776000;
 
         return max(300, (int) app_config('identity.persistent.' . $scope . '_trusted_device_ttl_seconds', $fallback));
+    }
+
+    public function idleTtl(string $scope): int
+    {
+        return max(300, (int) app_config('identity.persistent.' . $scope . '_trusted_device_idle_ttl_seconds', 2592000));
+    }
+
+    private function tokenTtl(string $scope, int $trustedUntil): int
+    {
+        $remainingTrustedSeconds = max(300, $trustedUntil - time());
+
+        return min($this->idleTtl($scope), $remainingTrustedSeconds);
     }
 
     private function isReused(array $token): bool

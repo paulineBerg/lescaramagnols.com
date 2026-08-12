@@ -182,4 +182,20 @@ final class AuthTest extends TestCase
         $this->assertTrue(admin_is_authenticated());
         $this->assertFalse(admin_reauth_is_fresh());
     }
+
+    public function testAdminPersistentRestoreFromTrustedDeviceKeepsReauthFreshUntilDeviceExpires(): void
+    {
+        admin_restore_session('admin@example.com', false, time() + 2592000);
+
+        $this->assertTrue(admin_is_authenticated());
+        $this->assertTrue(admin_reauth_is_fresh());
+    }
+
+    public function testAdminPersistentRestoreFromExpiredTrustedDeviceIsNotFresh(): void
+    {
+        admin_restore_session('admin@example.com', false, time() - 60);
+
+        $this->assertTrue(admin_is_authenticated());
+        $this->assertFalse(admin_reauth_is_fresh());
+    }
 }

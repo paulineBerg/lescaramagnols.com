@@ -144,6 +144,8 @@ trait EditorialSqlTestTrait
                     'private_password_resets',
                     'private_user_invites',
                     'private_users',
+                    'persistent_session_tokens',
+                    'trusted_devices',
                     'blog_discussions',
                     'blog_articles',
                     'log_entries',

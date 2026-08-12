@@ -61,7 +61,8 @@ final class PersistentSessionGuard
             return $result['set_cookie'];
         }
 
-        admin_restore_session($identifier, false);
+        $trustedReauthUntil = strtotime((string) ($device['trusted_until'] ?? '')) ?: null;
+        admin_restore_session($identifier, false, $trustedReauthUntil);
         $this->audit->security('auth.admin.session_restored', [
             'trusted_device_id' => (int) ($device['id'] ?? 0),
             'scope' => SessionScope::ADMIN,

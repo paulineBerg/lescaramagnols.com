@@ -279,7 +279,7 @@ function admin_mark_reauthenticated(): void
     $_SESSION[$key]['last_reauth_at'] = time();
 }
 
-function admin_restore_session(string $identifier, bool $freshReauth = false): void
+function admin_restore_session(string $identifier, bool $freshReauth = false, ?int $trustedReauthUntil = null): void
 {
     ensure_session_started();
 
@@ -294,6 +294,7 @@ function admin_restore_session(string $identifier, bool $freshReauth = false): v
         'login_at' => $now,
         'last_activity_at' => $now,
         'last_reauth_at' => $freshReauth ? $now : 0,
+        'trusted_reauth_until' => $trustedReauthUntil !== null && $trustedReauthUntil > $now ? $trustedReauthUntil : 0,
     ];
 }
 
@@ -307,6 +308,11 @@ function admin_reauth_is_fresh(): bool
     $now = time();
     $loginAt = (int) ($_SESSION[$key]['login_at'] ?? 0);
     $lastReauthAt = (int) ($_SESSION[$key]['last_reauth_at'] ?? $loginAt);
+    $trustedReauthUntil = (int) ($_SESSION[$key]['trusted_reauth_until'] ?? 0);
+
+    if ($trustedReauthUntil > $now) {
+        return true;
+    }
 
     if ($lastReauthAt <= 0) {
         return false;

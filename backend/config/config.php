@@ -664,7 +664,7 @@ $appConfig = [
             'private_trusted_device_ttl_seconds' => max(300, (int) env('PRIVATE_TRUSTED_DEVICE_TTL_SECONDS', 7776000)),
             'private_trusted_device_idle_ttl_seconds' => max(300, (int) env('PRIVATE_TRUSTED_DEVICE_IDLE_TTL_SECONDS', 2592000)),
             'admin_trusted_device_ttl_seconds' => max(300, (int) env('ADMIN_TRUSTED_DEVICE_TTL_SECONDS', 2592000)),
-            'admin_trusted_device_idle_ttl_seconds' => max(300, (int) env('ADMIN_TRUSTED_DEVICE_IDLE_TTL_SECONDS', 1209600)),
+            'admin_trusted_device_idle_ttl_seconds' => max(300, (int) env('ADMIN_TRUSTED_DEVICE_IDLE_TTL_SECONDS', 2592000)),
             'expired_token_retention_seconds' => max(86400, (int) env('PERSISTENT_AUTH_EXPIRED_TOKEN_RETENTION_SECONDS', 2592000)),
             'revoked_token_retention_seconds' => max(86400, (int) env('PERSISTENT_AUTH_REVOKED_TOKEN_RETENTION_SECONDS', 7776000)),
         ],
