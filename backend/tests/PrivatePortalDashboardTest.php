@@ -87,7 +87,7 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertIsInt($userId);
         $this->assertTrue($moduleRepository->setUserModules(
             $userId,
-            ['blocnote', 'documents', 'real_estate_rental'],
+            ['blocnote', 'documents', 'real_estate_rental', 'pbgestion'],
             'admin@example.com'
         ));
 
@@ -107,6 +107,8 @@ final class PrivatePortalDashboardTest extends TestCase
         $this->assertStringContainsString('href="/private/blocnote"', $dashboard->body);
         $this->assertStringContainsString('href="/private/documents"', $dashboard->body);
         $this->assertStringContainsString('href="/private/locations"', $dashboard->body);
+        $this->assertStringContainsString('href="/private/pbgestion"', $dashboard->body);
+        $this->assertStringNotContainsString('class="private-top-nav"', $dashboard->body);
     }
 
     public function testDashboardShowsDocumentManagementForDocumentsModule(): void

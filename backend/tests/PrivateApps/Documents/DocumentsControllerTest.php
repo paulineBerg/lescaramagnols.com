@@ -78,6 +78,7 @@ final class DocumentsControllerTest extends TestCase
         $this->assertStringNotContainsString('class="private-top-nav"', $response->body);
         $this->assertStringContainsString('class="private-module-nav"', $response->body);
         $this->assertStringContainsString('href="#private-documents"', $response->body);
+        $this->assertStringContainsString('href="/private/documents/bibliotheque"', $response->body);
     }
 
     public function testDocumentHubShowsDedicatedNavigationWithoutTopNavigation(): void

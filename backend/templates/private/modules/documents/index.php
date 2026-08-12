@@ -104,6 +104,7 @@ $privateDocumentCategoryDialogId = 'private-document-category-dialog';
     <div class="private-module-nav-row">
       <a class="active" href="#private-documents-dashboard">Tableau de bord</a>
       <a href="#private-documents">Documents</a>
+      <a href="<?php echo $h(private_portal_url('documents_hub')); ?>">Bibliothèque</a>
       <?php if ($privateDocumentsEnabled): ?>
         <button type="button" data-private-dialog-open="<?php echo $h($privateDocumentCategoryDialogId); ?>" data-private-document-category-reset>Catégories</button>
       <?php endif; ?>
