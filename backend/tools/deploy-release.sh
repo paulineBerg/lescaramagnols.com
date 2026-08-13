@@ -220,6 +220,8 @@ PRIVATE_RSYNC_EXCLUDES=(--exclude="/private/")
 
 rsync "${RSYNC_FLAGS[@]}" \
   --exclude=".git/" \
+  --exclude=".ai/" \
+  --exclude=".governance/" \
   --exclude=".env" \
   --exclude=".env.*" \
   --exclude="config/database.override.php" \

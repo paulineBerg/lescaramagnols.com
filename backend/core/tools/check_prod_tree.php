@@ -144,6 +144,8 @@ function is_backend_root(string $backendRoot): bool
 function collect_non_prod_paths(string $backendRoot): array
 {
     $exactPaths = [
+        '.ai',
+        '.governance',
         '.env.example',
         '.env.production',
         'tests',
