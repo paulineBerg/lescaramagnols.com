@@ -148,6 +148,7 @@ final class PrivatePortalController
             'pbgestion_alerts',
             'pbgestion_scans',
             'pbgestion_backups',
+            'pbgestion_photos',
             'pbgestion_agents',
             'pbgestion_settings',
             'pbgestion_help' => $this->pbGestionController()->handle($page, $request),

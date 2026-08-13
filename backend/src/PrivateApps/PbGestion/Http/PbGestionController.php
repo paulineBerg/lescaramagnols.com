@@ -182,6 +182,9 @@ final class PbGestionController
         if ($type === 'scan.start') {
             $payload['scan_mode'] = 'active_limited';
         }
+        if (str_starts_with($type, 'photo.')) {
+            $payload = $this->photoCommandPayload($type, $body);
+        }
 
         if ($agentId <= 0 || $type === '') {
             return ['ok' => false];
@@ -249,6 +252,7 @@ final class PbGestionController
             'pbgestion_alerts' => 'alerts',
             'pbgestion_scans' => 'scans',
             'pbgestion_backups' => 'backups',
+            'pbgestion_photos' => 'photos',
             'pbgestion_agents' => 'agents',
             'pbgestion_settings' => 'settings',
             'pbgestion_help' => 'help',
@@ -270,6 +274,7 @@ final class PbGestionController
             'alerts' => private_portal_url('pbgestion_alerts'),
             'scans' => private_portal_url('pbgestion_scans'),
             'backups' => private_portal_url('pbgestion_backups'),
+            'photos' => private_portal_url('pbgestion_photos'),
             'agents' => private_portal_url('pbgestion_agents'),
             'settings' => private_portal_url('pbgestion_settings'),
             'help' => private_portal_url('pbgestion_help'),
@@ -310,6 +315,80 @@ final class PbGestionController
     private function positiveInt(mixed $value): int
     {
         return is_numeric($value) && (int) $value > 0 ? (int) $value : 0;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    private function photoCommandPayload(string $type, array $body): array
+    {
+        if ($type === 'photo.roots.list') {
+            return [];
+        }
+
+        if ($type === 'photo.folder.scan') {
+            return [
+                'root_uid' => $this->shortBodyText($body, 'root_uid', 64),
+                'relative_dir' => $this->shortBodyText($body, 'relative_dir', 240),
+                'include_subdirectories' => ($body['include_subdirectories'] ?? null) === '1',
+            ];
+        }
+
+        if ($type === 'photo.rename.preview') {
+            $items = preg_split('/\R+/', $this->shortBodyText($body, 'items', 12000)) ?: [];
+            $items = array_values(array_filter(array_map('trim', $items), static fn (string $item): bool => $item !== ''));
+            $template = [];
+            $prefix = $this->shortBodyText($body, 'text_before', 80);
+            $suffix = $this->shortBodyText($body, 'text_after', 80);
+            if ($prefix !== '') {
+                $template[] = ['type' => 'text', 'value' => $prefix];
+            }
+            foreach (['city', 'date', 'counter'] as $block) {
+                $template[] = ['type' => $block, 'value' => ''];
+            }
+            if ($suffix !== '') {
+                $template[] = ['type' => 'text', 'value' => $suffix];
+            }
+
+            return [
+                'batch_uid' => bin2hex(random_bytes(16)),
+                'root_uid' => $this->shortBodyText($body, 'root_uid', 64),
+                'relative_dir' => $this->shortBodyText($body, 'relative_dir', 240),
+                'items' => $items,
+                'template' => $template,
+                'separator' => $this->shortBodyText($body, 'separator', 1) ?: '-',
+                'counter_digits' => $this->positiveInt($body['counter_digits'] ?? null) ?: 3,
+                'sort_order' => $this->shortBodyText($body, 'sort_order', 32) ?: 'chronological',
+                'conflict_strategy' => 'block',
+            ];
+        }
+
+        if ($type === 'photo.rename.execute' || $type === 'photo.rename.rollback_execute') {
+            return [
+                'batch_uid' => $this->shortBodyText($body, 'batch_uid', 32),
+                'preview_uid' => $this->shortBodyText($body, 'preview_uid', 32),
+            ];
+        }
+
+        if ($type === 'photo.rename.rollback_preview') {
+            return ['batch_uid' => $this->shortBodyText($body, 'batch_uid', 32)];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function shortBodyText(array $body, string $key, int $maxLength): string
+    {
+        $value = is_string($body[$key] ?? null) ? trim((string) $body[$key]) : '';
+        if ($value === '') {
+            return '';
+        }
+
+        return mb_substr($value, 0, $maxLength);
     }
 
     private function redirect(string $url): Response

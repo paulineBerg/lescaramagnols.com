@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Caramagnols\PbGestion\Command;
 
+use Caramagnols\PbGestion\Photo\PhotoPathPolicy;
+
 final class CommandPolicy
 {
     private const ALLOWED_COMMANDS = [
@@ -18,6 +20,22 @@ final class CommandPolicy
         'backup.start' => ['backup_kind'],
         'backup.verify' => ['backup_uid'],
         'update.check' => [],
+        'photo.roots.list' => [],
+        'photo.folder.scan' => ['root_uid', 'relative_dir', 'include_subdirectories'],
+        'photo.rename.preview' => [
+            'batch_uid',
+            'root_uid',
+            'relative_dir',
+            'items',
+            'template',
+            'separator',
+            'counter_digits',
+            'sort_order',
+            'conflict_strategy',
+        ],
+        'photo.rename.execute' => ['batch_uid', 'preview_uid'],
+        'photo.rename.rollback_preview' => ['batch_uid'],
+        'photo.rename.rollback_execute' => ['batch_uid', 'preview_uid'],
     ];
 
     private const FORBIDDEN_COMMANDS = [
@@ -106,6 +124,12 @@ final class CommandPolicy
             'details.prepare' => $this->validateDetailPrepare($payload),
             'backup.start' => $this->validateEnum($payload, 'backup_kind', ['snapshot', 'external']),
             'backup.verify' => $this->validateUid($payload, 'backup_uid'),
+            'photo.roots.list' => ['ok' => $payload === []],
+            'photo.folder.scan' => $this->validatePhotoFolderScan($payload),
+            'photo.rename.preview' => $this->validatePhotoRenamePreview($payload),
+            'photo.rename.execute' => $this->validatePhotoExecute($payload),
+            'photo.rename.rollback_preview' => $this->validateUid($payload, 'batch_uid'),
+            'photo.rename.rollback_execute' => $this->validatePhotoExecute($payload),
             default => ['ok' => true],
         };
     }
@@ -205,6 +229,116 @@ final class CommandPolicy
         }
 
         return ['ok' => true];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function validatePhotoFolderScan(array $payload): array
+    {
+        $pathPolicy = new PhotoPathPolicy();
+        if (!$pathPolicy->isValidRootUid($payload['root_uid'] ?? null)) {
+            return ['ok' => false, 'error' => 'invalid_root_uid'];
+        }
+
+        if ($pathPolicy->normalizeRelativeDirectory($payload['relative_dir'] ?? '') === null) {
+            return ['ok' => false, 'error' => 'invalid_relative_dir'];
+        }
+
+        if (isset($payload['include_subdirectories']) && !is_bool($payload['include_subdirectories'])) {
+            return ['ok' => false, 'error' => 'invalid_include_subdirectories'];
+        }
+
+        return ['ok' => true];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function validatePhotoRenamePreview(array $payload): array
+    {
+        $batch = $this->validateUid($payload, 'batch_uid');
+        if (($batch['ok'] ?? false) !== true) {
+            return $batch;
+        }
+
+        $folder = $this->validatePhotoFolderScan([
+            'root_uid' => $payload['root_uid'] ?? null,
+            'relative_dir' => $payload['relative_dir'] ?? '',
+            'include_subdirectories' => false,
+        ]);
+        if (($folder['ok'] ?? false) !== true) {
+            return $folder;
+        }
+
+        $pathPolicy = new PhotoPathPolicy();
+        if (!is_array($payload['items'] ?? null) || $pathPolicy->normalizePhotoList($payload['items']) === null) {
+            return ['ok' => false, 'error' => 'invalid_items'];
+        }
+
+        if (!$this->validatePhotoTemplate($payload['template'] ?? null)) {
+            return ['ok' => false, 'error' => 'invalid_template'];
+        }
+
+        $separator = is_string($payload['separator'] ?? null) ? (string) $payload['separator'] : '-';
+        if (!in_array($separator, ['_', '-', ' '], true)) {
+            return ['ok' => false, 'error' => 'invalid_separator'];
+        }
+
+        $digits = is_numeric($payload['counter_digits'] ?? null) ? (int) $payload['counter_digits'] : 3;
+        if ($digits < 1 || $digits > 6) {
+            return ['ok' => false, 'error' => 'invalid_counter_digits'];
+        }
+
+        $sortOrder = is_string($payload['sort_order'] ?? null) ? strtolower(trim((string) $payload['sort_order'])) : 'chronological';
+        if (!in_array($sortOrder, ['chronological', 'name', 'city', 'manual'], true)) {
+            return ['ok' => false, 'error' => 'invalid_sort_order'];
+        }
+
+        $conflictStrategy = is_string($payload['conflict_strategy'] ?? null)
+            ? strtolower(trim((string) $payload['conflict_strategy']))
+            : 'block';
+        if (!in_array($conflictStrategy, ['block', 'suffix_explicit'], true)) {
+            return ['ok' => false, 'error' => 'invalid_conflict_strategy'];
+        }
+
+        return ['ok' => true];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function validatePhotoExecute(array $payload): array
+    {
+        $batch = $this->validateUid($payload, 'batch_uid');
+        if (($batch['ok'] ?? false) !== true) {
+            return $batch;
+        }
+
+        return $this->validateUid($payload, 'preview_uid');
+    }
+
+    private function validatePhotoTemplate(mixed $template): bool
+    {
+        if (!is_array($template) || $template === [] || count($template) > 12) {
+            return false;
+        }
+
+        $allowedTypes = ['text', 'city', 'department', 'region', 'country', 'date', 'time', 'counter', 'original'];
+        foreach ($template as $block) {
+            if (!is_array($block)) {
+                return false;
+            }
+            $type = is_string($block['type'] ?? null) ? strtolower(trim((string) $block['type'])) : '';
+            if (!in_array($type, $allowedTypes, true)) {
+                return false;
+            }
+            if (isset($block['value']) && (!is_string($block['value']) || mb_strlen((string) $block['value']) > 80)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

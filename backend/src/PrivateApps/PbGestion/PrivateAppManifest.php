@@ -60,6 +60,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
             'pbgestion_alerts',
             'pbgestion_scans',
             'pbgestion_backups',
+            'pbgestion_photos',
             'pbgestion_agents',
             'pbgestion_settings',
             'pbgestion_help',
@@ -102,6 +103,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
             'Caramagnols\\PbGestion\\Persistence\\PbGestionRepository',
             'Caramagnols\\PbGestion\\Protocol\\AgentRequestAuthenticator',
             'Caramagnols\\PbGestion\\Command\\CommandPolicy',
+            'Caramagnols\\PbGestion\\Photo\\PhotoRenamePlanner',
             'Caramagnols\\SecurityCenter\\Network\\SecurityNetworkService',
         ];
     }
@@ -162,6 +164,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
             'pbgestion_alerts' => 'pbgestion/alertes',
             'pbgestion_scans' => 'pbgestion/scans',
             'pbgestion_backups' => 'pbgestion/sauvegardes',
+            'pbgestion_photos' => 'pbgestion/photos',
             'pbgestion_agents' => 'pbgestion/agents-installation',
             'pbgestion_settings' => 'pbgestion/parametres',
             'pbgestion_help' => 'pbgestion/aide',

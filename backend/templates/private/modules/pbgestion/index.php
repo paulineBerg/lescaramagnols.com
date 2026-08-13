@@ -51,6 +51,7 @@ $statusLabel = static function (string $status): string {
       <a class="<?php echo $isActive('alerts'); ?>" href="<?php echo $h($url('alerts')); ?>">Alertes</a>
       <a class="<?php echo $isActive('scans'); ?>" href="<?php echo $h($url('scans')); ?>">Scans</a>
       <a class="<?php echo $isActive('backups'); ?>" href="<?php echo $h($url('backups')); ?>">Sauvegardes</a>
+      <a class="<?php echo $isActive('photos'); ?>" href="<?php echo $h($url('photos')); ?>">Photos locales</a>
       <a class="<?php echo $isActive('agents'); ?>" href="<?php echo $h($url('agents')); ?>">Agents et installation</a>
       <a class="<?php echo $isActive('settings'); ?>" href="<?php echo $h($url('settings')); ?>">Paramètres</a>
       <a class="<?php echo $isActive('help'); ?>" href="<?php echo $h($url('help')); ?>">Aide</a>
@@ -176,6 +177,148 @@ $statusLabel = static function (string $status): string {
             </tr>
           <?php endforeach; ?>
         </tbody></table>
+      <?php endif; ?>
+    </section>
+  <?php elseif ($view === 'photos'): ?>
+    <section class="card private-card-wide">
+      <h2>Photos locales</h2>
+      <p class="muted">Les originaux restent sur l’ordinateur de l’agent. Le BO envoie des demandes bornées : racine autorisée, dossier relatif et sélection explicite.</p>
+      <?php if ($agents === []): ?>
+        <p class="muted">Installez et appairez d’abord un agent `pbgestion`.</p>
+      <?php else: ?>
+        <div class="private-dashboard-summary">
+          <section class="private-dashboard-panel">
+            <h3>Source</h3>
+            <form method="post" action="<?php echo $h($url('photos')); ?>" class="private-list-tools">
+              <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+              <input type="hidden" name="action" value="queue_command" />
+              <label>Agent
+                <select name="agent_id">
+                  <?php foreach ($agents as $agent): if (!is_array($agent) || ($agent['status'] ?? '') !== 'active') { continue; } ?>
+                    <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo $h($agent['display_name'] ?? 'Agent'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Action
+                <select name="command_type">
+                  <option value="photo.roots.list">Lister les racines autorisées</option>
+                  <option value="photo.folder.scan">Scanner un dossier</option>
+                </select>
+              </label>
+              <label>Racine autorisée
+                <input type="text" name="root_uid" maxlength="64" placeholder="photos-principales" />
+              </label>
+              <label>Dossier relatif
+                <input type="text" name="relative_dir" maxlength="240" placeholder="2026/vacances" />
+              </label>
+              <label>
+                <input type="checkbox" name="include_subdirectories" value="1" />
+                Inclure les sous-dossiers
+              </label>
+              <button type="submit" class="private-create-button">Envoyer à l’agent</button>
+            </form>
+          </section>
+          <section class="private-dashboard-panel">
+            <h3>Aperçu de renommage</h3>
+            <form method="post" action="<?php echo $h($url('photos')); ?>" class="private-list-tools">
+              <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+              <input type="hidden" name="action" value="queue_command" />
+              <input type="hidden" name="command_type" value="photo.rename.preview" />
+              <label>Agent
+                <select name="agent_id">
+                  <?php foreach ($agents as $agent): if (!is_array($agent) || ($agent['status'] ?? '') !== 'active') { continue; } ?>
+                    <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo $h($agent['display_name'] ?? 'Agent'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Racine autorisée
+                <input type="text" name="root_uid" maxlength="64" required />
+              </label>
+              <label>Dossier relatif
+                <input type="text" name="relative_dir" maxlength="240" />
+              </label>
+              <label>Photos sélectionnées
+                <textarea name="items" rows="7" placeholder="IMG_0001.jpg&#10;IMG_0002.jpg" required></textarea>
+              </label>
+              <label>Texte avant
+                <input type="text" name="text_before" maxlength="80" placeholder="Vacances" />
+              </label>
+              <label>Texte après
+                <input type="text" name="text_after" maxlength="80" />
+              </label>
+              <label>Séparateur
+                <select name="separator">
+                  <option value="-">-</option>
+                  <option value="_">_</option>
+                  <option value=" ">espace</option>
+                </select>
+              </label>
+              <label>Chiffres compteur
+                <input type="number" name="counter_digits" min="1" max="6" value="3" />
+              </label>
+              <label>Tri
+                <select name="sort_order">
+                  <option value="chronological">chronologique</option>
+                  <option value="name">nom actuel</option>
+                  <option value="city">ville</option>
+                  <option value="manual">ordre saisi</option>
+                </select>
+              </label>
+              <button type="submit" class="private-create-button">Demander l’aperçu</button>
+            </form>
+          </section>
+        </div>
+        <div class="private-dashboard-summary">
+          <section class="private-dashboard-panel">
+            <h3>Exécution validée</h3>
+            <form method="post" action="<?php echo $h($url('photos')); ?>" class="private-list-tools">
+              <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+              <input type="hidden" name="action" value="queue_command" />
+              <input type="hidden" name="command_type" value="photo.rename.execute" />
+              <label>Agent
+                <select name="agent_id">
+                  <?php foreach ($agents as $agent): if (!is_array($agent) || ($agent['status'] ?? '') !== 'active') { continue; } ?>
+                    <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo $h($agent['display_name'] ?? 'Agent'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Lot
+                <input type="text" name="batch_uid" maxlength="32" required />
+              </label>
+              <label>Aperçu validé
+                <input type="text" name="preview_uid" maxlength="32" required />
+              </label>
+              <button type="submit" class="private-button-danger">Renommer le lot validé</button>
+            </form>
+          </section>
+          <section class="private-dashboard-panel">
+            <h3>Annulation</h3>
+            <form method="post" action="<?php echo $h($url('photos')); ?>" class="private-list-tools">
+              <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+              <input type="hidden" name="action" value="queue_command" />
+              <label>Agent
+                <select name="agent_id">
+                  <?php foreach ($agents as $agent): if (!is_array($agent) || ($agent['status'] ?? '') !== 'active') { continue; } ?>
+                    <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo $h($agent['display_name'] ?? 'Agent'); ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label>Action
+                <select name="command_type">
+                  <option value="photo.rename.rollback_preview">Prévisualiser l’annulation</option>
+                  <option value="photo.rename.rollback_execute">Exécuter l’annulation validée</option>
+                </select>
+              </label>
+              <label>Lot
+                <input type="text" name="batch_uid" maxlength="32" required />
+              </label>
+              <label>Aperçu inverse validé
+                <input type="text" name="preview_uid" maxlength="32" />
+              </label>
+              <button type="submit" class="private-button-secondary">Envoyer</button>
+            </form>
+          </section>
+        </div>
       <?php endif; ?>
     </section>
   <?php elseif ($view === 'agents'): ?>

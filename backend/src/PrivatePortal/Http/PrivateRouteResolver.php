@@ -287,6 +287,11 @@ final class PrivateRouteResolver
             ],
             [
                 'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('pbgestion_photos'),
+                'handler' => ['type' => 'private', 'page' => 'pbgestion_photos'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('pbgestion_agents'),
                 'handler' => ['type' => 'private', 'page' => 'pbgestion_agents'],
             ],

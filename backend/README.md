@@ -40,6 +40,7 @@ Références :
 
 - `docs/STORAGE_RUNTIME_POLICY.md`
 - `docs/archive/2026-07-storage/RUNBOOK_STORAGE_MIGRATION.md`
+- `docs/photo-geo-renamer-pbgestion.md`
 
 ## Documentation technique
 
@@ -47,6 +48,7 @@ Références :
 - Gouvernance des entrees publiques: `../docs/backend/public-entrypoints.md`
 - Logging applicatif: `../docs/backend/logging.md`
 - Installation hors webroot: `../docs/backend/installation-hors-webroot.md`
+- Photo Geo Renamer via PbGestion: `docs/photo-geo-renamer-pbgestion.md`
 
 ## Regles critiques
 

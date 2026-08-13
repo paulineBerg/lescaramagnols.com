@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "governance_version": "2.4.1",
+  "governance_version": "2.5.0",
   "project": {
     "id": "caramagnols-web-worktree",
     "name": "Les Caramagnols — worktree web",
@@ -65,7 +65,8 @@
     ],
     "environments": [
       "local",
-      "test"
+      "test",
+      "production"
     ],
     "containers": false,
     "cloud": null,
@@ -95,34 +96,38 @@
       "site",
       "back-office"
     ],
-    "privilege_level": "user"
+    "privilege_level": "administrator"
   },
   "risk": {
     "declared_class": "R3",
     "criteria": {
-      "exposure": 2,
+      "exposure": 3,
       "data": 2,
-      "privileges": 1,
+      "privileges": 2,
       "financial": 0,
       "criticality": 1,
       "reversibility": 1,
-      "attack_surface": 1,
+      "attack_surface": 2,
       "external_dependencies": 1,
       "blast_radius": 1
     },
-    "rationale": "Copie reliée à un site public avec administration et données personnelles."
+    "rationale": "Copie reliée à un site public avec administration, espace privé, production et données personnelles."
   },
   "profiles": {
     "architecture": [
       "architecture:modular-monolith"
     ],
-    "platform": [],
+    "platform": [
+      "platform:classic-hosting",
+      "platform:operating-systems"
+    ],
     "technology": [
       "technology:php",
       "technology:javascript",
       "technology:nodejs"
     ],
     "data": [
+      "data:relational-sql",
       "data:mysql-mariadb"
     ],
     "exposure": [
@@ -131,7 +136,8 @@
     ],
     "business": [
       "business:association",
-      "business:content"
+      "business:content",
+      "business:regulated"
     ]
   },
   "commands": {

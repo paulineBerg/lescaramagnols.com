@@ -61,8 +61,10 @@ final class PbGestionControllerTest extends TestCase
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $pbGestionRepository = new PbGestionRepository($database);
         $userId = $this->createPrivateUser($userRepository, 'pbgestion@example.com');
         $this->assertTrue($moduleRepository->setUserModules($userId, ['pbgestion', 'documents'], 'admin@example.com'));
+        $this->createClaimedAgent($pbGestionRepository, $userId);
 
         $auth = $this->privateAuth($userRepository, 'pbgestion@example.com');
         $_SESSION['private_user']['last_reauth_at'] = 0;
@@ -74,7 +76,7 @@ final class PbGestionControllerTest extends TestCase
             null,
             $userRepository,
             $moduleRepository,
-            pbGestionRepository: new PbGestionRepository($database)
+            pbGestionRepository: $pbGestionRepository
         );
 
         $response = $controller->handle('pbgestion_dashboard', $this->request('GET', '/private/pbgestion'));
@@ -86,6 +88,13 @@ final class PbGestionControllerTest extends TestCase
         $this->assertStringContainsString('Vue d’ensemble</a>', $response->body);
         $this->assertStringContainsString('Agents et installation</a>', $response->body);
         $this->assertStringContainsString('Sauvegardes</a>', $response->body);
+        $this->assertStringContainsString('Photos locales</a>', $response->body);
+
+        $photoResponse = $controller->handle('pbgestion_photos', $this->request('GET', '/private/pbgestion/photos'));
+        $this->assertSame(200, $photoResponse->status);
+        $this->assertStringContainsString('Photos locales', $photoResponse->body);
+        $this->assertStringContainsString('photo.rename.preview', $photoResponse->body);
+        $this->assertStringContainsString('Les originaux restent sur l’ordinateur de l’agent', $photoResponse->body);
 
         $writeResponse = $controller->handle('pbgestion_dashboard', $this->request('POST', '/private/pbgestion'));
         $this->assertSame(302, $writeResponse->status);
@@ -123,6 +132,23 @@ final class PbGestionControllerTest extends TestCase
         $this->assertIsInt($userId);
 
         return $userId;
+    }
+
+    private function createClaimedAgent(PbGestionRepository $repository, int $ownerId): void
+    {
+        $token = $repository->createEnrollmentToken($ownerId, 'PC photos');
+        $publicKeyLength = defined('SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES') ? SODIUM_CRYPTO_SIGN_PUBLICKEYBYTES : 32;
+        $claim = $repository->claimEnrollment([
+            'code' => $token['code'],
+            'public_key_base64' => base64_encode(random_bytes($publicKeyLength)),
+            'display_name' => 'Agent photos',
+            'os_family' => 'windows',
+            'os_version' => '11',
+            'agent_version' => '0.2.0',
+            'capabilities' => ['photos'],
+        ]);
+
+        $this->assertTrue($claim['ok']);
     }
 
     private function privateAuth(PrivateUserRepository $userRepository, string $email): PrivateAuth
