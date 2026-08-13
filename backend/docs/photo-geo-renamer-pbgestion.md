@@ -19,9 +19,9 @@ les opérations locales restent exécutées par l'agent générique.
   déclenchement de commandes et historique via la file existante.
 - Serveur OVH : ne manipule aucun chemin absolu et ne lit pas les photos. Il
   stocke seulement des commandes bornées et les statuts retournés par l'agent.
-- Agent local `pbgestion` : propriétaire futur de la lecture EXIF, miniatures,
-  géocodage inverse, cache local, renommage en deux phases, journal local et
-  rollback.
+- Agent local `pbgestion` livré avec le module : appairage signé, polling,
+  racines locales autorisées, scan simple, aperçu de renommage, exécution en
+  deux phases, journal local et rollback par aperçu validé.
 
 Le contrat serveur utilise des identifiants opaques :
 
@@ -55,16 +55,22 @@ réelles avant d'activer un format.
 - `PhotoGeoCacheKey` définit la clé de cache géographique arrondie.
 - `ReverseGeocoderProvider` fixe l'abstraction du fournisseur de géocodage.
 
-## Installation agent attendue
+## Installation agent depuis le BO
 
-L'agent local devra :
+Le BO `PbGestion > Agents et installation` propose deux parcours :
 
-1. être appairé depuis `PbGestion > Agents et installation`;
-2. déclarer une capacité photo, par exemple `photo_geo_renamer`;
-3. conserver sa whitelist de racines localement;
-4. conserver le cache miniatures, le cache géographique et l'historique de
-   renommage localement;
-5. répondre aux commandes `photo.*` par les endpoints signés existants.
+1. téléchargement d'un installeur PowerShell seulement après case de
+   consentement et saisie de `INSTALLER`;
+2. second consentement local dans le script, avec saisie de `OUI`;
+3. installation sous le profil Windows courant dans
+   `%LOCALAPPDATA%\PbGestionAgent`;
+4. création d'une tâche planifiée locale `PbGestionAgent`;
+5. appairage via un code à usage unique valable 10 minutes.
+
+En cas de refus, aucune installation silencieuse n'est tentée. La webapp garde
+un mode restreint dans `PbGestion > Photos locales` : l'utilisateur colle une
+liste `nom;ville;date`, le BO calcule les noms proposés, mais il ne lit pas les
+EXIF, ne géocode pas et ne renomme aucun fichier.
 
 ## Procédure de test
 
@@ -82,12 +88,14 @@ Contrôles attendus :
 - doublons et conflits existants détectés avant exécution;
 - permutation de noms couverte par noms temporaires;
 - rollback bloqué si un ancien nom écraserait un fichier existant.
+- téléchargement installeur bloqué sans consentement explicite;
+- mode restreint utilisable sans agent appairé.
 
 ## Risques résiduels
 
-Le backend livre le contrat, l'écran BO et les règles de sécurité. Le parcours
-complet `visualiser -> sélectionner -> prévisualiser -> renommer -> annuler`
-reste dépendant de l'implémentation locale de l'agent `pbgestion`, absente du
-workspace audité. Tant que l'agent photo n'est pas livré, le BO peut préparer et
-mettre en file des commandes, mais ne peut pas afficher une galerie réelle ni
-recevoir les miniatures.
+Le backend livre le contrat, l'écran BO, l'installeur avec consentement
+explicite et un agent minimal capable d'exécuter les commandes fichiers bornées.
+Les fonctions avancées restent à compléter côté poste : lecture EXIF riche,
+miniatures, géocodage inverse réel, cache géographique et galerie interactive.
+Sans agent installé, le mode restreint reste volontairement limité à une
+prévisualisation manuelle sans accès aux fichiers locaux.

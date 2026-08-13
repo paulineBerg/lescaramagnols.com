@@ -5,6 +5,9 @@ $csrfToken = is_string($pbgestion['csrfToken'] ?? null) ? (string) $pbgestion['c
 $urls = is_array($pbgestion['urls'] ?? null) ? $pbgestion['urls'] : [];
 $dashboard = is_array($pbgestion['dashboard'] ?? null) ? $pbgestion['dashboard'] : [];
 $oneTimeEnrollment = is_array($pbgestion['oneTimeEnrollment'] ?? null) ? $pbgestion['oneTimeEnrollment'] : null;
+$restrictedPhotoPreview = is_array($pbgestion['restrictedPhotoPreview'] ?? null) ? $pbgestion['restrictedPhotoPreview'] : null;
+$moduleNotice = is_string($notice ?? null) ? (string) $notice : '';
+$moduleErrorMessage = is_string($errorMessage ?? null) ? (string) $errorMessage : '';
 $h = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $url = static function (string $key) use ($urls): string {
     return is_string($urls[$key] ?? null) ? (string) $urls[$key] : '#';
@@ -57,6 +60,12 @@ $statusLabel = static function (string $status): string {
       <a class="<?php echo $isActive('help'); ?>" href="<?php echo $h($url('help')); ?>">Aide</a>
     </div>
   </nav>
+  <?php if ($moduleNotice !== ''): ?>
+    <div class="notice notice-success" role="status"><?php echo $h($moduleNotice); ?></div>
+  <?php endif; ?>
+  <?php if ($moduleErrorMessage !== ''): ?>
+    <div class="notice notice-error" role="alert"><?php echo $h($moduleErrorMessage); ?></div>
+  <?php endif; ?>
 
   <?php if ($view === 'overview'): ?>
     <section class="private-module-dashboard">
@@ -183,8 +192,67 @@ $statusLabel = static function (string $status): string {
     <section class="card private-card-wide">
       <h2>Photos locales</h2>
       <p class="muted">Les originaux restent sur l’ordinateur de l’agent. Le BO envoie des demandes bornées : racine autorisée, dossier relatif et sélection explicite.</p>
+      <section class="private-dashboard-panel">
+        <h3>Mode restreint sans agent</h3>
+        <p class="muted">Si l’installation locale est refusée, le BO peut seulement calculer un aperçu à partir d’une liste copiée-collée. Il ne lit pas les EXIF, ne géocode pas et ne renomme aucun fichier.</p>
+        <form method="post" action="<?php echo $h($url('photos')); ?>" class="private-list-tools">
+          <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+          <input type="hidden" name="action" value="photo_restricted_preview" />
+          <label>Photos à prévisualiser
+            <textarea name="restricted_items" rows="6" placeholder="IMG_0001.jpg;Cogolin;2026-08-13 12:00:00&#10;IMG_0002.jpg;Cogolin;2026-08-13 12:05:00" required></textarea>
+          </label>
+          <label>Texte avant
+            <input type="text" name="text_before" maxlength="80" placeholder="Vacances" />
+          </label>
+          <label>Texte après
+            <input type="text" name="text_after" maxlength="80" />
+          </label>
+          <label>Séparateur
+            <select name="separator">
+              <option value="-">-</option>
+              <option value="_">_</option>
+              <option value=" ">espace</option>
+            </select>
+          </label>
+          <label>Chiffres compteur
+            <input type="number" name="counter_digits" min="1" max="6" value="3" />
+          </label>
+          <label>Tri
+            <select name="sort_order">
+              <option value="manual">ordre saisi</option>
+              <option value="chronological">chronologique</option>
+              <option value="name">nom actuel</option>
+              <option value="city">ville</option>
+            </select>
+          </label>
+          <button type="submit" class="private-button-secondary">Prévisualiser sans agent</button>
+        </form>
+        <?php if ($restrictedPhotoPreview !== null): ?>
+          <?php
+          $restrictedPreview = is_array($restrictedPhotoPreview['preview'] ?? null) ? $restrictedPhotoPreview['preview'] : [];
+          $restrictedSummary = is_array($restrictedPreview['summary'] ?? null) ? $restrictedPreview['summary'] : [];
+          $restrictedOperations = is_array($restrictedPreview['operations'] ?? null) ? $restrictedPreview['operations'] : [];
+          ?>
+          <div class="notice notice-success" role="status">
+            Lot <?php echo $h($restrictedPhotoPreview['batch_uid'] ?? ''); ?> :
+            <?php echo (int) ($restrictedSummary['ready'] ?? 0); ?> prêt(s),
+            <?php echo (int) ($restrictedSummary['conflicts'] ?? 0); ?> conflit(s).
+          </div>
+          <?php if ($restrictedOperations !== []): ?>
+            <table><thead><tr><th>Nom actuel</th><th>Nom proposé</th><th>Etat</th></tr></thead><tbody>
+              <?php foreach ($restrictedOperations as $operation): if (!is_array($operation)) { continue; } ?>
+                <tr>
+                  <td><?php echo $h($operation['old_name'] ?? ''); ?></td>
+                  <td><?php echo $h($operation['new_name'] ?? ''); ?></td>
+                  <td><?php echo $h($statusLabel((string) ($operation['status'] ?? ''))); ?></td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody></table>
+          <?php endif; ?>
+        <?php endif; ?>
+      </section>
       <?php if ($agents === []): ?>
-        <p class="muted">Installez et appairez d’abord un agent `pbgestion`.</p>
+        <p class="muted">Aucun agent appairé: seules les fonctions restreintes ci-dessus sont disponibles.</p>
       <?php else: ?>
         <div class="private-dashboard-summary">
           <section class="private-dashboard-panel">
@@ -324,7 +392,27 @@ $statusLabel = static function (string $status): string {
   <?php elseif ($view === 'agents'): ?>
     <section class="card private-card-wide">
       <h2>Agents et installation</h2>
-      <p class="muted">Créez un code d’appairage à usage unique. Le code n’est jamais conservé en clair.</p>
+      <p class="muted">Installez un agent local uniquement après consentement explicite. En cas de refus, la vue Photos locales reste disponible en mode restreint sans accès fichiers.</p>
+      <section class="private-dashboard-panel">
+        <h3>Installer l’agent local PbGestion</h3>
+        <p class="muted">Le téléchargement crée un code d’appairage valable 10 minutes. Le script demandé installe des fichiers sous le profil Windows courant, crée une tâche planifiée locale et redemande de taper OUI avant toute installation.</p>
+        <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools">
+          <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+          <input type="hidden" name="action" value="download_agent_installer" />
+          <label>Lieu ou usage
+            <input type="text" name="location_label" maxlength="160" placeholder="Maison, bureau, PC principal" />
+          </label>
+          <label>
+            <input type="checkbox" name="installer_consent" value="1" />
+            Je comprends que l’agent local s’installe sur cet ordinateur et exécutera seulement les commandes PbGestion validées.
+          </label>
+          <label>Confirmation
+            <input type="text" name="installer_confirmation" maxlength="16" placeholder="INSTALLER" required />
+          </label>
+          <button type="submit" class="private-create-button">Télécharger l’installeur local</button>
+        </form>
+      </section>
+      <p class="muted">Appairage manuel: créez un code à usage unique si vous installez ou lancez l’agent vous-même. Le code n’est jamais conservé en clair.</p>
       <?php if ($oneTimeEnrollment !== null): ?>
         <div class="notice notice-success" role="status">
           Code à saisir dans l’agent: <strong><?php echo $h($oneTimeEnrollment['code_grouped'] ?? ''); ?></strong>.

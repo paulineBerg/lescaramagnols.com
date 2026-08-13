@@ -98,6 +98,10 @@ final class PhotoRenamePlanner
      */
     private function sortPhotos(array $photos, string $sortOrder): array
     {
+        if ($sortOrder === 'manual') {
+            return $photos;
+        }
+
         usort($photos, static function (array $left, array $right) use ($sortOrder): int {
             return match ($sortOrder) {
                 'name' => strcmp((string) ($left['current_name'] ?? ''), (string) ($right['current_name'] ?? '')),

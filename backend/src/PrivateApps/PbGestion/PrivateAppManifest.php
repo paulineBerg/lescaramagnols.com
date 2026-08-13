@@ -104,6 +104,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
             'Caramagnols\\PbGestion\\Protocol\\AgentRequestAuthenticator',
             'Caramagnols\\PbGestion\\Command\\CommandPolicy',
             'Caramagnols\\PbGestion\\Photo\\PhotoRenamePlanner',
+            'Caramagnols\\PrivateApps\\PbGestion\\Installer\\PbGestionAgentInstaller',
             'Caramagnols\\SecurityCenter\\Network\\SecurityNetworkService',
         ];
     }
@@ -128,6 +129,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
         return [
             'pbgestion.enrollment.claimed',
             'pbgestion.enrollment.rejected',
+            'pbgestion.installer.downloaded',
             'pbgestion.command.queued',
             'pbgestion.agent.revoked',
             'private.module.access_denied',

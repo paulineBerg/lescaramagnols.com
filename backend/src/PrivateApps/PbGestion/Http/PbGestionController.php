@@ -7,7 +7,9 @@ namespace Caramagnols\PrivateApps\PbGestion\Http;
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
 use Caramagnols\Logging\AppEventLogger;
+use Caramagnols\PbGestion\Photo\PhotoRenamePlanner;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
+use Caramagnols\PrivateApps\PbGestion\Installer\PbGestionAgentInstaller;
 use Caramagnols\PrivatePortal\Http\PrivateResponseHeaders;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
@@ -53,6 +55,10 @@ final class PbGestionController
             $body = $request->body();
             $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
 
+            if ($action === 'download_agent_installer') {
+                return $this->downloadAgentInstaller($request, $userId, $body);
+            }
+
             if ($action === 'create_enrollment') {
                 $oneTimeEnrollment = $this->repository->createEnrollmentToken(
                     $userId,
@@ -61,6 +67,15 @@ final class PbGestionController
                 $this->log('pbgestion.enrollment.created', ['private_user_id' => $userId], 'info');
 
                 return $this->renderPbGestion($userId, 'agents', 'enrollment_created', null, $oneTimeEnrollment);
+            }
+
+            if ($action === 'photo_restricted_preview') {
+                $preview = $this->restrictedPhotoPreview($body);
+                if ($preview === null) {
+                    return $this->renderPbGestion($userId, 'photos', null, 'restricted_preview_empty', null);
+                }
+
+                return $this->renderPbGestion($userId, 'photos', 'restricted_preview_ready', null, null, $preview);
             }
 
             if ($action === 'queue_command') {
@@ -121,7 +136,8 @@ final class PbGestionController
         string $view,
         ?string $notice,
         ?string $error,
-        ?array $oneTimeEnrollment
+        ?array $oneTimeEnrollment,
+        ?array $restrictedPhotoPreview = null
     ): Response {
         $dashboard = $this->repository->dashboardForOwner($userId);
 
@@ -139,10 +155,101 @@ final class PbGestionController
                 'urls' => $this->urls(),
                 'dashboard' => $dashboard,
                 'oneTimeEnrollment' => $oneTimeEnrollment,
+                'restrictedPhotoPreview' => $restrictedPhotoPreview,
             ],
             'notice' => $this->notice($notice),
             'errorMessage' => $this->error($error),
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function downloadAgentInstaller(Request $request, int $userId, array $body): Response
+    {
+        $hasConsent = ($body['installer_consent'] ?? null) === '1'
+            && mb_strtoupper($this->shortBodyText($body, 'installer_confirmation', 16)) === 'INSTALLER';
+        if (!$hasConsent) {
+            return $this->renderPbGestion($userId, 'agents', null, 'installer_consent_required', null);
+        }
+
+        $locationLabel = $this->shortBodyText($body, 'location_label', 160);
+        $oneTimeEnrollment = $this->repository->createEnrollmentToken($userId, $locationLabel);
+        $displayName = $locationLabel !== '' ? $locationLabel : 'PbGestion Agent';
+        $script = (new PbGestionAgentInstaller())->buildPowerShellScript(
+            $oneTimeEnrollment,
+            rtrim(app_url('', $request), '/'),
+            $displayName
+        );
+        $this->log('pbgestion.installer.downloaded', ['private_user_id' => $userId], 'warning');
+
+        return PrivateResponseHeaders::apply(new Response(200, [
+            'Content-Type' => 'application/x-powershell; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="pbgestion-agent-install.ps1"',
+            'Content-Length' => (string) strlen($script),
+        ], $script));
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>|null
+     */
+    private function restrictedPhotoPreview(array $body): ?array
+    {
+        $rows = preg_split('/\R+/', $this->shortBodyText($body, 'restricted_items', 12000)) ?: [];
+        $photos = [];
+        $selectedNames = [];
+        foreach ($rows as $row) {
+            $columns = str_getcsv((string) $row, ';');
+            $currentName = $this->shortText(is_string($columns[0] ?? null) ? (string) $columns[0] : '', 180);
+            if ($currentName === '') {
+                continue;
+            }
+
+            $photos[] = [
+                'current_name' => $currentName,
+                'city' => $this->shortText(is_string($columns[1] ?? null) ? (string) $columns[1] : '', 120),
+                'taken_at' => $this->shortText(is_string($columns[2] ?? null) ? (string) $columns[2] : '', 40),
+            ];
+            $selectedNames[] = $currentName;
+        }
+
+        if ($photos === []) {
+            return null;
+        }
+
+        $blocks = [];
+        $prefix = $this->shortBodyText($body, 'text_before', 80);
+        $suffix = $this->shortBodyText($body, 'text_after', 80);
+        if ($prefix !== '') {
+            $blocks[] = ['type' => 'text', 'value' => $prefix];
+        }
+        foreach (['city', 'date', 'counter'] as $block) {
+            $blocks[] = ['type' => $block, 'value' => ''];
+        }
+        if ($suffix !== '') {
+            $blocks[] = ['type' => 'text', 'value' => $suffix];
+        }
+
+        $batchUid = bin2hex(random_bytes(16));
+        $preview = (new PhotoRenamePlanner())->preview(
+            $photos,
+            $selectedNames,
+            $blocks,
+            $selectedNames,
+            $this->shortBodyText($body, 'separator', 1) ?: '-',
+            1,
+            $this->positiveInt($body['counter_digits'] ?? null) ?: 3,
+            $this->shortBodyText($body, 'sort_order', 32) ?: 'manual',
+            $batchUid
+        );
+
+        return [
+            'batch_uid' => $batchUid,
+            'input_count' => count($photos),
+            'mode' => 'restricted',
+            'preview' => $preview,
+        ];
     }
 
     /**
@@ -296,6 +403,7 @@ final class PbGestionController
 
         return match ($key) {
             'enrollment_created' => 'Code d’appairage créé. Il est valable 10 minutes et affiché une seule fois.',
+            'restricted_preview_ready' => 'Aperçu restreint généré. Aucun fichier local n’a été lu ou renommé.',
             'command_queued' => 'Commande enregistrée. L’agent la récupérera lors de son prochain contact.',
             'agent_revoked' => 'Agent révoqué. Les commandes en attente ont été annulées.',
             default => null,
@@ -306,6 +414,8 @@ final class PbGestionController
     {
         return match ($key) {
             'invalid_request' => 'Requête invalide.',
+            'installer_consent_required' => 'Téléchargement refusé: confirmez explicitement l’installation locale avant de générer l’installeur.',
+            'restricted_preview_empty' => 'Aucune photo valide à prévisualiser en mode restreint.',
             'command_rejected' => 'La commande a été refusée par la politique Sécurité réseau.',
             'agent_revoke_failed' => 'L’agent n’a pas pu être révoqué.',
             default => null,
@@ -383,7 +493,12 @@ final class PbGestionController
      */
     private function shortBodyText(array $body, string $key, int $maxLength): string
     {
-        $value = is_string($body[$key] ?? null) ? trim((string) $body[$key]) : '';
+        return $this->shortText(is_string($body[$key] ?? null) ? (string) $body[$key] : '', $maxLength);
+    }
+
+    private function shortText(string $value, int $maxLength): string
+    {
+        $value = trim($value);
         if ($value === '') {
             return '';
         }
