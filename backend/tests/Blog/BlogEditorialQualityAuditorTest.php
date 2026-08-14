@@ -96,6 +96,33 @@ final class BlogEditorialQualityAuditorTest extends TestCase
         $this->assertContains('overused_corpus_lexicon', array_column($result['issues'], 'type'));
     }
 
+    public function testMechanicalLexiconSubstitutionsSpreadAcrossCorpusAlsoFailAudit(): void
+    {
+        $articles = [];
+        for ($index = 1; $index <= 10; $index++) {
+            foreach (['fr', 'en', 'de'] as $language) {
+                $replacement = match ($language) {
+                    'fr' => '<p>Mieux vaut examiner précisément le sujet numéro ' . $index . '.</p>',
+                    'en' => '<p>This assessment will examine subject number ' . $index . ' precisely.</p>',
+                    'de' => '<p>Das Thema Nummer ' . $index . ' ist genau zu prüfen.</p>',
+                };
+                $articles[] = $this->article(
+                    'substitution-' . $index,
+                    $language,
+                    $replacement . $this->content($language, 650)
+                );
+            }
+        }
+
+        $result = (new BlogEditorialQualityAuditor())->audit($articles);
+        $lexiconIssues = array_values(array_filter(
+            $result['issues'],
+            static fn (array $issue): bool => $issue['type'] === 'overused_corpus_lexicon'
+        ));
+
+        $this->assertCount(4, $lexiconIssues);
+    }
+
     public function testRepeatedFigureCaptionIsNotTreatedAsArticleProse(): void
     {
         $articles = [];

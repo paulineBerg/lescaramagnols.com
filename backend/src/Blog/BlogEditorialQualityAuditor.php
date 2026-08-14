@@ -53,18 +53,22 @@ final class BlogEditorialQualityAuditor
     private const CORPUS_LEXICON_PATTERNS = [
         'fr' => [
             'vocabulaire_lire_lecture' => '/\b(?:lire|lit|lisez|lu|lecture|lectures|lisible|lisibles|lisibilité)\b/ui',
+            'substitution_examiner' => '/\b(?:examiner|examine|examinent|examiné|examinée|examinés|examinées)\b/ui',
             'coherence' => '/\bcohérence\b/ui',
             'repere' => '/\brepères?\b/ui',
             'tournure_il_faut' => '/\bil faut\b/ui',
+            'substitution_mieux_vaut' => '/\bmieux vaut\b/ui',
         ],
         'en' => [
             'read_reading_vocabulary' => '/\b(?:read|reads|reading|readable|legibility)\b/ui',
+            'examine_assessment_vocabulary' => '/\b(?:examine|examines|examined|examining|assessment|assessments)\b/ui',
             'coherence' => '/\bcoherence\b/ui',
             'reference_point' => '/\breference points?\b/ui',
             'one_must_turn' => '/\bone must\b/ui',
         ],
         'de' => [
             'lesen_lektuere_wortschatz' => '/\b(?:lesen|liest|lesbar|lesbarkeit|lektüre|lesart)\b/ui',
+            'pruefen_pruefung_wortschatz' => '/\b(?:prüfen|prüft|geprüft|prüfung|prüfungen)\b/ui',
             'stimmigkeit' => '/\bstimmigkeit\b/ui',
             'orientierungspunkt' => '/\borientierungspunkte?\b/ui',
             'man_muss_formulierung' => '/\bman muss\b/ui',
