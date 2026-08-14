@@ -48,9 +48,14 @@ final class PrivateModuleRegistry
                 'description' => 'Gestion des projets web statiques et de leurs previsualisations privees.',
             ],
             [
-                'code' => 'pbgestion',
+                'code' => 'network_security',
                 'name' => 'Sécurité réseau',
                 'description' => 'Agents locaux, couverture, alertes, sauvegardes et syntheses de securite.',
+            ],
+            [
+                'code' => 'photo_geo_renamer',
+                'name' => 'Photo rename',
+                'description' => 'Renommage local de photos avec aperçu, géolocalisation et mode restreint sans agent.',
             ],
         ];
     }

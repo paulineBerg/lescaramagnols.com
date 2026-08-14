@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace LesCaramagnols\Tests\PbGestion;
+namespace LesCaramagnols\Tests\PrivateApps\PhotoGeoRenamer;
 
-use Caramagnols\PbGestion\Photo\PhotoGeoCacheKey;
-use Caramagnols\PbGestion\Photo\PhotoRenamePlanner;
-use Caramagnols\PbGestion\Photo\PhotoRollbackPlanner;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoGeoCacheKey;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoRenamePlanner;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoRollbackPlanner;
 use PHPUnit\Framework\TestCase;
 
 final class PhotoRenamePlannerTest extends TestCase

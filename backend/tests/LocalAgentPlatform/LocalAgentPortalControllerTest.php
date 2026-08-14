@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace LesCaramagnols\Tests\PrivateApps\PbGestion;
+namespace LesCaramagnols\Tests\LocalAgentPlatform;
 
 use Caramagnols\Http\Request;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
@@ -15,7 +15,7 @@ use Caramagnols\PrivatePortal\Security\PrivateSession;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
-final class PbGestionControllerTest extends TestCase
+final class LocalAgentPortalControllerTest extends TestCase
 {
     use EditorialSqlTestTrait;
 
@@ -24,7 +24,7 @@ final class PbGestionControllerTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
-        require_once dirname(__DIR__, 3) . '/core/bootstrap.php';
+        require_once dirname(__DIR__, 2) . '/core/bootstrap.php';
     }
 
     protected function setUp(): void
@@ -63,7 +63,7 @@ final class PbGestionControllerTest extends TestCase
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
         $pbGestionRepository = new PbGestionRepository($database);
         $userId = $this->createPrivateUser($userRepository, 'pbgestion@example.com');
-        $this->assertTrue($moduleRepository->setUserModules($userId, ['pbgestion', 'documents'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['network_security', 'photo_geo_renamer', 'documents'], 'admin@example.com'));
         $this->createClaimedAgent($pbGestionRepository, $userId);
 
         $auth = $this->privateAuth($userRepository, 'pbgestion@example.com');
@@ -79,7 +79,7 @@ final class PbGestionControllerTest extends TestCase
             pbGestionRepository: $pbGestionRepository
         );
 
-        $response = $controller->handle('pbgestion_dashboard', $this->request('GET', '/private/pbgestion'));
+        $response = $controller->handle('network_security_dashboard', $this->request('GET', '/private/securite-reseau'));
 
         $this->assertSame(200, $response->status);
         $this->assertStringContainsString('Sécurité réseau', $response->body);
@@ -88,15 +88,18 @@ final class PbGestionControllerTest extends TestCase
         $this->assertStringContainsString('Vue d’ensemble</a>', $response->body);
         $this->assertStringContainsString('Agents et installation</a>', $response->body);
         $this->assertStringContainsString('Sauvegardes</a>', $response->body);
-        $this->assertStringContainsString('Photos locales</a>', $response->body);
+        $this->assertStringNotContainsString('Photos locales</a>', $response->body);
+        $this->assertStringNotContainsString('Renommage</a>', $response->body);
 
-        $photoResponse = $controller->handle('pbgestion_photos', $this->request('GET', '/private/pbgestion/photos'));
+        $photoResponse = $controller->handle('photo_geo_renamer_dashboard', $this->request('GET', '/private/photo-rename'));
         $this->assertSame(200, $photoResponse->status);
-        $this->assertStringContainsString('Photos locales', $photoResponse->body);
+        $this->assertStringContainsString('Photo rename', $photoResponse->body);
+        $this->assertStringContainsString('Renommage</a>', $photoResponse->body);
+        $this->assertStringNotContainsString('Vue d’ensemble</a>', $photoResponse->body);
         $this->assertStringContainsString('photo.rename.preview', $photoResponse->body);
         $this->assertStringContainsString('Les originaux restent sur l’ordinateur de l’agent', $photoResponse->body);
 
-        $writeResponse = $controller->handle('pbgestion_dashboard', $this->request('POST', '/private/pbgestion'));
+        $writeResponse = $controller->handle('network_security_dashboard', $this->request('POST', '/private/securite-reseau'));
         $this->assertSame(302, $writeResponse->status);
         $this->assertSame('/private/login', $writeResponse->headers['Location'] ?? null);
     }
@@ -118,7 +121,7 @@ final class PbGestionControllerTest extends TestCase
             pbGestionRepository: new PbGestionRepository($database)
         );
 
-        $response = $controller->handle('pbgestion_dashboard', $this->request('GET', '/private/pbgestion'));
+        $response = $controller->handle('network_security_dashboard', $this->request('GET', '/private/securite-reseau'));
 
         $this->assertSame(302, $response->status);
         $this->assertSame('/private/login', $response->headers['Location'] ?? null);
@@ -131,7 +134,7 @@ final class PbGestionControllerTest extends TestCase
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
         $pbGestionRepository = new PbGestionRepository($database);
         $userId = $this->createPrivateUser($userRepository, 'installer@example.com');
-        $this->assertTrue($moduleRepository->setUserModules($userId, ['pbgestion'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['network_security'], 'admin@example.com'));
 
         $controller = new PrivatePortalController(
             $this->privateAuth($userRepository, 'installer@example.com'),
@@ -142,14 +145,14 @@ final class PbGestionControllerTest extends TestCase
             pbGestionRepository: $pbGestionRepository
         );
 
-        $agentsResponse = $controller->handle('pbgestion_agents', $this->request('GET', '/private/pbgestion/agents-installation'));
+        $agentsResponse = $controller->handle('network_security_agents', $this->request('GET', '/private/securite-reseau/agents-installation'));
         $this->assertSame(200, $agentsResponse->status);
         $this->assertStringContainsString('Installer l’agent local PbGestion', $agentsResponse->body);
         $this->assertStringContainsString('Je comprends que l’agent local s’installe', $agentsResponse->body);
         $this->assertStringContainsString('mode restreint sans accès fichiers', $agentsResponse->body);
 
         $csrfToken = csrf_token('private_pbgestion');
-        $refusedResponse = $controller->handle('pbgestion_agents', $this->request('POST', '/private/pbgestion/agents-installation', [
+        $refusedResponse = $controller->handle('network_security_agents', $this->request('POST', '/private/securite-reseau/agents-installation', [
             'csrf_token' => $csrfToken,
             'action' => 'download_agent_installer',
             'installer_confirmation' => 'INSTALLER',
@@ -158,7 +161,7 @@ final class PbGestionControllerTest extends TestCase
         $this->assertArrayNotHasKey('Content-Disposition', $refusedResponse->headers);
         $this->assertStringContainsString('confirmez explicitement l’installation locale', $refusedResponse->body);
 
-        $downloadResponse = $controller->handle('pbgestion_agents', $this->request('POST', '/private/pbgestion/agents-installation', [
+        $downloadResponse = $controller->handle('network_security_agents', $this->request('POST', '/private/securite-reseau/agents-installation', [
             'csrf_token' => $csrfToken,
             'action' => 'download_agent_installer',
             'location_label' => 'PC photos',
@@ -172,6 +175,8 @@ final class PbGestionControllerTest extends TestCase
         $this->assertStringContainsString('no-store', $downloadResponse->headers['Cache-Control'] ?? '');
         $this->assertStringContainsString('INSTALLATION LOCALE PB GESTION', $downloadResponse->body);
         $this->assertStringContainsString('Tapez OUI pour confirmer l installation locale', $downloadResponse->body);
+        $this->assertStringContainsString('%LOCALAPPDATA%\\pbgestion\\agent', $downloadResponse->body);
+        $this->assertStringContainsString("Join-Path \$env:LOCALAPPDATA 'pbgestion'", $downloadResponse->body);
         $this->assertStringContainsString('pbgestion_agent.py', $downloadResponse->body);
         $this->assertStringContainsString('pynacl', $downloadResponse->body);
         $this->assertStringContainsString('/api/pbgestion/v1/enrollment/claim', $downloadResponse->body);
@@ -184,7 +189,7 @@ final class PbGestionControllerTest extends TestCase
         $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
         $pbGestionRepository = new PbGestionRepository($database);
         $userId = $this->createPrivateUser($userRepository, 'restricted@example.com');
-        $this->assertTrue($moduleRepository->setUserModules($userId, ['pbgestion'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['photo_geo_renamer'], 'admin@example.com'));
 
         $controller = new PrivatePortalController(
             $this->privateAuth($userRepository, 'restricted@example.com'),
@@ -195,12 +200,12 @@ final class PbGestionControllerTest extends TestCase
             pbGestionRepository: $pbGestionRepository
         );
 
-        $photosResponse = $controller->handle('pbgestion_photos', $this->request('GET', '/private/pbgestion/photos'));
+        $photosResponse = $controller->handle('photo_geo_renamer_dashboard', $this->request('GET', '/private/photo-rename'));
         $this->assertSame(200, $photosResponse->status);
         $this->assertStringContainsString('Mode restreint sans agent', $photosResponse->body);
         $this->assertStringContainsString('Aucun agent appairé: seules les fonctions restreintes', $photosResponse->body);
 
-        $previewResponse = $controller->handle('pbgestion_photos', $this->request('POST', '/private/pbgestion/photos', [
+        $previewResponse = $controller->handle('photo_geo_renamer_dashboard', $this->request('POST', '/private/photo-rename', [
             'csrf_token' => csrf_token('private_pbgestion'),
             'action' => 'photo_restricted_preview',
             'restricted_items' => "IMG_0001.jpg;Cogolin;2026-08-13 12:00:00\nIMG_0002.jpg;Cogolin;2026-08-13 12:05:00",
@@ -215,6 +220,72 @@ final class PbGestionControllerTest extends TestCase
         $this->assertStringContainsString('Vacances_Cogolin_2026-08-13_001.jpg', $previewResponse->body);
         $this->assertStringContainsString('Vacances_Cogolin_2026-08-13_002.jpg', $previewResponse->body);
         $this->assertStringContainsString('Aucun fichier local n’a été lu ou renommé', $previewResponse->body);
+    }
+
+    public function testInvalidCsrfKeepsPhotoApplicationContext(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $userId = $this->createPrivateUser($userRepository, 'photo-csrf@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['photo_geo_renamer'], 'admin@example.com'));
+
+        $controller = new PrivatePortalController(
+            $this->privateAuth($userRepository, 'photo-csrf@example.com'),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository,
+            pbGestionRepository: new PbGestionRepository($database)
+        );
+
+        $response = $controller->handle('photo_geo_renamer_dashboard', $this->request('POST', '/private/photo-rename', [
+            'csrf_token' => 'invalid',
+            'action' => 'photo_restricted_preview',
+        ]));
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Photo rename', $response->body);
+        $this->assertStringContainsString('Requête invalide.', $response->body);
+        $this->assertStringNotContainsString('Navigation Sécurité réseau', $response->body);
+    }
+
+    public function testActionsCannotCrossApplicationBoundary(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $userId = $this->createPrivateUser($userRepository, 'module-boundary@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['network_security', 'photo_geo_renamer'], 'admin@example.com'));
+
+        $controller = new PrivatePortalController(
+            $this->privateAuth($userRepository, 'module-boundary@example.com'),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository,
+            pbGestionRepository: new PbGestionRepository($database)
+        );
+        $csrfToken = csrf_token('private_pbgestion');
+
+        $networkResponse = $controller->handle('network_security_dashboard', $this->request('POST', '/private/securite-reseau', [
+            'csrf_token' => $csrfToken,
+            'action' => 'photo_restricted_preview',
+            'restricted_items' => 'IMG_0001.jpg;Cogolin;2026-08-13 12:00:00',
+        ]));
+        $this->assertSame(200, $networkResponse->status);
+        $this->assertStringContainsString('Sécurité réseau', $networkResponse->body);
+        $this->assertStringContainsString('Requête invalide.', $networkResponse->body);
+        $this->assertStringNotContainsString('Aperçu restreint généré', $networkResponse->body);
+
+        $photoResponse = $controller->handle('photo_geo_renamer_dashboard', $this->request('POST', '/private/photo-rename', [
+            'csrf_token' => $csrfToken,
+            'action' => 'purge_details',
+        ]));
+        $this->assertSame(200, $photoResponse->status);
+        $this->assertStringContainsString('Photo rename', $photoResponse->body);
+        $this->assertStringContainsString('Requête invalide.', $photoResponse->body);
+        $this->assertStringNotContainsString('Détails temporaires purgés', $photoResponse->body);
     }
 
     private function createPrivateUser(PrivateUserRepository $repository, string $email): int

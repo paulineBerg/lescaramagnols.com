@@ -2,18 +2,18 @@
 
 declare(strict_types=1);
 
-namespace Caramagnols\PrivateApps\PbGestion;
+namespace Caramagnols\PrivateApps\NetworkSecurity;
 
 final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppManifest
 {
     public function migrationCode(): string
     {
-        return 'pbgestion';
+        return 'network_security';
     }
 
     public function moduleCode(): string
     {
-        return 'pbgestion';
+        return 'network_security';
     }
 
     public function moduleName(): string
@@ -23,17 +23,17 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
 
     public function moduleDescription(): string
     {
-        return 'Pilotage des agents locaux, couverture, alertes, sauvegardes et syntheses de securite.';
+        return 'Pilotage des agents locaux, couverture, alertes, sauvegardes et synthèses de sécurité.';
     }
 
     public function modulePermissionCode(): string
     {
-        return 'pbgestion';
+        return 'network_security';
     }
 
     public function migrationStatusCode(): string
     {
-        return 'pbgestion';
+        return 'network_security';
     }
 
     public function title(): string
@@ -52,18 +52,17 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     public function routeNames(): array
     {
         return [
-            'pbgestion_dashboard',
-            'pbgestion_coverage',
-            'pbgestion_networks',
-            'pbgestion_devices',
-            'pbgestion_computers',
-            'pbgestion_alerts',
-            'pbgestion_scans',
-            'pbgestion_backups',
-            'pbgestion_photos',
-            'pbgestion_agents',
-            'pbgestion_settings',
-            'pbgestion_help',
+            'network_security_dashboard',
+            'network_security_coverage',
+            'network_security_networks',
+            'network_security_devices',
+            'network_security_computers',
+            'network_security_alerts',
+            'network_security_scans',
+            'network_security_backups',
+            'network_security_agents',
+            'network_security_settings',
+            'network_security_help',
         ];
     }
 
@@ -100,12 +99,13 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     public function contractClasses(): array
     {
         return [
+            'Caramagnols\\PrivateApps\\NetworkSecurity\\Http\\NetworkSecurityController',
             'Caramagnols\\PbGestion\\Persistence\\PbGestionRepository',
             'Caramagnols\\PbGestion\\Protocol\\AgentRequestAuthenticator',
             'Caramagnols\\PbGestion\\Command\\CommandPolicy',
-            'Caramagnols\\PbGestion\\Photo\\PhotoRenamePlanner',
-            'Caramagnols\\PrivateApps\\PbGestion\\Installer\\PbGestionAgentInstaller',
+            'Caramagnols\\LocalAgentPlatform\\Installer\\LocalAgentInstaller',
             'Caramagnols\\SecurityCenter\\Network\\SecurityNetworkService',
+            'Caramagnols\\SecurityCenter\\Dashboard\\CoverageCalculator',
         ];
     }
 
@@ -117,7 +117,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
         return [
             'PbGestionRepositoryTest',
             'PbGestionAgentApiControllerTest',
-            'PbGestionControllerTest',
+            'LocalAgentPortalControllerTest',
         ];
     }
 
@@ -129,6 +129,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
         return [
             'pbgestion.enrollment.claimed',
             'pbgestion.enrollment.rejected',
+            'pbgestion.enrollment.created',
             'pbgestion.installer.downloaded',
             'pbgestion.command.queued',
             'pbgestion.agent.revoked',
@@ -149,7 +150,19 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
      */
     public function legacyRoutes(): array
     {
-        return [];
+        return [
+            'pbgestion_dashboard',
+            'pbgestion_coverage',
+            'pbgestion_networks',
+            'pbgestion_devices',
+            'pbgestion_computers',
+            'pbgestion_alerts',
+            'pbgestion_scans',
+            'pbgestion_backups',
+            'pbgestion_agents',
+            'pbgestion_settings',
+            'pbgestion_help',
+        ];
     }
 
     /**
@@ -158,18 +171,17 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     public function routePaths(): array
     {
         return [
-            'pbgestion_dashboard' => 'pbgestion',
-            'pbgestion_coverage' => 'pbgestion/couverture',
-            'pbgestion_networks' => 'pbgestion/reseaux',
-            'pbgestion_devices' => 'pbgestion/appareils',
-            'pbgestion_computers' => 'pbgestion/ordinateurs',
-            'pbgestion_alerts' => 'pbgestion/alertes',
-            'pbgestion_scans' => 'pbgestion/scans',
-            'pbgestion_backups' => 'pbgestion/sauvegardes',
-            'pbgestion_photos' => 'pbgestion/photos',
-            'pbgestion_agents' => 'pbgestion/agents-installation',
-            'pbgestion_settings' => 'pbgestion/parametres',
-            'pbgestion_help' => 'pbgestion/aide',
+            'network_security_dashboard' => 'securite-reseau',
+            'network_security_coverage' => 'securite-reseau/couverture',
+            'network_security_networks' => 'securite-reseau/reseaux',
+            'network_security_devices' => 'securite-reseau/appareils',
+            'network_security_computers' => 'securite-reseau/ordinateurs',
+            'network_security_alerts' => 'securite-reseau/alertes',
+            'network_security_scans' => 'securite-reseau/scans',
+            'network_security_backups' => 'securite-reseau/sauvegardes',
+            'network_security_agents' => 'securite-reseau/agents-installation',
+            'network_security_settings' => 'securite-reseau/parametres',
+            'network_security_help' => 'securite-reseau/aide',
         ];
     }
 
@@ -181,12 +193,12 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
         return [
             'label' => 'Sécurité réseau',
             'description' => 'Couverture locale, agents, alertes et sauvegardes',
-            'stat_code' => 'private.pbgestion.agent_count',
+            'stat_code' => 'private.network_security.agent_count',
         ];
     }
 
     public function notes(): string
     {
-        return 'Webapp Sécurité réseau livree cote Caramagnols; le depot agent Rust reste separe.';
+        return 'Webapp privée dédiée à la sécurité réseau ; l’agent local PbGestion reste le protocole d’exécution partagé.';
     }
 }

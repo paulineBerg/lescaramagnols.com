@@ -20,8 +20,10 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c/documents', $resolver->canonicalPath('documents'));
         $this->assertSame('/private-4h6F1c/blocnote', $resolver->canonicalPath('blocnote'));
         $this->assertSame('/private-4h6F1c/files/categories', $resolver->canonicalPath('files_categories'));
-        $this->assertSame('/private-4h6F1c/pbgestion', $resolver->canonicalPath('pbgestion_dashboard'));
-        $this->assertSame('/private-4h6F1c/pbgestion/agents-installation', $resolver->canonicalPath('pbgestion_agents'));
+        $this->assertSame('/private-4h6F1c/securite-reseau', $resolver->canonicalPath('network_security_dashboard'));
+        $this->assertSame('/private-4h6F1c/securite-reseau/agents-installation', $resolver->canonicalPath('network_security_agents'));
+        $this->assertSame('/private-4h6F1c/photo-rename', $resolver->canonicalPath('photo_geo_renamer_dashboard'));
+        $this->assertSame('/private-4h6F1c/photo-rename', $resolver->canonicalPath('pbgestion_photos'));
         $this->assertSame('/private-4h6F1c/locations', $resolver->canonicalPath('rental_dashboard'));
         $this->assertSame('/private-4h6F1c/locations/biens/tableau-de-bord', $resolver->canonicalPath('rental_properties_dashboard'));
         $this->assertSame('/private-4h6F1c/locations/agence/tableau-de-bord', $resolver->canonicalPath('rental_agency_dashboard'));
@@ -117,17 +119,22 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}' => ['methods' => ['GET'], 'handler' => 'private:discussion_file'],
             '/private/discussions/files/{attachmentId:[A-Za-z0-9._-]+}/preview' => ['methods' => ['GET'], 'handler' => 'private:discussion_file_preview'],
             '/private/web-development' => ['methods' => ['GET'], 'handler' => 'private:web_development'],
-            '/private/pbgestion' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_dashboard'],
-            '/private/pbgestion/couverture' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_coverage'],
-            '/private/pbgestion/reseaux' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_networks'],
-            '/private/pbgestion/appareils' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_devices'],
-            '/private/pbgestion/ordinateurs' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_computers'],
-            '/private/pbgestion/alertes' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_alerts'],
-            '/private/pbgestion/scans' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_scans'],
-            '/private/pbgestion/sauvegardes' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_backups'],
-            '/private/pbgestion/agents-installation' => ['methods' => ['GET', 'POST'], 'handler' => 'private:pbgestion_agents'],
-            '/private/pbgestion/parametres' => ['methods' => ['GET', 'POST'], 'handler' => 'private:pbgestion_settings'],
-            '/private/pbgestion/aide' => ['methods' => ['GET'], 'handler' => 'private:pbgestion_help'],
+            '/private/securite-reseau' => ['methods' => ['GET'], 'handler' => 'private:network_security_dashboard'],
+            '/private/securite-reseau/couverture' => ['methods' => ['GET'], 'handler' => 'private:network_security_coverage'],
+            '/private/securite-reseau/reseaux' => ['methods' => ['GET'], 'handler' => 'private:network_security_networks'],
+            '/private/securite-reseau/appareils' => ['methods' => ['GET'], 'handler' => 'private:network_security_devices'],
+            '/private/securite-reseau/ordinateurs' => ['methods' => ['GET'], 'handler' => 'private:network_security_computers'],
+            '/private/securite-reseau/alertes' => ['methods' => ['GET'], 'handler' => 'private:network_security_alerts'],
+            '/private/securite-reseau/scans' => ['methods' => ['GET'], 'handler' => 'private:network_security_scans'],
+            '/private/securite-reseau/sauvegardes' => ['methods' => ['GET'], 'handler' => 'private:network_security_backups'],
+            '/private/securite-reseau/agents-installation' => ['methods' => ['GET', 'POST'], 'handler' => 'private:network_security_agents'],
+            '/private/securite-reseau/parametres' => ['methods' => ['GET', 'POST'], 'handler' => 'private:network_security_settings'],
+            '/private/securite-reseau/aide' => ['methods' => ['GET'], 'handler' => 'private:network_security_help'],
+            '/private/photo-rename' => ['methods' => ['GET', 'POST'], 'handler' => 'private:photo_geo_renamer_dashboard'],
+            '/private/photo-rename/agents-installation' => ['methods' => ['GET', 'POST'], 'handler' => 'private:photo_geo_renamer_agents'],
+            '/private/photo-rename/aide' => ['methods' => ['GET'], 'handler' => 'private:photo_geo_renamer_help'],
+            '/private/pbgestion' => ['methods' => ['GET'], 'handler' => 'redirect:/private/securite-reseau'],
+            '/private/pbgestion/photos' => ['methods' => ['GET'], 'handler' => 'redirect:/private/photo-rename'],
             '/private/web-development/preview/{projectKey:[a-z0-9][a-z0-9_-]{1,80}}' => ['methods' => ['POST'], 'handler' => 'private:web_development_preview'],
             '/private/privacy/export' => ['methods' => ['GET'], 'handler' => 'private:privacy_export'],
             '/private/ops/backup' => ['methods' => ['GET'], 'handler' => 'private:ops_backup'],

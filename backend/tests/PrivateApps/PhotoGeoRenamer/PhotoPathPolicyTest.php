@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace LesCaramagnols\Tests\PbGestion;
+namespace LesCaramagnols\Tests\PrivateApps\PhotoGeoRenamer;
 
-use Caramagnols\PbGestion\Photo\PhotoPathPolicy;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoPathPolicy;
 use PHPUnit\Framework\TestCase;
 
 final class PhotoPathPolicyTest extends TestCase

@@ -23,7 +23,13 @@ Modules métier de l'espace privé Caramagnols. Architecture « monolithe modula
 | `Documents` | Documents et fichiers privés | `Http/DocumentsController.php` | à écrire (phase 3) |
 | `FamilyDiscussion` | Discussions familiales chiffrées (pièces jointes AES-256-GCM) | non (socle) | à écrire (phase 3) |
 | `RealEstateRental` | Gestion locative v2 : biens, lots, bailleurs, locataires, baux, loyers, charges, imports agence | non (socle, ~2 500 lignes à extraire) | `PrivateAppManifest`, `AgencyImportsManifest` |
+| `NetworkSecurity` | Sécurité réseau : agents locaux, couverture, alertes, sauvegardes et synthèses | `Http/NetworkSecurityController.php` | `PrivateAppManifest` |
+| `PhotoGeoRenamer` | Photo rename : aperçu et renommage contrôlé de photos locales | `Http/PhotoGeoRenamerController.php` | `PrivateAppManifest` |
 | `TaxDeclarationHelper` | Aide à la déclaration fiscale | non (socle) | à écrire (phase 3) |
+
+La logique métier propre à une webapp reste sous son dossier `PrivateApps/<Module>/`.
+Un socle partagé peut vivre hors `PrivateApps` seulement s'il ne représente pas
+une webapp exposée dans l'espace privé.
 
 ## Stockage des fichiers privés
 

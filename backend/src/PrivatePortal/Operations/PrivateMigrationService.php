@@ -85,7 +85,7 @@ final class PrivateMigrationService
             'tax_summary_lines',
             'tax_export_logs',
         ],
-        'pbgestion' => [
+        'network_security' => [
             'pb_agents',
             'pb_agent_capabilities',
             'pb_agent_sync_state',
@@ -105,6 +105,7 @@ final class PrivateMigrationService
             'security_alerts',
             'security_detail_requests',
         ],
+        'photo_geo_renamer' => [],
     ];
 
     public function __construct(
@@ -435,6 +436,9 @@ final class PrivateMigrationService
     private function normalizeModuleCode(string $moduleCode): ?string
     {
         $normalized = strtolower(trim($moduleCode));
+        if ($normalized === 'security_center') {
+            $normalized = 'network_security';
+        }
         if ($normalized === '' || $this->moduleRegistry->moduleCode($normalized) === null) {
             return null;
         }

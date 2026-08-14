@@ -182,13 +182,23 @@ if ($privateHasModuleCode('web_development', 'Web development')) {
     ];
 }
 
-if ($privateHasModuleCode('pbgestion', 'Sécurité réseau')) {
+if ($privateHasModuleCode('network_security', 'Sécurité réseau')) {
     $privateNavItems[] = [
         'label' => 'Sécurité réseau',
-        'href' => private_portal_url('pbgestion_dashboard'),
+        'href' => private_portal_url('network_security_dashboard'),
         'icon' => '🛡',
         'active' => $privateCurrentPath !== ''
-            && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('pbgestion_dashboard'))),
+            && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('network_security_dashboard'))),
+    ];
+}
+
+if ($privateHasModuleCode('photo_geo_renamer', 'Photo rename')) {
+    $privateNavItems[] = [
+        'label' => 'Photo rename',
+        'href' => private_portal_url('photo_geo_renamer_dashboard'),
+        'icon' => '🖼',
+        'active' => $privateCurrentPath !== ''
+            && str_starts_with($privateCurrentPath, $privateNormalizePath(private_portal_url('photo_geo_renamer_dashboard'))),
     ];
 }
 

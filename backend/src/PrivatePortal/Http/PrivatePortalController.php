@@ -20,7 +20,8 @@ use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewTicketRepository;
 use Caramagnols\PrivateApps\WebDevelopment\Repository\PreviewTicketRepositoryInterface;
 use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepository;
 use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepositoryInterface;
-use Caramagnols\PrivateApps\PbGestion\Http\PbGestionController;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Http\PhotoGeoRenamerController;
+use Caramagnols\PrivateApps\NetworkSecurity\Http\NetworkSecurityController;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivateApps\Documents\PrivateDocumentStorage;
@@ -140,6 +141,28 @@ final class PrivatePortalController
             'documents_hub_action' => $this->documentHubController()->action($request),
             'blocnote' => $this->blocNoteController()->handle($request),
             'web_development' => $this->handleWebDevelopment($request),
+            'network_security_dashboard',
+            'network_security_coverage',
+            'network_security_networks',
+            'network_security_devices',
+            'network_security_computers',
+            'network_security_alerts',
+            'network_security_scans',
+            'network_security_backups',
+            'network_security_agents',
+            'network_security_settings',
+            'network_security_help',
+            'security_center_dashboard',
+            'security_center_coverage',
+            'security_center_networks',
+            'security_center_devices',
+            'security_center_computers',
+            'security_center_alerts',
+            'security_center_scans',
+            'security_center_backups',
+            'security_center_agents',
+            'security_center_settings',
+            'security_center_help',
             'pbgestion_dashboard',
             'pbgestion_coverage',
             'pbgestion_networks',
@@ -148,10 +171,13 @@ final class PrivatePortalController
             'pbgestion_alerts',
             'pbgestion_scans',
             'pbgestion_backups',
-            'pbgestion_photos',
             'pbgestion_agents',
             'pbgestion_settings',
-            'pbgestion_help' => $this->pbGestionController()->handle($page, $request),
+            'pbgestion_help' => $this->networkSecurityController()->handle($page, $request),
+            'photo_geo_renamer_dashboard',
+            'photo_geo_renamer_agents',
+            'photo_geo_renamer_help',
+            'pbgestion_photos' => $this->photoGeoRenamerController()->handle($page, $request),
             'rental_dashboard' => $this->rentalController()->handle('rental_dashboard', $request),
             'rental_properties_dashboard' => $this->rentalController()->handle('rental_properties_dashboard', $request),
             'rental_agency_dashboard' => $this->rentalController()->handle('rental_agency_dashboard', $request),
@@ -5360,9 +5386,22 @@ final class PrivatePortalController
         );
     }
 
-    private function pbGestionController(): PbGestionController
+    private function networkSecurityController(): NetworkSecurityController
     {
-        return new PbGestionController(
+        return new NetworkSecurityController(
+            $this->auth,
+            $this->guard(),
+            $this->privateUserRepository(),
+            $this->modulePermissionRepository(),
+            $this->pbGestionRepository ?? new PbGestionRepository(editorial_database()),
+            fn (string $template, array $viewModel): Response => $this->render($template, $viewModel),
+            $this->eventLogger
+        );
+    }
+
+    private function photoGeoRenamerController(): PhotoGeoRenamerController
+    {
+        return new PhotoGeoRenamerController(
             $this->auth,
             $this->guard(),
             $this->privateUserRepository(),

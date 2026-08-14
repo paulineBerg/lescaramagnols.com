@@ -62,12 +62,29 @@ final class PrivateModulePermissionRepository
             }
 
             $rawCode = is_string($row['code'] ?? null) ? (string) $row['code'] : '';
+            $rawSanitizedCode = $this->sanitizeModuleCode($rawCode);
+            if ($rawSanitizedCode === 'pbgestion') {
+                $active = $this->truthy($row['module_active'] ?? null);
+                foreach (['network_security', 'photo_geo_renamer'] as $legacyTargetCode) {
+                    if (!isset($states[$legacyTargetCode])) {
+                        continue;
+                    }
+                    if (!($canonicalActive[$legacyTargetCode] ?? false)) {
+                        $states[$legacyTargetCode]['active'] = $active;
+                    }
+                    if ($hasPermission) {
+                        $legacyAssigned[$legacyTargetCode] = ($legacyAssigned[$legacyTargetCode] ?? false)
+                            || $this->truthy($row['permission_active'] ?? null);
+                    }
+                }
+            }
+
             $code = $this->normalizeModuleCode($rawCode);
             if ($code === '' || !isset($states[$code])) {
                 continue;
             }
 
-            $hasCanonicalCode = $code === $this->sanitizeModuleCode($rawCode);
+            $hasCanonicalCode = $code === $rawSanitizedCode;
             if ($hasCanonicalCode) {
                 $states[$code]['active'] = $this->truthy($row['module_active'] ?? null);
                 $canonicalActive[$code] = true;
@@ -131,7 +148,16 @@ final class PrivateModulePermissionRepository
                 continue;
             }
 
-            $code = $this->normalizeModuleCode(is_string($row['code'] ?? null) ? (string) $row['code'] : '');
+            $rawCode = is_string($row['code'] ?? null) ? (string) $row['code'] : '';
+            if ($this->sanitizeModuleCode($rawCode) === 'pbgestion') {
+                foreach (['network_security', 'photo_geo_renamer'] as $legacyTargetCode) {
+                    if (isset($states[$legacyTargetCode])) {
+                        $states[$legacyTargetCode]['active'] = $this->truthy($row['is_active'] ?? null);
+                    }
+                }
+            }
+
+            $code = $this->normalizeModuleCode($rawCode);
             if ($code === '' || !isset($states[$code])) {
                 continue;
             }
@@ -193,9 +219,12 @@ final class PrivateModulePermissionRepository
             + $this->countRows('tax_annual_summaries', '`private_user_id` = :user_id', ['user_id' => $userId])
             + $this->countRows('tax_export_logs', '`private_user_id` = :user_id', ['user_id' => $userId]);
 
-        $counts['pbgestion'] = $this->countRows('pb_agents', '`owner_id` = :user_id', ['user_id' => $userId])
+        $networkSecurityCount = $this->countRows('pb_agents', '`owner_id` = :user_id', ['user_id' => $userId])
             + $this->countRows('security_networks', '`owner_id` = :user_id', ['user_id' => $userId])
             + $this->countRows('security_alerts', '`owner_id` = :user_id AND `status` = \'open\'', ['user_id' => $userId]);
+        $counts['network_security'] = $networkSecurityCount;
+        $counts['photo_geo_renamer'] = $this->countRows('pb_agents', '`owner_id` = :user_id', ['user_id' => $userId])
+            + $this->countRows('pb_commands', '`owner_id` = :user_id AND `command_type` LIKE \'photo.%\'', ['user_id' => $userId]);
 
         return $counts;
     }
@@ -282,20 +311,36 @@ final class PrivateModulePermissionRepository
             return false;
         }
 
+        $canonicalAccess = null;
+        $legacyAccess = false;
         foreach ($rows as $row) {
             if (!is_array($row)) {
                 continue;
             }
 
-            $code = $this->normalizeModuleCode(is_string($row['code'] ?? null) ? (string) $row['code'] : '');
+            $rawCode = is_string($row['code'] ?? null) ? (string) $row['code'] : '';
+            $rawSanitizedCode = $this->sanitizeModuleCode($rawCode);
+            $access = $this->truthy($row['module_active'] ?? null) && $this->truthy($row['permission_active'] ?? null);
+            if ($rawSanitizedCode === 'pbgestion'
+                && in_array($expectedCode, ['network_security', 'photo_geo_renamer'], true)
+            ) {
+                $legacyAccess = $legacyAccess || $access;
+                continue;
+            }
+
+            $code = $this->normalizeModuleCode($rawCode);
             if ($code !== $expectedCode) {
                 continue;
             }
 
-            return $this->truthy($row['module_active'] ?? null) && $this->truthy($row['permission_active'] ?? null);
+            if ($code === $rawSanitizedCode) {
+                $canonicalAccess = $access;
+            } else {
+                $legacyAccess = $legacyAccess || $access;
+            }
         }
 
-        return false;
+        return $canonicalAccess ?? $legacyAccess;
     }
 
     /**
@@ -558,7 +603,11 @@ final class PrivateModulePermissionRepository
             'real_estate', 'rental', 'rentals', 'rental_dashboard' => 'real_estate_rental',
             'aide_impot', 'aide_impots', 'fiscal', 'impot', 'impots', 'tax', 'tax_declaration' => 'tax_declaration_helper',
             'web', 'web_dev', 'webdevelopment', 'projets_web' => 'web_development',
-            'pb_gestion', 'pb-gestion', 'gestion_pb', 'security_center', 'securitycenter' => 'pbgestion',
+            'securite_reseau', 'securite-reseau', 'security', 'network_security', 'security_center',
+            'securitycenter', 'networksecurity' => 'network_security',
+            'photo', 'photos', 'photo_rename', 'photo-rename', 'photo_geo', 'photo_geo_renamer', 'photogeorenamer',
+            'photo_georenamer', 'renommage_photo', 'photos_locales' => 'photo_geo_renamer',
+            'pb_gestion', 'pb-gestion', 'gestion_pb' => 'pbgestion',
             default => $code,
         };
     }

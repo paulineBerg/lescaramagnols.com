@@ -327,7 +327,7 @@ def apply_operations(operations: list) -> None:
 def data_root(config: dict) -> Path:
     root = Path(str(config.get("data_root", ""))).expanduser()
     if not str(root):
-        root = Path.home() / "AppData" / "Local" / "PbGestionAgent"
+        root = Path.home() / "AppData" / "Local" / "pbgestion" / "agent"
     root.mkdir(parents=True, exist_ok=True)
     return root
 

@@ -857,6 +857,24 @@ final class PbGestionRepository
                 $this->table('private_modules')
             )
         );
+        $this->pdo()->exec(
+            sprintf(
+                'CREATE TABLE IF NOT EXISTS `%s` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `private_user_id` INT NOT NULL,
+                    `private_module_id` INT NOT NULL,
+                    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+                    `granted_by_admin_email` VARCHAR(254) NULL,
+                    `granted_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `revoked_at` DATETIME NULL,
+                    `revoked_by_admin_email` VARCHAR(254) NULL,
+                    UNIQUE KEY `uq_private_user_module_permissions_user_module` (`private_user_id`, `private_module_id`),
+                    KEY `idx_private_user_module_permissions_user` (`private_user_id`),
+                    KEY `idx_private_user_module_permissions_module` (`private_module_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4',
+                $this->table('private_user_module_permissions')
+            )
+        );
     }
 
     /**

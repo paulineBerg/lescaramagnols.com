@@ -3,6 +3,12 @@ $pbgestion = is_array($viewModel['pbgestion'] ?? null) ? $viewModel['pbgestion']
 $view = is_string($pbgestion['view'] ?? null) ? (string) $pbgestion['view'] : 'overview';
 $csrfToken = is_string($pbgestion['csrfToken'] ?? null) ? (string) $pbgestion['csrfToken'] : '';
 $urls = is_array($pbgestion['urls'] ?? null) ? $pbgestion['urls'] : [];
+$app = is_array($pbgestion['app'] ?? null) ? $pbgestion['app'] : [];
+$appKind = is_string($app['kind'] ?? null) ? (string) $app['kind'] : 'security';
+$appTitle = is_string($app['title'] ?? null) ? (string) $app['title'] : 'Sécurité réseau';
+$appNavLabel = is_string($app['navLabel'] ?? null) ? (string) $app['navLabel'] : 'Navigation ' . $appTitle;
+$isSecurityApp = $appKind === 'security';
+$isPhotoApp = $appKind === 'photo';
 $dashboard = is_array($pbgestion['dashboard'] ?? null) ? $pbgestion['dashboard'] : [];
 $oneTimeEnrollment = is_array($pbgestion['oneTimeEnrollment'] ?? null) ? $pbgestion['oneTimeEnrollment'] : null;
 $restrictedPhotoPreview = is_array($pbgestion['restrictedPhotoPreview'] ?? null) ? $pbgestion['restrictedPhotoPreview'] : null;
@@ -44,8 +50,9 @@ $statusLabel = static function (string $status): string {
 };
 ?>
 <section class="private-dashboard pbgestion-module" data-pbgestion-root>
-  <nav class="private-module-nav" aria-label="Navigation Sécurité réseau">
+  <nav class="private-module-nav" aria-label="<?php echo $h($appNavLabel); ?>">
     <div class="private-module-nav-row">
+      <?php if ($isSecurityApp): ?>
       <a class="<?php echo $isActive('overview'); ?>" href="<?php echo $h($url('overview')); ?>">Vue d’ensemble</a>
       <a class="<?php echo $isActive('coverage'); ?>" href="<?php echo $h($url('coverage')); ?>">Couverture</a>
       <a class="<?php echo $isActive('networks'); ?>" href="<?php echo $h($url('networks')); ?>">Réseaux</a>
@@ -54,9 +61,14 @@ $statusLabel = static function (string $status): string {
       <a class="<?php echo $isActive('alerts'); ?>" href="<?php echo $h($url('alerts')); ?>">Alertes</a>
       <a class="<?php echo $isActive('scans'); ?>" href="<?php echo $h($url('scans')); ?>">Scans</a>
       <a class="<?php echo $isActive('backups'); ?>" href="<?php echo $h($url('backups')); ?>">Sauvegardes</a>
-      <a class="<?php echo $isActive('photos'); ?>" href="<?php echo $h($url('photos')); ?>">Photos locales</a>
+      <?php endif; ?>
+      <?php if ($isPhotoApp): ?>
+      <a class="<?php echo $isActive('photos'); ?>" href="<?php echo $h($url('photos')); ?>">Renommage</a>
+      <?php endif; ?>
       <a class="<?php echo $isActive('agents'); ?>" href="<?php echo $h($url('agents')); ?>">Agents et installation</a>
+      <?php if ($isSecurityApp): ?>
       <a class="<?php echo $isActive('settings'); ?>" href="<?php echo $h($url('settings')); ?>">Paramètres</a>
+      <?php endif; ?>
       <a class="<?php echo $isActive('help'); ?>" href="<?php echo $h($url('help')); ?>">Aide</a>
     </div>
   </nav>
@@ -67,7 +79,7 @@ $statusLabel = static function (string $status): string {
     <div class="notice notice-error" role="alert"><?php echo $h($moduleErrorMessage); ?></div>
   <?php endif; ?>
 
-  <?php if ($view === 'overview'): ?>
+  <?php if ($isSecurityApp && $view === 'overview'): ?>
     <section class="private-module-dashboard">
       <div class="private-list-header">
         <div>
@@ -95,7 +107,7 @@ $statusLabel = static function (string $status): string {
         </section>
       </div>
     </section>
-  <?php elseif ($view === 'coverage'): ?>
+  <?php elseif ($isSecurityApp && $view === 'coverage'): ?>
     <section class="card private-card-wide">
       <h2>Couverture</h2>
       <p class="muted">La couverture dépend de l’âge des contacts agents. Au-delà de deux intervalles attendus, elle devient partielle puis interrompue.</p>
@@ -105,7 +117,7 @@ $statusLabel = static function (string $status): string {
         <section class="private-dashboard-panel"><h3>Commandes en cours</h3><p><strong><?php echo (int) ($dashboard['commands_pending'] ?? 0); ?></strong></p></section>
       </div>
     </section>
-  <?php elseif ($view === 'networks'): ?>
+  <?php elseif ($isSecurityApp && $view === 'networks'): ?>
     <section class="card private-card-wide">
       <h2>Réseaux</h2>
       <p class="muted">Les réseaux non approuvés n’autorisent pas de scan actif. Les identifiants restent pseudonymes.</p>
@@ -123,7 +135,7 @@ $statusLabel = static function (string $status): string {
         </tbody></table>
       <?php endif; ?>
     </section>
-  <?php elseif ($view === 'devices' || $view === 'computers'): ?>
+  <?php elseif ($isSecurityApp && ($view === 'devices' || $view === 'computers')): ?>
     <section class="card private-card-wide">
       <h2><?php echo $view === 'computers' ? 'Ordinateurs' : 'Appareils'; ?></h2>
       <p class="muted">Liste synthétique. Les détails complets sont demandés explicitement et expirent rapidement.</p>
@@ -143,7 +155,7 @@ $statusLabel = static function (string $status): string {
         </tbody></table>
       <?php endif; ?>
     </section>
-  <?php elseif ($view === 'alerts'): ?>
+  <?php elseif ($isSecurityApp && $view === 'alerts'): ?>
     <section class="card private-card-wide">
       <h2>Alertes</h2>
       <p class="muted">Une seule alerte ouverte est conservée par clé logique. Les alertes résolues restent soumises à la rétention.</p>
@@ -163,13 +175,13 @@ $statusLabel = static function (string $status): string {
         </tbody></table>
       <?php endif; ?>
     </section>
-  <?php elseif ($view === 'scans'): ?>
+  <?php elseif ($isSecurityApp && $view === 'scans'): ?>
     <section class="card private-card-wide">
       <h2>Scans et historique</h2>
       <p class="muted">Les synthèses de scan sont datées. Les listes détaillées de ports ne sont pas stockées durablement sur OVH.</p>
       <p class="muted">Scans connus: <?php echo (int) ($dashboard['scans_total'] ?? 0); ?>.</p>
     </section>
-  <?php elseif ($view === 'backups'): ?>
+  <?php elseif ($isSecurityApp && $view === 'backups'): ?>
     <section class="card private-card-wide">
       <h2>Sauvegardes</h2>
       <p class="muted">Les snapshots locaux et les sauvegardes externes sont distingués. Aucun chemin arbitraire n’est envoyé depuis le BO.</p>
@@ -188,9 +200,9 @@ $statusLabel = static function (string $status): string {
         </tbody></table>
       <?php endif; ?>
     </section>
-  <?php elseif ($view === 'photos'): ?>
+  <?php elseif ($isPhotoApp && $view === 'photos'): ?>
     <section class="card private-card-wide">
-      <h2>Photos locales</h2>
+      <h2>Photo rename</h2>
       <p class="muted">Les originaux restent sur l’ordinateur de l’agent. Le BO envoie des demandes bornées : racine autorisée, dossier relatif et sélection explicite.</p>
       <section class="private-dashboard-panel">
         <h3>Mode restreint sans agent</h3>
@@ -392,10 +404,16 @@ $statusLabel = static function (string $status): string {
   <?php elseif ($view === 'agents'): ?>
     <section class="card private-card-wide">
       <h2>Agents et installation</h2>
-      <p class="muted">Installez un agent local uniquement après consentement explicite. En cas de refus, la vue Photos locales reste disponible en mode restreint sans accès fichiers.</p>
+      <p class="muted">
+        <?php if ($isPhotoApp): ?>
+          Installez l’agent local uniquement après consentement explicite. En cas de refus, Photo rename reste disponible en mode restreint sans accès fichiers.
+        <?php else: ?>
+          Installez un agent local uniquement après consentement explicite. En cas de refus, Photo rename reste disponible en mode restreint sans accès fichiers.
+        <?php endif; ?>
+      </p>
       <section class="private-dashboard-panel">
         <h3>Installer l’agent local PbGestion</h3>
-        <p class="muted">Le téléchargement crée un code d’appairage valable 10 minutes. Le script demandé installe des fichiers sous le profil Windows courant, crée une tâche planifiée locale et redemande de taper OUI avant toute installation.</p>
+        <p class="muted">Le téléchargement crée un code d’appairage valable 10 minutes. Le script demandé installe les fichiers sous un dossier maître <strong>pbgestion</strong> du profil Windows courant, crée une tâche planifiée locale et redemande de taper OUI avant toute installation.</p>
         <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools">
           <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
           <input type="hidden" name="action" value="download_agent_installer" />
@@ -450,7 +468,7 @@ $statusLabel = static function (string $status): string {
         </tbody></table>
       <?php endif; ?>
     </section>
-  <?php elseif ($view === 'settings'): ?>
+  <?php elseif ($isSecurityApp && $view === 'settings'): ?>
     <section class="card private-card-wide">
       <h2>Paramètres</h2>
       <p class="muted">Les politiques et commandes restent fermées. Les suppressions temporaires sont exécutées par petits lots.</p>
@@ -462,6 +480,16 @@ $statusLabel = static function (string $status): string {
     </section>
   <?php else: ?>
     <section class="card private-card-wide">
+      <?php if ($isPhotoApp): ?>
+      <h2>Aide Photo rename</h2>
+      <p class="muted">Photo rename prépare des noms de fichiers photo sans lire les fichiers locaux depuis OVH. Le mode restreint calcule seulement un aperçu à partir de la liste saisie.</p>
+      <h3>Avant de commencer</h3>
+      <p>Utilisez le mode restreint si aucun agent local n’est accepté. Installez l’agent PbGestion seulement après consentement explicite pour scanner ou renommer des fichiers sur le PC.</p>
+      <h3>Commandes</h3>
+      <p>Les commandes photo sont asynchrones et restent bornées à une racine locale autorisée, un dossier relatif et une sélection explicite.</p>
+      <h3>8. Informations techniques</h3>
+      <p>Les commandes photo sont récupérées par l’agent via `/api/pbgestion/v1/*`. L’agent conserve les journaux et aperçus locaux sous le dossier maître <strong>pbgestion</strong>.</p>
+      <?php else: ?>
       <h2>Aide Sécurité réseau</h2>
       <p class="muted">Sécurité réseau affiche l’état local utile transmis par les agents. Les données brutes réseau restent locales par défaut.</p>
       <h3>Avant de commencer</h3>
@@ -470,6 +498,7 @@ $statusLabel = static function (string $status): string {
       <p>Les actions sont asynchrones: elles sont placées en file d’attente et récupérées par l’agent lors du prochain contact signé.</p>
       <h3>8. Informations techniques</h3>
       <p>Endpoints agent: `/api/pbgestion/v1/*`. Signature Ed25519, horodatage UTC, séquence croissante et UUID de requête mémorisé 24 h.</p>
+      <?php endif; ?>
     </section>
   <?php endif; ?>
 </section>

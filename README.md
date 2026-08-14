@@ -62,7 +62,8 @@ backend/public/index.php
 - Admin : `Admin` (controleur + services de gestion editoriale)
 - Espace prive :
   - `PrivatePortal/` — **socle uniquement** : HTTP, routes, securite (auth, MFA, sessions), utilisateurs, permissions, operations transverses
-  - `PrivateApps/` — **modules metier** : `RealEstateRental` (gestion locative + import agence), `TaxDeclarationHelper`, `FamilyDiscussion` (messagerie chiffree), `BlocNote`, `Documents`
+  - `PrivateApps/` — **modules metier** : `RealEstateRental` (gestion locative + import agence), `TaxDeclarationHelper`, `FamilyDiscussion` (messagerie chiffree), `BlocNote`, `Documents`, `NetworkSecurity`, `PhotoGeoRenamer`
+  - `LocalAgentPlatform/` — **socle technique partagé** : contrôleur commun, installeur et agent local `pbgestion`, sans webapp privée dédiée
 
 Regle d'architecture (voir `AGENTS.md`) : toute nouvelle logique metier privee va dans `PrivateApps/`, jamais dans `PrivatePortal/`.
 

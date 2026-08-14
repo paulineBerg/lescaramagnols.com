@@ -2,23 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Caramagnols\PrivateApps\PbGestion\Http;
+namespace Caramagnols\LocalAgentPlatform\Http;
 
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
 use Caramagnols\Logging\AppEventLogger;
-use Caramagnols\PbGestion\Photo\PhotoRenamePlanner;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoRenamePlanner;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
-use Caramagnols\PrivateApps\PbGestion\Installer\PbGestionAgentInstaller;
+use Caramagnols\LocalAgentPlatform\Installer\LocalAgentInstaller;
 use Caramagnols\PrivatePortal\Http\PrivateResponseHeaders;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
 use Caramagnols\PrivatePortal\Security\PrivatePortalSecurityGuard;
 
-final class PbGestionController
+final class LocalAgentPortalController
 {
     private const CSRF = 'private_pbgestion';
+    private const MODULE_NETWORK_SECURITY = 'network_security';
+    private const MODULE_PHOTO_GEO_RENAMER = 'photo_geo_renamer';
 
     /**
      * @param \Closure(string, array<string, mixed>): Response $render
@@ -36,12 +38,13 @@ final class PbGestionController
 
     public function handle(string $page, Request $request): Response
     {
-        $userId = $this->requirePbGestionUser($request);
+        $app = $this->appForPage($page);
+        $userId = $this->requireModuleUser($request, $app);
         if ($userId instanceof Response) {
             return $userId;
         }
 
-        $view = $this->viewForPage($page);
+        $view = $this->viewForPage($page, $app);
         $query = $request->query();
         $notice = is_string($query['notice'] ?? null) ? (string) $query['notice'] : null;
         $error = is_string($query['error'] ?? null) ? (string) $query['error'] : null;
@@ -49,14 +52,17 @@ final class PbGestionController
 
         if ($request->method() === 'POST') {
             if (!$this->securityGuard->validateCsrf($request, self::CSRF)) {
-                return $this->renderPbGestion($userId, $view, null, 'invalid_request', null);
+                return $this->renderPbGestion($userId, $view, null, 'invalid_request', null, null, $app);
             }
 
             $body = $request->body();
             $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
+            if (!$this->actionAllowedForModule($action, (string) $app['moduleCode'])) {
+                return $this->renderPbGestion($userId, $view, null, 'invalid_request', null, null, $app);
+            }
 
             if ($action === 'download_agent_installer') {
-                return $this->downloadAgentInstaller($request, $userId, $body);
+                return $this->downloadAgentInstaller($request, $userId, $body, $app);
             }
 
             if ($action === 'create_enrollment') {
@@ -66,22 +72,22 @@ final class PbGestionController
                 );
                 $this->log('pbgestion.enrollment.created', ['private_user_id' => $userId], 'info');
 
-                return $this->renderPbGestion($userId, 'agents', 'enrollment_created', null, $oneTimeEnrollment);
+                return $this->renderPbGestion($userId, 'agents', 'enrollment_created', null, $oneTimeEnrollment, null, $app);
             }
 
             if ($action === 'photo_restricted_preview') {
                 $preview = $this->restrictedPhotoPreview($body);
                 if ($preview === null) {
-                    return $this->renderPbGestion($userId, 'photos', null, 'restricted_preview_empty', null);
+                    return $this->renderPbGestion($userId, 'photos', null, 'restricted_preview_empty', null, null, $app);
                 }
 
-                return $this->renderPbGestion($userId, 'photos', 'restricted_preview_ready', null, null, $preview);
+                return $this->renderPbGestion($userId, 'photos', 'restricted_preview_ready', null, null, $preview, $app);
             }
 
             if ($action === 'queue_command') {
-                $queued = $this->handleQueueCommand($userId, $body);
+                $queued = $this->handleQueueCommand($userId, $body, (string) $app['moduleCode']);
 
-                return $this->redirect($this->url($view) . (($queued['ok'] ?? false) ? '?notice=command_queued' : '?error=command_rejected'));
+                return $this->redirect($this->url($view, (string) $app['moduleCode']) . (($queued['ok'] ?? false) ? '?notice=command_queued' : '?error=command_rejected'));
             }
 
             if ($action === 'revoke_agent') {
@@ -89,25 +95,28 @@ final class PbGestionController
                 if ($agentId > 0 && $this->repository->revokeAgent($userId, $agentId, 'private_user')) {
                     $this->log('pbgestion.agent.revoked', ['private_user_id' => $userId, 'agent_id' => $agentId], 'warning');
 
-                    return $this->redirect($this->url('agents') . '?notice=agent_revoked');
+                    return $this->redirect($this->url('agents', (string) $app['moduleCode']) . '?notice=agent_revoked');
                 }
 
-                return $this->redirect($this->url('agents') . '?error=agent_revoke_failed');
+                return $this->redirect($this->url('agents', (string) $app['moduleCode']) . '?error=agent_revoke_failed');
             }
 
             if ($action === 'purge_details') {
                 $purged = $this->repository->purgeExpiredDetails(false, 100);
 
-                return $this->renderPbGestion($userId, 'settings', 'details_purged_' . $purged, null, null);
+                return $this->renderPbGestion($userId, 'settings', 'details_purged_' . $purged, null, null, null, $app);
             }
 
-            return $this->renderPbGestion($userId, $view, null, 'invalid_request', null);
+            return $this->renderPbGestion($userId, $view, null, 'invalid_request', null, null, $app);
         }
 
-        return $this->renderPbGestion($userId, $view, $notice, $error, $oneTimeEnrollment);
+        return $this->renderPbGestion($userId, $view, $notice, $error, $oneTimeEnrollment, null, $app);
     }
 
-    private function requirePbGestionUser(Request $request): int|Response
+    /**
+     * @param array<string, mixed> $app
+     */
+    private function requireModuleUser(Request $request, array $app): int|Response
     {
         $required = $this->securityGuard->requireAuthenticated(
             $request,
@@ -119,9 +128,10 @@ final class PbGestionController
         }
 
         $userId = $this->currentPrivateUserId();
-        if ($userId === null || !$this->modulePermissionRepository->userHasExplicitModuleAccess($userId, 'pbgestion')) {
+        $moduleCode = (string) $app['moduleCode'];
+        if ($userId === null || !$this->hasAppAccess($userId, $moduleCode)) {
             $this->log('private.module.access_denied', [
-                'module' => 'pbgestion',
+                'module' => $moduleCode,
                 'identifier' => AppEventLogger::maskIdentifier((string) $this->auth->currentIdentifier()),
             ], 'warning');
 
@@ -131,18 +141,28 @@ final class PbGestionController
         return $userId;
     }
 
+    private function hasAppAccess(int $userId, string $moduleCode): bool
+    {
+        return $this->modulePermissionRepository->userHasExplicitModuleAccess($userId, $moduleCode);
+    }
+
+    /**
+     * @param array<string, mixed> $app
+     */
     private function renderPbGestion(
         int $userId,
         string $view,
         ?string $notice,
         ?string $error,
         ?array $oneTimeEnrollment,
-        ?array $restrictedPhotoPreview = null
+        ?array $restrictedPhotoPreview = null,
+        ?array $app = null
     ): Response {
+        $app ??= $this->appForPage('');
         $dashboard = $this->repository->dashboardForOwner($userId);
 
         return ($this->render)('modules/pbgestion/index', [
-            'privatePageTitle' => 'Sécurité réseau',
+            'privatePageTitle' => (string) $app['title'],
             'privateUserIdentifier' => is_string($this->auth->currentIdentifier()) ? (string) $this->auth->currentIdentifier() : '',
             'privateModules' => $this->privateModuleNamesForUser($userId),
             'privateNavigationModuleCodes' => $this->privateModuleCodesForUser($userId),
@@ -152,7 +172,8 @@ final class PbGestionController
             'pbgestion' => [
                 'view' => $view,
                 'csrfToken' => csrf_token(self::CSRF),
-                'urls' => $this->urls(),
+                'urls' => $this->urls((string) $app['moduleCode']),
+                'app' => $app,
                 'dashboard' => $dashboard,
                 'oneTimeEnrollment' => $oneTimeEnrollment,
                 'restrictedPhotoPreview' => $restrictedPhotoPreview,
@@ -164,19 +185,20 @@ final class PbGestionController
 
     /**
      * @param array<string, mixed> $body
+     * @param array<string, mixed> $app
      */
-    private function downloadAgentInstaller(Request $request, int $userId, array $body): Response
+    private function downloadAgentInstaller(Request $request, int $userId, array $body, array $app): Response
     {
         $hasConsent = ($body['installer_consent'] ?? null) === '1'
             && mb_strtoupper($this->shortBodyText($body, 'installer_confirmation', 16)) === 'INSTALLER';
         if (!$hasConsent) {
-            return $this->renderPbGestion($userId, 'agents', null, 'installer_consent_required', null);
+            return $this->renderPbGestion($userId, 'agents', null, 'installer_consent_required', null, null, $app);
         }
 
         $locationLabel = $this->shortBodyText($body, 'location_label', 160);
         $oneTimeEnrollment = $this->repository->createEnrollmentToken($userId, $locationLabel);
         $displayName = $locationLabel !== '' ? $locationLabel : 'PbGestion Agent';
-        $script = (new PbGestionAgentInstaller())->buildPowerShellScript(
+        $script = (new LocalAgentInstaller())->buildPowerShellScript(
             $oneTimeEnrollment,
             rtrim(app_url('', $request), '/'),
             $displayName
@@ -256,7 +278,7 @@ final class PbGestionController
      * @param array<string, mixed> $body
      * @return array{ok: bool}
      */
-    private function handleQueueCommand(int $userId, array $body): array
+    private function handleQueueCommand(int $userId, array $body, string $moduleCode): array
     {
         $agentId = $this->positiveInt($body['agent_id'] ?? null);
         $type = is_string($body['command_type'] ?? null) ? (string) $body['command_type'] : '';
@@ -293,7 +315,7 @@ final class PbGestionController
             $payload = $this->photoCommandPayload($type, $body);
         }
 
-        if ($agentId <= 0 || $type === '') {
+        if ($agentId <= 0 || $type === '' || !$this->commandAllowedForModule($type, $moduleCode)) {
             return ['ok' => false];
         }
 
@@ -307,6 +329,36 @@ final class PbGestionController
         );
 
         return ['ok' => ($result['ok'] ?? false) === true];
+    }
+
+    private function commandAllowedForModule(string $type, string $moduleCode): bool
+    {
+        if ($moduleCode === self::MODULE_PHOTO_GEO_RENAMER) {
+            return str_starts_with($type, 'photo.');
+        }
+
+        if ($moduleCode === self::MODULE_NETWORK_SECURITY) {
+            return !str_starts_with($type, 'photo.');
+        }
+
+        return false;
+    }
+
+    private function actionAllowedForModule(string $action, string $moduleCode): bool
+    {
+        if (in_array($action, ['download_agent_installer', 'create_enrollment', 'queue_command', 'revoke_agent'], true)) {
+            return in_array($moduleCode, [self::MODULE_NETWORK_SECURITY, self::MODULE_PHOTO_GEO_RENAMER], true);
+        }
+
+        if ($action === 'photo_restricted_preview') {
+            return $moduleCode === self::MODULE_PHOTO_GEO_RENAMER;
+        }
+
+        if ($action === 'purge_details') {
+            return $moduleCode === self::MODULE_NETWORK_SECURITY;
+        }
+
+        return false;
     }
 
     private function currentPrivateUserId(): ?int
@@ -349,20 +401,55 @@ final class PbGestionController
         ));
     }
 
-    private function viewForPage(string $page): string
+    /**
+     * @return array<string, mixed>
+     */
+    private function appForPage(string $page): array
     {
+        if (
+            str_starts_with($page, 'photo_geo_renamer')
+            || $page === 'pbgestion_photos'
+        ) {
+            return [
+                'kind' => 'photo',
+                'moduleCode' => self::MODULE_PHOTO_GEO_RENAMER,
+                'title' => 'Photo rename',
+                'navLabel' => 'Navigation Photo rename',
+            ];
+        }
+
+        return [
+            'kind' => 'security',
+            'moduleCode' => self::MODULE_NETWORK_SECURITY,
+            'title' => 'Sécurité réseau',
+            'navLabel' => 'Navigation Sécurité réseau',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $app
+     */
+    private function viewForPage(string $page, array $app): string
+    {
+        if ((string) $app['moduleCode'] === self::MODULE_PHOTO_GEO_RENAMER) {
+            return match ($page) {
+                'photo_geo_renamer_agents' => 'agents',
+                'photo_geo_renamer_help' => 'help',
+                default => 'photos',
+            };
+        }
+
         return match ($page) {
-            'pbgestion_coverage' => 'coverage',
-            'pbgestion_networks' => 'networks',
-            'pbgestion_devices' => 'devices',
-            'pbgestion_computers' => 'computers',
-            'pbgestion_alerts' => 'alerts',
-            'pbgestion_scans' => 'scans',
-            'pbgestion_backups' => 'backups',
-            'pbgestion_photos' => 'photos',
-            'pbgestion_agents' => 'agents',
-            'pbgestion_settings' => 'settings',
-            'pbgestion_help' => 'help',
+            'network_security_coverage', 'security_center_coverage', 'pbgestion_coverage' => 'coverage',
+            'network_security_networks', 'security_center_networks', 'pbgestion_networks' => 'networks',
+            'network_security_devices', 'security_center_devices', 'pbgestion_devices' => 'devices',
+            'network_security_computers', 'security_center_computers', 'pbgestion_computers' => 'computers',
+            'network_security_alerts', 'security_center_alerts', 'pbgestion_alerts' => 'alerts',
+            'network_security_scans', 'security_center_scans', 'pbgestion_scans' => 'scans',
+            'network_security_backups', 'security_center_backups', 'pbgestion_backups' => 'backups',
+            'network_security_agents', 'security_center_agents', 'pbgestion_agents' => 'agents',
+            'network_security_settings', 'security_center_settings', 'pbgestion_settings' => 'settings',
+            'network_security_help', 'security_center_help', 'pbgestion_help' => 'help',
             default => 'overview',
         };
     }
@@ -370,27 +457,35 @@ final class PbGestionController
     /**
      * @return array<string, string>
      */
-    private function urls(): array
+    private function urls(string $moduleCode): array
     {
+        if ($moduleCode === self::MODULE_PHOTO_GEO_RENAMER) {
+            return [
+                'overview' => private_portal_url('photo_geo_renamer_dashboard'),
+                'photos' => private_portal_url('photo_geo_renamer_dashboard'),
+                'agents' => private_portal_url('photo_geo_renamer_agents'),
+                'help' => private_portal_url('photo_geo_renamer_help'),
+            ];
+        }
+
         return [
-            'overview' => private_portal_url('pbgestion_dashboard'),
-            'coverage' => private_portal_url('pbgestion_coverage'),
-            'networks' => private_portal_url('pbgestion_networks'),
-            'devices' => private_portal_url('pbgestion_devices'),
-            'computers' => private_portal_url('pbgestion_computers'),
-            'alerts' => private_portal_url('pbgestion_alerts'),
-            'scans' => private_portal_url('pbgestion_scans'),
-            'backups' => private_portal_url('pbgestion_backups'),
-            'photos' => private_portal_url('pbgestion_photos'),
-            'agents' => private_portal_url('pbgestion_agents'),
-            'settings' => private_portal_url('pbgestion_settings'),
-            'help' => private_portal_url('pbgestion_help'),
+            'overview' => private_portal_url('network_security_dashboard'),
+            'coverage' => private_portal_url('network_security_coverage'),
+            'networks' => private_portal_url('network_security_networks'),
+            'devices' => private_portal_url('network_security_devices'),
+            'computers' => private_portal_url('network_security_computers'),
+            'alerts' => private_portal_url('network_security_alerts'),
+            'scans' => private_portal_url('network_security_scans'),
+            'backups' => private_portal_url('network_security_backups'),
+            'agents' => private_portal_url('network_security_agents'),
+            'settings' => private_portal_url('network_security_settings'),
+            'help' => private_portal_url('network_security_help'),
         ];
     }
 
-    private function url(string $view): string
+    private function url(string $view, string $moduleCode): string
     {
-        $urls = $this->urls();
+        $urls = $this->urls($moduleCode);
 
         return $urls[$view] ?? $urls['overview'];
     }
@@ -416,7 +511,7 @@ final class PbGestionController
             'invalid_request' => 'Requête invalide.',
             'installer_consent_required' => 'Téléchargement refusé: confirmez explicitement l’installation locale avant de générer l’installeur.',
             'restricted_preview_empty' => 'Aucune photo valide à prévisualiser en mode restreint.',
-            'command_rejected' => 'La commande a été refusée par la politique Sécurité réseau.',
+            'command_rejected' => 'La commande a été refusée par la politique du module.',
             'agent_revoke_failed' => 'L’agent n’a pas pu être révoqué.',
             default => null,
         };

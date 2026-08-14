@@ -41,8 +41,10 @@ final class PrivateAppRegistryTest extends TestCase
             'documents',
             'family_discussion',
             'real_estate_rental',
-            'pbgestion',
             'tax_declaration_helper',
+            'web_development',
+            'network_security',
+            'photo_geo_renamer',
         ];
 
         $registeredModules = array_keys($manifests);
@@ -221,5 +223,15 @@ final class PrivateAppRegistryTest extends TestCase
 
             $this->assertIsString($manifest->notes());
         }
+    }
+
+    public function testPhotoGeoRenamerDoesNotClaimSharedAgentTables(): void
+    {
+        $manifest = PrivateAppRegistry::get('photo_geo_renamer');
+
+        $this->assertNotNull($manifest);
+        $this->assertSame([], $manifest->tables());
+        $this->assertSame('network_security', PrivateAppRegistry::getByTableName('pb_agents')?->moduleCode());
+        $this->assertSame('network_security', PrivateAppRegistry::getByTableName('pb_commands')?->moduleCode());
     }
 }

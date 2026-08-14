@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Caramagnols\PrivateApps\PbGestion\Installer;
+namespace Caramagnols\LocalAgentPlatform\Installer;
 
-final class PbGestionAgentInstaller
+final class LocalAgentInstaller
 {
     private const AGENT_RESOURCE = __DIR__ . '/../Resources/agent/pbgestion_agent.py';
 
@@ -27,7 +27,7 @@ final class PbGestionAgentInstaller
             'server_base_url' => rtrim($serverBaseUrl, '/'),
             'enrollment_code' => $code,
             'display_name' => $this->portableDisplayName($displayName),
-            'data_root' => '$env:LOCALAPPDATA\\PbGestionAgent',
+            'data_root' => '$env:LOCALAPPDATA\\pbgestion\\agent',
             'allowed_roots' => [
                 [
                     'uid' => 'photos-principales',
@@ -71,7 +71,7 @@ final class PbGestionAgentInstaller
 Write-Host ''
 Write-Host 'INSTALLATION LOCALE PB GESTION'
 Write-Host 'Cette action installe un agent local pour l utilisateur Windows courant.'
-Write-Host 'L agent cree des fichiers dans %LOCALAPPDATA%\\PbGestionAgent, cree une tache planifiee locale,'
+Write-Host 'L agent cree des fichiers dans %LOCALAPPDATA%\\pbgestion\\agent, cree une tache planifiee locale,'
 Write-Host 's appaire au BO Private, puis execute uniquement les commandes signees et bornees par vos racines locales autorisees.'
 Write-Host 'Sans votre validation dans le BO et dans ce script, aucune installation silencieuse n est effectuee.'
 Write-Host ''
@@ -81,7 +81,8 @@ if (\$confirmation -ne 'OUI') {
     exit 12
 }
 
-\$installRoot = Join-Path \$env:LOCALAPPDATA 'PbGestionAgent'
+\$pbGestionRoot = Join-Path \$env:LOCALAPPDATA 'pbgestion'
+\$installRoot = Join-Path \$pbGestionRoot 'agent'
 \$agentPath = Join-Path \$installRoot 'pbgestion_agent.py'
 \$configPath = Join-Path \$installRoot 'config.json'
 \$venvPath = Join-Path \$installRoot '.venv'

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Caramagnols\PbGestion\Command;
 
-use Caramagnols\PbGestion\Photo\PhotoPathPolicy;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoPathPolicy;
 
 final class CommandPolicy
 {

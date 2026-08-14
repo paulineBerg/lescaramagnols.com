@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace LesCaramagnols\Tests\PbGestion;
+namespace LesCaramagnols\Tests\PrivateApps\PhotoGeoRenamer;
 
-use Caramagnols\PbGestion\Photo\PhotoFilenameNormalizer;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoFilenameNormalizer;
 use PHPUnit\Framework\TestCase;
 
 final class PhotoFilenameNormalizerTest extends TestCase

@@ -179,4 +179,49 @@ CREATE TABLE IF NOT EXISTS car_pb_agent_versions (
 
 INSERT IGNORE INTO car_private_modules (`code`, `is_active`, `display_name`, `description`)
     VALUES
-        ('pbgestion', 1, 'Sécurité réseau', 'Pilotage des agents locaux, couverture, alertes et synthèses de sécurité.');
+        ('pbgestion', 1, 'Sécurité réseau', 'Alias historique du socle agent PbGestion.'),
+        ('security_center', 1, 'Sécurité réseau', 'Alias transitoire de la webapp Sécurité réseau.'),
+        ('network_security', 1, 'Sécurité réseau', 'Pilotage des agents locaux, couverture, alertes et synthèses de sécurité.'),
+        ('photo_geo_renamer', 1, 'Photo rename', 'Renommage local de photos avec aperçu, géolocalisation et mode restreint sans agent.');
+
+INSERT IGNORE INTO car_private_user_module_permissions (
+    private_user_id,
+    private_module_id,
+    is_active,
+    granted_by_admin_email,
+    granted_at
+)
+SELECT
+    permissions.private_user_id,
+    target_modules.id,
+    permissions.is_active,
+    permissions.granted_by_admin_email,
+    permissions.granted_at
+FROM car_private_user_module_permissions permissions
+INNER JOIN car_private_modules legacy_module
+    ON legacy_module.id = permissions.private_module_id
+   AND legacy_module.code = 'pbgestion'
+INNER JOIN car_private_modules target_modules
+    ON target_modules.code IN ('network_security', 'photo_geo_renamer')
+WHERE permissions.is_active = 1;
+
+INSERT IGNORE INTO car_private_user_module_permissions (
+    private_user_id,
+    private_module_id,
+    is_active,
+    granted_by_admin_email,
+    granted_at
+)
+SELECT
+    permissions.private_user_id,
+    target_modules.id,
+    permissions.is_active,
+    permissions.granted_by_admin_email,
+    permissions.granted_at
+FROM car_private_user_module_permissions permissions
+INNER JOIN car_private_modules legacy_module
+    ON legacy_module.id = permissions.private_module_id
+   AND legacy_module.code = 'security_center'
+INNER JOIN car_private_modules target_modules
+    ON target_modules.code = 'network_security'
+WHERE permissions.is_active = 1;

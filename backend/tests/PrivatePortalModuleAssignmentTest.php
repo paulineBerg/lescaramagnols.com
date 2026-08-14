@@ -173,4 +173,51 @@ final class PrivatePortalModuleAssignmentTest extends TestCase
             $moduleRepository->validModuleCodesFromPayload(['bloc_note', 'files', 'locations_immobilieres'])
         );
     }
+
+    public function testCanonicalRevocationOverridesLegacyPbGestionPermission(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+
+        $userId = $userRepository->create('legacy-pbgestion@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+        $moduleRepository->listRegistryModuleStates();
+
+        $moduleTable = $database->table('private_modules');
+        $permissionTable = $database->table('private_user_module_permissions');
+        $database->pdo()->exec(
+            sprintf(
+                "INSERT IGNORE INTO `%s` (`code`, `is_active`, `display_name`, `description`)
+                 VALUES ('pbgestion', 1, 'Sécurité réseau', 'Alias historique.')",
+                $moduleTable
+            )
+        );
+        $legacyModuleId = $database->pdo()->query(
+            sprintf("SELECT `id` FROM `%s` WHERE `code` = 'pbgestion' LIMIT 1", $moduleTable)
+        )?->fetchColumn();
+        $this->assertTrue($legacyModuleId !== false && is_numeric($legacyModuleId));
+
+        $insertPermission = $database->pdo()->prepare(
+            sprintf(
+                'INSERT INTO `%s` (`private_user_id`, `private_module_id`, `is_active`, `granted_at`)
+                 VALUES (:user_id, :module_id, 1, CURRENT_TIMESTAMP)',
+                $permissionTable
+            )
+        );
+        $insertPermission->execute([
+            'user_id' => $userId,
+            'module_id' => (int) $legacyModuleId,
+        ]);
+
+        $this->assertTrue($moduleRepository->userHasExplicitModuleAccess($userId, 'network_security'));
+        $this->assertTrue($moduleRepository->userHasExplicitModuleAccess($userId, 'photo_geo_renamer'));
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['network_security', 'photo_geo_renamer'], 'admin@example.com'));
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['network_security'], 'admin@example.com'));
+
+        $this->assertTrue($moduleRepository->userHasExplicitModuleAccess($userId, 'network_security'));
+        $this->assertFalse($moduleRepository->userHasExplicitModuleAccess($userId, 'photo_geo_renamer'));
+    }
 }

@@ -63,6 +63,35 @@ final class PrivateRouteResolver
             // Si le registre n'est pas encore utilisable, retomber sur legacy
         }
 
+        $legacyPbGestionRoutes = [
+            'security_center_dashboard' => 'network_security_dashboard',
+            'security_center_coverage' => 'network_security_coverage',
+            'security_center_networks' => 'network_security_networks',
+            'security_center_devices' => 'network_security_devices',
+            'security_center_computers' => 'network_security_computers',
+            'security_center_alerts' => 'network_security_alerts',
+            'security_center_scans' => 'network_security_scans',
+            'security_center_backups' => 'network_security_backups',
+            'security_center_agents' => 'network_security_agents',
+            'security_center_settings' => 'network_security_settings',
+            'security_center_help' => 'network_security_help',
+            'pbgestion_dashboard' => 'network_security_dashboard',
+            'pbgestion_coverage' => 'network_security_coverage',
+            'pbgestion_networks' => 'network_security_networks',
+            'pbgestion_devices' => 'network_security_devices',
+            'pbgestion_computers' => 'network_security_computers',
+            'pbgestion_alerts' => 'network_security_alerts',
+            'pbgestion_scans' => 'network_security_scans',
+            'pbgestion_backups' => 'network_security_backups',
+            'pbgestion_photos' => 'photo_geo_renamer_dashboard',
+            'pbgestion_agents' => 'network_security_agents',
+            'pbgestion_settings' => 'network_security_settings',
+            'pbgestion_help' => 'network_security_help',
+        ];
+        if (isset($legacyPbGestionRoutes[$page])) {
+            return $this->canonicalPath($legacyPbGestionRoutes[$page]);
+        }
+
         // 3. Routes legacy (a migrer vers les modules)
         if (isset(self::LEGACY_ROUTES[$page])) {
             return $basePath . '/' . self::LEGACY_ROUTES[$page];
@@ -247,63 +276,133 @@ final class PrivateRouteResolver
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_dashboard'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_dashboard'],
+                'path' => $this->canonicalPath('network_security_dashboard'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_dashboard'],
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_coverage'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_coverage'],
+                'path' => $this->canonicalPath('network_security_coverage'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_coverage'],
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_networks'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_networks'],
+                'path' => $this->canonicalPath('network_security_networks'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_networks'],
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_devices'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_devices'],
+                'path' => $this->canonicalPath('network_security_devices'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_devices'],
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_computers'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_computers'],
+                'path' => $this->canonicalPath('network_security_computers'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_computers'],
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_alerts'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_alerts'],
+                'path' => $this->canonicalPath('network_security_alerts'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_alerts'],
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_scans'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_scans'],
+                'path' => $this->canonicalPath('network_security_scans'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_scans'],
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_backups'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_backups'],
+                'path' => $this->canonicalPath('network_security_backups'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_backups'],
             ],
             [
                 'methods' => ['GET', 'POST'],
-                'path' => $this->canonicalPath('pbgestion_photos'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_photos'],
+                'path' => $this->canonicalPath('network_security_agents'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_agents'],
             ],
             [
                 'methods' => ['GET', 'POST'],
-                'path' => $this->canonicalPath('pbgestion_agents'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_agents'],
-            ],
-            [
-                'methods' => ['GET', 'POST'],
-                'path' => $this->canonicalPath('pbgestion_settings'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_settings'],
+                'path' => $this->canonicalPath('network_security_settings'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_settings'],
             ],
             [
                 'methods' => ['GET'],
-                'path' => $this->canonicalPath('pbgestion_help'),
-                'handler' => ['type' => 'private', 'page' => 'pbgestion_help'],
+                'path' => $this->canonicalPath('network_security_help'),
+                'handler' => ['type' => 'private', 'page' => 'network_security_help'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('photo_geo_renamer_dashboard'),
+                'handler' => ['type' => 'private', 'page' => 'photo_geo_renamer_dashboard'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('photo_geo_renamer_agents'),
+                'handler' => ['type' => 'private', 'page' => 'photo_geo_renamer_agents'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('photo_geo_renamer_help'),
+                'handler' => ['type' => 'private', 'page' => 'photo_geo_renamer_help'],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_dashboard'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/couverture',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_coverage'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/reseaux',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_networks'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/appareils',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_devices'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/ordinateurs',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_computers'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/alertes',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_alerts'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/scans',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_scans'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/sauvegardes',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_backups'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/photos',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('photo_geo_renamer_dashboard'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/agents-installation',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_agents'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/parametres',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_settings'), 'status' => 301],
+            ],
+            [
+                'methods' => ['GET'],
+                'path' => $basePath . '/pbgestion/aide',
+                'handler' => ['type' => 'redirect', 'location' => $this->canonicalPath('network_security_help'), 'status' => 301],
             ],
             [
                 'methods' => ['POST'],
