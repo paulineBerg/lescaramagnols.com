@@ -1,26 +1,33 @@
 {
-  "title": "Austin dans l'industrie automobile britannique",
-  "slug": "austin-dans-industrie-automobile-britannique",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Les Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2030-09-13 14:36:14",
-  "excerpt": "Austin éclaire la force et les fragilités de l'industrie automobile britannique: Longbridge, volume, exportation, badges et restructurations.",
-  "content": "<p>Austin occupe une place particulière dans l'industrie automobile britannique parce que la marque réunit plusieurs dimensions rarement séparées: un grand site industriel, des modèles populaires, une présence forte à l'exportation et une longue participation aux regroupements qui ont transformé le secteur.</p>\n<p>Lire Austin seulement comme une marque ancienne serait trop court. La trajectoire raconte aussi la manière dont la Grande-Bretagne a produit, rationalisé, exporté, puis parfois compliqué ses propres gammes par excès de badges et de structures.</p>\n<h2>Longbridge comme base productive</h2>\n<p>Longbridge donne à Austin une assise industrielle solide dès le début du XXe siècle. L'usine n'est pas un simple lieu d'assemblage. Elle permet de passer des modèles coûteux des débuts à des productions plus larges, puis à des volumes importants avec la Seven et les modèles d'après-guerre.</p>\n<p>Cette base explique la position d'Austin dans les discussions industrielles britanniques. La marque ne représente pas seulement un catalogue de voitures. Elle représente aussi une capacité de production, une main-d'oeuvre et un savoir-faire organisés autour d'un site majeur.</p>\n<h2>La voiture populaire comme enjeu national</h2>\n<p>L'Austin Seven montre très tôt que la petite voiture peut changer l'accès à l'automobile. Dans un pays où le coût d'achat reste décisif, un modèle compact et économique modifie la clientèle possible. Austin devient alors un acteur de la motorisation de masse, pas seulement un constructeur respecté.</p>\n<p>Après 1945, cette question reste centrale. La reconstruction, les exportations et la concurrence interne avec Morris obligent Austin à produire des voitures plus rationnelles. L'A30, le moteur A-Series et la Mini prolongent cette recherche d'une automobile compacte et utilisable.</p>\n<h2>BMC et la force ambivalente du partage</h2>\n<p>La création de la BMC en 1952 donne à Austin une puissance de groupe. Les moteurs, plateformes et carrosseries peuvent être partagés. Les réseaux commerciaux disposent de plusieurs badges. Sur le papier, cette organisation permet de mieux exploiter les volumes.</p>\n<p>La limite apparaît quand les modèles deviennent trop proches. Morris, Austin, Riley, Wolseley ou MG peuvent se retrouver autour de bases communes, parfois avec des différences insuffisantes pour justifier la complexité. L'industrie gagne en mutualisation, mais perd en clarté.</p>\n<h2>British Leyland et la difficulté de gouverner trop large</h2>\n<p>British Leyland rassemble des marques très diverses, des usines nombreuses et des intérêts parfois contradictoires. Austin continue d'exister dans cette structure, mais son identité dépend de décisions prises à une échelle beaucoup plus vaste que celle de Longbridge seul.</p>\n<p>La crise britannique des années 1970 ne se réduit pas à Austin. Elle touche l'investissement, la qualité, les conflits sociaux, les choix de gamme et la concurrence étrangère. Austin permet toutefois d'en voir les effets sur un badge très concret, longtemps populaire et progressivement affaibli.</p>\n<h2>Une marque qui résume plusieurs tensions britanniques</h2>\n<p>Austin laisse aujourd'hui une leçon industrielle nette. Une marque peut être forte par ses modèles et fragile par son organisation. Elle peut produire des voitures décisives tout en se diluant dans des groupes trop complexes.</p>\n<h2>Usine, badge et gamme</h2>\n<p>Une histoire industrielle devient utile quand on peut la rattacher à un fait précis : Longbridge pour Austin, Cowley pour certaines Mini, un moteur commun, une plateforme partagée ou un réseau de vente réorganisé. Ces choix d’usine et de gamme, pris à des dates connues, expliquent ensuite les badges, les pièces compatibles et la place réelle de la voiture dans le catalogue. Sans ce point d’appui, l’histoire reste trop générale pour aider le lecteur.</p>\n<p>Quand Longbridge, la BMC ou British Leyland entrent dans l’histoire, l’effet concret se voit dans les badges, les pièces partagées, les modèles qui se recouvrent et les choix d’investissement. Ces décisions industrielles expliquent pourquoi certaines voitures deviennent plus lisibles que leur marque, et pourquoi le nom Austin perd peu à peu de sa force.</p>\n<h2>Effet visible sur les voitures</h2>\n<p>Sur un exemplaire conservé aujourd’hui, cela se voit tout de suite dans la plaque, la finition, le type de moteur, la documentation d’atelier et parfois le montage de certains organes. Avant achat ou restauration, il faut comparer ces indices sur la voiture elle-même avec l’année annoncée par le vendeur. Une calandre connue ne suffit pas si le reste raconte une autre période.</p>\n<p>Avant d’acheter ou d’ouvrir le chantier, il faut relever le modèle exact, l’année, le marché d’origine et l’état réel de la voiture devant soi. Une version export, une caisse déjà reprise en atelier ou un exemplaire très complet ne posent ni les mêmes questions de pièces ni les mêmes coûts. La décision se prend sur place, carnet et factures à la main, pas sur le seul nom du modèle.</p>\n<p>La page <a href=\"/auto-retro/austin/histoire-de-austin.php\">Austin</a> replace cette lecture dans la chronologie complète. La page <a href=\"/auto-retro/austin/aventure-mini-austin.php\">Austin et Morris Mini</a> montre l'exemple le plus connu d'une idée technique britannique devenue plus célèbre que son badge d'origine.</p>",
-  "tags": [
-    "austin",
-    "voiture-ancienne",
-    "histoire"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": null,
-  "page_slug": "auto-retro-austin-histoire-de-austin",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-23T10:07:21+00:00",
-  "updated_at": "2026-05-02T13:29:10+00:00"
+    "title": "Austin dans l'industrie automobile britannique",
+    "slug": "austin-dans-industrie-automobile-britannique",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2030-09-13 14:36:14",
+    "excerpt": "Austin éclaire la force et les fragilités de l'industrie automobile britannique: Longbridge, volume, exportation, badges et restructurations.",
+    "content": "<p>Austin occupe une place particulière dans l'industrie automobile britannique parce que la marque réunit plusieurs dimensions rarement séparées: un grand site industriel, des modèles populaires, une présence forte à l'exportation et une longue participation aux regroupements qui ont transformé le secteur.</p>\n<figure><img src=\"/assets/images/autoretro/austin/austin_logo.jpg\" alt=\"Affiche des marques de la British Motor Corporation — illustration de contexte\" title=\"Marques de la BMC\" width=\"200\" height=\"258\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" /><figcaption>Le regroupement Austin, Morris, MG, Riley et Wolseley explique une grande partie des pièces et modèles partagés.</figcaption></figure>\n<p>Lire Austin seulement comme une marque ancienne serait trop court. La trajectoire raconte aussi la manière dont la Grande-Bretagne a produit, rationalisé, exporté, puis parfois compliqué ses propres gammes par excès de badges et de structures.</p>\n<h2>Effet visible sur les voitures</h2>\n\n<p>La page <a href=\"/auto-retro/austin/histoire-de-austin.php\">Austin</a> replace cette lecture dans la chronologie complète. La page <a href=\"/auto-retro/austin/aventure-mini-austin.php\">Austin et Morris Mini</a> montre l'exemple le plus connu d'une idée technique britannique devenue plus célèbre que son badge d'origine.</p>",
+    "tags": [
+        "austin",
+        "voiture-ancienne",
+        "histoire"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/austin/bmc.jpg",
+        "width": 383,
+        "height": 249,
+        "alt": "Affiche des marques de la British Motor Corporation",
+        "title": "Marques de la BMC",
+        "caption": "Le regroupement Austin, Morris, MG, Riley et Wolseley explique une grande partie des pièces et modèles partagés."
+    },
+    "page_slug": "auto-retro-austin-histoire-de-austin",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-23T10:07:21+00:00",
+    "updated_at": "2026-08-14T12:50:00+02:00"
 }

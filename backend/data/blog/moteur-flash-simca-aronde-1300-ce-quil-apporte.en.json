@@ -1,34 +1,34 @@
 {
-  "title": "The Aronde 1300 Flash engine: what it really brings to Simca",
-  "slug": "moteur-flash-simca-aronde-1300-ce-quil-apporte",
-  "lang": "en",
-  "status": "published",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "restauration-et-entretien",
-  "date": "2026-06-15 14:36:14",
-  "excerpt": "In 1956, the Flash engine gives the Aronde 1300 extra presence more than absolute transformation. That well-placed gain helps Simca prolong the model’s success.",
-  "content": "<p>The Flash engine is often presented as the great mechanical turning point of the Aronde 1300. That is not wrong, but it needs to be read with measure: Simca is seeking less a rupture than the right adjustment to the mid-1950s market.</p>\n<figure>\n <img src=\"/assets/images/autoretro/simca/aronde/simca_aronde_1300_moteur_flash.jpg\" alt=\"Engine bay of a Simca Aronde 1300\" title=\"Aronde 1300 Flash engine\" width=\"400\" height=\"300\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The Flash is not an isolated revolution; it accompanies a whole phase of the model’s maturity.</figcaption>\n</figure>\n<h2>A powertrain more in step with the market</h2>\n<p>The Aronde already sells well before 1956. Yet competition moves on and expectations rise. The Flash engine brings enough flexibility and reach to keep the car at its commercial level.</p>\n<p>The progress is therefore real, but it belongs to continuity. Simca improves what needs improving without denying the Aronde logic.</p>\n<h2>The Flash as a marker of maturity</h2>\n<p>Once the Flash appears, the Aronde 1300 enters a more settled phase. The car is no longer only the modern saloon that surprised in 1951; it becomes an established value learning how to last.</p>\n<p>The engine supports that change. It serves a car that is better presented, better positioned and wider in its range of versions.</p>\n<h2>Why the nuance still matters today</h2>\n<p>For the collector, the Flash name helps place the car in the line’s history. Yet one must not forget that an example’s value rests as much on overall coherence as on mechanical designation alone.</p>\n<p>The engine therefore matters as a good clue, not as a sufficient argument by itself. It helps read the Aronde 1300 in its proper place.</p>\n<p>This note extends the page <a href=\"/en/auto-retro/simca/la-simca-aronde-1300-voiture-de-collection.php\">the Simca Aronde 1300</a>. Within the same cluster, the next useful step is <a href=\"/en/auto-retro/simca/la-simca-aronde-1300-voiture-de-collection.php?open_article=ligne-oceane-simca-aronde-1300-details-style#attached-article-ligne-oceane-simca-aronde-1300-details-style\">The Aronde 1300 Oceane line: the styling details that really matter</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://commons.wikimedia.org/wiki/File:Simca_Flash_Sp%C3%A9cial_engine,_in_a_%2759_P60_Oc%C3%A9ane.jpg\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, Simca Flash Spécial engine in a 59 P60 Océane</a></li>\n<li><a href=\"https://clubsimcafrance.fr/modeles/simca-9-aronde-et-p-60\" target=\"_blank\" rel=\"noopener noreferrer\">Club Simca France, Simca 9 Aronde et P60</a></li>\n<li><a href=\"https://commons.wikimedia.org/wiki/File:Simca_Aronde_1300_Montlh%C3%A9ry_(53028945662).jpg\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, Simca Aronde 1300 Montlhéry</a></li>\n</ul>",
-  "tags": [
-    "simca",
-    "mecanique",
-    "modele",
-    "entretien"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/simca/aronde/moteur_flash.jpg",
-    "alt": "Flash engine of a Simca Aronde",
-    "title": "Flash engine",
-    "caption": "With the Flash engine, the Aronde 1300 mainly gains overall poise and commercial momentum.",
-    "width": 196,
-    "height": 250
-  },
-  "page_slug": "auto-retro-simca-la-simca-aronde-1300-voiture-de-collection",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:41:31+00:00",
-  "updated_at": "2026-04-29T14:41:31+00:00"
+    "title": "The Aronde 1300 Flash engine: what it changed for Simca",
+    "slug": "moteur-flash-simca-aronde-1300-ce-quil-apporte",
+    "lang": "en",
+    "status": "published",
+    "author": "codex-blog-rewrite-published",
+    "category": "auto-retro",
+    "subcategory": "restauration-et-entretien",
+    "date": "2026-06-15 14:36:14",
+    "excerpt": "In 1956, the Flash engine gives the Aronde 1300 extra presence more than absolute transformation. That well-placed gain helps Simca prolong the model’s success.",
+    "content": "<p>The Flash engine is often presented as the great mechanical turning point of the Aronde 1300. That is not wrong, but it needs to be read with measure: Simca is seeking less a rupture than the right adjustment to the mid-1950s market.</p>\n<figure>\n <img src=\"/assets/images/autoretro/simca/aronde/simca_aronde_1300_moteur_flash.jpg\" alt=\"Engine bay of a Simca Aronde 1300\" title=\"Aronde 1300 Flash engine\" width=\"400\" height=\"300\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>The Flash is not an isolated revolution; it accompanies a whole phase of the model’s maturity.</figcaption>\n</figure>\n<h2>A powertrain more in step with the market</h2>\n<p>The Aronde already sells well before 1956. Yet competition moves on and expectations rise. The Flash engine brings enough flexibility and reach to keep the car at its commercial level.</p>\n<p>The progress is therefore real, but it belongs to continuity. Simca improves what needs improving without denying the Aronde logic.</p>\n<h2>The Flash as a marker of maturity</h2>\n<p>Once the Flash appears, the Aronde 1300 enters a more settled phase. The car is no longer only the modern saloon that surprised in 1951; it becomes an established value learning how to last.</p>\n<p>The engine supports that change. It serves a car that is better presented, better positioned and wider in its range of versions.</p>\n<h2>Why the nuance still matters today</h2>\n<p>For the collector, the Flash name helps place the car in the line’s history. Yet one must not forget that an example’s value rests as much on overall coherence as on mechanical designation alone.</p>\n<p>The engine therefore matters as a good clue, not as a sufficient argument by itself. It helps read the Aronde 1300 in its proper place.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/en/auto-retro/simca/la-simca-aronde-1300-voiture-de-collection.php\">the Simca Aronde 1300</a></li><li><a href=\"/en/auto-retro/simca/la-simca-aronde-1300-voiture-de-collection.php?open_article=ligne-oceane-simca-aronde-1300-details-style#attached-article-ligne-oceane-simca-aronde-1300-details-style\">The Aronde 1300 Oceane line: the styling details that really matter</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://commons.wikimedia.org/wiki/File:Simca_Flash_Sp%C3%A9cial_engine,_in_a_%2759_P60_Oc%C3%A9ane.jpg\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, Simca Flash Spécial engine in a 59 P60 Océane</a></li>\n<li><a href=\"https://clubsimcafrance.fr/modeles/simca-9-aronde-et-p-60\" target=\"_blank\" rel=\"noopener noreferrer\">Club Simca France, Simca 9 Aronde et P60</a></li>\n<li><a href=\"https://commons.wikimedia.org/wiki/File:Simca_Aronde_1300_Montlh%C3%A9ry_(53028945662).jpg\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, Simca Aronde 1300 Montlhéry</a></li>\n</ul>",
+    "tags": [
+        "simca",
+        "mecanique",
+        "modele",
+        "entretien"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/simca/aronde/moteur_flash.jpg",
+        "alt": "Flash engine of a Simca Aronde",
+        "title": "Flash engine",
+        "caption": "With the Flash engine, the Aronde 1300 mainly gains overall poise and commercial momentum.",
+        "width": 196,
+        "height": 250
+    },
+    "page_slug": "auto-retro-simca-la-simca-aronde-1300-voiture-de-collection",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:41:31+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

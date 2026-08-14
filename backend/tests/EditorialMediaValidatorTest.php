@@ -53,7 +53,13 @@ final class EditorialMediaValidatorTest extends TestCase
                     'payload' => [
                         'featured_image' => [
                             'src' => '/uploads/editorial/article/2026/04/bouly-cover.webp',
+                            'alt' => 'Bague Bouly et Cailloux',
+                            'title' => 'Bague artisanale',
+                            'caption' => 'Bague montée sur un anneau en acier inoxydable.',
+                            'width' => 800,
+                            'height' => 600,
                         ],
+                        'content' => '<figure><img src="/assets/images/boulyetcailloux/boulyetcailloux-sac-lineage.webp" alt="Sac en tissu" title="Sac Lineage" width="640" height="480"></figure>',
                     ],
                 ],
             ],
@@ -61,7 +67,7 @@ final class EditorialMediaValidatorTest extends TestCase
         );
 
         $this->assertSame([], $result['issues']);
-        $this->assertSame(3, $result['reference_count']);
+        $this->assertSame(4, $result['reference_count']);
     }
 
     public function testValidateReportsLegacyMissingAndRuntimeIssues(): void
@@ -84,7 +90,13 @@ final class EditorialMediaValidatorTest extends TestCase
                     'payload' => [
                         'featured_image' => [
                             'src' => '/uploads/editorial/article/2026/04/bouly-cover.webp',
+                            'alt' => 'Bague Bouly et Cailloux',
+                            'title' => 'Bague artisanale',
+                            'caption' => 'Bague montée sur un anneau en acier inoxydable.',
+                            'width' => 800,
+                            'height' => 600,
                         ],
+                        'content' => '<img src="https://example.com/body.webp" alt="Sac en tissu" title="Sac Lineage" width="640" height="480">',
                     ],
                 ],
             ],
@@ -98,6 +110,50 @@ final class EditorialMediaValidatorTest extends TestCase
         sort($issueTypes);
 
         $this->assertSame(['legacy_path', 'runtime_missing', 'source_missing'], $issueTypes);
+    }
+
+    public function testValidateReportsMissingIncompleteAndDuplicateBlogMedia(): void
+    {
+        file_put_contents($this->frontendRoot . '/boulyetcailloux/boulyetcailloux-bague-fuyu.webp', 'webp');
+        file_put_contents($this->publicRoot . '/assets/images/boulyetcailloux/boulyetcailloux-bague-fuyu.webp', 'webp');
+
+        $validator = new EditorialMediaValidator($this->frontendRoot, $this->publicRoot);
+        $result = $validator->validate(
+            [
+                [
+                    'scope' => 'blog',
+                    'entity' => 'missing.fr',
+                    'payload' => ['content' => '<p>Sans média.</p>'],
+                ],
+                [
+                    'scope' => 'blog',
+                    'entity' => 'duplicate.fr',
+                    'payload' => [
+                        'featured_image' => [
+                            'src' => '/assets/images/boulyetcailloux/boulyetcailloux-bague-fuyu.webp',
+                            'alt' => 'Bague Bouly et Cailloux',
+                            'title' => 'Bague artisanale',
+                            'caption' => 'Bague montée sur un anneau en acier inoxydable.',
+                            'width' => 800,
+                            'height' => 600,
+                        ],
+                        'content' => '<img src="/assets/images/boulyetcailloux/boulyetcailloux-bague-fuyu.webp" alt="" title="Bague" width="0" height="600">',
+                    ],
+                ],
+            ],
+            true
+        );
+
+        $issuesByEntity = [];
+        foreach ($result['issues'] as $issue) {
+            $issuesByEntity[(string) ($issue['entity'] ?? '')][] = (string) ($issue['type'] ?? '');
+        }
+
+        $this->assertContains('featured_image_missing', $issuesByEntity['missing.fr'] ?? []);
+        $this->assertContains('body_image_missing', $issuesByEntity['missing.fr'] ?? []);
+        $this->assertContains('featured_body_duplicate', $issuesByEntity['duplicate.fr'] ?? []);
+        $this->assertContains('body_image_metadata_missing', $issuesByEntity['duplicate.fr'] ?? []);
+        $this->assertContains('body_image_dimension_invalid', $issuesByEntity['duplicate.fr'] ?? []);
     }
 
     private function removeDirectory(string $path): void

@@ -31,6 +31,7 @@ $checkPublishedAssets = isset($options['check-published-assets']);
 $skipSourceAssets = isset($options['skip-source-assets']);
 $includeDrafts = isset($options['include-drafts']);
 $jsonOutput = isset($options['json']);
+$backupPath = is_string($options['backup'] ?? null) ? trim((string) $options['backup']) : '';
 
 if (!$skipSourceAssets && !is_dir($frontendImageRoot)) {
     fwrite(STDERR, sprintf("[editorial-media] Source assets introuvables: %s\n", $frontendImageRoot));
@@ -48,7 +49,7 @@ $validator = new EditorialMediaValidator(
 );
 
 $result = $validator->validate(
-    build_editorial_entries($includeDrafts),
+    $backupPath !== '' ? build_editorial_entries_from_backup($backupPath, $includeDrafts) : build_editorial_entries($includeDrafts),
     $checkPublishedAssets,
     $skipSourceAssets
 );
@@ -98,7 +99,7 @@ function usage(): string
 {
     return <<<USAGE
 Usage:
-  php core/tools/check_editorial_media.php [--check-published-assets] [--skip-source-assets] [--include-drafts] [--json]
+  php core/tools/check_editorial_media.php [--backup=/chemin/backup.json[.gz]] [--check-published-assets] [--skip-source-assets] [--include-drafts] [--json]
 
 Description:
   Verifie les references medias du contenu editorial actif.
@@ -110,6 +111,7 @@ Options:
   --check-published-assets  Exige aussi la presence du miroir publie sous backend/public/assets/images/**.
   --skip-source-assets      Ignore la verification frontend/src/assets/images/** (utile cote OVH).
   --include-drafts          Controle aussi les pages/articles brouillon.
+  --backup=PATH             Controle les articles d'un backup éditorial plutôt que le stockage actif.
   --json                    Sortie JSON exploitable en script.
   --frontend-image-root=PATH
   --public-root=PATH
@@ -225,6 +227,43 @@ function build_editorial_entries(bool $includeDrafts): array
             'scope' => 'tile_group',
             'entity' => sprintf('%d:%s', $groupId, trim((string) ($group['name'] ?? 'groupe'))),
             'payload' => $group,
+        ];
+    }
+
+    return $entries;
+}
+
+/**
+ * @return array<int, array{scope: string, entity: string, payload: array<string, mixed>}>
+ */
+function build_editorial_entries_from_backup(string $path, bool $includeDrafts): array
+{
+    if (!is_file($path) || !is_readable($path)) {
+        throw new RuntimeException('Backup éditorial introuvable ou illisible.');
+    }
+
+    $raw = file_get_contents($path);
+    $contents = str_ends_with(strtolower($path), '.gz') && is_string($raw) ? gzdecode($raw) : $raw;
+    if (!is_string($contents) || $contents === '') {
+        throw new RuntimeException('Backup éditorial vide ou impossible à décompresser.');
+    }
+
+    $payload = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+    $articles = is_array($payload['blog']['articles'] ?? null) ? $payload['blog']['articles'] : null;
+    if ($articles === null) {
+        throw new RuntimeException('Structure blog.articles absente du backup éditorial.');
+    }
+
+    $entries = [];
+    foreach ($articles as $article) {
+        if (!is_array($article) || !should_validate_article($article, $includeDrafts)) {
+            continue;
+        }
+
+        $entries[] = [
+            'scope' => 'blog',
+            'entity' => trim((string) ($article['slug'] ?? 'unknown')) . '.' . trim((string) ($article['lang'] ?? 'fr')),
+            'payload' => $article,
         ];
     }
 

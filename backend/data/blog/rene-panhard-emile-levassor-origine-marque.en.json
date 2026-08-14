@@ -1,34 +1,34 @@
 {
-  "title": "Rene Panhard and Emile Levassor: how the Panhard marque began",
-  "slug": "rene-panhard-emile-levassor-origine-marque",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2027-02-01 14:36:14",
-  "excerpt": "Before the Dyna and the light saloons, Panhard grew out of a mechanical workshop and two men who treated the motor car as a serious industrial problem.",
-  "content": "<p>Before the Dyna and the light saloons, Panhard belonged first to the world of workshops, machines and method. Looking again at Rene Panhard and Emile Levassor explains why the marque so often approached the car as an engineering problem before it became a market product.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/panhard.jpg\" alt=\"Early Panhard illustration\" width=\"640\" height=\"313\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The marque took shape in a world where mechanics, testing and fabrication stayed closely linked.</figcaption>\n</figure>\n<h2>A workshop before a car company</h2>\n<p>Panhard did not start as a road-car brand. The firm worked in mechanics and woodworking machinery, with a real manufacturing culture rather than a lone inventor's improvisation. That background matters. When the motor car appeared, the company already knew how to build, measure and keep machines serviceable.</p>\n<p>This helps explain the Panhard style. The marque did not chase effect first. It looked for a solution that could be built repeatedly and kept understandable once on the road.</p>\n<h2>A decisive partnership</h2>\n<p>Rene Panhard and Emile Levassor did not begin with a vague dream of motoring. They approached the subject through the engine, transmission and practical use. The Daimler licence, then the first vehicles assembled in France, formed the concrete bridge between the stationary engine and the usable automobile.</p>\n<p>Levassor gave that transition a clearer mechanical order. Panhard supplied the industrial frame that turned experiments into regular production. The pair matters because the marque was built on method as much as on initiative.</p>\n<h2>An engineering house, not only a pioneer</h2>\n<p>The famous dates of the late nineteenth century matter, but the deeper point is elsewhere. Panhard helped stabilise a way of building the car. It was not enough to make a machine move. The machine also had to be logical, accessible and repairable.</p>\n<p>That discipline stayed visible much later in the civil cars, including the Dyna family. The same taste for efficiency, unusual solutions and controlled weight can already be read in the marque's early years.</p>\n<h2>Why this still matters today</h2>\n<p>If Panhard is reduced to an old French name, part of the subject is lost. The marque remains interesting because it links the mechanical workshop, one of the first coherent automotive layouts, and later light cars designed with the same rigour.</p>\n<p>This landmark belongs with the page <a href=\"/en/auto-retro/panhard/histoire-de-panhard.php\">Panhard: from early automotive pioneers to the brand's last civilian cars</a>. In the same cluster, the next useful step is <a href=\"/en/auto-retro/panhard/histoire-de-panhard.php?open_article=systeme-panhard-origine-architecture-automobile#attached-article-systeme-panhard-origine-architecture-automobile\">the Panhard system</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://doyennes-panhard-levassor.fr/fr/historique/\" target=\"_blank\" rel=\"noopener noreferrer\">Les Doyennes de Panhard &amp; Levassor, Historique de la marque</a></li>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1890-a-1939/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1890 à 1940</a></li>\n<li><a href=\"https://dcpl.fr/les-panhard/\" target=\"_blank\" rel=\"noopener noreferrer\">Dynamic Club Panhard et Levassor, Les Panhard</a></li>\n</ul>",
-  "tags": [
-    "panhard",
-    "histoire",
-    "voiture-ancienne",
-    "collection"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/panhard/Rene_Panhard.jpg",
-    "alt": "Portrait de René Panhard",
-    "title": "René Panhard",
-    "caption": "L’un des deux noms fondateurs de la marque.",
-    "width": 150,
-    "height": 199
-  },
-  "page_slug": "auto-retro-panhard-histoire-de-panhard",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T13:28:25+00:00",
-  "updated_at": "2026-04-29T13:28:25+00:00"
+    "title": "Rene Panhard and Emile Levassor: how the Panhard marque began",
+    "slug": "rene-panhard-emile-levassor-origine-marque",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2027-02-01 14:36:14",
+    "excerpt": "Before the Dyna and the light saloons, Panhard grew out of a mechanical workshop and two men who treated the motor car as a serious industrial problem.",
+    "content": "<p>Before the Dyna and the light saloons, Panhard belonged first to the world of workshops, machines and method. Looking again at Rene Panhard and Emile Levassor explains why the marque so often approached the car as an engineering problem before it became a market product.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/panhard.jpg\" alt=\"Early Panhard illustration\" title=\"Early Panhard illustration\" width=\"640\" height=\"313\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>The marque took shape in a world where mechanics, testing and fabrication stayed closely linked.</figcaption>\n</figure>\n<h2>A workshop before a car company</h2>\n<p>Panhard did not start as a road-car brand. The firm worked in mechanics and woodworking machinery, with a real manufacturing culture rather than a lone inventor's improvisation. That background matters. When the motor car appeared, the company already knew how to build, measure and keep machines serviceable.</p>\n<p>This helps explain the Panhard style. The marque did not chase effect first. It looked for a solution that could be built repeatedly and kept understandable once on the road.</p>\n<h2>A decisive partnership</h2>\n<p>Rene Panhard and Emile Levassor did not begin with a vague dream of motoring. They approached the subject through the engine, transmission and practical use. The Daimler licence, then the first vehicles assembled in France, formed the concrete bridge between the stationary engine and the usable automobile.</p>\n<p>Levassor gave that transition a clearer mechanical order. Panhard supplied the industrial frame that turned experiments into regular production. The pair matters because the marque was built on method as much as on initiative.</p>\n<h2>An engineering house, not only a pioneer</h2>\n<p>The famous dates of the late nineteenth century matter, but the deeper point is elsewhere. Panhard helped stabilise a way of building the car. It was not enough to make a machine move. The machine also had to be logical, accessible and repairable.</p>\n<p>That discipline stayed visible much later in the civil cars, including the Dyna family. The same taste for efficiency, unusual solutions and controlled weight can already be read in the marque's early years.</p>\n<h2>Why this still matters today</h2>\n<p>If Panhard is reduced to an old French name, part of the subject is lost. The marque remains interesting because it links the mechanical workshop, one of the first coherent automotive layouts, and later light cars designed with the same rigour.</p>\n<p>This landmark belongs with the page <a href=\"/en/auto-retro/panhard/histoire-de-panhard.php\">Panhard: from early automotive pioneers to the brand's last civilian cars</a>. In the same cluster, the next useful step is <a href=\"/en/auto-retro/panhard/histoire-de-panhard.php?open_article=systeme-panhard-origine-architecture-automobile#attached-article-systeme-panhard-origine-architecture-automobile\">the Panhard system</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://doyennes-panhard-levassor.fr/fr/historique/\" target=\"_blank\" rel=\"noopener noreferrer\">Les Doyennes de Panhard &amp; Levassor, Historique de la marque</a></li>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1890-a-1939/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1890 à 1940</a></li>\n<li><a href=\"https://dcpl.fr/les-panhard/\" target=\"_blank\" rel=\"noopener noreferrer\">behaviour Club Panhard et Levassor, Les Panhard</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "histoire",
+        "voiture-ancienne",
+        "collection"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/Rene_Panhard.jpg",
+        "alt": "Portrait de René Panhard",
+        "title": "René Panhard",
+        "caption": "L’un des deux noms fondateurs de la marque.",
+        "width": 150,
+        "height": 199
+    },
+    "page_slug": "auto-retro-panhard-histoire-de-panhard",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:28:25+00:00",
+    "updated_at": "2026-08-14T13:00:00+02:00"
 }

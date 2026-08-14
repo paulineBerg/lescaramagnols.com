@@ -1,34 +1,34 @@
 {
-  "title": "Renault 4CV: warum der kleine Renault in der Nachkriegszeit so wichtig ist",
-  "slug": "renault-4cv-voiture-populaire-reconstruction",
-  "lang": "de",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "modeles-et-versions",
-  "date": "2029-01-27 14:36:14",
-  "excerpt": "Der 4CV ist mehr als ein sympathisches Auto. Er trifft einen sehr genauen Moment, in dem Frankreich wieder mobil werden muss, einfach und mit einem endlich zugaenglichen Wagen.",
-  "content": "<p>Der Renault 4CV nimmt in der Geschichte der Marke einen besonderen Platz ein, weil er genau richtig kommt. Seine Einfuehrung faellt in eine Zeit, in der das Land ein kompaktes, wirtschaftliches und sofort verstaendliches Auto braucht.</p>\n<figure>\n <img src=\"/assets/images/autoretro/renault/renault.jpg\" alt=\"Historisches Renault-Motiv\" title=\"Renault\" width=\"640\" height=\"395\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Mit dem 4CV tritt Renault dauerhaft in den franzoesischen Alltag ein.</figcaption>\n</figure>\n<h2>Ein Auto der Wiederaufbauzeit</h2>\n<p>Der 4CV entsteht unter schwierigen Bedingungen, und sein Marktstart 1946 faellt mit dem Wiederaufbau zusammen. Das veraendert die Bedeutung des Modells. Renault bringt nicht einfach einen Kleinwagen, sondern ein realistisches Verkehrsmittel fuer ein Land, das es dringend braucht.</p>\n<p>Der 4CV antwortet mit grundsaetzlicher Einfachheit. Er verspricht keinen neuen Luxus. Er bietet einen klaren Weg, wieder loszufahren, sich zu bewegen und mit weniger Einschraenkungen zu leben.</p>\n<h2>Warum er so genau passt</h2>\n<p>Vier Tueren, vier Plaetze, vier Steuer-PS: die Formel bleibt sofort haengen. Renault versteht, dass ein Volksauto im wirklichen Leben leicht einzuordnen sein muss und nicht nur billiger als andere.</p>\n<p>So findet der 4CV seinen Platz auf den Strassen, in den Familien und in der kollektiven Vorstellung. Er bleibt bescheiden, wirkt aber genau fuer seine Zeit gemacht.</p>\n<h2>Das Modell, das das Bild von Renault veraendert</h2>\n<p>Mit dem 4CV ist Renault nicht mehr nur ein alter und wichtiger Hersteller. Fuer viele wird die Marke zu einem der naheliegendsten Namen des franzoesischen Alltagsautos. Diese Bildveraenderung wirkt lange nach.</p>\n<p>Darin liegt bereits eine Grundlage fuer vieles spaeter, von den Renault-Familienwagen der 1960er Jahre bis zur viel spaeteren Twingo: Ein gut gedachtes Auto muss nicht spektakulaer sein, um seine Zeit zu praegen.</p>\n<p>Dieser Beitrag ergaenzt die Seite <a href=\"/de/auto-retro/renault/histoire-de-renault.php\">die Geschichte von Renault</a>. Im selben Dossier fuehrt <a href=\"/de/auto-retro/renault/histoire-de-renault.php?open_article=renault-16-hayon-familiale-idee-moderne#attached-article-renault-16-hayon-familiale-idee-moderne\">Renault 16: die Heckklappe, die das Familienauto veraendert</a> sinnvoll weiter.</p>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"https://www.renaultgroup.com/en/group/history/\" target=\"_blank\" rel=\"noopener noreferrer\">Renault Group, Our history</a></li>\n<li><a href=\"https://theoriginals.renault.com/4cv\" target=\"_blank\" rel=\"noopener noreferrer\">The Originals Museum, 4CV</a></li>\n<li><a href=\"https://www.renaultgroup.com/en/our-brands/renault/\" target=\"_blank\" rel=\"noopener noreferrer\">Renault Group, Renault brand</a></li>\n</ul>",
-  "tags": [
-    "renault",
-    "modele",
-    "histoire",
-    "collection"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/renault/renault_4cv.jpg",
-    "alt": "Ein Renault 4CV der Nachkriegszeit",
-    "title": "Renault 4CV",
-    "caption": "Der 4CV wird zum kleinen Renault des Wiederaufbaus und des breiteren Zugangs zum Auto.",
-    "width": 400,
-    "height": 272
-  },
-  "page_slug": "auto-retro-renault-histoire-de-renault",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:16:57+00:00",
-  "updated_at": "2026-04-29T14:16:57+00:00"
+    "title": "Renault 4CV: warum der kleine Renault in der Nachkriegszeit so wichtig ist",
+    "slug": "renault-4cv-voiture-populaire-reconstruction",
+    "lang": "de",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "modeles-et-versions",
+    "date": "2029-01-27 14:36:14",
+    "excerpt": "Der 4CV ist mehr als ein sympathisches Auto. Er trifft einen sehr genauen Moment, in dem Frankreich wieder mobil werden muss, und mit einem endlich zugaenglichen Wagen.",
+    "content": "<p>Der Renault 4CV nimmt in der Geschichte der Marke einen besonderen Platz ein, weil er genau richtig kommt. Seine Einfuehrung faellt in eine Zeit, in der das Land ein kompaktes, wirtschaftliches und sofort verstaendliches Auto braucht.</p>\n<figure>\n <img src=\"/assets/images/autoretro/renault/renault.jpg\" alt=\"Historisches Renault-Motiv\" title=\"Renault\" width=\"640\" height=\"395\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Mit dem 4CV tritt Renault dauerhaft in den franzoesischen Alltag ein.</figcaption>\n</figure>\n<h2>Ein Auto der Wiederaufbauzeit</h2>\n<p>Der 4CV entsteht unter schwierigen Bedingungen, und sein Marktstart 1946 faellt mit dem Wiederaufbau zusammen. Das veraendert die Bedeutung des Modells. Renault bringt nicht einen Kleinwagen, sondern ein realistisches Verkehrsmittel fuer ein Land, das es dringend braucht.</p>\n<p>Der 4CV antwortet mit grundsaetzlicher Einfachheit. Er verspricht keinen neuen Luxus. Er bietet einen klaren Weg, wieder loszufahren, sich zu bewegen und mit weniger Einschraenkungen zu leben.</p>\n<h2>Warum er so genau passt</h2>\n<p>Vier Tueren, vier Plaetze, vier Steuer-PS: die Formel bleibt sofort haengen. Renault versteht, dass ein Volksauto im wirklichen Leben leicht einzuordnen sein muss und nicht nur billiger als andere.</p>\n<p>So findet der 4CV seinen Platz auf den Strassen, in den Familien und in der kollektiven Vorstellung. Er bleibt bescheiden, wirkt aber genau fuer seine Zeit gemacht.</p>\n<h2>Das Modell, das das Bild von Renault veraendert</h2>\n<p>Mit dem 4CV ist Renault nicht mehr nur ein alter und wichtiger Hersteller. Fuer viele wird die Marke zu einem der naheliegendsten Namen des franzoesischen Alltagsautos. Diese Bildveraenderung wirkt lange nach.</p>\n<p>Darin liegt bereits eine Grundlage fuer vieles spaeter, von den Renault-Familienwagen der 1960er Jahre bis zur viel spaeteren Twingo: Ein gut gedachtes Auto muss nicht spektakulaer sein, um seine Zeit zu praegen.</p>\n<nav class=\"article-related\" aria-label=\"Verwandte Artikel\"><ul><li><a href=\"/de/auto-retro/renault/histoire-de-renault.php\">die Geschichte von Renault</a></li><li><a href=\"/de/auto-retro/renault/histoire-de-renault.php?open_article=renault-16-hayon-familiale-idee-moderne#attached-article-renault-16-hayon-familiale-idee-moderne\">Renault 16: die Heckklappe, die das Familienauto veraendert</a></li></ul></nav>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"https://www.renaultgroup.com/en/group/history/\" target=\"_blank\" rel=\"noopener noreferrer\">Renault Group, Our history</a></li>\n<li><a href=\"https://theoriginals.renault.com/4cv\" target=\"_blank\" rel=\"noopener noreferrer\">The Originals Museum, 4CV</a></li>\n<li><a href=\"https://www.renaultgroup.com/en/our-brands/renault/\" target=\"_blank\" rel=\"noopener noreferrer\">Renault Group, Renault brand</a></li>\n</ul>",
+    "tags": [
+        "renault",
+        "modele",
+        "histoire",
+        "collection"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/renault/renault_4cv.jpg",
+        "alt": "Ein Renault 4CV der Nachkriegszeit",
+        "title": "Renault 4CV",
+        "caption": "Der 4CV wird zum kleinen Renault des Wiederaufbaus und des breiteren Zugangs zum Auto.",
+        "width": 400,
+        "height": 272
+    },
+    "page_slug": "auto-retro-renault-histoire-de-renault",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:16:57+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

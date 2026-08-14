@@ -1,34 +1,34 @@
 {
-  "title": "Quand sortir dans le golfe de Saint-Tropez selon la saison des animations ?",
-  "slug": "quand-sortir-golfe-saint-tropez-selon-saison-animations",
-  "lang": "fr",
-  "status": "published",
-  "author": "Caramagnols",
-  "category": "vie-locale",
-  "subcategory": "evenements-et-animations",
-  "date": "2026-05-13 14:36:14",
-  "excerpt": "Le même golfe ne propose pas les mêmes sorties en février, en mai ou en septembre. Lire la saison évite les faux départs et aide à viser le bon type d’animation.",
-  "content": "<p>Le golfe donne l’impression d’une même carte tout au long de l’année, mais le type de sortie change complètement selon le mois. Avant de chercher une animation, il vaut mieux savoir si l’on vient pour un marché calme, une fête de tradition, une soirée d’été ou un rendez-vous d’hiver plus court.</p>\n<figure>\n <img src=\"/assets/images/bouger/animations/animations.jpg\" alt=\"Montage d’ambiances autour des animations du golfe de Saint-Tropez\" title=\"Montage d’ambiances autour des animations du golfe de Saint-Tropez\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>D’une saison à l’autre, le même territoire change de rythme et de type de sortie.</figcaption>\n</figure>\n<h2>De janvier à avril, un calendrier qui repart lentement</h2>\n<p>Les premiers mois restent les plus sobres. Les marchés réguliers gardent une présence locale, puis les agendas se rouvrent avec quelques expositions, des rendez-vous de centre-ville et les premières régates de printemps. C’est la bonne période si l’on cherche une sortie légère, sans foule ni programme trop serré.</p>\n<h2>De mai à août, la période la plus dense</h2>\n<p>Mai et juin installent les traditions, avec les Bravades, la Saint-Pierre, les fêtes patronales et les premiers grands rendez-vous nautiques. Juillet et août déplacent ensuite la vie vers le soir, entre marchés nocturnes, festivals, concerts, cinéma en plein air et feux d’artifice. Cette densité oblige à anticiper l’accès, le stationnement et parfois la réservation.</p>\n<h2>De septembre à décembre, le golfe change encore de ton</h2>\n<p>La rentrée garde de grands repères avec Les Voiles de Saint-Tropez, les journées du patrimoine et quelques fêtes de village. Octobre ralentit sans s’éteindre, puis décembre concentre les marchés de Noël, les illuminations et les animations familiales. C’est une bonne saison pour ceux qui préfèrent des sorties plus courtes, plus lisibles et moins sonores que le plein été.</p>\n<p>Ce repère prolonge la page <a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php\">Animations récurrentes dans le golfe de Saint-Tropez</a>. Dans le même dossier, on peut ouvrir <a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php?open_article=comment-lire-agenda-officiel-animations-golfe-saint-tropez#attached-article-comment-lire-agenda-officiel-animations-golfe-saint-tropez\">Comment lire un agenda officiel des animations du golfe de Saint-Tropez</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/a-faire/agenda/les-temps-forts/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - temps forts</a></li>\n<li><a href=\"https://www.societe-nautique-saint-tropez.fr/fr/events\" target=\"_blank\" rel=\"noopener noreferrer\">Société Nautique de Saint-Tropez - événements</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/feerie-de-noel/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - Féérie de Noël</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "evenement",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/structure/menu/bouger/uianimations.jpg",
-    "alt": "Vue générale du dossier animations du golfe de Saint-Tropez",
-    "title": "Vue générale du dossier animations du golfe de Saint-Tropez",
-    "caption": "Le calendrier du golfe ne garde pas la même densité entre l’hiver, le printemps et la haute saison.",
-    "width": 222,
-    "height": 90
-  },
-  "page_slug": "bouger-animations-dans-le-golfe-de-sttropez",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T17:13:36+00:00",
-  "updated_at": "2026-04-29T17:13:36+00:00"
+    "title": "Sortir dans le golfe de Saint-Tropez : choisir la bonne saison",
+    "slug": "quand-sortir-golfe-saint-tropez-selon-saison-animations",
+    "lang": "fr",
+    "status": "published",
+    "author": "codex-blog-rewrite-published",
+    "category": "vie-locale",
+    "subcategory": "evenements-et-animations",
+    "date": "2026-05-13 14:36:14",
+    "excerpt": "Le même golfe ne propose pas les mêmes sorties en février, en mai ou en septembre. Repérer la saison évite les faux départs et oriente vers le bon type de sortie.",
+    "content": "<p>Le golfe donne l’impression d’une même carte tout au long de l’année, mais le type de sortie change complètement selon le mois. Avant de choisir une animation, il vaut mieux préciser si l’on vient pour un marché calme, une fête de tradition, une soirée d’été ou un rendez-vous d’hiver plus court.</p>\n<figure>\n <img src=\"/assets/images/bouger/animations/animations.jpg\" alt=\"Montage d’ambiances autour des animations du golfe de Saint-Tropez\" title=\"Montage d’ambiances autour des animations du golfe de Saint-Tropez\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>D’une saison à l’autre, le même territoire change de rythme et de type de sortie.</figcaption>\n</figure>\n<h2>De janvier à avril, un calendrier qui repart lentement</h2>\n<p>Les premiers mois restent les plus sobres. Les marchés réguliers gardent une présence locale, puis les agendas se rouvrent avec quelques expositions, des rendez-vous de centre-ville et les premières régates de printemps. Cette période convient bien à une sortie légère, sans foule ni programme trop serré.</p>\n<h2>De mai à août, la période la plus dense</h2>\n<p>Mai et juin installent les traditions, avec les Bravades, la Saint-Pierre, les fêtes patronales et les premiers grands rendez-vous nautiques. Juillet et août déplacent ensuite la vie vers le soir, entre marchés nocturnes, festivals, concerts, cinéma en plein air et feux d’artifice. Cette concentration impose d’anticiper l’accès, le stationnement et parfois la réservation.</p>\n<h2>De septembre à décembre, le golfe change encore de ton</h2>\n<p>La rentrée garde de grands repères avec Les Voiles de Saint-Tropez, les journées du patrimoine et quelques fêtes de village. Octobre ralentit sans s’éteindre, puis décembre concentre les marchés de Noël, les illuminations et les animations familiales. C’est une bonne saison pour ceux qui préfèrent des sorties plus courtes, plus faciles à suivre et moins sonores que le plein été.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php\">Animations récurrentes dans le golfe de Saint-Tropez</a></li><li><a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php?open_article=comment-lire-agenda-officiel-animations-golfe-saint-tropez#attached-article-comment-lire-agenda-officiel-animations-golfe-saint-tropez\">Comment lire un agenda officiel des animations du golfe de Saint-Tropez</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/a-faire/agenda/les-temps-forts/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - temps forts</a></li>\n<li><a href=\"https://www.societe-nautique-saint-tropez.fr/fr/events\" target=\"_blank\" rel=\"noopener noreferrer\">Société Nautique de Saint-Tropez - événements</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/feerie-de-noel/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - Féérie de Noël</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "evenement",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/structure/menu/bouger/uianimations.jpg",
+        "alt": "Vue générale du dossier animations du golfe de Saint-Tropez",
+        "title": "Vue générale du dossier animations du golfe de Saint-Tropez",
+        "caption": "Le calendrier du golfe ne garde pas la même densité entre l’hiver, le printemps et la haute saison.",
+        "width": 222,
+        "height": 90
+    },
+    "page_slug": "bouger-animations-dans-le-golfe-de-sttropez",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T17:13:36+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

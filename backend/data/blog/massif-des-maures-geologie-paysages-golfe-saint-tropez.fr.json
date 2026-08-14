@@ -1,34 +1,34 @@
 {
-  "title": "Massif des Maures, schistes et quartzites : pourquoi les paysages du golfe ont cette forme",
-  "slug": "massif-des-maures-geologie-paysages-golfe-saint-tropez",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "territoire",
-  "subcategory": "golfe-saint-tropez",
-  "date": "2028-07-02 14:36:14",
-  "excerpt": "Le golfe de Saint-Tropez ne s’explique pas seulement par la mer. Ses villages, ses pentes, ses vallées courtes et sa végétation tiennent aussi à la géologie ancienne des Maures.",
-  "content": "<p>On réduit souvent le golfe à ses ports et à ses plages. Pourtant, dès que l'on prend un peu de hauteur ou que l'on s'éloigne du rivage, le massif des Maures impose sa structure. C'est lui qui donne au territoire ses ruptures de pente, ses sols maigres, ses vallons courts et une partie de sa botanique.</p>\n<figure>\n <img src=\"/assets/images/bouger/golfe/vignes_saint_tropez_commons.jpg\" alt=\"Vignes dans le golfe de Saint-Tropez\" title=\"Vignes dans le golfe de Saint-Tropez\" width=\"960\" height=\"643\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>La vigne, la forêt et les pentes racontent le sous-sol autant que les villages eux-mêmes.</figcaption>\n</figure>\n<h2>Un relief ancien très présent derrière l’image balnéaire</h2>\n<p>Le socle des Maures repose largement sur des schistes, des gneiss et des quartzites. Cette base produit un relief plus ferme qu'on ne l'imagine depuis les quais : pentes courtes, crêtes, vallées encaissées et passages rapides entre plaine et hauteur.</p>\n<h2>Des sols qui commandent la forêt, la vigne et les chemins</h2>\n<p>La nature des sols explique beaucoup de choses dans l'implantation des villages et des cultures. Chênes-lièges, pins, maquis, vigne et murets secs ne se répartissent pas au hasard; ils répondent à la roche, à l'exposition, à l'eau disponible et à la proximité du littoral.</p>\n<h2>Une autre manière de lire le golfe</h2>\n<p>Comprendre cette géologie change la promenade. On voit mieux pourquoi certains villages restent perchés, pourquoi d'autres s'étalent vers la plaine, pourquoi les routes tournent autant et pourquoi la lumière semble plus dure sur certains secteurs que sur d'autres.</p>\n<p>Ce repère prolonge la page <a href=\"/bouger/se-promener-dans-le-golfe-de-sttropez.php\">Se promener dans le golfe de Saint-Tropez</a>. Pour continuer la promenade dans le même dossier, on peut ouvrir <a href=\"/bouger/se-promener-dans-le-golfe-de-sttropez.php?open_article=quand-visiter-golfe-saint-tropez-hors-saison-ou-ete#attached-article-quand-visiter-golfe-saint-tropez-hors-saison-ou-ete\">Quand visiter le golfe de Saint-Tropez : hors saison, matin, fin de journée ou été ?</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez.fr/nous-connaitre/le-territoire/\" target=\"_blank\" rel=\"noopener noreferrer\">Communauté de communes du Golfe de Saint-Tropez, Le territoire</a></li>\n<li><a href=\"https://infoterre.brgm.fr/rapports/RP-69494-FR.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">BRGM, Étude du ruissellement et de l’érosion post-incendie dans la région de Bormes-les-Mimosas</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "village",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/golfe/mediterranee.jpg",
-    "alt": "Carte de la Méditerranée et du golfe",
-    "title": "Carte de la Méditerranée et du golfe",
-    "caption": "Le golfe se comprend mieux quand on le relie au massif des Maures et à sa structure ancienne.",
-    "width": 700,
-    "height": 441
-  },
-  "page_slug": "bouger-se-promener-dans-le-golfe-de-sttropez",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:38+00:00",
-  "updated_at": "2026-04-29T15:07:38+00:00"
+    "title": "Massif des Maures, schistes et quartzites : pourquoi les paysages du golfe ont cette forme",
+    "slug": "massif-des-maures-geologie-paysages-golfe-saint-tropez",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "territoire",
+    "subcategory": "golfe-saint-tropez",
+    "date": "2028-07-02 14:36:14",
+    "excerpt": "Le golfe de Saint-Tropez ne s’explique pas seulement par la mer. Ses villages, ses pentes, ses vallées courtes et sa végétation tiennent aussi à la géologie ancienne des Maures.",
+    "content": "<p>On réduit souvent le golfe à ses ports et à ses plages. Pourtant, dès que l'on prend un peu de hauteur ou que l'on s'éloigne du rivage, le massif des Maures impose sa structure. C'est lui qui donne au territoire ses ruptures de pente, ses sols maigres, ses vallons courts et une partie de sa botanique.</p>\n<figure>\n <img src=\"/assets/images/bouger/golfe/vignes_saint_tropez_commons.jpg\" alt=\"Vignes dans le golfe de Saint-Tropez\" title=\"Vignes dans le golfe de Saint-Tropez\" width=\"960\" height=\"643\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>La vigne, la forêt et les pentes racontent le sous-sol autant que les villages eux-mêmes.</figcaption>\n</figure>\n<h2>Un relief ancien très présent derrière l’image balnéaire</h2>\n<p>Le socle des Maures repose largement sur des schistes, des gneiss et des quartzites. Cette base produit un relief plus ferme qu'on ne l'imagine depuis les quais : pentes courtes, crêtes, vallées encaissées et passages rapides entre plaine et hauteur.</p>\n<h2>Des sols qui commandent la forêt, la vigne et les chemins</h2>\n<p>La nature des sols explique beaucoup de choses dans l'implantation des villages et des cultures. Chênes-lièges, pins, maquis, vigne et murets secs ne se répartissent pas au hasard; ils répondent à la roche, à l'exposition, à l'eau disponible et à la proximité du littoral.</p>\n<h2>Une autre manière de lire le golfe</h2>\n<p>Comprendre cette géologie change la promenade. On voit mieux pourquoi certains villages restent perchés, pourquoi d'autres s'étalent vers la plaine, pourquoi les routes tournent autant et pourquoi la lumière semble plus dure sur certains secteurs que sur d'autres.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/bouger/se-promener-dans-le-golfe-de-sttropez.php\">Se promener dans le golfe de Saint-Tropez</a></li><li><a href=\"/bouger/se-promener-dans-le-golfe-de-sttropez.php?open_article=quand-visiter-golfe-saint-tropez-hors-saison-ou-ete#attached-article-quand-visiter-golfe-saint-tropez-hors-saison-ou-ete\">Quand visiter le golfe de Saint-Tropez : hors saison, matin, fin de journée ou été?</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez.fr/nous-connaitre/le-territoire/\" target=\"_blank\" rel=\"noopener noreferrer\">Communauté de communes du Golfe de Saint-Tropez, Le territoire</a></li>\n<li><a href=\"https://infoterre.brgm.fr/rapports/RP-69494-FR.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">BRGM, Étude du ruissellement et de l’érosion post-incendie dans la région de Bormes-les-Mimosas</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "village",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/golfe/mediterranee.jpg",
+        "alt": "Carte de la Méditerranée et du golfe",
+        "title": "Carte de la Méditerranée et du golfe",
+        "caption": "Le golfe se comprend mieux quand on le relie au massif des Maures et à sa structure ancienne.",
+        "width": 700,
+        "height": 441
+    },
+    "page_slug": "bouger-se-promener-dans-le-golfe-de-sttropez",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:38+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

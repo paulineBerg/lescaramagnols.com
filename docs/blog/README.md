@@ -1,6 +1,6 @@
 # Blog V1 (SQL maitre, JSON compatible, Dual-Write)
 
-Date de mise à jour : 2026-04-29
+Date de mise à jour : 2026-08-14
 
 Ce document fixe la gouvernance technique du module blog V1, avec persistance pilotable par mode.
 
@@ -122,6 +122,8 @@ Règles obligatoires :
 - refuser le remplissage, les certitudes de façade et les conclusions abstraites
 - garder un ton sobre et explicatif; ne pas remplacer une abstraction par une prose touristique, promotionnelle ou décorative
 - conserver un maillage interne sobre et utile, intégré dans une phrase normale
+- appliquer les fourchettes de profondeur, le contrôle des formulations en série et la vérification des sources définis dans `docs/blog/article-writing-guide.md`
+- comparer le corpus avant validation : ouvertures, plans, transitions et conclusions répétées rendent le lot non publiable même si chaque texte paraît correct isolément
 
 En stockage SQL maitre, chaque slug de blog public doit disposer de trois entrees alignees :
 - `fr`

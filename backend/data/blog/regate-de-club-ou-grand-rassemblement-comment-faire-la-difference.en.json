@@ -1,34 +1,34 @@
 {
-  "title": "Club regatta or major gathering: how to tell the difference in the gulf",
-  "slug": "regate-de-club-ou-grand-rassemblement-comment-faire-la-difference",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "vie-locale",
-  "subcategory": "evenements-et-animations",
-  "date": "2029-02-07 14:36:14",
-  "excerpt": "Not every sailing day occupies the territory in the same way. Some remain mainly sportive and discreet, while others visibly change the harbour and the bay.",
-  "content": "<p>In the gulf, the word regatta can cover very different formats. For visitors, telling them apart avoids disappointment: you do not watch in the same way a mostly sporting race, a major start or a gathering where the image of the harbour matters almost as much as the race itself.</p>\n<figure>\n <img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015.jpg\" alt=\"Traditional sailing boats in Saint-Tropez\" title=\"Traditional sailing boats in Saint-Tropez\" width=\"334\" height=\"334\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The scale of a gathering changes the way you read the harbour and the water.</figcaption>\n</figure>\n<h2>A club regatta stays more discreet</h2>\n<p>A club regatta often belongs more to the sporting calendar than to a large public event. It can be very interesting to watch, yet it changes the image of the harbour less strongly. Visitors mainly read departures, returns and waiting time linked to the sport itself.</p>\n<h2>A major gathering changes the whole setting</h2>\n<p>By contrast, a major appointment such as Les Voiles or Giraglia clearly alters the harbour, the quays and visitor density. Boats, crews, spectators and serial repetition give the place another scale. You are no longer only watching a race, but a whole territorial configuration.</p>\n<h2>Adapt your expectation to the format</h2>\n<p>The right outing therefore depends on the format. For a lighter and more sporting moment, the smaller regatta is enough. For a denser atmosphere and a wider reading of the gulf, you need the major gathering and more time.</p>\n<p>This note extends the page <a href=\"/bouger/animations/regates-et-voiles-golfe-saint-tropez.php\">Regattas and major sailing events in the Gulf of Saint-Tropez</a>. Within the same cluster, the natural continuation is <a href=\"/bouger/animations/regates-et-voiles-golfe-saint-tropez.php?open_article=giraglia-saint-tropez-depart-port-et-attente#attached-article-giraglia-saint-tropez-depart-port-et-attente\">Giraglia in Saint-Tropez: departure, harbour and waiting time</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.societe-nautique-saint-tropez.fr/fr/events/loropiana-giraglia\" target=\"_blank\" rel=\"noopener noreferrer\">Société Nautique de Saint-Tropez - Loro Piana Giraglia</a></li>\n<li><a href=\"https://www.lesvoilesdesaint-tropez.fr/fr/decouverte/historique\" target=\"_blank\" rel=\"noopener noreferrer\">Les Voiles de Saint-Tropez - historique</a></li>\n<li><a href=\"https://www.lesvoilesdesaint-tropez.fr/fr\" target=\"_blank\" rel=\"noopener noreferrer\">Les Voiles de Saint-Tropez - site officiel</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "evenement",
-    "patrimoine",
-    "balade"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/animations/voileslatines/voileslatines.jpg",
-    "alt": "General view of lateen sails in Saint-Tropez",
-    "title": "General view of lateen sails in Saint-Tropez",
-    "caption": "The word sailing covers very different realities depending on the event.",
-    "width": 254,
-    "height": 165
-  },
-  "page_slug": "bouger-animations-regates-et-voiles-golfe-saint-tropez",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T17:13:37+00:00",
-  "updated_at": "2026-04-29T17:13:37+00:00"
+    "title": "Club regatta or major gathering: how to tell the difference in the gulf",
+    "slug": "regate-de-club-ou-grand-rassemblement-comment-faire-la-difference",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "vie-locale",
+    "subcategory": "evenements-et-animations",
+    "date": "2029-02-07 14:36:14",
+    "excerpt": "Not every sailing day occupies the territory in the same way. Some remain mainly sportive and discreet, while others visibly change the harbour and the bay.",
+    "content": "<p>In the gulf, the word regatta can cover very different formats. For visitors, telling them apart avoids disappointment: you do not watch in the same way a mostly sporting race, a major start or a gathering where the image of the harbour matters almost as much as the race itself.</p>\n<figure>\n <img src=\"/assets/images/bouger/animations/voileslatines/les_voiles_latines_2015.jpg\" alt=\"Traditional sailing boats in Saint-Tropez\" title=\"Traditional sailing boats in Saint-Tropez\" width=\"334\" height=\"334\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>The scale of a gathering changes the way you read the harbour and the water.</figcaption>\n</figure>\n<h2>A club regatta stays more discreet</h2>\n<p>A club regatta often belongs more to the sporting calendar than to a large public event. It can be very interesting to watch, yet it changes the image of the harbour less strongly. Visitors mainly read departures, returns and waiting time linked to the sport itself.</p>\n<h2>A major gathering changes the whole setting</h2>\n<p>By contrast, a major appointment such as Les Voiles or Giraglia alters the harbour, the quays and visitor density. Boats, crews, spectators and serial repetition give the place another scale. You are no longer only watching a race, but a whole territorial configuration.</p>\n<h2>Adapt your expectation to the format</h2>\n<p>The right outing therefore depends on the format. For a lighter and more sporting moment, the smaller regatta is enough. For a denser atmosphere and a wider reading of the gulf, you need the major gathering and more time.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/bouger/animations/regates-et-voiles-golfe-saint-tropez.php\">Regattas and major sailing events in the Gulf of Saint-Tropez</a></li><li><a href=\"/bouger/animations/regates-et-voiles-golfe-saint-tropez.php?open_article=giraglia-saint-tropez-depart-port-et-attente#attached-article-giraglia-saint-tropez-depart-port-et-attente\">Giraglia in Saint-Tropez: departure, harbour and waiting time</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.societe-nautique-saint-tropez.fr/fr/events/loropiana-giraglia\" target=\"_blank\" rel=\"noopener noreferrer\">Société Nautique de Saint-Tropez - Loro Piana Giraglia</a></li>\n<li><a href=\"https://www.lesvoilesdesaint-tropez.fr/fr/decouverte/historique\" target=\"_blank\" rel=\"noopener noreferrer\">Les Voiles de Saint-Tropez - historique</a></li>\n<li><a href=\"https://www.lesvoilesdesaint-tropez.fr/fr\" target=\"_blank\" rel=\"noopener noreferrer\">Les Voiles de Saint-Tropez - site officiel</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "evenement",
+        "patrimoine",
+        "balade"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/animations/voileslatines/voileslatines.jpg",
+        "alt": "General view of lateen sails in Saint-Tropez",
+        "title": "General view of lateen sails in Saint-Tropez",
+        "caption": "The word sailing covers very different realities depending on the event.",
+        "width": 254,
+        "height": 165
+    },
+    "page_slug": "bouger-animations-regates-et-voiles-golfe-saint-tropez",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T17:13:37+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

@@ -1,34 +1,34 @@
 {
-  "title": "Ramatuelle, a spiral village: how to walk through it without rushing across",
-  "slug": "ramatuelle-village-en-colimacon-comment-le-parcourir",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "territoire",
-  "subcategory": "villages-et-balades",
-  "date": "2026-10-14 14:36:14",
-  "excerpt": "Ramatuelle is more than a pleasant viewpoint. Its interest lies in its coiled plan, stairs, small squares and the way relief governs the walk.",
-  "content": "<p>Ramatuelle can be seen from afar, yet it is understood on foot. The village keeps a spiral layout that forces you to slow down, accept detours and read the slope before even looking for the horizon.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/ramatuelle/le_clocher_de_ramatuelle.jpg\" alt=\"Bell tower of Ramatuelle\" title=\"Bell tower of Ramatuelle\" width=\"218\" height=\"300\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The bell tower helps explain the spiral streets and changes in slope of the old village.</figcaption>\n</figure>\n<h2>A village shape that sets its own pace</h2>\n<p>In Ramatuelle, streets do not align in a straight line. They curve, climb, open and tighten again. This structure gives the walk a particular cadence, more attentive to ground, steps and thresholds than to distant perspective alone.</p>\n<h2>Stairs, small squares and the bell tower</h2>\n<p>The charm of the village does not come from a single monument but from a sequence of modest elements: a stair, a small square, a bend in the street, a bell tower appearing again higher up. Together they give the walk its coherence.</p>\n<h2>Why it helps to double back a little</h2>\n<p>In Ramatuelle, the right walk is not always the most direct one. Turning back slightly, taking another lane or changing level often makes the logic of the village and its relation to the peninsula landscape easier to understand.</p>\n<p>This note extends the page <a href=\"/en/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php\">Walking Through Ramatuelle</a>. To continue within the same cluster, it also helps to open <a href=\"/en/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php?open_article=ramatuelle-vignes-pampelonne-paillas-entre-village-et-plaine#attached-article-ramatuelle-vignes-pampelonne-paillas-entre-village-et-plaine\">Ramatuelle between vineyards, Pampelonne and the Moulin de Paillas</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/ramatuelle/carte-touristique.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Tourist map of Ramatuelle</a></li>\n<li><a href=\"https://www.ramatuelle-tourisme.com/fr/decouvrir-la-presquile/cote-village/\" target=\"_blank\" rel=\"noopener noreferrer\">Ramatuelle tourist office</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "village",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/communes/ramatuelle/ramatuelle.jpg",
-    "alt": "View over Ramatuelle",
-    "title": "View over Ramatuelle",
-    "caption": "In Ramatuelle, the village coiled on itself shapes the walk from the first streets.",
-    "width": 640,
-    "height": 480
-  },
-  "page_slug": "bouger-villages-ramatuelle",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:38+00:00",
-  "updated_at": "2026-04-29T15:07:38+00:00"
+    "title": "Ramatuelle, a spiral village: how to walk through it without rushing across",
+    "slug": "ramatuelle-village-en-colimacon-comment-le-parcourir",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "territoire",
+    "subcategory": "villages-et-balades",
+    "date": "2026-10-14 14:36:14",
+    "excerpt": "Ramatuelle is more than a pleasant viewpoint. Its interest lies in its coiled plan, stairs, small squares and the way relief governs the walk.",
+    "content": "<p>Ramatuelle can be seen from afar, yet it is understood on foot. The village keeps a spiral layout that forces you to slow down, accept detours and read the slope before even looking for the horizon.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/ramatuelle/le_clocher_de_ramatuelle.jpg\" alt=\"Bell tower of Ramatuelle\" title=\"Bell tower of Ramatuelle\" width=\"218\" height=\"300\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>The bell tower helps explain the spiral streets and changes in slope of the old village.</figcaption>\n</figure>\n<h2>A village shape that sets its own pace</h2>\n<p>In Ramatuelle, streets do not align in a straight line. They curve, climb, open and tighten again. This structure gives the walk a particular cadence, more attentive to ground, steps and thresholds than to distant perspective alone.</p>\n<h2>Stairs, small squares and the bell tower</h2>\n<p>The charm of the village does not come from a single monument but from a sequence of modest elements: a stair, a small square, a bend in the street, a bell tower appearing again higher up. Together they give the walk its coherence.</p>\n<h2>Why it helps to double back a little</h2>\n<p>In Ramatuelle, the right walk is not always the most direct one. Turning back slightly, taking another lane or changing level often makes the method of the village and its relation to the peninsula landscape easier to understand.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/en/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php\">Walking Through Ramatuelle</a></li><li><a href=\"/en/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php?open_article=ramatuelle-vignes-pampelonne-paillas-entre-village-et-plaine#attached-article-ramatuelle-vignes-pampelonne-paillas-entre-village-et-plaine\">Ramatuelle between vineyards, Pampelonne and the Moulin de Paillas</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/ramatuelle/carte-touristique.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Tourist map of Ramatuelle</a></li>\n<li><a href=\"https://www.ramatuelle-tourisme.com/fr/decouvrir-la-presquile/cote-village/\" target=\"_blank\" rel=\"noopener noreferrer\">Ramatuelle tourist office</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "village",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/communes/ramatuelle/ramatuelle.jpg",
+        "alt": "View over Ramatuelle",
+        "title": "View over Ramatuelle",
+        "caption": "In Ramatuelle, the village coiled on itself shapes the walk from the first streets.",
+        "width": 640,
+        "height": 480
+    },
+    "page_slug": "bouger-villages-ramatuelle",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:38+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

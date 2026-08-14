@@ -1,34 +1,34 @@
 {
-  "title": "Simca 9 Sport, coupé de ville : quand l’Aronde cherche aussi le style",
-  "slug": "simca-9-sport-coupe-de-ville-versions-style",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "modeles-et-versions",
-  "date": "2028-06-10 14:36:14",
-  "excerpt": "La Simca 9 n’est pas seulement une berline moderne. Dès les premières années, la gamme accueille des dérivés plus élégants qui donnent à la marque une image moins strictement utilitaire.",
-  "content": "<p>On réduit facilement la Simca 9 à sa mission de berline populaire moderne. Pourtant, très tôt, Simca comprend qu’un modèle central doit aussi porter une part de désir et de présentation.</p>\n<figure>\n <img src=\"/assets/images/autoretro/simca/aronde/simca_9_coupe_de_ville.jpg\" alt=\"Simca 9 Coupé de ville\" title=\"Simca 9 Coupé de ville\" width=\"400\" height=\"266\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Les variantes de style disent beaucoup sur l’ambition de Simca au début des années 1950.</figcaption>\n</figure>\n<h2>Pourquoi Simca développe des versions de style</h2>\n<p>Dans les années 1950, une marque qui veut grandir ne peut pas se contenter d’une seule lecture strictement pratique. Les variantes Sport ou coupé aident Simca à élargir son image et à faire monter la gamme en prestige visible.</p>\n<p>Cela ne change pas la nature profonde de la Simca 9, mais cela enrichit la manière dont le public la regarde.</p>\n<h2>Le Sport comme vitrine plus que comme rupture</h2>\n<p>Le Simca 9 Sport impressionne d’abord par sa silhouette et son ton. Il ne prétend pas transformer complètement la base mécanique, mais il donne au modèle une dimension de représentation que la berline ne porte pas seule.</p>\n<p>Cette stratégie est habile. Simca tire vers le haut l’image de l’ensemble sans perdre sa clientèle principale.</p>\n<h2>Des versions rares, mais pas isolées dans le récit du modèle</h2>\n<p>Aujourd’hui, ces carrosseries attirent les amateurs par leur rareté relative et leur style. Elles restent pourtant pleinement lisibles à l’intérieur de l’histoire Simca 9, comme des extensions cohérentes et non comme des curiosités séparées.</p>\n<p>Elles rappellent surtout que la jeune gamme Aronde porte déjà plusieurs ambitions à la fois : diffusion, modernité et distinction mesurée.</p>\n<p>Ce repère prolonge la page <a href=\"/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php\">la Simca 9 Aronde</a>. Dans le même dossier, la suite utile est <a href=\"/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php?open_article=simca-9-chatelaine-commerciale-messagere-versions-utiles#attached-article-simca-9-chatelaine-commerciale-messagere-versions-utiles\">Chatelaine, Commerciale, Messagère : la Simca 9 en versions utiles</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://commons.wikimedia.org/wiki/Category:Simca_9_Sport\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, Category: Simca 9 Sport</a></li>\n<li><a href=\"https://commons.wikimedia.org/wiki/File:1952_Simca_9_Sport_by_Figoni_(16333272838).jpg\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, 1952 Simca 9 Sport by Figoni</a></li>\n<li><a href=\"https://clubsimcafrance.fr/modeles/simca-9-aronde-et-p-60\" target=\"_blank\" rel=\"noopener noreferrer\">Club Simca France, Simca 9 Aronde et P60</a></li>\n</ul>",
-  "tags": [
-    "simca",
-    "modele",
-    "version",
-    "collection"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/simca/aronde/simca_9_sport.jpg",
-    "alt": "Simca 9 Sport",
-    "title": "Simca 9 Sport",
-    "caption": "Autour de la Simca 9, Simca cherche aussi une part d’élégance visible et pas seulement une berline populaire.",
-    "width": 400,
-    "height": 262
-  },
-  "page_slug": "auto-retro-simca-la-simca-9-aronde-voiture-de-collection",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:41:31+00:00",
-  "updated_at": "2026-04-29T14:41:31+00:00"
+    "title": "Simca 9 Sport, coupé de ville : quand l’Aronde cherche aussi le style",
+    "slug": "simca-9-sport-coupe-de-ville-versions-style",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "modeles-et-versions",
+    "date": "2028-06-10 14:36:14",
+    "excerpt": "La Simca 9 n’est pas seulement une berline moderne. Dès les premières années, la gamme accueille des dérivés plus élégants qui donnent à la marque une image moins strictement utilitaire.",
+    "content": "<p>On réduit facilement la Simca 9 à sa mission de berline populaire moderne. Pourtant, très tôt, Simca comprend qu’un modèle central doit aussi porter une part de désir et de présentation.</p>\n<figure>\n <img src=\"/assets/images/autoretro/simca/aronde/simca_9_coupe_de_ville.jpg\" alt=\"Simca 9 Coupé de ville\" title=\"Simca 9 Coupé de ville\" width=\"400\" height=\"266\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Les variantes de style disent beaucoup sur l’ambition de Simca au début des années 1950.</figcaption>\n</figure>\n<h2>Pourquoi Simca développe des versions de style</h2>\n<p>Dans les années 1950, une marque qui veut grandir ne peut pas se contenter d’une seule lecture strictement pratique. Les variantes Sport ou coupé aident Simca à élargir son image et à faire monter la gamme en prestige visible.</p>\n<p>Cela ne change pas la nature profonde de la Simca 9, mais cela enrichit la manière dont le public la regarde.</p>\n<h2>Le Sport comme vitrine plus que comme rupture</h2>\n<p>Le Simca 9 Sport impressionne d’abord par sa silhouette et son ton. Il ne prétend pas transformer complètement la base mécanique, mais il donne au modèle une dimension de représentation que la berline ne porte pas seule.</p>\n<p>Cette stratégie est habile. Simca tire vers le haut l’image de l’ensemble sans perdre sa clientèle principale.</p>\n<h2>Des versions rares, mais pas isolées dans le récit du modèle</h2>\n<p>Aujourd’hui, ces carrosseries attirent les amateurs par leur rareté relative et leur style. Elles restent pourtant pleinement lisibles à l’intérieur de l’histoire Simca 9, comme des extensions cohérentes et non comme des curiosités séparées.</p>\n<p>Elles rappellent surtout que la jeune gamme Aronde porte déjà plusieurs ambitions à la fois : diffusion, modernité et distinction mesurée.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php\">la Simca 9 Aronde</a></li><li><a href=\"/auto-retro/simca/la-simca-9-aronde-voiture-de-collection.php?open_article=simca-9-chatelaine-commerciale-messagere-versions-utiles#attached-article-simca-9-chatelaine-commerciale-messagere-versions-utiles\">Chatelaine, Commerciale, Messagère : la Simca 9 en versions utiles</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://commons.wikimedia.org/wiki/Category:Simca_9_Sport\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, Category: Simca 9 Sport</a></li>\n<li><a href=\"https://commons.wikimedia.org/wiki/File:1952_Simca_9_Sport_by_Figoni_(16333272838).jpg\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, 1952 Simca 9 Sport by Figoni</a></li>\n<li><a href=\"https://clubsimcafrance.fr/modeles/simca-9-aronde-et-p-60\" target=\"_blank\" rel=\"noopener noreferrer\">Club Simca France, Simca 9 Aronde et P60</a></li>\n</ul>",
+    "tags": [
+        "simca",
+        "modele",
+        "version",
+        "collection"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/simca/aronde/simca_9_sport.jpg",
+        "alt": "Simca 9 Sport",
+        "title": "Simca 9 Sport",
+        "caption": "Autour de la Simca 9, Simca cherche aussi une part d’élégance visible et pas seulement une berline populaire.",
+        "width": 400,
+        "height": 262
+    },
+    "page_slug": "auto-retro-simca-la-simca-9-aronde-voiture-de-collection",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:41:31+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

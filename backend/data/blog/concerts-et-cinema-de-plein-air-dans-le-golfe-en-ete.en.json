@@ -1,34 +1,34 @@
 {
-  "title": "Concerts and open-air cinema in the gulf during summer",
-  "slug": "concerts-et-cinema-de-plein-air-dans-le-golfe-en-ete",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "vie-locale",
-  "subcategory": "evenements-et-animations",
-  "date": "2029-06-19 14:36:14",
-  "excerpt": "In summer, many of the most pleasant outings rely on town concerts, small stages and open-air film screenings. The place matters almost as much as the programme.",
-  "content": "<p>Not every summer evening needs a major festival. In the gulf, many of the most fitting outings come through a town concert, a small stage on a square or an open-air cinema screening. These events are more modest, but often easier to fit into a day at the beach or in a village.</p>\n<figure>\n <img src=\"/assets/images/structure/menu/bouger/uicogolin.jpg\" alt=\"Cogolin image for summer evenings in the gulf\" title=\"Cogolin image for summer evenings in the gulf\" width=\"222\" height=\"90\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>A small stage, a square and a good timetable are often enough for a real outing.</figcaption>\n</figure>\n<h2>The place makes half the evening</h2>\n<p>A screening in a courtyard, a concert on a square or a film near the harbour do not produce the same experience. In these events, the quality of the place often weighs as much as the content itself. That is why the venue should be checked before making a choice.</p>\n<h2>More flexible than major festivals</h2>\n<p>These events usually demand less anticipation than a large festival. They are therefore very useful for an evening decided the day before, as long as you check time, parking and weather. That flexibility makes them one of the easiest forms of summer life in the gulf.</p>\n<h2>Keep logistics light</h2>\n<p>The most comfortable approach is to choose an evening close to the town already visited during the day. That limits night driving and keeps real availability for the concert or the film. This simplicity is often enough to turn a small programme into a fine summer outing.</p>\n<p>This note extends the page <a href=\"/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php\">Festivals and summer evenings in the Gulf of Saint-Tropez</a>. Within the same cluster, the natural continuation is <a href=\"/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php?open_article=festival-de-ramatuelle-choisir-sa-soiree-et-son-acces#attached-article-festival-de-ramatuelle-choisir-sa-soiree-et-son-acces\">Festival de Ramatuelle: choosing your evening and planning access</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.festivalderamatuelle.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Festival de Ramatuelle</a></li>\n<li><a href=\"https://www.grimaud-provence.com/preparez/agenda/temps-forts/les-grimaldines/\" target=\"_blank\" rel=\"noopener noreferrer\">Grimaud Tourisme - Les Grimaldines</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/a-faire/agenda/les-temps-forts/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - agenda</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "evenement",
-    "village",
-    "balade"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/structure/menu/bouger/uiramatuelle.jpg",
-    "alt": "Ramatuelle image used for summer evenings",
-    "title": "Ramatuelle image used for summer evenings",
-    "caption": "The best summer evenings often depend on a well-chosen place and simple logistics.",
-    "width": 222,
-    "height": 90
-  },
-  "page_slug": "bouger-animations-festivals-et-soirees-ete-golfe-saint-tropez",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T17:13:37+00:00",
-  "updated_at": "2026-04-29T17:13:37+00:00"
+    "title": "Concerts and open-air cinema in the gulf during summer",
+    "slug": "concerts-et-cinema-de-plein-air-dans-le-golfe-en-ete",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "vie-locale",
+    "subcategory": "evenements-et-animations",
+    "date": "2029-06-19 14:36:14",
+    "excerpt": "In summer, many of the most pleasant outings rely on town concerts, small stages and open-air film screenings. The place matters almost as much as the programme.",
+    "content": "<p>Not every summer evening needs a major festival. In the gulf, many of the most fitting outings come through a town concert, a small stage on a square or an open-air cinema screening. These events are more modest, but often easier to fit into a day at the beach or in a village.</p>\n<figure>\n <img src=\"/assets/images/structure/menu/bouger/uicogolin.jpg\" alt=\"Cogolin image for summer evenings in the gulf\" title=\"Cogolin image for summer evenings in the gulf\" width=\"222\" height=\"90\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>A small stage, a square and a good timetable are often enough for a real outing.</figcaption>\n</figure>\n<h2>The place makes half the evening</h2>\n<p>A screening in a courtyard, a concert on a square or a film near the harbour do not produce the same experience. In these events, the quality of the place often weighs as much as the content itself. That is why the venue should be checked before making a choice.</p>\n<h2>More flexible than major festivals</h2>\n<p>These events usually demand less anticipation than a large festival. They are therefore very useful for an evening decided the day before, as long as you check time, parking and weather. That flexibility makes them one of the easiest forms of summer life in the gulf.</p>\n<h2>Keep logistics light</h2>\n<p>The most comfortable method is to choose an evening close to the town already visited during the day. That limits night driving and keeps real availability for the concert or the film. This simplicity is often enough to turn a small programme into a fine summer outing.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php\">Festivals and summer evenings in the Gulf of Saint-Tropez</a></li><li><a href=\"/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php?open_article=festival-de-ramatuelle-choisir-sa-soiree-et-son-acces#attached-article-festival-de-ramatuelle-choisir-sa-soiree-et-son-acces\">Festival de Ramatuelle: choosing your evening and planning access</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.festivalderamatuelle.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Festival de Ramatuelle</a></li>\n<li><a href=\"https://www.grimaud-provence.com/preparez/agenda/temps-forts/les-grimaldines/\" target=\"_blank\" rel=\"noopener noreferrer\">Grimaud Tourisme - Les Grimaldines</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/a-faire/agenda/les-temps-forts/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - agenda</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "evenement",
+        "village",
+        "balade"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/structure/menu/bouger/uiramatuelle.jpg",
+        "alt": "Ramatuelle image used for summer evenings",
+        "title": "Ramatuelle image used for summer evenings",
+        "caption": "The best summer evenings often depend on a well-chosen place and simple logistics.",
+        "width": 222,
+        "height": 90
+    },
+    "page_slug": "bouger-animations-festivals-et-soirees-ete-golfe-saint-tropez",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T17:13:37+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

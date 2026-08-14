@@ -1,34 +1,34 @@
 {
-  "title": "Jean-Albert Gregoire und die Geburt des Panhard Dyna X",
-  "slug": "jean-albert-gregoire-naissance-dyna-x",
-  "lang": "de",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2027-07-05 14:36:14",
-  "excerpt": "Der Dyna X entstand nicht aus einem blossen Wunsch nach Neuheit. Er gehoert in einen genauen Nachkriegsmoment, in dem Jean-Albert Gregoire und Panhard einen leichten, sparsamen und wirklich modernen Wagen suchten.",
-  "content": "<p>Der Dyna X entstand nicht aus einem blossen Wunsch nach Neuheit. Er gehoert in einen genauen Nachkriegsmoment, als Material knapp war, Kraftstoff zaehlte und die Kundschaft dennoch ein echtes Auto erwartete. In diesem Rahmen spielte Jean-Albert Gregoire eine wichtige Rolle bei der Formung der kuenftigen Dyna.</p>\n<figure>\n <img src=\"/assets/images/autoretro/dyna.jpg\" alt=\"Illustration einer Dyna\" width=\"491\" height=\"270\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Der Dyna X buendelt gut lesbare Entscheidungen zu Leichtbau, Kompaktheit und Gebrauch.</figcaption>\n</figure>\n<h2>Nach dem Krieg neu anfangen</h2>\n<p>Ende der 1940er Jahre hatte Panhard wenig Grund, einfach ein Vorkriegsauto zu wiederholen. Die Lage drueckte zu Materialersparnis, sparsamem Verbrauch und gutem Gesamtwirkungsgrad. Der Dyna X antwortete mit einer leichten, kompakten und technisch stimmigen Formel.</p>\n<p>Es ging nicht um ein Vorzeigeauto. Entscheidend war eine alltagstaugliche Maschine, die eine Familie tragen konnte, ohne unnötig schwer zu werden.</p>\n<h2>Die Rolle von Jean-Albert Gregoire</h2>\n<p>Gregoire brachte eine technische Kultur mit, die auf Leichtbau, massvolle Modernitaet und Gesamteffizienz zielte. Sein Name taucht so oft auf, weil er eine Art verkoerpert, das Auto ueber Struktur, Gewicht und Gebrauch zu denken, nicht nur ueber die Form.</p>\n<p>Dennoch laesst sich der Dyna X nicht auf eine einzelne Handschrift reduzieren. Er blieb ein Panhard-Produkt mit eigenen industriellen Entscheidungen, Kompromissen und einem sehr praktischen Weg in die Serie.</p>\n<h2>Ein Auto, das die Marke neu ausrichtete</h2>\n<p>Mit dem Dyna X positionierte sich Panhard neu. Die Marke sprach nicht mehr nur ueber Alter oder Prestige. Sie bot ein Nachkriegsauto, das auf Wirkungsgrad zielte: Zentralrahmen, leichte Karosserie, luftgekuehlter Zweizylinder-Boxer, bescheidene Abmessungen und brauchbarer Raum.</p>\n<p>Diese Basis bereitete bereits einen Teil der Zukunft vor. Der Dyna X eröffnete eine technische Sprache, die spaeter zum Dyna Z und zu weiter entwickelten Varianten in Raum und Praesentation fuehrte.</p>\n<h2>Warum dieser Ursprung neu gelesen werden sollte</h2>\n<p>Wer den Dyna X versteht, reduziert die Dyna nicht mehr auf das sympathische Bild eines rundlichen Oldtimers. Von Anfang an war die Frage praeziser: Wie baut man in einem Frankreich, dem fast alles fehlt ausser Einfallsreichtum, einen wirklich leichten Wagen?</p>\n<p>Dieser Bezug gehoert zur Seite <a href=\"/de/auto-retro/panhard/une-dyna-icone-automobile.php\">Panhard Dyna: leichter franzoesischer Maschinenbau nach dem Krieg</a>. Im selben Dossier folgt sinnvoll <a href=\"/de/auto-retro/panhard/une-dyna-icone-automobile.php?open_article=pourquoi-dyna-legere-aluminium-apres-guerre#attached-article-pourquoi-dyna-legere-aluminium-apres-guerre\">warum die Dyna auf Leichtbau und Aluminium setzte</a>.</p>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1945-a-1967/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1945 à 1967</a></li>\n<li><a href=\"https://www.panhard-levassor.fr\" target=\"_blank\" rel=\"noopener noreferrer\">Amicale Panhard &amp; Levassor</a></li>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_X\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna X</a></li>\n</ul>",
-  "tags": [
-    "panhard",
-    "histoire",
-    "modele",
-    "voiture-ancienne"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/panhard/dynaX.jpg",
-    "alt": "Panhard Dyna X",
-    "title": "Panhard Dyna X",
-    "caption": "La Dyna X ouvre la séquence moderne de Panhard après guerre.",
-    "width": 400,
-    "height": 200
-  },
-  "page_slug": "auto-retro-panhard-une-dyna-icone-automobile",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T13:32:44+00:00",
-  "updated_at": "2026-04-29T13:32:44+00:00"
+    "title": "Jean-Albert Gregoire und die Geburt des Panhard Dyna X",
+    "slug": "jean-albert-gregoire-naissance-dyna-x",
+    "lang": "de",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2027-07-05 14:36:14",
+    "excerpt": "Der Dyna X entstand nicht aus einem blossen Wunsch nach Neuheit. Er gehoert in einen genauen Nachkriegsmoment, in dem Jean-Albert Gregoire und Panhard einen leichten, sparsamen und wirklich modernen Wagen suchten.",
+    "content": "<p>Der Dyna X entstand nicht aus einem blossen Wunsch nach Neuheit. Er gehoert in einen genauen Nachkriegsmoment, als Material knapp war, Kraftstoff zaehlte und die Kundschaft dennoch ein echtes Auto erwartete. In diesem Rahmen spielte Jean-Albert Gregoire eine wichtige Rolle bei der Formung der kuenftigen Dyna.</p>\n<figure>\n <img src=\"/assets/images/autoretro/dyna.jpg\" alt=\"Illustration einer Dyna\" title=\"Illustration einer Dyna\" width=\"491\" height=\"270\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Der Dyna X buendelt gut lesbare Entscheidungen zu Leichtbau, Kompaktheit und Gebrauch.</figcaption>\n</figure>\n<h2>Nach dem Krieg neu anfangen</h2>\n<p>Ende der 1940er Jahre hatte Panhard wenig Grund, ein Vorkriegsauto zu wiederholen. Die Lage drueckte zu Materialersparnis, sparsamem Verbrauch und gutem Gesamtwirkungsgrad. Der Dyna X antwortete mit einer leichten, kompakten und technisch stimmigen Formel.</p>\n<p>Es ging nicht um ein Vorzeigeauto. Entscheidend war eine alltagstaugliche Maschine, die eine Familie tragen konnte, ohne unnötig schwer zu werden.</p>\n<h2>Die Rolle von Jean-Albert Gregoire</h2>\n<p>Gregoire brachte eine technische Kultur mit, die auf Leichtbau, massvolle Modernitaet und Gesamteffizienz zielte. Sein Name taucht so oft auf, weil er eine Art verkoerpert, das Auto ueber Struktur, Gewicht und Gebrauch zu denken, nicht nur ueber die Form.</p>\n<p>Dennoch laesst sich der Dyna X nicht auf eine einzelne Handschrift reduzieren. Er blieb ein Panhard-Produkt mit eigenen industriellen Entscheidungen, Kompromissen und einem sehr praktischen Weg in die Serie.</p>\n<h2>Ein Auto, das die Marke neu ausrichtete</h2>\n<p>Mit dem Dyna X positionierte sich Panhard neu. Die Marke sprach nicht mehr nur ueber Alter oder Prestige. Sie bot ein Nachkriegsauto, das auf Wirkungsgrad zielte: Zentralrahmen, leichte Karosserie, luftgekuehlter Zweizylinder-Boxer, bescheidene Abmessungen und brauchbarer Raum.</p>\n<p>Diese Basis bereitete bereits einen Teil der Zukunft vor. Der Dyna X eröffnete eine technische Sprache, die spaeter zum Dyna Z und zu weiter entwickelten Varianten in Raum und Praesentation fuehrte.</p>\n<h2>Warum dieser Ursprung neu gelesen werden sollte</h2>\n<p>Wer den Dyna X versteht, reduziert die Dyna nicht mehr auf das sympathische Bild eines rundlichen Oldtimers. Von Anfang an war die Frage praeziser: Wie baut man in einem Frankreich, dem fast alles fehlt ausser Einfallsreichtum, einen wirklich leichten Wagen?</p>\n<nav class=\"article-related\" aria-label=\"Verwandte Artikel\"><ul><li><a href=\"/de/auto-retro/panhard/une-dyna-icone-automobile.php\">Panhard Dyna: leichter franzoesischer Maschinenbau nach dem Krieg</a></li><li><a href=\"/de/auto-retro/panhard/une-dyna-icone-automobile.php?open_article=pourquoi-dyna-legere-aluminium-apres-guerre#attached-article-pourquoi-dyna-legere-aluminium-apres-guerre\">warum die Dyna auf Leichtbau und Aluminium setzte</a></li></ul></nav>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1945-a-1967/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1945 à 1967</a></li>\n<li><a href=\"https://www.panhard-levassor.fr\" target=\"_blank\" rel=\"noopener noreferrer\">Amicale Panhard &amp; Levassor</a></li>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_X\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna X</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "histoire",
+        "modele",
+        "voiture-ancienne"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/dynaX.jpg",
+        "alt": "Panhard Dyna X",
+        "title": "Panhard Dyna X",
+        "caption": "La Dyna X ouvre la séquence moderne de Panhard après guerre.",
+        "width": 400,
+        "height": 200
+    },
+    "page_slug": "auto-retro-panhard-une-dyna-icone-automobile",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:32:44+00:00",
+    "updated_at": "2026-08-14T13:00:00+02:00"
 }

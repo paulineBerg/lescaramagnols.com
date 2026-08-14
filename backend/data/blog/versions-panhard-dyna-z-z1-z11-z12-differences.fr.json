@@ -1,34 +1,34 @@
 {
-  "title": "Panhard Dyna Z : différences entre Z1, Z11 et Z12",
-  "slug": "versions-panhard-dyna-z-z1-z11-z12-differences",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "modeles-et-versions",
-  "date": "2028-09-06 14:36:14",
-  "excerpt": "Sous le nom Dyna Z, les Z1, Z11 et Z12 ne racontent pas tout à fait la même voiture. Les distinguer évite bien des confusions en collection et en achat.",
-  "content": "<p>Sous le nom Dyna Z, les Z1, Z11 et Z12 ne racontent pas tout à fait la même voiture. Les grandes lignes restent communes, mais la période, la présentation, l’équipement et certains repères de fabrication changent assez pour compter au moment d’acheter ou de restaurer.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/dynaz/panhard_dyna_z_26348500676.jpg\" alt=\"Panhard Dyna Z photographiée en extérieur\" width=\"400\" height=\"299\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Les variantes de Dyna Z se distinguent moins par un effet spectaculaire que par une lecture attentive des détails.</figcaption>\n</figure>\n<h2>Z1, Z11, Z12 : une même base, trois lectures</h2>\n<p>La Z1 renvoie aux premières Dyna Z, encore proches de la logique allégée d’origine. La Z11 s’inscrit dans une définition plus simple de la gamme. La Z12, elle, monte en présentation et en confort. On ne passe donc pas seulement d’un code à un autre. On suit l’évolution d’une voiture que Panhard adapte à ses contraintes de production et à son public.</p>\n<p>Cette nuance compte parce qu’elle change l’identité d’un exemplaire. Une Dyna Z ne se résume pas à sa silhouette générale.</p>\n<h2>Les différences tiennent souvent aux détails</h2>\n<p>La présentation, les finitions, le niveau d’équipement, certains éléments de carrosserie ou d’intérieur et l’époque précise de fabrication servent de vrais repères. Beaucoup d’autos ont été reprises, mélangées ou réparées avec des pièces d’autres périodes. Il faut donc regarder avant d’affirmer.</p>\n<p>Un bel aspect général ne suffit pas toujours. Les versions Panhard se lisent souvent dans les petites choses : une dénomination, une finition, une cohérence d’ensemble.</p>\n<h2>Pourquoi cela change l’achat et la cote</h2>\n<p>En collection, la rareté perçue vient parfois d’une confusion entre versions. Une Z12 mieux équipée n’a pas la même lecture qu’une Z11 plus simple, et les premières Z1 demandent encore un autre regard. Cela n’impose pas une hiérarchie absolue, mais cela change l’intérêt, le budget et la façon de restaurer.</p>\n<p>Plus l’auto a été transformée au fil des années, plus cette lecture devient nécessaire. Sans elle, on risque de payer une histoire théorique pour une voiture mélangée.</p>\n<h2>Lire la bonne version avant toute décision</h2>\n<p>La bonne méthode consiste à croiser documents, détails visibles, période de production et cohérence technique. C’est seulement après cette étape que la valeur du projet commence à apparaître clairement.</p>\n<p>Ce repère s’inscrit dans la page <a href=\"/auto-retro/panhard/la-dyna-z-voiture-de-collection.php\">La Panhard Dyna Z</a>. Dans le même thème, vous pouvez aussi lire <a href=\"/auto-retro/panhard/la-dyna-z-voiture-de-collection.php?open_article=acheter-panhard-dyna-z-points-a-verifier#attached-article-acheter-panhard-dyna-z-points-a-verifier\">Acheter une Panhard Dyna Z</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_Z\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna Z</a></li>\n<li><a href=\"https://www.automobile-catalog.com/model/panhard/dyna_z.html\" target=\"_blank\" rel=\"noopener noreferrer\">Automobile Catalog, gamme Panhard Dyna Z</a></li>\n<li><a href=\"https://panhardsite.jimdofree.com/historique/les-ann%C3%A9es-50-et-la-dyna-z/ses-carat%C3%A9ristiques-techniques/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Belgique, caractéristiques techniques de la Dyna Z</a></li>\n</ul>",
-  "tags": [
-    "panhard",
-    "modele",
-    "version",
-    "voiture-ancienne"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/panhard/dynaZ.jpg",
-    "alt": "Panhard Dyna Z",
-    "title": "Panhard Dyna Z",
-    "caption": "Sous le même nom Dyna Z, plusieurs étapes de modèle coexistent.",
-    "width": 400,
-    "height": 213
-  },
-  "page_slug": "auto-retro-panhard-la-dyna-z-voiture-de-collection",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T13:37:07+00:00",
-  "updated_at": "2026-04-29T13:37:07+00:00"
+    "title": "Panhard Dyna Z : différences entre Z1, Z11 et Z12",
+    "slug": "versions-panhard-dyna-z-z1-z11-z12-differences",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "modeles-et-versions",
+    "date": "2028-09-06 14:36:14",
+    "excerpt": "Sous le nom Dyna Z, les Z1, Z11 et Z12 ne racontent pas tout à fait la même voiture. Les distinguer évite bien des confusions en collection et en achat.",
+    "content": "<p>Sous le nom Dyna Z, les Z1, Z11 et Z12 ne racontent pas tout à fait la même voiture. Les grandes lignes restent communes, mais la période, la présentation, l’équipement et certains repères de fabrication changent assez pour compter au moment d’acheter ou de restaurer.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/dynaz/panhard_dyna_z_26348500676.jpg\" alt=\"Panhard Dyna Z photographiée en extérieur\" title=\"Panhard Dyna Z photographiée en extérieur\" width=\"400\" height=\"299\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Les variantes de Dyna Z se distinguent moins par un effet spectaculaire que par une lecture attentive des détails.</figcaption>\n</figure>\n<h2>Z1, Z11, Z12 : une même base, trois lectures</h2>\n<p>La Z1 renvoie aux premières Dyna Z, encore proches de la méthode allégée d’origine. La Z11 s’inscrit dans une définition plus simple de la gamme. La Z12, elle, monte en présentation et en confort. On ne passe donc pas seulement d’un code à un autre. On suit l’évolution d’une voiture que Panhard adapte à ses contraintes de production et à son public.</p>\n<p>Cette nuance compte parce qu’elle change l’identité d’un exemplaire. Une Dyna Z ne se résume pas à sa silhouette générale.</p>\n<h2>Les différences tiennent souvent aux détails</h2>\n<p>La présentation, les finitions, le niveau d’équipement, certains éléments de carrosserie ou d’intérieur et l’époque précise de fabrication servent de vrais repères. Beaucoup d’autos ont été reprises, mélangées ou réparées avec des pièces d’autres périodes. Il faut donc regarder avant d’affirmer.</p>\n<p>Un bel aspect général ne suffit pas toujours. Les versions Panhard se lisent souvent dans les petites choses : une dénomination, une finition, une cohérence d’ensemble.</p>\n<h2>Pourquoi cela change l’achat et la cote</h2>\n<p>En collection, la rareté perçue vient parfois d’une confusion entre versions. Une Z12 mieux équipée n’a pas la même lecture qu’une Z11 plus simple, et les premières Z1 demandent encore un autre regard. Cela n’impose pas une hiérarchie absolue, mais cela change l’intérêt, le budget et la façon de restaurer.</p>\n<p>Plus l’auto a été transformée au fil des années, plus cette lecture devient nécessaire. Sans elle, on risque de payer une histoire théorique pour une voiture mélangée.</p>\n<h2>Lire la bonne version avant toute décision</h2>\n<p>La bonne méthode consiste à croiser documents, détails visibles, période de production et cohérence technique. C’est seulement après cette étape que la valeur du projet commence à apparaître clairement.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/auto-retro/panhard/la-dyna-z-voiture-de-collection.php\">La Panhard Dyna Z</a></li><li><a href=\"/auto-retro/panhard/la-dyna-z-voiture-de-collection.php?open_article=acheter-panhard-dyna-z-points-a-verifier#attached-article-acheter-panhard-dyna-z-points-a-verifier\">Acheter une Panhard Dyna Z</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_Z\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna Z</a></li>\n<li><a href=\"https://www.automobile-catalog.com/model/panhard/dyna_z.html\" target=\"_blank\" rel=\"noopener noreferrer\">Automobile Catalog, gamme Panhard Dyna Z</a></li>\n<li><a href=\"https://panhardsite.jimdofree.com/historique/les-ann%C3%A9es-50-et-la-dyna-z/ses-carat%C3%A9ristiques-techniques/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Belgique, caractéristiques techniques de la Dyna Z</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "modele",
+        "version",
+        "voiture-ancienne"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/dynaZ.jpg",
+        "alt": "Panhard Dyna Z",
+        "title": "Panhard Dyna Z",
+        "caption": "Sous le même nom Dyna Z, plusieurs étapes de modèle coexistent.",
+        "width": 400,
+        "height": 213
+    },
+    "page_slug": "auto-retro-panhard-la-dyna-z-voiture-de-collection",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:37:07+00:00",
+    "updated_at": "2026-08-14T13:00:00+02:00"
 }

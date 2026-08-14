@@ -1,26 +1,33 @@
 {
-  "title": "Le rôle de British Leyland dans la chute d'Austin",
-  "slug": "role-british-leyland-chute-austin",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Les Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2030-09-02 14:36:14",
-  "excerpt": "British Leyland n'a pas seul détruit Austin, mais le groupe a accéléré la perte de lisibilité du badge.",
-  "content": "<p>British Leyland joue un rôle central dans l'affaiblissement d'Austin, mais il serait faux d'en faire une cause unique et simple. Lorsque le groupe se forme en 1968, Austin est déjà pris dans une logique de mutualisation, de modèles proches et de badges multiples héritée de la BMC.</p>\n<p>Le problème de British Leyland est d'avoir ajouté de la taille, de la pression financière et des arbitrages difficiles à un ensemble déjà compliqué. Austin reste visible, mais son identité se dilue dans une organisation où beaucoup de marques cherchent encore leur place.</p>\n<h2>Un groupe immense, des marques trop proches</h2>\n<p>British Leyland rassemble Austin, Morris, MG, Rover, Triumph, Jaguar à ses débuts, et plusieurs activités industrielles. Cette largeur donne du poids, mais elle pose un problème immédiat: trop de marques peuvent viser des clients voisins avec des voitures trop proches.</p>\n<p>Austin souffre de cette situation parce que son rôle devient moins net. Est-ce la marque populaire du groupe, la marque centrale de Longbridge, le badge des modèles familiaux, ou simplement un nom parmi d'autres? La réponse change selon les années.</p>\n<h2>Des modèles qui ne suffisent pas à reconstruire une identité</h2>\n<p>Dans les années 1970 et 1980, Austin conserve des modèles importants. La Metro, la Maestro et la Montego montrent que le nom n'est pas immédiatement abandonné. Ces voitures répondent à des besoins réels: petite voiture moderne, compacte familiale, berline moyenne.</p>\n<p>Mais un modèle nouveau ne suffit pas si la marque qui le porte n'a plus de position claire. Le public peut reconnaître une Metro sans reconstruire pour autant une image forte d'Austin. L'identité commerciale ne se répare pas seulement avec une fiche technique.</p>\n<h2>La crise industrielle pèse sur la réputation</h2>\n<p>British Leyland porte aussi une image de conflits sociaux, de difficultés financières et de qualité irrégulière. Toutes les voitures ne se valent pas et toutes les usines ne racontent pas la même chose, mais l'impression publique finit par s'étendre à l'ensemble du groupe.</p>\n<p>Pour Austin, cette réputation pèse lourd. Une marque qui avait longtemps représenté la voiture britannique solide et populaire se retrouve associée à une industrie en difficulté. Le badge perd alors une partie de la confiance acquise par les générations précédentes.</p>\n<h2>La décision finale: privilégier Rover et MG</h2>\n<p>Dans les années 1980, l'organisation Austin Rover cherche une image plus lisible. Rover apparaît plus valorisant, MG garde une force sportive, tandis qu'Austin reste difficile à positionner. Le nom disparaît progressivement des modèles de volume, notamment autour de 1987-1988.</p>\n<p>Cette disparition ne ressemble pas à une fermeture brutale. Elle vient d'une décision de marque: concentrer la valeur sur d'autres noms. British Leyland et ses successeurs n'ont pas seulement rencontré des problèmes techniques ou financiers; ils ont aussi choisi quels badges devaient survivre.</p>\n<h2>Une chute par dilution plus que par rupture</h2>\n<p>Austin ne tombe pas d'un seul coup. Le badge s'affaiblit parce que les modèles, les groupes et les stratégies successives lui retirent progressivement sa netteté. British Leyland accélère ce mouvement en rendant plus visibles les contradictions déjà présentes.</p>\n<p>Le cadre général se lit dans la page <a href=\"/auto-retro/austin/histoire-de-austin.php\">Austin</a>. Pour voir comment un modèle peut dépasser son badge d'origine, la page <a href=\"/auto-retro/austin/aventure-mini-austin.php\">Austin et Morris Mini</a> donne un exemple très concret.</p>",
-  "tags": [
-    "austin",
-    "voiture-ancienne",
-    "histoire"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": null,
-  "page_slug": "auto-retro-austin-histoire-de-austin",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-23T10:07:21+00:00",
-  "updated_at": "2026-04-28T11:30:36+00:00"
+    "title": "Le rôle de British Leyland dans la chute d'Austin",
+    "slug": "role-british-leyland-chute-austin",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2030-09-02 14:36:14",
+    "excerpt": "British Leyland n'a pas seul détruit Austin, mais le groupe a accéléré la perte de lisibilité du badge.",
+    "content": "<p>British Leyland joue un rôle central dans l'affaiblissement d'Austin, mais il serait faux d'en faire une cause unique et simple. Lorsque le groupe se forme en 1968, Austin est déjà pris dans une méthode de mutualisation, de modèles proches et de badges multiples héritée de la BMC.</p>\n<figure><img src=\"/assets/images/autoretro/austin/austin_logo.jpg\" alt=\"Affiche des marques de la British Motor Corporation — illustration de contexte\" title=\"Marques de la BMC\" width=\"200\" height=\"258\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" /><figcaption>Le regroupement Austin, Morris, MG, Riley et Wolseley explique une grande partie des pièces et modèles partagés.</figcaption></figure>\n<p>Le problème de British Leyland est d'avoir ajouté de la taille, de la pression financière et des arbitrages difficiles à un ensemble déjà compliqué. Austin reste visible, mais son identité se dilue dans une organisation où beaucoup de marques cherchent encore leur place.</p>\n<h2>Un groupe immense, des marques trop proches</h2>\n<p>British Leyland rassemble Austin, Morris, MG, Rover, Triumph, Jaguar à ses débuts, et plusieurs activités industrielles. Cette largeur donne du poids, mais elle pose un problème immédiat: trop de marques peuvent viser des clients voisins avec des voitures trop proches.</p>\n<p>Austin souffre de cette situation parce que son rôle devient moins net. Est-ce la marque populaire du groupe, la marque centrale de Longbridge, le badge des modèles familiaux, ou un nom parmi d'autres? La réponse change selon les années.</p>\n<h2>Des modèles qui ne suffisent pas à reconstruire une identité</h2>\n<p>Dans les années 1970 et 1980, Austin conserve des modèles importants. La Metro, la Maestro et la Montego montrent que le nom n'est pas immédiatement abandonné. Ces voitures répondent à des besoins réels: petite voiture moderne, compacte familiale, berline moyenne.</p>\n<p>Mais un modèle nouveau ne suffit pas si la marque qui le porte n'a plus de position claire. Le public peut reconnaître une Metro sans reconstruire pour autant une image forte d'Austin. L'identité commerciale ne se répare pas seulement avec une fiche technique.</p>\n<h2>La crise industrielle pèse sur la réputation</h2>\n<p>British Leyland porte aussi une image de conflits sociaux, de difficultés financières et de qualité irrégulière. Toutes les voitures ne se valent pas et toutes les usines ne racontent pas la même chose, mais l'impression publique finit par s'étendre à l'ensemble du groupe.</p>\n<p>Pour Austin, cette réputation pèse lourd. Une marque qui avait longtemps représenté la voiture britannique solide et populaire se retrouve associée à une industrie en difficulté. Le badge perd alors une partie de la confiance acquise par les générations précédentes.</p>\n<h2>La décision finale: privilégier Rover et MG</h2>\n<p>Dans les années 1980, l'organisation Austin Rover cherche une image plus lisible. Rover apparaît plus valorisant, MG garde une force sportive, tandis qu'Austin reste difficile à positionner. Le nom disparaît progressivement des modèles de volume, notamment autour de 1987-1988.</p>\n<p>Cette disparition ne ressemble pas à une fermeture brutale. Elle vient d'une décision de marque: concentrer la valeur sur d'autres noms. British Leyland et ses successeurs n'ont pas seulement rencontré des problèmes techniques ou financiers; ils ont aussi choisi quels badges devaient survivre.</p>\n<h2>Une chute par dilution plus que par rupture</h2>\n<p>Austin ne tombe pas d'un seul coup. Le badge s'affaiblit parce que les modèles, les groupes et les stratégies successives lui retirent progressivement sa netteté. British Leyland accélère ce mouvement en rendant plus visibles les contradictions déjà présentes.</p>\n<p>Le contexte général se lit dans la page <a href=\"/auto-retro/austin/histoire-de-austin.php\">Austin</a>. Pour voir comment un modèle peut dépasser son badge d'origine, la page <a href=\"/auto-retro/austin/aventure-mini-austin.php\">Austin et Morris Mini</a> donne un exemple très concret.</p>",
+    "tags": [
+        "austin",
+        "voiture-ancienne",
+        "histoire"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/austin/bmc.jpg",
+        "width": 383,
+        "height": 249,
+        "alt": "Affiche des marques de la British Motor Corporation",
+        "title": "Marques de la BMC",
+        "caption": "Le regroupement Austin, Morris, MG, Riley et Wolseley explique une grande partie des pièces et modèles partagés."
+    },
+    "page_slug": "auto-retro-austin-histoire-de-austin",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-23T10:07:21+00:00",
+    "updated_at": "2026-08-14T12:50:00+02:00"
 }

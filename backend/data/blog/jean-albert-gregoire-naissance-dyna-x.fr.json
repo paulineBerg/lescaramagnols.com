@@ -1,34 +1,34 @@
 {
-  "title": "Jean-Albert Grégoire et la naissance de la Panhard Dyna X",
-  "slug": "jean-albert-gregoire-naissance-dyna-x",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2027-07-05 14:36:14",
-  "excerpt": "La Dyna X ne sort pas d’une simple envie de nouveauté. Elle naît d’un moment précis de l’après-guerre, où Jean-Albert Grégoire et Panhard cherchent une voiture légère, sobre et réellement moderne.",
-  "content": "<p>La Dyna X ne sort pas d’une simple envie de nouveauté. Elle naît d’un moment précis de l’après-guerre, quand il faut reconstruire avec peu de matière, peu de carburant et des clients qui attendent malgré tout une vraie automobile. Dans ce contexte, Jean-Albert Grégoire joue un rôle important dans la mise en forme de la future Dyna.</p>\n<figure>\n <img src=\"/assets/images/autoretro/dyna.jpg\" alt=\"Illustration d'une Dyna\" width=\"491\" height=\"270\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>La Dyna X condense des choix de légèreté, de compacité et d’usage très lisibles.</figcaption>\n</figure>\n<h2>Repartir après guerre</h2>\n<p>À la fin des années 1940, Panhard n’a pas intérêt à refaire simplement une voiture d’avant-guerre. Le contexte pousse vers l’économie de matière, la sobriété de carburant et la recherche d’un bon rendement global. La Dyna X répond à cette situation par une formule légère, compacte et techniquement cohérente.</p>\n<p>On est loin de la voiture démonstrative. La priorité est de construire un ensemble efficace pour le quotidien, capable d’emmener une famille sans s’alourdir inutilement.</p>\n<h2>Le rôle de Jean-Albert Grégoire</h2>\n<p>Jean-Albert Grégoire apporte à cette naissance une culture technique tournée vers la légèreté, l’avant-garde mesurée et l’efficacité d’ensemble. Son nom revient souvent parce qu’il incarne cette manière de penser une voiture par sa structure, son poids et son usage, pas seulement par sa silhouette.</p>\n<p>La Dyna X ne se résume pourtant pas à une signature isolée. Elle reste un produit Panhard, avec ses propres choix industriels, ses arbitrages et sa façon très concrète d’entrer en production.</p>\n<h2>Une voiture qui change la trajectoire de la marque</h2>\n<p>Avec la Dyna X, Panhard se repositionne. La marque ne parle plus seulement d’ancienneté ou de prestige. Elle propose une voiture de l’après-guerre pensée autour du rendement : châssis poutre, carrosserie allégée, moteur bicylindre à plat refroidi par air, encombrement raisonnable et habitabilité correcte.</p>\n<p>Cette base prépare déjà une partie du futur. La Dyna X ouvre un langage technique qui va conduire ensuite vers la Dyna Z et d’autres variantes plus abouties sur le plan de l’espace et de la présentation.</p>\n<h2>Pourquoi cette origine mérite d’être relue</h2>\n<p>Comprendre la naissance de la Dyna X aide à ne pas réduire la Dyna à une seule image de voiture ronde et attachante. Dès le départ, le sujet est plus précis : comment faire une vraie voiture légère dans une France qui manque encore de tout, sauf d’ingéniosité.</p>\n<p>Ce repère s’inscrit dans la page <a href=\"/auto-retro/panhard/une-dyna-icone-automobile.php\">La Dyna de chez Panhard</a>. Dans le même thème, le prolongement naturel est <a href=\"/auto-retro/panhard/une-dyna-icone-automobile.php?open_article=pourquoi-dyna-legere-aluminium-apres-guerre#attached-article-pourquoi-dyna-legere-aluminium-apres-guerre\">Pourquoi la Dyna a misé sur la légèreté et l’aluminium</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1945-a-1967/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1945 à 1967</a></li>\n<li><a href=\"https://www.panhard-levassor.fr\" target=\"_blank\" rel=\"noopener noreferrer\">Amicale Panhard &amp; Levassor</a></li>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_X\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna X</a></li>\n</ul>",
-  "tags": [
-    "panhard",
-    "histoire",
-    "modele",
-    "voiture-ancienne"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/panhard/dynaX.jpg",
-    "alt": "Panhard Dyna X",
-    "title": "Panhard Dyna X",
-    "caption": "La Dyna X ouvre la séquence moderne de Panhard après guerre.",
-    "width": 400,
-    "height": 200
-  },
-  "page_slug": "auto-retro-panhard-une-dyna-icone-automobile",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T13:32:44+00:00",
-  "updated_at": "2026-04-29T13:32:44+00:00"
+    "title": "Jean-Albert Grégoire et la naissance de la Panhard Dyna X",
+    "slug": "jean-albert-gregoire-naissance-dyna-x",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2027-07-05 14:36:14",
+    "excerpt": "La Dyna X ne sort pas d’une simple envie de nouveauté. Elle naît d’un moment précis de l’après-guerre, où Jean-Albert Grégoire et Panhard cherchent une voiture légère, sobre et réellement moderne.",
+    "content": "<p>La Dyna X ne sort pas d’une simple envie de nouveauté. Elle naît d’un moment précis de l’après-guerre, quand il faut reconstruire avec peu de matière, peu de carburant et des clients qui attendent malgré tout une vraie automobile. Dans ce contexte, Jean-Albert Grégoire joue un rôle important dans la mise en forme de la future Dyna.</p>\n<figure>\n <img src=\"/assets/images/autoretro/dyna.jpg\" alt=\"Illustration d'une Dyna\" title=\"Illustration d'une Dyna\" width=\"491\" height=\"270\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>La Dyna X condense des choix de légèreté, de compacité et d’usage très lisibles.</figcaption>\n</figure>\n<h2>Repartir après guerre</h2>\n<p>À la fin des années 1940, Panhard n’a pas intérêt à refaire une voiture d’avant-guerre. Le contexte pousse vers l’économie de matière, la sobriété de carburant et la recherche d’un bon rendement global. La Dyna X répond à cette situation par une formule légère, compacte et techniquement cohérente.</p>\n<p>On est loin de la voiture démonstrative. La priorité est de construire un ensemble efficace pour le quotidien, capable d’emmener une famille sans s’alourdir inutilement.</p>\n<h2>Le rôle de Jean-Albert Grégoire</h2>\n<p>Jean-Albert Grégoire apporte à cette naissance une culture technique tournée vers la légèreté, l’avant-garde mesurée et l’efficacité d’ensemble. Son nom revient souvent parce qu’il incarne cette manière de penser une voiture par sa structure, son poids et son usage, pas seulement par sa silhouette.</p>\n<p>La Dyna X ne se résume pourtant pas à une signature isolée. Elle reste un produit Panhard, avec ses propres choix industriels, ses arbitrages et sa façon très concrète d’entrer en production.</p>\n<h2>Une voiture qui change la trajectoire de la marque</h2>\n<p>Avec la Dyna X, Panhard se repositionne. La marque ne parle plus seulement d’ancienneté ou de prestige. Elle propose une voiture de l’après-guerre pensée autour du rendement : châssis poutre, carrosserie allégée, moteur bicylindre à plat refroidi par air, encombrement raisonnable et habitabilité correcte.</p>\n<p>Cette base prépare déjà une partie du futur. La Dyna X ouvre un langage technique qui va conduire ensuite vers la Dyna Z et d’autres variantes plus abouties sur le plan de l’espace et de la présentation.</p>\n<h2>Pourquoi cette origine mérite d’être relue</h2>\n<p>Comprendre la naissance de la Dyna X aide à ne pas réduire la Dyna à une seule image de voiture ronde et attachante. Dès le départ, le sujet est plus précis : comment faire une vraie voiture légère dans une France qui manque encore de tout, sauf d’ingéniosité.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/auto-retro/panhard/une-dyna-icone-automobile.php\">La Dyna de chez Panhard</a></li><li><a href=\"/auto-retro/panhard/une-dyna-icone-automobile.php?open_article=pourquoi-dyna-legere-aluminium-apres-guerre#attached-article-pourquoi-dyna-legere-aluminium-apres-guerre\">Pourquoi la Dyna a misé sur la légèreté et l’aluminium</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1945-a-1967/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1945 à 1967</a></li>\n<li><a href=\"https://www.panhard-levassor.fr\" target=\"_blank\" rel=\"noopener noreferrer\">Amicale Panhard &amp; Levassor</a></li>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_X\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna X</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "histoire",
+        "modele",
+        "voiture-ancienne"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/dynaX.jpg",
+        "alt": "Panhard Dyna X",
+        "title": "Panhard Dyna X",
+        "caption": "La Dyna X ouvre la séquence moderne de Panhard après guerre.",
+        "width": 400,
+        "height": 200
+    },
+    "page_slug": "auto-retro-panhard-une-dyna-icone-automobile",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:32:44+00:00",
+    "updated_at": "2026-08-14T13:00:00+02:00"
 }

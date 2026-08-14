@@ -1,34 +1,34 @@
 {
-  "title": "Cogolin between old town, vineyards and marinas",
-  "slug": "cogolin-entre-vieux-bourg-vignes-et-marines",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "territoire",
-  "subcategory": "villages-et-balades",
-  "date": "2028-05-19 14:36:14",
-  "excerpt": "Cogolin is one of the most transitional communes in the gulf. You move from old streets to the plain, from vineyards to the Mole valley, then to the marinas and harbour sectors.",
-  "content": "<p>In Cogolin, the walk does not stay enclosed in the centre. The commune changes texture quickly. In only a few moves, you pass from older streets to vineyards, then to the valley and the maritime sectors.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/cogolin/plage_a_cogolin.jpg\" alt=\"Beach in Cogolin\" title=\"Beach in Cogolin\" width=\"172\" height=\"114\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The maritime outlets show that Cogolin does not end at its old centre.</figcaption>\n</figure>\n<h2>A linking commune rather than a simple village</h2>\n<p>Cogolin is not best understood as an isolated hill village. Its interest lies in the continuity between the old core, cultivated sectors, the plain and the outlets towards the harbour and the marinas.</p>\n<h2>Vineyards and the valley give depth to the landscape</h2>\n<p>Around the centre, vineyards and the Mole valley recall a commune shaped by water, farming and circulation. That substance prevents Cogolin from being read as a mere coastal suburb.</p>\n<h2>The marinas change the end of the walk</h2>\n<p>Moving towards the maritime sectors, the commune opens out and takes another scale. This shift towards beach, harbour and boats does not erase the old town; it completes the personality of Cogolin instead.</p>\n<p>This note extends the page <a href=\"/en/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php\">Walking Through Cogolin</a>. To continue within the same cluster, it also helps to open <a href=\"/en/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php?open_article=artisanat-cogolin-tapis-pipes-et-vieux-bourg#attached-article-artisanat-cogolin-tapis-pipes-et-vieux-bourg\">Cogolin, crafts, carpets, pipes and the old town</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/cogolin/Guide%20Cogolin.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Cogolin guide</a></li>\n<li><a href=\"/assets/pdf/bouger/cogolin/Plan%20de%20Cogolin.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Map of Cogolin</a></li>\n<li><a href=\"https://www.visitcogolin.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Cogolin tourist office</a></li>\n</ul>",
-  "tags": [
-    "cogolin",
-    "golfe-saint-tropez",
-    "village",
-    "balade"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/communes/cogolin/vue_de_cogolin.jpg",
-    "alt": "View of Cogolin",
-    "title": "View of Cogolin",
-    "caption": "Cogolin matters through its transitions between hill, plain, vineyards and the opening towards the marinas.",
-    "width": 300,
-    "height": 225
-  },
-  "page_slug": "bouger-villages-cogolin",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:38+00:00",
-  "updated_at": "2026-04-29T15:07:38+00:00"
+    "title": "Cogolin between old town, vineyards and marinas",
+    "slug": "cogolin-entre-vieux-bourg-vignes-et-marines",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "Caramagnols",
+    "category": "territoire",
+    "subcategory": "villages-et-balades",
+    "date": "2028-05-19 14:36:14",
+    "excerpt": "Cogolin is one of the most transitional communes in the gulf. You move from old streets to the plain, from vineyards to the Mole valley, then to the marinas and harbour sectors.",
+    "content": "<p>In Cogolin, the walk does not stay enclosed in the centre. The commune changes texture quickly. In only a few moves, you pass from older streets to vineyards, then to the valley and the maritime sectors.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/cogolin/plage_a_cogolin.jpg\" alt=\"Beach in Cogolin\" title=\"Beach in Cogolin\" width=\"172\" height=\"114\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The maritime outlets show that Cogolin does not end at its old centre.</figcaption>\n</figure>\n<h2>A linking commune rather than a simple village</h2>\n<p>Cogolin is not best understood as an isolated hill village. Its interest lies in the continuity between the old core, cultivated sectors, the plain and the outlets towards the harbour and the marinas.</p>\n<h2>Vineyards and the valley give depth to the landscape</h2>\n<p>Around the centre, vineyards and the Mole valley recall a commune shaped by water, farming and circulation. That substance prevents Cogolin from being read as a mere coastal suburb.</p>\n<h2>The marinas change the end of the walk</h2>\n<p>Moving towards the maritime sectors, the commune opens out and takes another scale. This shift towards beach, harbour and boats does not erase the old town; it completes the personality of Cogolin instead.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/en/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php\">Walking Through Cogolin</a></li><li><a href=\"/en/bouger/se-promener-a-Cogolin-golfe-de-sttropez.php?open_article=artisanat-cogolin-tapis-pipes-et-vieux-bourg#attached-article-artisanat-cogolin-tapis-pipes-et-vieux-bourg\">Cogolin, crafts, carpets, pipes and the old town</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/cogolin/Guide%20Cogolin.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Cogolin guide</a></li>\n<li><a href=\"/assets/pdf/bouger/cogolin/Plan%20de%20Cogolin.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Map of Cogolin</a></li>\n<li><a href=\"https://www.visitcogolin.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Cogolin tourist office</a></li>\n</ul>",
+    "tags": [
+        "cogolin",
+        "golfe-saint-tropez",
+        "village",
+        "balade"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/communes/cogolin/vue_de_cogolin.jpg",
+        "alt": "View of Cogolin",
+        "title": "View of Cogolin",
+        "caption": "Cogolin matters through its transitions between hill, plain, vineyards and the opening towards the marinas.",
+        "width": 300,
+        "height": 225
+    },
+    "page_slug": "bouger-villages-cogolin",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:38+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

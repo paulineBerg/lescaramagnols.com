@@ -1,34 +1,34 @@
 {
-  "title": "Fêtes patronales du golfe de Saint-Tropez : rituel, musique et usage des rues",
-  "slug": "fetes-patronales-golfe-saint-tropez-rituel-musique-et-rues",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "patrimoine",
-  "subcategory": "lieux-et-memoire",
-  "date": "2029-03-01 14:36:14",
-  "excerpt": "Une fête patronale se lit dans le parcours, les tambours, les fifres, les arrêts et le rapport entre la commune et ses propres rues. Sa logique n’est pas celle d’une simple animation.",
-  "content": "<p>Les fêtes patronales du golfe gardent une structure que l’on comprend mal si l’on ne regarde que le moment le plus sonore ou le plus dense. Leur intérêt tient aussi à la façon dont la commune se met en ordre pour les accueillir, aux musiques qui les portent et à l’usage temporaire des rues.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/sttropez/st-tropez_small_03.jpg\" alt=\"Rue ancienne de Saint-Tropez pendant une promenade\" title=\"Rue ancienne de Saint-Tropez pendant une promenade\" width=\"69\" height=\"45\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>La fête patronale agit sur le rythme de la ville autant que sur son image.</figcaption>\n</figure>\n<h2>La rue devient un parcours et non un simple passage</h2>\n<p>Quand une fête patronale prend place, les rues cessent d’être un fond neutre. Elles deviennent un parcours, un espace de rassemblement, parfois une ligne musicale ou processionnelle. Cette transformation provisoire dit déjà beaucoup de la force du rendez-vous.</p>\n<h2>La musique organise l’espace</h2>\n<p>Tambours, fifres, aubades ou chants ne servent pas seulement d’accompagnement. Ils rythment les haltes, annoncent les passages et donnent au public une manière de se situer. Sans eux, la fête perdrait une grande part de son épaisseur locale.</p>\n<h2>Regarder le rite dans son ensemble</h2>\n<p>Le plus juste consiste à observer la fête comme un ensemble de gestes, de déplacements et de règles partagées. C’est cette cohérence qui distingue une fête patronale d’une simple animation de saison, même lorsque le visiteur n’en connaît pas tous les codes.</p>\n<p>Ce repère prolonge la page <a href=\"/bouger/animations/bravades-et-fetes-traditionnelles-golfe-saint-tropez.php\">Bravades et fêtes traditionnelles dans le golfe de Saint-Tropez</a>. Dans le même dossier, on peut ouvrir <a href=\"/bouger/animations/bravades-et-fetes-traditionnelles-golfe-saint-tropez.php?open_article=bravades-saint-tropez-ce-quil-faut-savoir-avant-dy-aller#attached-article-bravades-saint-tropez-ce-quil-faut-savoir-avant-dy-aller\">Bravades de Saint-Tropez : ce qu’il faut savoir avant d’y aller</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.saint-tropez.fr/fr/fiche/les-bravades-de-saint-tropez-4173873/\" target=\"_blank\" rel=\"noopener noreferrer\">Ville de Saint-Tropez - les Bravades de Saint-Tropez</a></li>\n<li><a href=\"https://www.sainte-maxime.com/fr/animation/traditions-et-folklore/sainte-maxime/fete-patronale-4609098/\" target=\"_blank\" rel=\"noopener noreferrer\">Sainte-Maxime Tourisme - fête patronale</a></li>\n<li><a href=\"https://www.sainte-maxime.com/fr/animation/traditions-et-folklore/sainte-maxime/fete-de-la-saint-pierre-4650946/\" target=\"_blank\" rel=\"noopener noreferrer\">Sainte-Maxime Tourisme - fête de la Saint-Pierre</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "evenement",
-    "village",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/communes/sttropez/st-tropez_small_02.jpg",
-    "alt": "Ruelle de Saint-Tropez dans un contexte de fête traditionnelle",
-    "title": "Ruelle de Saint-Tropez dans un contexte de fête traditionnelle",
-    "caption": "Les fêtes patronales modifient la rue avant même que l’on regarde le détail du rite.",
-    "width": 63,
-    "height": 45
-  },
-  "page_slug": "bouger-animations-bravades-et-fetes-traditionnelles-golfe-saint-tropez",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T17:13:37+00:00",
-  "updated_at": "2026-04-29T17:13:37+00:00"
+    "title": "Fêtes patronales du golfe de Saint-Tropez : rituel, musique et usage des rues",
+    "slug": "fetes-patronales-golfe-saint-tropez-rituel-musique-et-rues",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "patrimoine",
+    "subcategory": "lieux-et-memoire",
+    "date": "2029-03-01 14:36:14",
+    "excerpt": "Une fête patronale se lit dans le parcours, les tambours, les fifres, les arrêts et le rapport entre la commune et ses propres rues. Sa méthode n’est pas celle d’une simple animation.",
+    "content": "<p>Les fêtes patronales du golfe gardent une structure que l’on comprend mal si l’on ne regarde que le moment le plus sonore ou le plus dense. Leur intérêt tient aussi à la façon dont la commune se met en ordre pour les accueillir, aux musiques qui les portent et à l’usage temporaire des rues.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/sttropez/st-tropez_small_03.jpg\" alt=\"Rue ancienne de Saint-Tropez pendant une promenade\" title=\"Rue ancienne de Saint-Tropez pendant une promenade\" width=\"69\" height=\"45\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>La fête patronale agit sur le rythme de la ville autant que sur son image.</figcaption>\n</figure>\n<h2>La rue devient un parcours et non un simple passage</h2>\n<p>Quand une fête patronale prend place, les rues cessent d’être un fond neutre. Elles deviennent un parcours, un espace de rassemblement, parfois une ligne musicale ou processionnelle. Cette transformation provisoire dit déjà beaucoup de la force du rendez-vous.</p>\n<h2>La musique organise l’espace</h2>\n<p>Tambours, fifres, aubades ou chants ne servent pas seulement d’accompagnement. Ils rythment les haltes, annoncent les passages et donnent au public une manière de se situer. Sans eux, la fête perdrait une grande part de son épaisseur locale.</p>\n<h2>Regarder le rite dans son ensemble</h2>\n<p>Le plus juste consiste à observer la fête comme un ensemble de gestes, de déplacements et de règles partagées. C’est cette cohérence qui distingue une fête patronale d’une simple animation de saison, même lorsque le visiteur n’en connaît pas tous les codes.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/bouger/animations/bravades-et-fetes-traditionnelles-golfe-saint-tropez.php\">Bravades et fêtes traditionnelles dans le golfe de Saint-Tropez</a></li><li><a href=\"/bouger/animations/bravades-et-fetes-traditionnelles-golfe-saint-tropez.php?open_article=bravades-saint-tropez-ce-quil-faut-savoir-avant-dy-aller#attached-article-bravades-saint-tropez-ce-quil-faut-savoir-avant-dy-aller\">Bravades de Saint-Tropez : ce qu’il faut savoir avant d’y aller</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.saint-tropez.fr/fr/fiche/les-bravades-de-saint-tropez-4173873/\" target=\"_blank\" rel=\"noopener noreferrer\">Ville de Saint-Tropez - les Bravades de Saint-Tropez</a></li>\n<li><a href=\"https://www.sainte-maxime.com/fr/animation/traditions-et-folklore/sainte-maxime/fete-patronale-4609098/\" target=\"_blank\" rel=\"noopener noreferrer\">Sainte-Maxime Tourisme - fête patronale</a></li>\n<li><a href=\"https://www.sainte-maxime.com/fr/animation/traditions-et-folklore/sainte-maxime/fete-de-la-saint-pierre-4650946/\" target=\"_blank\" rel=\"noopener noreferrer\">Sainte-Maxime Tourisme - fête de la Saint-Pierre</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "evenement",
+        "village",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/communes/sttropez/st-tropez_small_02.jpg",
+        "alt": "Ruelle de Saint-Tropez dans un contexte de fête traditionnelle",
+        "title": "Ruelle de Saint-Tropez dans un contexte de fête traditionnelle",
+        "caption": "Les fêtes patronales modifient la rue avant même que l’on regarde le détail du rite.",
+        "width": 63,
+        "height": 45
+    },
+    "page_slug": "bouger-animations-bravades-et-fetes-traditionnelles-golfe-saint-tropez",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T17:13:37+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

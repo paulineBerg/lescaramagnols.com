@@ -1,35 +1,35 @@
 {
-  "title": "Renault Twingo mit 170 000 km: unsere Kontrollbasis vor der Wiederinbetriebnahme",
-  "slug": "renault-twingo-170000-km-remise-en-route-controles",
-  "lang": "de",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "restauration-et-entretien",
-  "date": "2027-11-25 14:36:14",
-  "excerpt": "Bei dieser Laufleistung geht es nicht darum, die Vergangenheit des Autos auszulöschen. Zuerst muss eine saubere, verlaessliche und stimmige Basis fuer den erneuten Einsatz gefunden werden.",
-  "content": "<p>Eine Twingo mit fast 170 000 km beeindruckt nicht mehr durch Frische. Sie kann aber noch sehr gute Dienste leisten, wenn man die richtigen Punkte in der richtigen Reihenfolge angeht.</p>\n<figure>\n <img src=\"/assets/images/autoretro/twingo.jpg\" alt=\"Unsere Twingo Helios in Dreiviertelansicht\" title=\"Unsere Twingo Helios\" width=\"472\" height=\"273\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Die Laufleistung zaehlt, doch Zustand und Pflegehistorie zaehlen noch mehr.</figcaption>\n</figure>\n<h2>170 000 km sagen nicht alles</h2>\n<p>Die Zahl allein urteilt nicht ueber das Auto. Ein kleiner Renault, der gepflegt, sauber gehalten und stimmig geblieben ist, kann weit ueberzeugender sein als ein weniger gelaufenes, aber vernachlaessigtes Exemplar.</p>\n<p>Der richtige Blick sucht deshalb nach Zeichen von Pflege und Kontinuitaet statt sich am Kilometerstand festzubeissen.</p>\n<h2>Unsere Reihenfolge der Kontrollen</h2>\n<p>Um den Wagen wieder in Betrieb zu nehmen, haben wir zuerst auf Sicherheits- und Fahrpunkte geschaut: Bremsen, Reifen, Fluide, Kuehlung, Batterie, Beleuchtung und Gesamtverhalten. Bei einem Zweitwagen kommt die sofortige Zuverlaessigkeit zuerst.</p>\n<p>Danach folgen die kleineren Korrekturen, die die Nutzung angenehmer machen. Die Idee war nicht, alles neu zu machen, sondern eine ehrliche und gesunde Basis zu finden.</p>\n<h2>Wieder auf die Strasse, ohne das Auto umzubauen</h2>\n<p>Eine gelungene Wiederinbetriebnahme bedeutet nicht zwingend schwere Restaurierung. Bei einem solchen Auto ist es oft besser, passend instand zu setzen, regelmaessig zu folgen und zu fahren.</p>\n<p>Diese Logik passt gut zu uns. Sie respektiert den wirklichen Status der Twingo: ein bescheidenes, nuetzliches Auto, das noch sympathischer wird, wenn es tatsaechlich dient.</p>\n<p>Dieser Beitrag ergaenzt die Seite <a href=\"/de/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php\">unseren Renault Twingo Helios von 1999</a>. Im selben Dossier fuehrt <a href=\"/de/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php?open_article=renault-twingo-golfe-saint-tropez-voiture-dappoint#attached-article-renault-twingo-golfe-saint-tropez-voiture-dappoint\">Ein Renault Twingo als Zweitwagen im Golf von Saint-Tropez: warum er noch immer passt</a> sinnvoll weiter.</p>\n<h2>Quellen</h2>\n<ul>\n<li>Fahrzeugfotos: Archiv Les Caramagnols.</li>\n<li>Wartungsnotizen 2023-2024: Archiv Les Caramagnols.</li>\n<li><a href=\"https://twingo.guide/\" target=\"_blank\" rel=\"noopener noreferrer\">twingo.guide</a></li>\n</ul>",
-  "tags": [
-    "renault",
-    "twingo",
-    "entretien",
-    "mecanique",
-    "experience"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/renault/interieur_twingo_detail.jpg",
-    "alt": "Innenraumdetail unserer Twingo",
-    "title": "Innenraumdetail unserer Twingo",
-    "caption": "Bei hoeherer Laufleistung bleibt methodische Wiederinbetriebnahme der richtige Anfang und nicht demonstrative Restaurierung.",
-    "width": 480,
-    "height": 360
-  },
-  "page_slug": "auto-retro-renault-twingo-helios-1999-notre-exemplaire",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:16:58+00:00",
-  "updated_at": "2026-04-29T14:16:58+00:00"
+    "title": "Renault Twingo mit 170 000 km: unsere Kontrollbasis vor der Wiederinbetriebnahme",
+    "slug": "renault-twingo-170000-km-remise-en-route-controles",
+    "lang": "de",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "restauration-et-entretien",
+    "date": "2027-11-25 14:36:14",
+    "excerpt": "Bei dieser Laufleistung geht es nicht darum, die Vergangenheit des Autos auszulöschen. Zuerst muss eine saubere, verlaessliche und stimmige Basis fuer den erneuten Einsatz gefunden werden.",
+    "content": "<p>Eine Twingo mit fast 170 000 km beeindruckt nicht mehr durch Frische. Sie kann aber noch sehr gute Dienste leisten, wenn man die richtigen Punkte in der richtigen Reihenfolge angeht.</p>\n<figure>\n <img src=\"/assets/images/autoretro/twingo.jpg\" alt=\"Unsere Twingo Helios in Dreiviertelansicht\" title=\"Unsere Twingo Helios\" width=\"472\" height=\"273\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Die Laufleistung zaehlt, doch Zustand und Pflegehistorie zaehlen noch mehr.</figcaption>\n</figure>\n<h2>170 000 km sagen nicht alles</h2>\n<p>Die Zahl allein urteilt nicht ueber das Auto. Ein kleiner Renault, der gepflegt, sauber gehalten und stimmig geblieben ist, kann weit ueberzeugender sein als ein weniger gelaufenes, aber vernachlaessigtes Exemplar.</p>\n<p>Der richtige Blick sucht deshalb nach Zeichen von Pflege und Kontinuitaet statt sich am Kilometerstand festzubeissen.</p>\n<h2>Unsere Reihenfolge der Kontrollen</h2>\n<p>Um den Wagen wieder in Betrieb zu nehmen, haben wir zuerst auf Sicherheits- und Fahrpunkte geschaut: Bremsen, Reifen, Fluide, Kuehlung, Batterie, Beleuchtung und Gesamtverhalten. Bei einem Zweitwagen kommt die sofortige Zuverlaessigkeit zuerst.</p>\n<p>Danach folgen die kleineren Korrekturen, die die Nutzung angenehmer machen. Die Idee war nicht, alles neu zu machen, sondern eine ehrliche und gesunde Basis zu finden.</p>\n<h2>Wieder auf die Strasse, ohne das Auto umzubauen</h2>\n<p>Eine gelungene Wiederinbetriebnahme bedeutet nicht zwingend schwere Restaurierung. Bei einem solchen Auto ist es oft besser, passend instand zu setzen, regelmaessig zu folgen und zu fahren.</p>\n<p>Diese Methode passt gut zu uns. Sie respektiert den wirklichen Status der Twingo: ein bescheidenes, nuetzliches Auto, das noch sympathischer wird, wenn es tatsaechlich dient.</p>\n<nav class=\"article-related\" aria-label=\"Verwandte Artikel\"><ul><li><a href=\"/de/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php\">unseren Renault Twingo Helios von 1999</a></li><li><a href=\"/de/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php?open_article=renault-twingo-golfe-saint-tropez-voiture-dappoint#attached-article-renault-twingo-golfe-saint-tropez-voiture-dappoint\">Ein Renault Twingo als Zweitwagen im Golf von Saint-Tropez: warum er noch immer passt</a></li></ul></nav>\n<h2>Quellen</h2>\n<ul>\n<li>Fahrzeugfotos: Archiv Les Caramagnols.</li>\n<li>Wartungsnotizen 2023-2024: Archiv Les Caramagnols.</li>\n<li><a href=\"https://twingo.guide/\" target=\"_blank\" rel=\"noopener noreferrer\">twingo.guide</a></li>\n</ul>",
+    "tags": [
+        "renault",
+        "twingo",
+        "entretien",
+        "mecanique",
+        "experience"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/renault/interieur_twingo_detail.jpg",
+        "alt": "Innenraumdetail unserer Twingo",
+        "title": "Innenraumdetail unserer Twingo",
+        "caption": "Bei hoeherer Laufleistung bleibt methodische Wiederinbetriebnahme der richtige Anfang und nicht demonstrative Restaurierung.",
+        "width": 480,
+        "height": 360
+    },
+    "page_slug": "auto-retro-renault-twingo-helios-1999-notre-exemplaire",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:16:58+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

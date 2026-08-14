@@ -37,6 +37,10 @@ final class EditorialMediaValidator
                 continue;
             }
 
+            if ($scope === 'blog') {
+                $this->validateBlogMediaRequirements($issues, $entity, $payload);
+            }
+
             foreach ($this->extractStringFields($payload) as $field => $value) {
                 $matchCount = preg_match_all(
                     self::LOCAL_MEDIA_PATTERN,
@@ -125,6 +129,117 @@ final class EditorialMediaValidator
             'reference_count' => $referenceCount,
             'issues' => array_values($issues),
         ];
+    }
+
+    /**
+     * @param array<string, array<string, string>> $issues
+     * @param array<string, mixed> $payload
+     */
+    private function validateBlogMediaRequirements(array &$issues, string $entity, array $payload): void
+    {
+        $featuredImage = is_array($payload['featured_image'] ?? null) ? $payload['featured_image'] : [];
+        $featuredSource = trim((string) ($featuredImage['src'] ?? ''));
+        if ($featuredSource === '') {
+            $this->rememberIssue($issues, 'featured_image_missing', 'blog', $entity, 'featured_image.src', 'required');
+        }
+
+        foreach (['alt', 'title', 'caption'] as $field) {
+            if (trim((string) ($featuredImage[$field] ?? '')) === '') {
+                $this->rememberIssue(
+                    $issues,
+                    'featured_metadata_missing',
+                    'blog',
+                    $entity,
+                    'featured_image.' . $field,
+                    'required'
+                );
+            }
+        }
+
+        foreach (['width', 'height'] as $field) {
+            if (!is_numeric($featuredImage[$field] ?? null) || (int) $featuredImage[$field] <= 0) {
+                $this->rememberIssue(
+                    $issues,
+                    'featured_dimension_invalid',
+                    'blog',
+                    $entity,
+                    'featured_image.' . $field,
+                    (string) ($featuredImage[$field] ?? '')
+                );
+            }
+        }
+
+        $content = is_string($payload['content'] ?? null) ? (string) $payload['content'] : '';
+        $matchCount = preg_match_all('/<img\b[^>]*>/i', $content, $matches);
+        $imageTags = is_int($matchCount) && $matchCount > 0 ? $matches[0] : [];
+        if ($imageTags === []) {
+            $this->rememberIssue($issues, 'body_image_missing', 'blog', $entity, 'content', 'required');
+
+            return;
+        }
+
+        foreach ($imageTags as $index => $imageTag) {
+            if (!is_string($imageTag)) {
+                continue;
+            }
+
+            $bodySource = $this->htmlAttribute($imageTag, 'src');
+            foreach (['src', 'alt', 'title'] as $attribute) {
+                if ($this->htmlAttribute($imageTag, $attribute) === '') {
+                    $this->rememberIssue(
+                        $issues,
+                        'body_image_metadata_missing',
+                        'blog',
+                        $entity,
+                        sprintf('content.img.%d.%s', $index, $attribute),
+                        'required'
+                    );
+                }
+            }
+
+            foreach (['width', 'height'] as $attribute) {
+                $dimension = $this->htmlAttribute($imageTag, $attribute);
+                if (!ctype_digit($dimension) || (int) $dimension <= 0) {
+                    $this->rememberIssue(
+                        $issues,
+                        'body_image_dimension_invalid',
+                        'blog',
+                        $entity,
+                        sprintf('content.img.%d.%s', $index, $attribute),
+                        $dimension
+                    );
+                }
+            }
+
+            if ($featuredSource !== '' && $bodySource !== '' && $this->sameMediaPath($featuredSource, $bodySource)) {
+                $this->rememberIssue(
+                    $issues,
+                    'featured_body_duplicate',
+                    'blog',
+                    $entity,
+                    sprintf('content.img.%d.src', $index),
+                    $bodySource
+                );
+            }
+        }
+    }
+
+    private function htmlAttribute(string $tag, string $attribute): string
+    {
+        $quotedAttribute = preg_quote($attribute, '/');
+        if (preg_match('/\b' . $quotedAttribute . '\s*=\s*(["\'])(.*?)\1/is', $tag, $matches) !== 1) {
+            return '';
+        }
+
+        return trim(html_entity_decode((string) ($matches[2] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    }
+
+    private function sameMediaPath(string $left, string $right): bool
+    {
+        $leftPath = parse_url(trim($left), PHP_URL_PATH);
+        $rightPath = parse_url(trim($right), PHP_URL_PATH);
+
+        return is_string($leftPath) && $leftPath !== '' && $leftPath === $rightPath;
     }
 
     /**

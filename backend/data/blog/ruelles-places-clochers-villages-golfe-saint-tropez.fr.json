@@ -1,34 +1,34 @@
 {
-  "title": "Ruelles, places et clochers : ce qu’il faut regarder dans les villages du golfe",
-  "slug": "ruelles-places-clochers-villages-golfe-saint-tropez",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "territoire",
-  "subcategory": "villages-et-balades",
-  "date": "2028-01-19 14:36:14",
-  "excerpt": "Une promenade réussie dans les villages du golfe ne tient pas seulement à une adresse. Elle dépend du regard porté sur les seuils, les escaliers, les placettes, les fontaines et les lignes de clocher.",
-  "content": "<p>Dans les villages du golfe de Saint-Tropez, on avance souvent lentement sans s'en rendre compte. Le décor paraît simple, mais il devient plus riche dès que l'on regarde comment une ruelle tourne, comment une place s'ouvre ou comment un clocher recadre le paysage.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/cogolin/ruelle_a_cogolin.jpg\" alt=\"Ruelle ancienne à Cogolin\" title=\"Ruelle ancienne à Cogolin\" width=\"85\" height=\"114\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Escaliers, passages et petites places donnent le vrai rythme de la marche dans les villages du golfe.</figcaption>\n</figure>\n<h2>Lire les ruelles avant de chercher un panorama</h2>\n<p>Les villages gagnent rarement à être abordés comme des listes de points de vue. Le plaisir vient d'abord des passages étroits, des escaliers, des changements de pente, des seuils de maison et des petits décrochements qui donnent à la marche son rythme réel.</p>\n<h2>Les places et les fontaines comme repères de vie</h2>\n<p>Une placette ombragée, une fontaine, un banc, quelques façades plus basses suffisent souvent à révéler la manière dont un village se tient. Ces espaces modestes montrent mieux l'usage quotidien des lieux que les seules vues de carte postale.</p>\n<h2>Le clocher, la hauteur et l’orientation</h2>\n<p>Dans le golfe, le clocher n'est pas seulement un signe patrimonial. Il sert aussi d'axe de lecture. Il aide à comprendre le relief, l'organisation du bourg et la relation entre le cœur ancien, la plaine, les vignes ou le rivage selon la commune choisie.</p>\n<p>Ce repère prolonge la page <a href=\"/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php\">Se Promener Dans Les Villages Du Golfe De Sttropez</a>. Pour continuer la promenade dans le même dossier, on peut ouvrir <a href=\"/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php?open_article=quel-village-choisir-golfe-saint-tropez-selon-ambiance#attached-article-quel-village-choisir-golfe-saint-tropez-selon-ambiance\">Quel village choisir dans le golfe de Saint-Tropez selon l’ambiance recherchée ?</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/cogolin/Guide%20Cogolin.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Guide de Cogolin</a></li>\n<li><a href=\"/assets/pdf/bouger/gassin/guide-ok-SIMPLE-FINAL-22.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Guide de Gassin</a></li>\n<li><a href=\"/assets/pdf/bouger/st-tropez/sttropez-le-plan.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Plan de Saint-Tropez</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "village",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/structure/menu/bouger/uivillages.jpg",
-    "alt": "Village du golfe vu en façade",
-    "title": "Village du golfe vu en façade",
-    "caption": "D’un village à l’autre, la promenade se joue souvent dans des détails de rue plus que dans un monument unique.",
-    "width": 222,
-    "height": 90
-  },
-  "page_slug": "bouger-villages",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:38+00:00",
-  "updated_at": "2026-04-29T15:07:38+00:00"
+    "title": "Ruelles, places et clochers : ce qu’il faut regarder dans les villages du golfe",
+    "slug": "ruelles-places-clochers-villages-golfe-saint-tropez",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "territoire",
+    "subcategory": "villages-et-balades",
+    "date": "2028-01-19 14:36:14",
+    "excerpt": "Une promenade réussie dans les villages du golfe ne tient pas seulement à une adresse. Elle dépend du regard porté sur les seuils, les escaliers, les placettes, les fontaines et les lignes de clocher.",
+    "content": "<p>Dans les villages du golfe de Saint-Tropez, on avance souvent lentement sans s'en rendre compte. Le décor paraît simple, mais il devient plus riche dès que l'on regarde comment une ruelle tourne, comment une place s'ouvre ou comment un clocher recadre le paysage.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/cogolin/ruelle_a_cogolin.jpg\" alt=\"Ruelle ancienne à Cogolin\" title=\"Ruelle ancienne à Cogolin\" width=\"85\" height=\"114\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Escaliers, passages et petites places donnent le vrai rythme de la marche dans les villages du golfe.</figcaption>\n</figure>\n<h2>Lire les ruelles avant de chercher un panorama</h2>\n<p>Les villages gagnent rarement à être abordés comme des listes de points de vue. Le plaisir vient d'abord des passages étroits, des escaliers, des changements de pente, des seuils de maison et des petits décrochements qui donnent à la marche son rythme réel.</p>\n<h2>Les places et les fontaines comme repères de vie</h2>\n<p>Une placette ombragée, une fontaine, un banc, quelques façades plus basses suffisent souvent à révéler la manière dont un village se tient. Ces espaces modestes montrent mieux l'usage quotidien des lieux que les seules vues de carte postale.</p>\n<h2>Le clocher, la hauteur et l’orientation</h2>\n<p>Dans le golfe, le clocher n'est pas seulement un signe patrimonial. Il sert aussi d'axe de lecture. Il aide à comprendre le relief, l'organisation du bourg et la relation entre le cœur ancien, la plaine, les vignes ou le rivage selon la commune choisie.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php\">Se Promener Dans Les Villages Du Golfe De Sttropez</a></li><li><a href=\"/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php?open_article=quel-village-choisir-golfe-saint-tropez-selon-ambiance#attached-article-quel-village-choisir-golfe-saint-tropez-selon-ambiance\">Quel village choisir dans le golfe de Saint-Tropez selon l’ambiance recherchée?</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/cogolin/Guide%20Cogolin.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Guide de Cogolin</a></li>\n<li><a href=\"/assets/pdf/bouger/gassin/guide-ok-SIMPLE-FINAL-22.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Guide de Gassin</a></li>\n<li><a href=\"/assets/pdf/bouger/st-tropez/sttropez-le-plan.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Plan de Saint-Tropez</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "village",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/structure/menu/bouger/uivillages.jpg",
+        "alt": "Village du golfe vu en façade",
+        "title": "Village du golfe vu en façade",
+        "caption": "D’un village à l’autre, la promenade se joue souvent dans des détails de rue plus que dans un monument unique.",
+        "width": 222,
+        "height": 90
+    },
+    "page_slug": "bouger-villages",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:38+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

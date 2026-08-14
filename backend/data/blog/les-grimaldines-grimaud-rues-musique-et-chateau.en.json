@@ -1,34 +1,34 @@
 {
-  "title": "Les Grimaldines in Grimaud: streets, music and castle",
-  "slug": "les-grimaldines-grimaud-rues-musique-et-chateau",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "vie-locale",
-  "subcategory": "evenements-et-animations",
-  "date": "2027-11-14 14:36:14",
-  "excerpt": "Les Grimaldines is more than a concert. The festival also lives through the walk in the streets, the climb towards the castle and the use of the village as a stage.",
-  "content": "<p>In Grimaud, Les Grimaldines creates a very particular kind of summer evening. The village, the lanes, the short street performances and the castle form a complete sequence, where music is inserted into a place that already reads clearly before the main concert begins.</p>\n<figure>\n <img src=\"/assets/images/structure/menu/bouger/uigrimaud.jpg\" alt=\"Grimaud menu image for a festival evening\" title=\"Grimaud menu image for a festival evening\" width=\"222\" height=\"90\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The village itself acts as a first stage before the concert.</figcaption>\n</figure>\n<h2>Begin with the walk through the village</h2>\n<p>Les Grimaldines is best approached on foot and slowly, letting the village introduce the evening. Streets, views, short stages and audience movement already prepare the listening. That gradual entry belongs to the concrete appeal of the event.</p>\n<h2>The castle changes the scale of the night</h2>\n<p>Once the climb towards the castle begins, the evening takes on another depth. You are no longer in a simple movement from one square to another. The height, the stone and the opening over the landscape give the concert a frame that a neutral venue could not offer.</p>\n<h2>Plan for a slow evening, not a quick outing</h2>\n<p>The festival works poorly with a late and hurried arrival. It is better to give it walking time, seating time and real availability. Without that, you lose half of what makes it interesting: the agreement between music, street and village.</p>\n<p>This note extends the page <a href=\"/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php\">Festivals and summer evenings in the Gulf of Saint-Tropez</a>. Within the same cluster, the natural continuation is <a href=\"/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php?open_article=concerts-et-cinema-de-plein-air-dans-le-golfe-en-ete#attached-article-concerts-et-cinema-de-plein-air-dans-le-golfe-en-ete\">Concerts and open-air cinema in the gulf during summer</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.festivalderamatuelle.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Festival de Ramatuelle</a></li>\n<li><a href=\"https://www.grimaud-provence.com/preparez/agenda/temps-forts/les-grimaldines/\" target=\"_blank\" rel=\"noopener noreferrer\">Grimaud Tourisme - Les Grimaldines</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/a-faire/agenda/les-temps-forts/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - agenda</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "grimaud",
-    "evenement",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/animations/recurrentes/chateau_grimaud_commons.jpg",
-    "alt": "Grimaud castle above the village",
-    "title": "Grimaud castle above the village",
-    "caption": "The castle and old streets give the festival its own architecture.",
-    "width": 720,
-    "height": 960
-  },
-  "page_slug": "bouger-animations-festivals-et-soirees-ete-golfe-saint-tropez",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T17:13:37+00:00",
-  "updated_at": "2026-04-29T17:13:37+00:00"
+    "title": "Les Grimaldines in Grimaud: streets, music and castle",
+    "slug": "les-grimaldines-grimaud-rues-musique-et-chateau",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "vie-locale",
+    "subcategory": "evenements-et-animations",
+    "date": "2027-11-14 14:36:14",
+    "excerpt": "Les Grimaldines is more than a concert. The festival also lives through the walk in the streets, the climb towards the castle and the use of the village as a stage.",
+    "content": "<p>In Grimaud, Les Grimaldines creates a very particular kind of summer evening. The village, the lanes, the short street performances and the castle form a complete sequence, where music is inserted into a place that already reads before the main concert begins.</p>\n<figure>\n <img src=\"/assets/images/structure/menu/bouger/uigrimaud.jpg\" alt=\"Grimaud menu image for a festival evening\" title=\"Grimaud menu image for a festival evening\" width=\"222\" height=\"90\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>The village itself acts as a first stage before the concert.</figcaption>\n</figure>\n<h2>Begin with the walk through the village</h2>\n<p>Les Grimaldines is best approached on foot and slowly, letting the village introduce the evening. Streets, views, short stages and audience movement already prepare the listening. That gradual entry belongs to the concrete appeal of the event.</p>\n<h2>The castle changes the scale of the night</h2>\n<p>Once the climb towards the castle begins, the evening takes on another depth. You are no longer in a simple movement from one square to another. The height, the stone and the opening over the landscape give the concert a frame that a neutral venue could not offer.</p>\n<h2>Plan for a slow evening, not a quick outing</h2>\n<p>The festival works poorly with a late and hurried arrival. It is better to give it walking time, seating time and real availability. Without that, you lose half of what makes it interesting: the agreement between music, street and village.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php\">Festivals and summer evenings in the Gulf of Saint-Tropez</a></li><li><a href=\"/bouger/animations/festivals-et-soirees-ete-golfe-saint-tropez.php?open_article=concerts-et-cinema-de-plein-air-dans-le-golfe-en-ete#attached-article-concerts-et-cinema-de-plein-air-dans-le-golfe-en-ete\">Concerts and open-air cinema in the gulf during summer</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.festivalderamatuelle.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Festival de Ramatuelle</a></li>\n<li><a href=\"https://www.grimaud-provence.com/preparez/agenda/temps-forts/les-grimaldines/\" target=\"_blank\" rel=\"noopener noreferrer\">Grimaud Tourisme - Les Grimaldines</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/a-faire/agenda/les-temps-forts/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - agenda</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "grimaud",
+        "evenement",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/animations/recurrentes/chateau_grimaud_commons.jpg",
+        "alt": "Grimaud castle above the village",
+        "title": "Grimaud castle above the village",
+        "caption": "The castle and old streets give the festival its own architecture.",
+        "width": 720,
+        "height": 960
+    },
+    "page_slug": "bouger-animations-festivals-et-soirees-ete-golfe-saint-tropez",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T17:13:37+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

@@ -1,34 +1,34 @@
 {
-  "title": "Why the Dyna relied on lightness and aluminium after the war",
-  "slug": "pourquoi-dyna-legere-aluminium-apres-guerre",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "restauration-et-entretien",
-  "date": "2028-01-08 14:36:14",
-  "excerpt": "On the Dyna, aluminium was not a luxury. It answered the post-war context, the small engine and the need to do more with less material.",
-  "content": "<p>On the Dyna, aluminium was not a decorative luxury. It answered a period short of material, wary of waste and demanding the best possible result from a small engine. At Panhard, lightness became a full strategy rather than a detail.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/dynaX.jpg\" alt=\"Side view of a Panhard Dyna X\" width=\"400\" height=\"200\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The Dyna seeks honest performance through low mass more than raw force.</figcaption>\n</figure>\n<h2>The post-war years pushed toward low weight</h2>\n<p>At the end of the 1940s, a heavy car penalised everything: fuel use, response, wear and production cost. For a marque relying on a modest flat twin, every kilogram removed had an immediate effect.</p>\n<p>The solution was therefore not only to simplify. It was to build a complete car that could remain lively and economical without calling for a large engine.</p>\n<h2>Aluminium as a tool, not as a display</h2>\n<p>The Dyna used light bodywork because that choice improved the whole car. Lower weight helps the engine, braking, acceleration and even road manners. It is an engineering logic, not a prestige gesture.</p>\n<p>The decision also belongs to a period when aeronautical materials fed the car industry. Panhard found in that context a practical way to go further than many popular saloons of its time.</p>\n<h2>The limits eventually appeared</h2>\n<p>Lightness carried a cost. Aluminium and alloy solutions were more expensive to produce and could complicate the model's economic balance. That is one reason Panhard gradually adjusted the formula and moved away from the costliest early solutions.</p>\n<p>In other words, the Dyna's lightness is technically brilliant, but it still depends on accounting reality. That point matters as much as the car's road-going success.</p>\n<h2>Why this still matters today</h2>\n<p>For an enthusiast, understanding that logic prevents the Dyna from being judged by overly modern criteria. Its value does not sit in raw power. It sits in the agreement between weight, engine, aerodynamics and real use.</p>\n<p>This reference belongs with the page <a href=\"/en/auto-retro/panhard/une-dyna-icone-automobile.php\">Panhard Dyna: light French engineering after the war</a>. In the same cluster, you can also read <a href=\"/en/auto-retro/panhard/une-dyna-icone-automobile.php?open_article=moteur-bicylindre-panhard-refroidi-air#attached-article-moteur-bicylindre-panhard-refroidi-air\">the air-cooled Panhard flat twin</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1945-a-1967/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1945 à 1967</a></li>\n<li><a href=\"https://www.panhard-levassor.fr\" target=\"_blank\" rel=\"noopener noreferrer\">Amicale Panhard &amp; Levassor</a></li>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_X\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna X</a></li>\n</ul>",
-  "tags": [
-    "panhard",
-    "restauration",
-    "carrosserie",
-    "voiture-ancienne"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/panhard/panhard_levassor_dynavia_1948.jpg",
-    "alt": "Panhard Dynavia 1948",
-    "title": "Panhard Dynavia 1948",
-    "caption": "La recherche de poids contenu fait partie de la logique Dyna.",
-    "width": 400,
-    "height": 300
-  },
-  "page_slug": "auto-retro-panhard-une-dyna-icone-automobile",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T13:32:45+00:00",
-  "updated_at": "2026-04-29T13:32:45+00:00"
+    "title": "Why the Dyna relied on lightness and aluminium after the war",
+    "slug": "pourquoi-dyna-legere-aluminium-apres-guerre",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "restauration-et-entretien",
+    "date": "2028-01-08 14:36:14",
+    "excerpt": "On the Dyna, aluminium was not a luxury. It answered the post-war context, the small engine and the need to do more with less material.",
+    "content": "<p>On the Dyna, aluminium was not a decorative luxury. It answered a period short of material, wary of waste and demanding the best possible result from a small engine. At Panhard, lightness became a full strategy rather than a detail.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/dynaX.jpg\" alt=\"Side view of a Panhard Dyna X\" title=\"Side view of a Panhard Dyna X\" width=\"400\" height=\"200\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>The Dyna seeks honest performance through low mass more than raw force.</figcaption>\n</figure>\n<h2>The post-war years pushed toward low weight</h2>\n<p>At the end of the 1940s, a heavy car penalised everything: fuel use, response, wear and production cost. For a marque relying on a modest flat twin, every kilogram removed had an immediate effect.</p>\n<p>The solution was therefore not only to simplify. It was to build a complete car that could remain lively and economical without calling for a large engine.</p>\n<h2>Aluminium as a tool, not as a display</h2>\n<p>The Dyna used light bodywork because that choice improved the whole car. Lower weight helps the engine, braking, acceleration and even road manners. It is an engineering method, not a prestige gesture.</p>\n<p>The decision also belongs to a period when aeronautical materials fed the car industry. Panhard found in that context a practical way to go further than many popular saloons of its time.</p>\n<h2>The limits eventually appeared</h2>\n<p>Lightness carried a cost. Aluminium and alloy solutions were more expensive to produce and could complicate the model's economic balance. That is one reason Panhard gradually adjusted the formula and moved away from the costliest early solutions.</p>\n<p>In other words, the Dyna's lightness is technically brilliant, but it still depends on accounting reality. That point matters as much as the car's road-going success.</p>\n<h2>Why this still matters today</h2>\n<p>For an enthusiast, understanding that method prevents the Dyna from being judged by overly modern criteria. Its value does not sit in raw power. It sits in the agreement between weight, engine, aerodynamics and real use.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/en/auto-retro/panhard/une-dyna-icone-automobile.php\">Panhard Dyna: light French engineering after the war</a></li><li><a href=\"/en/auto-retro/panhard/une-dyna-icone-automobile.php?open_article=moteur-bicylindre-panhard-refroidi-air#attached-article-moteur-bicylindre-panhard-refroidi-air\">the air-cooled Panhard flat twin</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1945-a-1967/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1945 à 1967</a></li>\n<li><a href=\"https://www.panhard-levassor.fr\" target=\"_blank\" rel=\"noopener noreferrer\">Amicale Panhard &amp; Levassor</a></li>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_X\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna X</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "restauration",
+        "carrosserie",
+        "voiture-ancienne"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/panhard_levassor_dynavia_1948.jpg",
+        "alt": "Panhard Dynavia 1948",
+        "title": "Panhard Dynavia 1948",
+        "caption": "La recherche de poids contenu fait partie de la logique Dyna.",
+        "width": 400,
+        "height": 300
+    },
+    "page_slug": "auto-retro-panhard-une-dyna-icone-automobile",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:32:45+00:00",
+    "updated_at": "2026-08-14T13:00:00+02:00"
 }

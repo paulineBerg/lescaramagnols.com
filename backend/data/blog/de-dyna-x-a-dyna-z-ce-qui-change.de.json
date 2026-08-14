@@ -1,34 +1,34 @@
 {
-  "title": "Vom Dyna X zum Dyna Z: was sich wirklich aendert",
-  "slug": "de-dyna-x-a-dyna-z-ce-qui-change",
-  "lang": "de",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "modeles-et-versions",
-  "date": "2029-11-09 14:36:14",
-  "excerpt": "Der Dyna Z ersetzt den Dyna X nicht nur. Er nimmt dieselbe Logik von Leichtbau auf, fuehrt sie aber zu mehr Raum, mehr industrieller Reife und einer anderen Praesenz auf der Strasse.",
-  "content": "<p>Der Dyna Z ersetzt den Dyna X nicht nur. Er uebernimmt dieselbe Philosophie von Leichtbau und Wirkungsgrad, fuehrt sie aber zu einem geraeumigeren Wagen, einer reiferen Praesentation und einer klareren Ausrichtung auf den Familiengebrauch.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/dynaZ.jpg\" alt=\"Panhard Dyna Z\" width=\"400\" height=\"213\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Der Dyna Z behaelt den Geist der ersten Dyna und veraendert doch deutlich den Massstab.</figcaption>\n</figure>\n<h2>Die Grundlogik bleibt</h2>\n<p>Von einem Modell zum anderen bleiben die grossen Panhard-Ideen sichtbar: begrenztes Gewicht, Suche nach Effizienz, luftgekuehlter Boxer-Zweizylinder und anhaltendes Interesse an der Aerodynamik. In diesem Punkt ist der Dyna Z kein totaler Bruch. Er ist eine ambitioniertere Fortsetzung.</p>\n<p>Darum antworten sich beide Autos in der Markengeschichte so gut. Sie dienen demselben Programm, aber nicht mit derselben Reifestufe.</p>\n<h2>Der Dyna Z veraendert Groesse und Rolle</h2>\n<p>Der Dyna X gehoert noch nah an die erfinderische Wiederaufbauzeit. Der Dyna Z zielt deutlicher auf die moderne Familienlimousine. Er bietet mehr Raum, eine noch fliessendere Linie und eine weniger fragile Strassenpraesenz. Der groessere Motor und die Entwicklung der Karosserie fuehren ihn in einen anderen Gebrauch.</p>\n<p>Mit anderen Worten: Der Dyna Z behaelt die Panhard-Disziplin, traegt sie aber in ein Auto mit breiterem praktischem Anspruch.</p>\n<h2>Die industrielle Frage wird deutlicher</h2>\n<p>Mit dem Dyna Z werden Produktionsentscheidungen sichtbarer. Die fruehen Leichtbauloesungen und der spaetere Uebergang zu kostengünstigerer Karosserie zeigen, dass technische Moderne mit realer Oekonomie verhandelt werden musste.</p>\n<p>Diese Spannung gab es schon beim Dyna X, doch sie wird schaerfer, wenn das Auto waechst und die Marke ein groesseres Publikum erreichen will.</p>\n<h2>Warum der Vergleich nuetzt</h2>\n<p>Der Vergleich von Dyna X und Dyna Z hilft, den ganzen Nachkriegsweg Panhards zu lesen: von einem leichten Wiederaufbauwagen hin zu einer Familienlimousine, die originell bleibt, aber schwieriger zu produzieren ist.</p>\n<p>Dieser Bezug gehoert zur Seite <a href=\"/de/auto-retro/panhard/une-dyna-icone-automobile.php\">Panhard Dyna: leichter franzoesischer Maschinenbau nach dem Krieg</a>. Fuer den Ausgangspunkt koennen Sie auch <a href=\"/de/auto-retro/panhard/une-dyna-icone-automobile.php?open_article=jean-albert-gregoire-naissance-dyna-x#attached-article-jean-albert-gregoire-naissance-dyna-x\">Jean-Albert Gregoire und die Geburt des Dyna X</a> lesen.</p>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_X\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna X</a></li>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_Z\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna Z</a></li>\n<li><a href=\"https://panhardsite.jimdofree.com/historique/les-ann%C3%A9es-50-et-la-dyna-z/ses-carat%C3%A9ristiques-techniques/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Belgique, caractéristiques techniques de la Dyna Z</a></li>\n</ul>",
-  "tags": [
-    "panhard",
-    "modele",
-    "version",
-    "voiture-ancienne"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/panhard/Panhard_Dyna.jpg",
-    "alt": "Panhard Dyna",
-    "title": "Panhard Dyna",
-    "caption": "Entre Dyna X et Dyna Z, la continuité existe, mais elle change d’échelle.",
-    "width": 400,
-    "height": 300
-  },
-  "page_slug": "auto-retro-panhard-une-dyna-icone-automobile",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T13:32:45+00:00",
-  "updated_at": "2026-04-29T13:32:45+00:00"
+    "title": "Vom Dyna X zum Dyna Z: was sich wirklich aendert",
+    "slug": "de-dyna-x-a-dyna-z-ce-qui-change",
+    "lang": "de",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "modeles-et-versions",
+    "date": "2029-11-09 14:36:14",
+    "excerpt": "Der Dyna Z ersetzt den Dyna X nicht nur. Er nimmt dieselbe Methode von Leichtbau auf, fuehrt sie aber zu mehr Raum, mehr industrieller Reife und einer anderen Praesenz auf der Strasse.",
+    "content": "<p>Der Dyna Z ersetzt den Dyna X nicht nur. Er uebernimmt dieselbe Philosophie von Leichtbau und Wirkungsgrad, fuehrt sie aber zu einem geraeumigeren Wagen, einer reiferen Praesentation und einer klareren Ausrichtung auf den Familiengebrauch.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/dynaZ.jpg\" alt=\"Panhard Dyna Z\" title=\"Panhard Dyna Z\" width=\"400\" height=\"213\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Der Dyna Z behaelt den Charakter der ersten Dyna und veraendert doch deutlich den Massstab.</figcaption>\n</figure>\n<h2>Die Grundlogik bleibt</h2>\n<p>Von einem Modell zum anderen bleiben die grossen Panhard-Ideen sichtbar: begrenztes Gewicht, Suche nach Effizienz, luftgekuehlter Boxer-Zweizylinder und anhaltendes Interesse an der Aerodynamik. In diesem Punkt ist der Dyna Z kein totaler Bruch. Er ist eine ambitioniertere Fortsetzung.</p>\n<p>Darum antworten sich beide Autos in der Markengeschichte so gut. Sie dienen demselben Programm, aber nicht mit derselben Reifestufe.</p>\n<h2>Der Dyna Z veraendert Groesse und Rolle</h2>\n<p>Der Dyna X gehoert noch nah an die erfinderische Wiederaufbauzeit. Der Dyna Z zielt deutlicher auf die moderne Familienlimousine. Er bietet mehr Raum, eine noch fliessendere Linie und eine weniger fragile Strassenpraesenz. Der groessere Motor und die Entwicklung der Karosserie fuehren ihn in einen anderen Gebrauch.</p>\n<p>Mit anderen Worten: Der Dyna Z behaelt die Panhard-Disziplin, traegt sie aber in ein Auto mit breiterem praktischem Anspruch.</p>\n<h2>Die industrielle Frage wird deutlicher</h2>\n<p>Mit dem Dyna Z werden Produktionsentscheidungen sichtbarer. Die fruehen Leichtbauloesungen und der spaetere Uebergang zu kostengünstigerer Karosserie zeigen, dass technische Moderne mit realer Oekonomie verhandelt werden musste.</p>\n<p>Diese Spannung gab es schon beim Dyna X, doch sie wird schaerfer, wenn das Auto waechst und die Marke ein groesseres Publikum erreichen will.</p>\n<h2>Warum der Vergleich nuetzt</h2>\n<p>Der Vergleich von Dyna X und Dyna Z hilft, den ganzen Nachkriegsweg Panhards zu lesen: von einem leichten Wiederaufbauwagen hin zu einer Familienlimousine, die originell bleibt, aber schwieriger zu produzieren ist.</p>\n<nav class=\"article-related\" aria-label=\"Verwandte Artikel\"><ul><li><a href=\"/de/auto-retro/panhard/une-dyna-icone-automobile.php\">Panhard Dyna: leichter franzoesischer Maschinenbau nach dem Krieg</a></li><li><a href=\"/de/auto-retro/panhard/une-dyna-icone-automobile.php?open_article=jean-albert-gregoire-naissance-dyna-x#attached-article-jean-albert-gregoire-naissance-dyna-x\">Jean-Albert Gregoire und die Geburt des Dyna X</a></li></ul></nav>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_X\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna X</a></li>\n<li><a href=\"https://fr.wikipedia.org/wiki/Panhard_Dyna_Z\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Dyna Z</a></li>\n<li><a href=\"https://panhardsite.jimdofree.com/historique/les-ann%C3%A9es-50-et-la-dyna-z/ses-carat%C3%A9ristiques-techniques/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Belgique, caractéristiques techniques de la Dyna Z</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "modele",
+        "version",
+        "voiture-ancienne"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/Panhard_Dyna.jpg",
+        "alt": "Panhard Dyna",
+        "title": "Panhard Dyna",
+        "caption": "Entre Dyna X et Dyna Z, la continuité existe, mais elle change d’échelle.",
+        "width": 400,
+        "height": 300
+    },
+    "page_slug": "auto-retro-panhard-une-dyna-icone-automobile",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:32:45+00:00",
+    "updated_at": "2026-08-14T13:00:00+02:00"
 }

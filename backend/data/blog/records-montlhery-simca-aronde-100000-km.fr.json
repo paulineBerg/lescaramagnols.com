@@ -1,34 +1,34 @@
 {
-  "title": "Les records de Montlhéry : comment Simca fait parler l’Aronde autrement",
-  "slug": "records-montlhery-simca-aronde-100000-km",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2028-03-03 14:36:14",
-  "excerpt": "Les records de Montlhéry ne servent pas seulement à flatter l’orgueil sportif de Simca. Ils donnent à l’Aronde une preuve publique d’endurance et de régularité à un moment décisif de sa carrière.",
-  "content": "<p>L’Aronde a beaucoup gagné par la diffusion, mais aussi par la démonstration. Les records de Montlhéry occupent une place particulière parce qu’ils convertissent la technique et l’endurance en argument très lisible pour un large public.</p>\n<figure>\n <img src=\"/assets/images/autoretro/simca/aronde/simca_aronde_1300_monthlery.jpg\" alt=\"Simca Aronde 1300 Monthléry\" title=\"Aronde Monthléry\" width=\"400\" height=\"279\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Le nom Monthléry reste ensuite dans la gamme comme une mémoire commerciale de l’exploit.</figcaption>\n</figure>\n<h2>Une épreuve d’endurance plus utile qu’une victoire isolée</h2>\n<p>Dans la France des années 1950, l’endurance parle directement à l’acheteur. Une voiture qui roule longtemps et régulièrement semble plus crédible qu’une auto qui ne brille qu’un instant en compétition.</p>\n<p>Montlhéry offre à Simca cette scène idéale. L’Aronde peut y prouver une tenue mécanique qui dépasse le simple discours publicitaire.</p>\n<h2>Du résultat technique à l’image de marque</h2>\n<p>L’exploit ne reste pas enfermé dans les cercles d’amateurs. Simca le réemploie dans sa communication pour renforcer la réputation d’une berline déjà bien placée sur le marché français.</p>\n<p>Le lien est habile. On ne vend pas seulement une voiture populaire ; on vend une voiture populaire capable d’encaisser la distance et le temps.</p>\n<h2>Pourquoi Monthléry compte encore dans la lecture de l’Aronde</h2>\n<p>Le nom Monthléry reste attaché à certaines versions et à toute une mémoire de la gamme. Il rappelle que l’Aronde a su exister à la fois comme voiture de famille et comme support d’une démonstration de sérieux mécanique.</p>\n<p>Pour relire l’histoire du modèle, ce passage reste central. Il montre comment Simca sait transformer un fait technique en profondeur commerciale durable.</p>\n<p>Ce repère prolonge la page <a href=\"/auto-retro/simca/histoire-simca-aronde-icone-francaise.php\">l'histoire de la Simca Aronde</a>. Dans le même dossier, la suite utile est <a href=\"/auto-retro/simca/histoire-simca-aronde-icone-francaise.php?open_article=gamme-simca-aronde-berline-coupe-utilitaires#attached-article-gamme-simca-aronde-berline-coupe-utilitaires\">Comment la gamme Aronde s’étend de la berline aux versions de style et de travail</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://clubsimcafrance.fr/modeles/simca-9-aronde-et-p-60\" target=\"_blank\" rel=\"noopener noreferrer\">Club Simca France, Simca 9 Aronde et P60</a></li>\n<li><a href=\"https://commons.wikimedia.org/wiki/File:Simca_Aronde_1300_Montlh%C3%A9ry_(53028945662).jpg\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, Simca Aronde 1300 Montlhéry</a></li>\n<li><a href=\"https://www.clubsimcafrance.fr/documentations/histoire/histoire.php\" target=\"_blank\" rel=\"noopener noreferrer\">Club Simca France, Histoire de Simca</a></li>\n</ul>",
-  "tags": [
-    "simca",
-    "histoire",
-    "route",
-    "collection"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/simca/aronde/ecusson_record_du_monde_monthlery.jpg",
-    "alt": "Écusson record du monde de Montlhéry",
-    "title": "Record de Montlhéry",
-    "caption": "Simca transforme un exploit d’endurance en argument de diffusion pour toute la famille Aronde.",
-    "width": 400,
-    "height": 191
-  },
-  "page_slug": "auto-retro-simca-histoire-simca-aronde-icone-francaise",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:41:30+00:00",
-  "updated_at": "2026-04-29T14:41:30+00:00"
+    "title": "Les records de Montlhéry : comment Simca fait parler l’Aronde autrement",
+    "slug": "records-montlhery-simca-aronde-100000-km",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2028-03-03 14:36:14",
+    "excerpt": "Les records de Montlhéry ne servent pas seulement à flatter l’orgueil sportif de Simca. Ils donnent à l’Aronde une preuve publique d’endurance et de régularité à un moment décisif de sa carrière.",
+    "content": "<p>L’Aronde a beaucoup gagné par la diffusion, mais aussi par la démonstration. Les records de Montlhéry occupent une place particulière parce qu’ils convertissent la technique et l’endurance en argument très lisible pour un large public.</p>\n<figure>\n <img src=\"/assets/images/autoretro/simca/aronde/simca_aronde_1300_monthlery.jpg\" alt=\"Simca Aronde 1300 Monthléry\" title=\"Aronde Monthléry\" width=\"400\" height=\"279\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Le nom Monthléry reste ensuite dans la gamme comme une mémoire commerciale de l’exploit.</figcaption>\n</figure>\n<h2>Une épreuve d’endurance plus utile qu’une victoire isolée</h2>\n<p>Dans la France des années 1950, l’endurance parle directement à l’acheteur. Une voiture qui roule longtemps et régulièrement semble plus crédible qu’une auto qui ne brille qu’un instant en compétition.</p>\n<p>Montlhéry offre à Simca cette scène idéale. L’Aronde peut y prouver une tenue mécanique qui dépasse le simple discours publicitaire.</p>\n<h2>Du résultat technique à l’image de marque</h2>\n<p>L’exploit ne reste pas enfermé dans les cercles d’amateurs. Simca le réemploie dans sa communication pour renforcer la réputation d’une berline déjà bien placée sur le marché français.</p>\n<p>Le lien est habile. On ne vend pas seulement une voiture populaire; on vend une voiture populaire capable d’encaisser la distance et le temps.</p>\n<h2>Pourquoi Monthléry compte encore dans la lecture de l’Aronde</h2>\n<p>Le nom Monthléry reste attaché à certaines versions et à toute une mémoire de la gamme. Il rappelle que l’Aronde a su exister à la fois comme voiture de famille et comme support d’une démonstration de sérieux mécanique.</p>\n<p>Pour relire l’histoire du modèle, ce passage reste central. Il montre comment Simca sait transformer un fait technique en profondeur commerciale durable.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/auto-retro/simca/histoire-simca-aronde-icone-francaise.php\">l'histoire de la Simca Aronde</a></li><li><a href=\"/auto-retro/simca/histoire-simca-aronde-icone-francaise.php?open_article=gamme-simca-aronde-berline-coupe-utilitaires#attached-article-gamme-simca-aronde-berline-coupe-utilitaires\">Comment la gamme Aronde s’étend de la berline aux versions de style et de travail</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://clubsimcafrance.fr/modeles/simca-9-aronde-et-p-60\" target=\"_blank\" rel=\"noopener noreferrer\">Club Simca France, Simca 9 Aronde et P60</a></li>\n<li><a href=\"https://commons.wikimedia.org/wiki/File:Simca_Aronde_1300_Montlh%C3%A9ry_(53028945662).jpg\" target=\"_blank\" rel=\"noopener noreferrer\">Wikimedia Commons, Simca Aronde 1300 Montlhéry</a></li>\n<li><a href=\"https://www.clubsimcafrance.fr/documentations/histoire/histoire.php\" target=\"_blank\" rel=\"noopener noreferrer\">Club Simca France, Histoire de Simca</a></li>\n</ul>",
+    "tags": [
+        "simca",
+        "histoire",
+        "route",
+        "collection"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/simca/aronde/ecusson_record_du_monde_monthlery.jpg",
+        "alt": "Écusson record du monde de Montlhéry",
+        "title": "Record de Montlhéry",
+        "caption": "Simca transforme un exploit d’endurance en argument de diffusion pour toute la famille Aronde.",
+        "width": 400,
+        "height": 191
+    },
+    "page_slug": "auto-retro-simca-histoire-simca-aronde-icone-francaise",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:41:30+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

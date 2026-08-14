@@ -1,34 +1,34 @@
 {
-  "title": "Quel village choisir dans le golfe de Saint-Tropez selon l’ambiance recherchée ?",
-  "slug": "quel-village-choisir-golfe-saint-tropez-selon-ambiance",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "territoire",
-  "subcategory": "villages-et-balades",
-  "date": "2027-05-22 14:36:14",
-  "excerpt": "Dans le golfe, on ne cherche pas tous la même promenade. Certains villages conviennent mieux à une flânerie de port, d’autres à une marche de hauteur, de forêt ou de rivage.",
-  "content": "<p>Le golfe de Saint-Tropez rassemble des villages très proches sur la carte et pourtant nettement différents dès que l'on marche. Avant de choisir une halte, il vaut mieux savoir si l'on cherche un vieux port vivant, un bourg perché, une commune de transition ou un littoral plus ouvert.</p>\n<figure>\n <img src=\"/assets/images/bouger/golfe/golfe.jpg\" alt=\"Vue générale sur le golfe de Saint-Tropez\" title=\"Vue générale sur le golfe de Saint-Tropez\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>À quelques kilomètres près, le relief, la mer et les vieux bourgs changent complètement l’ambiance.</figcaption>\n</figure>\n<h2>Pour les quais, les façades et les rues animées</h2>\n<p>Saint-Tropez et Sainte-Maxime conviennent à ceux qui veulent d'abord lire un front de mer, des places, des terrasses et une circulation continue entre port, centre ancien et rivage. Cogolin et Grimaud offrent une autre version de cette promenade, plus mêlée de bourg ancien, de plaine et d'ouverture vers les marines.</p>\n<h2>Pour les villages de hauteur et les vues larges</h2>\n<p>Gassin, Ramatuelle, Grimaud, La Garde-Freinet et Le Plan-de-la-Tour se prêtent mieux à une marche qui prend de la hauteur. On y vient pour les ruelles resserrées, les lignes de crête, les remparts, les placettes et une lecture plus lente du relief que sur le bord de mer.</p>\n<h2>Pour le littoral plus ouvert et les grands espaces</h2>\n<p>La Croix-Valmer, Le Rayol-Canadel-sur-Mer et Cavalaire-sur-Mer conviennent davantage à ceux qui pensent d'abord en caps, plages, sentiers littoraux et lumière marine. La Môle rappelle enfin que le golfe ne se réduit pas à ses quais : on peut aussi choisir une vallée plus discrète, l'eau douce, les prés et la lisière des Maures.</p>\n<p>Ce repère prolonge la page <a href=\"/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php\">Se Promener Dans Les Villages Du Golfe De Sttropez</a>. Pour continuer la promenade dans le même dossier, on peut ouvrir <a href=\"/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php?open_article=ruelles-places-clochers-villages-golfe-saint-tropez#attached-article-ruelles-places-clochers-villages-golfe-saint-tropez\">Ruelles, places et clochers : ce qu’il faut regarder dans les villages du golfe</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez</a></li>\n<li><a href=\"https://www.ramatuelle-tourisme.com/fr/decouvrir-la-presquile/cote-village/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme de Ramatuelle</a></li>\n<li><a href=\"https://www.visitcogolin.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme de Cogolin</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "village",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/communes/villages.jpg",
-    "alt": "Toits et clocher dans les villages du golfe",
-    "title": "Toits et clocher dans les villages du golfe",
-    "caption": "Les villages du golfe ne proposent pas la même promenade ni la même lumière.",
-    "width": 640,
-    "height": 480
-  },
-  "page_slug": "bouger-villages",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:38+00:00",
-  "updated_at": "2026-04-29T15:07:38+00:00"
+    "title": "Quel village choisir dans le golfe de Saint-Tropez selon l’ambiance recherchée?",
+    "slug": "quel-village-choisir-golfe-saint-tropez-selon-ambiance",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "territoire",
+    "subcategory": "villages-et-balades",
+    "date": "2027-05-22 14:36:14",
+    "excerpt": "Dans le golfe, on ne cherche pas tous la même promenade. Certains villages conviennent mieux à une flânerie de port, d’autres à une marche de hauteur, de forêt ou de rivage.",
+    "content": "<p>Le golfe de Saint-Tropez rassemble des villages très proches sur la carte et pourtant nettement différents dès que l'on marche. Avant de choisir une halte, il vaut mieux savoir si l'on cherche un vieux port vivant, un bourg perché, une commune de transition ou un littoral plus ouvert.</p>\n<figure>\n <img src=\"/assets/images/bouger/golfe/golfe.jpg\" alt=\"Vue générale sur le golfe de Saint-Tropez\" title=\"Vue générale sur le golfe de Saint-Tropez\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>À quelques kilomètres près, le relief, la mer et les vieux bourgs changent complètement l’ambiance.</figcaption>\n</figure>\n<h2>Pour les quais, les façades et les rues animées</h2>\n<p>Saint-Tropez et Sainte-Maxime conviennent à ceux qui veulent d'abord lire un front de mer, des places, des terrasses et une circulation continue entre port, centre ancien et rivage. Cogolin et Grimaud offrent une autre version de cette promenade, plus mêlée de bourg ancien, de plaine et d'ouverture vers les marines.</p>\n<h2>Pour les villages de hauteur et les vues larges</h2>\n<p>Gassin, Ramatuelle, Grimaud, La Garde-Freinet et Le Plan-de-la-Tour se prêtent mieux à une marche qui prend de la hauteur. On y vient pour les ruelles resserrées, les lignes de crête, les remparts, les placettes et une lecture plus lente du relief que sur le bord de mer.</p>\n<h2>Pour le littoral plus ouvert et les grands espaces</h2>\n<p>La Croix-Valmer, Le Rayol-Canadel-sur-Mer et Cavalaire-sur-Mer conviennent davantage à ceux qui pensent d'abord en caps, plages, sentiers littoraux et lumière marine. La Môle rappelle enfin que le golfe ne se limite pas à ses quais : on peut aussi choisir une vallée plus discrète, l'eau douce, les prés et la lisière des Maures.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php\">Se Promener Dans Les Villages Du Golfe De Sttropez</a></li><li><a href=\"/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php?open_article=ruelles-places-clochers-villages-golfe-saint-tropez#attached-article-ruelles-places-clochers-villages-golfe-saint-tropez\">Ruelles, places et clochers : ce qu’il faut regarder dans les villages du golfe</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez</a></li>\n<li><a href=\"https://www.ramatuelle-tourisme.com/fr/decouvrir-la-presquile/cote-village/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme de Ramatuelle</a></li>\n<li><a href=\"https://www.visitcogolin.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme de Cogolin</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "village",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/communes/villages.jpg",
+        "alt": "Toits et clocher dans les villages du golfe",
+        "title": "Toits et clocher dans les villages du golfe",
+        "caption": "Les villages du golfe ne proposent pas la même promenade ni la même lumière.",
+        "width": 640,
+        "height": 480
+    },
+    "page_slug": "bouger-villages",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:38+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

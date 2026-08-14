@@ -1,34 +1,34 @@
 {
-  "title": "Louis Renault, rue Lepic and the Type A: how the marque took shape",
-  "slug": "louis-renault-rue-lepic-type-a-origine-marque",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2026-06-26 14:36:14",
-  "excerpt": "The rue Lepic episode is more than folklore. It already sums up the Renault method in 1898: prove a mechanical solution on the road before turning it into a commercial argument.",
-  "content": "<p>The Renault story is often reduced to rue Lepic. The episode has been repeated so often that it can sound decorative. It is not. As early as 1898, it shows a clear method: test a mechanical solution on the road, then let use speak for itself.</p>\n<figure>\n <img src=\"/assets/images/autoretro/renault/les_freres_renault.jpg\" alt=\"Louis, Marcel and Fernand Renault at the beginning of the venture\" title=\"The Renault brothers\" width=\"400\" height=\"335\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>The marque quickly settles around the three brothers and a real move toward a company.</figcaption>\n</figure>\n<h2>1898: a demonstration stronger than a speech</h2>\n<p>Climbing rue Lepic was not only a display of nerve. On a hard slope, Louis Renault showed the value of his direct-drive gearbox, more convincing than many systems then fitted to light voiturettes. The first orders followed that public test.</p>\n<p>That point matters when reading the marque. Renault did not begin with established prestige, but with a solution that looked useful and credible at once. Technology was not separate from business. It made business possible.</p>\n<h2>The Type A as a truly usable car</h2>\n<p>The Type A looks very simple by modern standards. Yet it already gathers several traits that would remain important: compact size, a clear overall logic and a concern for lightness rather than display.</p>\n<p>This small car does not try to impress by scale. It tries first to move correctly. That is what allows it to exist as a usable automobile and not only as an experimental machine.</p>\n<h2>What this early moment already says about Renault</h2>\n<p>When Marcel and Fernand joined the venture, Renault Freres quickly took on a firmer shape. Rue Lepic therefore did not remain a youthful anecdote. It became the first sign of a company able to move from a convincing test to real production.</p>\n<p>Looking back at this moment clarifies the whole marque. The same link between invention, proof through use and industrial construction is already there.</p>\n<p>This note extends the page <a href=\"/en/auto-retro/renault/histoire-de-renault.php\">the history of Renault</a>. Within the same cluster, the next useful step is <a href=\"/en/auto-retro/renault/histoire-de-renault.php?open_article=renault-freres-billancourt-ile-seguin-histoire-industrielle#attached-article-renault-freres-billancourt-ile-seguin-histoire-industrielle\">Renault Freres, Billancourt and Ile Seguin: when the workshop changes scale</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.renaultgroup.com/en/group/history/\" target=\"_blank\" rel=\"noopener noreferrer\">Renault Group, Our history</a></li>\n<li><a href=\"https://theoriginals.renault.com/type-a\" target=\"_blank\" rel=\"noopener noreferrer\">The Originals Museum, Type A</a></li>\n<li><a href=\"https://www.renaultgroup.com/en/our-brands/renault/\" target=\"_blank\" rel=\"noopener noreferrer\">Renault Group, Renault brand</a></li>\n</ul>",
-  "tags": [
-    "renault",
-    "histoire",
-    "mecanique",
-    "voiture-ancienne"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/renault/renault_type_A.jpg",
-    "alt": "An early Renault Type A",
-    "title": "Renault Type A",
-    "caption": "The small Type A immediately puts Renault on the side of practical solutions.",
-    "width": 400,
-    "height": 386
-  },
-  "page_slug": "auto-retro-renault-histoire-de-renault",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:16:57+00:00",
-  "updated_at": "2026-04-29T14:16:57+00:00"
+    "title": "Louis Renault, Rue Lepic and the Type A: proving the marque on the road",
+    "slug": "louis-renault-rue-lepic-type-a-origine-marque",
+    "lang": "en",
+    "status": "published",
+    "author": "codex-blog-rewrite-published",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2026-06-26 14:36:14",
+    "excerpt": "The rue Lepic episode is more than folklore. It already sums up the Renault method in 1898: prove a mechanical solution on the road before turning it into a commercial argument.",
+    "content": "<p>The Renault story is often reduced to rue Lepic. The episode has been repeated so often that it can sound decorative. It is not. As early as 1898, it shows a clear method: test a mechanical solution on the road, then let use speak for itself.</p>\n<figure>\n <img src=\"/assets/images/autoretro/renault/les_freres_renault.jpg\" alt=\"Louis, Marcel and Fernand Renault at the beginning of the venture\" title=\"The Renault brothers\" width=\"400\" height=\"335\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>The marque quickly settles around the three brothers and a real move toward a company.</figcaption>\n</figure>\n<h2>1898: a demonstration stronger than a speech</h2>\n<p>Climbing rue Lepic was not only a display of nerve. On a hard slope, Louis Renault showed the value of his direct-drive gearbox, more convincing than many systems then fitted to light voiturettes. The first orders followed that public test.</p>\n<p>That point matters when understanding the marque. Renault did not begin with established prestige, but with a solution that looked concrete and credible at once. Technology was not separate from business. It made business possible.</p>\n<h2>The Type A as a truly usable car</h2>\n<p>The Type A looks very simple by modern standards. Yet it already gathers several traits that would remain important: compact size, a clear overall logic and a concern for lightness rather than display.</p>\n<p>This small car does not try to impress by scale. It tries first to move correctly. That is what allows it to exist as a usable automobile and not only as an experimental machine.</p>\n<h2>What this early moment already says about Renault</h2>\n<p>When Marcel and Fernand joined the venture, Renault Freres quickly took on a firmer shape. Rue Lepic therefore did not remain a youthful anecdote. It became the first sign of a company able to move from a convincing test to real production.</p>\n<p>Looking back at this moment clarifies the whole marque. The same link between invention, proof through use and industrial construction is already there.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/en/auto-retro/renault/histoire-de-renault.php\">the history of Renault</a></li><li><a href=\"/en/auto-retro/renault/histoire-de-renault.php?open_article=renault-freres-billancourt-ile-seguin-histoire-industrielle#attached-article-renault-freres-billancourt-ile-seguin-histoire-industrielle\">Renault Freres, Billancourt and Ile Seguin: when the workshop changes scale</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.renaultgroup.com/en/group/history/\" target=\"_blank\" rel=\"noopener noreferrer\">Renault Group, Our history</a></li>\n<li><a href=\"https://theoriginals.renault.com/type-a\" target=\"_blank\" rel=\"noopener noreferrer\">The Originals Museum, Type A</a></li>\n<li><a href=\"https://www.renaultgroup.com/en/our-brands/renault/\" target=\"_blank\" rel=\"noopener noreferrer\">Renault Group, Renault brand</a></li>\n</ul>",
+    "tags": [
+        "renault",
+        "histoire",
+        "mecanique",
+        "voiture-ancienne"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/renault/renault_type_A.jpg",
+        "alt": "An early Renault Type A",
+        "title": "Renault Type A",
+        "caption": "The small Type A immediately puts Renault on the side of practical solutions.",
+        "width": 400,
+        "height": 386
+    },
+    "page_slug": "auto-retro-renault-histoire-de-renault",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:16:57+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

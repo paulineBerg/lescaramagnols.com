@@ -1,35 +1,35 @@
 {
-  "title": "Citroën 2CV4: the correct work order for floors, sills and lower half-bulkhead repairs",
-  "slug": "citroen-2cv4-refaire-planchers-longerons-demi-tablier",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "restauration-et-entretien",
-  "date": "2028-04-27 14:36:14",
-  "excerpt": "Dead floors, badly repaired sills, a perforated lower half-bulkhead and weak areas near the fuel tank: on a 2CV4, the order of metal work determines everything that follows.",
-  "content": "<p>Once body and chassis were apart, the sheet-metal file of this 2CV4 became far clearer. Both floors were dead, the sills badly affected, some older repairs unconvincing and weak areas still appeared around the lower half-bulkhead and the fuel tank. From that point, the real question was no longer whether work was needed, but in which order it had to be done to avoid doing the same job twice.</p>\n<figure><img src=\"/assets/images/autoretro/citroen/citroen_2cv_aza_azam_sixties_rundvald.jpg\" alt=\"Citroën 2CV AZA or AZAM from the 1960s\" title=\"2CV underside metal work\" width=\"1247\" height=\"905\" loading=\"lazy\" decoding=\"async\" /><figcaption>The underside of a 2CV forces you to separate what carries load, what protects and what can wait.</figcaption></figure>\n<h2>Start with what truly carries the structure</h2>\n<p>On the underside of a 2CV, not every panel serves the same function. Some panels carry load, some close the shell and some protect. Floors and sills therefore cannot be treated like cosmetic cladding. On this 2CV4 they directly affected the stiffness of the whole shell and had to come before anything more visible.</p>\n<p>The correct order begins with reading the structure, not with choosing the easiest access. First you identify what still holds, what was already repaired badly and what has to disappear completely. Without that hierarchy, there is a real risk of welding sound-looking metal onto weak foundations.</p>\n<h2>Do not cover an old bad repair</h2>\n<p>One of the classic traps on a small old car is to accept older repairs simply because they already exist. On this 2CV4, some of those earlier patches hid corrosion more than they solved it. The only useful choice was to open the area, remove what no longer held and return to sound metal before rebuilding.</p>\n<p>That is where the project takes time, but also where it gains value. A visible repair is not automatically a durable repair. Useful work begins when weak metal is cut away and the new section is built from a clean, controlled base.</p>\n<h2>Treat the tank surroundings and lower half-bulkhead as well</h2>\n<p>The underside is not only about large surfaces. The zones around the lower half-bulkhead and the fuel tank need the same level of discipline. On this car, the perforated sections had to be cut out and welded back where the original metal no longer had continuity. Ignoring those smaller areas would have left an active weak point inside an already heavy project.</p>\n<p>These less visible zones often decide future tightness, long-term strength and peace of mind during the first miles. A seriously restored 2CV is judged not only by new floors, but by the quality of the secondary areas that connect everything together.</p>\n<h2>Protect only after the metal is sound</h2>\n<p>Once the repairs are complete, the underside can be brushed, degreased, painted and protected. On this 2CV4, the anti-corrosion chassis coating comes after the metal work, not before it. That order sounds obvious, yet it is what separates durable protection from a tidy cover-up.</p>\n<p>The <a href=\"/en/auto-retro/citroen/la-2cv4-restauration.php\">2CV4 restoration page</a> summarises the whole job. The draft on <a href=\"/en/auto-retro/citroen/la-2cv4-restauration.php?open_article=separer-caisse-chassis-citroen-2cv4#attached-article-separer-caisse-chassis-citroen-2cv4\">separating body and chassis</a> explains why this metal-work hierarchy only becomes readable after dismantling.</p>\n<h2>Sources</h2><ul>\n<li>Internal audio transcript: state of the floors, sills and lower half-bulkhead on the 2CV4 at Garage SAVA.</li>\n<li>Workshop observations during underside repairs on the 2CV4, 2025.</li>\n</ul>",
-  "tags": [
-    "citroen",
-    "2cv",
-    "restauration",
-    "carrosserie",
-    "entretien"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/citroen/citroen_2cv_a_az_1954_malartre.jpg",
-    "alt": "Citroën 2CV A/AZ from the 1950s",
-    "title": "2CV and structural reading",
-    "caption": "On a 2CV, the order in which sheet metal is repaired matters as much as the weld itself.",
-    "width": 400,
-    "height": 533
-  },
-  "page_slug": "auto-retro-citroen-la-2cv4-restauration",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-05-02T13:42:35+00:00",
-  "updated_at": "2026-05-02T13:42:35+00:00"
+    "title": "Citroën 2CV4: the correct work order for floors, sills and lower half-bulkhead repairs",
+    "slug": "citroen-2cv4-refaire-planchers-longerons-demi-tablier",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "restauration-et-entretien",
+    "date": "2028-04-27 14:36:14",
+    "excerpt": "Dead floors, badly repaired sills, a perforated lower half-bulkhead and weak areas near the fuel tank: on a 2CV4, the order of metal work determines everything that follows.",
+    "content": "<p>Once body and chassis were apart, the sheet-metal file of this 2CV4 became far clearer. Both floors were dead, the sills badly affected, some older repairs unconvincing and weak areas still appeared around the lower half-bulkhead and the fuel tank. From that point, the real question was no longer whether work was needed, but in which order it had to be done to avoid doing the same job twice.</p>\n<figure><img src=\"/assets/images/autoretro/citroen/citroen_2cv_aza_azam_sixties_rundvald.jpg\" alt=\"Citroën 2CV AZA or AZAM from the 1960s\" title=\"2CV underside metal work\" width=\"1247\" height=\"905\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" /><figcaption>The underside of a 2CV forces you to separate what carries load, what protects and what can wait.</figcaption></figure>\n<h2>Start with what truly carries the structure</h2>\n<p>On the underside of a 2CV, not every panel serves the same function. Some panels carry load, some close the shell and some protect. Floors and sills therefore cannot be treated like cosmetic cladding. On this 2CV4 they directly affected the stiffness of the whole shell and had to come before anything more visible.</p>\n<p>The correct order begins with reading the structure, not with choosing the easiest access. First you identify what still holds, what was already repaired badly and what has to disappear completely. Without that hierarchy, there is a real risk of welding sound-looking metal onto weak foundations.</p>\n<h2>Do not cover an old bad repair</h2>\n<p>One of the classic traps on a small old car is to accept older repairs because they already exist. On this 2CV4, some of those earlier patches hid corrosion more than they solved it. The only useful choice was to open the area, remove what no longer held and return to sound metal before rebuilding.</p>\n<p>That is where the project takes time, but also where it gains value. A visible repair is not automatically a durable repair. Useful work begins when weak metal is cut away and the new section is built from a clean, controlled base.</p>\n<h2>Treat the tank surroundings and lower half-bulkhead as well</h2>\n<p>The underside is not only about large surfaces. The zones around the lower half-bulkhead and the fuel tank need the same level of discipline. On this car, the perforated sections had to be cut out and welded back where the original metal no longer had continuity. Ignoring those smaller areas would have left an active weak point inside an already heavy project.</p>\n<p>These less visible zones often decide future tightness, long-term strength and peace of mind during the first miles. A seriously restored 2CV is judged not only by new floors, but by the quality of the secondary areas that connect everything together.</p>\n<h2>Protect only after the metal is sound</h2>\n<p>Once the repairs are complete, the underside can be brushed, degreased, painted and protected. On this 2CV4, the anti-corrosion chassis coating comes after the metal work, not before it. That order sounds obvious, yet it is what separates durable protection from a tidy cover-up.</p>\n<p>The <a href=\"/en/auto-retro/citroen/la-2cv4-restauration.php\">2CV4 restoration page</a> summarises the whole job. The draft on <a href=\"/en/auto-retro/citroen/la-2cv4-restauration.php?open_article=separer-caisse-chassis-citroen-2cv4#attached-article-separer-caisse-chassis-citroen-2cv4\">separating body and chassis</a> explains why this metal-work hierarchy only becomes readable after dismantling.</p>\n<h2>Sources</h2><ul>\n<li>Internal audio transcript: state of the floors, sills and lower half-bulkhead on the 2CV4 at Garage SAVA.</li>\n<li>Workshop observations during underside repairs on the 2CV4, 2025.</li>\n</ul>",
+    "tags": [
+        "citroen",
+        "2cv",
+        "restauration",
+        "carrosserie",
+        "entretien"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/citroen/citroen_2cv_a_az_1954_malartre.jpg",
+        "alt": "Citroën 2CV A/AZ from the 1950s",
+        "title": "2CV and structural reading",
+        "caption": "On a 2CV, the order in which sheet metal is repaired matters as much as the weld itself.",
+        "width": 400,
+        "height": 533
+    },
+    "page_slug": "auto-retro-citroen-la-2cv4-restauration",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-05-02T13:42:35+00:00",
+    "updated_at": "2026-08-06T19:46:54+02:00"
 }

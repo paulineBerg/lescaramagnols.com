@@ -1,34 +1,34 @@
 {
-  "title": "Which village to choose in the Gulf of Saint-Tropez according to the atmosphere you want?",
-  "slug": "quel-village-choisir-golfe-saint-tropez-selon-ambiance",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "territoire",
-  "subcategory": "villages-et-balades",
-  "date": "2027-05-22 14:36:14",
-  "excerpt": "In the gulf, not every walk answers the same desire. Some villages suit a harbour stroll, others a hill walk, a forest setting or a more open shoreline.",
-  "content": "<p>The Gulf of Saint-Tropez brings together villages that look close on the map and yet feel clearly different once you start walking. Before choosing a stop, it helps to know whether you want a lively old harbour, a hill village, a transition commune or a broader coastal setting.</p>\n<figure>\n <img src=\"/assets/images/bouger/golfe/golfe.jpg\" alt=\"General view over the Gulf of Saint-Tropez\" title=\"General view over the Gulf of Saint-Tropez\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Within only a few kilometres, relief, sea and old centres completely change the mood.</figcaption>\n</figure>\n<h2>For quays, facades and lively streets</h2>\n<p>Saint-Tropez and Sainte-Maxime suit visitors who first want to read a waterfront, village squares, terraces and a constant movement between harbour, old centre and shoreline. Cogolin and Grimaud offer another version of that walk, more mixed with an old town, plain sectors and an opening towards the marinas.</p>\n<h2>For hill villages and broad views</h2>\n<p>Gassin, Ramatuelle, Grimaud, La Garde-Freinet and Le Plan-de-la-Tour work better for a walk that gains height. One goes there for tighter lanes, ridge lines, ramparts, small squares and a slower reading of relief than on the seafront.</p>\n<h2>For a more open shoreline and wider spaces</h2>\n<p>La Croix-Valmer, Le Rayol-Canadel-sur-Mer and Cavalaire-sur-Mer are better suited to those who think first in terms of headlands, beaches, coastal paths and marine light. La Mole finally reminds you that the gulf is not reduced to quays: one can also choose a quieter valley, fresh water, meadows and the edge of the Maures range.</p>\n<p>This note extends the page <a href=\"/en/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php\">Exploring the Villages of the Gulf of Saint-Tropez</a>. To continue within the same cluster, it also helps to open <a href=\"/en/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php?open_article=ruelles-places-clochers-villages-golfe-saint-tropez#attached-article-ruelles-places-clochers-villages-golfe-saint-tropez\">Lanes, squares and bell towers: what to look at in the villages of the gulf</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/\" target=\"_blank\" rel=\"noopener noreferrer\">Gulf of Saint-Tropez Tourist Office</a></li>\n<li><a href=\"https://www.ramatuelle-tourisme.com/fr/decouvrir-la-presquile/cote-village/\" target=\"_blank\" rel=\"noopener noreferrer\">Ramatuelle tourist office</a></li>\n<li><a href=\"https://www.visitcogolin.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Cogolin tourist office</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "village",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/communes/villages.jpg",
-    "alt": "Roofs and bell tower in the villages of the gulf",
-    "title": "Roofs and bell tower in the villages of the gulf",
-    "caption": "The villages of the gulf do not offer the same walk or the same light.",
-    "width": 640,
-    "height": 480
-  },
-  "page_slug": "bouger-villages",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:38+00:00",
-  "updated_at": "2026-04-29T15:07:38+00:00"
+    "title": "Which village to choose in the Gulf of Saint-Tropez according to the atmosphere you want?",
+    "slug": "quel-village-choisir-golfe-saint-tropez-selon-ambiance",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "territoire",
+    "subcategory": "villages-et-balades",
+    "date": "2027-05-22 14:36:14",
+    "excerpt": "In the gulf, not every walk answers the same desire. Some villages suit a harbour stroll, others a hill walk, a forest setting or a more open shoreline.",
+    "content": "<p>The Gulf of Saint-Tropez brings together villages that look close on the map and yet feel different once you start walking. Before choosing a stop, it helps to know whether you want a lively old harbour, a hill village, a transition commune or a broader coastal setting.</p>\n<figure>\n <img src=\"/assets/images/bouger/golfe/golfe.jpg\" alt=\"General view over the Gulf of Saint-Tropez\" title=\"General view over the Gulf of Saint-Tropez\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Within only a few kilometres, relief, sea and old centres completely change the mood.</figcaption>\n</figure>\n<h2>For quays, facades and lively streets</h2>\n<p>Saint-Tropez and Sainte-Maxime suit visitors who first want to read a waterfront, village squares, terraces and a constant movement between harbour, old centre and shoreline. Cogolin and Grimaud offer another version of that walk, more mixed with an old town, plain sectors and an opening towards the marinas.</p>\n<h2>For hill villages and broad views</h2>\n<p>Gassin, Ramatuelle, Grimaud, La Garde-Freinet and Le Plan-de-la-Tour work better for a walk that gains height. One goes there for tighter lanes, ridge lines, ramparts, small squares and a slower reading of relief than on the seafront.</p>\n<h2>For a more open shoreline and wider spaces</h2>\n<p>La Croix-Valmer, Le Rayol-Canadel-sur-Mer and Cavalaire-sur-Mer are better suited to those who think first in terms of headlands, beaches, coastal paths and marine light. La Mole finally reminds you that the gulf is not reduced to quays: one can also choose a quieter valley, fresh water, meadows and the edge of the Maures range.</p>\n<nav class=\"article-related\" aria-label=\"Related articles\"><ul><li><a href=\"/en/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php\">Exploring the Villages of the Gulf of Saint-Tropez</a></li><li><a href=\"/en/bouger/se-promener-dans-les-villages-du-golfe-de-sttropez.php?open_article=ruelles-places-clochers-villages-golfe-saint-tropez#attached-article-ruelles-places-clochers-villages-golfe-saint-tropez\">Lanes, squares and bell towers: what to look at in the villages of the gulf</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/\" target=\"_blank\" rel=\"noopener noreferrer\">Gulf of Saint-Tropez Tourist Office</a></li>\n<li><a href=\"https://www.ramatuelle-tourisme.com/fr/decouvrir-la-presquile/cote-village/\" target=\"_blank\" rel=\"noopener noreferrer\">Ramatuelle tourist office</a></li>\n<li><a href=\"https://www.visitcogolin.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Cogolin tourist office</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "village",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/communes/villages.jpg",
+        "alt": "Roofs and bell tower in the villages of the gulf",
+        "title": "Roofs and bell tower in the villages of the gulf",
+        "caption": "The villages of the gulf do not offer the same walk or the same light.",
+        "width": 640,
+        "height": 480
+    },
+    "page_slug": "bouger-villages",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:38+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

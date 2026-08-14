@@ -1,35 +1,35 @@
 {
-  "title": "Buying a non-running Citroën 2CV4: how to judge a complete base",
-  "slug": "acheter-citroen-2cv4-non-roulante-base-complete",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "conduite-et-collection",
-  "date": "2027-08-29 14:36:14",
-  "excerpt": "In December 2024 in the Doubs, this complete but non-running 2CV4 was kept because its main components were still in place. These are the checks that tell you whether such a base is worth buying.",
-  "content": "<p>During the second trip to the Doubs in December 2024, the decision was not based on paintwork or on a promise that the engine would run. The 2CV4 was not running, the floors were already badly hit, yet the engine, wings, cabin and main assemblies were still there. On a 2CV, that real level of completeness often decides whether the car still deserves a flatbed trip home.</p>\n<figure><img src=\"/assets/images/autoretro/citroen/2cv4/citroen_2cv4_doubs_interieur_avant.jpg\" alt=\"Front cabin of the Citroën 2CV4 before dismantling\" title=\"Front cabin of the 2CV4\" width=\"300\" height=\"400\" loading=\"lazy\" decoding=\"async\" /><figcaption>The driving area quickly shows whether the controls, seats and basic parts are still present.</figcaption></figure>\n<h2>Complete means more than simply present</h2>\n<p>On site, check simple but decisive items: engine, gearbox, bonnet, wings, windscreen frame, pedal box, steering column, fuel tank, lights and small fittings. A car can look whole from a few metres away and already be missing the parts that stop a rebuild for weeks. On our 2CV4, the value came from the fact that the car still read as one coherent vehicle.</p>\n<p>When several of those parts are missing, the deal changes completely. You are no longer buying a complete base but a shell to rebuild, with parts hunting, extra transport costs and a real risk of mixing different production years. Before discussing the price, say out loud what is present, open what can be opened and list what is already absent.</p>\n<h2>A non-runner is also bought from underneath</h2>\n<p>The second check happens low down: floors, lower body sections, mounting points, visible chassis condition, door closure and the general position of the wheels. In the Doubs, the weak point was obvious very quickly: the floors were heavily eaten. Yet the car was not torn apart, stripped or twisted beyond recognition as a real base.</p>\n<p>That is where you need a cool head. Heavy corrosion sometimes kills a project, but not always. If the shell remains identifiable, if the main assemblies are still there and if the price reflects the work ahead, the car can still justify the purchase. The judgement comes from the real structure in front of you, not from the label non-running alone.</p>\n<h2>Before loading it on the flatbed</h2>\n<p>Before loading, make sure the car rolls freely enough, the tyres hold enough air to climb, nothing hangs under the shell and every loose part is secured. On a tired 2CV, a loose bonnet, a free seat or an unsecured wing is enough to turn winching into a poor decision.</p>\n<p>It is also the right moment to gather loose parts, photograph the car from several angles, collect the paperwork and note the points that must be checked first at the workshop. A well-documented purchase in the seller’s yard saves hours once the car reaches the lift.</p>\n<h2>The return confirms or corrects the first judgement</h2>\n<p>Once the 2CV4 is back at the workshop, the first impression is no longer enough. The inventory must be checked again, the underside read properly and the inconsistencies separated from normal 2CV wear. Only after that second reading can the purchase be called sensible or overly optimistic.</p>\n<p>The full context for this purchase is on the parent page <a href=\"/en/auto-retro/citroen/la-2cv4.php\">Citroën 2CV4: a complete base found in the Doubs</a>. The companion draft on <a href=\"/en/auto-retro/citroen/la-2cv4.php?open_article=rapatrier-citroen-2cv4-sur-plateau-controles#attached-article-rapatrier-citroen-2cv4-sur-plateau-controles\">bringing the car back on a flatbed</a> extends the practical loading and arrival checks.</p>\n<h2>Sources</h2><ul>\n<li>Internal audio transcript: first inspection of the 2CV4 and purchase in the Doubs, December 2024.</li>\n<li>Workshop photographs taken when the 2CV4 returned on the flatbed, December 2024.</li>\n</ul>",
-  "tags": [
-    "citroen",
-    "2cv",
-    "collection",
-    "carrosserie",
-    "experience"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/citroen/2cv4/citroen_2cv4_doubs_cover.jpg",
-    "alt": "Front view of our grey Citroën 2CV4 on arrival",
-    "title": "Citroën 2CV4 on arrival at the workshop",
-    "caption": "The front view and general stance already tell you whether the car deserves a flatbed trip back.",
-    "width": 1280,
-    "height": 1088
-  },
-  "page_slug": "auto-retro-citroen-la-2cv4",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-05-02T13:38:29+00:00",
-  "updated_at": "2026-05-02T13:38:29+00:00"
+    "title": "Buying a non-running Citroën 2CV4: how to judge a complete base",
+    "slug": "acheter-citroen-2cv4-non-roulante-base-complete",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "conduite-et-collection",
+    "date": "2027-08-29 14:36:14",
+    "excerpt": "In December 2024 in the Doubs, this complete but non-running 2CV4 was kept because its main components were still in place. These are the checks that tell you whether such a base is worth buying.",
+    "content": "<p>During the second trip to the Doubs in December 2024, the decision was not based on paintwork or on a promise that the engine would run. The 2CV4 was not running, the floors were already badly hit, yet the engine, wings, cabin and main assemblies were still there. On a 2CV, that real level of completeness often decides whether the car still deserves a flatbed trip home.</p>\n<figure><img src=\"/assets/images/autoretro/citroen/2cv4/citroen_2cv4_doubs_interieur_avant.jpg\" alt=\"Front cabin of the Citroën 2CV4 before dismantling\" title=\"Front cabin of the 2CV4\" width=\"300\" height=\"400\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" /><figcaption>The driving area quickly shows whether the controls, seats and basic parts are still present.</figcaption></figure>\n<h2>Complete means more than present</h2>\n<p>On site, check simple but decisive items: engine, gearbox, bonnet, wings, windscreen frame, pedal box, steering column, fuel tank, lights and small fittings. A car can look whole from a few metres away and already be missing the parts that stop a rebuild for weeks. On our 2CV4, the value came from the fact that the car still read as one coherent vehicle.</p>\n<p>When several of those parts are missing, the deal changes completely. You are no longer buying a complete base but a shell to rebuild, with parts hunting, extra transport costs and a real risk of mixing different production years. Before discussing the price, say out loud what is present, open what can be opened and list what is already absent.</p>\n<h2>A non-runner is also bought from underneath</h2>\n<p>The second check happens low down: floors, lower body sections, mounting points, visible chassis condition, door closure and the general position of the wheels. In the Doubs, the weak point was obvious very quickly: the floors were heavily eaten. Yet the car was not torn apart, stripped or twisted beyond recognition as a real base.</p>\n<p>That is where you need a cool head. Heavy corrosion sometimes kills a project, but not always. If the shell remains identifiable, if the main assemblies are still there and if the price reflects the work ahead, the car can still justify the purchase. The judgement comes from the real structure in front of you, not from the label non-running alone.</p>\n<h2>Before loading it on the flatbed</h2>\n<p>Before loading, make sure the car rolls freely enough, the tyres hold enough air to climb, nothing hangs under the shell and every loose part is secured. On a tired 2CV, a loose bonnet, a free seat or an unsecured wing is enough to turn winching into a poor decision.</p>\n<p>It is also the right moment to gather loose parts, photograph the car from several angles, collect the paperwork and note the points that must be checked first at the workshop. A well-documented purchase in the seller’s yard saves hours once the car reaches the lift.</p>\n<h2>The return confirms or corrects the first judgement</h2>\n<p>Once the 2CV4 is back at the workshop, the first impression is no longer enough. The inventory must be checked again, the underside read properly and the inconsistencies separated from normal 2CV wear. Only after that second reading can the purchase be called sensible or overly optimistic.</p>\n<p>The full context for this purchase is on the parent page <a href=\"/en/auto-retro/citroen/la-2cv4.php\">Citroën 2CV4: a complete base found in the Doubs</a>. The companion draft on <a href=\"/en/auto-retro/citroen/la-2cv4.php?open_article=rapatrier-citroen-2cv4-sur-plateau-controles#attached-article-rapatrier-citroen-2cv4-sur-plateau-controles\">bringing the car back on a flatbed</a> extends the practical loading and arrival checks.</p>\n<h2>Sources</h2><ul>\n<li>Internal audio transcript: first inspection of the 2CV4 and purchase in the Doubs, December 2024.</li>\n<li>Workshop photographs taken when the 2CV4 returned on the flatbed, December 2024.</li>\n</ul>",
+    "tags": [
+        "citroen",
+        "2cv",
+        "collection",
+        "carrosserie",
+        "experience"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/citroen/2cv4/citroen_2cv4_doubs_cover.jpg",
+        "alt": "Front view of our grey Citroën 2CV4 on arrival",
+        "title": "Citroën 2CV4 on arrival at the workshop",
+        "caption": "The front view and general stance already tell you whether the car deserves a flatbed trip back.",
+        "width": 1280,
+        "height": 1088
+    },
+    "page_slug": "auto-retro-citroen-la-2cv4",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-05-02T13:38:29+00:00",
+    "updated_at": "2026-08-06T19:46:53+02:00"
 }

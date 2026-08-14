@@ -1,34 +1,34 @@
 {
-  "title": "Why Panhard stopped building civilian cars",
-  "slug": "pourquoi-panhard-arrete-voitures-civiles-1967",
-  "lang": "en",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2030-03-10 14:36:14",
-  "excerpt": "The end of Panhard civilian cars did not come from one isolated failure. It came from a slow industrial narrowing in which the engineering stayed brilliant but became harder to sustain profitably.",
-  "content": "<p>When Panhard stopped its civilian cars in 1967, the decision did not arrive as a single accident. It closed a long narrowing of possibilities in which the marque kept strong ideas but slowly lost the industrial conditions needed to defend them over time.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/panhard_levassor_dynavia_1948.jpg\" alt=\"1948 Panhard Dynavia prototype\" width=\"400\" height=\"300\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Between bold prototypes and serial-production limits, Panhard remained inventive but vulnerable.</figcaption>\n</figure>\n<h2>A marque that was right, but too narrow</h2>\n<p>After the war, Panhard could still build original, light and technically coherent cars. The problem was not a lack of ideas. It was the size of the marque, its limited volumes and the cost of the solutions it chose. An engineering house can make admired cars without finding a stable market balance.</p>\n<p>That fragility became clearer as manufacturing demands, distribution and investment grew heavier. More volume, broader sales and higher fixed costs were increasingly difficult for a small specialist marque to absorb.</p>\n<h2>Citroen, volume and group logic</h2>\n<p>The relationship with Citroen changed the context. Inside a larger group, an original marque has to prove that it still holds a clear role. Panhard cars remained distinctive and often advanced, but they were also difficult to expand within harder industrial logic.</p>\n<p>The end of civilian cars therefore came from a practical question: how do you keep a singular range alive when profitability, production rate and rationalisation begin to weigh more than technical originality alone?</p>\n<h2>The military branch gains ground</h2>\n<p>Panhard had another field of activity that suited its know-how and the next part of its history more clearly: military vehicles. Little by little, that axis took the lead. It was not only a retreat. It was also a domain in which the marque recovered a sharper industrial purpose.</p>\n<p>From a distance, that looks like a break. At closer range, it also shows continuity: the same taste for precise engineering and overall efficiency, applied to a different type of vehicle.</p>\n<h2>What remains for collectors</h2>\n<p>The end of civilian production leaves Panhard with a short and readable chronology. That is one reason the marque remains so attractive in collection: the surviving cars form a limited body of work with a clear technical personality.</p>\n<p>This landmark belongs with the page <a href=\"/en/auto-retro/panhard/histoire-de-panhard.php\">Panhard: from early automotive pioneers to the brand's last civilian cars</a>. To return to the beginning of the story, you can also read <a href=\"/en/auto-retro/panhard/histoire-de-panhard.php?open_article=rene-panhard-emile-levassor-origine-marque#attached-article-rene-panhard-emile-levassor-origine-marque\">Rene Panhard and Emile Levassor</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1945-a-1967/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1945 à 1967</a></li>\n<li><a href=\"https://dcpl.fr/les-panhard/\" target=\"_blank\" rel=\"noopener noreferrer\">Dynamic Club Panhard et Levassor, Les Panhard</a></li>\n<li><a href=\"https://www.panhard-concept-historique.com/page-militaire/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, Page militaire</a></li>\n<li><a href=\"https://www.arquus-defense.com/fr/le-ministre-de-la-defense-choisit-le-vehicule-blinde-leger-vbl\" target=\"_blank\" rel=\"noopener noreferrer\">Arquus, Le ministre de la défense choisit le Véhicule Blindé Léger</a></li>\n</ul>",
-  "tags": [
-    "panhard",
-    "histoire",
-    "voiture-ancienne",
-    "collection"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/panhard/erc90.jpg",
-    "alt": "Véhicule militaire Panhard ERC-90",
-    "title": "Panhard ERC-90",
-    "caption": "La trajectoire militaire finit par l’emporter sur la voiture civile.",
-    "width": 275,
-    "height": 184
-  },
-  "page_slug": "auto-retro-panhard-histoire-de-panhard",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T13:28:25+00:00",
-  "updated_at": "2026-04-29T13:28:25+00:00"
+    "title": "Why Panhard stopped building civilian cars",
+    "slug": "pourquoi-panhard-arrete-voitures-civiles-1967",
+    "lang": "en",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2030-03-10 14:36:14",
+    "excerpt": "The end of Panhard civilian cars did not come from one isolated failure. It came from a slow industrial narrowing in which the engineering stayed brilliant but became harder to sustain profitably.",
+    "content": "<p>When Panhard stopped its civilian cars in 1967, the decision did not arrive as a single accident. It closed a long narrowing of possibilities in which the marque kept strong ideas but slowly lost the industrial conditions needed to defend them over time.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/panhard_levassor_dynavia_1948.jpg\" alt=\"1948 Panhard Dynavia prototype\" title=\"1948 Panhard Dynavia prototype\" width=\"400\" height=\"300\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Between bold prototypes and serial-production limits, Panhard remained inventive but vulnerable.</figcaption>\n</figure>\n<h2>A marque that was right, but too narrow</h2>\n<p>After the war, Panhard could still build original, light and technically coherent cars. The problem was not a lack of ideas. It was the size of the marque, its limited volumes and the cost of the solutions it chose. An engineering house can make admired cars without finding a stable market balance.</p>\n<p>That fragility became clearer as manufacturing demands, distribution and investment grew heavier. More volume, broader sales and higher fixed costs were increasingly difficult for a small specialist marque to absorb.</p>\n<h2>Citroen, volume and group method</h2>\n<p>The relationship with Citroen changed the context. Inside a larger group, an original marque has to prove that it still holds a clear role. Panhard cars remained distinctive and often advanced, but they were also difficult to expand within harder industrial method.</p>\n<p>The end of civilian cars therefore came from a practical question: how do you keep a singular range alive when profitability, production rate and rationalisation begin to weigh more than technical originality alone?</p>\n<h2>The military branch gains ground</h2>\n<p>Panhard had another field of activity that suited its know-how and the next part of its history more clearly: military vehicles. Little by little, that axis took the lead. It was not only a retreat. It was also a domain in which the marque recovered a sharper industrial purpose.</p>\n<p>From a distance, that looks like a break. At closer range, it also shows continuity: the same taste for precise engineering and overall efficiency, applied to a different type of vehicle.</p>\n<h2>What remains for collectors</h2>\n<p>The end of civilian production leaves Panhard with a short and readable chronology. That is one reason the marque remains so attractive in collection: the surviving cars form a limited body of work with a clear technical personality.</p>\n<p>This landmark belongs with the page <a href=\"/en/auto-retro/panhard/histoire-de-panhard.php\">Panhard: from early automotive pioneers to the brand's last civilian cars</a>. To return to the beginning of the story, you can also read <a href=\"/en/auto-retro/panhard/histoire-de-panhard.php?open_article=rene-panhard-emile-levassor-origine-marque#attached-article-rene-panhard-emile-levassor-origine-marque\">Rene Panhard and Emile Levassor</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1945-a-1967/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1945 à 1967</a></li>\n<li><a href=\"https://dcpl.fr/les-panhard/\" target=\"_blank\" rel=\"noopener noreferrer\">behaviour Club Panhard et Levassor, Les Panhard</a></li>\n<li><a href=\"https://www.panhard-concept-historique.com/page-militaire/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, Page militaire</a></li>\n<li><a href=\"https://www.arquus-defense.com/fr/le-ministre-de-la-defense-choisit-le-vehicule-blinde-leger-vbl\" target=\"_blank\" rel=\"noopener noreferrer\">Arquus, Le ministre de la défense choisit le Véhicule Blindé Léger</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "histoire",
+        "voiture-ancienne",
+        "collection"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/erc90.jpg",
+        "alt": "Véhicule militaire Panhard ERC-90",
+        "title": "Panhard ERC-90",
+        "caption": "La trajectoire militaire finit par l’emporter sur la voiture civile.",
+        "width": 275,
+        "height": 184
+    },
+    "page_slug": "auto-retro-panhard-histoire-de-panhard",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:28:25+00:00",
+    "updated_at": "2026-08-14T13:00:00+02:00"
 }

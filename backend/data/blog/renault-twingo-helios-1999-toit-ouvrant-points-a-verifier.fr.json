@@ -1,35 +1,35 @@
 {
-  "title": "Renault Twingo Hélios 1999 : ce que change vraiment le toit ouvrant",
-  "slug": "renault-twingo-helios-1999-toit-ouvrant-points-a-verifier",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "restauration-et-entretien",
-  "date": "2027-05-11 14:36:14",
-  "excerpt": "Sur notre Twingo Hélios, le toit ouvrant n’est pas un simple ornement. Il modifie la lumière, l’air à bord et la manière d’utiliser la voiture autour du golfe de Saint-Tropez.",
-  "content": "<p>La finition Hélios n’a rien d’une rareté inaccessible, mais elle ajoute un élément très sensible à l’usage : le toit ouvrant électrique. Sur une petite Twingo, ce détail change davantage qu’on ne l’imagine depuis l’extérieur.</p>\n<figure>\n <img src=\"/assets/images/autoretro/renault/interieur_twingo.jpg\" alt=\"Intérieur de Twingo\" title=\"Intérieur de Twingo\" width=\"400\" height=\"300\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Le plaisir d’usage tient souvent à un détail d’équipement bien conservé.</figcaption>\n</figure>\n<h2>La finition Hélios, plus qu’un simple nom</h2>\n<p>Ce qui fait l’intérêt de la Hélios n’est pas une démonstration de prestige. C’est une manière d’ouvrir la voiture, de la rendre plus lumineuse et plus détendue sans trahir son esprit simple.</p>\n<p>Sur une Twingo bien conservée, cet équipement reste parfaitement cohérent avec le ton général du modèle.</p>\n<h2>Ce qu’il faut contrôler sur un toit ouvrant ancien</h2>\n<p>Sur une auto de la fin des années 1990, l’étanchéité, le bon coulissement, l’état des joints et le fonctionnement électrique doivent être regardés avec soin. Un toit ouvrant agréable devient vite une source d’agacement si l’eau, le bruit ou le blocage s’installent.</p>\n<p>Rien de cela n’impose de dramatiser. Il faut simplement vérifier calmement que l’équipement reste utilisable comme prévu et non en survie.</p>\n<h2>Dans le golfe, un détail qui change l’usage</h2>\n<p>Autour du golfe de Saint-Tropez, le toit ouvrant donne à la Twingo une vraie qualité d’air et de lumière sur les petits trajets. Il accompagne bien l’esprit de voiture d’appoint décontractée que nous cherchions.</p>\n<p>C’est aussi pour cela que cette finition nous paraît juste. Elle ajoute du plaisir sans alourdir la voiture ni la transformer en objet précieux.</p>\n<p>Ce repère prolonge la page <a href=\"/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php\">notre Renault Twingo Hélios de 1999</a>. Dans le même dossier, la suite utile est <a href=\"/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php?open_article=renault-twingo-170000-km-remise-en-route-controles#attached-article-renault-twingo-170000-km-remise-en-route-controles\">Renault Twingo à 170 000 km : notre base de contrôle avant remise en route</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li>Photographies du véhicule : archives Les Caramagnols.</li>\n<li>Notes d’entretien 2023-2024 : archives Les Caramagnols.</li>\n<li><a href=\"https://theoriginals.renault.com/twingo\" target=\"_blank\" rel=\"noopener noreferrer\">The Originals Museum, Twingo</a></li>\n</ul>",
-  "tags": [
-    "renault",
-    "twingo",
-    "version",
-    "entretien",
-    "experience"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/twingo.jpg",
-    "alt": "Notre Renault Twingo Hélios de 1999",
-    "title": "Notre Twingo Hélios",
-    "caption": "Sur une Hélios, le toit ouvrant change vraiment la vie à bord à condition qu’il reste sain.",
-    "width": 472,
-    "height": 273
-  },
-  "page_slug": "auto-retro-renault-twingo-helios-1999-notre-exemplaire",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:16:58+00:00",
-  "updated_at": "2026-04-29T14:16:58+00:00"
+    "title": "Renault Twingo Hélios 1999 : ce que change vraiment le toit ouvrant",
+    "slug": "renault-twingo-helios-1999-toit-ouvrant-points-a-verifier",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "restauration-et-entretien",
+    "date": "2027-05-11 14:36:14",
+    "excerpt": "Sur notre Twingo Hélios, le toit ouvrant n’est pas un simple ornement. Il modifie la lumière, l’air à bord et la manière d’utiliser la voiture autour du golfe de Saint-Tropez.",
+    "content": "<p>La finition Hélios n’a rien d’une rareté inaccessible, mais elle ajoute un élément très sensible à l’usage : le toit ouvrant électrique. Sur une petite Twingo, ce détail change davantage qu’on ne l’imagine depuis l’extérieur.</p>\n<figure>\n <img src=\"/assets/images/autoretro/renault/interieur_twingo.jpg\" alt=\"Intérieur de Twingo\" title=\"Intérieur de Twingo\" width=\"400\" height=\"300\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Le plaisir d’usage tient souvent à un détail d’équipement bien conservé.</figcaption>\n</figure>\n<h2>La finition Hélios, plus qu’un simple nom</h2>\n<p>Ce qui fait l’intérêt de la Hélios n’est pas une démonstration de prestige. C’est une manière d’ouvrir la voiture, de la rendre plus lumineuse et plus détendue sans trahir son esprit simple.</p>\n<p>Sur une Twingo bien conservée, cet équipement reste parfaitement cohérent avec le ton général du modèle.</p>\n<h2>Ce qu’il faut contrôler sur un toit ouvrant ancien</h2>\n<p>Sur une auto de la fin des années 1990, l’étanchéité, le bon coulissement, l’état des joints et le fonctionnement électrique doivent être regardés avec soin. Un toit ouvrant agréable devient vite une source d’agacement si l’eau, le bruit ou le blocage s’installent.</p>\n<p>Rien de cela n’impose de dramatiser. Il faut vérifier calmement que l’équipement reste utilisable comme prévu et non en survie.</p>\n<h2>Dans le golfe, un détail qui change l’usage</h2>\n<p>Autour du golfe de Saint-Tropez, le toit ouvrant donne à la Twingo une vraie qualité d’air et de lumière sur les petits trajets. Il accompagne bien l’esprit de voiture d’appoint décontractée que nous cherchions.</p>\n<p>C’est aussi pour cela que cette finition nous paraît juste. Elle ajoute du plaisir sans alourdir la voiture ni la transformer en objet précieux.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php\">notre Renault Twingo Hélios de 1999</a></li><li><a href=\"/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php?open_article=renault-twingo-170000-km-remise-en-route-controles#attached-article-renault-twingo-170000-km-remise-en-route-controles\">Renault Twingo à 170 000 km : notre base de contrôle avant remise en route</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li>Photographies du véhicule : archives Les Caramagnols.</li>\n<li>Notes d’entretien 2023-2024 : archives Les Caramagnols.</li>\n<li><a href=\"https://theoriginals.renault.com/twingo\" target=\"_blank\" rel=\"noopener noreferrer\">The Originals Museum, Twingo</a></li>\n</ul>",
+    "tags": [
+        "renault",
+        "twingo",
+        "version",
+        "entretien",
+        "experience"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/twingo.jpg",
+        "alt": "Notre Renault Twingo Hélios de 1999",
+        "title": "Notre Twingo Hélios",
+        "caption": "Sur une Hélios, le toit ouvrant change vraiment la vie à bord à condition qu’il reste sain.",
+        "width": 472,
+        "height": 273
+    },
+    "page_slug": "auto-retro-renault-twingo-helios-1999-notre-exemplaire",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:16:58+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

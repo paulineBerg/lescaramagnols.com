@@ -1,34 +1,34 @@
 {
-  "title": "Diagnostiquer planchers et bas de caisse sur une Simca Aronde",
-  "slug": "diagnostiquer-planchers-bas-de-caisse-simca-aronde",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "restauration-et-entretien",
-  "date": "2027-04-19 14:36:14",
-  "excerpt": "Avant de parler peinture ou sellerie, une Aronde impose souvent un contrôle patient de sa base. Les planchers et les bas de caisse disent rapidement si la restauration restera mesurée ou non.",
-  "content": "<p>Une Simca Aronde peut encore paraître honnête de loin alors que sa structure appelle déjà des travaux profonds. Sur ce modèle, les planchers, les longerons périphériques et les bas de caisse donnent souvent le premier verdict sérieux.</p>\n<figure>\n <img src=\"/assets/images/autoretro/simca/aronde/simca_aronde_1300_bas_de_caisse_refait_a_neuf_par_garage_sava.jpg\" alt=\"Bas de caisse restauré sur une Simca Aronde\" title=\"Bas de caisse refait\" width=\"400\" height=\"300\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Une fois repris proprement, le bas de caisse redonne à la carrosserie sa rigidité et sa lecture juste.</figcaption>\n</figure>\n<h2>Commencer par ce que la voiture cache le mieux</h2>\n<p>Les parties basses vieillissent à l'abri du regard. Sous des tapis fatigués, des tôles doublées ou un dessous rapidement noirci, l'état réel peut rester longtemps invisible. C'est pour cela qu'un diagnostic sérieux commence toujours par la base.</p>\n<p>Sur une Aronde, il faut regarder la continuité des tôles, la qualité des reprises anciennes, les points de levage, les raccords de bas de caisse et la façon dont les portes tombent dans leurs baies.</p>\n<h2>Lire les indices avant même de démonter</h2>\n<p>Avant d'ouvrir davantage, la voiture parle déjà. Une porte qui force, un plancher qui sonne creux, une soudure confuse ou une ligne de caisse qui perd sa netteté doivent alerter. Ces signes ne suffisent pas à chiffrer un chantier, mais ils évitent les illusions.</p>\n<p>Le démontage confirme ensuite l'étendue réelle. C'est souvent là que l'on passe d'une voiture simplement vieillie à une voiture structurellement à reprendre.</p>\n<h2>Pourquoi ce diagnostic fixe tout le reste</h2>\n<p>Tant que la base n'est pas claire, le reste du budget reste flou. Peinture, joints, intérieur ou chromes n'ont de sens durable que si les parties basses sont redevenues saines et cohérentes.</p>\n<p>Dans une restauration sérieuse, le diagnostic des planchers et bas de caisse n'est donc pas une étape parmi d'autres. C'est la condition qui permet de donner au reste du chantier une vraie mesure.</p>\n<p>Ce repère prolonge la page <a href=\"/auto-retro/simca/une-simca-aronde-en-restauration-chez-sava-rioz.php\">la restauration de notre Simca Aronde A90 Elysee chez SAVA</a>. Dans le même dossier, la suite utile est <a href=\"/auto-retro/simca/une-simca-aronde-en-restauration-chez-sava-rioz.php?open_article=refaire-moteur-flash-simca-aronde-ordre-des-controles#attached-article-refaire-moteur-flash-simca-aronde-ordre-des-controles\">Refaire un moteur Flash de Simca Aronde : dans quel ordre contrôler</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.sava-anciennes.fr/\" target=\"_blank\" rel=\"noopener noreferrer\">SAVA Autos Anciennes</a></li>\n<li><a href=\"https://www.instagram.com/sava_autos_anciennes/\" target=\"_blank\" rel=\"noopener noreferrer\">Instagram SAVA Autos Anciennes</a></li>\n<li>Archives atelier Caramagnols</li>\n</ul>",
-  "tags": [
-    "simca",
-    "restauration",
-    "carrosserie",
-    "entretien"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/simca/aronde/simca_aronde_1300_bas_de_caisse_origine.jpg",
-    "alt": "Bas de caisse d’une Simca Aronde avant restauration",
-    "title": "Bas de caisse avant restauration",
-    "caption": "Sur une Aronde, les bas de caisse et les planchers donnent vite la mesure réelle du chantier.",
-    "width": 400,
-    "height": 300
-  },
-  "page_slug": "auto-retro-simca-une-simca-aronde-en-restauration-chez-sava-rioz",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:41:31+00:00",
-  "updated_at": "2026-04-29T14:41:31+00:00"
+    "title": "Diagnostiquer planchers et bas de caisse sur une Simca Aronde",
+    "slug": "diagnostiquer-planchers-bas-de-caisse-simca-aronde",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "restauration-et-entretien",
+    "date": "2027-04-19 14:36:14",
+    "excerpt": "Avant de parler peinture ou sellerie, une Aronde impose souvent un contrôle patient de sa base. Les planchers et les bas de caisse disent rapidement si la restauration restera mesurée ou non.",
+    "content": "<p>Une Simca Aronde peut encore paraître honnête de loin alors que sa structure appelle déjà des travaux profonds. Sur ce modèle, les planchers, les longerons périphériques et les bas de caisse donnent souvent le premier verdict sérieux.</p>\n<figure>\n <img src=\"/assets/images/autoretro/simca/aronde/simca_aronde_1300_bas_de_caisse_refait_a_neuf_par_garage_sava.jpg\" alt=\"Bas de caisse restauré sur une Simca Aronde\" title=\"Bas de caisse refait\" width=\"400\" height=\"300\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Une fois repris proprement, le bas de caisse redonne à la carrosserie sa rigidité et sa lecture juste.</figcaption>\n</figure>\n<h2>Commencer par ce que la voiture cache le mieux</h2>\n<p>Les parties basses vieillissent à l'abri du regard. Sous des tapis fatigués, des tôles doublées ou un dessous rapidement noirci, l'état réel peut rester longtemps invisible. C'est pour cela qu'un diagnostic sérieux commence toujours par la base.</p>\n<p>Sur une Aronde, il faut regarder la continuité des tôles, la qualité des reprises anciennes, les points de levage, les raccords de bas de caisse et la façon dont les portes tombent dans leurs baies.</p>\n<h2>Lire les indices avant même de démonter</h2>\n<p>Avant d'ouvrir davantage, la voiture parle déjà. Une porte qui force, un plancher qui sonne creux, une soudure confuse ou une ligne de caisse qui perd sa netteté doivent alerter. Ces signes ne suffisent pas à chiffrer un chantier, mais ils évitent les illusions.</p>\n<p>Le démontage confirme ensuite l'étendue réelle. C'est souvent là que l'on passe d'une voiture vieillie à une voiture structurellement à reprendre.</p>\n<h2>Pourquoi ce diagnostic fixe tout le reste</h2>\n<p>Tant que la base n'est pas claire, le reste du budget reste flou. Peinture, joints, intérieur ou chromes n'ont de sens durable que si les parties basses sont redevenues saines et cohérentes.</p>\n<p>Dans une restauration sérieuse, le diagnostic des planchers et bas de caisse n'est donc pas une étape parmi d'autres. C'est la condition qui permet de donner au reste du chantier une vraie mesure.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/auto-retro/simca/une-simca-aronde-en-restauration-chez-sava-rioz.php\">la restauration de notre Simca Aronde A90 Elysee chez SAVA</a></li><li><a href=\"/auto-retro/simca/une-simca-aronde-en-restauration-chez-sava-rioz.php?open_article=refaire-moteur-flash-simca-aronde-ordre-des-controles#attached-article-refaire-moteur-flash-simca-aronde-ordre-des-controles\">Refaire un moteur Flash de Simca Aronde : dans quel ordre contrôler</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.sava-anciennes.fr/\" target=\"_blank\" rel=\"noopener noreferrer\">SAVA Autos Anciennes</a></li>\n<li><a href=\"https://www.instagram.com/sava_autos_anciennes/\" target=\"_blank\" rel=\"noopener noreferrer\">Instagram SAVA Autos Anciennes</a></li>\n<li>Archives atelier Caramagnols</li>\n</ul>",
+    "tags": [
+        "simca",
+        "restauration",
+        "carrosserie",
+        "entretien"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/simca/aronde/simca_aronde_1300_bas_de_caisse_origine.jpg",
+        "alt": "Bas de caisse d’une Simca Aronde avant restauration",
+        "title": "Bas de caisse avant restauration",
+        "caption": "Sur une Aronde, les bas de caisse et les planchers donnent vite la mesure réelle du chantier.",
+        "width": 400,
+        "height": 300
+    },
+    "page_slug": "auto-retro-simca-une-simca-aronde-en-restauration-chez-sava-rioz",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:41:31+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

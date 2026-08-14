@@ -1,35 +1,35 @@
 {
-  "title": "Une Renault Twingo d’appoint dans le golfe de Saint-Tropez : pourquoi elle reste juste",
-  "slug": "renault-twingo-golfe-saint-tropez-voiture-dappoint",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "conduite-et-collection",
-  "date": "2029-09-04 14:36:14",
-  "excerpt": "Dans le golfe, les petits trajets, les stationnements rapides et l’accueil des proches favorisent encore une voiture légère, simple et immédiatement compréhensible comme notre Twingo Hélios.",
-  "content": "<p>Les voitures qui comptent ne sont pas toujours celles qui partent loin. Dans le golfe de Saint-Tropez, une petite auto disponible, facile à garer et simple à prêter rend parfois davantage de services qu’une voiture plus ambitieuse.</p>\n<figure>\n <img src=\"/assets/images/autoretro/twingo.jpg\" alt=\"Notre Twingo Hélios dans le jardin\" title=\"Notre Twingo Hélios\" width=\"472\" height=\"273\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Cette Twingo n’a pas besoin d’un grand trajet pour justifier sa présence chez nous.</figcaption>\n</figure>\n<h2>Une voiture courte, simple et claire</h2>\n<p>La première Twingo garde un gabarit très favorable aux petits trajets. On la place facilement, on la comprend vite, on s’y sent aussitôt à l’aise. Pour une voiture d’appoint, cette évidence vaut beaucoup.</p>\n<p>Ce n’est pas une qualité abstraite. C’est la base même d’un usage régulier sans fatigue ni complication.</p>\n<h2>Pourquoi elle sert bien dans le golfe</h2>\n<p>Les déplacements courts, les allers-retours utiles, les invités à récupérer et les stationnements parfois serrés conviennent parfaitement à la Twingo. Elle tient sa place sans chercher à paraître plus importante qu’elle ne l’est.</p>\n<p>Le toit ouvrant Hélios ajoute même une petite qualité d’agrément qui correspond bien au climat et au rythme local.</p>\n<h2>Une ancienne d’usage, pas de parade</h2>\n<p>Nous ne gardons pas cette voiture pour la montrer. Nous la gardons parce qu’elle sert. Cette différence change tout dans la manière de l’entretenir et de la regarder.</p>\n<p>La Twingo reste alors fidèle à son meilleur programme : rendre la vie plus simple avec peu de moyens, mais avec beaucoup de justesse.</p>\n<p>Ce repère prolonge la page <a href=\"/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php\">notre Renault Twingo Hélios de 1999</a>. Dans le même dossier, la suite utile est <a href=\"/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php?open_article=aller-chercher-renault-twingo-helios-retour-route#attached-article-aller-chercher-renault-twingo-helios-retour-route\">Aller chercher notre Twingo Hélios en train, puis rentrer par la route</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li>Photographies du véhicule : archives Les Caramagnols.</li>\n<li>Notes d’usage 2023-2024 : archives Les Caramagnols.</li>\n<li><a href=\"https://theoriginals.renault.com/twingo\" target=\"_blank\" rel=\"noopener noreferrer\">The Originals Museum, Twingo</a></li>\n</ul>",
-  "tags": [
-    "renault",
-    "twingo",
-    "golfe-saint-tropez",
-    "route",
-    "experience"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/renault/renault_twingo_1997_detail.jpg",
-    "alt": "Détail d’une Renault Twingo de première génération",
-    "title": "Détail de Twingo",
-    "caption": "Dans le golfe, une petite voiture simple reste souvent la réponse la plus juste.",
-    "width": 601,
-    "height": 360
-  },
-  "page_slug": "auto-retro-renault-twingo-helios-1999-notre-exemplaire",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T14:16:58+00:00",
-  "updated_at": "2026-04-29T14:16:58+00:00"
+    "title": "Une Renault Twingo d’appoint dans le golfe de Saint-Tropez : pourquoi elle reste juste",
+    "slug": "renault-twingo-golfe-saint-tropez-voiture-dappoint",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "conduite-et-collection",
+    "date": "2029-09-04 14:36:14",
+    "excerpt": "Dans le golfe, les petits trajets, les stationnements rapides et l’accueil des proches favorisent encore une voiture légère, simple et immédiatement compréhensible comme notre Twingo Hélios.",
+    "content": "<p>Les voitures qui comptent ne sont pas toujours celles qui partent loin. Dans le golfe de Saint-Tropez, une petite auto disponible, facile à garer et simple à prêter rend parfois davantage de services qu’une voiture plus ambitieuse.</p>\n<figure>\n <img src=\"/assets/images/autoretro/twingo.jpg\" alt=\"Notre Twingo Hélios dans le jardin\" title=\"Notre Twingo Hélios\" width=\"472\" height=\"273\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Cette Twingo n’a pas besoin d’un grand trajet pour justifier sa présence chez nous.</figcaption>\n</figure>\n<h2>Une voiture courte, simple et claire</h2>\n<p>La première Twingo garde un gabarit très favorable aux petits trajets. On la place facilement, on la comprend vite, on s’y sent aussitôt à l’aise. Pour une voiture d’appoint, cette évidence vaut beaucoup.</p>\n<p>Ce n’est pas une qualité abstraite. C’est la base même d’un usage régulier sans fatigue ni complication.</p>\n<h2>Pourquoi elle sert bien dans le golfe</h2>\n<p>Les déplacements courts, les allers-retours utiles, les invités à récupérer et les stationnements parfois serrés conviennent parfaitement à la Twingo. Elle tient sa place sans chercher à paraître plus importante qu’elle ne l’est.</p>\n<p>Le toit ouvrant Hélios ajoute même une petite qualité d’agrément qui correspond bien au climat et au rythme local.</p>\n<h2>Une ancienne d’usage, pas de parade</h2>\n<p>Nous ne gardons pas cette voiture pour la montrer. Nous la gardons parce qu’elle sert. Cette différence change tout dans la manière de l’entretenir et de la regarder.</p>\n<p>La Twingo reste alors fidèle à son meilleur programme : rendre la vie plus simple avec peu de moyens, mais avec beaucoup de justesse.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php\">notre Renault Twingo Hélios de 1999</a></li><li><a href=\"/auto-retro/renault/une-twingo-dans-le-golfe-de-sttropez.php?open_article=aller-chercher-renault-twingo-helios-retour-route#attached-article-aller-chercher-renault-twingo-helios-retour-route\">Aller chercher notre Twingo Hélios en train, puis rentrer par la route</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li>Photographies du véhicule : archives Les Caramagnols.</li>\n<li>Notes d’usage 2023-2024 : archives Les Caramagnols.</li>\n<li><a href=\"https://theoriginals.renault.com/twingo\" target=\"_blank\" rel=\"noopener noreferrer\">The Originals Museum, Twingo</a></li>\n</ul>",
+    "tags": [
+        "renault",
+        "twingo",
+        "golfe-saint-tropez",
+        "route",
+        "experience"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/renault/renault_twingo_1997_detail.jpg",
+        "alt": "Détail d’une Renault Twingo de première génération",
+        "title": "Détail de Twingo",
+        "caption": "Dans le golfe, une petite voiture simple reste souvent la réponse la plus juste.",
+        "width": 601,
+        "height": 360
+    },
+    "page_slug": "auto-retro-renault-twingo-helios-1999-notre-exemplaire",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T14:16:58+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

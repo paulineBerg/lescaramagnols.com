@@ -1,34 +1,34 @@
 {
-  "title": "Wann man im Golf von Saint-Tropez je nach Veranstaltungssaison ausgehen sollte",
-  "slug": "quand-sortir-golfe-saint-tropez-selon-saison-animations",
-  "lang": "de",
-  "status": "published",
-  "author": "Caramagnols",
-  "category": "vie-locale",
-  "subcategory": "evenements-et-animations",
-  "date": "2026-05-13 14:36:14",
-  "excerpt": "Der gleiche Golf bietet im Februar, Mai oder September nicht dieselben Ausflüge. Wer die Saison liest, wählt die passende Art von Veranstaltung.",
-  "content": "<p>Der Golf wirkt das ganze Jahr über wie dieselbe Karte, doch die Art des Ausflugs ändert sich von Monat zu Monat vollständig. Bevor man nach einer Veranstaltung sucht, sollte man wissen, ob man einen ruhigen Markt, ein Traditionsfest, einen Sommerabend oder einen kürzeren Wintertermin sucht.</p>\n<figure>\n <img src=\"/assets/images/bouger/animations/animations.jpg\" alt=\"Stimmungen rund um Veranstaltungen im Golf von Saint-Tropez\" title=\"Stimmungen rund um Veranstaltungen im Golf von Saint-Tropez\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Von einer Jahreszeit zur anderen ändert derselbe Raum seinen Rhythmus und seine Ausflugsform.</figcaption>\n</figure>\n<h2>Von Januar bis April beginnt der Kalender langsam neu</h2>\n<p>Die ersten Monate bleiben die zurückhaltendsten. Wochenmärkte halten das lokale Leben sichtbar, dann öffnen sich die Programme wieder mit einigen Ausstellungen, Terminen im Ortszentrum und den ersten Frühjahrsregatten. Das ist die richtige Zeit für einen leichten Ausflug ohne große Menge und ohne dichtes Programm.</p>\n<h2>Von Mai bis August ist die Dichte am größten</h2>\n<p>Mai und Juni bringen die Traditionen zurück, mit den Bravades, der Saint-Pierre, Patronatsfesten und den ersten großen Segelterminen. Im Juli und August verlagert sich das Leben dann in den Abend, mit Nachtmärkten, Festivals, Konzerten, Freiluftkino und Feuerwerk. Diese Dichte verlangt eine genauere Vorbereitung von Zugang, Parken und manchmal auch Reservierung.</p>\n<h2>Von September bis Dezember bekommt der Golf einen anderen Ton</h2>\n<p>Der Herbstbeginn behält starke Marker wie Les Voiles de Saint-Tropez, Tage des Kulturerbes und einige Dorffeste. Der Oktober verlangsamt sich, ohne still zu werden, und der Dezember bündelt Weihnachtsmärkte, Beleuchtung und Familienveranstaltungen. Diese Phase passt gut zu Besuchern, die kürzere, klarere und ruhigere Ausflüge als im Hochsommer suchen.</p>\n<p>Dieser Hinweis ergänzt die Seite <a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php\">Wiederkehrende Veranstaltungen im Golf von Saint-Tropez</a>. Im selben Dossier führt der sinnvollste nächste Schritt zu <a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php?open_article=comment-lire-agenda-officiel-animations-golfe-saint-tropez#attached-article-comment-lire-agenda-officiel-animations-golfe-saint-tropez\">Wie man einen offiziellen Veranstaltungskalender im Golf von Saint-Tropez liest</a>.</p>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/a-faire/agenda/les-temps-forts/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - temps forts</a></li>\n<li><a href=\"https://www.societe-nautique-saint-tropez.fr/fr/events\" target=\"_blank\" rel=\"noopener noreferrer\">Société Nautique de Saint-Tropez - événements</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/feerie-de-noel/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - Féérie de Noël</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "evenement",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/structure/menu/bouger/uianimations.jpg",
-    "alt": "Allgemeiner Blick auf den Veranstaltungsteil des Golfs von Saint-Tropez",
-    "title": "Allgemeiner Blick auf den Veranstaltungsteil des Golfs von Saint-Tropez",
-    "caption": "Der lokale Kalender behält zwischen Winter, Frühling und Hochsaison nicht dieselbe Dichte.",
-    "width": 222,
-    "height": 90
-  },
-  "page_slug": "bouger-animations-dans-le-golfe-de-sttropez",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T17:13:37+00:00",
-  "updated_at": "2026-04-29T17:13:37+00:00"
+    "title": "Ausgehen im Golf von Saint-Tropez: die richtige Saison wählen",
+    "slug": "quand-sortir-golfe-saint-tropez-selon-saison-animations",
+    "lang": "de",
+    "status": "published",
+    "author": "codex-blog-rewrite-published",
+    "category": "vie-locale",
+    "subcategory": "evenements-et-animations",
+    "date": "2026-05-13 14:36:14",
+    "excerpt": "Der gleiche Golf bietet im Februar, Mai oder September nicht dieselben Ausflüge. Wer die Saison erkennt, wählt die passende Art von Ausflug.",
+    "content": "<p>Der Golf wirkt das ganze Jahr über wie dieselbe Karte, doch die Art des Ausflugs ändert sich von Monat zu Monat vollständig. Bevor man nach einer Veranstaltung sucht, sollte man wissen, ob man einen ruhigen Markt, ein Traditionsfest, einen Sommerabend oder einen kürzeren Wintertermin sucht.</p>\n<figure>\n <img src=\"/assets/images/bouger/animations/animations.jpg\" alt=\"Stimmungen rund um Veranstaltungen im Golf von Saint-Tropez\" title=\"Stimmungen rund um Veranstaltungen im Golf von Saint-Tropez\" width=\"640\" height=\"480\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Von einer Jahreszeit zur anderen ändert derselbe Raum seinen Rhythmus und seine Ausflugsform.</figcaption>\n</figure>\n<h2>Von Januar bis April beginnt der Kalender langsam neu</h2>\n<p>Die ersten Monate bleiben die zurückhaltendsten. Wochenmärkte halten das lokale Leben sichtbar, dann öffnen sich die Programme wieder mit einigen Ausstellungen, Terminen im Ortszentrum und den ersten Frühjahrsregatten. Das ist die richtige Zeit für einen leichten Ausflug ohne große Menge und ohne dichtes Programm.</p>\n<h2>Von Mai bis August ist die Dichte am größten</h2>\n<p>Mai und Juni bringen die Traditionen zurück, mit den Bravades, der Saint-Pierre, Patronatsfesten und den ersten großen Segelterminen. Im Juli und August verlagert sich das Leben dann in den Abend, mit Nachtmärkten, Festivals, Konzerten, Freiluftkino und Feuerwerk. Diese Dichte verlangt eine genauere Vorbereitung von Zugang, Parken und manchmal auch Reservierung.</p>\n<h2>Von September bis Dezember bekommt der Golf einen anderen Ton</h2>\n<p>Der Herbstbeginn behält starke Marker wie Les Voiles de Saint-Tropez, Tage des Kulturerbes und einige Dorffeste. Der Oktober verlangsamt sich, ohne still zu werden, und der Dezember bündelt Weihnachtsmärkte, Beleuchtung und Familienveranstaltungen. Diese Phase passt gut zu Besuchern, die kürzere, klarere und ruhigere Ausflüge als im Hochsommer suchen.</p>\n<nav class=\"article-related\" aria-label=\"Verwandte Artikel\"><ul><li><a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php\">Wiederkehrende Veranstaltungen im Golf von Saint-Tropez</a></li><li><a href=\"/bouger/les-animations-dans-le-golfe-de-sttropez.php?open_article=comment-lire-agenda-officiel-animations-golfe-saint-tropez#attached-article-comment-lire-agenda-officiel-animations-golfe-saint-tropez\">Wie man einen offiziellen Veranstaltungskalender im Golf von Saint-Tropez erkennt</a></li></ul></nav>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/a-faire/agenda/les-temps-forts/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - temps forts</a></li>\n<li><a href=\"https://www.societe-nautique-saint-tropez.fr/fr/events\" target=\"_blank\" rel=\"noopener noreferrer\">Société Nautique de Saint-Tropez - événements</a></li>\n<li><a href=\"https://www.golfe-sainttropez-tourisme.fr/feerie-de-noel/\" target=\"_blank\" rel=\"noopener noreferrer\">Office de tourisme du Golfe de Saint-Tropez - Féérie de Noël</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "evenement",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/structure/menu/bouger/uianimations.jpg",
+        "alt": "Allgemeiner Blick auf den Veranstaltungsteil des Golfs von Saint-Tropez",
+        "title": "Allgemeiner Blick auf den Veranstaltungsteil des Golfs von Saint-Tropez",
+        "caption": "Der lokale Kalender behält zwischen Winter, Frühling und Hochsaison nicht dieselbe Dichte.",
+        "width": 222,
+        "height": 90
+    },
+    "page_slug": "bouger-animations-dans-le-golfe-de-sttropez",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T17:13:37+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

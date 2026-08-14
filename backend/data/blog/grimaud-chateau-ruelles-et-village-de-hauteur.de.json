@@ -1,34 +1,34 @@
 {
-  "title": "Grimaud, Burg, Gassen und Hoehendorf",
-  "slug": "grimaud-chateau-ruelles-et-village-de-hauteur",
-  "lang": "de",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "patrimoine",
-  "subcategory": "lieux-et-memoire",
-  "date": "2027-08-07 14:36:14",
-  "excerpt": "Das alte Dorf von Grimaud verdient einen eigenen Zugang. Burg, Gassen und Hoehenpunkte geben eine klare Lesart der Gemeinde, noch bevor Ebene und Port Grimaud ins Spiel kommen.",
-  "content": "<p>Grimaud wird oft zusammen mit seiner Oeffnung zum Meer genannt, doch die Lesart beginnt weiter oben. Burg, alte Strassen und Aussichtspunkte des Dorfs geben dem Spaziergang ein starkes Geruest.</p>\n<figure>\n <img src=\"/assets/images/bouger/golfe/grimaud_village_commons.jpg\" alt=\"Dorf Grimaud\" title=\"Dorf Grimaud\" width=\"960\" height=\"640\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>In Grimaud bleiben die Gassen und Blicke des Hoehendorfs der beste Ausgangspunkt.</figcaption>\n</figure>\n<h2>Die Burg ordnet die Gemeinde neu</h2>\n<p>Von oben wird die Logik des Orts sofort sichtbar. Die Burg zaehlt nicht nur wegen ihrer Silhouette; sie erklaert auch die Beziehung zwischen Verteidigung, Kontrolle des Reliefs und der Lesbarkeit der Ebene.</p>\n<h2>Die Gassen bewahren ein provenzalisches Mass</h2>\n<p>Das alte Dorf bleibt in seinen Proportionen bewohnbar. Durchgaenge, kleine Plaetze und Niveauwechsel erhalten eine schlichte Dichte ohne aufgesetzte Monumentalitaet. Genau diese Stimmigkeit macht die Qualitaet des Wegs aus.</p>\n<h2>Warum man hier beginnen sollte, bevor man hinabgeht</h2>\n<p>Wer vom alten Hoehendorf startet, versteht danach die Ebene, feuchtere Bereiche und die Oeffnung zu Port Grimaud besser. Ohne diese erste Hoehenstufe wirkt die Gemeinde zersplitterter, als sie in Wirklichkeit ist.</p>\n<p>Dieser Beitrag ergaenzt die Seite <a href=\"/de/bouger/se-promener-a-grimaud.php\">Grimaud zu Fuß entdecken</a>. Als sinnvolle Fortsetzung im selben Dossier eignet sich auch <a href=\"/de/bouger/se-promener-a-grimaud.php?open_article=grimaud-port-grimaud-plaine-et-eau-meme-commune#attached-article-grimaud-port-grimaud-plaine-et-eau-meme-commune\">Grimaud zwischen Port Grimaud, Ebene und Wasserlandschaften</a>.</p>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/grimaud/grimaud-pratique-2021-2022.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Praktischer Fuehrer Grimaud 2021-2022</a></li>\n<li><a href=\"/assets/pdf/bouger/grimaud/plan-touristique-grimaud-port-grimaud.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Touristischer Plan von Grimaud und Port Grimaud</a></li>\n<li><a href=\"https://www.grimaud-provence.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Tourismusbuero Grimaud</a></li>\n</ul>",
-  "tags": [
-    "grimaud",
-    "golfe-saint-tropez",
-    "village",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/animations/recurrentes/chateau_grimaud_commons.jpg",
-    "alt": "Burg von Grimaud",
-    "title": "Burg von Grimaud",
-    "caption": "Burg und altes Dorf geben Grimaud seine erste Lesart aus der Hoehe.",
-    "width": 720,
-    "height": 960
-  },
-  "page_slug": "bouger-villages-grimaud",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:38+00:00",
-  "updated_at": "2026-04-29T15:07:38+00:00"
+    "title": "Grimaud, Burg, Gassen und Hoehendorf",
+    "slug": "grimaud-chateau-ruelles-et-village-de-hauteur",
+    "lang": "de",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "patrimoine",
+    "subcategory": "lieux-et-memoire",
+    "date": "2027-08-07 14:36:14",
+    "excerpt": "Das alte Dorf von Grimaud verdient einen eigenen Zugang. Burg, Gassen und Hoehenpunkte geben eine klare Lesart der Gemeinde, noch bevor Ebene und Port Grimaud ins Spiel kommen.",
+    "content": "<p>Grimaud wird oft zusammen mit seiner Oeffnung zum Meer genannt, doch die Lesart beginnt weiter oben. Burg, alte Strassen und Aussichtspunkte des Dorfs geben dem Spaziergang ein starkes Geruest.</p>\n<figure>\n <img src=\"/assets/images/bouger/golfe/grimaud_village_commons.jpg\" alt=\"Dorf Grimaud\" title=\"Dorf Grimaud\" width=\"960\" height=\"640\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>In Grimaud bleiben die Gassen und Blicke des Hoehendorfs der beste Ausgangspunkt.</figcaption>\n</figure>\n<h2>Die Burg ordnet die Gemeinde neu</h2>\n<p>Von oben wird die Methode des Orts sofort sichtbar. Die Burg zaehlt nicht nur wegen ihrer Silhouette; sie erklaert auch die Beziehung zwischen Verteidigung, Kontrolle des Reliefs und der Lesbarkeit der Ebene.</p>\n<h2>Die Gassen bewahren ein provenzalisches Mass</h2>\n<p>Das alte Dorf bleibt in seinen Proportionen bewohnbar. Durchgaenge, kleine Plaetze und Niveauwechsel erhalten eine schlichte Dichte ohne aufgesetzte Monumentalitaet. Genau diese Stimmigkeit macht die Qualitaet des Wegs aus.</p>\n<h2>Warum man hier beginnen sollte, bevor man hinabgeht</h2>\n<p>Wer vom alten Hoehendorf startet, versteht danach die Ebene, feuchtere Bereiche und die Oeffnung zu Port Grimaud besser. Ohne diese erste Hoehenstufe wirkt die Gemeinde zersplitterter, als sie in Wirklichkeit ist.</p>\n<nav class=\"article-related\" aria-label=\"Verwandte Artikel\"><ul><li><a href=\"/de/bouger/se-promener-a-grimaud.php\">Grimaud zu Fuß entdecken</a></li><li><a href=\"/de/bouger/se-promener-a-grimaud.php?open_article=grimaud-port-grimaud-plaine-et-eau-meme-commune#attached-article-grimaud-port-grimaud-plaine-et-eau-meme-commune\">Grimaud zwischen Port Grimaud, Ebene und Wasserlandschaften</a></li></ul></nav>\n<h2>Quellen</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/grimaud/grimaud-pratique-2021-2022.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Praktischer Fuehrer Grimaud 2021-2022</a></li>\n<li><a href=\"/assets/pdf/bouger/grimaud/plan-touristique-grimaud-port-grimaud.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Touristischer Plan von Grimaud und Port Grimaud</a></li>\n<li><a href=\"https://www.grimaud-provence.com/\" target=\"_blank\" rel=\"noopener noreferrer\">Tourismusbuero Grimaud</a></li>\n</ul>",
+    "tags": [
+        "grimaud",
+        "golfe-saint-tropez",
+        "village",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/animations/recurrentes/chateau_grimaud_commons.jpg",
+        "alt": "Burg von Grimaud",
+        "title": "Burg von Grimaud",
+        "caption": "Burg und altes Dorf geben Grimaud seine erste Lesart aus der Hoehe.",
+        "width": 720,
+        "height": 960
+    },
+    "page_slug": "bouger-villages-grimaud",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:38+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

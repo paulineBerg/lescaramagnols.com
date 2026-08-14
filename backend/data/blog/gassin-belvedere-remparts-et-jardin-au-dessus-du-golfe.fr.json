@@ -1,34 +1,34 @@
 {
-  "title": "Gassin, belvédère, remparts et jardin au-dessus du golfe",
-  "slug": "gassin-belvedere-remparts-et-jardin-au-dessus-du-golfe",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "patrimoine",
-  "subcategory": "lieux-et-memoire",
-  "date": "2026-07-18 14:36:14",
-  "excerpt": "Gassin se lit par sa position de hauteur. Les remparts, le jardin, l’église et la vue très large sur le golfe donnent au village une densité rare malgré son espace resserré.",
-  "content": "<p>À Gassin, tout part de la hauteur. Le village tient sur peu d'espace, mais il ouvre très loin. Cette tension entre le bourg serré et le grand paysage fait toute la force de la promenade.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/ramatuelle/le_golfe.jpg\" alt=\"Vue sur le golfe depuis les hauteurs\" title=\"Vue sur le golfe depuis les hauteurs\" width=\"300\" height=\"224\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Les hauteurs de la presqu’île donnent à Gassin sa lecture de belvédère.</figcaption>\n</figure>\n<h2>Les remparts et les lignes de bord</h2>\n<p>À Gassin, les bords comptent autant que le centre. Les remparts, les ruptures de pente et les points d'appui de façade font sentir immédiatement la position de vigie du village.</p>\n<h2>Le jardin et les cultures comme prolongement du site</h2>\n<p>La promenade n'est pas seulement minérale. Le jardin remarquable, la vigne, l'olivier et la mémoire agricole prolongent la lecture des hauteurs. Ils montrent que Gassin ne vit pas hors-sol, malgré son caractère de belvédère.</p>\n<h2>Un village à parcourir lentement</h2>\n<p>À Gassin, il faut peu de distance pour changer d'angle. L'intérêt n'est donc pas de multiplier les kilomètres, mais de varier les arrêts, les cadrages et les retours de vue sur le golfe et la presqu'île.</p>\n<p>Ce repère prolonge la page <a href=\"/bouger/se-promener-a-gassin.php\">Se promener à Gassin</a>. Pour continuer la promenade dans le même dossier, on peut ouvrir <a href=\"/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php?open_article=ramatuelle-village-en-colimacon-comment-le-parcourir#attached-article-ramatuelle-village-en-colimacon-comment-le-parcourir\">Ramatuelle, village en colimaçon : comment le parcourir sans le traverser trop vite</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/gassin/guide-ok-SIMPLE-FINAL-22.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Guide de Gassin</a></li>\n<li><a href=\"/assets/pdf/bouger/gassin/A-la-decouverte-de-leglise-2020-1.3-FR.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">À la découverte de l’église de Gassin</a></li>\n<li><a href=\"https://www.gassin.eu/\" target=\"_blank\" rel=\"noopener noreferrer\">Gassin, site officiel</a></li>\n</ul>",
-  "tags": [
-    "golfe-saint-tropez",
-    "village",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/communes/gassin/gassin_eglise_commons.jpg",
-    "alt": "Église et hauteur de Gassin",
-    "title": "Église et hauteur de Gassin",
-    "caption": "À Gassin, la promenade tient ensemble remparts, belvédère et mémoire agricole.",
-    "width": 1280,
-    "height": 960
-  },
-  "page_slug": "bouger-villages-gassin-village-perche-golfe-saint-tropez",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:37+00:00",
-  "updated_at": "2026-04-29T15:07:37+00:00"
+    "title": "Gassin : belvédère, remparts et jardin au-dessus du golfe",
+    "slug": "gassin-belvedere-remparts-et-jardin-au-dessus-du-golfe",
+    "lang": "fr",
+    "status": "published",
+    "author": "codex-blog-rewrite-published",
+    "category": "patrimoine",
+    "subcategory": "lieux-et-memoire",
+    "date": "2026-07-18 14:36:14",
+    "excerpt": "Gassin se comprend d’abord par sa position de hauteur. Les remparts, le jardin, l’église et la vue très large sur le golfe donnent beaucoup de relief à un village très resserré.",
+    "content": "<p>À Gassin, tout part de la hauteur. Le village tient sur peu d’espace, mais la vue porte très loin. Ce contraste entre le bourg serré et le grand paysage donne sa force à la promenade.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/ramatuelle/le_golfe.jpg\" alt=\"Vue sur le golfe depuis les hauteurs\" title=\"Vue sur le golfe depuis les hauteurs\" width=\"300\" height=\"224\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Les hauteurs de la presqu’île donnent à Gassin son rôle de belvédère.</figcaption>\n</figure>\n<h2>Les remparts et les lignes de bord</h2>\n<p>À Gassin, les bords comptent autant que le centre. Les remparts, les ruptures de pente et les points d'appui de façade font sentir immédiatement la position de vigie du village.</p>\n<h2>Le jardin et les cultures comme prolongement du site</h2>\n<p>La promenade n'est pas seulement minérale. Le jardin remarquable, la vigne, l'olivier et la mémoire agricole prolongent l’observation des hauteurs. Ils montrent que Gassin ne vit pas hors-sol, malgré son caractère de belvédère.</p>\n<h2>Un village à parcourir lentement</h2>\n<p>À Gassin, quelques mètres suffisent pour changer d'angle. L'intérêt n'est donc pas de multiplier les kilomètres, mais de varier les arrêts, les cadrages et les retours de vue sur le golfe et la presqu'île.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/bouger/se-promener-a-gassin.php\">Se promener à Gassin</a></li><li><a href=\"/bouger/se-promener-a-Ramatuelle-golfe-de-sttropez.php?open_article=ramatuelle-village-en-colimacon-comment-le-parcourir#attached-article-ramatuelle-village-en-colimacon-comment-le-parcourir\">Ramatuelle, village en colimaçon : comment le parcourir sans le traverser trop vite</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/gassin/guide-ok-SIMPLE-FINAL-22.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Guide de Gassin</a></li>\n<li><a href=\"/assets/pdf/bouger/gassin/A-la-decouverte-de-leglise-2020-1.3-FR.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">À la découverte de l’église de Gassin</a></li>\n<li><a href=\"https://www.gassin.eu/\" target=\"_blank\" rel=\"noopener noreferrer\">Gassin, site officiel</a></li>\n</ul>",
+    "tags": [
+        "golfe-saint-tropez",
+        "village",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/communes/gassin/gassin_eglise_commons.jpg",
+        "alt": "Église et hauteur de Gassin",
+        "title": "Église et hauteur de Gassin",
+        "caption": "À Gassin, la promenade tient ensemble remparts, belvédère et mémoire agricole.",
+        "width": 1280,
+        "height": 960
+    },
+    "page_slug": "bouger-villages-gassin-village-perche-golfe-saint-tropez",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:37+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }

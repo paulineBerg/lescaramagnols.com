@@ -1,34 +1,34 @@
 {
-  "title": "Le système Panhard : pourquoi cette architecture a marqué l’automobile",
-  "slug": "systeme-panhard-origine-architecture-automobile",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "auto-retro",
-  "subcategory": "histoire-automobile",
-  "date": "2028-02-10 14:36:14",
-  "excerpt": "Moteur à l’avant, boîte séparée, transmission vers l’arrière : le système Panhard ne désigne pas un slogan, mais une mise en ordre durable de l’automobile.",
-  "content": "<p>À la fin du XIXe siècle, la voiture n’a rien d’une formule évidente. Les organes changent de place, les solutions hésitent encore, et l’idée même d’une architecture stable n’est pas acquise. Ce que l’on appelle ensuite le système Panhard compte parce qu’il met de l’ordre dans cette période d’essais.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/affiche_panhard.jpg\" alt=\"Affiche ancienne Panhard\" width=\"150\" height=\"193\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Le nom est resté, mais il désigne surtout une manière cohérente d’organiser la voiture.</figcaption>\n</figure>\n<h2>Avant le système, tout n’est pas fixé</h2>\n<p>Aux débuts, l’automobile n’a pas encore trouvé sa grammaire mécanique. Les moteurs, les embrayages, les transmissions et la place des conducteurs restent en discussion. Il faut alors plus que de la nouveauté : il faut une disposition lisible, capable de tenir la route et de se répéter d’un véhicule à l’autre.</p>\n<p>Panhard et Levassor participent à cette clarification. Leur apport n’est pas seulement d’avoir roulé tôt. Il tient à la manière d’agencer les organes pour obtenir une machine plus logique dans son fonctionnement comme dans son entretien.</p>\n<h2>Ce que le système Panhard ordonne</h2>\n<p>La formule qui s’impose associe un moteur à l’avant, un embrayage, une boîte de vitesses séparée, puis une transmission vers les roues arrière. Vue d’aujourd’hui, cette architecture paraît presque classique. À son apparition, elle constitue un repère majeur, parce qu’elle distingue mieux les fonctions et rend la voiture plus lisible.</p>\n<p>Le terme ne doit pas être compris comme une invention isolée tombée du ciel. Il désigne plutôt une mise en ordre devenue exemplaire pour l’industrie naissante.</p>\n<h2>Pourquoi cette disposition a duré</h2>\n<p>Le succès du système Panhard vient de sa cohérence. Une voiture mieux organisée se règle plus facilement, se comprend mieux et supporte mieux les longs parcours qui servent alors de banc d’essai public. Les grandes épreuves sur route ne jugent pas seulement la vitesse. Elles montrent aussi quelles solutions tiennent dans la durée.</p>\n<p>Cette endurance compte autant que l’idée elle-même. Une bonne architecture n’existe vraiment que lorsqu’elle survit au trajet, à l’usage et à la réparation.</p>\n<h2>Lire cette architecture sans anachronisme</h2>\n<p>Il serait faux d’y voir l’unique chemin possible de l’automobile. Mais il serait tout aussi faux d’en faire une curiosité de musée. Le système Panhard aide à comprendre comment la voiture passe d’une expérimentation mouvante à une machine plus maîtrisée, assez claire pour devenir un objet industriel.</p>\n<p>Ce repère s’inscrit dans la page <a href=\"/auto-retro/panhard/histoire-de-panhard.php\">Panhard : des pionniers du système automobile aux dernières voitures civiles</a>. Dans le même thème, vous pouvez aussi lire <a href=\"/auto-retro/panhard/histoire-de-panhard.php?open_article=panhard-moteurs-daimler-premieres-voitures-francaises#attached-article-panhard-moteurs-daimler-premieres-voitures-francaises\">Panhard, Daimler et les premières voitures françaises</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1890-a-1939/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1890 à 1940</a></li>\n<li><a href=\"https://doyennes-panhard-levassor.fr/fr/historique/\" target=\"_blank\" rel=\"noopener noreferrer\">Les Doyennes de Panhard &amp; Levassor, Historique de la marque</a></li>\n<li><a href=\"https://dcpl.fr/les-panhard/\" target=\"_blank\" rel=\"noopener noreferrer\">Dynamic Club Panhard et Levassor, Les Panhard</a></li>\n</ul>",
-  "tags": [
-    "panhard",
-    "histoire",
-    "voiture-ancienne",
-    "mecanique"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/autoretro/panhard/voiture1891_panhard-levassor.jpg",
-    "alt": "Panhard et Levassor de 1891",
-    "title": "Panhard et Levassor 1891",
-    "caption": "Une des images qui ramènent au tout début de l’architecture automobile.",
-    "width": 400,
-    "height": 348
-  },
-  "page_slug": "auto-retro-panhard-histoire-de-panhard",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T13:28:25+00:00",
-  "updated_at": "2026-04-29T13:28:25+00:00"
+    "title": "Le système Panhard : pourquoi cette architecture a marqué l’automobile",
+    "slug": "systeme-panhard-origine-architecture-automobile",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "auto-retro",
+    "subcategory": "histoire-automobile",
+    "date": "2028-02-10 14:36:14",
+    "excerpt": "Moteur à l’avant, boîte séparée, transmission vers l’arrière : le système Panhard ne désigne pas un slogan, mais une mise en ordre durable de l’automobile.",
+    "content": "<p>À la fin du XIXe siècle, la voiture n’a rien d’une formule évidente. Les organes changent de place, les solutions hésitent encore, et l’idée même d’une architecture stable n’est pas acquise. Ce que l’on appelle ensuite le système Panhard compte parce qu’il met de l’ordre dans cette période d’essais.</p>\n<figure>\n <img src=\"/assets/images/autoretro/panhard/affiche_panhard.jpg\" alt=\"Affiche ancienne Panhard\" title=\"Affiche ancienne Panhard\" width=\"150\" height=\"193\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Le nom est resté, mais il désigne surtout une manière cohérente d’organiser la voiture.</figcaption>\n</figure>\n<h2>Avant le système, tout n’est pas fixé</h2>\n<p>Aux débuts, l’automobile n’a pas encore trouvé sa grammaire mécanique. Les moteurs, les embrayages, les transmissions et la place des conducteurs restent en discussion. Il faut alors plus que de la nouveauté : il faut une disposition lisible, capable de tenir la route et de se répéter d’un véhicule à l’autre.</p>\n<p>Panhard et Levassor participent à cette clarification. Leur apport n’est pas seulement d’avoir roulé tôt. Il tient à la manière d’agencer les organes pour obtenir une machine plus méthode dans son fonctionnement comme dans son entretien.</p>\n<h2>Ce que le système Panhard ordonne</h2>\n<p>La formule qui s’impose associe un moteur à l’avant, un embrayage, une boîte de vitesses séparée, puis une transmission vers les roues arrière. Vue d’aujourd’hui, cette architecture paraît presque classique. À son apparition, elle constitue un repère majeur, parce qu’elle distingue mieux les fonctions et rend la voiture plus lisible.</p>\n<p>Le terme ne doit pas être compris comme une invention isolée tombée du ciel. Il désigne plutôt une mise en ordre devenue exemplaire pour l’industrie naissante.</p>\n<h2>Pourquoi cette disposition a duré</h2>\n<p>Le succès du système Panhard vient de sa cohérence. Une voiture mieux organisée se règle plus facilement, se comprend mieux et supporte mieux les longs parcours qui servent alors de banc d’essai public. Les grandes épreuves sur route ne jugent pas seulement la vitesse. Elles montrent aussi quelles solutions tiennent dans la durée.</p>\n<p>Cette endurance compte autant que l’idée elle-même. Une bonne architecture n’existe vraiment que lorsqu’elle survit au trajet, à l’usage et à la réparation.</p>\n<h2>Lire cette architecture sans anachronisme</h2>\n<p>Il serait faux d’y voir l’unique chemin possible de l’automobile. Mais il serait tout aussi faux d’en faire une curiosité de musée. Le système Panhard aide à comprendre comment la voiture passe d’une expérimentation mouvante à une machine plus maîtrisée, assez claire pour devenir un objet industriel.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/auto-retro/panhard/histoire-de-panhard.php\">Panhard : des pionniers du système automobile aux dernières voitures civiles</a></li><li><a href=\"/auto-retro/panhard/histoire-de-panhard.php?open_article=panhard-moteurs-daimler-premieres-voitures-francaises#attached-article-panhard-moteurs-daimler-premieres-voitures-francaises\">Panhard, Daimler et les premières voitures françaises</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"https://www.panhard-concept-historique.com/de-1890-a-1939/\" target=\"_blank\" rel=\"noopener noreferrer\">Panhard Concept Historique, De 1890 à 1940</a></li>\n<li><a href=\"https://doyennes-panhard-levassor.fr/fr/historique/\" target=\"_blank\" rel=\"noopener noreferrer\">Les Doyennes de Panhard &amp; Levassor, Historique de la marque</a></li>\n<li><a href=\"https://dcpl.fr/les-panhard/\" target=\"_blank\" rel=\"noopener noreferrer\">Dynamic Club Panhard et Levassor, Les Panhard</a></li>\n</ul>",
+    "tags": [
+        "panhard",
+        "histoire",
+        "voiture-ancienne",
+        "mecanique"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/autoretro/panhard/voiture1891_panhard-levassor.jpg",
+        "alt": "Panhard et Levassor de 1891",
+        "title": "Panhard et Levassor 1891",
+        "caption": "Une des images qui ramènent au tout début de l’architecture automobile.",
+        "width": 400,
+        "height": 348
+    },
+    "page_slug": "auto-retro-panhard-histoire-de-panhard",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T13:28:25+00:00",
+    "updated_at": "2026-08-14T13:00:00+02:00"
 }

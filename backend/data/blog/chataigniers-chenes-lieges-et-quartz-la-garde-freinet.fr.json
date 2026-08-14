@@ -1,34 +1,34 @@
 {
-  "title": "Châtaigniers, chênes-lièges et quartz : la matière de La Garde-Freinet",
-  "slug": "chataigniers-chenes-lieges-et-quartz-la-garde-freinet",
-  "lang": "fr",
-  "status": "scheduled",
-  "author": "Caramagnols",
-  "category": "territoire",
-  "subcategory": "villages-et-balades",
-  "date": "2028-07-24 14:36:14",
-  "excerpt": "La Garde-Freinet se lit autant par sa botanique et sa roche que par son vieux village. Châtaigniers, chênes-lièges, quartz et chemins forestiers donnent sa vraie texture au secteur.",
-  "content": "<p>Dans les Maures, La Garde-Freinet n'est pas seulement une suite de ruelles. Dès que l'on s'écarte un peu du centre, la commune retrouve sa matière profonde: bois, pente, quartz, châtaigniers, chênes-lièges et odeurs de sous-bois.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/lagardefreinet/chemin.jpg\" alt=\"Chemin à La Garde-Freinet\" title=\"Chemin à La Garde-Freinet\" width=\"225\" height=\"300\" loading=\"lazy\" decoding=\"async\" />\n <figcaption>Les chemins des Maures montrent la continuité entre géologie, forêt, ombre et sente.</figcaption>\n</figure>\n<h2>Le quartz et les sols maigres imposent leur présence</h2>\n<p>La pierre n'est jamais un fond neutre dans ce secteur. Elle apparaît dans les talus, dans la couleur des sols et dans la manière dont les chemins se tiennent. Cette géologie donne à La Garde-Freinet une rudesse très différente du littoral.</p>\n<h2>Une forêt de châtaigniers et de chênes-lièges</h2>\n<p>Le couvert végétal ne se réduit pas à une simple pinède méditerranéenne. La présence des châtaigniers et des chênes-lièges rappelle une économie rurale, des usages anciens de la forêt et une autre manière d'habiter le golfe depuis l'intérieur.</p>\n<h2>Marcher ici, c’est lire la commune autrement</h2>\n<p>Quand on prête attention à cette matière, La Garde-Freinet cesse d'être seulement un village de charme. Elle devient une commune de massif, avec ses odeurs, ses ombres, ses pentes et une vraie continuité entre botanique, géologie et culture locale.</p>\n<p>Ce repère prolonge la page <a href=\"/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php\">Se promener à La Garde-Freinet</a>. Pour continuer la promenade dans le même dossier, on peut ouvrir <a href=\"/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php?open_article=fort-freinet-histoire-et-marche-depuis-le-village#attached-article-fort-freinet-histoire-et-marche-depuis-le-village\">Fort Freinet : ce que la marche raconte depuis La Garde-Freinet</a>.</p>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/la-garde-freinet/la_garde_freinet_plan.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Plan de La Garde-Freinet</a></li>\n<li><a href=\"/assets/pdf/bouger/la-garde-freinet/la_garde_freinet_rando.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Balade et randonnée à La Garde-Freinet</a></li>\n<li><a href=\"https://www.provenceguide.com/patrimoine-culturel/la-garde-freinet/fort-freinet/provence-4921366-1.html\" target=\"_blank\" rel=\"noopener noreferrer\">Fort Freinet, Provence Guide</a></li>\n</ul>",
-  "tags": [
-    "la-garde-freinet",
-    "golfe-saint-tropez",
-    "balade",
-    "patrimoine"
-  ],
-  "translations": [],
-  "comments": [],
-  "featured_image": {
-    "src": "/assets/images/bouger/communes/lagardefreinet/la_garde_freinet_village.jpg",
-    "alt": "Village et pentes de La Garde-Freinet",
-    "title": "Village et pentes de La Garde-Freinet",
-    "caption": "À La Garde-Freinet, la forêt et la roche comptent autant que les ruelles du centre.",
-    "width": 300,
-    "height": 206
-  },
-  "page_slug": "bouger-villages-la-garde-freinet",
-  "parent_slug": "",
-  "parent_lang": "",
-  "child_sort_order": null,
-  "created_at": "2026-04-29T15:07:37+00:00",
-  "updated_at": "2026-04-29T15:07:37+00:00"
+    "title": "Châtaigniers, chênes-lièges et quartz : la matière de La Garde-Freinet",
+    "slug": "chataigniers-chenes-lieges-et-quartz-la-garde-freinet",
+    "lang": "fr",
+    "status": "scheduled",
+    "author": "codex-blog-rewrite",
+    "category": "territoire",
+    "subcategory": "villages-et-balades",
+    "date": "2028-07-24 14:36:14",
+    "excerpt": "La Garde-Freinet se lit autant par sa botanique et sa roche que par son vieux village. Châtaigniers, chênes-lièges, quartz et chemins forestiers donnent sa vraie texture au secteur.",
+    "content": "<p>Dans les Maures, La Garde-Freinet n'est pas seulement une suite de ruelles. Dès que l'on s'écarte un peu du centre, la commune retrouve sa matière profonde: bois, pente, quartz, châtaigniers, chênes-lièges et odeurs de sous-bois.</p>\n<figure>\n <img src=\"/assets/images/bouger/communes/lagardefreinet/chemin.jpg\" alt=\"Chemin à La Garde-Freinet\" title=\"Chemin à La Garde-Freinet\" width=\"225\" height=\"300\" loading=\"lazy\" decoding=\"async\" fetchpriority=\"low\" />\n <figcaption>Les chemins des Maures montrent la continuité entre géologie, forêt, ombre et sente.</figcaption>\n</figure>\n<h2>Le quartz et les sols maigres imposent leur présence</h2>\n<p>La pierre n'est jamais un fond neutre dans ce secteur. Elle apparaît dans les talus, dans la couleur des sols et dans la manière dont les chemins se tiennent. Cette géologie donne à La Garde-Freinet une rudesse très différente du littoral.</p>\n<h2>Une forêt de châtaigniers et de chênes-lièges</h2>\n<p>Le couvert végétal ne se limite pas à une simple pinède méditerranéenne. La présence des châtaigniers et des chênes-lièges rappelle une économie rurale, des usages anciens de la forêt et une autre manière d'habiter le golfe depuis l'intérieur.</p>\n<h2>Marcher ici, c’est lire la commune autrement</h2>\n<p>Quand on prête attention à cette matière, La Garde-Freinet cesse d'être seulement un village de charme. Elle devient une commune de massif, avec ses odeurs, ses ombres, ses pentes et une vraie continuité entre botanique, géologie et culture locale.</p>\n<nav class=\"article-related\" aria-label=\"Articles associés\"><ul><li><a href=\"/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php\">Se promener à La Garde-Freinet</a></li><li><a href=\"/bouger/se-promener-a-La-Garde-Freinet-golfe-de-sttropez.php?open_article=fort-freinet-histoire-et-marche-depuis-le-village#attached-article-fort-freinet-histoire-et-marche-depuis-le-village\">Fort Freinet : ce que la marche raconte depuis La Garde-Freinet</a></li></ul></nav>\n<h2>Sources</h2>\n<ul>\n<li><a href=\"/assets/pdf/bouger/la-garde-freinet/la_garde_freinet_plan.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Plan de La Garde-Freinet</a></li>\n<li><a href=\"/assets/pdf/bouger/la-garde-freinet/la_garde_freinet_rando.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Balade et randonnée à La Garde-Freinet</a></li>\n<li><a href=\"https://www.provenceguide.com/patrimoine-culturel/la-garde-freinet/fort-freinet/provence-4921366-1.html\" target=\"_blank\" rel=\"noopener noreferrer\">Fort Freinet, Provence Guide</a></li>\n</ul>",
+    "tags": [
+        "la-garde-freinet",
+        "golfe-saint-tropez",
+        "balade",
+        "patrimoine"
+    ],
+    "translations": [],
+    "comments": [],
+    "featured_image": {
+        "src": "/assets/images/bouger/communes/lagardefreinet/la_garde_freinet_village.jpg",
+        "alt": "Village et pentes de La Garde-Freinet",
+        "title": "Village et pentes de La Garde-Freinet",
+        "caption": "À La Garde-Freinet, la forêt et la roche comptent autant que les ruelles du centre.",
+        "width": 300,
+        "height": 206
+    },
+    "page_slug": "bouger-villages-la-garde-freinet",
+    "parent_slug": "",
+    "parent_lang": "",
+    "child_sort_order": null,
+    "created_at": "2026-04-29T15:07:37+00:00",
+    "updated_at": "2026-08-14T12:30:00+02:00"
 }
