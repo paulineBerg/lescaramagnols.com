@@ -879,7 +879,7 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   const rows = root.querySelector<HTMLTableSectionElement>('[data-photo-browser-rows]');
   let latestOperations: BrowserRenameOperation[] = [];
   let currentFiles: BrowserRenameInput[] = [];
-  let previewVisible = true;
+  let previewVisible = false;
   let analysisRun = 0;
   let latestGeocodeAt = 0;
   const communeCache = new Map<string, Promise<string | null>>();

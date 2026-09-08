@@ -478,7 +478,7 @@ describe('photo browser rename', () => {
     });
   });
 
-  it('affiche automatiquement les apercus apres selection et analyse GPS', async () => {
+  it('affiche les apercus seulement apres clic sur previsualiser', async () => {
     document.body.innerHTML = `
       <div data-photo-browser-renamer>
         <input type="file" multiple data-photo-browser-files />
@@ -494,7 +494,9 @@ describe('photo browser rename', () => {
     const file = new File([gpsJpegBuffer()], 'IMG_7697.JPEG', { type: 'image/jpeg', lastModified: 1 });
     const secondFile = new File([gpsJpegBuffer()], 'IMG_7698.JPEG', { type: 'image/jpeg', lastModified: 2 });
     const fileInput = document.querySelector<HTMLInputElement>('[data-photo-browser-files]');
+    const previewButton = document.querySelector<HTMLButtonElement>('[data-photo-browser-preview]');
     expect(fileInput).not.toBeNull();
+    expect(previewButton).not.toBeNull();
     Object.defineProperty(fileInput, 'files', {
       configurable: true,
       value: [file, secondFile]
@@ -508,6 +510,12 @@ describe('photo browser rename', () => {
 
     initPhotoBrowserRename();
     fileInput?.dispatchEvent(new Event('change'));
+    await flushPromises();
+
+    expect(document.querySelectorAll('.photo-browser-thumbnail')).toHaveLength(0);
+    expect(document.querySelector('.photo-browser-preview-cell')?.textContent).toBe('');
+
+    previewButton?.click();
 
     expect(document.querySelector('.photo-browser-preview-cell')?.textContent).toBe('chargement');
     await flushPromises();
