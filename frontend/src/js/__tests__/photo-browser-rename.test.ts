@@ -249,6 +249,60 @@ describe('photo browser rename', () => {
     expect(view.getUint16(buffer.byteLength - 12, true)).toBe(2);
   });
 
+  it('utilise le fournisseur officiel depuis le navigateur si le serveur ne peut pas geocoder', async () => {
+    document.body.innerHTML = `
+      <div data-photo-browser-renamer data-photo-browser-geocode-url="/private/photo-rename" data-photo-browser-csrf="csrf">
+        <input type="file" multiple data-photo-browser-files />
+        <input value="" data-photo-browser-commune />
+        <input value="1" data-photo-browser-start />
+        <select data-photo-browser-sort><option value="taken" selected>date de prise de vue</option></select>
+        <button type="button" data-photo-browser-preview>Prévisualiser</button>
+        <button type="button" data-photo-browser-download>Télécharger les copies</button>
+        <p data-photo-browser-status></p>
+        <table data-photo-browser-table><tbody data-photo-browser-rows></tbody></table>
+      </div>
+    `;
+    const file = new File([gpsJpegBuffer()], 'IMG_7697.JPEG', { type: 'image/jpeg', lastModified: 1 });
+    const fileInput = document.querySelector<HTMLInputElement>('[data-photo-browser-files]');
+    expect(fileInput).not.toBeNull();
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [file]
+    });
+    const originalArrayBuffer = Blob.prototype.arrayBuffer;
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: vi.fn().mockResolvedValue(gpsJpegBuffer())
+    });
+    const fetchMock = vi.spyOn(window, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: false, error: 'commune_not_found' }), {
+        status: 502,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    ).mockResolvedValueOnce(
+      new Response(JSON.stringify([{ nom: 'Cogolin', code: '83042' }]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+
+    initPhotoBrowserRename();
+    fileInput?.dispatchEvent(new Event('change'));
+    await flushPromises();
+    await flushPromises();
+    await flushPromises();
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1][0])).toContain('https://geo.api.gouv.fr/communes?');
+    expect(document.querySelector('[data-photo-browser-status]')?.textContent).toContain('1 copie(s) prete(s)');
+    expect(document.querySelector('[data-photo-browser-rows]')?.textContent).toContain('Cogolin-01.JPEG');
+    fetchMock.mockRestore();
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: originalArrayBuffer
+    });
+  });
+
   it('conserve et affiche les apercus apres selection et analyse GPS', async () => {
     document.body.innerHTML = `
       <div data-photo-browser-renamer>

@@ -646,6 +646,63 @@ const coordinateKey = (gps: BrowserGpsCoordinates): string => {
   return `${gps.latitude.toFixed(5)},${gps.longitude.toFixed(5)}`;
 };
 
+const browserFrenchGovernmentCommune = async (gps: BrowserGpsCoordinates): Promise<string | null> => {
+  const query = new URLSearchParams({
+    lat: gps.latitude.toFixed(6),
+    lon: gps.longitude.toFixed(6),
+    fields: 'nom,code',
+    format: 'json',
+    geometry: 'centre'
+  });
+  try {
+    const response = await fetch(`https://geo.api.gouv.fr/communes?${query.toString()}`, {
+      method: 'GET',
+      credentials: 'omit',
+      headers: { Accept: 'application/json' }
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = (await response.json()) as unknown;
+    if (!Array.isArray(payload) || typeof payload[0]?.nom !== 'string') {
+      return null;
+    }
+
+    const commune = payload[0].nom.trim();
+    return commune !== '' ? commune : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const browserGeoPlatformCommune = async (gps: BrowserGpsCoordinates): Promise<string | null> => {
+  const query = new URLSearchParams({
+    lat: gps.latitude.toFixed(6),
+    lon: gps.longitude.toFixed(6),
+    limit: '1'
+  });
+  try {
+    const response = await fetch(`https://data.geopf.fr/geocodage/reverse/?${query.toString()}`, {
+      method: 'GET',
+      credentials: 'omit',
+      headers: { Accept: 'application/json' }
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const payload = (await response.json()) as { features?: Array<{ properties?: { city?: string } }> };
+    const commune = typeof payload.features?.[0]?.properties?.city === 'string' ? payload.features[0].properties.city.trim() : '';
+
+    return commune !== '' ? commune : null;
+  } catch (_error) {
+    return null;
+  }
+};
+
+const browserAdministrativeCommune = async (gps: BrowserGpsCoordinates): Promise<string | null> => {
+  return (await browserFrenchGovernmentCommune(gps)) ?? (await browserGeoPlatformCommune(gps));
+};
+
 const issueLabel = (issue: string): string => {
   return (
     {
@@ -784,25 +841,31 @@ const initBrowserRenamer = (root: HTMLElement): void => {
       }
       latestGeocodeAt = Date.now();
 
-      const body = new FormData();
-      body.set('action', 'photo_reverse_geocode');
-      body.set('csrf_token', csrfToken);
-      body.set('latitude', gps.latitude.toFixed(6));
-      body.set('longitude', gps.longitude.toFixed(6));
+      try {
+        const body = new FormData();
+        body.set('action', 'photo_reverse_geocode');
+        body.set('csrf_token', csrfToken);
+        body.set('latitude', gps.latitude.toFixed(6));
+        body.set('longitude', gps.longitude.toFixed(6));
 
-      const response = await fetch(geocodeUrl, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
-        body
-      });
-      if (!response.ok) {
-        return null;
+        const response = await fetch(geocodeUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          body
+        });
+        if (response.ok) {
+          const payload = (await response.json()) as { ok?: boolean; commune?: string };
+          const commune = typeof payload.commune === 'string' ? payload.commune.trim() : '';
+          if (payload.ok === true && commune !== '') {
+            return commune;
+          }
+        }
+      } catch (_error) {
+        // Browser fallback below keeps the no-agent mode usable if the server cannot reach providers.
       }
 
-      const payload = (await response.json()) as { ok?: boolean; commune?: string };
-      const commune = typeof payload.commune === 'string' ? payload.commune.trim() : '';
-      return payload.ok === true && commune !== '' ? commune : null;
+      return browserAdministrativeCommune(gps);
     })().catch(() => null);
 
     communeCache.set(key, request);

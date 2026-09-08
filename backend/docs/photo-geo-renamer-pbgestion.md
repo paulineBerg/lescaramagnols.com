@@ -125,6 +125,11 @@ User-Agent applicatif, des délais courts et une relance bornée. Les résultats
 positifs sont stockés dans `photo_geo_places` avec une clé de coordonnées à 5
 décimales ; les échecs ne sont pas conservés durablement.
 
+En production, si l'hébergement refuse une connexion sortante vers ces APIs, le
+navigateur essaie lui-même les sources publiques France `geo.api.gouv.fr` puis
+`data.geopf.fr`. La CSP privée autorise uniquement ces connexions externes pour
+ce parcours, toujours avec les seules coordonnées et sans fichier photo.
+
 Le tri par défaut du mode navigateur est `date de prise de vue`. L'ancien tri
 `ordre de sélection` n'est plus proposé.
 

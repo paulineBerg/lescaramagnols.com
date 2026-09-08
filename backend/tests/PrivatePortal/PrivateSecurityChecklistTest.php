@@ -77,6 +77,7 @@ final class PrivateSecurityChecklistTest extends TestCase
         self::assertStringContainsString("script-src 'self' 'nonce-testnonce'", $policy);
         self::assertStringNotContainsString("script-src 'self' 'unsafe-inline'", $policy);
         self::assertStringContainsString("style-src 'self'", $policy);
+        self::assertStringContainsString("connect-src 'self' https://geo.api.gouv.fr https://data.geopf.fr", $policy);
         self::assertStringNotContainsString("'unsafe-inline'", $policy);
     }
 
