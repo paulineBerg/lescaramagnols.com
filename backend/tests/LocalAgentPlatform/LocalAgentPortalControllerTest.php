@@ -237,6 +237,8 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('<th>Aperçu</th>', $photosResponse->body);
         $this->assertStringContainsString('<th>État et détails</th>', $photosResponse->body);
         $this->assertStringContainsString('<option value="taken" selected>date de prise de vue</option>', $photosResponse->body);
+        $this->assertStringNotContainsString('ordre de sélection', $photosResponse->body);
+        $this->assertStringNotContainsString('value="selection"', $photosResponse->body);
         $this->assertStringNotContainsString('Mode manuel sans agent', $photosResponse->body);
     }
 
@@ -267,18 +269,6 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertSame(422, $response->status);
         $this->assertSame('application/json; charset=utf-8', $response->headers['Content-Type'] ?? null);
         $this->assertStringContainsString('invalid_coordinates', $response->body);
-    }
-
-    public function testPhotoReverseGeocodeFallbackResolvesGolfeDeSaintTropezCommunes(): void
-    {
-        $controller = (new \ReflectionClass(LocalAgentPortalController::class))->newInstanceWithoutConstructor();
-        $method = new \ReflectionMethod(LocalAgentPortalController::class, 'fallbackCommuneFromCoordinates');
-        $method->setAccessible(true);
-
-        $this->assertSame('Saint-Tropez', $method->invoke($controller, 43.272611, 6.632808));
-        $this->assertSame('Cogolin', $method->invoke($controller, 43.251639, 6.534650));
-        $this->assertSame('Cogolin', $method->invoke($controller, 43.231603, 6.518903));
-        $this->assertNull($method->invoke($controller, 48.856614, 2.352222));
     }
 
     public function testInvalidCsrfKeepsPhotoApplicationContext(): void

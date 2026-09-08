@@ -3,7 +3,6 @@ import {
   buildBrowserRenamePlan,
   createZipBlob,
   initPhotoBrowserRename,
-  knownCommuneFromGps,
   parseGpsFromJpegBuffer,
   parseJpegMetadataFromBuffer
 } from '../photo-browser-rename.ts';
@@ -138,7 +137,7 @@ describe('photo browser rename', () => {
         startNumber: 1,
         counterDigits: 2,
         separator: '-',
-        sortOrder: 'selection'
+        sortOrder: 'taken'
       }
     );
 
@@ -153,11 +152,6 @@ describe('photo browser rename', () => {
 
     expect(gps?.latitude).toBeCloseTo(43.272611, 6);
     expect(gps?.longitude).toBeCloseTo(6.632808, 6);
-  });
-
-  it('deduit une commune connue depuis les coordonnees GPS sans appel reseau', () => {
-    expect(knownCommuneFromGps({ latitude: 43.23160277777778, longitude: 6.518902777777778 })).toBe('Cogolin');
-    expect(knownCommuneFromGps({ latitude: 48.856614, longitude: 2.352222 })).toBeNull();
   });
 
   it('lit la date de prise de vue EXIF d un JPEG', () => {
@@ -196,7 +190,7 @@ describe('photo browser rename', () => {
         startNumber: 1,
         counterDigits: 2,
         separator: '-',
-        sortOrder: 'selection'
+        sortOrder: 'taken'
       }
     );
 
@@ -215,7 +209,7 @@ describe('photo browser rename', () => {
         startNumber: 1,
         counterDigits: 2,
         separator: '-',
-        sortOrder: 'selection'
+        sortOrder: 'taken'
       }
     );
 
@@ -232,7 +226,7 @@ describe('photo browser rename', () => {
         startNumber: 1,
         counterDigits: 2,
         separator: '-',
-        sortOrder: 'selection'
+        sortOrder: 'taken'
       }
     );
 
@@ -277,12 +271,15 @@ describe('photo browser rename', () => {
       configurable: true,
       value: [file]
     });
-    const readAsDataUrl = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function read(this: FileReader) {
-      Object.defineProperty(this, 'result', {
-        configurable: true,
-        value: 'data:image/jpeg;base64,preview'
-      });
-      this.dispatchEvent(new Event('load'));
+    const originalCreateObjectUrl = URL.createObjectURL;
+    const originalRevokeObjectUrl = URL.revokeObjectURL;
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn(() => 'blob:photo-preview')
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn()
     });
     const originalArrayBuffer = Blob.prototype.arrayBuffer;
     const arrayBuffer = vi.fn().mockResolvedValue(gpsJpegBuffer());
@@ -300,9 +297,16 @@ describe('photo browser rename', () => {
     await flushPromises();
 
     const image = document.querySelector<HTMLImageElement>('.photo-browser-thumbnail');
-    expect(image?.getAttribute('src')).toBe('data:image/jpeg;base64,preview');
+    expect(image?.getAttribute('src')).toBe('blob:photo-preview');
     expect(image?.getAttribute('alt')).toBe('IMG_7697.JPEG');
-    readAsDataUrl.mockRestore();
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: originalCreateObjectUrl
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: originalRevokeObjectUrl
+    });
     Object.defineProperty(Blob.prototype, 'arrayBuffer', {
       configurable: true,
       value: originalArrayBuffer

@@ -223,7 +223,7 @@ $statusLabel = static function (string $status): string {
             <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic" multiple data-photo-browser-files />
           </label>
           <label>Commune de secours
-            <input type="text" maxlength="160" placeholder="Cogolin" data-photo-browser-commune />
+            <input type="text" maxlength="160" placeholder="si GPS absent" data-photo-browser-commune />
           </label>
           <label>Premier numéro
             <input type="number" min="1" max="999999" value="1" data-photo-browser-start />
@@ -231,7 +231,6 @@ $statusLabel = static function (string $status): string {
           <label>Tri
             <select data-photo-browser-sort>
               <option value="taken" selected>date de prise de vue</option>
-              <option value="selection">ordre de sélection</option>
               <option value="date">date fichier navigateur</option>
               <option value="name">nom actuel</option>
             </select>

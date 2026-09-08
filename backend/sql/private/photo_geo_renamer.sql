@@ -80,10 +80,18 @@ CREATE TABLE IF NOT EXISTS car_photo_geo_places (
     department VARCHAR(120) NULL,
     region VARCHAR(120) NULL,
     country_code CHAR(2) NULL,
+    admin_code VARCHAR(80) NULL,
+    department_code VARCHAR(16) NULL,
+    department_name VARCHAR(120) NULL,
+    region_code VARCHAR(16) NULL,
+    region_name VARCHAR(120) NULL,
     provider VARCHAR(80) NOT NULL,
+    resolved_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_photo_geo_places_geo_key (geo_key),
     KEY idx_photo_geo_places_commune (commune_key),
+    KEY idx_photo_geo_places_admin_code (admin_code),
+    KEY idx_photo_geo_places_country_code (country_code),
     KEY idx_photo_geo_places_updated (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

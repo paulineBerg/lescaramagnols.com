@@ -1,4 +1,4 @@
-type SortOrder = 'selection' | 'name' | 'date' | 'taken';
+type SortOrder = 'name' | 'date' | 'taken';
 
 export type BrowserGpsCoordinates = {
   latitude: number;
@@ -116,52 +116,6 @@ const normalizeFilename = (baseName: string, extension: string, separatorValue: 
       : normalizedBaseName;
 
   return `${trimmedBaseName}${extensionPart}`;
-};
-
-const coordinateDistanceKm = (fromLatitude: number, fromLongitude: number, toLatitude: number, toLongitude: number): number => {
-  const earthRadiusKm = 6371;
-  const latitudeDelta = ((toLatitude - fromLatitude) * Math.PI) / 180;
-  const longitudeDelta = ((toLongitude - fromLongitude) * Math.PI) / 180;
-  const fromLatitudeRad = (fromLatitude * Math.PI) / 180;
-  const toLatitudeRad = (toLatitude * Math.PI) / 180;
-  const a =
-    Math.sin(latitudeDelta / 2) ** 2 +
-    Math.cos(fromLatitudeRad) * Math.cos(toLatitudeRad) * Math.sin(longitudeDelta / 2) ** 2;
-
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-export const knownCommuneFromGps = (gps: BrowserGpsCoordinates): string | null => {
-  if (gps.latitude < 43.12 || gps.latitude > 43.38 || gps.longitude < 6.42 || gps.longitude > 6.68) {
-    return null;
-  }
-
-  const communes = [
-    { name: 'Saint-Tropez', latitude: 43.2677, longitude: 6.6407 },
-    { name: 'Cogolin', latitude: 43.2528, longitude: 6.5306 },
-    { name: 'Gassin', latitude: 43.2285, longitude: 6.585 },
-    { name: 'Grimaud', latitude: 43.273, longitude: 6.523 },
-    { name: 'Sainte-Maxime', latitude: 43.3083, longitude: 6.6386 },
-    { name: 'Ramatuelle', latitude: 43.215, longitude: 6.612 },
-    { name: 'La Croix-Valmer', latitude: 43.2071, longitude: 6.567 },
-    { name: 'Cavalaire-sur-Mer', latitude: 43.1727, longitude: 6.5294 },
-    { name: 'La Mole', latitude: 43.2096, longitude: 6.4669 },
-    { name: 'Le Plan-de-la-Tour', latitude: 43.3392, longitude: 6.5467 },
-    { name: 'La Garde-Freinet', latitude: 43.3176, longitude: 6.4697 },
-    { name: 'Le Rayol-Canadel-sur-Mer', latitude: 43.1593, longitude: 6.4801 }
-  ];
-
-  let nearest: string | null = null;
-  let nearestDistance = Number.POSITIVE_INFINITY;
-  for (const commune of communes) {
-    const distance = coordinateDistanceKm(gps.latitude, gps.longitude, commune.latitude, commune.longitude);
-    if (distance < nearestDistance) {
-      nearestDistance = distance;
-      nearest = commune.name;
-    }
-  }
-
-  return nearestDistance <= 18 ? nearest : null;
 };
 
 const readAscii = (view: DataView, offset: number, length: number): string => {
@@ -427,10 +381,6 @@ const sortedInputs = (files: BrowserRenameInput[], sortOrder: SortOrder): Browse
   return files
     .map((file, index) => ({ file, index }))
     .sort((left, right) => {
-      if (sortOrder === 'selection') {
-        return left.index - right.index;
-      }
-
       if (sortOrder === 'name') {
         return left.file.name.localeCompare(right.file.name, 'fr') || left.index - right.index;
       }
@@ -693,7 +643,7 @@ const selectedFiles = (input: HTMLInputElement): BrowserRenameInput[] => {
 const sleep = (milliseconds: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
 const coordinateKey = (gps: BrowserGpsCoordinates): string => {
-  return `${gps.latitude.toFixed(4)},${gps.longitude.toFixed(4)}`;
+  return `${gps.latitude.toFixed(5)},${gps.longitude.toFixed(5)}`;
 };
 
 const issueLabel = (issue: string): string => {
@@ -760,28 +710,9 @@ const readFileDataUrl = (file: File): Promise<string | null> => {
   });
 };
 
-const createThumbnailDataUrl = async (file: File): Promise<string | null> => {
-  if (typeof window.createImageBitmap === 'function') {
-    try {
-      const bitmap = await window.createImageBitmap(file);
-      const maxWidth = 112;
-      const maxHeight = 84;
-      const scale = Math.min(maxWidth / bitmap.width, maxHeight / bitmap.height, 1);
-      const width = Math.max(1, Math.round(bitmap.width * scale));
-      const height = Math.max(1, Math.round(bitmap.height * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext('2d');
-      if (context !== null) {
-        context.drawImage(bitmap, 0, 0, width, height);
-        bitmap.close();
-        return canvas.toDataURL('image/jpeg', 0.82);
-      }
-      bitmap.close();
-    } catch (_error) {
-      // Fallback below covers browsers without createImageBitmap support for the selected format.
-    }
+const createThumbnailUrl = async (file: File): Promise<string | null> => {
+  if (typeof URL.createObjectURL === 'function') {
+    return URL.createObjectURL(file);
   }
 
   return readFileDataUrl(file);
@@ -829,18 +760,14 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   let analysisRun = 0;
   let latestGeocodeAt = 0;
   const communeCache = new Map<string, Promise<string | null>>();
-  const thumbnailCache = new WeakMap<File, ThumbnailState>();
+  let thumbnailCache = new WeakMap<File, ThumbnailState>();
+  const thumbnailUrls = new Set<string>();
 
   if (!fileInput || !communeInput || !startInput || !sortInput || !previewButton || !zipButton || !status || !table || !rows) {
     return;
   }
 
   const reverseGeocode = async (gps: BrowserGpsCoordinates): Promise<string | null> => {
-    const knownCommune = knownCommuneFromGps(gps);
-    if (knownCommune !== null) {
-      return knownCommune;
-    }
-
     if (geocodeUrl === '' || csrfToken === '') {
       return null;
     }
@@ -890,8 +817,11 @@ const initBrowserRenamer = (root: HTMLElement): void => {
 
     const loading: ThumbnailState = {
       status: 'loading',
-      promise: createThumbnailDataUrl(file).then((url) => {
+      promise: createThumbnailUrl(file).then((url) => {
         thumbnailCache.set(file, url === null ? { status: 'failed' } : { status: 'ready', url });
+        if (url !== null && url.startsWith('blob:')) {
+          thumbnailUrls.add(url);
+        }
         return url;
       })
     };
@@ -902,6 +832,11 @@ const initBrowserRenamer = (root: HTMLElement): void => {
 
   const analyzeSelectedFiles = async (): Promise<void> => {
     const run = ++analysisRun;
+    for (const url of thumbnailUrls) {
+      URL.revokeObjectURL(url);
+    }
+    thumbnailUrls.clear();
+    thumbnailCache = new WeakMap<File, ThumbnailState>();
     currentFiles = selectedFiles(fileInput);
     renderPlan();
 
@@ -949,7 +884,7 @@ const initBrowserRenamer = (root: HTMLElement): void => {
       sortOrder:
         sortInput.value === 'name' || sortInput.value === 'date' || sortInput.value === 'taken'
           ? sortInput.value
-          : 'selection'
+          : 'taken'
     });
 
     latestOperations = plan.operations;

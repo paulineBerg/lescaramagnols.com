@@ -8,6 +8,12 @@ use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoRenamePlanner;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoPlaceRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\AdministrativePlaceResolver;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\FrenchGovernmentCommuneProvider;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\GeoPlatformReverseGeocoderProvider;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\NominatimReverseGeocoderProvider;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\PhotoGeoHttpClient;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\LocalAgentPlatform\Installer\LocalAgentInstaller;
 use Caramagnols\PrivatePortal\Http\PrivateResponseHeaders;
@@ -418,10 +424,25 @@ final class LocalAgentPortalController
             ], 422));
         }
 
-        $commune = $this->reverseGeocodeCommune(round($latitude, 6), round($longitude, 6));
-        if ($commune === null) {
-            $this->log('photo.geocode.reverse.failed', ['provider' => 'nominatim'], 'warning');
+        if (!function_exists('editorial_database')) {
+            return PrivateResponseHeaders::apply(Response::json([
+                'ok' => false,
+                'error' => 'geocoder_unavailable',
+            ], 503));
+        }
 
+        try {
+            $place = $this->photoPlaceResolver()->resolve(round($latitude, 6), round($longitude, 6));
+        } catch (\Throwable $exception) {
+            $this->log('photo_geo.geocode.reverse.failed', ['error' => $exception::class], 'warning');
+
+            return PrivateResponseHeaders::apply(Response::json([
+                'ok' => false,
+                'error' => 'commune_not_found',
+            ], 502));
+        }
+
+        if ($place === null) {
             return PrivateResponseHeaders::apply(Response::json([
                 'ok' => false,
                 'error' => 'commune_not_found',
@@ -430,9 +451,29 @@ final class LocalAgentPortalController
 
         return PrivateResponseHeaders::apply(Response::json([
             'ok' => true,
-            'commune' => $commune,
-            'source' => 'openstreetmap',
+            'commune' => $place->communeName,
+            'source' => 'gps_administrative',
+            'country_code' => $place->countryCode,
+            'admin_code' => $place->adminCode,
+            'provider' => $place->provider,
+            'place' => $place->toArray(),
         ]));
+    }
+
+    private function photoPlaceResolver(): AdministrativePlaceResolver
+    {
+        $httpClient = new PhotoGeoHttpClient();
+        $logger = $this->eventLogger ?? (function_exists('app_event_logger') ? app_event_logger() : null);
+
+        return new AdministrativePlaceResolver(
+            new PhotoPlaceRepository(editorial_database()),
+            [
+                new FrenchGovernmentCommuneProvider($httpClient),
+                new GeoPlatformReverseGeocoderProvider($httpClient),
+                new NominatimReverseGeocoderProvider($httpClient),
+            ],
+            $logger instanceof AppEventLogger ? $logger : null
+        );
     }
 
     private function coordinate(mixed $value, float $minimum, float $maximum): ?float
@@ -444,128 +485,6 @@ final class LocalAgentPortalController
         $coordinate = (float) $value;
 
         return $coordinate >= $minimum && $coordinate <= $maximum ? $coordinate : null;
-    }
-
-    private function reverseGeocodeCommune(float $latitude, float $longitude): ?string
-    {
-        $url = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query([
-            'format' => 'jsonv2',
-            'lat' => number_format($latitude, 6, '.', ''),
-            'lon' => number_format($longitude, 6, '.', ''),
-            'zoom' => '10',
-            'addressdetails' => '1',
-            'accept-language' => 'fr',
-        ]);
-
-        $payload = $this->fetchReverseGeocode($url);
-        if ($payload === null) {
-            return $this->fallbackCommuneFromCoordinates($latitude, $longitude);
-        }
-
-        $decoded = json_decode($payload, true);
-        if (!is_array($decoded) || !is_array($decoded['address'] ?? null)) {
-            return $this->fallbackCommuneFromCoordinates($latitude, $longitude);
-        }
-
-        foreach (['city', 'town', 'village', 'municipality', 'hamlet', 'locality', 'county'] as $key) {
-            $candidate = $decoded['address'][$key] ?? null;
-            if (is_string($candidate) && trim($candidate) !== '') {
-                return $this->shortText($candidate, 160);
-            }
-        }
-
-        return $this->fallbackCommuneFromCoordinates($latitude, $longitude);
-    }
-
-    private function fallbackCommuneFromCoordinates(float $latitude, float $longitude): ?string
-    {
-        if ($latitude < 43.12 || $latitude > 43.38 || $longitude < 6.42 || $longitude > 6.68) {
-            return null;
-        }
-
-        $communes = [
-            ['name' => 'Saint-Tropez', 'latitude' => 43.2677, 'longitude' => 6.6407],
-            ['name' => 'Cogolin', 'latitude' => 43.2528, 'longitude' => 6.5306],
-            ['name' => 'Gassin', 'latitude' => 43.2285, 'longitude' => 6.5850],
-            ['name' => 'Grimaud', 'latitude' => 43.2730, 'longitude' => 6.5230],
-            ['name' => 'Sainte-Maxime', 'latitude' => 43.3083, 'longitude' => 6.6386],
-            ['name' => 'Ramatuelle', 'latitude' => 43.2150, 'longitude' => 6.6120],
-            ['name' => 'La Croix-Valmer', 'latitude' => 43.2071, 'longitude' => 6.5670],
-            ['name' => 'Cavalaire-sur-Mer', 'latitude' => 43.1727, 'longitude' => 6.5294],
-            ['name' => 'La Mole', 'latitude' => 43.2096, 'longitude' => 6.4669],
-            ['name' => 'Le Plan-de-la-Tour', 'latitude' => 43.3392, 'longitude' => 6.5467],
-            ['name' => 'La Garde-Freinet', 'latitude' => 43.3176, 'longitude' => 6.4697],
-            ['name' => 'Le Rayol-Canadel-sur-Mer', 'latitude' => 43.1593, 'longitude' => 6.4801],
-        ];
-
-        $nearest = null;
-        $nearestDistance = PHP_FLOAT_MAX;
-        foreach ($communes as $commune) {
-            $distance = $this->coordinateDistanceKm(
-                $latitude,
-                $longitude,
-                (float) $commune['latitude'],
-                (float) $commune['longitude']
-            );
-            if ($distance < $nearestDistance) {
-                $nearestDistance = $distance;
-                $nearest = (string) $commune['name'];
-            }
-        }
-
-        return $nearestDistance <= 18.0 ? $nearest : null;
-    }
-
-    private function coordinateDistanceKm(float $fromLatitude, float $fromLongitude, float $toLatitude, float $toLongitude): float
-    {
-        $earthRadiusKm = 6371.0;
-        $latitudeDelta = deg2rad($toLatitude - $fromLatitude);
-        $longitudeDelta = deg2rad($toLongitude - $fromLongitude);
-        $fromLatitudeRad = deg2rad($fromLatitude);
-        $toLatitudeRad = deg2rad($toLatitude);
-
-        $a = sin($latitudeDelta / 2) ** 2
-            + cos($fromLatitudeRad) * cos($toLatitudeRad) * sin($longitudeDelta / 2) ** 2;
-
-        return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
-    }
-
-    private function fetchReverseGeocode(string $url): ?string
-    {
-        $headers = [
-            'User-Agent: LesCaramagnolsPhotoGeoRenamer/1.0 (https://www.lescaramagnols.com)',
-            'Accept: application/json',
-        ];
-
-        if (function_exists('curl_init')) {
-            $handle = curl_init($url);
-            if ($handle === false) {
-                return null;
-            }
-
-            curl_setopt_array($handle, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CONNECTTIMEOUT => 3,
-                CURLOPT_TIMEOUT => 5,
-                CURLOPT_HTTPHEADER => $headers,
-            ]);
-            $response = curl_exec($handle);
-            $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-            curl_close($handle);
-
-            return is_string($response) && $status >= 200 && $status < 300 ? $response : null;
-        }
-
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'timeout' => 5,
-                'header' => implode("\r\n", $headers) . "\r\n",
-            ],
-        ]);
-        $response = @file_get_contents($url, false, $context);
-
-        return is_string($response) ? $response : null;
     }
 
     /**

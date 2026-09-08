@@ -83,8 +83,11 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
             'Caramagnols\\PrivateApps\\PhotoGeoRenamer\\Domain\\PhotoRenamePlanner',
             'Caramagnols\\PrivateApps\\PhotoGeoRenamer\\Domain\\PhotoCommuneNormalizer',
             'Caramagnols\\PrivateApps\\PhotoGeoRenamer\\Domain\\PhotoDateResolver',
+            'Caramagnols\\PrivateApps\\PhotoGeoRenamer\\Domain\\ResolvedPlace',
             'Caramagnols\\PrivateApps\\PhotoGeoRenamer\\Domain\\PhotoPathPolicy',
+            'Caramagnols\\PrivateApps\\PhotoGeoRenamer\\Service\\AdministrativePlaceResolver',
             'Caramagnols\\PrivateApps\\PhotoGeoRenamer\\Repository\\PhotoSequenceRepository',
+            'Caramagnols\\PrivateApps\\PhotoGeoRenamer\\Repository\\PhotoPlaceRepository',
             'Caramagnols\\PbGestion\\Command\\CommandPolicy',
         ];
     }
@@ -96,6 +99,7 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
     {
         return [
             'LocalAgentPortalControllerTest',
+            'AdministrativePlaceResolverTest',
             'PhotoRenamePlannerTest',
             'PhotoPathPolicyTest',
             'PhotoSequenceRepositoryTest',
@@ -118,6 +122,11 @@ final class PrivateAppManifest implements \Caramagnols\PrivatePortal\PrivateAppM
             'photo_geo.rollback.completed',
             'photo_geo.rollback.failed',
             'photo_geo.target_conflict',
+            'photo_geo.geocode.cache_hit',
+            'photo_geo.geocode.cache_miss',
+            'photo_geo.geocode.resolved',
+            'photo_geo.geocode.unresolved',
+            'photo_geo.geocode.provider_error',
             'private.module.access_denied',
         ];
     }

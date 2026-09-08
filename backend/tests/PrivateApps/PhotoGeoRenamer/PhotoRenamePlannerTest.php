@@ -91,7 +91,7 @@ final class PhotoRenamePlannerTest extends TestCase
 
         $this->assertFalse($blocked['ok']);
         $this->assertSame('restore_target_exists', $blocked['conflicts'][0]['issues'][0]);
-        $this->assertSame('43.2529:6.5303', (new PhotoGeoCacheKey())->forCoordinates(43.25291, 6.53033));
+        $this->assertSame('43.25291:6.53033', (new PhotoGeoCacheKey())->forCoordinates(43.25291, 6.53033));
     }
 
     public function testDefaultNameUsesCommuneCounterTwoDigitsAndChronologicalOrderByCommune(): void

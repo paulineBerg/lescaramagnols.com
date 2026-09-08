@@ -6,8 +6,5 @@ namespace Caramagnols\PrivateApps\PhotoGeoRenamer\Domain;
 
 interface ReverseGeocoderProvider
 {
-    /**
-     * @return array{city?: string, department?: string, region?: string, country?: string}
-     */
-    public function reverse(float $latitude, float $longitude): array;
+    public function reverse(float $latitude, float $longitude): ?ResolvedPlace;
 }

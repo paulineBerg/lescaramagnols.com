@@ -82,8 +82,14 @@ ou `failed`).
 - `PhotoRenamePlanner` détecte doublons, conflits et prépare les noms
   temporaires pour un renommage en deux phases.
 - `PhotoRollbackPlanner` prépare l'annulation sans écrasement.
-- `PhotoGeoCacheKey` définit la clé de cache géographique arrondie.
+- `PhotoGeoCacheKey` définit la clé de cache géographique arrondie à 5
+  décimales.
+- `ResolvedPlace` transporte le lieu administratif résolu : code pays, code
+  administratif, commune, code postal, département, région, fournisseur et date
+  de résolution.
 - `ReverseGeocoderProvider` fixe l'abstraction du fournisseur de géocodage.
+- `AdministrativePlaceResolver` orchestre le cache et les fournisseurs de
+  géocodage sans cache d'échec durable.
 - `PhotoRenameBatchService` ingère les aperçus agent, réserve les compteurs,
   construit le payload d'exécution deux-passes et stocke les résultats.
 - `PhotoSequenceRepository` initialise ou réserve les séquences SQL par commune
@@ -106,9 +112,21 @@ EXIF des JPEG sélectionnés et demande au serveur privé de résoudre uniquemen
 la commune à partir des coordonnées arrondies. Les photos ne sont pas envoyées
 au serveur. Le champ `Commune de secours` est utilisé seulement lorsqu'une photo
 n'a pas de coordonnées GPS lisibles ou lorsque le géocodage inverse ne répond
-pas. Le géocodage public OpenStreetMap/Nominatim est appelé côté serveur avec
-User-Agent applicatif, délai court, cache côté navigateur par coordonnées
-arrondies et cadence limitée.
+pas.
+
+La résolution automatique n'utilise plus de liste locale, de bounding box du
+Golfe de Saint-Tropez, ni d'inférence depuis les photos voisines. Le serveur
+interroge d'abord l'API officielle française de découpage administratif
+`geo.api.gouv.fr/communes?lat=...&lon=...`, qui retourne la commune contenant
+les coordonnées et son code INSEE. Si cette source ne répond pas, il essaie le
+géocodage inverse Géoplateforme `data.geopf.fr/geocodage/reverse/`, puis
+Nominatim/OpenStreetMap pour les coordonnées internationales. Chaque appel a un
+User-Agent applicatif, des délais courts et une relance bornée. Les résultats
+positifs sont stockés dans `photo_geo_places` avec une clé de coordonnées à 5
+décimales ; les échecs ne sont pas conservés durablement.
+
+Le tri par défaut du mode navigateur est `date de prise de vue`. L'ancien tri
+`ordre de sélection` n'est plus proposé.
 
 Le mode agent est réservé aux ordinateurs Windows, Linux et macOS. Après
 consentement explicite, l'agent peut accéder aux dossiers autorisés, lire les
