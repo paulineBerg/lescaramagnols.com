@@ -744,6 +744,49 @@ const operationDetails = (operation: BrowserRenameOperation): string => {
   return details.join('. ');
 };
 
+type ThumbnailState =
+  | { status: 'loading'; promise: Promise<string | null> }
+  | { status: 'ready'; url: string }
+  | { status: 'failed' };
+
+const readFileDataUrl = (file: File): Promise<string | null> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      resolve(typeof reader.result === 'string' && reader.result.startsWith('data:image/') ? reader.result : null);
+    });
+    reader.addEventListener('error', () => resolve(null));
+    reader.readAsDataURL(file);
+  });
+};
+
+const createThumbnailDataUrl = async (file: File): Promise<string | null> => {
+  if (typeof window.createImageBitmap === 'function') {
+    try {
+      const bitmap = await window.createImageBitmap(file);
+      const maxWidth = 112;
+      const maxHeight = 84;
+      const scale = Math.min(maxWidth / bitmap.width, maxHeight / bitmap.height, 1);
+      const width = Math.max(1, Math.round(bitmap.width * scale));
+      const height = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext('2d');
+      if (context !== null) {
+        context.drawImage(bitmap, 0, 0, width, height);
+        bitmap.close();
+        return canvas.toDataURL('image/jpeg', 0.82);
+      }
+      bitmap.close();
+    } catch (_error) {
+      // Fallback below covers browsers without createImageBitmap support for the selected format.
+    }
+  }
+
+  return readFileDataUrl(file);
+};
+
 const communeLabel = (operation: BrowserRenameOperation): string => {
   if (operation.communeSource === 'gps') {
     return `${operation.resolvedCommune} (GPS)`;
@@ -786,8 +829,7 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   let analysisRun = 0;
   let latestGeocodeAt = 0;
   const communeCache = new Map<string, Promise<string | null>>();
-  const previewUrls = new WeakMap<File, string>();
-  let activePreviewUrls: string[] = [];
+  const thumbnailCache = new WeakMap<File, ThumbnailState>();
 
   if (!fileInput || !communeInput || !startInput || !sortInput || !previewButton || !zipButton || !status || !table || !rows) {
     return;
@@ -840,9 +882,22 @@ const initBrowserRenamer = (root: HTMLElement): void => {
     return request;
   };
 
-  const clearPreviewUrls = (): void => {
-    activePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
-    activePreviewUrls = [];
+  const ensureThumbnail = (file: File): ThumbnailState => {
+    const current = thumbnailCache.get(file);
+    if (current !== undefined) {
+      return current;
+    }
+
+    const loading: ThumbnailState = {
+      status: 'loading',
+      promise: createThumbnailDataUrl(file).then((url) => {
+        thumbnailCache.set(file, url === null ? { status: 'failed' } : { status: 'ready', url });
+        return url;
+      })
+    };
+    thumbnailCache.set(file, loading);
+
+    return loading;
   };
 
   const analyzeSelectedFiles = async (): Promise<void> => {
@@ -904,19 +959,25 @@ const initBrowserRenamer = (root: HTMLElement): void => {
       const row = document.createElement('tr');
       row.innerHTML = '<td class="photo-browser-preview-cell"></td><td></td><td></td><td></td><td></td><td></td>';
       if (previewVisible && operation.file instanceof File) {
-        const image = document.createElement('img');
-        let previewUrl = previewUrls.get(operation.file);
-        if (previewUrl === undefined) {
-          previewUrl = URL.createObjectURL(operation.file);
-          previewUrls.set(operation.file, previewUrl);
-          activePreviewUrls.push(previewUrl);
+        const thumbnail = ensureThumbnail(operation.file);
+        if (thumbnail.status === 'ready') {
+          const image = document.createElement('img');
+          image.src = thumbnail.url;
+          image.alt = operation.originalName;
+          image.loading = 'lazy';
+          image.decoding = 'async';
+          image.className = 'photo-browser-thumbnail';
+          row.children[0].append(image);
+        } else if (thumbnail.status === 'failed') {
+          row.children[0].textContent = 'aperçu indisponible';
+        } else {
+          row.children[0].textContent = 'chargement';
+          void thumbnail.promise.then(() => {
+            if (previewVisible) {
+              renderPlan();
+            }
+          });
         }
-        image.src = previewUrl;
-        image.alt = operation.originalName;
-        image.loading = 'lazy';
-        image.decoding = 'async';
-        image.className = 'photo-browser-thumbnail';
-        row.children[0].append(image);
       }
       row.children[1].textContent = operation.originalName;
       row.children[2].textContent = formatBytes(operation.size);
@@ -953,7 +1014,6 @@ const initBrowserRenamer = (root: HTMLElement): void => {
     renderPlan();
   });
   fileInput.addEventListener('change', () => {
-    clearPreviewUrls();
     void analyzeSelectedFiles();
   });
   communeInput.addEventListener('input', () => renderPlan());
@@ -975,7 +1035,6 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   });
 
   renderPlan();
-  window.addEventListener('pagehide', clearPreviewUrls, { once: true });
 };
 
 export const initPhotoBrowserRename = (): void => {
