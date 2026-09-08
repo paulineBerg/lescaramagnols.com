@@ -7,6 +7,10 @@ namespace Caramagnols\PbGestion\Persistence;
 use Caramagnols\Database\EditorialDatabase;
 use Caramagnols\PbGestion\Command\CommandPolicy;
 use Caramagnols\PbGestion\Protocol\AgentErrorCodes;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoBatchRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoOperationRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoSequenceRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\PhotoRenameBatchService;
 use Caramagnols\SecurityCenter\Alert\AlertDeduplicator;
 use Caramagnols\SecurityCenter\Dashboard\CoverageCalculator;
 use Caramagnols\SecurityCenter\Device\DeviceSummaryNormalizer;
@@ -281,6 +285,10 @@ final class PbGestionRepository
             'postures' => 0,
             'scans' => 0,
             'backups' => 0,
+            'photo_previews' => 0,
+            'photo_previews_rejected' => 0,
+            'photo_results' => 0,
+            'photo_results_rejected' => 0,
         ];
 
         $this->updateAgentRuntime($agentId, $ownerId, $payload);
@@ -339,6 +347,26 @@ final class PbGestionRepository
         if (is_array($payload['backup_status'] ?? null)) {
             $this->upsertBackupStatus($ownerId, $agentId, $payload['backup_status']);
             $counts['backups']++;
+        }
+
+        if (is_array($payload['photo_rename_previews'] ?? null)) {
+            $photoCounts = $this->photoRenameBatchService()->ingestAgentPreviews(
+                $ownerId,
+                $agent,
+                array_values($payload['photo_rename_previews'])
+            );
+            $counts['photo_previews'] += $photoCounts['stored'];
+            $counts['photo_previews_rejected'] += $photoCounts['rejected'];
+        }
+
+        if (is_array($payload['photo_rename_results'] ?? null)) {
+            $photoCounts = $this->photoRenameBatchService()->ingestAgentResults(
+                $ownerId,
+                $agent,
+                array_values($payload['photo_rename_results'])
+            );
+            $counts['photo_results'] += $photoCounts['stored'];
+            $counts['photo_results_rejected'] += $photoCounts['rejected'];
         }
 
         $this->upsertSyncState($ownerId, $agentId, ['last_sync_at' => $this->now()]);
@@ -1698,6 +1726,16 @@ final class PbGestionRepository
     private function commandPolicy(): CommandPolicy
     {
         return $this->commandPolicy ?? new CommandPolicy();
+    }
+
+    private function photoRenameBatchService(): PhotoRenameBatchService
+    {
+        return new PhotoRenameBatchService(
+            $this->database,
+            new PhotoBatchRepository($this->database),
+            new PhotoOperationRepository($this->database),
+            new PhotoSequenceRepository($this->database)
+        );
     }
 
     private function networkService(): SecurityNetworkService

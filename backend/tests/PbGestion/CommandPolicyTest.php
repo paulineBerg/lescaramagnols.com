@@ -100,4 +100,38 @@ final class CommandPolicyTest extends TestCase
             'preview_uid' => 'bad',
         ])['ok']);
     }
+
+    public function testPhotoExecuteAcceptsReservedTwoPassOperationsOnly(): void
+    {
+        $policy = new CommandPolicy();
+        $valid = [
+            'batch_uid' => str_repeat('d', 32),
+            'preview_uid' => str_repeat('e', 32),
+            'root_uid' => 'photos-principales',
+            'relative_dir' => '2026/vacances',
+            'no_overwrite' => true,
+            'two_pass' => true,
+            'operations' => [
+                [
+                    'relative_path' => 'IMG_0001.jpg',
+                    'old_name' => 'IMG_0001.jpg',
+                    'new_name' => 'Cogolin-01.jpg',
+                    'temporary_name' => '.pbgestion-dddddddddddd-000001.tmp.jpg',
+                    'commune_key' => 'cogolin',
+                    'commune_name' => 'Cogolin',
+                    'assigned_number' => 1,
+                ],
+            ],
+        ];
+
+        $this->assertTrue($policy->validate('photo.rename.execute', $valid)['ok']);
+
+        $withoutGuards = $valid;
+        $withoutGuards['no_overwrite'] = false;
+        $this->assertFalse($policy->validate('photo.rename.execute', $withoutGuards)['ok']);
+
+        $duplicate = $valid;
+        $duplicate['operations'][] = $duplicate['operations'][0];
+        $this->assertFalse($policy->validate('photo.rename.execute', $duplicate)['ok']);
+    }
 }

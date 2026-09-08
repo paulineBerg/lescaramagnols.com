@@ -12,7 +12,9 @@ use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\LocalAgentPlatform\Installer\LocalAgentInstaller;
 use Caramagnols\PrivatePortal\Http\PrivateResponseHeaders;
 use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoBatchRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoOperationRepository;
 use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoSequenceRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\PhotoRenameBatchService;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
@@ -307,7 +309,11 @@ final class LocalAgentPortalController
             $payload['scan_mode'] = 'active_limited';
         }
         if (str_starts_with($type, 'photo.')) {
-            $payload = $this->photoCommandPayload($type, $body);
+            try {
+                $payload = $this->photoCommandPayload($type, $body, $userId, $agentId);
+            } catch (\Throwable) {
+                return ['ok' => false];
+            }
         }
 
         if ($agentId <= 0 || $type === '' || !$this->commandAllowedForModule($type, $moduleCode)) {
@@ -547,7 +553,7 @@ final class LocalAgentPortalController
      * @param array<string, mixed> $body
      * @return array<string, mixed>
      */
-    private function photoCommandPayload(string $type, array $body): array
+    private function photoCommandPayload(string $type, array $body, int $userId = 0, int $agentId = 0): array
     {
         if ($type === 'photo.roots.list') {
             return [];
@@ -583,6 +589,29 @@ final class LocalAgentPortalController
         }
 
         if ($type === 'photo.rename.execute' || $type === 'photo.rename.rollback_execute') {
+            if (
+                $type === 'photo.rename.execute'
+                && $userId > 0
+                && $agentId > 0
+                && function_exists('editorial_database')
+            ) {
+                $database = editorial_database();
+                $agent = $this->repository->findAgentForOwner($userId, $agentId);
+                if (is_array($agent)) {
+                    return (new PhotoRenameBatchService(
+                        $database,
+                        new PhotoBatchRepository($database),
+                        new PhotoOperationRepository($database),
+                        new PhotoSequenceRepository($database)
+                    ))->executePayload(
+                        $userId,
+                        $agent,
+                        $this->shortBodyText($body, 'batch_uid', 32),
+                        $this->shortBodyText($body, 'preview_uid', 32)
+                    );
+                }
+            }
+
             return [
                 'batch_uid' => $this->shortBodyText($body, 'batch_uid', 32),
                 'preview_uid' => $this->shortBodyText($body, 'preview_uid', 32),

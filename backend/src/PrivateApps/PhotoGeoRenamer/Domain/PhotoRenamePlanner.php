@@ -108,7 +108,7 @@ final class PhotoRenamePlanner
                 'unchanged' => count(array_filter($operations, static fn (array $op): bool => $op['status'] === 'unchanged')),
                 'conflicts' => count($conflicts),
                 'communes' => count(array_filter(array_unique(array_map(
-                    static fn (array $op): string => (string) ($op['commune_key'] ?? ''),
+                    static fn (array $op): string => (string) $op['commune_key'],
                     $operations
                 )))),
             ],

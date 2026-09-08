@@ -24,6 +24,8 @@ final class SyncContract
             'alerts',
             'backup_status',
             'capabilities',
+            'photo_rename_previews',
+            'photo_rename_results',
         ];
     }
 }

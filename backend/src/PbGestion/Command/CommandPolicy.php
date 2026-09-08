@@ -33,7 +33,15 @@ final class CommandPolicy
             'sort_order',
             'conflict_strategy',
         ],
-        'photo.rename.execute' => ['batch_uid', 'preview_uid'],
+        'photo.rename.execute' => [
+            'batch_uid',
+            'preview_uid',
+            'root_uid',
+            'relative_dir',
+            'no_overwrite',
+            'two_pass',
+            'operations',
+        ],
         'photo.rename.rollback_preview' => ['batch_uid'],
         'photo.rename.rollback_execute' => ['batch_uid', 'preview_uid'],
     ];
@@ -315,7 +323,63 @@ final class CommandPolicy
             return $batch;
         }
 
-        return $this->validateUid($payload, 'preview_uid');
+        $preview = $this->validateUid($payload, 'preview_uid');
+        if (($preview['ok'] ?? false) !== true) {
+            return $preview;
+        }
+
+        if (!isset($payload['operations'])) {
+            return ['ok' => true];
+        }
+
+        $folder = $this->validatePhotoFolderScan([
+            'root_uid' => $payload['root_uid'] ?? null,
+            'relative_dir' => $payload['relative_dir'] ?? '',
+            'include_subdirectories' => false,
+        ]);
+        if (($folder['ok'] ?? false) !== true) {
+            return $folder;
+        }
+
+        if (($payload['no_overwrite'] ?? null) !== true || ($payload['two_pass'] ?? null) !== true) {
+            return ['ok' => false, 'error' => 'invalid_execution_guards'];
+        }
+
+        if (!is_array($payload['operations'] ?? null) || $payload['operations'] === [] || count($payload['operations']) > 2000) {
+            return ['ok' => false, 'error' => 'invalid_operations'];
+        }
+
+        $pathPolicy = new PhotoPathPolicy();
+        $targets = [];
+        foreach ($payload['operations'] as $operation) {
+            if (!is_array($operation)) {
+                return ['ok' => false, 'error' => 'invalid_operation'];
+            }
+
+            $relativePath = $operation['relative_path'] ?? null;
+            $oldName = $operation['old_name'] ?? null;
+            $newName = $operation['new_name'] ?? null;
+            $temporaryName = $operation['temporary_name'] ?? null;
+            if (
+                $pathPolicy->normalizeRelativePhoto($relativePath) === null
+                || $pathPolicy->normalizeRelativePhoto($oldName) === null
+                || $pathPolicy->normalizeRelativePhoto($newName) === null
+                || !is_string($temporaryName)
+                || preg_match('/\A\.pbgestion-[a-zA-Z0-9._-]{8,80}\.(?:tmp\.)?(?:jpg|jpeg|png|webp|heic)\z/i', $temporaryName) !== 1
+                || !is_numeric($operation['assigned_number'] ?? null)
+                || (int) $operation['assigned_number'] < 1
+            ) {
+                return ['ok' => false, 'error' => 'invalid_operation'];
+            }
+
+            $target = strtolower((string) $newName);
+            if (isset($targets[$target])) {
+                return ['ok' => false, 'error' => 'duplicate_target'];
+            }
+            $targets[$target] = true;
+        }
+
+        return ['ok' => true];
     }
 
     private function validatePhotoTemplate(mixed $template): bool

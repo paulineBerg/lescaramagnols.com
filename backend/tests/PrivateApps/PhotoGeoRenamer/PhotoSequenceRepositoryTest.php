@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace LesCaramagnols\Tests\PrivateApps\PhotoGeoRenamer;
 
 use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoSequenceRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoBatchRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoOperationRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\PhotoRenameBatchService;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
@@ -44,6 +47,51 @@ final class PhotoSequenceRepositoryTest extends TestCase
         $reservation = $repository->reserveForCommune('Ramatuelle', 1);
 
         $this->assertSame([43], $reservation->numbers);
+    }
+
+    public function testAgentPreviewIsStoredThenExecutionReservesStableNumbers(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $this->installPhotoGeoSchema();
+        $service = new PhotoRenameBatchService(
+            $database,
+            new PhotoBatchRepository($database),
+            new PhotoOperationRepository($database),
+            new PhotoSequenceRepository($database)
+        );
+        $batchUid = str_repeat('a', 32);
+        $previewUid = str_repeat('b', 32);
+        $agent = ['id' => 7, 'agent_uid' => str_repeat('c', 32)];
+
+        $stored = $service->ingestAgentPreviews(5, $agent, [[
+            'batch_uid' => $batchUid,
+            'preview_uid' => $previewUid,
+            'root_uid' => 'photos-principales',
+            'relative_dir' => '2026/vacances',
+            'template' => [
+                ['type' => 'city'],
+                ['type' => 'counter'],
+            ],
+            'separator' => '-',
+            'counter_digits' => 2,
+            'sort_order' => 'chronological',
+            'operations' => [
+                ['old_name' => 'IMG_0002.jpg', 'relative_path' => 'IMG_0002.jpg', 'commune_name' => 'Cogolin', 'taken_at' => '2026-09-08 10:02:00'],
+                ['old_name' => 'IMG_0001.jpg', 'relative_path' => 'IMG_0001.jpg', 'commune_name' => 'Cogolin', 'taken_at' => '2026-09-08 10:01:00'],
+            ],
+        ]]);
+
+        $this->assertSame(['stored' => 1, 'rejected' => 0], $stored);
+
+        $payload = $service->executePayload(5, $agent, $batchUid, $previewUid);
+        $this->assertTrue($payload['no_overwrite']);
+        $this->assertTrue($payload['two_pass']);
+        $this->assertSame('Cogolin-01.jpg', $payload['operations'][0]['new_name']);
+        $this->assertSame('Cogolin-02.jpg', $payload['operations'][1]['new_name']);
+
+        $again = $service->executePayload(5, $agent, $batchUid, $previewUid);
+        $this->assertSame($payload['operations'][0]['new_name'], $again['operations'][0]['new_name']);
+        $this->assertSame(2, (int) (new PhotoSequenceRepository($database))->allSequences()[0]['last_number']);
     }
 
     private function installPhotoGeoSchema(): void
