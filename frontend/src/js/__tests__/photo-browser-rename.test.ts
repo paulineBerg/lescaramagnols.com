@@ -492,21 +492,12 @@ describe('photo browser rename', () => {
       </div>
     `;
     const file = new File([gpsJpegBuffer()], 'IMG_7697.JPEG', { type: 'image/jpeg', lastModified: 1 });
+    const secondFile = new File([gpsJpegBuffer()], 'IMG_7698.JPEG', { type: 'image/jpeg', lastModified: 2 });
     const fileInput = document.querySelector<HTMLInputElement>('[data-photo-browser-files]');
     expect(fileInput).not.toBeNull();
     Object.defineProperty(fileInput, 'files', {
       configurable: true,
-      value: [file]
-    });
-    const originalCreateObjectUrl = URL.createObjectURL;
-    const originalRevokeObjectUrl = URL.revokeObjectURL;
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: vi.fn(() => 'blob:photo-preview')
-    });
-    Object.defineProperty(URL, 'revokeObjectURL', {
-      configurable: true,
-      value: vi.fn()
+      value: [file, secondFile]
     });
     const originalArrayBuffer = Blob.prototype.arrayBuffer;
     const arrayBuffer = vi.fn().mockResolvedValue(gpsJpegBuffer());
@@ -521,18 +512,12 @@ describe('photo browser rename', () => {
     expect(document.querySelector('.photo-browser-preview-cell')?.textContent).toBe('chargement');
     await flushPromises();
     await flushPromises();
+    await flushPromises();
 
-    const image = document.querySelector<HTMLImageElement>('.photo-browser-thumbnail');
-    expect(image?.getAttribute('src')).toBe('blob:photo-preview');
-    expect(image?.getAttribute('alt')).toBe('IMG_7697.JPEG');
-    Object.defineProperty(URL, 'createObjectURL', {
-      configurable: true,
-      value: originalCreateObjectUrl
-    });
-    Object.defineProperty(URL, 'revokeObjectURL', {
-      configurable: true,
-      value: originalRevokeObjectUrl
-    });
+    const images = Array.from(document.querySelectorAll<HTMLImageElement>('.photo-browser-thumbnail'));
+    expect(images).toHaveLength(2);
+    expect(images.map((image) => image.getAttribute('src')?.startsWith('data:image/jpeg;base64,'))).toEqual([true, true]);
+    expect(images.map((image) => image.getAttribute('alt'))).toEqual(['IMG_7697.JPEG', 'IMG_7698.JPEG']);
     Object.defineProperty(Blob.prototype, 'arrayBuffer', {
       configurable: true,
       value: originalArrayBuffer

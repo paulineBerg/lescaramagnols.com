@@ -82,6 +82,22 @@ const extensionOf = (name: string): string => {
   return dot > 0 && dot < basename.length - 1 ? basename.slice(dot + 1) : '';
 };
 
+const mimeTypeForExtension = (name: string): string | null => {
+  switch (extensionOf(name).toLowerCase()) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'heic':
+      return 'image/heic';
+    default:
+      return null;
+  }
+};
+
 const basenameWithoutExtension = (name: string): string => {
   const basename = name.split(/[\\/]/).pop() ?? '';
   const extension = extensionOf(basename);
@@ -792,7 +808,24 @@ const readFileDataUrl = (file: File): Promise<string | null> => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.addEventListener('load', () => {
-      resolve(typeof reader.result === 'string' && reader.result.startsWith('data:image/') ? reader.result : null);
+      if (typeof reader.result !== 'string') {
+        resolve(null);
+        return;
+      }
+
+      if (reader.result.startsWith('data:image/')) {
+        resolve(reader.result);
+        return;
+      }
+
+      const mimeType = mimeTypeForExtension(file.name);
+      const base64Separator = ';base64,';
+      const payloadOffset = reader.result.indexOf(base64Separator);
+      resolve(
+        mimeType !== null && payloadOffset >= 0
+          ? `data:${mimeType};base64,${reader.result.slice(payloadOffset + base64Separator.length)}`
+          : null
+      );
     });
     reader.addEventListener('error', () => resolve(null));
     reader.readAsDataURL(file);
@@ -800,10 +833,6 @@ const readFileDataUrl = (file: File): Promise<string | null> => {
 };
 
 const createThumbnailUrl = async (file: File): Promise<string | null> => {
-  if (typeof URL.createObjectURL === 'function') {
-    return URL.createObjectURL(file);
-  }
-
   return readFileDataUrl(file);
 };
 
@@ -855,7 +884,6 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   let latestGeocodeAt = 0;
   const communeCache = new Map<string, Promise<string | null>>();
   let thumbnailCache = new WeakMap<File, ThumbnailState>();
-  const thumbnailUrls = new Set<string>();
 
   if (!fileInput || !communeInput || !startInput || !sortInput || !previewButton || !zipButton || !status || !table || !rows) {
     return;
@@ -919,9 +947,6 @@ const initBrowserRenamer = (root: HTMLElement): void => {
       status: 'loading',
       promise: createThumbnailUrl(file).then((url) => {
         thumbnailCache.set(file, url === null ? { status: 'failed' } : { status: 'ready', url });
-        if (url !== null && url.startsWith('blob:')) {
-          thumbnailUrls.add(url);
-        }
         return url;
       })
     };
@@ -932,10 +957,6 @@ const initBrowserRenamer = (root: HTMLElement): void => {
 
   const analyzeSelectedFiles = async (): Promise<void> => {
     const run = ++analysisRun;
-    for (const url of thumbnailUrls) {
-      URL.revokeObjectURL(url);
-    }
-    thumbnailUrls.clear();
     thumbnailCache = new WeakMap<File, ThumbnailState>();
     const manualNames = new WeakMap<File, string>();
     for (const currentFile of currentFiles) {
