@@ -9,7 +9,13 @@ use Caramagnols\PbGestion\Command\CommandPolicy;
 use Caramagnols\PbGestion\Protocol\AgentErrorCodes;
 use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoBatchRepository;
 use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoOperationRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoPlaceRepository;
 use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoSequenceRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\AdministrativePlaceResolver;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\FrenchGovernmentCommuneProvider;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\GeoPlatformReverseGeocoderProvider;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\NominatimReverseGeocoderProvider;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\PhotoGeoHttpClient;
 use Caramagnols\PrivateApps\PhotoGeoRenamer\Service\PhotoRenameBatchService;
 use Caramagnols\SecurityCenter\Alert\AlertDeduplicator;
 use Caramagnols\SecurityCenter\Dashboard\CoverageCalculator;
@@ -944,7 +950,7 @@ final class PbGestionRepository
                 'agent_uid' => $agentUid,
                 'display_name' => $displayName,
                 'public_key' => $publicKey,
-                'os_family' => $this->shortText((string) ($payload['os_family'] ?? 'windows'), 32) ?: 'windows',
+                'os_family' => $this->normalizeOsFamily($payload['os_family'] ?? null) ?? 'windows',
                 'os_version' => $this->shortText((string) ($payload['os_version'] ?? ''), 80) ?: null,
                 'agent_version' => $this->shortText((string) ($payload['agent_version'] ?? ''), 80) ?: null,
                 'location_label' => $this->shortText((string) ($token['location_label'] ?? ''), 160) ?: null,
@@ -1032,6 +1038,7 @@ final class PbGestionRepository
     private function updateAgentRuntime(int $agentId, int $ownerId, array $payload): void
     {
         $fields = [
+            'os_family' => $this->normalizeOsFamily($payload['os_family'] ?? null),
             'os_version' => $this->shortText((string) ($payload['os_version'] ?? ''), 80) ?: null,
             'agent_version' => $this->shortText((string) ($payload['agent_version'] ?? ''), 80) ?: null,
             'capabilities_json' => is_array($payload['capabilities'] ?? null) ? $this->json(array_values($payload['capabilities'])) : null,
@@ -1043,7 +1050,8 @@ final class PbGestionRepository
         $statement = $this->pdo()->prepare(
             sprintf(
                 'UPDATE `%s`
-                 SET `os_version` = COALESCE(:os_version, `os_version`),
+                 SET `os_family` = COALESCE(:os_family, `os_family`),
+                     `os_version` = COALESCE(:os_version, `os_version`),
                      `agent_version` = COALESCE(:agent_version, `agent_version`),
                      `capabilities_json` = COALESCE(:capabilities_json, `capabilities_json`),
                      `last_seen_at` = :last_seen_at,
@@ -1053,6 +1061,61 @@ final class PbGestionRepository
             )
         );
         $statement->execute($fields);
+
+        if (is_array($payload['capabilities'] ?? null)) {
+            $this->syncAgentCapabilities($ownerId, $agentId, $payload['capabilities']);
+        }
+    }
+
+    /**
+     * @param array<mixed> $capabilities
+     */
+    private function syncAgentCapabilities(int $ownerId, int $agentId, array $capabilities): void
+    {
+        $now = $this->now();
+        $statement = $this->pdo()->prepare(
+            sprintf(
+                'INSERT INTO `%s`
+                    (`owner_id`, `agent_id`, `capability_code`, `is_enabled`, `created_at`, `updated_at`)
+                 VALUES
+                    (:owner_id, :agent_id, :capability_code, 1, :created_at, :updated_at)
+                 ON DUPLICATE KEY UPDATE
+                    `is_enabled` = 1,
+                    `updated_at` = VALUES(`updated_at`)',
+                $this->table('pb_agent_capabilities')
+            )
+        );
+
+        foreach ($capabilities as $capability) {
+            if (!is_string($capability) || trim($capability) === '') {
+                continue;
+            }
+            $capabilityCode = $this->shortText($capability, 80);
+            if ($capabilityCode === '') {
+                continue;
+            }
+            $statement->execute([
+                'owner_id' => $ownerId,
+                'agent_id' => $agentId,
+                'capability_code' => $capabilityCode,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+        }
+    }
+
+    private function normalizeOsFamily(mixed $value): ?string
+    {
+        $value = $this->shortText(is_string($value) ? strtolower(trim($value)) : '', 32);
+        if ($value === '') {
+            return null;
+        }
+
+        return match ($value) {
+            'darwin', 'osx', 'mac' => 'macos',
+            'win', 'win32', 'windows_nt' => 'windows',
+            default => in_array($value, ['windows', 'linux', 'macos'], true) ? $value : null,
+        };
     }
 
     /**
@@ -1736,7 +1799,24 @@ final class PbGestionRepository
             $this->database,
             new PhotoBatchRepository($this->database),
             new PhotoOperationRepository($this->database),
-            new PhotoSequenceRepository($this->database)
+            new PhotoSequenceRepository($this->database),
+            placeResolver: $this->photoPlaceResolver()
+        );
+    }
+
+    private function photoPlaceResolver(): AdministrativePlaceResolver
+    {
+        $httpClient = new PhotoGeoHttpClient();
+        $logger = function_exists('app_event_logger') ? app_event_logger() : null;
+
+        return new AdministrativePlaceResolver(
+            new PhotoPlaceRepository($this->database),
+            [
+                new FrenchGovernmentCommuneProvider($httpClient),
+                new GeoPlatformReverseGeocoderProvider($httpClient),
+                new NominatimReverseGeocoderProvider($httpClient),
+            ],
+            $logger instanceof \Caramagnols\Logging\AppEventLogger ? $logger : null
         );
     }
 

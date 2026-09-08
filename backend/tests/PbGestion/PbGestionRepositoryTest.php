@@ -133,6 +133,40 @@ final class PbGestionRepositoryTest extends TestCase
         $this->assertSame(1, $repository->dashboardForOwner(44)['details_pending']);
     }
 
+    public function testSyncUpdatesDetectedOsFamilyAndCapabilities(): void
+    {
+        if (!function_exists('sodium_crypto_sign_keypair')) {
+            $this->markTestSkipped('Extension sodium absente.');
+        }
+
+        $repository = new PbGestionRepository($this->editorialSqlDatabase());
+        $agent = $this->claimAgent($repository, 45, 'Mac photos');
+
+        $result = $repository->synchronizeAgent($agent, [
+            'os_family' => 'darwin',
+            'os_version' => 'Darwin 25.0.0',
+            'agent_version' => '1.0.0',
+            'capabilities' => ['photos', 'photo_geo_renamer_v2'],
+        ]);
+
+        $this->assertTrue($result['ok']);
+        $stored = $repository->findAgentByUid((string) $agent['agent_uid']);
+        $this->assertIsArray($stored);
+        $this->assertSame('macos', $stored['os_family']);
+        $this->assertSame('Darwin 25.0.0', $stored['os_version']);
+        $this->assertSame('1.0.0', $stored['agent_version']);
+        $this->assertStringContainsString('photo_geo_renamer_v2', (string) $stored['capabilities_json']);
+
+        $capabilityStatement = $this->editorialSqlDatabase()->pdo()->prepare(
+            sprintf(
+                'SELECT `capability_code` FROM `%s` WHERE `agent_id` = :agent_id ORDER BY `capability_code`',
+                $this->editorialSqlDatabase()->table('pb_agent_capabilities')
+            )
+        );
+        $capabilityStatement->execute(['agent_id' => (int) $agent['id']]);
+        $this->assertContains('photo_geo_renamer_v2', array_column($capabilityStatement->fetchAll(\PDO::FETCH_ASSOC), 'capability_code'));
+    }
+
     /**
      * @return array<string, mixed>
      */

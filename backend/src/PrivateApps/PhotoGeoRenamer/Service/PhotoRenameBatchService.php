@@ -25,7 +25,8 @@ final class PhotoRenameBatchService
         private readonly PhotoSequenceRepository $sequences,
         private readonly PhotoPathPolicy $pathPolicy = new PhotoPathPolicy(),
         private readonly PhotoCommuneNormalizer $communes = new PhotoCommuneNormalizer(),
-        private readonly PhotoRenameTemplate $template = new PhotoRenameTemplate()
+        private readonly PhotoRenameTemplate $template = new PhotoRenameTemplate(),
+        private readonly ?AdministrativePlaceResolver $placeResolver = null
     ) {
     }
 
@@ -334,6 +335,12 @@ final class PhotoRenameBatchService
                 ? trim((string) $operation['old_name'])
                 : basename((string) $relativePath);
             $commune = $this->communes->normalize($operation['commune_name'] ?? $operation['city'] ?? null);
+            $latitude = is_numeric($operation['latitude'] ?? null) ? (float) $operation['latitude'] : null;
+            $longitude = is_numeric($operation['longitude'] ?? null) ? (float) $operation['longitude'] : null;
+            if ($commune === null && $latitude !== null && $longitude !== null) {
+                $resolved = $this->resolveCommuneFromCoordinates($latitude, $longitude);
+                $commune = $resolved !== null ? $this->communes->normalize($resolved->communeName) : null;
+            }
             if ($relativePath === null || $originalName === '') {
                 continue;
             }
@@ -347,8 +354,8 @@ final class PhotoRenameBatchService
                 'commune_name' => $commune?->name,
                 'taken_at' => $this->dateValue($operation['taken_at'] ?? $operation['date_taken'] ?? null),
                 'taken_at_source' => $this->shortString($operation['taken_at_source'] ?? null, 64),
-                'latitude' => is_numeric($operation['latitude'] ?? null) ? (float) $operation['latitude'] : null,
-                'longitude' => is_numeric($operation['longitude'] ?? null) ? (float) $operation['longitude'] : null,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
                 'status' => $commune === null ? 'conflict' : 'previewed',
                 'error_code' => $commune === null ? 'commune_missing' : null,
             ];
@@ -482,6 +489,19 @@ final class PhotoRenameBatchService
         $value = trim(is_string($value) || is_numeric($value) ? (string) $value : '');
 
         return $value !== '' ? mb_substr($value, 0, $max) : null;
+    }
+
+    private function resolveCommuneFromCoordinates(float $latitude, float $longitude): ?\Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\ResolvedPlace
+    {
+        if ($this->placeResolver === null || $latitude < -90.0 || $latitude > 90.0 || $longitude < -180.0 || $longitude > 180.0) {
+            return null;
+        }
+
+        try {
+            return $this->placeResolver->resolve(round($latitude, 6), round($longitude, 6));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function temporaryName(string $oldName, string $batchUid, int $index): string
