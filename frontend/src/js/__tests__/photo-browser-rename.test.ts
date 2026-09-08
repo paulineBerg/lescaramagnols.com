@@ -174,6 +174,28 @@ describe('photo browser rename', () => {
     expect(plan.operations.map((operation) => operation.newName)).toEqual(['Cogolin-01.JPG', 'Cogolin-02.JPG']);
   });
 
+  it('conserve les copies pretes quand une autre photo attend une commune', () => {
+    const plan = buildBrowserRenamePlan(
+      [
+        { name: 'IMG_0001.JPG', lastModified: 10, size: 10, detectedCommune: 'Saint-Tropez', communeState: 'detected' },
+        { name: 'IMG_0002.PNG', lastModified: 20, size: 12, communeState: 'missing_gps' }
+      ],
+      {
+        communeName: '',
+        startNumber: 1,
+        counterDigits: 2,
+        separator: '-',
+        sortOrder: 'selection'
+      }
+    );
+
+    expect(plan.ok).toBe(false);
+    expect(plan.summary.ready).toBe(1);
+    expect(plan.summary.conflicts).toBe(1);
+    expect(plan.operations[0].newName).toBe('Saint-Tropez-01.JPG');
+    expect(plan.operations[1].issues).toContain('commune_requise');
+  });
+
   it('signale les extensions non supportees et la commune manquante', () => {
     const plan = buildBrowserRenamePlan(
       [{ name: 'notes.txt', lastModified: 0, size: 4 }],

@@ -459,12 +459,12 @@ final class LocalAgentPortalController
 
         $payload = $this->fetchReverseGeocode($url);
         if ($payload === null) {
-            return null;
+            return $this->fallbackCommuneFromCoordinates($latitude, $longitude);
         }
 
         $decoded = json_decode($payload, true);
         if (!is_array($decoded) || !is_array($decoded['address'] ?? null)) {
-            return null;
+            return $this->fallbackCommuneFromCoordinates($latitude, $longitude);
         }
 
         foreach (['city', 'town', 'village', 'municipality', 'hamlet', 'locality', 'county'] as $key) {
@@ -474,7 +474,60 @@ final class LocalAgentPortalController
             }
         }
 
-        return null;
+        return $this->fallbackCommuneFromCoordinates($latitude, $longitude);
+    }
+
+    private function fallbackCommuneFromCoordinates(float $latitude, float $longitude): ?string
+    {
+        if ($latitude < 43.12 || $latitude > 43.38 || $longitude < 6.42 || $longitude > 6.68) {
+            return null;
+        }
+
+        $communes = [
+            ['name' => 'Saint-Tropez', 'latitude' => 43.2677, 'longitude' => 6.6407],
+            ['name' => 'Cogolin', 'latitude' => 43.2528, 'longitude' => 6.5306],
+            ['name' => 'Gassin', 'latitude' => 43.2285, 'longitude' => 6.5850],
+            ['name' => 'Grimaud', 'latitude' => 43.2730, 'longitude' => 6.5230],
+            ['name' => 'Sainte-Maxime', 'latitude' => 43.3083, 'longitude' => 6.6386],
+            ['name' => 'Ramatuelle', 'latitude' => 43.2150, 'longitude' => 6.6120],
+            ['name' => 'La Croix-Valmer', 'latitude' => 43.2071, 'longitude' => 6.5670],
+            ['name' => 'Cavalaire-sur-Mer', 'latitude' => 43.1727, 'longitude' => 6.5294],
+            ['name' => 'La Mole', 'latitude' => 43.2096, 'longitude' => 6.4669],
+            ['name' => 'Le Plan-de-la-Tour', 'latitude' => 43.3392, 'longitude' => 6.5467],
+            ['name' => 'La Garde-Freinet', 'latitude' => 43.3176, 'longitude' => 6.4697],
+            ['name' => 'Le Rayol-Canadel-sur-Mer', 'latitude' => 43.1593, 'longitude' => 6.4801],
+        ];
+
+        $nearest = null;
+        $nearestDistance = PHP_FLOAT_MAX;
+        foreach ($communes as $commune) {
+            $distance = $this->coordinateDistanceKm(
+                $latitude,
+                $longitude,
+                (float) $commune['latitude'],
+                (float) $commune['longitude']
+            );
+            if ($distance < $nearestDistance) {
+                $nearestDistance = $distance;
+                $nearest = (string) $commune['name'];
+            }
+        }
+
+        return $nearestDistance <= 18.0 ? $nearest : null;
+    }
+
+    private function coordinateDistanceKm(float $fromLatitude, float $fromLongitude, float $toLatitude, float $toLongitude): float
+    {
+        $earthRadiusKm = 6371.0;
+        $latitudeDelta = deg2rad($toLatitude - $fromLatitude);
+        $longitudeDelta = deg2rad($toLongitude - $fromLongitude);
+        $fromLatitudeRad = deg2rad($fromLatitude);
+        $toLatitudeRad = deg2rad($toLatitude);
+
+        $a = sin($latitudeDelta / 2) ** 2
+            + cos($fromLatitudeRad) * cos($toLatitudeRad) * sin($longitudeDelta / 2) ** 2;
+
+        return $earthRadiusKm * 2 * atan2(sqrt($a), sqrt(1 - $a));
     }
 
     private function fetchReverseGeocode(string $url): ?string

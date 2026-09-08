@@ -805,7 +805,7 @@ const initBrowserRenamer = (root: HTMLElement): void => {
     }
 
     table.hidden = latestOperations.length === 0;
-    zipButton.disabled = plan.summary.ready === 0 || plan.summary.conflicts > 0;
+    zipButton.disabled = plan.summary.ready === 0;
     const pending = latestOperations.filter((operation) => operation.issues.includes('geocodage_en_cours')).length;
     status.textContent =
       plan.summary.selected === 0
@@ -815,7 +815,14 @@ const initBrowserRenamer = (root: HTMLElement): void => {
         : `${plan.summary.ready} copie(s) prete(s), ${plan.summary.conflicts} conflit(s).`;
   };
 
-  previewButton.addEventListener('click', () => renderPlan());
+  previewButton.addEventListener('click', () => {
+    if ((fileInput.files?.length ?? 0) > 0) {
+      void analyzeSelectedFiles();
+      return;
+    }
+
+    renderPlan();
+  });
   fileInput.addEventListener('change', () => {
     void analyzeSelectedFiles();
   });

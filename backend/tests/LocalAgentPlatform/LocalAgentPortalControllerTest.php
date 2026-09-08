@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LesCaramagnols\Tests\LocalAgentPlatform;
 
 use Caramagnols\Http\Request;
+use Caramagnols\LocalAgentPlatform\Http\LocalAgentPortalController;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\PrivatePortal\Http\PrivatePortalController;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
@@ -264,6 +265,17 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertSame(422, $response->status);
         $this->assertSame('application/json; charset=utf-8', $response->headers['Content-Type'] ?? null);
         $this->assertStringContainsString('invalid_coordinates', $response->body);
+    }
+
+    public function testPhotoReverseGeocodeFallbackResolvesGolfeDeSaintTropezCommunes(): void
+    {
+        $controller = (new \ReflectionClass(LocalAgentPortalController::class))->newInstanceWithoutConstructor();
+        $method = new \ReflectionMethod(LocalAgentPortalController::class, 'fallbackCommuneFromCoordinates');
+        $method->setAccessible(true);
+
+        $this->assertSame('Saint-Tropez', $method->invoke($controller, 43.272611, 6.632808));
+        $this->assertSame('Cogolin', $method->invoke($controller, 43.251639, 6.534650));
+        $this->assertNull($method->invoke($controller, 48.856614, 2.352222));
     }
 
     public function testInvalidCsrfKeepsPhotoApplicationContext(): void
