@@ -209,16 +209,13 @@ final class LocalAgentPortalControllerTest extends TestCase
             'csrf_token' => csrf_token('private_pbgestion'),
             'action' => 'photo_restricted_preview',
             'restricted_items' => "IMG_0001.jpg;Cogolin;2026-08-13 12:00:00\nIMG_0002.jpg;Cogolin;2026-08-13 12:05:00",
-            'text_before' => 'Vacances',
-            'separator' => '_',
-            'counter_digits' => '3',
             'sort_order' => 'manual',
         ]));
 
         $this->assertSame(200, $previewResponse->status);
         $this->assertStringContainsString('Aperçu restreint généré', $previewResponse->body);
-        $this->assertStringContainsString('Vacances_Cogolin_2026-08-13_001.jpg', $previewResponse->body);
-        $this->assertStringContainsString('Vacances_Cogolin_2026-08-13_002.jpg', $previewResponse->body);
+        $this->assertStringContainsString('Cogolin-01.jpg', $previewResponse->body);
+        $this->assertStringContainsString('Cogolin-02.jpg', $previewResponse->body);
         $this->assertStringContainsString('Aucun fichier local n’a été lu ou renommé', $previewResponse->body);
     }
 

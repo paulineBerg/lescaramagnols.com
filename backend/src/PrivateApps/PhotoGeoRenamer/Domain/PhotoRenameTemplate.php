@@ -19,7 +19,7 @@ final class PhotoRenameTemplate
     public function filename(array $photo, array $blocks, string $separator, int $counter, int $counterDigits): string
     {
         $separator = $this->normalizer->separator($separator);
-        $counterDigits = max(1, min(6, $counterDigits));
+        $counterDigits = max(2, min(6, $counterDigits));
         $parts = [];
         foreach ($this->normalizeBlocks($blocks) as $block) {
             $part = $this->part($photo, $block, $counter, $counterDigits);
@@ -62,7 +62,6 @@ final class PhotoRenameTemplate
 
         return $normalized !== [] ? $normalized : [
             ['type' => 'city', 'value' => ''],
-            ['type' => 'date', 'value' => ''],
             ['type' => 'counter', 'value' => ''],
         ];
     }

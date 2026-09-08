@@ -94,6 +94,6 @@ docs/private/agence/
 .claude/settings.local.json
 
 # Temporary multi-AI task handoff
-.ai/CURRENT_TASK.md
+.ai/CURRENT_TASK*.md
 /.ai/archive/
 /.governance/archive/

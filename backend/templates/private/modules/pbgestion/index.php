@@ -10,6 +10,9 @@ $appNavLabel = is_string($app['navLabel'] ?? null) ? (string) $app['navLabel'] :
 $isSecurityApp = $appKind === 'security';
 $isPhotoApp = $appKind === 'photo';
 $dashboard = is_array($pbgestion['dashboard'] ?? null) ? $pbgestion['dashboard'] : [];
+$photoGeo = is_array($pbgestion['photoGeo'] ?? null) ? $pbgestion['photoGeo'] : [];
+$photoGeoCounters = is_array($photoGeo['counters'] ?? null) ? $photoGeo['counters'] : [];
+$photoGeoBatches = is_array($photoGeo['batches'] ?? null) ? $photoGeo['batches'] : [];
 $oneTimeEnrollment = is_array($pbgestion['oneTimeEnrollment'] ?? null) ? $pbgestion['oneTimeEnrollment'] : null;
 $restrictedPhotoPreview = is_array($pbgestion['restrictedPhotoPreview'] ?? null) ? $pbgestion['restrictedPhotoPreview'] : null;
 $moduleNotice = is_string($notice ?? null) ? (string) $notice : '';
@@ -64,8 +67,10 @@ $statusLabel = static function (string $status): string {
       <?php endif; ?>
       <?php if ($isPhotoApp): ?>
       <a class="<?php echo $isActive('photos'); ?>" href="<?php echo $h($url('photos')); ?>">Renommage</a>
+      <a class="<?php echo $isActive('history'); ?>" href="<?php echo $h($url('history')); ?>">Historique</a>
+      <a class="<?php echo $isActive('counters'); ?>" href="<?php echo $h($url('counters')); ?>">Compteurs</a>
       <?php endif; ?>
-      <a class="<?php echo $isActive('agents'); ?>" href="<?php echo $h($url('agents')); ?>">Agents et installation</a>
+      <a class="<?php echo $isActive('agents'); ?>" href="<?php echo $h($url('agents')); ?>"><?php echo $isPhotoApp ? 'Agents' : 'Agents et installation'; ?></a>
       <?php if ($isSecurityApp): ?>
       <a class="<?php echo $isActive('settings'); ?>" href="<?php echo $h($url('settings')); ?>">Paramètres</a>
       <?php endif; ?>
@@ -213,22 +218,8 @@ $statusLabel = static function (string $status): string {
           <label>Photos à prévisualiser
             <textarea name="restricted_items" rows="6" placeholder="IMG_0001.jpg;Cogolin;2026-08-13 12:00:00&#10;IMG_0002.jpg;Cogolin;2026-08-13 12:05:00" required></textarea>
           </label>
-          <label>Texte avant
-            <input type="text" name="text_before" maxlength="80" placeholder="Vacances" />
-          </label>
-          <label>Texte après
-            <input type="text" name="text_after" maxlength="80" />
-          </label>
-          <label>Séparateur
-            <select name="separator">
-              <option value="-">-</option>
-              <option value="_">_</option>
-              <option value=" ">espace</option>
-            </select>
-          </label>
-          <label>Chiffres compteur
-            <input type="number" name="counter_digits" min="1" max="6" value="3" />
-          </label>
+          <input type="hidden" name="separator" value="-" />
+          <input type="hidden" name="counter_digits" value="2" />
           <label>Tri
             <select name="sort_order">
               <option value="manual">ordre saisi</option>
@@ -251,10 +242,11 @@ $statusLabel = static function (string $status): string {
             <?php echo (int) ($restrictedSummary['conflicts'] ?? 0); ?> conflit(s).
           </div>
           <?php if ($restrictedOperations !== []): ?>
-            <table><thead><tr><th>Nom actuel</th><th>Nom proposé</th><th>Etat</th></tr></thead><tbody>
+            <table><thead><tr><th>Nom actuel</th><th>Commune</th><th>Nom proposé</th><th>Etat</th></tr></thead><tbody>
               <?php foreach ($restrictedOperations as $operation): if (!is_array($operation)) { continue; } ?>
                 <tr>
                   <td><?php echo $h($operation['old_name'] ?? ''); ?></td>
+                  <td><?php echo $h($operation['commune_name'] ?? ''); ?></td>
                   <td><?php echo $h($operation['new_name'] ?? ''); ?></td>
                   <td><?php echo $h($statusLabel((string) ($operation['status'] ?? ''))); ?></td>
                 </tr>
@@ -320,22 +312,8 @@ $statusLabel = static function (string $status): string {
               <label>Photos sélectionnées
                 <textarea name="items" rows="7" placeholder="IMG_0001.jpg&#10;IMG_0002.jpg" required></textarea>
               </label>
-              <label>Texte avant
-                <input type="text" name="text_before" maxlength="80" placeholder="Vacances" />
-              </label>
-              <label>Texte après
-                <input type="text" name="text_after" maxlength="80" />
-              </label>
-              <label>Séparateur
-                <select name="separator">
-                  <option value="-">-</option>
-                  <option value="_">_</option>
-                  <option value=" ">espace</option>
-                </select>
-              </label>
-              <label>Chiffres compteur
-                <input type="number" name="counter_digits" min="1" max="6" value="3" />
-              </label>
+              <input type="hidden" name="separator" value="-" />
+              <input type="hidden" name="counter_digits" value="2" />
               <label>Tri
                 <select name="sort_order">
                   <option value="chronological">chronologique</option>
@@ -400,6 +378,47 @@ $statusLabel = static function (string $status): string {
           </section>
         </div>
       <?php endif; ?>
+    </section>
+  <?php elseif ($isPhotoApp && $view === 'history'): ?>
+    <section class="card private-card-wide">
+      <h2>Historique</h2>
+      <p class="muted">Chaque lot conserve les noms d’origine, les noms attribués, les communes, les numéros et les erreurs utiles. Le rollback ne diminue jamais les compteurs.</p>
+      <table><thead><tr><th>Date</th><th>Agent</th><th>Fichiers</th><th>Statut</th></tr></thead><tbody>
+        <?php if (($photoGeo['schema_available'] ?? false) !== true): ?>
+          <tr><td colspan="4" class="muted">Migration Photo rename en attente.</td></tr>
+        <?php elseif ($photoGeoBatches === []): ?>
+          <tr><td colspan="4" class="muted">Aucun lot enregistré.</td></tr>
+        <?php else: ?>
+          <?php foreach ($photoGeoBatches as $batch): if (!is_array($batch)) { continue; } ?>
+            <tr>
+              <td><?php echo $h($dateLabel($batch['created_at'] ?? null)); ?></td>
+              <td><?php echo $h($batch['agent_uid'] ?? ('#' . (int) ($batch['agent_id'] ?? 0))); ?></td>
+              <td><?php echo (int) ($batch['total_files'] ?? 0); ?></td>
+              <td><?php echo $h($statusLabel((string) ($batch['status'] ?? 'draft'))); ?></td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody></table>
+    </section>
+  <?php elseif ($isPhotoApp && $view === 'counters'): ?>
+    <section class="card private-card-wide">
+      <h2>Compteurs</h2>
+      <p class="muted">Les compteurs sont globaux par commune et stockés dans la BDD OVH. Une initialisation manuelle renseigne un dernier numéro déjà utilisé sans scanner le dossier de destination.</p>
+      <table><thead><tr><th>Commune</th><th>Dernier numéro</th><th>Dernière réservation</th></tr></thead><tbody>
+        <?php if (($photoGeo['schema_available'] ?? false) !== true): ?>
+          <tr><td colspan="3" class="muted">Migration Photo rename en attente.</td></tr>
+        <?php elseif ($photoGeoCounters === []): ?>
+          <tr><td colspan="3" class="muted">Aucun compteur initialisé.</td></tr>
+        <?php else: ?>
+          <?php foreach ($photoGeoCounters as $counter): if (!is_array($counter)) { continue; } ?>
+            <tr>
+              <td><?php echo $h($counter['commune_name'] ?? ''); ?></td>
+              <td><?php echo (int) ($counter['last_number'] ?? 0); ?></td>
+              <td><?php echo $h($dateLabel($counter['updated_at'] ?? null)); ?></td>
+            </tr>
+          <?php endforeach; ?>
+        <?php endif; ?>
+      </tbody></table>
     </section>
   <?php elseif ($view === 'agents'): ?>
     <section class="card private-card-wide">
@@ -482,13 +501,13 @@ $statusLabel = static function (string $status): string {
     <section class="card private-card-wide">
       <?php if ($isPhotoApp): ?>
       <h2>Aide Photo rename</h2>
-      <p class="muted">Photo rename prépare des noms de fichiers photo sans lire les fichiers locaux depuis OVH. Le mode restreint calcule seulement un aperçu à partir de la liste saisie.</p>
+      <p class="muted">Photo rename prépare des noms `Commune-01.ext` sans lire les fichiers locaux depuis OVH. Les numéros sont réservés en BDD au moment de l’exécution et ne sont jamais réutilisés.</p>
       <h3>Avant de commencer</h3>
       <p>Utilisez le mode restreint si aucun agent local n’est accepté. Installez l’agent PbGestion seulement après consentement explicite pour scanner ou renommer des fichiers sur le PC.</p>
       <h3>Commandes</h3>
-      <p>Les commandes photo sont asynchrones et restent bornées à une racine locale autorisée, un dossier relatif et une sélection explicite.</p>
+      <p>Les commandes photo sont asynchrones et restent bornées à une racine locale autorisée, un dossier relatif et une sélection explicite. Le dossier destination n’est jamais analysé pour calculer le prochain numéro.</p>
       <h3>8. Informations techniques</h3>
-      <p>Les commandes photo sont récupérées par l’agent via `/api/pbgestion/v1/*`. L’agent conserve les journaux et aperçus locaux sous le dossier maître <strong>pbgestion</strong>.</p>
+      <p>Les commandes photo sont récupérées par l’agent via `/api/pbgestion/v1/*`. L’agent doit utiliser ExifTool localement, renommer sans écrasement en deux passes et renvoyer des erreurs structurées comme <strong>target_exists</strong>.</p>
       <?php else: ?>
       <h2>Aide Sécurité réseau</h2>
       <p class="muted">Sécurité réseau affiche l’état local utile transmis par les agents. Les données brutes réseau restent locales par défaut.</p>

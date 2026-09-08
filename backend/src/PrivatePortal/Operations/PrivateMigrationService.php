@@ -105,7 +105,12 @@ final class PrivateMigrationService
             'security_alerts',
             'security_detail_requests',
         ],
-        'photo_geo_renamer' => [],
+        'photo_geo_renamer' => [
+            'photo_geo_sequences',
+            'photo_geo_batches',
+            'photo_geo_operations',
+            'photo_geo_places',
+        ],
     ];
 
     public function __construct(

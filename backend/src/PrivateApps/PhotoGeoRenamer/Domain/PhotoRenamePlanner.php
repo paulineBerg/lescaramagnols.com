@@ -6,7 +6,11 @@ namespace Caramagnols\PrivateApps\PhotoGeoRenamer\Domain;
 
 final class PhotoRenamePlanner
 {
-    public function __construct(private readonly PhotoRenameTemplate $template = new PhotoRenameTemplate())
+    public function __construct(
+        private readonly PhotoRenameTemplate $template = new PhotoRenameTemplate(),
+        private readonly PhotoCommuneNormalizer $communeNormalizer = new PhotoCommuneNormalizer(),
+        private readonly PhotoDateResolver $dateResolver = new PhotoDateResolver()
+    )
     {
     }
 
@@ -14,7 +18,7 @@ final class PhotoRenamePlanner
      * @param array<int, array<string, mixed>> $photos
      * @param array<int, string> $selectedNames
      * @param array<int, array<string, mixed>> $blocks
-     * @param array<int, string> $existingNames
+     * @param array<int, string> $existingNames Legacy parameter ignored: destination folders are never scanned for numbering.
      * @return array{ok: bool, operations: array<int, array<string, mixed>>, conflicts: array<int, array<string, mixed>>, summary: array<string, int>}
      */
     public function preview(
@@ -24,7 +28,7 @@ final class PhotoRenamePlanner
         array $existingNames = [],
         string $separator = '-',
         int $counterStart = 1,
-        int $counterDigits = 3,
+        int $counterDigits = 2,
         string $sortOrder = 'chronological',
         ?string $batchUid = null
     ): array {
@@ -33,33 +37,43 @@ final class PhotoRenamePlanner
             $photos,
             static fn (array $photo): bool => isset($selected[(string) ($photo['current_name'] ?? $photo['name'] ?? '')])
         ));
-        $selectedPhotos = $this->sortPhotos($selectedPhotos, $sortOrder);
-        $existing = array_fill_keys($existingNames, true);
-        $selectedCurrent = array_fill_keys(array_map(
-            static fn (array $photo): string => (string) ($photo['current_name'] ?? $photo['name'] ?? ''),
-            $selectedPhotos
-        ), true);
+        unset($existingNames);
 
         $operations = [];
         $conflicts = [];
         $targets = [];
-        $counter = max(1, $counterStart);
+        $counters = [];
         $batchUid ??= str_repeat('0', 32);
 
-        foreach ($selectedPhotos as $index => $photo) {
+        $plannedPhotos = $this->sortPhotos($this->preparePhotos($selectedPhotos, $counterStart), $sortOrder);
+        foreach ($plannedPhotos as $index => $photo) {
             $oldName = (string) ($photo['current_name'] ?? $photo['name'] ?? '');
-            $newName = $this->template->filename($photo, $blocks, $separator, $counter, $counterDigits);
-            $counter++;
-
             $issues = [];
-            if ($oldName === '' || $newName === '') {
+            if ($oldName === '') {
+                $issues[] = 'invalid_name';
+            }
+            if (($photo['commune_key'] ?? '') === '') {
+                $issues[] = 'commune_missing';
+            }
+            if (($photo['taken_at_timestamp'] ?? null) === null && $sortOrder === 'chronological') {
+                $issues[] = 'taken_at_missing';
+            }
+
+            $communeKey = (string) ($photo['commune_key'] ?? '');
+            if (!isset($counters[$communeKey])) {
+                $counters[$communeKey] = (int) ($photo['sequence_last_number'] ?? (max(1, $counterStart) - 1));
+            }
+            $assignedNumber = is_numeric($photo['assigned_number'] ?? null)
+                ? max(1, (int) $photo['assigned_number'])
+                : ++$counters[$communeKey];
+
+            $photo['city'] = (string) ($photo['commune_name'] ?? $photo['city'] ?? '');
+            $newName = $this->template->filename($photo, $blocks, $separator, $assignedNumber, $counterDigits);
+            if ($newName === '') {
                 $issues[] = 'invalid_name';
             }
             if (isset($targets[$newName])) {
                 $issues[] = 'duplicate_in_batch';
-            }
-            if (isset($existing[$newName]) && !isset($selectedCurrent[$newName]) && $newName !== $oldName) {
-                $issues[] = 'target_exists';
             }
 
             $targets[$newName] = true;
@@ -68,6 +82,11 @@ final class PhotoRenamePlanner
                 'new_name' => $newName,
                 'temporary_name' => $this->temporaryName($oldName, $batchUid, $index + 1),
                 'status' => $oldName === $newName ? 'unchanged' : 'ready',
+                'commune_key' => $communeKey,
+                'commune_name' => (string) ($photo['commune_name'] ?? ''),
+                'assigned_number' => $assignedNumber,
+                'taken_at' => (string) ($photo['taken_at'] ?? ''),
+                'taken_at_source' => (string) ($photo['taken_at_source'] ?? ''),
             ];
 
             if ($issues !== []) {
@@ -88,8 +107,44 @@ final class PhotoRenamePlanner
                 'ready' => count(array_filter($operations, static fn (array $op): bool => $op['status'] === 'ready')),
                 'unchanged' => count(array_filter($operations, static fn (array $op): bool => $op['status'] === 'unchanged')),
                 'conflicts' => count($conflicts),
+                'communes' => count(array_filter(array_unique(array_map(
+                    static fn (array $op): string => (string) ($op['commune_key'] ?? ''),
+                    $operations
+                )))),
             ],
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $photos
+     * @return array<int, array<string, mixed>>
+     */
+    private function preparePhotos(array $photos, int $counterStart): array
+    {
+        return array_map(function (array $photo) use ($counterStart): array {
+            $commune = $this->communeNormalizer->normalize(
+                $photo['commune_name'] ?? $photo['city'] ?? $photo['town'] ?? null
+            );
+            if ($commune !== null) {
+                $photo['commune_key'] = $commune->key;
+                $photo['commune_name'] = $commune->name;
+            } else {
+                $photo['commune_key'] = '';
+                $photo['commune_name'] = '';
+            }
+
+            $date = $this->dateResolver->resolve($photo, ($photo['allow_filesystem_fallback'] ?? false) === true);
+            $photo['taken_at_timestamp'] = $date->timestamp();
+            $photo['taken_at_source'] = $date->source;
+            if ($date->sqlValue() !== null) {
+                $photo['taken_at'] = $date->sqlValue();
+            }
+            $photo['sequence_last_number'] = is_numeric($photo['sequence_last_number'] ?? null)
+                ? (int) $photo['sequence_last_number']
+                : max(0, $counterStart - 1);
+
+            return $photo;
+        }, $photos);
     }
 
     /**
@@ -105,9 +160,10 @@ final class PhotoRenamePlanner
         usort($photos, static function (array $left, array $right) use ($sortOrder): int {
             return match ($sortOrder) {
                 'name' => strcmp((string) ($left['current_name'] ?? ''), (string) ($right['current_name'] ?? '')),
-                'city' => strcmp((string) ($left['city'] ?? ''), (string) ($right['city'] ?? ''))
+                'city' => strcmp((string) ($left['commune_key'] ?? ''), (string) ($right['commune_key'] ?? ''))
                     ?: strcmp((string) ($left['current_name'] ?? ''), (string) ($right['current_name'] ?? '')),
-                default => strcmp((string) ($left['taken_at'] ?? $left['date_taken'] ?? ''), (string) ($right['taken_at'] ?? $right['date_taken'] ?? ''))
+                default => strcmp((string) ($left['commune_key'] ?? ''), (string) ($right['commune_key'] ?? ''))
+                    ?: (($left['taken_at_timestamp'] ?? PHP_INT_MAX) <=> ($right['taken_at_timestamp'] ?? PHP_INT_MAX))
                     ?: strcmp((string) ($left['current_name'] ?? ''), (string) ($right['current_name'] ?? '')),
             };
         });

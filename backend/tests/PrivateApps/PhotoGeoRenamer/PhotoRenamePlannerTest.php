@@ -40,13 +40,13 @@ final class PhotoRenamePlannerTest extends TestCase
         $this->assertSame(2, $preview['summary']['ready']);
     }
 
-    public function testDetectsDuplicateTargetsExistingConflictsAndSupportsPermutations(): void
+    public function testDetectsDuplicateTargetsIgnoresDestinationScanAndSupportsPermutations(): void
     {
         $planner = new PhotoRenamePlanner();
         $duplicate = $planner->preview(
             [
-                ['current_name' => 'A.jpg', 'city' => 'Cogolin'],
-                ['current_name' => 'B.jpg', 'city' => 'Cogolin'],
+                ['current_name' => 'A.jpg', 'city' => 'Cogolin', 'taken_at' => '2026-09-08 10:00:00'],
+                ['current_name' => 'B.jpg', 'city' => 'Cogolin', 'taken_at' => '2026-09-08 10:01:00'],
             ],
             ['A.jpg', 'B.jpg'],
             [['type' => 'city']],
@@ -55,13 +55,13 @@ final class PhotoRenamePlannerTest extends TestCase
         $this->assertSame('duplicate_in_batch', $duplicate['conflicts'][0]['issues'][0]);
 
         $existing = $planner->preview(
-            [['current_name' => 'A.jpg', 'city' => 'Cogolin']],
+            [['current_name' => 'A.jpg', 'city' => 'Cogolin', 'taken_at' => '2026-09-08 10:00:00']],
             ['A.jpg'],
             [['type' => 'city']],
             ['Cogolin.jpg']
         );
-        $this->assertFalse($existing['ok']);
-        $this->assertSame('target_exists', $existing['conflicts'][0]['issues'][0]);
+        $this->assertTrue($existing['ok']);
+        $this->assertSame([], $existing['conflicts']);
 
         $permutation = $planner->preview(
             [
@@ -91,6 +91,49 @@ final class PhotoRenamePlannerTest extends TestCase
 
         $this->assertFalse($blocked['ok']);
         $this->assertSame('restore_target_exists', $blocked['conflicts'][0]['issues'][0]);
-        $this->assertSame('43.253:6.530', (new PhotoGeoCacheKey())->forCoordinates(43.25291, 6.53033, 3));
+        $this->assertSame('43.2529:6.5303', (new PhotoGeoCacheKey())->forCoordinates(43.25291, 6.53033));
+    }
+
+    public function testDefaultNameUsesCommuneCounterTwoDigitsAndChronologicalOrderByCommune(): void
+    {
+        $preview = (new PhotoRenamePlanner())->preview(
+            [
+                ['current_name' => 'B.JPG', 'city' => 'Cogolin', 'DateTimeOriginal' => '2026:09:08 10:02:00'],
+                ['current_name' => 'A.JPG', 'city' => 'Cogolin', 'DateTimeOriginal' => '2026:09:08 10:01:00'],
+                ['current_name' => 'C.heic', 'city' => 'Gassin', 'DateTimeOriginal' => '2026:09:08 09:00:00'],
+            ],
+            ['A.JPG', 'B.JPG', 'C.heic'],
+            [],
+            [],
+            '-',
+            1,
+            2,
+            'chronological',
+            str_repeat('c', 32)
+        );
+
+        $this->assertTrue($preview['ok']);
+        $this->assertSame('Cogolin-01.JPG', $preview['operations'][0]['new_name']);
+        $this->assertSame('Cogolin-02.JPG', $preview['operations'][1]['new_name']);
+        $this->assertSame('Gassin-01.heic', $preview['operations'][2]['new_name']);
+        $this->assertSame(2, $preview['summary']['communes']);
+    }
+
+    public function testMissingCommuneAndDateAreExplicitConflicts(): void
+    {
+        $preview = (new PhotoRenamePlanner())->preview(
+            [['current_name' => 'IMG.jpg']],
+            ['IMG.jpg'],
+            [],
+            [],
+            '-',
+            1,
+            2,
+            'chronological'
+        );
+
+        $this->assertFalse($preview['ok']);
+        $this->assertContains('commune_missing', $preview['conflicts'][0]['issues']);
+        $this->assertContains('taken_at_missing', $preview['conflicts'][0]['issues']);
     }
 }

@@ -6,7 +6,7 @@ namespace Caramagnols\PrivateApps\PhotoGeoRenamer\Domain;
 
 final class PhotoGeoCacheKey
 {
-    public function forCoordinates(float $latitude, float $longitude, int $precision = 3): string
+    public function forCoordinates(float $latitude, float $longitude, int $precision = 4): string
     {
         $precision = max(1, min(5, $precision));
 

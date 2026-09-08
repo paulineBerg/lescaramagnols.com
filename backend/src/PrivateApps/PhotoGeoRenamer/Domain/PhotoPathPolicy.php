@@ -47,7 +47,7 @@ final class PhotoPathPolicy
      * @param array<int, mixed> $items
      * @return array<int, string>|null
      */
-    public function normalizePhotoList(array $items, int $limit = 500): ?array
+    public function normalizePhotoList(array $items, int $limit = 2000): ?array
     {
         if ($items === [] || count($items) > $limit) {
             return null;
@@ -63,6 +63,14 @@ final class PhotoPathPolicy
         }
 
         return array_values(array_unique($normalized));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function allowedExtensions(): array
+    {
+        return self::ALLOWED_EXTENSIONS;
     }
 
     private function normalizeRelativePath(string $value, bool $requireFile): ?string

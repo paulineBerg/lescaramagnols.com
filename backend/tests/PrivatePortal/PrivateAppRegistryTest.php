@@ -230,7 +230,10 @@ final class PrivateAppRegistryTest extends TestCase
         $manifest = PrivateAppRegistry::get('photo_geo_renamer');
 
         $this->assertNotNull($manifest);
-        $this->assertSame([], $manifest->tables());
+        $this->assertSame(
+            ['photo_geo_sequences', 'photo_geo_batches', 'photo_geo_operations', 'photo_geo_places'],
+            $manifest->tables()
+        );
         $this->assertSame('network_security', PrivateAppRegistry::getByTableName('pb_agents')?->moduleCode());
         $this->assertSame('network_security', PrivateAppRegistry::getByTableName('pb_commands')?->moduleCode());
     }

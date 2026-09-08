@@ -29,4 +29,16 @@ final class PhotoPathPolicyTest extends TestCase
         $this->assertNull($policy->normalizeRelativePhoto('photo.exe'));
         $this->assertNull($policy->normalizePhotoList(['photo.jpg', '../secret.jpg']));
     }
+
+    public function testAcceptsLargerBatchesWithoutChangingPathRules(): void
+    {
+        $policy = new PhotoPathPolicy();
+        $items = [];
+        for ($index = 1; $index <= 600; $index++) {
+            $items[] = sprintf('photos/IMG_%04d.jpg', $index);
+        }
+
+        $this->assertCount(600, $policy->normalizePhotoList($items));
+        $this->assertContains('heic', $policy->allowedExtensions());
+    }
 }

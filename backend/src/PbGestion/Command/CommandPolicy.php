@@ -285,8 +285,8 @@ final class CommandPolicy
             return ['ok' => false, 'error' => 'invalid_separator'];
         }
 
-        $digits = is_numeric($payload['counter_digits'] ?? null) ? (int) $payload['counter_digits'] : 3;
-        if ($digits < 1 || $digits > 6) {
+        $digits = is_numeric($payload['counter_digits'] ?? null) ? (int) $payload['counter_digits'] : 2;
+        if ($digits < 2 || $digits > 6) {
             return ['ok' => false, 'error' => 'invalid_counter_digits'];
         }
 

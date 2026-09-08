@@ -170,7 +170,7 @@ final class PrivacyOperationsTest extends TestCase
         $this->assertIsArray($payload);
 
         $migrationService = new PrivateMigrationService($database, new PrivateModuleRegistry());
-        $this->assertSame([], $migrationService->tablesForModule('photo_geo_renamer'));
+        $this->assertContains('photo_geo_sequences', $migrationService->tablesForModule('photo_geo_renamer'));
         $this->assertContains('pb_agents', $migrationService->tablesForModule('network_security'));
         $this->assertContains('pb_commands', $migrationService->tablesForModule('network_security'));
         $initialStatus = $migrationService->moduleStatus('dashboard');

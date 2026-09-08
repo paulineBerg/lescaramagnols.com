@@ -11,6 +11,8 @@ use Caramagnols\PrivateApps\PhotoGeoRenamer\Domain\PhotoRenamePlanner;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
 use Caramagnols\LocalAgentPlatform\Installer\LocalAgentInstaller;
 use Caramagnols\PrivatePortal\Http\PrivateResponseHeaders;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoBatchRepository;
+use Caramagnols\PrivateApps\PhotoGeoRenamer\Repository\PhotoSequenceRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
 use Caramagnols\PrivatePortal\Security\PrivateAuth;
@@ -175,6 +177,7 @@ final class LocalAgentPortalController
                 'urls' => $this->urls((string) $app['moduleCode']),
                 'app' => $app,
                 'dashboard' => $dashboard,
+                'photoGeo' => $this->photoGeoViewModel((string) $app['moduleCode']),
                 'oneTimeEnrollment' => $oneTimeEnrollment,
                 'restrictedPhotoPreview' => $restrictedPhotoPreview,
             ],
@@ -240,18 +243,10 @@ final class LocalAgentPortalController
             return null;
         }
 
-        $blocks = [];
-        $prefix = $this->shortBodyText($body, 'text_before', 80);
-        $suffix = $this->shortBodyText($body, 'text_after', 80);
-        if ($prefix !== '') {
-            $blocks[] = ['type' => 'text', 'value' => $prefix];
-        }
-        foreach (['city', 'date', 'counter'] as $block) {
-            $blocks[] = ['type' => $block, 'value' => ''];
-        }
-        if ($suffix !== '') {
-            $blocks[] = ['type' => 'text', 'value' => $suffix];
-        }
+        $blocks = [
+            ['type' => 'city', 'value' => ''],
+            ['type' => 'counter', 'value' => ''],
+        ];
 
         $batchUid = bin2hex(random_bytes(16));
         $preview = (new PhotoRenamePlanner())->preview(
@@ -259,9 +254,9 @@ final class LocalAgentPortalController
             $selectedNames,
             $blocks,
             $selectedNames,
-            $this->shortBodyText($body, 'separator', 1) ?: '-',
+            '-',
             1,
-            $this->positiveInt($body['counter_digits'] ?? null) ?: 3,
+            2,
             $this->shortBodyText($body, 'sort_order', 32) ?: 'manual',
             $batchUid
         );
@@ -434,6 +429,8 @@ final class LocalAgentPortalController
         if ((string) $app['moduleCode'] === self::MODULE_PHOTO_GEO_RENAMER) {
             return match ($page) {
                 'photo_geo_renamer_agents' => 'agents',
+                'photo_geo_renamer_history' => 'history',
+                'photo_geo_renamer_counters' => 'counters',
                 'photo_geo_renamer_help' => 'help',
                 default => 'photos',
             };
@@ -463,6 +460,8 @@ final class LocalAgentPortalController
             return [
                 'overview' => private_portal_url('photo_geo_renamer_dashboard'),
                 'photos' => private_portal_url('photo_geo_renamer_dashboard'),
+                'history' => private_portal_url('photo_geo_renamer_history'),
+                'counters' => private_portal_url('photo_geo_renamer_counters'),
                 'agents' => private_portal_url('photo_geo_renamer_agents'),
                 'help' => private_portal_url('photo_geo_renamer_help'),
             ];
@@ -488,6 +487,28 @@ final class LocalAgentPortalController
         $urls = $this->urls($moduleCode);
 
         return $urls[$view] ?? $urls['overview'];
+    }
+
+    /**
+     * @return array{schema_available: bool, counters: array<int, array<string, mixed>>, batches: array<int, array<string, mixed>>}
+     */
+    private function photoGeoViewModel(string $moduleCode): array
+    {
+        if ($moduleCode !== self::MODULE_PHOTO_GEO_RENAMER || !function_exists('editorial_database')) {
+            return ['schema_available' => false, 'counters' => [], 'batches' => []];
+        }
+
+        try {
+            $database = editorial_database();
+
+            return [
+                'schema_available' => true,
+                'counters' => (new PhotoSequenceRepository($database))->allSequences(),
+                'batches' => (new PhotoBatchRepository($database))->recent(50),
+            ];
+        } catch (\Throwable) {
+            return ['schema_available' => false, 'counters' => [], 'batches' => []];
+        }
     }
 
     private function notice(?string $key): ?string
@@ -543,18 +564,10 @@ final class LocalAgentPortalController
         if ($type === 'photo.rename.preview') {
             $items = preg_split('/\R+/', $this->shortBodyText($body, 'items', 12000)) ?: [];
             $items = array_values(array_filter(array_map('trim', $items), static fn (string $item): bool => $item !== ''));
-            $template = [];
-            $prefix = $this->shortBodyText($body, 'text_before', 80);
-            $suffix = $this->shortBodyText($body, 'text_after', 80);
-            if ($prefix !== '') {
-                $template[] = ['type' => 'text', 'value' => $prefix];
-            }
-            foreach (['city', 'date', 'counter'] as $block) {
-                $template[] = ['type' => $block, 'value' => ''];
-            }
-            if ($suffix !== '') {
-                $template[] = ['type' => 'text', 'value' => $suffix];
-            }
+            $template = [
+                ['type' => 'city', 'value' => ''],
+                ['type' => 'counter', 'value' => ''],
+            ];
 
             return [
                 'batch_uid' => bin2hex(random_bytes(16)),
@@ -562,8 +575,8 @@ final class LocalAgentPortalController
                 'relative_dir' => $this->shortBodyText($body, 'relative_dir', 240),
                 'items' => $items,
                 'template' => $template,
-                'separator' => $this->shortBodyText($body, 'separator', 1) ?: '-',
-                'counter_digits' => $this->positiveInt($body['counter_digits'] ?? null) ?: 3,
+                'separator' => '-',
+                'counter_digits' => 2,
                 'sort_order' => $this->shortBodyText($body, 'sort_order', 32) ?: 'chronological',
                 'conflict_strategy' => 'block',
             ];
