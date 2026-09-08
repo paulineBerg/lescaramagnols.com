@@ -230,8 +230,8 @@ $statusLabel = static function (string $status): string {
           </label>
           <label>Tri
             <select data-photo-browser-sort>
+              <option value="taken" selected>date de prise de vue</option>
               <option value="selection">ordre de sélection</option>
-              <option value="taken">date de prise de vue</option>
               <option value="date">date fichier navigateur</option>
               <option value="name">nom actuel</option>
             </select>

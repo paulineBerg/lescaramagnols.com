@@ -234,7 +234,7 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('data-photo-browser-geocode-url', $photosResponse->body);
         $this->assertStringContainsString('Commune de secours', $photosResponse->body);
         $this->assertStringContainsString('coordonnées GPS EXIF', $photosResponse->body);
-        $this->assertStringContainsString('date de prise de vue', $photosResponse->body);
+        $this->assertStringContainsString('<option value="taken" selected>date de prise de vue</option>', $photosResponse->body);
         $this->assertStringNotContainsString('Mode manuel sans agent', $photosResponse->body);
     }
 
