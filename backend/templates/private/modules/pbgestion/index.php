@@ -243,7 +243,7 @@ $statusLabel = static function (string $status): string {
           <p class="muted" data-photo-browser-status>Aucun fichier sélectionné.</p>
           <div class="private-table-wrap">
             <table data-photo-browser-table hidden>
-              <thead><tr><th>Nom actuel</th><th>Taille</th><th>Commune</th><th>Copie renommée</th><th>État</th></tr></thead>
+              <thead><tr><th>Aperçu</th><th>Nom actuel</th><th>Taille</th><th>Commune</th><th>Copie renommée</th><th>État et détails</th></tr></thead>
               <tbody data-photo-browser-rows></tbody>
             </table>
           </div>

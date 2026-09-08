@@ -234,6 +234,8 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('data-photo-browser-geocode-url', $photosResponse->body);
         $this->assertStringContainsString('Commune de secours', $photosResponse->body);
         $this->assertStringContainsString('coordonnées GPS EXIF', $photosResponse->body);
+        $this->assertStringContainsString('<th>Aperçu</th>', $photosResponse->body);
+        $this->assertStringContainsString('<th>État et détails</th>', $photosResponse->body);
         $this->assertStringContainsString('<option value="taken" selected>date de prise de vue</option>', $photosResponse->body);
         $this->assertStringNotContainsString('Mode manuel sans agent', $photosResponse->body);
     }
@@ -275,6 +277,7 @@ final class LocalAgentPortalControllerTest extends TestCase
 
         $this->assertSame('Saint-Tropez', $method->invoke($controller, 43.272611, 6.632808));
         $this->assertSame('Cogolin', $method->invoke($controller, 43.251639, 6.534650));
+        $this->assertSame('Cogolin', $method->invoke($controller, 43.231603, 6.518903));
         $this->assertNull($method->invoke($controller, 48.856614, 2.352222));
     }
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildBrowserRenamePlan,
   createZipBlob,
+  knownCommuneFromGps,
   parseGpsFromJpegBuffer,
   parseJpegMetadataFromBuffer
 } from '../photo-browser-rename.ts';
@@ -149,6 +150,11 @@ describe('photo browser rename', () => {
     expect(gps?.longitude).toBeCloseTo(6.632808, 6);
   });
 
+  it('deduit une commune connue depuis les coordonnees GPS sans appel reseau', () => {
+    expect(knownCommuneFromGps({ latitude: 43.23160277777778, longitude: 6.518902777777778 })).toBe('Cogolin');
+    expect(knownCommuneFromGps({ latitude: 48.856614, longitude: 2.352222 })).toBeNull();
+  });
+
   it('lit la date de prise de vue EXIF d un JPEG', () => {
     const metadata = parseJpegMetadataFromBuffer(gpsJpegBuffer());
 
@@ -193,7 +199,24 @@ describe('photo browser rename', () => {
     expect(plan.summary.ready).toBe(1);
     expect(plan.summary.conflicts).toBe(1);
     expect(plan.operations[0].newName).toBe('Saint-Tropez-01.JPG');
-    expect(plan.operations[1].issues).toContain('commune_requise');
+    expect(plan.operations[1].issues).toContain('gps_absent');
+  });
+
+  it('detaille une commune manquante quand aucun GPS lisible n existe', () => {
+    const plan = buildBrowserRenamePlan(
+      [{ name: 'IMG_0001.JPG', lastModified: 0, size: 4, communeState: 'missing_gps' }],
+      {
+        communeName: '',
+        startNumber: 1,
+        counterDigits: 2,
+        separator: '-',
+        sortOrder: 'selection'
+      }
+    );
+
+    expect(plan.ok).toBe(false);
+    expect(plan.operations[0].issues).toContain('gps_absent');
+    expect(plan.operations[0].issues).not.toContain('commune_requise');
   });
 
   it('signale les extensions non supportees et la commune manquante', () => {

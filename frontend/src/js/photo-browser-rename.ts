@@ -35,6 +35,8 @@ export type BrowserRenameOperation = {
   issues: string[];
   resolvedCommune: string;
   communeSource: 'gps' | 'fallback' | 'missing';
+  communeState?: CommuneState;
+  gps?: BrowserGpsCoordinates;
   lastModified: number;
   takenAt: number;
   size: number;
@@ -114,6 +116,52 @@ const normalizeFilename = (baseName: string, extension: string, separatorValue: 
       : normalizedBaseName;
 
   return `${trimmedBaseName}${extensionPart}`;
+};
+
+const coordinateDistanceKm = (fromLatitude: number, fromLongitude: number, toLatitude: number, toLongitude: number): number => {
+  const earthRadiusKm = 6371;
+  const latitudeDelta = ((toLatitude - fromLatitude) * Math.PI) / 180;
+  const longitudeDelta = ((toLongitude - fromLongitude) * Math.PI) / 180;
+  const fromLatitudeRad = (fromLatitude * Math.PI) / 180;
+  const toLatitudeRad = (toLatitude * Math.PI) / 180;
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(fromLatitudeRad) * Math.cos(toLatitudeRad) * Math.sin(longitudeDelta / 2) ** 2;
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+export const knownCommuneFromGps = (gps: BrowserGpsCoordinates): string | null => {
+  if (gps.latitude < 43.12 || gps.latitude > 43.38 || gps.longitude < 6.42 || gps.longitude > 6.68) {
+    return null;
+  }
+
+  const communes = [
+    { name: 'Saint-Tropez', latitude: 43.2677, longitude: 6.6407 },
+    { name: 'Cogolin', latitude: 43.2528, longitude: 6.5306 },
+    { name: 'Gassin', latitude: 43.2285, longitude: 6.585 },
+    { name: 'Grimaud', latitude: 43.273, longitude: 6.523 },
+    { name: 'Sainte-Maxime', latitude: 43.3083, longitude: 6.6386 },
+    { name: 'Ramatuelle', latitude: 43.215, longitude: 6.612 },
+    { name: 'La Croix-Valmer', latitude: 43.2071, longitude: 6.567 },
+    { name: 'Cavalaire-sur-Mer', latitude: 43.1727, longitude: 6.5294 },
+    { name: 'La Mole', latitude: 43.2096, longitude: 6.4669 },
+    { name: 'Le Plan-de-la-Tour', latitude: 43.3392, longitude: 6.5467 },
+    { name: 'La Garde-Freinet', latitude: 43.3176, longitude: 6.4697 },
+    { name: 'Le Rayol-Canadel-sur-Mer', latitude: 43.1593, longitude: 6.4801 }
+  ];
+
+  let nearest: string | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const commune of communes) {
+    const distance = coordinateDistanceKm(gps.latitude, gps.longitude, commune.latitude, commune.longitude);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = commune.name;
+    }
+  }
+
+  return nearestDistance <= 18 ? nearest : null;
 };
 
 const readAscii = (view: DataView, offset: number, length: number): string => {
@@ -438,7 +486,13 @@ export const buildBrowserRenamePlan = (
     const communeSource = hasDetectedCommune ? 'gps' : commune !== '' && options.communeName.trim() !== '' ? 'fallback' : 'missing';
 
     if (communeSource === 'missing' && !issues.includes('geocodage_en_cours')) {
-      issues.push('commune_requise');
+      if (file.communeState === 'missing_gps') {
+        issues.push('gps_absent');
+      } else if (file.communeState === 'lookup_failed') {
+        issues.push('commune_introuvable');
+      } else {
+        issues.push('commune_requise');
+      }
     }
 
     const counter = String(startNumber + index).padStart(digits, '0');
@@ -456,6 +510,8 @@ export const buildBrowserRenamePlan = (
       issues,
       resolvedCommune: commune,
       communeSource,
+      communeState: file.communeState,
+      gps: file.gps,
       lastModified: file.lastModified || 0,
       takenAt: file.takenAt || 0,
       size: file.size ?? 0,
@@ -646,9 +702,46 @@ const issueLabel = (issue: string): string => {
       commune_requise: 'commune manquante',
       doublon_destination: 'doublon destination',
       extension_non_supportee: 'extension non supportee',
-      geocodage_en_cours: 'geocodage en cours'
+      geocodage_en_cours: 'geocodage en cours',
+      gps_absent: 'coordonnees GPS absentes',
+      commune_introuvable: 'commune GPS introuvable'
     }[issue] ?? issue
   );
+};
+
+const formatCoordinates = (gps: BrowserGpsCoordinates): string => {
+  return `${gps.latitude.toFixed(6)}, ${gps.longitude.toFixed(6)}`;
+};
+
+const operationDetails = (operation: BrowserRenameOperation): string => {
+  const details: string[] = [];
+  if (operation.gps !== undefined) {
+    details.push(`GPS lu: ${formatCoordinates(operation.gps)}`);
+  }
+
+  if (operation.communeSource === 'gps') {
+    details.push('commune detectee automatiquement');
+  } else if (operation.communeSource === 'fallback') {
+    details.push('commune de secours utilisee');
+  } else if (operation.issues.includes('geocodage_en_cours')) {
+    details.push('recherche de commune en cours');
+  } else if (operation.issues.includes('gps_absent')) {
+    details.push('aucune coordonnee GPS EXIF lisible; saisir une commune de secours');
+  } else if (operation.issues.includes('commune_introuvable')) {
+    details.push('coordonnees GPS lues, mais aucune commune retournee; saisir une commune de secours');
+  } else if (operation.issues.includes('commune_requise')) {
+    details.push('saisir une commune de secours');
+  }
+
+  if (operation.issues.includes('doublon_destination')) {
+    details.push('un autre fichier produit deja ce nom');
+  }
+
+  if (operation.issues.includes('extension_non_supportee')) {
+    details.push('format accepte: JPG, PNG, WebP ou HEIC');
+  }
+
+  return details.join('. ');
 };
 
 const communeLabel = (operation: BrowserRenameOperation): string => {
@@ -689,15 +782,23 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   const rows = root.querySelector<HTMLTableSectionElement>('[data-photo-browser-rows]');
   let latestOperations: BrowserRenameOperation[] = [];
   let currentFiles: BrowserRenameInput[] = [];
+  let previewVisible = false;
   let analysisRun = 0;
   let latestGeocodeAt = 0;
   const communeCache = new Map<string, Promise<string | null>>();
+  const previewUrls = new WeakMap<File, string>();
+  let activePreviewUrls: string[] = [];
 
   if (!fileInput || !communeInput || !startInput || !sortInput || !previewButton || !zipButton || !status || !table || !rows) {
     return;
   }
 
   const reverseGeocode = async (gps: BrowserGpsCoordinates): Promise<string | null> => {
+    const knownCommune = knownCommuneFromGps(gps);
+    if (knownCommune !== null) {
+      return knownCommune;
+    }
+
     if (geocodeUrl === '' || csrfToken === '') {
       return null;
     }
@@ -739,9 +840,15 @@ const initBrowserRenamer = (root: HTMLElement): void => {
     return request;
   };
 
+  const clearPreviewUrls = (): void => {
+    activePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    activePreviewUrls = [];
+  };
+
   const analyzeSelectedFiles = async (): Promise<void> => {
     const run = ++analysisRun;
     currentFiles = selectedFiles(fileInput);
+    previewVisible = false;
     renderPlan();
 
     for (const input of currentFiles) {
@@ -795,12 +902,36 @@ const initBrowserRenamer = (root: HTMLElement): void => {
     rows.replaceChildren();
     for (const operation of latestOperations) {
       const row = document.createElement('tr');
-      row.innerHTML = '<td></td><td></td><td></td><td></td><td></td>';
-      row.children[0].textContent = operation.originalName;
-      row.children[1].textContent = formatBytes(operation.size);
-      row.children[2].textContent = communeLabel(operation);
-      row.children[3].textContent = operation.newName;
-      row.children[4].textContent = operation.issues.length > 0 ? operation.issues.map(issueLabel).join(', ') : 'pret';
+      row.innerHTML = '<td class="photo-browser-preview-cell"></td><td></td><td></td><td></td><td></td><td></td>';
+      if (previewVisible && operation.file instanceof File) {
+        const image = document.createElement('img');
+        let previewUrl = previewUrls.get(operation.file);
+        if (previewUrl === undefined) {
+          previewUrl = URL.createObjectURL(operation.file);
+          previewUrls.set(operation.file, previewUrl);
+          activePreviewUrls.push(previewUrl);
+        }
+        image.src = previewUrl;
+        image.alt = operation.originalName;
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        image.className = 'photo-browser-thumbnail';
+        row.children[0].append(image);
+      }
+      row.children[1].textContent = operation.originalName;
+      row.children[2].textContent = formatBytes(operation.size);
+      row.children[3].textContent = communeLabel(operation);
+      row.children[4].textContent = operation.newName;
+      const state = document.createElement('span');
+      state.textContent = operation.issues.length > 0 ? operation.issues.map(issueLabel).join(', ') : 'pret';
+      row.children[5].append(state);
+      const details = operationDetails(operation);
+      if (details !== '') {
+        const detail = document.createElement('small');
+        detail.className = 'photo-browser-operation-details';
+        detail.textContent = details;
+        row.children[5].append(detail);
+      }
       rows.append(row);
     }
 
@@ -812,18 +943,17 @@ const initBrowserRenamer = (root: HTMLElement): void => {
         ? 'Aucun fichier selectionne.'
         : pending > 0
           ? `Lecture GPS et recherche commune en cours pour ${pending} photo(s).`
-        : `${plan.summary.ready} copie(s) prete(s), ${plan.summary.conflicts} conflit(s).`;
+        : plan.summary.conflicts > 0
+          ? `${plan.summary.ready} copie(s) prete(s), ${plan.summary.conflicts} conflit(s). Voir les details par ligne.`
+          : `${plan.summary.ready} copie(s) prete(s), 0 conflit.`;
   };
 
   previewButton.addEventListener('click', () => {
-    if ((fileInput.files?.length ?? 0) > 0) {
-      void analyzeSelectedFiles();
-      return;
-    }
-
+    previewVisible = true;
     renderPlan();
   });
   fileInput.addEventListener('change', () => {
+    clearPreviewUrls();
     void analyzeSelectedFiles();
   });
   communeInput.addEventListener('input', () => renderPlan());
@@ -845,6 +975,7 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   });
 
   renderPlan();
+  window.addEventListener('pagehide', clearPreviewUrls, { once: true });
 };
 
 export const initPhotoBrowserRename = (): void => {
