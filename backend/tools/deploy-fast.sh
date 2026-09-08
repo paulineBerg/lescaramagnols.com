@@ -282,6 +282,7 @@ fi
 
 ssh "$REMOTE_HOST" "find '$REMOTE_BACKEND' -type d -exec chmod 755 {} \; && \
 find '$REMOTE_BACKEND' -type f -exec chmod 644 {} \; && \
+test ! -f '$REMOTE_BACKEND/core/tools/run_cron_center.php' || chmod 755 '$REMOTE_BACKEND/core/tools/run_cron_center.php' && \
 test ! -f '$REMOTE_BACKEND/.env' || chmod 640 '$REMOTE_BACKEND/.env' && \
 mkdir -p '$REMOTE_BACKEND/var/cache' '$REMOTE_BACKEND/var/log' && \
 chmod -R 775 '$REMOTE_BACKEND/var' && \
