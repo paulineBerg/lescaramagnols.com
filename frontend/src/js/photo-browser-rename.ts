@@ -46,6 +46,8 @@ export type BrowserRenameOperation = {
 };
 
 const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'heic']);
+const JPEG_METADATA_INITIAL_BYTES = 64 * 1024;
+const JPEG_METADATA_SCAN_LIMIT = 16 * 1024 * 1024;
 const RESERVED_WINDOWS_NAMES = new Set([
   'con',
   'prn',
@@ -177,6 +179,105 @@ const readUint16 = (view: DataView, offset: number, littleEndian: boolean): numb
 
 const readUint32 = (view: DataView, offset: number, littleEndian: boolean): number | null => {
   return offset >= 0 && offset + 4 <= view.byteLength ? view.getUint32(offset, littleEndian) : null;
+};
+
+export const readBlobAsArrayBuffer = (blob: Blob): Promise<ArrayBuffer> => {
+  const nativeArrayBuffer = (blob as { arrayBuffer?: () => Promise<ArrayBuffer> }).arrayBuffer;
+  if (typeof nativeArrayBuffer === 'function') {
+    return nativeArrayBuffer.call(blob).catch(() => readBlobWithFileReader(blob));
+  }
+
+  return readBlobWithFileReader(blob);
+};
+
+const readBlobWithFileReader = (blob: Blob): Promise<ArrayBuffer> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      if (reader.result instanceof ArrayBuffer) {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error('Lecture binaire impossible'));
+    });
+    reader.addEventListener('error', () => reject(reader.error ?? new Error('Lecture binaire impossible')));
+    reader.readAsArrayBuffer(blob);
+  });
+};
+
+export const readJpegMetadataBuffer = async (file: File): Promise<ArrayBuffer> => {
+  const maxBytes = Math.max(0, Math.min(file.size || JPEG_METADATA_SCAN_LIMIT, JPEG_METADATA_SCAN_LIMIT));
+  if (maxBytes === 0) {
+    return new ArrayBuffer(0);
+  }
+
+  let requestedBytes = Math.min(maxBytes, JPEG_METADATA_INITIAL_BYTES);
+  let buffer = await readBlobAsArrayBuffer(file.slice(0, requestedBytes));
+  let offset = 2;
+
+  while (true) {
+    const view = new DataView(buffer);
+    if (view.byteLength < 4 || view.getUint16(0, false) !== 0xffd8) {
+      return buffer;
+    }
+
+    while (offset + 4 <= view.byteLength) {
+      const markerOffset = offset;
+      if (view.getUint8(markerOffset) !== 0xff) {
+        return buffer;
+      }
+
+      const marker = view.getUint8(markerOffset + 1);
+      if (marker === 0xda || marker === 0xd9) {
+        return buffer;
+      }
+
+      if (marker >= 0xd0 && marker <= 0xd7) {
+        offset = markerOffset + 2;
+        continue;
+      }
+
+      const lengthOffset = markerOffset + 2;
+      const segmentLength = view.getUint16(lengthOffset, false);
+      const segmentStart = markerOffset + 4;
+      const segmentEnd = lengthOffset + segmentLength;
+      if (segmentLength < 2) {
+        return buffer;
+      }
+
+      if (segmentEnd > view.byteLength) {
+        if (requestedBytes >= maxBytes) {
+          return buffer;
+        }
+
+        requestedBytes = Math.min(
+          maxBytes,
+          Math.max(segmentEnd, Math.min(maxBytes, Math.max(requestedBytes * 2, requestedBytes + JPEG_METADATA_INITIAL_BYTES)))
+        );
+        buffer = await readBlobAsArrayBuffer(file.slice(0, requestedBytes));
+        offset = markerOffset;
+        break;
+      }
+
+      if (marker === 0xe1 && readAscii(view, segmentStart, 6) === 'Exif') {
+        return buffer.slice(0, segmentEnd) as ArrayBuffer;
+      }
+
+      offset = segmentEnd;
+    }
+
+    if (offset + 4 <= new DataView(buffer).byteLength) {
+      continue;
+    }
+
+    if (requestedBytes >= maxBytes) {
+      return buffer;
+    }
+
+    requestedBytes = Math.min(maxBytes, Math.max(requestedBytes * 2, offset + 4));
+    buffer = await readBlobAsArrayBuffer(file.slice(0, requestedBytes));
+  }
 };
 
 const ifdEntryOffset = (view: DataView, tiffStart: number, ifdOffset: number, tag: number, littleEndian: boolean): number | null => {
@@ -401,7 +502,7 @@ export const extractGpsFromJpeg = async (file: File): Promise<BrowserGpsCoordina
     return null;
   }
 
-  return parseJpegMetadataFromBuffer(await file.slice(0, 1024 * 1024).arrayBuffer()).gps;
+  return parseJpegMetadataFromBuffer(await readJpegMetadataBuffer(file)).gps;
 };
 
 const extractJpegMetadata = async (file: File): Promise<{ gps: BrowserGpsCoordinates | null; takenAt: number | null }> => {
@@ -410,7 +511,7 @@ const extractJpegMetadata = async (file: File): Promise<{ gps: BrowserGpsCoordin
     return { gps: null, takenAt: null };
   }
 
-  return parseJpegMetadataFromBuffer(await file.slice(0, 1024 * 1024).arrayBuffer());
+  return parseJpegMetadataFromBuffer(await readJpegMetadataBuffer(file));
 };
 
 const sortedInputs = (files: BrowserRenameInput[], sortOrder: SortOrder): BrowserRenameInput[] => {
@@ -657,7 +758,7 @@ export const createBrowserRenameZip = async (operations: BrowserRenameOperation[
 
     entries.push({
       name: operation.newName,
-      data: new Uint8Array(await operation.file.arrayBuffer()),
+      data: new Uint8Array(await readBlobAsArrayBuffer(operation.file)),
       lastModified: operation.lastModified
     });
   }

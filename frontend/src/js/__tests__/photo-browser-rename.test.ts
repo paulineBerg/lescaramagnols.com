@@ -3,9 +3,12 @@ import {
   buildBrowserRenamePlan,
   createBrowserRenameZip,
   createZipBlob,
+  extractGpsFromJpeg,
   initPhotoBrowserRename,
   parseGpsFromJpegBuffer,
-  parseJpegMetadataFromBuffer
+  parseJpegMetadataFromBuffer,
+  readBlobAsArrayBuffer,
+  readJpegMetadataBuffer
 } from '../photo-browser-rename.ts';
 
 const bytes = (value: string): Uint8Array => new TextEncoder().encode(value);
@@ -110,6 +113,33 @@ const gpsJpegBuffer = (): ArrayBuffer => {
   return jpeg.buffer;
 };
 
+const paddedGpsJpegBuffer = (paddingBytes: number): ArrayBuffer => {
+  const gps = new Uint8Array(gpsJpegBuffer());
+  const chunks: Uint8Array[] = [gps.slice(0, 2)];
+  let remaining = paddingBytes;
+
+  while (remaining > 0) {
+    const payloadSize = Math.min(remaining, 60000);
+    const segment = new Uint8Array(4 + payloadSize);
+    segment[0] = 0xff;
+    segment[1] = 0xe2;
+    new DataView(segment.buffer).setUint16(2, payloadSize + 2, false);
+    chunks.push(segment);
+    remaining -= payloadSize;
+  }
+
+  chunks.push(gps.slice(2));
+  const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  return result.buffer;
+};
+
 describe('photo browser rename', () => {
   it('planifie des copies renommees compatibles avec le format commune compteur', () => {
     const plan = buildBrowserRenamePlan(
@@ -159,6 +189,40 @@ describe('photo browser rename', () => {
     const metadata = parseJpegMetadataFromBuffer(gpsJpegBuffer());
 
     expect(metadata.takenAt).toBe(new Date(2025, 1, 4, 14, 31, 0).getTime());
+  });
+
+  it('lit un bloc EXIF situe apres le premier Mo du JPEG', async () => {
+    const file = new File([paddedGpsJpegBuffer(1024 * 1024 + 64 * 1024)], 'IMG_ANDROID.JPEG', {
+      type: 'image/jpeg',
+      lastModified: 1
+    });
+
+    const metadata = parseJpegMetadataFromBuffer(await readJpegMetadataBuffer(file));
+
+    expect(metadata.gps?.latitude).toBeCloseTo(43.272611, 6);
+    expect(metadata.gps?.longitude).toBeCloseTo(6.632808, 6);
+    expect(metadata.takenAt).toBe(new Date(2025, 1, 4, 14, 31, 0).getTime());
+  });
+
+  it('lit les coordonnees GPS via FileReader quand arrayBuffer est indisponible', async () => {
+    const originalArrayBuffer = Blob.prototype.arrayBuffer;
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: undefined
+    });
+    const file = new File([gpsJpegBuffer()], 'IMG_IOS.JPEG', {
+      type: 'image/jpeg',
+      lastModified: 1
+    });
+
+    const gps = await extractGpsFromJpeg(file);
+
+    expect(gps?.latitude).toBeCloseTo(43.272611, 6);
+    expect(gps?.longitude).toBeCloseTo(6.632808, 6);
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: originalArrayBuffer
+    });
   });
 
   it('trie les copies par date de prise de vue quand elle est disponible', () => {
@@ -335,6 +399,35 @@ describe('photo browser rename', () => {
     const content = new TextDecoder().decode(await readBlob(zip));
 
     expect(content).toContain('IMG_0001.PNG');
+  });
+
+  it('cree aussi l archive avec FileReader quand arrayBuffer est indisponible', async () => {
+    const originalArrayBuffer = Blob.prototype.arrayBuffer;
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: undefined
+    });
+    const file = new File([bytes('photo-mobile')], 'IMG_0001.PNG', { type: 'image/png', lastModified: 1 });
+    const plan = buildBrowserRenamePlan(
+      [{ name: file.name, lastModified: file.lastModified, size: file.size, type: file.type, file, communeState: 'missing_gps' }],
+      {
+        communeName: '',
+        startNumber: 1,
+        counterDigits: 2,
+        separator: '-',
+        sortOrder: 'taken'
+      }
+    );
+
+    const zip = await createBrowserRenameZip(plan.operations);
+    const zipContent = new TextDecoder().decode(await readBlobAsArrayBuffer(zip));
+
+    expect(zipContent).toContain('IMG_0001.PNG');
+    expect(zipContent).toContain('photo-mobile');
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: originalArrayBuffer
+    });
   });
 
   it('permet de modifier manuellement le nom de copie dans le tableau', async () => {
