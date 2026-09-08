@@ -237,6 +237,7 @@ $statusLabel = static function (string $status): string {
           </label>
           <div class="private-actions">
             <button type="button" class="private-button-secondary" data-photo-browser-preview>Prévisualiser</button>
+            <button type="button" class="private-button-secondary" data-photo-browser-reanalyze disabled>Refaire l’analyse</button>
             <button type="button" class="private-create-button" data-photo-browser-download disabled>Télécharger les copies</button>
           </div>
           <p class="muted" data-photo-browser-status>Aucun fichier sélectionné.</p>

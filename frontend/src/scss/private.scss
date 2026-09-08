@@ -658,17 +658,33 @@
     width: 4.5rem;
   }
 
+  .photo-browser-name-edit {
+    align-items: center;
+    display: flex;
+    max-width: 21rem;
+  }
+
   .photo-browser-name-input {
     background: var(--private-surface);
     border: 1px solid var(--private-border);
-    border-radius: 6px;
+    border-radius: 6px 0 0 6px;
     box-sizing: border-box;
     color: inherit;
     font: inherit;
-    max-width: 18rem;
     min-width: 11rem;
     padding: 0.42rem 0.55rem;
     width: 100%;
+  }
+
+  .photo-browser-name-extension {
+    background: rgb(19 41 75 / 5%);
+    border: 1px solid var(--private-border);
+    border-left: 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--private-muted);
+    font: inherit;
+    padding: 0.42rem 0.55rem;
+    white-space: nowrap;
   }
 
   .photo-browser-operation-details {

@@ -232,7 +232,7 @@ describe('photo browser rename', () => {
           size: 4,
           detectedCommune: 'Cogolin',
           communeState: 'detected',
-          manualNewName: 'Cuisine ete'
+          manualNewName: 'Cuisine ete.png'
         }
       ],
       {
@@ -345,6 +345,7 @@ describe('photo browser rename', () => {
         <input value="1" data-photo-browser-start />
         <select data-photo-browser-sort><option value="taken" selected>date de prise de vue</option></select>
         <button type="button" data-photo-browser-preview>Prévisualiser</button>
+        <button type="button" data-photo-browser-reanalyze disabled>Refaire l’analyse</button>
         <button type="button" data-photo-browser-download>Télécharger les copies</button>
         <p data-photo-browser-status></p>
         <table data-photo-browser-table><tbody data-photo-browser-rows></tbody></table>
@@ -363,14 +364,63 @@ describe('photo browser rename', () => {
     await flushPromises();
 
     const targetInput = document.querySelector<HTMLInputElement>('[data-photo-browser-target-name]');
-    expect(targetInput?.value).toBe('IMG_0001.PNG');
+    expect(targetInput?.value).toBe('IMG_0001');
+    expect(document.querySelector('[data-photo-browser-target-extension]')?.textContent).toBe('.PNG');
     if (targetInput !== null) {
-      targetInput.value = 'Salon terrasse';
+      targetInput.value = 'Salon terrasse.jpg';
       targetInput.dispatchEvent(new Event('change'));
     }
 
-    expect(document.querySelector<HTMLInputElement>('[data-photo-browser-target-name]')?.value).toBe('Salon-terrasse.PNG');
+    expect(document.querySelector<HTMLInputElement>('[data-photo-browser-target-name]')?.value).toBe('Salon-terrasse');
+    expect(document.querySelector('[data-photo-browser-target-extension]')?.textContent).toBe('.PNG');
     expect(document.querySelector('[data-photo-browser-rows]')?.textContent).toContain('sans GPS: copie identique');
+  });
+
+  it('permet de relancer l analyse des fichiers selectionnes', async () => {
+    document.body.innerHTML = `
+      <div data-photo-browser-renamer>
+        <input type="file" multiple data-photo-browser-files />
+        <input value="" data-photo-browser-commune />
+        <input value="1" data-photo-browser-start />
+        <select data-photo-browser-sort><option value="taken" selected>date de prise de vue</option></select>
+        <button type="button" data-photo-browser-preview>Prévisualiser</button>
+        <button type="button" data-photo-browser-reanalyze disabled>Refaire l’analyse</button>
+        <button type="button" data-photo-browser-download>Télécharger les copies</button>
+        <p data-photo-browser-status></p>
+        <table data-photo-browser-table><tbody data-photo-browser-rows></tbody></table>
+      </div>
+    `;
+    const file = new File([gpsJpegBuffer()], 'IMG_7697.JPEG', { type: 'image/jpeg', lastModified: 1 });
+    const fileInput = document.querySelector<HTMLInputElement>('[data-photo-browser-files]');
+    const reanalyzeButton = document.querySelector<HTMLButtonElement>('[data-photo-browser-reanalyze]');
+    expect(fileInput).not.toBeNull();
+    expect(reanalyzeButton?.disabled).toBe(true);
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [file]
+    });
+    const originalArrayBuffer = Blob.prototype.arrayBuffer;
+    const arrayBuffer = vi.fn().mockResolvedValue(gpsJpegBuffer());
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: arrayBuffer
+    });
+
+    initPhotoBrowserRename();
+    fileInput?.dispatchEvent(new Event('change'));
+    await flushPromises();
+    await flushPromises();
+    expect(reanalyzeButton?.disabled).toBe(false);
+
+    reanalyzeButton?.click();
+    await flushPromises();
+    await flushPromises();
+
+    expect(arrayBuffer).toHaveBeenCalledTimes(2);
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: originalArrayBuffer
+    });
   });
 
   it('utilise le fournisseur officiel depuis le navigateur si le serveur ne peut pas geocoder', async () => {
@@ -419,7 +469,8 @@ describe('photo browser rename', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(String(fetchMock.mock.calls[1][0])).toContain('https://geo.api.gouv.fr/communes?');
     expect(document.querySelector('[data-photo-browser-status]')?.textContent).toContain('1 copie(s) prete(s)');
-    expect(document.querySelector<HTMLInputElement>('[data-photo-browser-target-name]')?.value).toBe('Cogolin-01.JPEG');
+    expect(document.querySelector<HTMLInputElement>('[data-photo-browser-target-name]')?.value).toBe('Cogolin-01');
+    expect(document.querySelector('[data-photo-browser-target-extension]')?.textContent).toBe('.JPEG');
     fetchMock.mockRestore();
     Object.defineProperty(Blob.prototype, 'arrayBuffer', {
       configurable: true,
@@ -427,7 +478,7 @@ describe('photo browser rename', () => {
     });
   });
 
-  it('conserve et affiche les apercus apres selection et analyse GPS', async () => {
+  it('affiche automatiquement les apercus apres selection et analyse GPS', async () => {
     document.body.innerHTML = `
       <div data-photo-browser-renamer>
         <input type="file" multiple data-photo-browser-files />
@@ -442,9 +493,7 @@ describe('photo browser rename', () => {
     `;
     const file = new File([gpsJpegBuffer()], 'IMG_7697.JPEG', { type: 'image/jpeg', lastModified: 1 });
     const fileInput = document.querySelector<HTMLInputElement>('[data-photo-browser-files]');
-    const previewButton = document.querySelector<HTMLButtonElement>('[data-photo-browser-preview]');
     expect(fileInput).not.toBeNull();
-    expect(previewButton).not.toBeNull();
     Object.defineProperty(fileInput, 'files', {
       configurable: true,
       value: [file]
@@ -467,7 +516,6 @@ describe('photo browser rename', () => {
     });
 
     initPhotoBrowserRename();
-    previewButton?.click();
     fileInput?.dispatchEvent(new Event('change'));
 
     expect(document.querySelector('.photo-browser-preview-cell')?.textContent).toBe('chargement');

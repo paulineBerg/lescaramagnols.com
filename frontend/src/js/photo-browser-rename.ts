@@ -82,6 +82,13 @@ const extensionOf = (name: string): string => {
   return dot > 0 && dot < basename.length - 1 ? basename.slice(dot + 1) : '';
 };
 
+const basenameWithoutExtension = (name: string): string => {
+  const basename = name.split(/[\\/]/).pop() ?? '';
+  const extension = extensionOf(basename);
+
+  return extension !== '' ? basename.slice(0, Math.max(0, basename.length - extension.length - 1)) : basename;
+};
+
 const normalizePart = (value: string, separatorValue = '-'): string => {
   const sep = separator(separatorValue);
   let normalized = value
@@ -121,12 +128,14 @@ const normalizeFilename = (baseName: string, extension: string, separatorValue: 
 
 const normalizeManualFilename = (value: string, originalName: string, separatorValue: string): string => {
   const basename = value.split(/[\\/]/).pop() ?? '';
-  const manualExtension = extensionOf(basename);
-  const extension = manualExtension !== '' ? manualExtension : extensionOf(originalName);
-  const baseNameWithoutExtension =
-    manualExtension !== '' ? basename.slice(0, Math.max(0, basename.length - manualExtension.length - 1)) : basename;
+  const manualExtension = extensionOf(basename).toLowerCase();
+  const extension = extensionOf(originalName);
+  const baseName =
+    manualExtension !== '' && ALLOWED_EXTENSIONS.has(manualExtension)
+      ? basenameWithoutExtension(basename)
+      : basename;
 
-  return normalizeFilename(baseNameWithoutExtension, extension, separatorValue);
+  return normalizeFilename(baseName, extension, separatorValue);
 };
 
 const readAscii = (view: DataView, offset: number, length: number): string => {
@@ -834,13 +843,14 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   const startInput = root.querySelector<HTMLInputElement>('[data-photo-browser-start]');
   const sortInput = root.querySelector<HTMLSelectElement>('[data-photo-browser-sort]');
   const previewButton = root.querySelector<HTMLButtonElement>('[data-photo-browser-preview]');
+  const reanalyzeButton = root.querySelector<HTMLButtonElement>('[data-photo-browser-reanalyze]');
   const zipButton = root.querySelector<HTMLButtonElement>('[data-photo-browser-download]');
   const status = root.querySelector<HTMLElement>('[data-photo-browser-status]');
   const table = root.querySelector<HTMLTableElement>('[data-photo-browser-table]');
   const rows = root.querySelector<HTMLTableSectionElement>('[data-photo-browser-rows]');
   let latestOperations: BrowserRenameOperation[] = [];
   let currentFiles: BrowserRenameInput[] = [];
-  let previewVisible = false;
+  let previewVisible = true;
   let analysisRun = 0;
   let latestGeocodeAt = 0;
   const communeCache = new Map<string, Promise<string | null>>();
@@ -927,7 +937,19 @@ const initBrowserRenamer = (root: HTMLElement): void => {
     }
     thumbnailUrls.clear();
     thumbnailCache = new WeakMap<File, ThumbnailState>();
-    currentFiles = selectedFiles(fileInput);
+    const manualNames = new WeakMap<File, string>();
+    for (const currentFile of currentFiles) {
+      if (currentFile.file instanceof File && (currentFile.manualNewName ?? '').trim() !== '') {
+        manualNames.set(currentFile.file, currentFile.manualNewName ?? '');
+      }
+    }
+    currentFiles = selectedFiles(fileInput).map((input) => {
+      if (input.file instanceof File) {
+        input.manualNewName = manualNames.get(input.file);
+      }
+
+      return input;
+    });
     renderPlan();
 
     for (const input of currentFiles) {
@@ -1006,10 +1028,12 @@ const initBrowserRenamer = (root: HTMLElement): void => {
       row.children[1].textContent = operation.originalName;
       row.children[2].textContent = formatBytes(operation.size);
       row.children[3].textContent = communeLabel(operation);
+      const targetNameWrapper = document.createElement('span');
+      targetNameWrapper.className = 'photo-browser-name-edit';
       const targetName = document.createElement('input');
       targetName.type = 'text';
       targetName.className = 'photo-browser-name-input';
-      targetName.value = operation.newName;
+      targetName.value = basenameWithoutExtension(operation.newName);
       targetName.maxLength = 190;
       targetName.setAttribute('aria-label', `Nom de copie pour ${operation.originalName}`);
       targetName.setAttribute('data-photo-browser-target-name', '');
@@ -1023,7 +1047,16 @@ const initBrowserRenamer = (root: HTMLElement): void => {
         source.manualNewName = value !== '' ? value : undefined;
         renderPlan();
       });
-      row.children[4].append(targetName);
+      targetNameWrapper.append(targetName);
+      const targetExtension = extensionOf(operation.newName);
+      if (targetExtension !== '') {
+        const extension = document.createElement('span');
+        extension.className = 'photo-browser-name-extension';
+        extension.setAttribute('data-photo-browser-target-extension', '');
+        extension.textContent = `.${targetExtension}`;
+        targetNameWrapper.append(extension);
+      }
+      row.children[4].append(targetNameWrapper);
       const state = document.createElement('span');
       state.textContent = operation.issues.length > 0 ? operation.issues.map(issueLabel).join(', ') : 'pret';
       row.children[5].append(state);
@@ -1039,6 +1072,9 @@ const initBrowserRenamer = (root: HTMLElement): void => {
 
     table.hidden = latestOperations.length === 0;
     zipButton.disabled = plan.summary.ready === 0;
+    if (reanalyzeButton !== null) {
+      reanalyzeButton.disabled = currentFiles.length === 0;
+    }
     const pending = latestOperations.filter((operation) => operation.issues.includes('geocodage_en_cours')).length;
     status.textContent =
       plan.summary.selected === 0
@@ -1053,6 +1089,9 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   previewButton.addEventListener('click', () => {
     previewVisible = true;
     renderPlan();
+  });
+  reanalyzeButton?.addEventListener('click', () => {
+    void analyzeSelectedFiles();
   });
   fileInput.addEventListener('change', () => {
     void analyzeSelectedFiles();
