@@ -55,6 +55,7 @@ backend/var/
 *.bak
 *.tmp
 /backups/
+/.ops-sync
 /.ops-sync/
 /php
 
