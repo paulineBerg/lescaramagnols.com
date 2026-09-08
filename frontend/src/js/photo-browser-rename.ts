@@ -17,6 +17,7 @@ export type BrowserRenameInput = {
   gps?: BrowserGpsCoordinates;
   detectedCommune?: string;
   communeState?: CommuneState;
+  manualNewName?: string;
 };
 
 export type BrowserRenameOptions = {
@@ -116,6 +117,16 @@ const normalizeFilename = (baseName: string, extension: string, separatorValue: 
       : normalizedBaseName;
 
   return `${trimmedBaseName}${extensionPart}`;
+};
+
+const normalizeManualFilename = (value: string, originalName: string, separatorValue: string): string => {
+  const basename = value.split(/[\\/]/).pop() ?? '';
+  const manualExtension = extensionOf(basename);
+  const extension = manualExtension !== '' ? manualExtension : extensionOf(originalName);
+  const baseNameWithoutExtension =
+    manualExtension !== '' ? basename.slice(0, Math.max(0, basename.length - manualExtension.length - 1)) : basename;
+
+  return normalizeFilename(baseNameWithoutExtension, extension, separatorValue);
 };
 
 const readAscii = (view: DataView, offset: number, length: number): string => {
@@ -430,15 +441,20 @@ export const buildBrowserRenamePlan = (
       issues.push('geocodage_en_cours');
     }
 
+    const copyWithOriginalName = file.communeState === 'missing_gps' && !issues.includes('geocodage_en_cours');
     const detectedCommune = (file.detectedCommune ?? '').trim();
     const hasDetectedCommune = detectedCommune !== '';
-    const commune = hasDetectedCommune ? normalizePart(detectedCommune, options.separator) : fallbackCommune;
-    const communeSource = hasDetectedCommune ? 'gps' : commune !== '' && options.communeName.trim() !== '' ? 'fallback' : 'missing';
+    const commune = copyWithOriginalName ? '' : hasDetectedCommune ? normalizePart(detectedCommune, options.separator) : fallbackCommune;
+    const communeSource = hasDetectedCommune && !copyWithOriginalName
+      ? 'gps'
+      : commune !== '' && options.communeName.trim() !== ''
+        ? 'fallback'
+        : 'missing';
 
-    if (communeSource === 'missing' && !issues.includes('geocodage_en_cours')) {
-      if (file.communeState === 'missing_gps') {
-        issues.push('gps_absent');
-      } else if (file.communeState === 'lookup_failed') {
+    if (copyWithOriginalName) {
+      issues.push('gps_absent');
+    } else if (communeSource === 'missing' && !issues.includes('geocodage_en_cours')) {
+      if (file.communeState === 'lookup_failed') {
         issues.push('commune_introuvable');
       } else {
         issues.push('commune_requise');
@@ -446,17 +462,24 @@ export const buildBrowserRenamePlan = (
     }
 
     const counter = String(startNumber + index).padStart(digits, '0');
-    const newName = normalizeFilename(`${commune}${separator(options.separator)}${counter}`, extension, options.separator);
+    const automaticName = copyWithOriginalName
+      ? file.name
+      : normalizeFilename(`${commune}${separator(options.separator)}${counter}`, extension, options.separator);
+    const manualNewName = (file.manualNewName ?? '').trim();
+    const newName = manualNewName !== ''
+      ? normalizeManualFilename(manualNewName, file.name, options.separator)
+      : automaticName;
     if (targets.has(newName)) {
       issues.push('doublon_destination');
     }
     targets.add(newName);
+    const blockingIssues = issues.filter((issue) => issue !== 'gps_absent');
 
     return {
       index,
       originalName: file.name,
       newName,
-      status: issues.length === 0 ? 'ready' : 'conflict',
+      status: blockingIssues.length === 0 ? 'ready' : 'conflict',
       issues,
       resolvedCommune: commune,
       communeSource,
@@ -710,7 +733,7 @@ const issueLabel = (issue: string): string => {
       doublon_destination: 'doublon destination',
       extension_non_supportee: 'extension non supportee',
       geocodage_en_cours: 'geocodage en cours',
-      gps_absent: 'coordonnees GPS absentes',
+      gps_absent: 'sans GPS: copie identique',
       commune_introuvable: 'commune GPS introuvable'
     }[issue] ?? issue
   );
@@ -733,7 +756,7 @@ const operationDetails = (operation: BrowserRenameOperation): string => {
   } else if (operation.issues.includes('geocodage_en_cours')) {
     details.push('recherche de commune en cours');
   } else if (operation.issues.includes('gps_absent')) {
-    details.push('aucune coordonnee GPS EXIF lisible; saisir une commune de secours');
+    details.push('aucune coordonnee GPS EXIF lisible; fichier recopie avec son nom original');
   } else if (operation.issues.includes('commune_introuvable')) {
     details.push('coordonnees GPS lues, mais aucune commune retournee; saisir une commune de secours');
   } else if (operation.issues.includes('commune_requise')) {
@@ -782,6 +805,10 @@ const communeLabel = (operation: BrowserRenameOperation): string => {
 
   if (operation.communeSource === 'fallback') {
     return `${operation.resolvedCommune} (secours)`;
+  }
+
+  if (operation.communeState === 'missing_gps') {
+    return 'sans GPS';
   }
 
   return 'a renseigner';
@@ -979,7 +1006,24 @@ const initBrowserRenamer = (root: HTMLElement): void => {
       row.children[1].textContent = operation.originalName;
       row.children[2].textContent = formatBytes(operation.size);
       row.children[3].textContent = communeLabel(operation);
-      row.children[4].textContent = operation.newName;
+      const targetName = document.createElement('input');
+      targetName.type = 'text';
+      targetName.className = 'photo-browser-name-input';
+      targetName.value = operation.newName;
+      targetName.maxLength = 190;
+      targetName.setAttribute('aria-label', `Nom de copie pour ${operation.originalName}`);
+      targetName.setAttribute('data-photo-browser-target-name', '');
+      targetName.addEventListener('change', () => {
+        const source = currentFiles.find((file) => file.file === operation.file);
+        if (source === undefined) {
+          return;
+        }
+
+        const value = targetName.value.trim();
+        source.manualNewName = value !== '' ? value : undefined;
+        renderPlan();
+      });
+      row.children[4].append(targetName);
       const state = document.createElement('span');
       state.textContent = operation.issues.length > 0 ? operation.issues.map(issueLabel).join(', ') : 'pret';
       row.children[5].append(state);

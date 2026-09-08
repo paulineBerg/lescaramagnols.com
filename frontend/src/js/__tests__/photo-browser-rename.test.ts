@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildBrowserRenamePlan,
+  createBrowserRenameZip,
   createZipBlob,
   initPhotoBrowserRename,
   parseGpsFromJpegBuffer,
@@ -179,7 +180,7 @@ describe('photo browser rename', () => {
     expect(plan.operations.map((operation) => operation.newName)).toEqual(['Cogolin-01.JPG', 'Cogolin-02.JPG']);
   });
 
-  it('conserve les copies pretes quand une autre photo attend une commune', () => {
+  it('recopie avec le nom original quand une photo n a pas de GPS', () => {
     const plan = buildBrowserRenamePlan(
       [
         { name: 'IMG_0001.JPG', lastModified: 10, size: 10, detectedCommune: 'Saint-Tropez', communeState: 'detected' },
@@ -194,16 +195,79 @@ describe('photo browser rename', () => {
       }
     );
 
-    expect(plan.ok).toBe(false);
-    expect(plan.summary.ready).toBe(1);
-    expect(plan.summary.conflicts).toBe(1);
+    expect(plan.ok).toBe(true);
+    expect(plan.summary.ready).toBe(2);
+    expect(plan.summary.conflicts).toBe(0);
     expect(plan.operations[0].newName).toBe('Saint-Tropez-01.JPG');
+    expect(plan.operations[1].newName).toBe('IMG_0002.PNG');
+    expect(plan.operations[1].status).toBe('ready');
     expect(plan.operations[1].issues).toContain('gps_absent');
   });
 
-  it('detaille une commune manquante quand aucun GPS lisible n existe', () => {
+  it('n utilise pas la commune de secours quand aucun GPS lisible n existe', () => {
     const plan = buildBrowserRenamePlan(
       [{ name: 'IMG_0001.JPG', lastModified: 0, size: 4, communeState: 'missing_gps' }],
+      {
+        communeName: 'Cogolin',
+        startNumber: 1,
+        counterDigits: 2,
+        separator: '-',
+        sortOrder: 'taken'
+      }
+    );
+
+    expect(plan.ok).toBe(true);
+    expect(plan.operations[0].newName).toBe('IMG_0001.JPG');
+    expect(plan.operations[0].status).toBe('ready');
+    expect(plan.operations[0].issues).toContain('gps_absent');
+    expect(plan.operations[0].issues).not.toContain('commune_requise');
+  });
+
+  it('applique un nom manuel sur une copie renommee', () => {
+    const plan = buildBrowserRenamePlan(
+      [
+        {
+          name: 'IMG_0001.JPG',
+          lastModified: 0,
+          size: 4,
+          detectedCommune: 'Cogolin',
+          communeState: 'detected',
+          manualNewName: 'Cuisine ete'
+        }
+      ],
+      {
+        communeName: '',
+        startNumber: 1,
+        counterDigits: 2,
+        separator: '-',
+        sortOrder: 'taken'
+      }
+    );
+
+    expect(plan.ok).toBe(true);
+    expect(plan.operations[0].newName).toBe('Cuisine-ete.JPG');
+  });
+
+  it('signale un doublon apres modification manuelle', () => {
+    const plan = buildBrowserRenamePlan(
+      [
+        {
+          name: 'IMG_0001.JPG',
+          lastModified: 0,
+          size: 4,
+          detectedCommune: 'Cogolin',
+          communeState: 'detected',
+          manualNewName: 'photo finale.jpg'
+        },
+        {
+          name: 'IMG_0002.JPG',
+          lastModified: 1,
+          size: 4,
+          detectedCommune: 'Cogolin',
+          communeState: 'detected',
+          manualNewName: 'photo finale.jpg'
+        }
+      ],
       {
         communeName: '',
         startNumber: 1,
@@ -214,8 +278,9 @@ describe('photo browser rename', () => {
     );
 
     expect(plan.ok).toBe(false);
-    expect(plan.operations[0].issues).toContain('gps_absent');
-    expect(plan.operations[0].issues).not.toContain('commune_requise');
+    expect(plan.summary.ready).toBe(1);
+    expect(plan.summary.conflicts).toBe(1);
+    expect(plan.operations[1].issues).toContain('doublon_destination');
   });
 
   it('signale les extensions non supportees et la commune manquante', () => {
@@ -247,6 +312,65 @@ describe('photo browser rename', () => {
     expect(view.getUint32(0, true)).toBe(0x04034b50);
     expect(view.getUint32(buffer.byteLength - 22, true)).toBe(0x06054b50);
     expect(view.getUint16(buffer.byteLength - 12, true)).toBe(2);
+  });
+
+  it('archive aussi une photo sans GPS avec son nom original', async () => {
+    const file = new File([bytes('photo')], 'IMG_0001.PNG', { type: 'image/png', lastModified: 1 });
+    Object.defineProperty(file, 'arrayBuffer', {
+      configurable: true,
+      value: vi.fn().mockResolvedValue(bytes('photo').buffer)
+    });
+    const plan = buildBrowserRenamePlan(
+      [{ name: file.name, lastModified: file.lastModified, size: file.size, type: file.type, file, communeState: 'missing_gps' }],
+      {
+        communeName: '',
+        startNumber: 1,
+        counterDigits: 2,
+        separator: '-',
+        sortOrder: 'taken'
+      }
+    );
+
+    const zip = await createBrowserRenameZip(plan.operations);
+    const content = new TextDecoder().decode(await readBlob(zip));
+
+    expect(content).toContain('IMG_0001.PNG');
+  });
+
+  it('permet de modifier manuellement le nom de copie dans le tableau', async () => {
+    document.body.innerHTML = `
+      <div data-photo-browser-renamer>
+        <input type="file" multiple data-photo-browser-files />
+        <input value="" data-photo-browser-commune />
+        <input value="1" data-photo-browser-start />
+        <select data-photo-browser-sort><option value="taken" selected>date de prise de vue</option></select>
+        <button type="button" data-photo-browser-preview>Prévisualiser</button>
+        <button type="button" data-photo-browser-download>Télécharger les copies</button>
+        <p data-photo-browser-status></p>
+        <table data-photo-browser-table><tbody data-photo-browser-rows></tbody></table>
+      </div>
+    `;
+    const file = new File([bytes('photo')], 'IMG_0001.PNG', { type: 'image/png', lastModified: 1 });
+    const fileInput = document.querySelector<HTMLInputElement>('[data-photo-browser-files]');
+    expect(fileInput).not.toBeNull();
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [file]
+    });
+
+    initPhotoBrowserRename();
+    fileInput?.dispatchEvent(new Event('change'));
+    await flushPromises();
+
+    const targetInput = document.querySelector<HTMLInputElement>('[data-photo-browser-target-name]');
+    expect(targetInput?.value).toBe('IMG_0001.PNG');
+    if (targetInput !== null) {
+      targetInput.value = 'Salon terrasse';
+      targetInput.dispatchEvent(new Event('change'));
+    }
+
+    expect(document.querySelector<HTMLInputElement>('[data-photo-browser-target-name]')?.value).toBe('Salon-terrasse.PNG');
+    expect(document.querySelector('[data-photo-browser-rows]')?.textContent).toContain('sans GPS: copie identique');
   });
 
   it('utilise le fournisseur officiel depuis le navigateur si le serveur ne peut pas geocoder', async () => {
@@ -295,7 +419,7 @@ describe('photo browser rename', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(String(fetchMock.mock.calls[1][0])).toContain('https://geo.api.gouv.fr/communes?');
     expect(document.querySelector('[data-photo-browser-status]')?.textContent).toContain('1 copie(s) prete(s)');
-    expect(document.querySelector('[data-photo-browser-rows]')?.textContent).toContain('Cogolin-01.JPEG');
+    expect(document.querySelector<HTMLInputElement>('[data-photo-browser-target-name]')?.value).toBe('Cogolin-01.JPEG');
     fetchMock.mockRestore();
     Object.defineProperty(Blob.prototype, 'arrayBuffer', {
       configurable: true,
