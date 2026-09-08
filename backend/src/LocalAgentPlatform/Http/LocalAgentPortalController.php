@@ -69,6 +69,10 @@ final class LocalAgentPortalController
                 return $this->downloadAgentInstaller($request, $userId, $body, $app);
             }
 
+            if ($action === 'download_agent_uninstaller') {
+                return $this->downloadAgentUninstaller($body);
+            }
+
             if ($action === 'create_enrollment') {
                 $oneTimeEnrollment = $this->repository->createEnrollmentToken(
                     $userId,
@@ -203,8 +207,7 @@ final class LocalAgentPortalController
      */
     private function downloadAgentInstaller(Request $request, int $userId, array $body, array $app): Response
     {
-        $hasConsent = ($body['installer_consent'] ?? null) === '1'
-            && mb_strtoupper($this->shortBodyText($body, 'installer_confirmation', 16)) === 'INSTALLER';
+        $hasConsent = ($body['installer_consent'] ?? null) === '1';
         if (!$hasConsent) {
             return $this->renderPbGestion($userId, 'agents', null, 'installer_consent_required', null, null, $app);
         }
@@ -212,16 +215,42 @@ final class LocalAgentPortalController
         $locationLabel = $this->shortBodyText($body, 'location_label', 160);
         $oneTimeEnrollment = $this->repository->createEnrollmentToken($userId, $locationLabel);
         $displayName = $locationLabel !== '' ? $locationLabel : 'PbGestion Agent';
-        $script = (new LocalAgentInstaller())->buildPowerShellScript(
-            $oneTimeEnrollment,
-            rtrim(app_url('', $request), '/'),
-            $displayName
-        );
+        $platform = $this->installerPlatform($body['installer_platform'] ?? null);
+        $installer = new LocalAgentInstaller();
+        $script = $platform === 'windows'
+            ? $installer->buildPowerShellScript($oneTimeEnrollment, rtrim(app_url('', $request), '/'), $displayName)
+            : $installer->buildUnixShellScript($oneTimeEnrollment, rtrim(app_url('', $request), '/'), $displayName, $platform);
+        $extension = $platform === 'windows' ? 'ps1' : 'sh';
+        $contentType = $platform === 'windows'
+            ? 'application/x-powershell; charset=utf-8'
+            : 'text/x-shellscript; charset=utf-8';
         $this->log('pbgestion.installer.downloaded', ['private_user_id' => $userId], 'warning');
 
         return PrivateResponseHeaders::apply(new Response(200, [
-            'Content-Type' => 'application/x-powershell; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="pbgestion-agent-install.ps1"',
+            'Content-Type' => $contentType,
+            'Content-Disposition' => 'attachment; filename="pbgestion-agent-install-' . $platform . '.' . $extension . '"',
+            'Content-Length' => (string) strlen($script),
+        ], $script));
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function downloadAgentUninstaller(array $body): Response
+    {
+        $platform = $this->installerPlatform($body['installer_platform'] ?? null);
+        $installer = new LocalAgentInstaller();
+        $script = $platform === 'windows'
+            ? $installer->buildPowerShellUninstallScript()
+            : $installer->buildUnixUninstallScript($platform);
+        $extension = $platform === 'windows' ? 'ps1' : 'sh';
+        $contentType = $platform === 'windows'
+            ? 'application/x-powershell; charset=utf-8'
+            : 'text/x-shellscript; charset=utf-8';
+
+        return PrivateResponseHeaders::apply(new Response(200, [
+            'Content-Type' => $contentType,
+            'Content-Disposition' => 'attachment; filename="pbgestion-agent-uninstall-' . $platform . '.' . $extension . '"',
             'Content-Length' => (string) strlen($script),
         ], $script));
     }
@@ -356,7 +385,7 @@ final class LocalAgentPortalController
 
     private function actionAllowedForModule(string $action, string $moduleCode): bool
     {
-        if (in_array($action, ['download_agent_installer', 'create_enrollment', 'queue_command', 'revoke_agent'], true)) {
+        if (in_array($action, ['download_agent_installer', 'download_agent_uninstaller', 'create_enrollment', 'queue_command', 'revoke_agent'], true)) {
             return in_array($moduleCode, [self::MODULE_NETWORK_SECURITY, self::MODULE_PHOTO_GEO_RENAMER], true);
         }
 
@@ -557,8 +586,8 @@ final class LocalAgentPortalController
         }
 
         return match ($key) {
-            'enrollment_created' => 'Code d’appairage créé. Il est valable 10 minutes et affiché une seule fois.',
-            'restricted_preview_ready' => 'Aperçu restreint généré. Aucun fichier local n’a été lu ou renommé.',
+            'enrollment_created' => 'Code d’appairage créé. Il est valable 30 minutes et affiché une seule fois.',
+            'restricted_preview_ready' => 'Aperçu manuel généré. Aucun fichier local n’a été lu ou renommé.',
             'photo_counter_initialized' => 'Compteur Photo rename initialisé sans scan de dossier.',
             'command_queued' => 'Commande enregistrée. L’agent la récupérera lors de son prochain contact.',
             'agent_revoked' => 'Agent révoqué. Les commandes en attente ont été annulées.',
@@ -571,7 +600,7 @@ final class LocalAgentPortalController
         return match ($key) {
             'invalid_request' => 'Requête invalide.',
             'installer_consent_required' => 'Téléchargement refusé: confirmez explicitement l’installation locale avant de générer l’installeur.',
-            'restricted_preview_empty' => 'Aucune photo valide à prévisualiser en mode restreint.',
+            'restricted_preview_empty' => 'Aucune photo valide à prévisualiser.',
             'photo_counter_failed' => 'Le compteur Photo rename n’a pas pu être initialisé.',
             'command_rejected' => 'La commande a été refusée par la politique du module.',
             'agent_revoke_failed' => 'L’agent n’a pas pu être révoqué.',
@@ -582,6 +611,13 @@ final class LocalAgentPortalController
     private function positiveInt(mixed $value): int
     {
         return is_numeric($value) && (int) $value > 0 ? (int) $value : 0;
+    }
+
+    private function installerPlatform(mixed $value): string
+    {
+        $platform = is_string($value) ? strtolower(trim($value)) : 'windows';
+
+        return in_array($platform, ['windows', 'linux', 'macos'], true) ? $platform : 'windows';
     }
 
     /**

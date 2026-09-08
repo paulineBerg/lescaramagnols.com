@@ -97,7 +97,9 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('Renommage</a>', $photoResponse->body);
         $this->assertStringNotContainsString('Vue d’ensemble</a>', $photoResponse->body);
         $this->assertStringContainsString('photo.rename.preview', $photoResponse->body);
-        $this->assertStringContainsString('Les originaux restent sur l’ordinateur de l’agent', $photoResponse->body);
+        $this->assertStringContainsString('Mode navigateur Android, iOS et desktop', $photoResponse->body);
+        $this->assertStringContainsString('data-photo-browser-renamer', $photoResponse->body);
+        $this->assertStringContainsString('Télécharger les copies', $photoResponse->body);
 
         $writeResponse = $controller->handle('network_security_dashboard', $this->request('POST', '/private/securite-reseau'));
         $this->assertSame(302, $writeResponse->status);
@@ -148,14 +150,15 @@ final class LocalAgentPortalControllerTest extends TestCase
         $agentsResponse = $controller->handle('network_security_agents', $this->request('GET', '/private/securite-reseau/agents-installation'));
         $this->assertSame(200, $agentsResponse->status);
         $this->assertStringContainsString('Installer l’agent local PbGestion', $agentsResponse->body);
-        $this->assertStringContainsString('Je comprends que l’agent local s’installe', $agentsResponse->body);
-        $this->assertStringContainsString('mode restreint sans accès fichiers', $agentsResponse->body);
+        $this->assertStringContainsString('aucun texte n’est à recopier', $agentsResponse->body);
+        $this->assertStringNotContainsString('name="installer_confirmation"', $agentsResponse->body);
+        $this->assertStringContainsString('Supprimer l’agent local', $agentsResponse->body);
+        $this->assertStringContainsString('Créer un code 30 minutes', $agentsResponse->body);
 
         $csrfToken = csrf_token('private_pbgestion');
         $refusedResponse = $controller->handle('network_security_agents', $this->request('POST', '/private/securite-reseau/agents-installation', [
             'csrf_token' => $csrfToken,
             'action' => 'download_agent_installer',
-            'installer_confirmation' => 'INSTALLER',
         ]));
         $this->assertSame(200, $refusedResponse->status);
         $this->assertArrayNotHasKey('Content-Disposition', $refusedResponse->headers);
@@ -166,23 +169,45 @@ final class LocalAgentPortalControllerTest extends TestCase
             'action' => 'download_agent_installer',
             'location_label' => 'PC photos',
             'installer_consent' => '1',
-            'installer_confirmation' => 'INSTALLER',
+            'installer_platform' => 'windows',
         ]));
 
         $this->assertSame(200, $downloadResponse->status);
         $this->assertSame('application/x-powershell; charset=utf-8', $downloadResponse->headers['Content-Type'] ?? null);
-        $this->assertSame('attachment; filename="pbgestion-agent-install.ps1"', $downloadResponse->headers['Content-Disposition'] ?? null);
+        $this->assertSame('attachment; filename="pbgestion-agent-install-windows.ps1"', $downloadResponse->headers['Content-Disposition'] ?? null);
         $this->assertStringContainsString('no-store', $downloadResponse->headers['Cache-Control'] ?? '');
         $this->assertStringContainsString('INSTALLATION LOCALE PB GESTION', $downloadResponse->body);
-        $this->assertStringContainsString('Tapez OUI pour confirmer l installation locale', $downloadResponse->body);
+        $this->assertStringNotContainsString('Tapez OUI pour confirmer l installation locale', $downloadResponse->body);
         $this->assertStringContainsString('%LOCALAPPDATA%\\pbgestion\\agent', $downloadResponse->body);
         $this->assertStringContainsString("Join-Path \$env:LOCALAPPDATA 'pbgestion'", $downloadResponse->body);
         $this->assertStringContainsString('pbgestion_agent.py', $downloadResponse->body);
         $this->assertStringContainsString('pynacl', $downloadResponse->body);
         $this->assertStringContainsString('/api/pbgestion/v1/enrollment/claim', $downloadResponse->body);
+
+        $linuxResponse = $controller->handle('network_security_agents', $this->request('POST', '/private/securite-reseau/agents-installation', [
+            'csrf_token' => $csrfToken,
+            'action' => 'download_agent_installer',
+            'location_label' => 'PC Linux',
+            'installer_consent' => '1',
+            'installer_platform' => 'linux',
+        ]));
+        $this->assertSame(200, $linuxResponse->status);
+        $this->assertSame('text/x-shellscript; charset=utf-8', $linuxResponse->headers['Content-Type'] ?? null);
+        $this->assertSame('attachment; filename="pbgestion-agent-install-linux.sh"', $linuxResponse->headers['Content-Disposition'] ?? null);
+        $this->assertStringContainsString('#!/usr/bin/env bash', $linuxResponse->body);
+        $this->assertStringContainsString('systemctl --user enable --now pbgestion-agent.timer', $linuxResponse->body);
+
+        $uninstallResponse = $controller->handle('network_security_agents', $this->request('POST', '/private/securite-reseau/agents-installation', [
+            'csrf_token' => $csrfToken,
+            'action' => 'download_agent_uninstaller',
+            'installer_platform' => 'windows',
+        ]));
+        $this->assertSame(200, $uninstallResponse->status);
+        $this->assertSame('attachment; filename="pbgestion-agent-uninstall-windows.ps1"', $uninstallResponse->headers['Content-Disposition'] ?? null);
+        $this->assertStringContainsString('SUPPRESSION LOCALE PB GESTION', $uninstallResponse->body);
     }
 
-    public function testPhotoRestrictedModeRunsWithoutClaimedAgent(): void
+    public function testPhotoBrowserModeRunsWithoutClaimedAgent(): void
     {
         $database = $this->editorialSqlDatabase();
         $userRepository = new PrivateUserRepository($database);
@@ -202,21 +227,10 @@ final class LocalAgentPortalControllerTest extends TestCase
 
         $photosResponse = $controller->handle('photo_geo_renamer_dashboard', $this->request('GET', '/private/photo-rename'));
         $this->assertSame(200, $photosResponse->status);
-        $this->assertStringContainsString('Mode restreint sans agent', $photosResponse->body);
-        $this->assertStringContainsString('Aucun agent appairé: seules les fonctions restreintes', $photosResponse->body);
-
-        $previewResponse = $controller->handle('photo_geo_renamer_dashboard', $this->request('POST', '/private/photo-rename', [
-            'csrf_token' => csrf_token('private_pbgestion'),
-            'action' => 'photo_restricted_preview',
-            'restricted_items' => "IMG_0001.jpg;Cogolin;2026-08-13 12:00:00\nIMG_0002.jpg;Cogolin;2026-08-13 12:05:00",
-            'sort_order' => 'manual',
-        ]));
-
-        $this->assertSame(200, $previewResponse->status);
-        $this->assertStringContainsString('Aperçu restreint généré', $previewResponse->body);
-        $this->assertStringContainsString('Cogolin-01.jpg', $previewResponse->body);
-        $this->assertStringContainsString('Cogolin-02.jpg', $previewResponse->body);
-        $this->assertStringContainsString('Aucun fichier local n’a été lu ou renommé', $previewResponse->body);
+        $this->assertStringContainsString('Mode navigateur Android, iOS et desktop', $photosResponse->body);
+        $this->assertStringContainsString('Aucun agent local détecté.', $photosResponse->body);
+        $this->assertStringContainsString('data-photo-browser-renamer', $photosResponse->body);
+        $this->assertStringNotContainsString('Mode manuel sans agent', $photosResponse->body);
     }
 
     public function testInvalidCsrfKeepsPhotoApplicationContext(): void
@@ -273,7 +287,7 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertSame(200, $networkResponse->status);
         $this->assertStringContainsString('Sécurité réseau', $networkResponse->body);
         $this->assertStringContainsString('Requête invalide.', $networkResponse->body);
-        $this->assertStringNotContainsString('Aperçu restreint généré', $networkResponse->body);
+        $this->assertStringNotContainsString('Aperçu manuel généré', $networkResponse->body);
 
         $photoResponse = $controller->handle('photo_geo_renamer_dashboard', $this->request('POST', '/private/photo-rename', [
             'csrf_token' => $csrfToken,

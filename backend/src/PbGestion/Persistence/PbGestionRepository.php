@@ -22,6 +22,8 @@ use RuntimeException;
 
 final class PbGestionRepository
 {
+    private const ENROLLMENT_TTL_SECONDS = 1800;
+
     private bool $schemaReady = false;
 
     public function __construct(
@@ -45,7 +47,7 @@ final class PbGestionRepository
         $tokenUid = bin2hex(random_bytes(16));
         $code = $this->randomEnrollmentCode();
         $now = $this->now();
-        $expiresAt = gmdate('Y-m-d H:i:s', time() + 600);
+        $expiresAt = gmdate('Y-m-d H:i:s', time() + self::ENROLLMENT_TTL_SECONDS);
         $hash = password_hash($code, PASSWORD_DEFAULT);
         if (!is_string($hash)) {
             throw new RuntimeException('Impossible de generer le hash du code Sécurité réseau.');

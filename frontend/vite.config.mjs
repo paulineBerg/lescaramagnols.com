@@ -17,6 +17,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'src/js/main.ts'),
+        photoBrowserRename: path.resolve(__dirname, 'src/js/photo-browser-rename.ts'),
         style: path.resolve(__dirname, 'src/scss/style.scss'),
         private: path.resolve(__dirname, 'src/scss/private.scss')
       },

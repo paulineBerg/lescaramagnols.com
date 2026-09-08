@@ -337,6 +337,11 @@
     color: var(--private-success);
   }
 
+  .notice-info {
+    background: rgb(29 111 141 / 12%);
+    color: var(--private-primary-dark);
+  }
+
   .notice-error,
   .error {
     background: rgb(161 26 42 / 12%);
@@ -625,6 +630,19 @@
     background: rgb(19 41 75 / 3%);
     margin: 0 0 0.85rem;
     padding: 0.75rem;
+  }
+
+  .photo-browser-renamer {
+    align-items: end;
+    display: grid;
+    gap: 0.7rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  }
+
+  .photo-browser-renamer > .private-actions,
+  .photo-browser-renamer > .muted,
+  .photo-browser-renamer > .private-table-wrap {
+    grid-column: 1 / -1;
   }
 
   .private-list-filter-grid {

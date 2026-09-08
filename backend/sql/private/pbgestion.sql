@@ -182,7 +182,7 @@ INSERT IGNORE INTO car_private_modules (`code`, `is_active`, `display_name`, `de
         ('pbgestion', 1, 'Sécurité réseau', 'Alias historique du socle agent PbGestion.'),
         ('security_center', 1, 'Sécurité réseau', 'Alias transitoire de la webapp Sécurité réseau.'),
         ('network_security', 1, 'Sécurité réseau', 'Pilotage des agents locaux, couverture, alertes et synthèses de sécurité.'),
-        ('photo_geo_renamer', 1, 'Photo rename', 'Renommage local de photos avec aperçu, géolocalisation et mode restreint sans agent.');
+        ('photo_geo_renamer', 1, 'Photo rename', 'Renommage de photos avec copies navigateur et agent local optionnel.');
 
 INSERT IGNORE INTO car_private_user_module_permissions (
     private_user_id,

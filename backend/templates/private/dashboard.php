@@ -256,7 +256,7 @@ $privateHasModuleCode = static function (string $code, string $fallbackName) use
     <section class="card">
       <span class="tag">Photos locales</span>
       <h2>Photo rename</h2>
-      <p class="muted">Prévisualisez les noms de photos en mode restreint ou envoyez les commandes de renommage à un agent local accepté.</p>
+      <p class="muted">Renommez des copies dans le navigateur sans agent, ou envoyez les commandes de renommage direct à un agent local accepté.</p>
       <p class="muted">
         <strong>Statistique :</strong>
         <?php echo htmlspecialchars($privateModuleStat('photo_geo_renamer', 'élément photo', 'éléments photo'), ENT_QUOTES, 'UTF-8'); ?>.

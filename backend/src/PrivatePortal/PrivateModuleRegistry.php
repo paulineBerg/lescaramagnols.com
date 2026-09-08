@@ -55,7 +55,7 @@ final class PrivateModuleRegistry
             [
                 'code' => 'photo_geo_renamer',
                 'name' => 'Photo rename',
-                'description' => 'Renommage local de photos avec aperçu, géolocalisation et mode restreint sans agent.',
+                'description' => 'Renommage de photos avec copies navigateur et agent local optionnel.',
             ],
         ];
     }

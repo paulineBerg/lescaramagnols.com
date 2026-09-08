@@ -89,22 +89,61 @@ ou `failed`).
 - `PhotoSequenceRepository` initialise ou réserve les séquences SQL par commune
   sans jamais diminuer le dernier numéro connu.
 
-## Installation agent depuis le BO
+## Modes navigateur et agent
+
+Photo Geo Renamer propose deux parcours complémentaires.
+
+Le mode navigateur fonctionne sur Android, iOS, Windows, Linux et macOS sans
+agent local. L'utilisateur sélectionne explicitement des photos via le
+navigateur ; les fichiers restent côté appareil, les noms sont calculés en
+JavaScript et le résultat est téléchargé comme archive ZIP de copies renommées.
+Ce mode ne modifie pas les originaux et ne réserve pas les compteurs SQL
+globaux, car le serveur ne peut pas garantir que les copies téléchargées seront
+réellement conservées.
+
+Le mode agent est réservé aux ordinateurs Windows, Linux et macOS. Après
+consentement explicite, l'agent peut accéder aux dossiers autorisés, lire les
+métadonnées, demander les réservations SQL au moment de l'exécution et renommer
+directement les fichiers sans écrasement. C'est le parcours rapide et automatisé
+pour de grands dossiers locaux. La webapp conserve plusieurs agents par compte
+avec leur nom d'ordinateur ou d'usage, l'OS, la version et le dernier contact,
+ce qui permet de retrouver plusieurs PC depuis le menu `Agents`.
+
+Sur téléphone, une webapp classique ne peut pas renommer arbitrairement la
+photothèque ni surveiller un dossier en arrière-plan. Un vrai renommage direct
+mobile nécessiterait une application native ou hybride dédiée avec permissions
+plateforme, confirmations explicites et export contrôlé.
+
+## Installation et suppression agent depuis le BO
 
 Le BO `PbGestion > Agents et installation` propose deux parcours :
 
-1. téléchargement d'un installeur PowerShell seulement après case de
-   consentement et saisie de `INSTALLER`;
-2. second consentement local dans le script, avec saisie de `OUI`;
-3. installation sous le profil Windows courant dans
-   `%LOCALAPPDATA%\PbGestionAgent`;
-4. création d'une tâche planifiée locale `PbGestionAgent`;
-5. appairage via un code à usage unique valable 10 minutes.
+1. téléchargement d'un installeur Windows, Linux ou macOS seulement après
+   confirmation par popup côté BO ;
+2. appairage intégré au script téléchargé, sans saisie de `INSTALLER` ni de
+   code dans le parcours standard ;
+3. installation sous le profil courant :
+   `%LOCALAPPDATA%\pbgestion\agent` sur Windows,
+   `~/.local/share/pbgestion/agent` sur Linux,
+   `~/Library/Application Support/pbgestion/agent` sur macOS ;
+4. tâche planifiée Windows, timer systemd utilisateur Linux ou LaunchAgent macOS
+   lorsque la plateforme le permet ;
+5. appairage via un jeton à usage unique valable 30 minutes.
 
 En cas de refus, aucune installation silencieuse n'est tentée. La webapp garde
-un mode restreint dans `PbGestion > Photos locales` : l'utilisateur colle une
-liste `nom;ville;date`, le BO calcule les noms proposés, mais il ne lit pas les
-EXIF, ne géocode pas et ne renomme aucun fichier.
+un mode navigateur fonctionnel qui produit des copies renommées téléchargées.
+La révocation côté BO bloque les synchronisations de l'agent. Pour nettoyer le
+poste local, le BO fournit aussi un script de suppression qui retire la tâche
+planifiée ou le service utilisateur et supprime le dossier agent local.
+
+Le code manuel reste disponible comme secours si l'utilisateur copie ou lance
+l'agent lui-même. Le délai de 30 minutes remplace l'ancien délai de 10 minutes.
+Les alternatives à étudier ensuite sont :
+
+- lien d'appairage local ouvrant directement l'installeur généré ;
+- QR code d'appairage pour un second appareil ;
+- agent lancé en attente puis approbation depuis la webapp ;
+- jeton de longue durée révocable pour les postes déjà authentifiés.
 
 ## Procédure de test
 
@@ -123,7 +162,11 @@ Contrôles attendus :
 - permutation de noms couverte par noms temporaires;
 - rollback bloqué si un ancien nom écraserait un fichier existant.
 - téléchargement installeur bloqué sans consentement explicite;
-- mode restreint utilisable sans agent appairé.
+- téléchargement installeur Windows, Linux et macOS avec appairage intégré ;
+- téléchargement de script de suppression locale ;
+- mode navigateur utilisable sans agent appairé ;
+- archive ZIP générée côté navigateur sans upload des photos ;
+- message haut explicite lorsqu'aucun agent local n'est détecté.
 
 ## Risques résiduels
 
@@ -131,7 +174,10 @@ Le backend livre le contrat, l'écran BO, l'installeur avec consentement
 explicite et un agent minimal capable d'exécuter les commandes fichiers bornées.
 Les fonctions avancées restent à compléter côté poste : lecture EXIF riche,
 miniatures, géocodage inverse réel, cache géographique et galerie interactive.
-Sans agent installé, le mode restreint reste volontairement limité à une
-  prévisualisation manuelle sans accès aux fichiers locaux. Le déploiement en
-  production exige un runbook `.ops-sync` disponible, une sauvegarde vérifiée et
-  la synchronisation du schéma privé avant activation.
+Sans agent installé, le mode navigateur produit des copies renommées dans une
+archive ZIP mais ne peut pas modifier directement les originaux ni surveiller
+un dossier mobile. Les installeurs Linux/macOS sont des scripts shell non
+notariés et non packagés ; une distribution signée reste à prévoir pour une
+livraison grand public. Le déploiement en production exige un runbook
+`.ops-sync` disponible, une sauvegarde vérifiée, un test de boot complet et la
+synchronisation du schéma privé avant activation.

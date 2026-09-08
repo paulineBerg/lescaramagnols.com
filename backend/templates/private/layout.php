@@ -424,6 +424,9 @@ $privateTopNavigationHasItems = $privateTopNavigationItems !== [];
       </dialog>
     <?php endif; ?>
     <?php $privateCspNonce = (string) ($GLOBALS['csp_nonce'] ?? ''); ?>
+    <?php if ($isAuthenticated) : ?>
+      <?php echo vite_tags('src/js/photo-browser-rename.ts'); ?>
+    <?php endif; ?>
     <script<?php echo $privateCspNonce !== '' ? ' nonce="' . htmlspecialchars($privateCspNonce, ENT_QUOTES, 'UTF-8') . '"' : ''; ?>>
       (() => {
         window.addEventListener('pageshow', (event) => {
@@ -709,7 +712,7 @@ $privateTopNavigationHasItems = $privateTopNavigationItems !== [];
           : null;
         let pendingSensitiveSubmission = null;
         const allowedSensitiveSubmissions = new WeakSet();
-        const sensitivePattern = /(supprimer|suppression|delete|remove|retirer|archiver|archivage|archive|purge)/i;
+        const sensitivePattern = /(supprimer|suppression|delete|remove|retirer|révoquer|revoquer|archiver|archivage|archive|purge|installer|installation)/i;
         const textOf = (value) => String(value || '').replace(/\s+/g, ' ').trim();
         const submitterLabel = (submitter) => {
           if (submitter instanceof HTMLInputElement) {
@@ -769,9 +772,14 @@ $privateTopNavigationHasItems = $privateTopNavigationItems !== [];
             return window.confirm(sensitiveConfirmTemplate.replace('%s', submitterLabel(submitter) || 'cette action'));
           }
 
+          const customMessage = textOf(
+            submitter instanceof HTMLElement && submitter.dataset.privateConfirmMessage
+              ? submitter.dataset.privateConfirmMessage
+              : form.dataset.privateConfirmMessage
+          );
           const label = submitterLabel(submitter) || 'cette action';
           if (sensitiveMessage instanceof HTMLElement) {
-            sensitiveMessage.textContent = sensitiveConfirmTemplate.replace('%s', label);
+            sensitiveMessage.textContent = customMessage || sensitiveConfirmTemplate.replace('%s', label);
           }
           pendingSensitiveSubmission = { form, submitter };
           openDialog(sensitiveDialog);

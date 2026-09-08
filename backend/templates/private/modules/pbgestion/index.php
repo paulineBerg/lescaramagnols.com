@@ -208,56 +208,53 @@ $statusLabel = static function (string $status): string {
   <?php elseif ($isPhotoApp && $view === 'photos'): ?>
     <section class="card private-card-wide">
       <h2>Photo rename</h2>
-      <p class="muted">Les originaux restent sur l’ordinateur de l’agent. Le BO envoie des demandes bornées : racine autorisée, dossier relatif et sélection explicite.</p>
+      <p class="muted">Choisissez le navigateur pour produire des copies renommées, ou l’agent local pour renommer directement des dossiers autorisés.</p>
+      <?php if ($agents === []): ?>
+        <section class="notice notice-info" role="status">
+          <strong>Aucun agent local détecté.</strong>
+          Le renommage reste disponible sans installation : sélectionnez des photos ci-dessous, la webapp prépare des copies renommées dans une archive ZIP, puis vous les enregistrez où vous voulez. Les originaux ne sont pas modifiés.
+        </section>
+      <?php endif; ?>
       <section class="private-dashboard-panel">
-        <h3>Mode restreint sans agent</h3>
-        <p class="muted">Si l’installation locale est refusée, le BO peut seulement calculer un aperçu à partir d’une liste copiée-collée. Il ne lit pas les EXIF, ne géocode pas et ne renomme aucun fichier.</p>
-        <form method="post" action="<?php echo $h($url('photos')); ?>" class="private-list-tools">
-          <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
-          <input type="hidden" name="action" value="photo_restricted_preview" />
-          <label>Photos à prévisualiser
-            <textarea name="restricted_items" rows="6" placeholder="IMG_0001.jpg;Cogolin;2026-08-13 12:00:00&#10;IMG_0002.jpg;Cogolin;2026-08-13 12:05:00" required></textarea>
+        <h3>Mode navigateur Android, iOS et desktop</h3>
+        <p class="muted">Les fichiers sélectionnés restent dans le navigateur. Le résultat est une archive ZIP de copies renommées, sans modifier les originaux.</p>
+        <div class="private-list-tools photo-browser-renamer" data-photo-browser-renamer>
+          <label>Photos
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic" multiple data-photo-browser-files />
           </label>
-          <input type="hidden" name="separator" value="-" />
-          <input type="hidden" name="counter_digits" value="2" />
+          <label>Commune
+            <input type="text" maxlength="160" placeholder="Cogolin" data-photo-browser-commune />
+          </label>
+          <label>Premier numéro
+            <input type="number" min="1" max="999999" value="1" data-photo-browser-start />
+          </label>
           <label>Tri
-            <select name="sort_order">
-              <option value="manual">ordre saisi</option>
-              <option value="chronological">chronologique</option>
+            <select data-photo-browser-sort>
+              <option value="selection">ordre de sélection</option>
+              <option value="date">date fichier navigateur</option>
               <option value="name">nom actuel</option>
-              <option value="city">ville</option>
             </select>
           </label>
-          <button type="submit" class="private-button-secondary">Prévisualiser sans agent</button>
-        </form>
-        <?php if ($restrictedPhotoPreview !== null): ?>
-          <?php
-          $restrictedPreview = is_array($restrictedPhotoPreview['preview'] ?? null) ? $restrictedPhotoPreview['preview'] : [];
-          $restrictedSummary = is_array($restrictedPreview['summary'] ?? null) ? $restrictedPreview['summary'] : [];
-          $restrictedOperations = is_array($restrictedPreview['operations'] ?? null) ? $restrictedPreview['operations'] : [];
-          ?>
-          <div class="notice notice-success" role="status">
-            Lot <?php echo $h($restrictedPhotoPreview['batch_uid'] ?? ''); ?> :
-            <?php echo (int) ($restrictedSummary['ready'] ?? 0); ?> prêt(s),
-            <?php echo (int) ($restrictedSummary['conflicts'] ?? 0); ?> conflit(s).
+          <div class="private-actions">
+            <button type="button" class="private-button-secondary" data-photo-browser-preview>Prévisualiser</button>
+            <button type="button" class="private-create-button" data-photo-browser-download disabled>Télécharger les copies</button>
           </div>
-          <?php if ($restrictedOperations !== []): ?>
-            <table><thead><tr><th>Nom actuel</th><th>Commune</th><th>Nom proposé</th><th>Etat</th></tr></thead><tbody>
-              <?php foreach ($restrictedOperations as $operation): if (!is_array($operation)) { continue; } ?>
-                <tr>
-                  <td><?php echo $h($operation['old_name'] ?? ''); ?></td>
-                  <td><?php echo $h($operation['commune_name'] ?? ''); ?></td>
-                  <td><?php echo $h($operation['new_name'] ?? ''); ?></td>
-                  <td><?php echo $h($statusLabel((string) ($operation['status'] ?? ''))); ?></td>
-                </tr>
-              <?php endforeach; ?>
-            </tbody></table>
-          <?php endif; ?>
-        <?php endif; ?>
+          <p class="muted" data-photo-browser-status>Aucun fichier sélectionné.</p>
+          <div class="private-table-wrap">
+            <table data-photo-browser-table hidden>
+              <thead><tr><th>Nom actuel</th><th>Taille</th><th>Copie renommée</th><th>État</th></tr></thead>
+              <tbody data-photo-browser-rows></tbody>
+            </table>
+          </div>
+        </div>
       </section>
       <?php if ($agents === []): ?>
-        <p class="muted">Aucun agent appairé: seules les fonctions restreintes ci-dessus sont disponibles.</p>
+        <p class="muted">Aucun agent appairé: le navigateur produit des copies renommées téléchargeables, sans accès direct aux dossiers locaux.</p>
       <?php else: ?>
+        <section class="private-dashboard-panel">
+          <h3>Mode agent desktop</h3>
+          <p class="muted">L’agent est le parcours rapide pour les dossiers locaux autorisés sur Windows, Linux ou macOS. Il reste optionnel et ne s’installe qu’après consentement explicite.</p>
+        </section>
         <div class="private-dashboard-summary">
           <section class="private-dashboard-panel">
             <h3>Source</h3>
@@ -436,31 +433,48 @@ $statusLabel = static function (string $status): string {
       <h2>Agents et installation</h2>
       <p class="muted">
         <?php if ($isPhotoApp): ?>
-          Installez l’agent local uniquement après consentement explicite. En cas de refus, Photo rename reste disponible en mode restreint sans accès fichiers.
+          L’agent local est optionnel. Photo rename fonctionne sans agent avec des copies ZIP, et les ordinateurs acceptés sont retrouvés ici après appairage.
         <?php else: ?>
-          Installez un agent local uniquement après consentement explicite. En cas de refus, Photo rename reste disponible en mode restreint sans accès fichiers.
+          Installez un agent local uniquement après consentement explicite. Chaque ordinateur appairé conserve sa configuration locale et réapparaît ici lors de ses contacts.
         <?php endif; ?>
       </p>
       <section class="private-dashboard-panel">
         <h3>Installer l’agent local PbGestion</h3>
-        <p class="muted">Le téléchargement crée un code d’appairage valable 10 minutes. Le script demandé installe les fichiers sous un dossier maître <strong>pbgestion</strong> du profil Windows courant, crée une tâche planifiée locale et redemande de taper OUI avant toute installation.</p>
-        <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools">
+        <p class="muted">Le téléchargement crée un appairage valable 30 minutes et l’intègre dans le script. La confirmation se fait par popup avant le téléchargement; aucun texte n’est à recopier.</p>
+        <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools" data-private-sensitive-action="installation agent local" data-private-confirm-message="Installer un agent local sur cet ordinateur ?">
           <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
           <input type="hidden" name="action" value="download_agent_installer" />
-          <label>Lieu ou usage
+          <input type="hidden" name="installer_consent" value="1" />
+          <label>Ordinateur ou usage
             <input type="text" name="location_label" maxlength="160" placeholder="Maison, bureau, PC principal" />
           </label>
-          <label>
-            <input type="checkbox" name="installer_consent" value="1" />
-            Je comprends que l’agent local s’installe sur cet ordinateur et exécutera seulement les commandes PbGestion validées.
-          </label>
-          <label>Confirmation
-            <input type="text" name="installer_confirmation" maxlength="16" placeholder="INSTALLER" required />
+          <label>Plateforme
+            <select name="installer_platform">
+              <option value="windows">Windows</option>
+              <option value="linux">Linux</option>
+              <option value="macos">macOS</option>
+            </select>
           </label>
           <button type="submit" class="private-create-button">Télécharger l’installeur local</button>
         </form>
       </section>
-      <p class="muted">Appairage manuel: créez un code à usage unique si vous installez ou lancez l’agent vous-même. Le code n’est jamais conservé en clair.</p>
+      <section class="private-dashboard-panel">
+        <h3>Supprimer l’agent local</h3>
+        <p class="muted">La révocation bloque l’agent côté webapp. Pour nettoyer aussi l’ordinateur, téléchargez le script de suppression adapté puis exécutez-le sur le poste concerné.</p>
+        <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools" data-private-sensitive-action="suppression agent local" data-private-confirm-message="Télécharger le script de suppression locale ?">
+          <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+          <input type="hidden" name="action" value="download_agent_uninstaller" />
+          <label>Plateforme
+            <select name="installer_platform">
+              <option value="windows">Windows</option>
+              <option value="linux">Linux</option>
+              <option value="macos">macOS</option>
+            </select>
+          </label>
+          <button type="submit" class="private-button-danger">Télécharger la suppression locale</button>
+        </form>
+      </section>
+      <p class="muted">Appairage manuel de secours: créez un code à usage unique si vous copiez ou lancez l’agent vous-même. Le code reste valable 30 minutes et n’est jamais conservé en clair.</p>
       <?php if ($oneTimeEnrollment !== null): ?>
         <div class="notice notice-success" role="status">
           Code à saisir dans l’agent: <strong><?php echo $h($oneTimeEnrollment['code_grouped'] ?? ''); ?></strong>.
@@ -473,15 +487,21 @@ $statusLabel = static function (string $status): string {
         <label>Lieu ou usage
           <input type="text" name="location_label" maxlength="160" placeholder="Maison, bureau, PC principal" />
         </label>
-        <button type="submit" class="private-create-button">Créer un code 10 minutes</button>
+        <button type="submit" class="private-create-button">Créer un code 30 minutes</button>
       </form>
       <?php if ($agents === []): ?>
         <p class="muted">Aucun agent appairé.</p>
       <?php else: ?>
-        <table><thead><tr><th>Agent</th><th>Etat</th><th>Version</th><th>Dernier contact</th><th>Action</th></tr></thead><tbody>
+        <table><thead><tr><th>Ordinateur</th><th>OS</th><th>Etat</th><th>Version</th><th>Dernier contact</th><th>Action</th></tr></thead><tbody>
           <?php foreach ($agents as $agent): if (!is_array($agent)) { continue; } ?>
             <tr>
-              <td><?php echo $h($agent['display_name'] ?? 'Agent'); ?></td>
+              <td>
+                <?php echo $h($agent['display_name'] ?? 'Agent'); ?>
+                <?php if (is_string($agent['location_label'] ?? null) && trim((string) $agent['location_label']) !== ''): ?>
+                  <br><span class="muted"><?php echo $h($agent['location_label']); ?></span>
+                <?php endif; ?>
+              </td>
+              <td><?php echo $h($agent['os_family'] ?? ''); ?></td>
               <td><?php echo $h($statusLabel((string) ($agent['status'] ?? 'unknown'))); ?></td>
               <td><?php echo $h($agent['agent_version'] ?? ''); ?></td>
               <td><?php echo $h($dateLabel($agent['last_seen_at'] ?? null)); ?></td>
@@ -512,9 +532,9 @@ $statusLabel = static function (string $status): string {
     <section class="card private-card-wide">
       <?php if ($isPhotoApp): ?>
       <h2>Aide Photo rename</h2>
-      <p class="muted">Photo rename prépare des noms `Commune-01.ext` sans lire les fichiers locaux depuis OVH. Les numéros sont réservés en BDD au moment de l’exécution et ne sont jamais réutilisés.</p>
+      <p class="muted">Photo rename propose un mode navigateur universel et un mode agent local optionnel. Les photos ne sont pas envoyées à OVH par le mode navigateur.</p>
       <h3>Avant de commencer</h3>
-      <p>Utilisez le mode restreint si aucun agent local n’est accepté. Installez l’agent PbGestion seulement après consentement explicite pour scanner ou renommer des fichiers sur le PC.</p>
+      <p>Sur Android et iOS, sélectionnez les photos dans le navigateur puis téléchargez les copies renommées. Sur ordinateur, installez l’agent PbGestion seulement après consentement explicite pour scanner ou renommer directement des dossiers locaux.</p>
       <h3>Commandes</h3>
       <p>Les commandes photo sont asynchrones et restent bornées à une racine locale autorisée, un dossier relatif et une sélection explicite. Le dossier destination n’est jamais analysé pour calculer le prochain numéro.</p>
       <h3>8. Informations techniques</h3>
