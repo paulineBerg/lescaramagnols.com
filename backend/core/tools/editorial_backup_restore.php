@@ -358,7 +358,7 @@ function restoreEditorial(string $backupPath, bool $includeDiscussions = false, 
             continue;
         }
 
-        $existingArticleKeys[articleKey($slug, $language)] = [$slug, $language];
+        $existingArticleKeys[backupArticleKey($slug, $language)] = [$slug, $language];
     }
 
     $incomingArticleKeys = [];
@@ -375,7 +375,7 @@ function restoreEditorial(string $backupPath, bool $includeDiscussions = false, 
             continue;
         }
 
-        $incomingArticleKeys[articleKey($slug, $language)] = true;
+        $incomingArticleKeys[backupArticleKey($slug, $language)] = true;
         $blogRepository->save($article, $slug, $language);
         $savedArticles++;
     }
@@ -1035,7 +1035,7 @@ function comparableEditorialItems(array $payload, bool $includeDiscussions = fal
             $slug = normalizeBackupSlug((string) ($article['slug'] ?? ''));
             $language = normalizeBackupLanguage((string) ($article['lang'] ?? 'fr'));
             if ($slug !== '') {
-                $items['blog_articles'][articleKey($slug, $language)] = hashComparableItem($article);
+                $items['blog_articles'][backupArticleKey($slug, $language)] = hashComparableItem($article);
             }
         }
         ksort($items['blog_articles'], SORT_STRING);
@@ -1083,7 +1083,7 @@ function comparableEditorialItems(array $payload, bool $includeDiscussions = fal
             $slug = normalizeBackupSlug((string) ($article['slug'] ?? ''));
             $language = normalizeBackupLanguage((string) ($article['lang'] ?? 'fr'));
             if ($slug !== '') {
-                $items['discussions'][articleKey($slug, $language)] = hashComparableItem($thread);
+                $items['discussions'][backupArticleKey($slug, $language)] = hashComparableItem($thread);
             }
         }
         ksort($items['discussions'], SORT_STRING);
@@ -1155,7 +1155,7 @@ function exportDiscussionThreads(BlogDiscussionRepositoryInterface $discussionRe
             continue;
         }
 
-        $key = articleKey($slug, $language);
+        $key = backupArticleKey($slug, $language);
         if (!isset($threadsByKey[$key])) {
             $threadsByKey[$key] = [
                 'article' => [
@@ -1205,7 +1205,7 @@ function restoreDiscussionThreads(
             continue;
         }
 
-        $existingKeys[articleKey($slug, $language)] = [$slug, $language];
+        $existingKeys[backupArticleKey($slug, $language)] = [$slug, $language];
     }
 
     foreach ($existingKeys as [$slug, $language]) {
@@ -1300,7 +1300,7 @@ function normalizeBackupLanguage(string $language): string
     return $normalized !== '' ? $normalized : 'fr';
 }
 
-function articleKey(string $slug, string $language): string
+function backupArticleKey(string $slug, string $language): string
 {
     return strtolower(trim($slug)) . '|' . strtolower(trim($language));
 }

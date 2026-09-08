@@ -1,4 +1,11 @@
-type SortOrder = 'selection' | 'name' | 'date';
+type SortOrder = 'selection' | 'name' | 'date' | 'taken';
+
+export type BrowserGpsCoordinates = {
+  latitude: number;
+  longitude: number;
+};
+
+type CommuneState = 'pending' | 'detected' | 'missing_gps' | 'lookup_failed';
 
 export type BrowserRenameInput = {
   name: string;
@@ -6,6 +13,10 @@ export type BrowserRenameInput = {
   size?: number;
   type?: string;
   file?: File;
+  takenAt?: number;
+  gps?: BrowserGpsCoordinates;
+  detectedCommune?: string;
+  communeState?: CommuneState;
 };
 
 export type BrowserRenameOptions = {
@@ -22,7 +33,10 @@ export type BrowserRenameOperation = {
   newName: string;
   status: 'ready' | 'conflict';
   issues: string[];
+  resolvedCommune: string;
+  communeSource: 'gps' | 'fallback' | 'missing';
   lastModified: number;
+  takenAt: number;
   size: number;
   type: string;
   file?: File;
@@ -102,6 +116,265 @@ const normalizeFilename = (baseName: string, extension: string, separatorValue: 
   return `${trimmedBaseName}${extensionPart}`;
 };
 
+const readAscii = (view: DataView, offset: number, length: number): string => {
+  if (offset < 0 || length < 0 || offset + length > view.byteLength) {
+    return '';
+  }
+
+  let value = '';
+  for (let index = 0; index < length; index++) {
+    const code = view.getUint8(offset + index);
+    if (code === 0) {
+      break;
+    }
+    value += String.fromCharCode(code);
+  }
+
+  return value;
+};
+
+const readUint16 = (view: DataView, offset: number, littleEndian: boolean): number | null => {
+  return offset >= 0 && offset + 2 <= view.byteLength ? view.getUint16(offset, littleEndian) : null;
+};
+
+const readUint32 = (view: DataView, offset: number, littleEndian: boolean): number | null => {
+  return offset >= 0 && offset + 4 <= view.byteLength ? view.getUint32(offset, littleEndian) : null;
+};
+
+const ifdEntryOffset = (view: DataView, tiffStart: number, ifdOffset: number, tag: number, littleEndian: boolean): number | null => {
+  const absoluteOffset = tiffStart + ifdOffset;
+  const count = readUint16(view, absoluteOffset, littleEndian);
+  if (count === null) {
+    return null;
+  }
+
+  for (let index = 0; index < count; index++) {
+    const entryOffset = absoluteOffset + 2 + index * 12;
+    if (entryOffset + 12 > view.byteLength) {
+      return null;
+    }
+
+    if (readUint16(view, entryOffset, littleEndian) === tag) {
+      return entryOffset;
+    }
+  }
+
+  return null;
+};
+
+const rationalTriplet = (view: DataView, tiffStart: number, entryOffset: number, littleEndian: boolean): number[] | null => {
+  const type = readUint16(view, entryOffset + 2, littleEndian);
+  const count = readUint32(view, entryOffset + 4, littleEndian);
+  const valueOffset = readUint32(view, entryOffset + 8, littleEndian);
+  if (type !== 5 || count !== 3 || valueOffset === null) {
+    return null;
+  }
+
+  const absoluteOffset = tiffStart + valueOffset;
+  if (absoluteOffset + 24 > view.byteLength) {
+    return null;
+  }
+
+  const values: number[] = [];
+  for (let index = 0; index < 3; index++) {
+    const numerator = readUint32(view, absoluteOffset + index * 8, littleEndian);
+    const denominator = readUint32(view, absoluteOffset + index * 8 + 4, littleEndian);
+    if (numerator === null || denominator === null || denominator === 0) {
+      return null;
+    }
+    values.push(numerator / denominator);
+  }
+
+  return values;
+};
+
+const gpsRef = (view: DataView, entryOffset: number, littleEndian: boolean): string | null => {
+  const type = readUint16(view, entryOffset + 2, littleEndian);
+  const count = readUint32(view, entryOffset + 4, littleEndian);
+  if (type !== 2 || count === null || count < 1) {
+    return null;
+  }
+
+  return readAscii(view, entryOffset + 8, 1).toUpperCase();
+};
+
+const asciiEntryValue = (view: DataView, tiffStart: number, entryOffset: number, littleEndian: boolean): string | null => {
+  const type = readUint16(view, entryOffset + 2, littleEndian);
+  const count = readUint32(view, entryOffset + 4, littleEndian);
+  if (type !== 2 || count === null || count < 1) {
+    return null;
+  }
+
+  const inline = count <= 4;
+  const valueOffset = inline ? entryOffset + 8 : tiffStart + (readUint32(view, entryOffset + 8, littleEndian) ?? -1);
+  if (valueOffset < 0 || valueOffset + count > view.byteLength) {
+    return null;
+  }
+
+  return readAscii(view, valueOffset, Math.min(count, 64)).trim();
+};
+
+const parseExifTimestamp = (value: string | null): number | null => {
+  if (value === null) {
+    return null;
+  }
+
+  const match = value.match(/^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2}):(\d{2})$/);
+  if (match === null) {
+    return null;
+  }
+
+  const [, year, month, day, hours, minutes, seconds] = match;
+  const timestamp = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hours),
+    Number(minutes),
+    Number(seconds)
+  ).getTime();
+
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const dmsToDecimal = (parts: number[], ref: string | null): number | null => {
+  if (parts.length !== 3 || ref === null || !['N', 'S', 'E', 'W'].includes(ref)) {
+    return null;
+  }
+
+  const decimal = parts[0] + parts[1] / 60 + parts[2] / 3600;
+  return ref === 'S' || ref === 'W' ? -decimal : decimal;
+};
+
+export const parseJpegMetadataFromBuffer = (
+  buffer: ArrayBuffer
+): { gps: BrowserGpsCoordinates | null; takenAt: number | null } => {
+  const view = new DataView(buffer);
+  if (view.byteLength < 4 || view.getUint16(0, false) !== 0xffd8) {
+    return { gps: null, takenAt: null };
+  }
+
+  let offset = 2;
+  while (offset + 4 <= view.byteLength) {
+    if (view.getUint8(offset) !== 0xff) {
+      return { gps: null, takenAt: null };
+    }
+
+    const marker = view.getUint8(offset + 1);
+    offset += 2;
+    if (marker === 0xda || marker === 0xd9) {
+      return { gps: null, takenAt: null };
+    }
+
+    if (marker >= 0xd0 && marker <= 0xd7) {
+      continue;
+    }
+
+    const segmentLength = view.getUint16(offset, false);
+    const segmentStart = offset + 2;
+    const segmentEnd = offset + segmentLength;
+    if (segmentLength < 2 || segmentEnd > view.byteLength) {
+      return { gps: null, takenAt: null };
+    }
+
+    if (marker === 0xe1 && readAscii(view, segmentStart, 6) === 'Exif') {
+      const tiffStart = segmentStart + 6;
+      const byteOrder = readAscii(view, tiffStart, 2);
+      const littleEndian = byteOrder === 'II';
+      if (!littleEndian && byteOrder !== 'MM') {
+        return { gps: null, takenAt: null };
+      }
+
+      if (readUint16(view, tiffStart + 2, littleEndian) !== 42) {
+        return { gps: null, takenAt: null };
+      }
+
+      const firstIfdOffset = readUint32(view, tiffStart + 4, littleEndian);
+      if (firstIfdOffset === null) {
+        return { gps: null, takenAt: null };
+      }
+
+      let takenAt = parseExifTimestamp(
+        (() => {
+          const dateEntry = ifdEntryOffset(view, tiffStart, firstIfdOffset, 0x0132, littleEndian);
+          return dateEntry === null ? null : asciiEntryValue(view, tiffStart, dateEntry, littleEndian);
+        })()
+      );
+      const exifPointerEntry = ifdEntryOffset(view, tiffStart, firstIfdOffset, 0x8769, littleEndian);
+      const exifIfdOffset = exifPointerEntry === null ? null : readUint32(view, exifPointerEntry + 8, littleEndian);
+      if (exifIfdOffset !== null) {
+        const originalEntry = ifdEntryOffset(view, tiffStart, exifIfdOffset, 0x9003, littleEndian);
+        takenAt = parseExifTimestamp(
+          originalEntry === null ? null : asciiEntryValue(view, tiffStart, originalEntry, littleEndian)
+        ) ?? takenAt;
+      }
+
+      const gpsPointerEntry = ifdEntryOffset(view, tiffStart, firstIfdOffset, 0x8825, littleEndian);
+      if (gpsPointerEntry === null) {
+        return { gps: null, takenAt };
+      }
+
+      const gpsIfdOffset = readUint32(view, gpsPointerEntry + 8, littleEndian);
+      if (gpsIfdOffset === null) {
+        return { gps: null, takenAt };
+      }
+
+      const latitudeRefEntry = ifdEntryOffset(view, tiffStart, gpsIfdOffset, 0x0001, littleEndian);
+      const latitudeEntry = ifdEntryOffset(view, tiffStart, gpsIfdOffset, 0x0002, littleEndian);
+      const longitudeRefEntry = ifdEntryOffset(view, tiffStart, gpsIfdOffset, 0x0003, littleEndian);
+      const longitudeEntry = ifdEntryOffset(view, tiffStart, gpsIfdOffset, 0x0004, littleEndian);
+      if (
+        latitudeRefEntry === null ||
+        latitudeEntry === null ||
+        longitudeRefEntry === null ||
+        longitudeEntry === null
+      ) {
+        return { gps: null, takenAt };
+      }
+
+      const latitude = dmsToDecimal(
+        rationalTriplet(view, tiffStart, latitudeEntry, littleEndian) ?? [],
+        gpsRef(view, latitudeRefEntry, littleEndian)
+      );
+      const longitude = dmsToDecimal(
+        rationalTriplet(view, tiffStart, longitudeEntry, littleEndian) ?? [],
+        gpsRef(view, longitudeRefEntry, littleEndian)
+      );
+      if (latitude === null || longitude === null) {
+        return { gps: null, takenAt };
+      }
+
+      return { gps: { latitude, longitude }, takenAt };
+    }
+
+    offset = segmentEnd;
+  }
+
+  return { gps: null, takenAt: null };
+};
+
+export const parseGpsFromJpegBuffer = (buffer: ArrayBuffer): BrowserGpsCoordinates | null => {
+  return parseJpegMetadataFromBuffer(buffer).gps;
+};
+
+export const extractGpsFromJpeg = async (file: File): Promise<BrowserGpsCoordinates | null> => {
+  const extension = extensionOf(file.name).toLowerCase();
+  if (extension !== 'jpg' && extension !== 'jpeg') {
+    return null;
+  }
+
+  return parseJpegMetadataFromBuffer(await file.slice(0, 1024 * 1024).arrayBuffer()).gps;
+};
+
+const extractJpegMetadata = async (file: File): Promise<{ gps: BrowserGpsCoordinates | null; takenAt: number | null }> => {
+  const extension = extensionOf(file.name).toLowerCase();
+  if (extension !== 'jpg' && extension !== 'jpeg') {
+    return { gps: null, takenAt: null };
+  }
+
+  return parseJpegMetadataFromBuffer(await file.slice(0, 1024 * 1024).arrayBuffer());
+};
+
 const sortedInputs = (files: BrowserRenameInput[], sortOrder: SortOrder): BrowserRenameInput[] => {
   return files
     .map((file, index) => ({ file, index }))
@@ -112,6 +385,15 @@ const sortedInputs = (files: BrowserRenameInput[], sortOrder: SortOrder): Browse
 
       if (sortOrder === 'name') {
         return left.file.name.localeCompare(right.file.name, 'fr') || left.index - right.index;
+      }
+
+      if (sortOrder === 'taken') {
+        return (
+          (left.file.takenAt || left.file.lastModified || Number.MAX_SAFE_INTEGER) -
+            (right.file.takenAt || right.file.lastModified || Number.MAX_SAFE_INTEGER) ||
+          left.file.name.localeCompare(right.file.name, 'fr') ||
+          left.index - right.index
+        );
       }
 
       return (
@@ -132,7 +414,7 @@ export const buildBrowserRenamePlan = (
   operations: BrowserRenameOperation[];
   summary: { selected: number; ready: number; conflicts: number };
 } => {
-  const commune = normalizePart(options.communeName, options.separator);
+  const fallbackCommune = normalizePart(options.communeName, options.separator);
   const startNumber = Number.isFinite(options.startNumber) ? Math.max(1, Math.floor(options.startNumber)) : 1;
   const digits = Number.isFinite(options.counterDigits)
     ? Math.max(2, Math.min(8, Math.floor(options.counterDigits)))
@@ -146,7 +428,16 @@ export const buildBrowserRenamePlan = (
       issues.push('extension_non_supportee');
     }
 
-    if (options.communeName.trim() === '') {
+    if (file.communeState === 'pending' && (file.detectedCommune ?? '').trim() === '') {
+      issues.push('geocodage_en_cours');
+    }
+
+    const detectedCommune = (file.detectedCommune ?? '').trim();
+    const hasDetectedCommune = detectedCommune !== '';
+    const commune = hasDetectedCommune ? normalizePart(detectedCommune, options.separator) : fallbackCommune;
+    const communeSource = hasDetectedCommune ? 'gps' : commune !== '' && options.communeName.trim() !== '' ? 'fallback' : 'missing';
+
+    if (communeSource === 'missing' && !issues.includes('geocodage_en_cours')) {
       issues.push('commune_requise');
     }
 
@@ -163,7 +454,10 @@ export const buildBrowserRenamePlan = (
       newName,
       status: issues.length === 0 ? 'ready' : 'conflict',
       issues,
+      resolvedCommune: commune,
+      communeSource,
       lastModified: file.lastModified || 0,
+      takenAt: file.takenAt || 0,
       size: file.size ?? 0,
       type: file.type ?? '',
       file: file.file
@@ -223,6 +517,14 @@ const dosDateTime = (timestamp = Date.now()): { date: number; time: number } => 
 
 const header = (size: number): DataView => new DataView(new ArrayBuffer(size));
 
+const viewBuffer = (view: DataView): ArrayBuffer => {
+  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer;
+};
+
+const bytesBuffer = (bytes: Uint8Array): ArrayBuffer => {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+};
+
 const pushLocalHeader = (parts: BlobPart[], entry: ZipEntry, crc: number): number => {
   const name = textEncoder.encode(entry.name);
   const { date, time } = dosDateTime(entry.lastModified);
@@ -238,7 +540,7 @@ const pushLocalHeader = (parts: BlobPart[], entry: ZipEntry, crc: number): numbe
   view.setUint32(22, entry.data.length, true);
   view.setUint16(26, name.length, true);
   view.setUint16(28, 0, true);
-  parts.push(view.buffer, name, entry.data);
+  parts.push(viewBuffer(view), bytesBuffer(name), bytesBuffer(entry.data));
 
   return view.byteLength + name.length + entry.data.length;
 };
@@ -264,7 +566,7 @@ const pushCentralHeader = (parts: BlobPart[], entry: ZipEntry, crc: number, offs
   view.setUint16(36, 0, true);
   view.setUint32(38, 0, true);
   view.setUint32(42, offset, true);
-  parts.push(view.buffer, name);
+  parts.push(viewBuffer(view), bytesBuffer(name));
 
   return view.byteLength + name.length;
 };
@@ -287,7 +589,7 @@ export const createZipBlob = (entries: ZipEntry[]): Blob => {
   end.setUint16(10, entries.length, true);
   end.setUint32(12, centralSize, true);
   end.setUint32(16, offset, true);
-  parts.push(...centralParts, end.buffer);
+  parts.push(...centralParts, viewBuffer(end));
 
   return new Blob(parts, { type: 'application/zip' });
 };
@@ -327,8 +629,38 @@ const selectedFiles = (input: HTMLInputElement): BrowserRenameInput[] => {
     lastModified: file.lastModified,
     size: file.size,
     type: file.type,
-    file
+    file,
+    communeState: 'pending'
   }));
+};
+
+const sleep = (milliseconds: number): Promise<void> => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+const coordinateKey = (gps: BrowserGpsCoordinates): string => {
+  return `${gps.latitude.toFixed(4)},${gps.longitude.toFixed(4)}`;
+};
+
+const issueLabel = (issue: string): string => {
+  return (
+    {
+      commune_requise: 'commune manquante',
+      doublon_destination: 'doublon destination',
+      extension_non_supportee: 'extension non supportee',
+      geocodage_en_cours: 'geocodage en cours'
+    }[issue] ?? issue
+  );
+};
+
+const communeLabel = (operation: BrowserRenameOperation): string => {
+  if (operation.communeSource === 'gps') {
+    return `${operation.resolvedCommune} (GPS)`;
+  }
+
+  if (operation.communeSource === 'fallback') {
+    return `${operation.resolvedCommune} (secours)`;
+  }
+
+  return 'a renseigner';
 };
 
 const downloadBlob = (blob: Blob, filename: string): void => {
@@ -344,6 +676,8 @@ const downloadBlob = (blob: Blob, filename: string): void => {
 };
 
 const initBrowserRenamer = (root: HTMLElement): void => {
+  const geocodeUrl = root.dataset.photoBrowserGeocodeUrl ?? '';
+  const csrfToken = root.dataset.photoBrowserCsrf ?? '';
   const fileInput = root.querySelector<HTMLInputElement>('[data-photo-browser-files]');
   const communeInput = root.querySelector<HTMLInputElement>('[data-photo-browser-commune]');
   const startInput = root.querySelector<HTMLInputElement>('[data-photo-browser-start]');
@@ -354,43 +688,137 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   const table = root.querySelector<HTMLTableElement>('[data-photo-browser-table]');
   const rows = root.querySelector<HTMLTableSectionElement>('[data-photo-browser-rows]');
   let latestOperations: BrowserRenameOperation[] = [];
+  let currentFiles: BrowserRenameInput[] = [];
+  let analysisRun = 0;
+  let latestGeocodeAt = 0;
+  const communeCache = new Map<string, Promise<string | null>>();
 
   if (!fileInput || !communeInput || !startInput || !sortInput || !previewButton || !zipButton || !status || !table || !rows) {
     return;
   }
 
+  const reverseGeocode = async (gps: BrowserGpsCoordinates): Promise<string | null> => {
+    if (geocodeUrl === '' || csrfToken === '') {
+      return null;
+    }
+
+    const key = coordinateKey(gps);
+    if (communeCache.has(key)) {
+      return communeCache.get(key) ?? null;
+    }
+
+    const request = (async (): Promise<string | null> => {
+      const delay = 1100 - (Date.now() - latestGeocodeAt);
+      if (delay > 0) {
+        await sleep(delay);
+      }
+      latestGeocodeAt = Date.now();
+
+      const body = new FormData();
+      body.set('action', 'photo_reverse_geocode');
+      body.set('csrf_token', csrfToken);
+      body.set('latitude', gps.latitude.toFixed(6));
+      body.set('longitude', gps.longitude.toFixed(6));
+
+      const response = await fetch(geocodeUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+        body
+      });
+      if (!response.ok) {
+        return null;
+      }
+
+      const payload = (await response.json()) as { ok?: boolean; commune?: string };
+      const commune = typeof payload.commune === 'string' ? payload.commune.trim() : '';
+      return payload.ok === true && commune !== '' ? commune : null;
+    })().catch(() => null);
+
+    communeCache.set(key, request);
+    return request;
+  };
+
+  const analyzeSelectedFiles = async (): Promise<void> => {
+    const run = ++analysisRun;
+    currentFiles = selectedFiles(fileInput);
+    renderPlan();
+
+    for (const input of currentFiles) {
+      if (!(input.file instanceof File)) {
+        input.communeState = 'missing_gps';
+        continue;
+      }
+
+      const metadata = await extractJpegMetadata(input.file);
+      if (run !== analysisRun) {
+        return;
+      }
+
+      input.takenAt = metadata.takenAt ?? undefined;
+      const gps = metadata.gps;
+      if (gps === null) {
+        input.communeState = 'missing_gps';
+        renderPlan();
+        continue;
+      }
+
+      input.gps = gps;
+      const commune = await reverseGeocode(gps);
+      if (run !== analysisRun) {
+        return;
+      }
+
+      if (commune !== null) {
+        input.detectedCommune = commune;
+        input.communeState = 'detected';
+      } else {
+        input.communeState = 'lookup_failed';
+      }
+      renderPlan();
+    }
+  };
+
   const renderPlan = (): void => {
-    const files = selectedFiles(fileInput);
-    const plan = buildBrowserRenamePlan(files, {
+    const plan = buildBrowserRenamePlan(currentFiles, {
       communeName: communeInput.value,
       startNumber: Number.parseInt(startInput.value, 10),
       counterDigits: 2,
       separator: '-',
-      sortOrder: sortInput.value === 'name' || sortInput.value === 'date' ? sortInput.value : 'selection'
+      sortOrder:
+        sortInput.value === 'name' || sortInput.value === 'date' || sortInput.value === 'taken'
+          ? sortInput.value
+          : 'selection'
     });
 
     latestOperations = plan.operations;
     rows.replaceChildren();
     for (const operation of latestOperations) {
       const row = document.createElement('tr');
-      row.innerHTML = '<td></td><td></td><td></td><td></td>';
+      row.innerHTML = '<td></td><td></td><td></td><td></td><td></td>';
       row.children[0].textContent = operation.originalName;
       row.children[1].textContent = formatBytes(operation.size);
-      row.children[2].textContent = operation.newName;
-      row.children[3].textContent = operation.issues.length > 0 ? operation.issues.join(', ') : 'pret';
+      row.children[2].textContent = communeLabel(operation);
+      row.children[3].textContent = operation.newName;
+      row.children[4].textContent = operation.issues.length > 0 ? operation.issues.map(issueLabel).join(', ') : 'pret';
       rows.append(row);
     }
 
     table.hidden = latestOperations.length === 0;
     zipButton.disabled = plan.summary.ready === 0 || plan.summary.conflicts > 0;
+    const pending = latestOperations.filter((operation) => operation.issues.includes('geocodage_en_cours')).length;
     status.textContent =
       plan.summary.selected === 0
         ? 'Aucun fichier selectionne.'
+        : pending > 0
+          ? `Lecture GPS et recherche commune en cours pour ${pending} photo(s).`
         : `${plan.summary.ready} copie(s) prete(s), ${plan.summary.conflicts} conflit(s).`;
   };
 
   previewButton.addEventListener('click', () => renderPlan());
-  fileInput.addEventListener('change', () => renderPlan());
+  fileInput.addEventListener('change', () => {
+    void analyzeSelectedFiles();
+  });
   communeInput.addEventListener('input', () => renderPlan());
   startInput.addEventListener('input', () => renderPlan());
   sortInput.addEventListener('change', () => renderPlan());

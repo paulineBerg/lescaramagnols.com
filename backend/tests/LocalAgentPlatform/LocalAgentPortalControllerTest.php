@@ -230,7 +230,40 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('Mode navigateur Android, iOS et desktop', $photosResponse->body);
         $this->assertStringContainsString('Aucun agent local détecté.', $photosResponse->body);
         $this->assertStringContainsString('data-photo-browser-renamer', $photosResponse->body);
+        $this->assertStringContainsString('data-photo-browser-geocode-url', $photosResponse->body);
+        $this->assertStringContainsString('Commune de secours', $photosResponse->body);
+        $this->assertStringContainsString('coordonnées GPS EXIF', $photosResponse->body);
+        $this->assertStringContainsString('date de prise de vue', $photosResponse->body);
         $this->assertStringNotContainsString('Mode manuel sans agent', $photosResponse->body);
+    }
+
+    public function testPhotoReverseGeocodeRejectsInvalidCoordinatesBeforeProviderCall(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $userId = $this->createPrivateUser($userRepository, 'photo-geocode@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['photo_geo_renamer'], 'admin@example.com'));
+
+        $controller = new PrivatePortalController(
+            $this->privateAuth($userRepository, 'photo-geocode@example.com'),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository,
+            pbGestionRepository: new PbGestionRepository($database)
+        );
+
+        $response = $controller->handle('photo_geo_renamer_dashboard', $this->request('POST', '/private/photo-rename', [
+            'csrf_token' => csrf_token('private_pbgestion'),
+            'action' => 'photo_reverse_geocode',
+            'latitude' => '999',
+            'longitude' => '6.632808',
+        ]));
+
+        $this->assertSame(422, $response->status);
+        $this->assertSame('application/json; charset=utf-8', $response->headers['Content-Type'] ?? null);
+        $this->assertStringContainsString('invalid_coordinates', $response->body);
     }
 
     public function testInvalidCsrfKeepsPhotoApplicationContext(): void

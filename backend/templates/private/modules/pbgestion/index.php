@@ -217,12 +217,12 @@ $statusLabel = static function (string $status): string {
       <?php endif; ?>
       <section class="private-dashboard-panel">
         <h3>Mode navigateur Android, iOS et desktop</h3>
-        <p class="muted">Les fichiers sélectionnés restent dans le navigateur. Le résultat est une archive ZIP de copies renommées, sans modifier les originaux.</p>
-        <div class="private-list-tools photo-browser-renamer" data-photo-browser-renamer>
+        <p class="muted">Les fichiers sélectionnés restent dans le navigateur. La commune est déduite automatiquement des coordonnées GPS EXIF quand elles existent ; le champ ci-dessous sert seulement de secours.</p>
+        <div class="private-list-tools photo-browser-renamer" data-photo-browser-renamer data-photo-browser-geocode-url="<?php echo $h($url('photos')); ?>" data-photo-browser-csrf="<?php echo $h($csrfToken); ?>">
           <label>Photos
             <input type="file" accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic" multiple data-photo-browser-files />
           </label>
-          <label>Commune
+          <label>Commune de secours
             <input type="text" maxlength="160" placeholder="Cogolin" data-photo-browser-commune />
           </label>
           <label>Premier numéro
@@ -231,6 +231,7 @@ $statusLabel = static function (string $status): string {
           <label>Tri
             <select data-photo-browser-sort>
               <option value="selection">ordre de sélection</option>
+              <option value="taken">date de prise de vue</option>
               <option value="date">date fichier navigateur</option>
               <option value="name">nom actuel</option>
             </select>
@@ -242,7 +243,7 @@ $statusLabel = static function (string $status): string {
           <p class="muted" data-photo-browser-status>Aucun fichier sélectionné.</p>
           <div class="private-table-wrap">
             <table data-photo-browser-table hidden>
-              <thead><tr><th>Nom actuel</th><th>Taille</th><th>Copie renommée</th><th>État</th></tr></thead>
+              <thead><tr><th>Nom actuel</th><th>Taille</th><th>Commune</th><th>Copie renommée</th><th>État</th></tr></thead>
               <tbody data-photo-browser-rows></tbody>
             </table>
           </div>

@@ -101,6 +101,15 @@ Ce mode ne modifie pas les originaux et ne réserve pas les compteurs SQL
 globaux, car le serveur ne peut pas garantir que les copies téléchargées seront
 réellement conservées.
 
+Depuis la correction du 2026-09-08, le mode navigateur lit les coordonnées GPS
+EXIF des JPEG sélectionnés et demande au serveur privé de résoudre uniquement
+la commune à partir des coordonnées arrondies. Les photos ne sont pas envoyées
+au serveur. Le champ `Commune de secours` est utilisé seulement lorsqu'une photo
+n'a pas de coordonnées GPS lisibles ou lorsque le géocodage inverse ne répond
+pas. Le géocodage public OpenStreetMap/Nominatim est appelé côté serveur avec
+User-Agent applicatif, délai court, cache côté navigateur par coordonnées
+arrondies et cadence limitée.
+
 Le mode agent est réservé aux ordinateurs Windows, Linux et macOS. Après
 consentement explicite, l'agent peut accéder aux dossiers autorisés, lire les
 métadonnées, demander les réservations SQL au moment de l'exécution et renommer

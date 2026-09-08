@@ -65,6 +65,10 @@ final class LocalAgentPortalController
                 return $this->renderPbGestion($userId, $view, null, 'invalid_request', null, null, $app);
             }
 
+            if ($action === 'photo_reverse_geocode') {
+                return $this->reversePhotoGeocode($body);
+            }
+
             if ($action === 'download_agent_installer') {
                 return $this->downloadAgentInstaller($request, $userId, $body, $app);
             }
@@ -389,7 +393,7 @@ final class LocalAgentPortalController
             return in_array($moduleCode, [self::MODULE_NETWORK_SECURITY, self::MODULE_PHOTO_GEO_RENAMER], true);
         }
 
-        if (in_array($action, ['photo_restricted_preview', 'photo_counter_initialize'], true)) {
+        if (in_array($action, ['photo_restricted_preview', 'photo_counter_initialize', 'photo_reverse_geocode'], true)) {
             return $moduleCode === self::MODULE_PHOTO_GEO_RENAMER;
         }
 
@@ -398,6 +402,117 @@ final class LocalAgentPortalController
         }
 
         return false;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function reversePhotoGeocode(array $body): Response
+    {
+        $latitude = $this->coordinate($body['latitude'] ?? null, -90.0, 90.0);
+        $longitude = $this->coordinate($body['longitude'] ?? null, -180.0, 180.0);
+        if ($latitude === null || $longitude === null) {
+            return PrivateResponseHeaders::apply(Response::json([
+                'ok' => false,
+                'error' => 'invalid_coordinates',
+            ], 422));
+        }
+
+        $commune = $this->reverseGeocodeCommune(round($latitude, 6), round($longitude, 6));
+        if ($commune === null) {
+            $this->log('photo.geocode.reverse.failed', ['provider' => 'nominatim'], 'warning');
+
+            return PrivateResponseHeaders::apply(Response::json([
+                'ok' => false,
+                'error' => 'commune_not_found',
+            ], 502));
+        }
+
+        return PrivateResponseHeaders::apply(Response::json([
+            'ok' => true,
+            'commune' => $commune,
+            'source' => 'openstreetmap',
+        ]));
+    }
+
+    private function coordinate(mixed $value, float $minimum, float $maximum): ?float
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $coordinate = (float) $value;
+
+        return $coordinate >= $minimum && $coordinate <= $maximum ? $coordinate : null;
+    }
+
+    private function reverseGeocodeCommune(float $latitude, float $longitude): ?string
+    {
+        $url = 'https://nominatim.openstreetmap.org/reverse?' . http_build_query([
+            'format' => 'jsonv2',
+            'lat' => number_format($latitude, 6, '.', ''),
+            'lon' => number_format($longitude, 6, '.', ''),
+            'zoom' => '10',
+            'addressdetails' => '1',
+            'accept-language' => 'fr',
+        ]);
+
+        $payload = $this->fetchReverseGeocode($url);
+        if ($payload === null) {
+            return null;
+        }
+
+        $decoded = json_decode($payload, true);
+        if (!is_array($decoded) || !is_array($decoded['address'] ?? null)) {
+            return null;
+        }
+
+        foreach (['city', 'town', 'village', 'municipality', 'hamlet', 'locality', 'county'] as $key) {
+            $candidate = $decoded['address'][$key] ?? null;
+            if (is_string($candidate) && trim($candidate) !== '') {
+                return $this->shortText($candidate, 160);
+            }
+        }
+
+        return null;
+    }
+
+    private function fetchReverseGeocode(string $url): ?string
+    {
+        $headers = [
+            'User-Agent: LesCaramagnolsPhotoGeoRenamer/1.0 (https://www.lescaramagnols.com)',
+            'Accept: application/json',
+        ];
+
+        if (function_exists('curl_init')) {
+            $handle = curl_init($url);
+            if ($handle === false) {
+                return null;
+            }
+
+            curl_setopt_array($handle, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CONNECTTIMEOUT => 3,
+                CURLOPT_TIMEOUT => 5,
+                CURLOPT_HTTPHEADER => $headers,
+            ]);
+            $response = curl_exec($handle);
+            $status = (int) curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+            curl_close($handle);
+
+            return is_string($response) && $status >= 200 && $status < 300 ? $response : null;
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'method' => 'GET',
+                'timeout' => 5,
+                'header' => implode("\r\n", $headers) . "\r\n",
+            ],
+        ]);
+        $response = @file_get_contents($url, false, $context);
+
+        return is_string($response) ? $response : null;
     }
 
     /**
