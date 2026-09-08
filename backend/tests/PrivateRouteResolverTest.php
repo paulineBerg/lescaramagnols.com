@@ -23,6 +23,8 @@ final class PrivateRouteResolverTest extends TestCase
         $this->assertSame('/private-4h6F1c/securite-reseau', $resolver->canonicalPath('network_security_dashboard'));
         $this->assertSame('/private-4h6F1c/securite-reseau/agents-installation', $resolver->canonicalPath('network_security_agents'));
         $this->assertSame('/private-4h6F1c/photo-rename', $resolver->canonicalPath('photo_geo_renamer_dashboard'));
+        $this->assertSame('/private-4h6F1c/photo-rename/historique', $resolver->canonicalPath('photo_geo_renamer_history'));
+        $this->assertSame('/private-4h6F1c/photo-rename/compteurs', $resolver->canonicalPath('photo_geo_renamer_counters'));
         $this->assertSame('/private-4h6F1c/photo-rename', $resolver->canonicalPath('pbgestion_photos'));
         $this->assertSame('/private-4h6F1c/locations', $resolver->canonicalPath('rental_dashboard'));
         $this->assertSame('/private-4h6F1c/locations/biens/tableau-de-bord', $resolver->canonicalPath('rental_properties_dashboard'));
@@ -131,6 +133,8 @@ final class PrivateRouteResolverTest extends TestCase
             '/private/securite-reseau/parametres' => ['methods' => ['GET', 'POST'], 'handler' => 'private:network_security_settings'],
             '/private/securite-reseau/aide' => ['methods' => ['GET'], 'handler' => 'private:network_security_help'],
             '/private/photo-rename' => ['methods' => ['GET', 'POST'], 'handler' => 'private:photo_geo_renamer_dashboard'],
+            '/private/photo-rename/historique' => ['methods' => ['GET'], 'handler' => 'private:photo_geo_renamer_history'],
+            '/private/photo-rename/compteurs' => ['methods' => ['GET', 'POST'], 'handler' => 'private:photo_geo_renamer_counters'],
             '/private/photo-rename/agents-installation' => ['methods' => ['GET', 'POST'], 'handler' => 'private:photo_geo_renamer_agents'],
             '/private/photo-rename/aide' => ['methods' => ['GET'], 'handler' => 'private:photo_geo_renamer_help'],
             '/private/pbgestion' => ['methods' => ['GET'], 'handler' => 'redirect:/private/securite-reseau'],

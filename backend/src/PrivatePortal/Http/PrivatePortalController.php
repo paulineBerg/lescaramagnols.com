@@ -175,6 +175,8 @@ final class PrivatePortalController
             'pbgestion_settings',
             'pbgestion_help' => $this->networkSecurityController()->handle($page, $request),
             'photo_geo_renamer_dashboard',
+            'photo_geo_renamer_history',
+            'photo_geo_renamer_counters',
             'photo_geo_renamer_agents',
             'photo_geo_renamer_help',
             'pbgestion_photos' => $this->photoGeoRenamerController()->handle($page, $request),

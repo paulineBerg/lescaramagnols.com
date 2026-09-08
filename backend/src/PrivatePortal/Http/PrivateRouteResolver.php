@@ -335,6 +335,16 @@ final class PrivateRouteResolver
                 'handler' => ['type' => 'private', 'page' => 'photo_geo_renamer_dashboard'],
             ],
             [
+                'methods' => ['GET'],
+                'path' => $this->canonicalPath('photo_geo_renamer_history'),
+                'handler' => ['type' => 'private', 'page' => 'photo_geo_renamer_history'],
+            ],
+            [
+                'methods' => ['GET', 'POST'],
+                'path' => $this->canonicalPath('photo_geo_renamer_counters'),
+                'handler' => ['type' => 'private', 'page' => 'photo_geo_renamer_counters'],
+            ],
+            [
                 'methods' => ['GET', 'POST'],
                 'path' => $this->canonicalPath('photo_geo_renamer_agents'),
                 'handler' => ['type' => 'private', 'page' => 'photo_geo_renamer_agents'],

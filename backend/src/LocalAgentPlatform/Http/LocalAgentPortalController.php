@@ -88,6 +88,15 @@ final class LocalAgentPortalController
                 return $this->renderPbGestion($userId, 'photos', 'restricted_preview_ready', null, null, $preview, $app);
             }
 
+            if ($action === 'photo_counter_initialize') {
+                $initialized = $this->initializePhotoCounter($body);
+
+                return $this->redirect(
+                    $this->url('counters', (string) $app['moduleCode'])
+                    . ($initialized ? '?notice=photo_counter_initialized' : '?error=photo_counter_failed')
+                );
+            }
+
             if ($action === 'queue_command') {
                 $queued = $this->handleQueueCommand($userId, $body, (string) $app['moduleCode']);
 
@@ -351,7 +360,7 @@ final class LocalAgentPortalController
             return in_array($moduleCode, [self::MODULE_NETWORK_SECURITY, self::MODULE_PHOTO_GEO_RENAMER], true);
         }
 
-        if ($action === 'photo_restricted_preview') {
+        if (in_array($action, ['photo_restricted_preview', 'photo_counter_initialize'], true)) {
             return $moduleCode === self::MODULE_PHOTO_GEO_RENAMER;
         }
 
@@ -360,6 +369,30 @@ final class LocalAgentPortalController
         }
 
         return false;
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    private function initializePhotoCounter(array $body): bool
+    {
+        if (!function_exists('editorial_database')) {
+            return false;
+        }
+
+        $communeName = $this->shortBodyText($body, 'commune_name', 160);
+        $lastNumber = is_numeric($body['last_number'] ?? null) ? (int) $body['last_number'] : -1;
+        if ($communeName === '' || $lastNumber < 0) {
+            return false;
+        }
+
+        try {
+            (new PhotoSequenceRepository(editorial_database()))->initializeManualCounter($communeName, $lastNumber);
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function currentPrivateUserId(): ?int
@@ -526,6 +559,7 @@ final class LocalAgentPortalController
         return match ($key) {
             'enrollment_created' => 'Code d’appairage créé. Il est valable 10 minutes et affiché une seule fois.',
             'restricted_preview_ready' => 'Aperçu restreint généré. Aucun fichier local n’a été lu ou renommé.',
+            'photo_counter_initialized' => 'Compteur Photo rename initialisé sans scan de dossier.',
             'command_queued' => 'Commande enregistrée. L’agent la récupérera lors de son prochain contact.',
             'agent_revoked' => 'Agent révoqué. Les commandes en attente ont été annulées.',
             default => null,
@@ -538,6 +572,7 @@ final class LocalAgentPortalController
             'invalid_request' => 'Requête invalide.',
             'installer_consent_required' => 'Téléchargement refusé: confirmez explicitement l’installation locale avant de générer l’installeur.',
             'restricted_preview_empty' => 'Aucune photo valide à prévisualiser en mode restreint.',
+            'photo_counter_failed' => 'Le compteur Photo rename n’a pas pu être initialisé.',
             'command_rejected' => 'La commande a été refusée par la politique du module.',
             'agent_revoke_failed' => 'L’agent n’a pas pu être révoqué.',
             default => null,

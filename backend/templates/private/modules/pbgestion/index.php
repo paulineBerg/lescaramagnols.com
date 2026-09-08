@@ -404,6 +404,17 @@ $statusLabel = static function (string $status): string {
     <section class="card private-card-wide">
       <h2>Compteurs</h2>
       <p class="muted">Les compteurs sont globaux par commune et stockés dans la BDD OVH. Une initialisation manuelle renseigne un dernier numéro déjà utilisé sans scanner le dossier de destination.</p>
+      <form method="post" action="<?php echo $h($url('counters')); ?>" class="private-list-tools">
+        <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
+        <input type="hidden" name="action" value="photo_counter_initialize" />
+        <label>Commune
+          <input type="text" name="commune_name" maxlength="160" required />
+        </label>
+        <label>Dernier numéro déjà utilisé
+          <input type="number" name="last_number" min="0" max="999999" value="0" required />
+        </label>
+        <button type="submit" class="private-button-secondary">Initialiser</button>
+      </form>
       <table><thead><tr><th>Commune</th><th>Dernier numéro</th><th>Dernière réservation</th></tr></thead><tbody>
         <?php if (($photoGeo['schema_available'] ?? false) !== true): ?>
           <tr><td colspan="3" class="muted">Migration Photo rename en attente.</td></tr>
