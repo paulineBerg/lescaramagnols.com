@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   buildBrowserRenamePlan,
   createZipBlob,
+  initPhotoBrowserRename,
   knownCommuneFromGps,
   parseGpsFromJpegBuffer,
   parseJpegMetadataFromBuffer
@@ -23,6 +24,10 @@ const readBlob = (blob: Blob): Promise<ArrayBuffer> => {
     reader.addEventListener('error', () => reject(reader.error ?? new Error('Lecture impossible')));
     reader.readAsArrayBuffer(blob);
   });
+};
+
+const flushPromises = async (): Promise<void> => {
+  await new Promise((resolve) => window.setTimeout(resolve, 0));
 };
 
 const gpsJpegBuffer = (): ArrayBuffer => {
@@ -248,5 +253,59 @@ describe('photo browser rename', () => {
     expect(view.getUint32(0, true)).toBe(0x04034b50);
     expect(view.getUint32(buffer.byteLength - 22, true)).toBe(0x06054b50);
     expect(view.getUint16(buffer.byteLength - 12, true)).toBe(2);
+  });
+
+  it('conserve et affiche les apercus apres selection et analyse GPS', async () => {
+    document.body.innerHTML = `
+      <div data-photo-browser-renamer>
+        <input type="file" multiple data-photo-browser-files />
+        <input value="" data-photo-browser-commune />
+        <input value="1" data-photo-browser-start />
+        <select data-photo-browser-sort><option value="taken" selected>date de prise de vue</option></select>
+        <button type="button" data-photo-browser-preview>Prévisualiser</button>
+        <button type="button" data-photo-browser-download>Télécharger les copies</button>
+        <p data-photo-browser-status></p>
+        <table data-photo-browser-table><tbody data-photo-browser-rows></tbody></table>
+      </div>
+    `;
+    const file = new File([gpsJpegBuffer()], 'IMG_7697.JPEG', { type: 'image/jpeg', lastModified: 1 });
+    const fileInput = document.querySelector<HTMLInputElement>('[data-photo-browser-files]');
+    const previewButton = document.querySelector<HTMLButtonElement>('[data-photo-browser-preview]');
+    expect(fileInput).not.toBeNull();
+    expect(previewButton).not.toBeNull();
+    Object.defineProperty(fileInput, 'files', {
+      configurable: true,
+      value: [file]
+    });
+    const readAsDataUrl = vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function read(this: FileReader) {
+      Object.defineProperty(this, 'result', {
+        configurable: true,
+        value: 'data:image/jpeg;base64,preview'
+      });
+      this.dispatchEvent(new Event('load'));
+    });
+    const originalArrayBuffer = Blob.prototype.arrayBuffer;
+    const arrayBuffer = vi.fn().mockResolvedValue(gpsJpegBuffer());
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: arrayBuffer
+    });
+
+    initPhotoBrowserRename();
+    previewButton?.click();
+    fileInput?.dispatchEvent(new Event('change'));
+
+    expect(document.querySelector('.photo-browser-preview-cell')?.textContent).toBe('chargement');
+    await flushPromises();
+    await flushPromises();
+
+    const image = document.querySelector<HTMLImageElement>('.photo-browser-thumbnail');
+    expect(image?.getAttribute('src')).toBe('data:image/jpeg;base64,preview');
+    expect(image?.getAttribute('alt')).toBe('IMG_7697.JPEG');
+    readAsDataUrl.mockRestore();
+    Object.defineProperty(Blob.prototype, 'arrayBuffer', {
+      configurable: true,
+      value: originalArrayBuffer
+    });
   });
 });

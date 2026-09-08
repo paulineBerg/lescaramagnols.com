@@ -903,7 +903,6 @@ const initBrowserRenamer = (root: HTMLElement): void => {
   const analyzeSelectedFiles = async (): Promise<void> => {
     const run = ++analysisRun;
     currentFiles = selectedFiles(fileInput);
-    previewVisible = false;
     renderPlan();
 
     for (const input of currentFiles) {
