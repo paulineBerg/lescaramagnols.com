@@ -29,6 +29,7 @@ use RuntimeException;
 final class PbGestionRepository
 {
     private const ENROLLMENT_TTL_SECONDS = 1800;
+    private const AGENT_VALIDATION_TTL_SECONDS = 2592000;
 
     private bool $schemaReady = false;
 
@@ -47,7 +48,7 @@ final class PbGestionRepository
     /**
      * @return array{token_uid: string, code: string, code_grouped: string, expires_at: string}
      */
-    public function createEnrollmentToken(int $ownerId, string $locationLabel = ''): array
+    public function createEnrollmentToken(int $ownerId, string $locationLabel = '', string $installationPath = ''): array
     {
         $this->ensureSchema();
         $tokenUid = bin2hex(random_bytes(16));
@@ -62,9 +63,9 @@ final class PbGestionRepository
         $statement = $this->pdo()->prepare(
             sprintf(
                 'INSERT INTO `%s`
-                    (`owner_id`, `token_uid`, `code_hash`, `location_label`, `status`, `max_attempts`, `expires_at`, `created_at`, `updated_at`)
+                    (`owner_id`, `token_uid`, `code_hash`, `location_label`, `installation_path`, `status`, `max_attempts`, `expires_at`, `created_at`, `updated_at`)
                  VALUES
-                    (:owner_id, :token_uid, :code_hash, :location_label, \'pending\', 5, :expires_at, :created_at, :updated_at)',
+                    (:owner_id, :token_uid, :code_hash, :location_label, :installation_path, \'pending\', 5, :expires_at, :created_at, :updated_at)',
                 $this->table('pb_enrollment_tokens')
             )
         );
@@ -73,6 +74,7 @@ final class PbGestionRepository
             'token_uid' => $tokenUid,
             'code_hash' => $hash,
             'location_label' => $this->shortText($locationLabel, 160) ?: null,
+            'installation_path' => $this->shortText($installationPath, 500) ?: null,
             'expires_at' => $expiresAt,
             'created_at' => $now,
             'updated_at' => $now,
@@ -402,6 +404,9 @@ final class PbGestionRepository
         if (strtolower((string) ($agent['status'] ?? '')) !== 'active') {
             return ['ok' => false, 'error' => AgentErrorCodes::AGENT_REVOKED];
         }
+        if (!$this->agentValidationActive($agent)) {
+            return ['ok' => false, 'error' => AgentErrorCodes::AGENT_VALIDATION_EXPIRED];
+        }
 
         $policy = $this->commandPolicy()->validate($commandType, $payload);
         if (($policy['ok'] ?? false) !== true) {
@@ -494,7 +499,12 @@ final class PbGestionRepository
         $this->expireCommands();
         $agentId = (int) ($agent['id'] ?? 0);
         $ownerId = (int) ($agent['owner_id'] ?? 0);
-        if ($agentId <= 0 || $ownerId <= 0 || strtolower((string) ($agent['status'] ?? '')) !== 'active') {
+        if (
+            $agentId <= 0
+            || $ownerId <= 0
+            || strtolower((string) ($agent['status'] ?? '')) !== 'active'
+            || !$this->agentValidationActive($agent)
+        ) {
             return [];
         }
 
@@ -872,7 +882,35 @@ final class PbGestionRepository
             }
         }
 
+        $this->ensureAgentInstallationColumns();
         $this->schemaReady = true;
+    }
+
+    private function ensureAgentInstallationColumns(): void
+    {
+        $this->ensureColumn('pb_enrollment_tokens', 'installation_path', '`installation_path` VARCHAR(500) NULL AFTER `location_label`');
+        $this->ensureColumn('pb_agents', 'installation_path', '`installation_path` VARCHAR(500) NULL AFTER `location_label`');
+        $this->ensureColumn('pb_agents', 'validation_expires_at', '`validation_expires_at` DATETIME NULL AFTER `last_seen_at`');
+    }
+
+    private function ensureColumn(string $tableName, string $columnName, string $definition): void
+    {
+        $statement = $this->pdo()->prepare(
+            'SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = :table_name
+               AND COLUMN_NAME = :column_name'
+        );
+        $statement->execute([
+            'table_name' => $this->table($tableName),
+            'column_name' => $columnName,
+        ]);
+
+        if ((int) $statement->fetchColumn() > 0) {
+            return;
+        }
+
+        $this->pdo()->exec(sprintf('ALTER TABLE `%s` ADD COLUMN %s', $this->table($tableName), $definition));
     }
 
     private function ensurePrivateModuleRegistryTables(): void
@@ -938,10 +976,10 @@ final class PbGestionRepository
                 sprintf(
                     'INSERT INTO `%s`
                         (`owner_id`, `agent_uid`, `display_name`, `public_key_base64`, `status`, `os_family`,
-                         `os_version`, `agent_version`, `location_label`, `capabilities_json`, `created_at`, `updated_at`)
+                         `os_version`, `agent_version`, `location_label`, `installation_path`, `capabilities_json`, `created_at`, `updated_at`)
                      VALUES
                         (:owner_id, :agent_uid, :display_name, :public_key, \'active\', :os_family,
-                         :os_version, :agent_version, :location_label, :capabilities_json, :created_at, :updated_at)',
+                         :os_version, :agent_version, :location_label, :installation_path, :capabilities_json, :created_at, :updated_at)',
                     $this->table('pb_agents')
                 )
             );
@@ -954,6 +992,7 @@ final class PbGestionRepository
                 'os_version' => $this->shortText((string) ($payload['os_version'] ?? ''), 80) ?: null,
                 'agent_version' => $this->shortText((string) ($payload['agent_version'] ?? ''), 80) ?: null,
                 'location_label' => $this->shortText((string) ($token['location_label'] ?? ''), 160) ?: null,
+                'installation_path' => $this->shortText((string) ($token['installation_path'] ?? ''), 500) ?: null,
                 'capabilities_json' => $this->json($capabilities),
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -1043,6 +1082,7 @@ final class PbGestionRepository
             'agent_version' => $this->shortText((string) ($payload['agent_version'] ?? ''), 80) ?: null,
             'capabilities_json' => is_array($payload['capabilities'] ?? null) ? $this->json(array_values($payload['capabilities'])) : null,
             'last_seen_at' => $this->now(),
+            'validation_expires_at' => gmdate('Y-m-d H:i:s', time() + self::AGENT_VALIDATION_TTL_SECONDS),
             'updated_at' => $this->now(),
             'agent_id' => $agentId,
             'owner_id' => $ownerId,
@@ -1055,6 +1095,7 @@ final class PbGestionRepository
                      `agent_version` = COALESCE(:agent_version, `agent_version`),
                      `capabilities_json` = COALESCE(:capabilities_json, `capabilities_json`),
                      `last_seen_at` = :last_seen_at,
+                     `validation_expires_at` = COALESCE(`validation_expires_at`, :validation_expires_at),
                      `updated_at` = :updated_at
                  WHERE `id` = :agent_id AND `owner_id` = :owner_id',
                 $this->table('pb_agents')
@@ -1713,6 +1754,16 @@ final class PbGestionRepository
         }
 
         return gmdate('Y-m-d H:i:s', $timestamp);
+    }
+
+    /**
+     * @param array<string, mixed> $agent
+     */
+    private function agentValidationActive(array $agent): bool
+    {
+        $expiresAt = $this->dateOrNull($agent['validation_expires_at'] ?? null);
+
+        return $expiresAt !== null && strcmp($expiresAt, $this->now()) >= 0;
     }
 
     private function state(string $value): string

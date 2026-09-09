@@ -11,6 +11,7 @@ final class AgentErrorCodes
     public const PAYLOAD_TOO_LARGE = 'payload_too_large';
     public const AGENT_UNKNOWN = 'agent_unknown';
     public const AGENT_REVOKED = 'agent_revoked';
+    public const AGENT_VALIDATION_EXPIRED = 'agent_validation_expired';
     public const SIGNATURE_INVALID = 'signature_invalid';
     public const TIMESTAMP_OUT_OF_WINDOW = 'timestamp_out_of_window';
     public const SEQUENCE_REPLAY = 'sequence_replay';
@@ -34,6 +35,7 @@ final class AgentErrorCodes
             self::PAYLOAD_TOO_LARGE => 'Le corps de requete depasse la limite autorisee.',
             self::AGENT_UNKNOWN => 'Agent inconnu.',
             self::AGENT_REVOKED => 'Agent revoque.',
+            self::AGENT_VALIDATION_EXPIRED => 'Validation agent expiree.',
             self::SIGNATURE_INVALID => 'Signature invalide.',
             self::TIMESTAMP_OUT_OF_WINDOW => 'Horodatage hors fenetre.',
             self::SEQUENCE_REPLAY => 'Sequence agent invalide.',

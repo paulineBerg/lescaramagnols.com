@@ -118,6 +118,14 @@ final class PbGestionRepositoryTest extends TestCase
 
         $repository = new PbGestionRepository($this->editorialSqlDatabase());
         $agent = $this->claimAgent($repository, 44, 'Support');
+        $sync = $repository->synchronizeAgent($agent, [
+            'os_family' => 'windows',
+            'os_version' => '11',
+            'agent_version' => '0.1.0',
+            'capabilities' => ['network', 'posture', 'backup'],
+        ]);
+        $this->assertTrue($sync['ok']);
+        $agent = $repository->findAgentByUid((string) $agent['agent_uid']) ?? [];
 
         $payload = [
             'detail_uid' => str_repeat('a', 32),
@@ -131,6 +139,70 @@ final class PbGestionRepositoryTest extends TestCase
         $this->assertSame($first['command']['command_uid'] ?? null, $second['command']['command_uid'] ?? null);
         $this->assertMatchesRegularExpression('/\A[a-f0-9]{32}\z/', (string) ($first['command']['payload']['request_uid'] ?? ''));
         $this->assertSame(1, $repository->dashboardForOwner(44)['details_pending']);
+    }
+
+    public function testAgentInstallationPathAndValidationWindowAreStoredPerComputer(): void
+    {
+        if (!function_exists('sodium_crypto_sign_keypair')) {
+            $this->markTestSkipped('Extension sodium absente.');
+        }
+
+        $repository = new PbGestionRepository($this->editorialSqlDatabase());
+        $first = $this->claimAgent($repository, 46, 'PC maison', 'C:\\Caramagnols\\Agent');
+        $second = $this->claimAgent($repository, 46, 'PC bureau', '$HOME/.local/share/caramagnols-photo-agent');
+
+        $this->assertSame('C:\\Caramagnols\\Agent', $first['installation_path']);
+        $this->assertSame('$HOME/.local/share/caramagnols-photo-agent', $second['installation_path']);
+        $this->assertNotSame($first['agent_uid'], $second['agent_uid']);
+        $this->assertNull($first['validation_expires_at']);
+
+        $before = time() + (29 * 86400);
+        $sync = $repository->synchronizeAgent($first, [
+            'os_family' => 'windows',
+            'os_version' => '11',
+            'agent_version' => '1.0.0',
+            'capabilities' => ['photos'],
+        ]);
+        $this->assertTrue($sync['ok']);
+
+        $stored = $repository->findAgentByUid((string) $first['agent_uid']);
+        $this->assertIsArray($stored);
+        $this->assertIsString($stored['validation_expires_at'] ?? null);
+        $expiresAt = strtotime((string) $stored['validation_expires_at']);
+        $this->assertIsInt($expiresAt);
+        $this->assertGreaterThanOrEqual($before, $expiresAt);
+        $this->assertLessThanOrEqual(time() + (31 * 86400), $expiresAt);
+    }
+
+    public function testExpiredAgentValidationRejectsNewCommands(): void
+    {
+        if (!function_exists('sodium_crypto_sign_keypair')) {
+            $this->markTestSkipped('Extension sodium absente.');
+        }
+
+        $database = $this->editorialSqlDatabase();
+        $repository = new PbGestionRepository($database);
+        $agent = $this->claimAgent($repository, 47, 'PC expire');
+        $sync = $repository->synchronizeAgent($agent, [
+            'os_family' => 'windows',
+            'os_version' => '11',
+            'agent_version' => '1.0.0',
+            'capabilities' => ['photos'],
+        ]);
+        $this->assertTrue($sync['ok']);
+
+        $database->pdo()->prepare(sprintf(
+            'UPDATE `%s` SET `validation_expires_at` = :expired_at WHERE `id` = :agent_id',
+            $database->table('pb_agents')
+        ))->execute([
+            'expired_at' => gmdate('Y-m-d H:i:s', time() - 60),
+            'agent_id' => (int) $agent['id'],
+        ]);
+
+        $result = $repository->queueCommand(47, (int) $agent['id'], 'photo.roots.list', [], 'expired-agent-test', 'test');
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('agent_validation_expired', $result['error']);
     }
 
     public function testSyncUpdatesDetectedOsFamilyAndCapabilities(): void
@@ -170,10 +242,10 @@ final class PbGestionRepositoryTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function claimAgent(PbGestionRepository $repository, int $ownerId, string $locationLabel): array
+    private function claimAgent(PbGestionRepository $repository, int $ownerId, string $locationLabel, string $installationPath = ''): array
     {
         $keypair = sodium_crypto_sign_keypair();
-        $token = $repository->createEnrollmentToken($ownerId, $locationLabel);
+        $token = $repository->createEnrollmentToken($ownerId, $locationLabel, $installationPath);
         $claim = $repository->claimEnrollment([
             'code' => $token['code'],
             'public_key_base64' => base64_encode(sodium_crypto_sign_publickey($keypair)),

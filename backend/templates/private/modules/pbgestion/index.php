@@ -28,6 +28,15 @@ $devices = is_array($dashboard['devices'] ?? null) ? $dashboard['devices'] : [];
 $alerts = is_array($dashboard['alerts'] ?? null) ? $dashboard['alerts'] : [];
 $commands = is_array($dashboard['commands'] ?? null) ? $dashboard['commands'] : [];
 $backups = is_array($dashboard['backups'] ?? null) ? $dashboard['backups'] : [];
+$agentInstallPathDefaults = [
+    'windows' => '%LOCALAPPDATA%\\pbgestion\\agent',
+    'linux' => '$HOME/.local/share/pbgestion/agent',
+    'macos' => '$HOME/Library/Application Support/pbgestion/agent',
+];
+$agentInstallPathDefaultsJson = json_encode($agentInstallPathDefaults, JSON_UNESCAPED_SLASHES);
+if (!is_string($agentInstallPathDefaultsJson)) {
+    $agentInstallPathDefaultsJson = '{}';
+}
 $dateLabel = static function (mixed $value): string {
     if (!is_string($value) || trim($value) === '') {
         return 'jamais';
@@ -51,6 +60,31 @@ $statusLabel = static function (string $status): string {
         default => $status !== '' ? $status : 'inconnu',
     };
 };
+$agentValidationLabel = static function (array $agent) use ($dateLabel): string {
+    if (strtolower((string) ($agent['status'] ?? '')) !== 'active') {
+        return 'non actif';
+    }
+    $expiresAt = is_string($agent['validation_expires_at'] ?? null) ? (string) $agent['validation_expires_at'] : '';
+    if (trim($expiresAt) === '') {
+        return 'en attente du premier contact';
+    }
+    $timestamp = strtotime($expiresAt);
+    if ($timestamp === false) {
+        return 'à revalider';
+    }
+
+    return $timestamp >= time() ? 'valide jusqu’au ' . $dateLabel($expiresAt) : 'à revalider';
+};
+$agentCommandReady = static function (array $agent): bool {
+    if (strtolower((string) ($agent['status'] ?? '')) !== 'active') {
+        return false;
+    }
+    $expiresAt = is_string($agent['validation_expires_at'] ?? null) ? (string) $agent['validation_expires_at'] : '';
+    $timestamp = $expiresAt !== '' ? strtotime($expiresAt) : false;
+
+    return $timestamp !== false && $timestamp >= time();
+};
+$commandAgents = array_values(array_filter($agents, static fn (mixed $agent): bool => is_array($agent) && $agentCommandReady($agent)));
 ?>
 <section class="private-dashboard pbgestion-module" data-pbgestion-root>
   <nav class="private-module-nav" aria-label="<?php echo $h($appNavLabel); ?>">
@@ -209,9 +243,9 @@ $statusLabel = static function (string $status): string {
     <section class="card private-card-wide">
       <h2>Photo rename</h2>
       <p class="muted">Choisissez le navigateur pour produire des copies renommées, ou l’agent local pour renommer directement des dossiers autorisés.</p>
-      <?php if ($agents === []): ?>
+      <?php if ($commandAgents === []): ?>
         <section class="notice notice-info" role="status">
-          <strong>Aucun agent local détecté.</strong>
+          <strong>Aucun agent local valide.</strong>
           Le renommage reste disponible sans installation : sélectionnez des photos ci-dessous, la webapp prépare des copies renommées dans une archive ZIP, puis vous les enregistrez où vous voulez. Les originaux ne sont pas modifiés.
         </section>
       <?php endif; ?>
@@ -249,8 +283,8 @@ $statusLabel = static function (string $status): string {
           </div>
         </div>
       </section>
-      <?php if ($agents === []): ?>
-        <p class="muted">Aucun agent appairé: le navigateur produit des copies renommées téléchargeables, sans accès direct aux dossiers locaux.</p>
+      <?php if ($commandAgents === []): ?>
+        <p class="muted">Aucun agent appairé et valide: le navigateur produit des copies renommées téléchargeables, sans accès direct aux dossiers locaux.</p>
       <?php else: ?>
         <section class="private-dashboard-panel">
           <h3>Mode agent desktop</h3>
@@ -264,7 +298,7 @@ $statusLabel = static function (string $status): string {
               <input type="hidden" name="action" value="queue_command" />
               <label>Agent
                 <select name="agent_id">
-                  <?php foreach ($agents as $agent): if (!is_array($agent) || ($agent['status'] ?? '') !== 'active') { continue; } ?>
+                  <?php foreach ($commandAgents as $agent): if (!is_array($agent)) { continue; } ?>
                     <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo $h($agent['display_name'] ?? 'Agent'); ?></option>
                   <?php endforeach; ?>
                 </select>
@@ -296,7 +330,7 @@ $statusLabel = static function (string $status): string {
               <input type="hidden" name="command_type" value="photo.rename.preview" />
               <label>Agent
                 <select name="agent_id">
-                  <?php foreach ($agents as $agent): if (!is_array($agent) || ($agent['status'] ?? '') !== 'active') { continue; } ?>
+                  <?php foreach ($commandAgents as $agent): if (!is_array($agent)) { continue; } ?>
                     <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo $h($agent['display_name'] ?? 'Agent'); ?></option>
                   <?php endforeach; ?>
                 </select>
@@ -333,7 +367,7 @@ $statusLabel = static function (string $status): string {
               <input type="hidden" name="command_type" value="photo.rename.execute" />
               <label>Agent
                 <select name="agent_id">
-                  <?php foreach ($agents as $agent): if (!is_array($agent) || ($agent['status'] ?? '') !== 'active') { continue; } ?>
+                  <?php foreach ($commandAgents as $agent): if (!is_array($agent)) { continue; } ?>
                     <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo $h($agent['display_name'] ?? 'Agent'); ?></option>
                   <?php endforeach; ?>
                 </select>
@@ -354,7 +388,7 @@ $statusLabel = static function (string $status): string {
               <input type="hidden" name="action" value="queue_command" />
               <label>Agent
                 <select name="agent_id">
-                  <?php foreach ($agents as $agent): if (!is_array($agent) || ($agent['status'] ?? '') !== 'active') { continue; } ?>
+                  <?php foreach ($commandAgents as $agent): if (!is_array($agent)) { continue; } ?>
                     <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo $h($agent['display_name'] ?? 'Agent'); ?></option>
                   <?php endforeach; ?>
                 </select>
@@ -442,7 +476,7 @@ $statusLabel = static function (string $status): string {
       <section class="private-dashboard-panel">
         <h3>Installer l’agent local PbGestion</h3>
         <p class="muted">Le téléchargement crée un appairage valable 30 minutes et l’intègre dans le script. La confirmation se fait par popup avant le téléchargement; aucun texte n’est à recopier.</p>
-        <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools" data-private-sensitive-action="installation agent local" data-private-confirm-message="Installer un agent local sur cet ordinateur ?">
+        <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools" data-private-sensitive-action="installation agent local" data-private-confirm-message="Installer un agent local sur cet ordinateur ?" data-agent-install-path-form data-agent-install-path-defaults="<?php echo $h($agentInstallPathDefaultsJson); ?>">
           <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
           <input type="hidden" name="action" value="download_agent_installer" />
           <input type="hidden" name="installer_consent" value="1" />
@@ -450,11 +484,14 @@ $statusLabel = static function (string $status): string {
             <input type="text" name="location_label" maxlength="160" placeholder="Maison, bureau, PC principal" />
           </label>
           <label>Plateforme
-            <select name="installer_platform">
+            <select name="installer_platform" data-agent-install-platform>
               <option value="windows">Windows</option>
               <option value="linux">Linux</option>
               <option value="macos">macOS</option>
             </select>
+          </label>
+          <label>Chemin d’installation
+            <input type="text" name="installation_path" maxlength="500" value="<?php echo $h($agentInstallPathDefaults['windows']); ?>" data-agent-install-path-input required />
           </label>
           <button type="submit" class="private-create-button">Télécharger l’installeur local</button>
         </form>
@@ -482,18 +519,28 @@ $statusLabel = static function (string $status): string {
           Expiration: <?php echo $h($dateLabel($oneTimeEnrollment['expires_at'] ?? null)); ?>.
         </div>
       <?php endif; ?>
-      <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools">
+      <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools" data-agent-install-path-form data-agent-install-path-defaults="<?php echo $h($agentInstallPathDefaultsJson); ?>">
         <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
         <input type="hidden" name="action" value="create_enrollment" />
         <label>Lieu ou usage
           <input type="text" name="location_label" maxlength="160" placeholder="Maison, bureau, PC principal" />
+        </label>
+        <label>Plateforme
+          <select name="installer_platform" data-agent-install-platform>
+            <option value="windows">Windows</option>
+            <option value="linux">Linux</option>
+            <option value="macos">macOS</option>
+          </select>
+        </label>
+        <label>Chemin d’installation
+          <input type="text" name="installation_path" maxlength="500" value="<?php echo $h($agentInstallPathDefaults['windows']); ?>" data-agent-install-path-input required />
         </label>
         <button type="submit" class="private-create-button">Créer un code 30 minutes</button>
       </form>
       <?php if ($agents === []): ?>
         <p class="muted">Aucun agent appairé.</p>
       <?php else: ?>
-        <table><thead><tr><th>Ordinateur</th><th>OS</th><th>Etat</th><th>Version</th><th>Dernier contact</th><th>Action</th></tr></thead><tbody>
+        <table><thead><tr><th>Ordinateur</th><th>Installation</th><th>OS</th><th>Etat</th><th>Validité</th><th>Version</th><th>Dernier contact</th><th>Action</th></tr></thead><tbody>
           <?php foreach ($agents as $agent): if (!is_array($agent)) { continue; } ?>
             <tr>
               <td>
@@ -502,8 +549,10 @@ $statusLabel = static function (string $status): string {
                   <br><span class="muted"><?php echo $h($agent['location_label']); ?></span>
                 <?php endif; ?>
               </td>
+              <td><?php echo $h($agent['installation_path'] ?? ''); ?></td>
               <td><?php echo $h($agent['os_family'] ?? ''); ?></td>
               <td><?php echo $h($statusLabel((string) ($agent['status'] ?? 'unknown'))); ?></td>
+              <td><?php echo $h($agentValidationLabel($agent)); ?></td>
               <td><?php echo $h($agent['agent_version'] ?? ''); ?></td>
               <td><?php echo $h($dateLabel($agent['last_seen_at'] ?? null)); ?></td>
               <td>
@@ -553,3 +602,29 @@ $statusLabel = static function (string $status): string {
     </section>
   <?php endif; ?>
 </section>
+<script>
+  (() => {
+    document.querySelectorAll('[data-agent-install-path-form]').forEach((form) => {
+      if (!(form instanceof HTMLFormElement)) {
+        return;
+      }
+      const platform = form.querySelector('[data-agent-install-platform]');
+      const pathInput = form.querySelector('[data-agent-install-path-input]');
+      if (!(platform instanceof HTMLSelectElement) || !(pathInput instanceof HTMLInputElement)) {
+        return;
+      }
+      let defaults = {};
+      try {
+        defaults = JSON.parse(form.dataset.agentInstallPathDefaults || '{}');
+      } catch (error) {
+        defaults = {};
+      }
+      platform.addEventListener('change', () => {
+        const next = defaults[platform.value];
+        if (typeof next === 'string' && (pathInput.value.trim() === '' || Object.values(defaults).includes(pathInput.value))) {
+          pathInput.value = next;
+        }
+      });
+    });
+  })();
+</script>

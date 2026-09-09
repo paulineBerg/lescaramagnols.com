@@ -153,6 +153,8 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('Installer l’agent local PbGestion', $agentsResponse->body);
         $this->assertStringContainsString('aucun texte n’est à recopier', $agentsResponse->body);
         $this->assertStringNotContainsString('name="installer_confirmation"', $agentsResponse->body);
+        $this->assertStringContainsString('name="installation_path"', $agentsResponse->body);
+        $this->assertStringContainsString('%LOCALAPPDATA%\\pbgestion\\agent', $agentsResponse->body);
         $this->assertStringContainsString('Supprimer l’agent local', $agentsResponse->body);
         $this->assertStringContainsString('Créer un code 30 minutes', $agentsResponse->body);
 
@@ -169,6 +171,7 @@ final class LocalAgentPortalControllerTest extends TestCase
             'csrf_token' => $csrfToken,
             'action' => 'download_agent_installer',
             'location_label' => 'PC photos',
+            'installation_path' => 'C:\\Caramagnols\\PhotoAgent',
             'installer_consent' => '1',
             'installer_platform' => 'windows',
         ]));
@@ -179,11 +182,17 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('no-store', $downloadResponse->headers['Cache-Control'] ?? '');
         $this->assertStringContainsString('INSTALLATION LOCALE PB GESTION', $downloadResponse->body);
         $this->assertStringNotContainsString('Tapez OUI pour confirmer l installation locale', $downloadResponse->body);
-        $this->assertStringContainsString('%LOCALAPPDATA%\\pbgestion\\agent', $downloadResponse->body);
-        $this->assertStringContainsString("Join-Path \$env:LOCALAPPDATA 'pbgestion'", $downloadResponse->body);
+        $this->assertStringContainsString('Expand-PbPath', $downloadResponse->body);
+        $this->assertStringContainsString('ConvertTo-Json -Depth 8', $downloadResponse->body);
         $this->assertStringContainsString('pbgestion_agent.py', $downloadResponse->body);
         $this->assertStringContainsString('pynacl', $downloadResponse->body);
         $this->assertStringContainsString('/api/pbgestion/v1/enrollment/claim', $downloadResponse->body);
+        $tokenStatement = $database->pdo()->prepare(sprintf(
+            'SELECT `installation_path` FROM `%s` ORDER BY `id` DESC LIMIT 1',
+            $database->table('pb_enrollment_tokens')
+        ));
+        $tokenStatement->execute();
+        $this->assertSame('C:\\Caramagnols\\PhotoAgent', $tokenStatement->fetchColumn());
 
         $linuxResponse = $controller->handle('network_security_agents', $this->request('POST', '/private/securite-reseau/agents-installation', [
             'csrf_token' => $csrfToken,
@@ -208,6 +217,50 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('SUPPRESSION LOCALE PB GESTION', $uninstallResponse->body);
     }
 
+    public function testPhotoAgentInstallerStaysInPhotoApplicationContextAndStoresInstallPath(): void
+    {
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $pbGestionRepository = new PbGestionRepository($database);
+        $userId = $this->createPrivateUser($userRepository, 'photo-installer@example.com');
+        $this->assertTrue($moduleRepository->setUserModules($userId, ['photo_geo_renamer'], 'admin@example.com'));
+
+        $controller = new PrivatePortalController(
+            $this->privateAuth($userRepository, 'photo-installer@example.com'),
+            null,
+            null,
+            $userRepository,
+            $moduleRepository,
+            pbGestionRepository: $pbGestionRepository
+        );
+
+        $response = $controller->handle('photo_geo_renamer_agents', $this->request('POST', '/private/photo-rename/agents-installation', [
+            'csrf_token' => csrf_token('private_pbgestion'),
+            'action' => 'download_agent_installer',
+            'location_label' => 'PC photos portable',
+            'installation_path' => '$HOME/.local/share/caramagnols-photo-agent',
+            'installer_consent' => '1',
+            'installer_platform' => 'linux',
+        ]));
+
+        $this->assertSame(200, $response->status);
+        $this->assertSame('attachment; filename="pbgestion-agent-install-linux.sh"', $response->headers['Content-Disposition'] ?? null);
+        $this->assertStringContainsString('Dossier agent: $INSTALL_ROOT', $response->body);
+        $this->assertStringNotContainsString('Vue d’ensemble</a>', $response->body);
+
+        $tokenStatement = $database->pdo()->prepare(sprintf(
+            'SELECT `location_label`, `installation_path` FROM `%s` ORDER BY `id` DESC LIMIT 1',
+            $database->table('pb_enrollment_tokens')
+        ));
+        $tokenStatement->execute();
+        $token = $tokenStatement->fetch(\PDO::FETCH_ASSOC);
+
+        $this->assertIsArray($token);
+        $this->assertSame('PC photos portable', $token['location_label']);
+        $this->assertSame('$HOME/.local/share/caramagnols-photo-agent', $token['installation_path']);
+    }
+
     public function testPhotoBrowserModeRunsWithoutClaimedAgent(): void
     {
         $database = $this->editorialSqlDatabase();
@@ -229,7 +282,7 @@ final class LocalAgentPortalControllerTest extends TestCase
         $photosResponse = $controller->handle('photo_geo_renamer_dashboard', $this->request('GET', '/private/photo-rename'));
         $this->assertSame(200, $photosResponse->status);
         $this->assertStringContainsString('Mode navigateur Android, iOS et desktop', $photosResponse->body);
-        $this->assertStringContainsString('Aucun agent local détecté.', $photosResponse->body);
+        $this->assertStringContainsString('Aucun agent local valide.', $photosResponse->body);
         $this->assertStringContainsString('data-photo-browser-renamer', $photosResponse->body);
         $this->assertStringContainsString('data-photo-browser-geocode-url', $photosResponse->body);
         $this->assertStringContainsString('Commune de secours', $photosResponse->body);
@@ -362,6 +415,15 @@ final class LocalAgentPortalControllerTest extends TestCase
         ]);
 
         $this->assertTrue($claim['ok']);
+        $agent = $repository->findAgentByUid((string) ($claim['agent']['agent_uid'] ?? ''));
+        $this->assertIsArray($agent);
+        $sync = $repository->synchronizeAgent($agent, [
+            'os_family' => 'windows',
+            'os_version' => '11',
+            'agent_version' => '0.2.0',
+            'capabilities' => ['photos'],
+        ]);
+        $this->assertTrue($sync['ok']);
     }
 
     private function privateAuth(PrivateUserRepository $userRepository, string $email): PrivateAuth

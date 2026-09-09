@@ -84,9 +84,11 @@ final class LocalAgentPortalController
             }
 
             if ($action === 'create_enrollment') {
+                $platform = $this->installerPlatform($body['installer_platform'] ?? null);
                 $oneTimeEnrollment = $this->repository->createEnrollmentToken(
                     $userId,
-                    is_string($body['location_label'] ?? null) ? (string) $body['location_label'] : ''
+                    is_string($body['location_label'] ?? null) ? (string) $body['location_label'] : '',
+                    $this->installationPathForPlatform($body['installation_path'] ?? null, $platform)
                 );
                 $this->log('pbgestion.enrollment.created', ['private_user_id' => $userId], 'info');
 
@@ -223,13 +225,14 @@ final class LocalAgentPortalController
         }
 
         $locationLabel = $this->shortBodyText($body, 'location_label', 160);
-        $oneTimeEnrollment = $this->repository->createEnrollmentToken($userId, $locationLabel);
-        $displayName = $locationLabel !== '' ? $locationLabel : 'PbGestion Agent';
         $platform = $this->installerPlatform($body['installer_platform'] ?? null);
+        $installationPath = $this->installationPathForPlatform($body['installation_path'] ?? null, $platform);
+        $oneTimeEnrollment = $this->repository->createEnrollmentToken($userId, $locationLabel, $installationPath);
+        $displayName = $locationLabel !== '' ? $locationLabel : 'PbGestion Agent';
         $installer = new LocalAgentInstaller();
         $script = $platform === 'windows'
-            ? $installer->buildPowerShellScript($oneTimeEnrollment, rtrim(app_url('', $request), '/'), $displayName)
-            : $installer->buildUnixShellScript($oneTimeEnrollment, rtrim(app_url('', $request), '/'), $displayName, $platform);
+            ? $installer->buildPowerShellScript($oneTimeEnrollment, rtrim(app_url('', $request), '/'), $displayName, $installationPath)
+            : $installer->buildUnixShellScript($oneTimeEnrollment, rtrim(app_url('', $request), '/'), $displayName, $platform, $installationPath);
         $extension = $platform === 'windows' ? 'ps1' : 'sh';
         $contentType = $platform === 'windows'
             ? 'application/x-powershell; charset=utf-8'
@@ -705,6 +708,16 @@ final class LocalAgentPortalController
         $platform = is_string($value) ? strtolower(trim($value)) : 'windows';
 
         return in_array($platform, ['windows', 'linux', 'macos'], true) ? $platform : 'windows';
+    }
+
+    private function installationPathForPlatform(mixed $value, string $platform): string
+    {
+        $path = is_string($value) ? trim(preg_replace('/[\x00-\x1F\x7F]+/', '', $value) ?? '') : '';
+        if ($path === '') {
+            return LocalAgentInstaller::defaultInstallPath($platform);
+        }
+
+        return mb_substr($path, 0, 500);
     }
 
     /**

@@ -11,12 +11,13 @@ final class LocalAgentInstaller
     /**
      * @param array<string, mixed> $enrollment
      */
-    public function buildPowerShellScript(array $enrollment, string $serverBaseUrl, string $displayName): string
+    public function buildPowerShellScript(array $enrollment, string $serverBaseUrl, string $displayName, string $installPath = ''): string
     {
         $agentSource = $this->agentSource();
+        $installPath = $this->portableInstallPath($installPath, 'windows');
         $config = $this->config($enrollment, $serverBaseUrl, $displayName, [
             'server_base_url' => rtrim($serverBaseUrl, '/'),
-            'data_root' => '$env:LOCALAPPDATA\\pbgestion\\agent',
+            'data_root' => $installPath,
             'allowed_roots' => [
                 [
                     'uid' => 'photos-principales',
@@ -34,19 +35,17 @@ final class LocalAgentInstaller
         $configBase64 = base64_encode($configJson);
         $expires = is_string($enrollment['expires_at'] ?? null) ? (string) $enrollment['expires_at'] : '';
 
-        return $this->script($agentBase64, $configBase64, $expires);
+        return $this->script($agentBase64, $configBase64, $expires, base64_encode($installPath));
     }
 
     /**
      * @param array<string, mixed> $enrollment
      */
-    public function buildUnixShellScript(array $enrollment, string $serverBaseUrl, string $displayName, string $platform): string
+    public function buildUnixShellScript(array $enrollment, string $serverBaseUrl, string $displayName, string $platform, string $installPath = ''): string
     {
         $agentSource = $this->agentSource();
         $platform = strtolower(trim($platform)) === 'macos' ? 'macos' : 'linux';
-        $dataRoot = $platform === 'macos'
-            ? '$HOME/Library/Application Support/pbgestion/agent'
-            : '$HOME/.local/share/pbgestion/agent';
+        $dataRoot = $this->portableInstallPath($installPath, $platform);
         $pictureLabel = $platform === 'macos' ? 'Images macOS' : 'Images Linux';
         $config = $this->config($enrollment, $serverBaseUrl, $displayName, [
             'server_base_url' => rtrim($serverBaseUrl, '/'),
@@ -187,7 +186,28 @@ BASH;
         return mb_substr($displayName, 0, 120);
     }
 
-    private function script(string $agentBase64, string $configBase64, string $expiresAt): string
+    public static function defaultInstallPath(string $platform): string
+    {
+        $platform = strtolower(trim($platform));
+
+        return match ($platform) {
+            'linux' => '$HOME/.local/share/pbgestion/agent',
+            'macos' => '$HOME/Library/Application Support/pbgestion/agent',
+            default => '%LOCALAPPDATA%\\pbgestion\\agent',
+        };
+    }
+
+    private function portableInstallPath(string $installPath, string $platform): string
+    {
+        $installPath = trim(preg_replace('/[\x00-\x1F\x7F]+/', '', $installPath) ?? '');
+        if ($installPath === '') {
+            return self::defaultInstallPath($platform);
+        }
+
+        return mb_substr($installPath, 0, 500);
+    }
+
+    private function script(string $agentBase64, string $configBase64, string $expiresAt, string $installPathBase64): string
     {
         $expiresComment = $expiresAt !== '' ? '# Code valable jusqu\'a ' . $expiresAt . " UTC.\r\n" : '';
 
@@ -201,12 +221,17 @@ BASH;
 Write-Host ''
 Write-Host 'INSTALLATION LOCALE PB GESTION'
 Write-Host 'Cette action installe un agent local pour l utilisateur Windows courant.'
-Write-Host 'L agent cree des fichiers dans %LOCALAPPDATA%\\pbgestion\\agent, cree une tache planifiee locale,'
+Write-Host 'L agent cree des fichiers dans le dossier choisi, cree une tache planifiee locale,'
 Write-Host 's appaire au BO Private, puis execute uniquement les commandes signees et bornees par vos racines locales autorisees.'
 Write-Host ''
 
-\$pbGestionRoot = Join-Path \$env:LOCALAPPDATA 'pbgestion'
-\$installRoot = Join-Path \$pbGestionRoot 'agent'
+function Expand-PbPath([string]\$Value) {
+    \$expanded = \$Value.Replace('\$env:LOCALAPPDATA', \$env:LOCALAPPDATA).Replace('\$env:USERPROFILE', \$env:USERPROFILE)
+    return [Environment]::ExpandEnvironmentVariables(\$expanded)
+}
+
+\$installRootTemplate = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$installPathBase64'))
+\$installRoot = Expand-PbPath \$installRootTemplate
 \$agentPath = Join-Path \$installRoot 'pbgestion_agent.py'
 \$configPath = Join-Path \$installRoot 'config.json'
 \$venvPath = Join-Path \$installRoot '.venv'
@@ -215,8 +240,15 @@ Write-Host ''
 New-Item -ItemType Directory -Force -Path \$installRoot | Out-Null
 [IO.File]::WriteAllBytes(\$agentPath, [Convert]::FromBase64String('$agentBase64'))
 \$configText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$configBase64'))
-\$configText = \$configText.Replace('\$env:LOCALAPPDATA', \$env:LOCALAPPDATA).Replace('\$env:USERPROFILE', \$env:USERPROFILE)
-[IO.File]::WriteAllText(\$configPath, \$configText, [Text.UTF8Encoding]::new(\$false))
+\$config = \$configText | ConvertFrom-Json
+\$config.data_root = \$installRoot
+foreach (\$root in @(\$config.allowed_roots)) {
+    if (\$root -ne \$null -and \$root.path -ne \$null) {
+        \$root.path = Expand-PbPath ([string]\$root.path)
+    }
+}
+[IO.File]::WriteAllText(\$configPath, (\$config | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new(\$false))
+Write-Host "Dossier agent: \$installRoot"
 
 \$pythonLauncher = \$null
 foreach (\$candidate in @('py', 'python')) {
@@ -265,6 +297,7 @@ POWERSHELL;
         string $dataRoot
     ): string {
         $expiresComment = $expiresAt !== '' ? '# Code valable jusqu a ' . $expiresAt . " UTC.\n" : '';
+        $dataRootBase64 = base64_encode($dataRoot);
         $serviceBlock = $platform === 'macos' ? <<<'BASH'
 PLIST="${HOME}/Library/LaunchAgents/com.lescaramagnols.pbgestion-agent.plist"
 mkdir -p "${HOME}/Library/LaunchAgents"
@@ -333,7 +366,14 @@ echo 'L agent cree des fichiers dans le profil local, s appaire au BO Private,'
 echo 'puis execute uniquement les commandes signees et bornees par vos racines locales autorisees.'
 echo ''
 
-INSTALL_ROOT="$dataRoot"
+INSTALL_ROOT="$(python3 - <<'PY'
+import base64
+import os
+
+value = base64.b64decode("$dataRootBase64").decode("utf-8")
+print(os.path.expandvars(os.path.expanduser(value)))
+PY
+)"
 AGENT_PATH="\${INSTALL_ROOT}/pbgestion_agent.py"
 CONFIG_PATH="\${INSTALL_ROOT}/config.json"
 VENV_PATH="\${INSTALL_ROOT}/.venv"
@@ -342,15 +382,21 @@ export INSTALL_ROOT AGENT_PATH CONFIG_PATH
 mkdir -p "\$INSTALL_ROOT"
 python3 - <<'PY'
 import base64
+import json
 import os
 from pathlib import Path
 
 root = Path(os.environ["INSTALL_ROOT"]).expanduser()
 root.mkdir(parents=True, exist_ok=True)
 (root / "pbgestion_agent.py").write_bytes(base64.b64decode("$agentBase64"))
-config = base64.b64decode("$configBase64").decode("utf-8").replace("\$HOME", os.environ.get("HOME", ""))
-(root / "config.json").write_text(config, encoding="utf-8")
+config = json.loads(base64.b64decode("$configBase64").decode("utf-8"))
+config["data_root"] = str(root)
+for item in config.get("allowed_roots", []):
+    if isinstance(item, dict):
+        item["path"] = os.path.expandvars(os.path.expanduser(str(item.get("path", ""))))
+(root / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False, sort_keys=True), encoding="utf-8")
 PY
+echo "Dossier agent: \$INSTALL_ROOT"
 
 python3 -m venv "\$VENV_PATH"
 PYTHON_EXE="\${VENV_PATH}/bin/python"
