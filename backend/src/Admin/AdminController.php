@@ -9,6 +9,7 @@ use Caramagnols\Content\PageRepository;
 use Caramagnols\Cron\CronJobRepository;
 use Caramagnols\Http\Request;
 use Caramagnols\Http\Response;
+use Caramagnols\Identity\PersistentSession\PersistentSessionService;
 use Caramagnols\Identity\SessionScope;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
@@ -33,6 +34,7 @@ final class AdminController
     private AdminSerializedFormNormalizer $serializedFormNormalizer;
     private AdminEditorialImageService $editorialImageService;
     private AdminPrivateMembersService $privateMembersService;
+    private PersistentSessionService $persistentSessionService;
     private ?string $pendingSetCookieHeader = null;
 
     public function __construct(
@@ -50,7 +52,8 @@ final class AdminController
         ?AdminTileService $tileService = null,
         ?AdminPrivateMembersService $privateMembersService = null,
         ?AdminCronCenterService $cronCenterService = null,
-        private readonly ?PbGestionRepository $pbGestionRepository = null
+        private readonly ?PbGestionRepository $pbGestionRepository = null,
+        ?PersistentSessionService $persistentSessionService = null
     ) {
         require_once ROOT_PATH . '/core/auth/admin.php';
         require_once ROOT_PATH . '/core/menu_loader.php';
@@ -115,6 +118,7 @@ final class AdminController
             new PrivateModulePermissionRepository(editorial_database(), new PrivateModuleRegistry()),
             $this->eventLogger
         );
+        $this->persistentSessionService = $persistentSessionService ?? persistent_session_service();
     }
 
     private function adminInterfaceLanguage(): string
@@ -361,18 +365,14 @@ final class AdminController
             return $this->redirect($this->routeResolver->canonicalPath('dashboard'));
         }
 
-        $restoreCookie = persistent_session_guard()->restoreAdmin($request);
-        if (is_string($restoreCookie) && $restoreCookie !== '') {
-            $this->pendingSetCookieHeader = $restoreCookie;
-        }
-        if ($this->adminAuthenticated()) {
-            return $this->redirect($this->routeResolver->canonicalPath('dashboard'));
-        }
-
         $error = null;
         $notice = $this->noticeMessageFromCode(admin_pop_notice_code());
         $submittedIdentifier = admin_configured_identifier();
-        $totpRequired = admin_totp_should_challenge();
+        $totpNormallyRequired = admin_totp_should_challenge();
+        $trustedAdminDevice = $this->trustedAdminTotpDevice($request);
+        $trustedAdminTotpUntil = $trustedAdminDevice['trustedUntil'];
+        $totpTrustedByDevice = $totpNormallyRequired && (bool) $trustedAdminDevice['trusted'];
+        $totpRequired = $totpNormallyRequired && !$totpTrustedByDevice;
         $passwordRequired = !admin_local_passwordless_localhost_allowed();
 
         if ($request->method() === 'POST') {
@@ -429,6 +429,9 @@ final class AdminController
                             'submittedIdentifier' => $submittedIdentifier,
                             'passwordRequired' => $passwordRequired,
                             'loginPath' => $this->routeResolver->loginPath(),
+                            'totpRequired' => $totpRequired,
+                            'persistentAdminEnabled' => $this->persistentSessionService->enabled(SessionScope::ADMIN) && $totpRequired,
+                            'adminTotpTrustedUntil' => $trustedAdminTotpUntil,
                             'contentTemplate' => 'login.php',
                         ]
                     );
@@ -436,11 +439,11 @@ final class AdminController
                     return new Response(429, ['Content-Type' => 'text/html; charset=utf-8'], $body);
                 }
 
-                if (admin_login($identifier, $password, $totpCode)) {
+                if (admin_login($identifier, $password, $totpCode, $totpTrustedByDevice, $trustedAdminTotpUntil)) {
                     $limiter->clear();
-                    $trustDevice = $this->postedBoolean($body['trust_admin_device'] ?? null);
+                    $trustDevice = $totpNormallyRequired && !$totpTrustedByDevice && $this->postedBoolean($body['trust_admin_device'] ?? null);
                     if ($trustDevice) {
-                        $remembered = persistent_session_service()->rememberAfterLogin(
+                        $remembered = $this->persistentSessionService->rememberAfterLogin(
                             SessionScope::ADMIN,
                             SessionScope::ADMIN,
                             null,
@@ -485,9 +488,52 @@ final class AdminController
                 'passwordRequired' => $passwordRequired,
                 'loginPath' => $this->routeResolver->loginPath(),
                 'totpRequired' => $totpRequired,
-                'persistentAdminEnabled' => persistent_session_service()->enabled(SessionScope::ADMIN),
+                'persistentAdminEnabled' => $this->persistentSessionService->enabled(SessionScope::ADMIN) && $totpRequired,
+                'adminTotpTrustedUntil' => $trustedAdminTotpUntil,
             ]
         );
+    }
+
+    /**
+     * @return array{trusted: bool, trustedUntil: ?int}
+     */
+    private function trustedAdminTotpDevice(Request $request): array
+    {
+        $result = $this->persistentSessionService->consume($request, SessionScope::ADMIN);
+        $setCookie = is_string($result['set_cookie'] ?? null) ? (string) $result['set_cookie'] : '';
+        if ($setCookie !== '') {
+            $this->pendingSetCookieHeader = $setCookie;
+        }
+
+        if (($result['status'] ?? '') !== 'valid') {
+            return ['trusted' => false, 'trustedUntil' => null];
+        }
+
+        $device = is_array($result['device'] ?? null) ? $result['device'] : [];
+        $identifier = admin_configured_identifier();
+        $expectedHash = (new \Caramagnols\Identity\Audit\SessionAuditService($this->eventLogger))->hashIdentifier($identifier);
+        $actualHash = is_string($device['user_identifier_hash'] ?? null) ? (string) $device['user_identifier_hash'] : '';
+        if ($identifier === '' || $actualHash === '' || !hash_equals($expectedHash, $actualHash)) {
+            $this->eventLogger->security('auth.admin.trusted_totp_refused', [
+                'scope' => SessionScope::ADMIN,
+                'result' => 'account_refused',
+            ], 'warning');
+
+            return ['trusted' => false, 'trustedUntil' => null];
+        }
+
+        $trustedUntil = strtotime((string) ($device['trusted_until'] ?? '')) ?: 0;
+        if ($trustedUntil <= time()) {
+            return ['trusted' => false, 'trustedUntil' => null];
+        }
+
+        $this->eventLogger->security('auth.admin.trusted_totp_accepted', [
+            'trusted_device_id' => (int) ($device['id'] ?? 0),
+            'scope' => SessionScope::ADMIN,
+            'result' => 'success',
+        ]);
+
+        return ['trusted' => true, 'trustedUntil' => $trustedUntil];
     }
 
     private function dashboard(Request $request): Response
@@ -1993,7 +2039,7 @@ final class AdminController
                 $adminSecurityChanges = is_array($result['adminSecurityChanges'] ?? null) ? $result['adminSecurityChanges'] : [];
                 if (
                     ($result['success'] ?? false) === true
-                    && persistent_session_service()->enabled(SessionScope::ADMIN)
+                    && $this->persistentSessionService->enabled(SessionScope::ADMIN)
                     && (
                         !empty($adminSecurityChanges['password'])
                         || !empty($adminSecurityChanges['totp_enabled'])
@@ -2008,7 +2054,7 @@ final class AdminController
                         'admin_security_changed',
                         SessionScope::ADMIN
                     );
-                    $this->pendingSetCookieHeader = persistent_session_service()->clearCookieHeader(SessionScope::ADMIN);
+                    $this->pendingSetCookieHeader = $this->persistentSessionService->clearCookieHeader(SessionScope::ADMIN);
                 }
 
                 if ($settingsAction === 'cron_test' && $openSettingsSection === 'cron') {
@@ -2082,7 +2128,7 @@ final class AdminController
                     $error = $message === null ? $this->adminText('TXT_ADMIN_SECURITY_DEVICES_ACTION_FAILED', 'Action impossible sur cet appareil.') : null;
                 } elseif ($action === 'revoke_all') {
                     $count = device_revocation_service()->revokeAllForUser(SessionScope::ADMIN, null, $identifierHash, 'admin_revoked_all', SessionScope::ADMIN);
-                    $this->pendingSetCookieHeader = persistent_session_service()->clearCookieHeader(SessionScope::ADMIN);
+                    $this->pendingSetCookieHeader = $this->persistentSessionService->clearCookieHeader(SessionScope::ADMIN);
                     $message = $this->adminTextf('TXT_ADMIN_SECURITY_DEVICES_REVOKED_ALL', '%d appareil(s) révoqué(s).', $count);
                 } else {
                     $error = $this->adminText('TXT_ADMIN_SECURITY_DEVICES_ACTION_FAILED', 'Action impossible sur cet appareil.');
@@ -2285,7 +2331,7 @@ final class AdminController
             return $guard;
         }
 
-        $this->pendingSetCookieHeader = persistent_session_service()->revokePresentedToken(
+        $this->pendingSetCookieHeader = $this->persistentSessionService->revokePresentedToken(
             $request,
             SessionScope::ADMIN,
             'admin_logout'
@@ -2359,14 +2405,6 @@ final class AdminController
             return $networkGuard;
         }
 
-        if ($this->adminAuthenticated()) {
-            return null;
-        }
-
-        $restoreCookie = persistent_session_guard()->restoreAdmin($request);
-        if (is_string($restoreCookie) && $restoreCookie !== '') {
-            $this->pendingSetCookieHeader = $restoreCookie;
-        }
         if ($this->adminAuthenticated()) {
             return null;
         }

@@ -8,6 +8,13 @@ use Caramagnols\Admin\AdminRouteResolver;
 use Caramagnols\Admin\AdminSettingsService;
 use Caramagnols\Cron\CronJobRepository;
 use Caramagnols\Http\Request;
+use Caramagnols\Identity\Audit\SessionAuditService;
+use Caramagnols\Identity\Device\TrustedDeviceService;
+use Caramagnols\Identity\PersistentSession\PersistentSessionCookieManager;
+use Caramagnols\Identity\PersistentSession\PersistentSessionService;
+use Caramagnols\Identity\PersistentSession\PersistentTokenRotator;
+use Caramagnols\Identity\Repository\PersistentTokenRepository;
+use Caramagnols\Identity\Repository\TrustedDeviceRepository;
 use Caramagnols\Logging\AppEventLogger;
 use Caramagnols\Logging\LoggerFactory;
 use Caramagnols\PbGestion\Persistence\PbGestionRepository;
@@ -71,6 +78,12 @@ final class AdminControllerTest extends TestCase
         $appConfig['admin']['totp_enabled'] = false;
         $appConfig['admin']['totp_secret'] = '';
         $appConfig['admin']['totp_skip_localhost'] = true;
+        $appConfig['identity']['persistent']['enabled'] = false;
+        $appConfig['identity']['persistent']['admin_enabled'] = false;
+        $appConfig['identity']['persistent']['private_enabled'] = false;
+        $appConfig['identity']['persistent']['admin_cookie_name'] = 'caramagnols_admin_persistent';
+        $appConfig['identity']['persistent']['admin_trusted_device_ttl_seconds'] = 2592000;
+        $appConfig['identity']['persistent']['admin_trusted_device_idle_ttl_seconds'] = 2592000;
         $GLOBALS['langTranslations'] = load_translations_cached('fr');
         $appConfig['site']['head_metadata_html'] = '';
         $appConfig['site']['url'] = [
@@ -784,6 +797,167 @@ final class AdminControllerTest extends TestCase
 
         $this->assertStringContainsString('admin.login.failed', $logContents);
         $this->assertStringContainsString('totp_invalid', $logContents);
+    }
+
+    public function testAdminTrustedDeviceSkipsTotpCodeButStillRequiresPasswordForThirtyDays(): void
+    {
+        $this->enableAdminTrustedDeviceTotp();
+        $controller = $this->controller(persistentSessionService: $this->persistentSessionServiceForTests());
+        $headers = ['User-Agent' => 'AdminTrustedDevice/1.0'];
+
+        $loginForm = $controller->handle('login', $this->request('GET', '/admin', [], [], '198.51.100.23', $headers));
+        $this->assertSame(200, $loginForm->status);
+        $this->assertStringContainsString('id="totp_code"', $loginForm->body);
+        $this->assertStringContainsString('trust_admin_device', $loginForm->body);
+
+        $token = admin_csrf_token();
+        $totpCode = admin_totp_code_at_timestamp(time());
+        $this->assertIsString($totpCode);
+        $trustedLogin = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => $token,
+                    'identifier' => 'admin@example.com',
+                    'password' => 'topsecret',
+                    'totp_code' => $totpCode,
+                    'trust_admin_device' => '1',
+                ],
+                '198.51.100.23',
+                $headers
+            )
+        );
+
+        $this->assertSame(302, $trustedLogin->status);
+        $this->assertSame('/admin/dashboard', $trustedLogin->headers['Location'] ?? null);
+        $cookie = $this->cookieValueFromSetCookie((string) ($trustedLogin->headers['Set-Cookie'] ?? ''), 'caramagnols_admin_persistent');
+        $this->assertNotSame('', $cookie);
+
+        $_SESSION = [];
+        $newSessionToken = admin_csrf_token();
+        $trustedForm = $controller->handle(
+            'login',
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'GET',
+                    'REQUEST_URI' => '/admin',
+                    'REMOTE_ADDR' => '198.51.100.23',
+                ],
+                [],
+                [],
+                ['caramagnols_admin_persistent' => $cookie],
+                array_merge(['Host' => '127.0.0.1:8000'], $headers)
+            )
+        );
+
+        $this->assertSame(200, $trustedForm->status);
+        $this->assertStringContainsString('id="password"', $trustedForm->body);
+        $this->assertStringNotContainsString('id="totp_code"', $trustedForm->body);
+        $this->assertStringNotContainsString('trust_admin_device', $trustedForm->body);
+        $rotatedCookie = $this->cookieValueFromSetCookie((string) ($trustedForm->headers['Set-Cookie'] ?? ''), 'caramagnols_admin_persistent');
+        $this->assertNotSame('', $rotatedCookie);
+
+        $protectedPage = $controller->handle(
+            'dashboard',
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'GET',
+                    'REQUEST_URI' => '/admin/dashboard',
+                    'REMOTE_ADDR' => '198.51.100.23',
+                ],
+                [],
+                [],
+                ['caramagnols_admin_persistent' => $rotatedCookie],
+                array_merge(['Host' => '127.0.0.1:8000'], $headers)
+            )
+        );
+
+        $this->assertSame(302, $protectedPage->status);
+        $this->assertSame('/admin', $protectedPage->headers['Location'] ?? null);
+
+        $trustedPasswordLogin = $controller->handle(
+            'login',
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'POST',
+                    'REQUEST_URI' => '/admin',
+                    'REMOTE_ADDR' => '198.51.100.23',
+                ],
+                [],
+                [
+                    'csrf_token' => $newSessionToken,
+                    'identifier' => 'admin@example.com',
+                    'password' => 'topsecret',
+                ],
+                ['caramagnols_admin_persistent' => $rotatedCookie],
+                array_merge(['Host' => '127.0.0.1:8000'], $headers)
+            )
+        );
+
+        $this->assertSame(302, $trustedPasswordLogin->status);
+        $this->assertSame('/admin/dashboard', $trustedPasswordLogin->headers['Location'] ?? null);
+        $this->assertTrue(admin_is_authenticated());
+    }
+
+    public function testAdminTrustedDeviceExpiresAfterThirtyDaysAndRequiresTotpAgain(): void
+    {
+        $this->enableAdminTrustedDeviceTotp();
+        $controller = $this->controller(persistentSessionService: $this->persistentSessionServiceForTests());
+        $headers = ['User-Agent' => 'AdminTrustedDevice/1.0'];
+        $totpCode = admin_totp_code_at_timestamp(time());
+        $this->assertIsString($totpCode);
+
+        $trustedLogin = $controller->handle(
+            'login',
+            $this->request(
+                'POST',
+                '/admin',
+                [],
+                [
+                    'csrf_token' => admin_csrf_token(),
+                    'identifier' => 'admin@example.com',
+                    'password' => 'topsecret',
+                    'totp_code' => $totpCode,
+                    'trust_admin_device' => '1',
+                ],
+                '198.51.100.23',
+                $headers
+            )
+        );
+
+        $cookie = $this->cookieValueFromSetCookie((string) ($trustedLogin->headers['Set-Cookie'] ?? ''), 'caramagnols_admin_persistent');
+        $this->assertNotSame('', $cookie);
+
+        $database = $this->editorialSqlDatabase();
+        $trustedDevicesTable = $database->table('trusted_devices');
+        $tokensTable = $database->table('persistent_session_tokens');
+        $past = gmdate('Y-m-d H:i:s', time() - 60);
+        $database->pdo()->exec(sprintf("UPDATE `%s` SET `trusted_until` = '%s'", $trustedDevicesTable, $past));
+        $database->pdo()->exec(sprintf("UPDATE `%s` SET `expires_at` = '%s'", $tokensTable, $past));
+
+        $_SESSION = [];
+        $expiredForm = $controller->handle(
+            'login',
+            new Request(
+                [
+                    'REQUEST_METHOD' => 'GET',
+                    'REQUEST_URI' => '/admin',
+                    'REMOTE_ADDR' => '198.51.100.23',
+                ],
+                [],
+                [],
+                ['caramagnols_admin_persistent' => $cookie],
+                array_merge(['Host' => '127.0.0.1:8000'], $headers)
+            )
+        );
+
+        $this->assertSame(200, $expiredForm->status);
+        $this->assertStringContainsString('id="totp_code"', $expiredForm->body);
+        $this->assertStringContainsString('trust_admin_device', $expiredForm->body);
+        $this->assertStringContainsString('Max-Age=0', (string) ($expiredForm->headers['Set-Cookie'] ?? ''));
     }
 
     public function testLoginPostIsRateLimitedAfterConfiguredAttempts(): void
@@ -3742,7 +3916,8 @@ final class AdminControllerTest extends TestCase
         ?AdminSettingsService $settingsService = null,
         ?AppEventLogger $logger = null,
         ?AdminCronCenterService $cronCenterService = null,
-        ?PbGestionRepository $pbGestionRepository = null
+        ?PbGestionRepository $pbGestionRepository = null,
+        ?PersistentSessionService $persistentSessionService = null
     ): AdminController {
         $logger = $logger ?? new AppEventLogger(new LoggerFactory($this->logDir, 'test'));
         $settingsService = $settingsService ?? new AdminSettingsService(
@@ -3767,7 +3942,8 @@ final class AdminControllerTest extends TestCase
             null,
             null,
             $cronCenterService,
-            $pbGestionRepository
+            $pbGestionRepository,
+            $persistentSessionService
         );
     }
 
@@ -3816,6 +3992,50 @@ final class AdminControllerTest extends TestCase
             '',
             $files
         );
+    }
+
+    private function enableAdminTrustedDeviceTotp(): void
+    {
+        global $appConfig;
+
+        $appConfig['admin']['totp_enabled'] = true;
+        $appConfig['admin']['totp_secret'] = 'JBSWY3DPEHPK3PXP';
+        $appConfig['admin']['totp_skip_localhost'] = false;
+        $appConfig['identity']['persistent']['enabled'] = true;
+        $appConfig['identity']['persistent']['admin_enabled'] = true;
+        $appConfig['identity']['persistent']['admin_cookie_name'] = 'caramagnols_admin_persistent';
+        $appConfig['identity']['persistent']['admin_trusted_device_ttl_seconds'] = 2592000;
+        $appConfig['identity']['persistent']['admin_trusted_device_idle_ttl_seconds'] = 2592000;
+    }
+
+    private function persistentSessionServiceForTests(): PersistentSessionService
+    {
+        $database = $this->editorialSqlDatabase();
+        $devices = new TrustedDeviceRepository($database);
+        $tokens = new PersistentTokenRepository($database);
+        $audit = new SessionAuditService(new AppEventLogger(new LoggerFactory($this->logDir, 'test')));
+
+        return new PersistentSessionService(
+            $devices,
+            $tokens,
+            new PersistentSessionCookieManager(),
+            new PersistentTokenRotator($tokens),
+            $audit,
+            new TrustedDeviceService($devices, $tokens, $audit)
+        );
+    }
+
+    private function cookieValueFromSetCookie(string $header, string $cookieName): string
+    {
+        $prefix = $cookieName . '=';
+        foreach (explode(',', $header) as $candidate) {
+            $cookie = trim(explode(';', $candidate, 2)[0]);
+            if (str_starts_with($cookie, $prefix)) {
+                return rawurldecode(substr($cookie, strlen($prefix)));
+            }
+        }
+
+        return '';
     }
 
     private function createTemporaryJpeg(int $width, int $height): string

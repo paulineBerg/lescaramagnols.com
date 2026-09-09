@@ -615,7 +615,7 @@ function admin_current_user(): ?array
 /**
  * Authentifie l'admin a partir d'un email/mot de passe (+ TOTP si actif).
  */
-function admin_login(string $identifier, string $password, ?string $totpCode = null): bool
+function admin_login(string $identifier, string $password, ?string $totpCode = null, bool $trustedTotpDevice = false, ?int $trustedReauthUntil = null): bool
 {
     $identifier = trim($identifier);
     $password = trim($password);
@@ -668,7 +668,7 @@ function admin_login(string $identifier, string $password, ?string $totpCode = n
         return false;
     }
 
-    if (admin_totp_should_challenge()) {
+    if (admin_totp_should_challenge() && !$trustedTotpDevice) {
         $totpCode = is_string($totpCode) ? trim($totpCode) : '';
         if ($totpCode === '') {
             admin_set_login_failure_reason('totp_required');
@@ -710,6 +710,9 @@ function admin_login(string $identifier, string $password, ?string $totpCode = n
         'login_at' => $now,
         'last_activity_at' => $now,
         'last_reauth_at' => $now,
+        'trusted_reauth_until' => $trustedTotpDevice && $trustedReauthUntil !== null && $trustedReauthUntil > $now
+            ? $trustedReauthUntil
+            : 0,
     ];
     admin_set_notice_code(null);
     admin_set_flash_message(null, null);
