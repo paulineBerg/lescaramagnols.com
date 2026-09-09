@@ -520,13 +520,14 @@ $statusLabels = [
           <th><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_COL_MODULES', 'Modules')); ?></th>
           <th><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_COL_UPDATED', 'MAJ')); ?></th>
           <th><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_COL_LAST_LOGIN', 'Dernière connexion')); ?></th>
+          <th><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_COL_LOGIN_SECURITY', 'Connexion')); ?></th>
           <th><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_COL_ACTIONS', 'Actions')); ?></th>
         </tr>
       </thead>
       <tbody>
         <?php if ($members === []): ?>
           <tr>
-            <td colspan="6"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_EMPTY', 'Aucun membre correspondant.')); ?></td>
+            <td colspan="7"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_EMPTY', 'Aucun membre correspondant.')); ?></td>
           </tr>
         <?php else: ?>
           <?php foreach ($members as $member): ?>
@@ -542,6 +543,11 @@ $statusLabels = [
                 : '';
             $deletionBackupDeleteAfterTimestamp = $deletionBackupDeleteAfter !== '' ? strtotime($deletionBackupDeleteAfter) : false;
             $memberFragment = $memberId > 0 ? 'private-member-' . $memberId : '';
+            $lockout = is_array($member['lockout'] ?? null) ? $member['lockout'] : [];
+            $lockoutActive = !empty($lockout['locked']);
+            $lockoutUntil = is_numeric($lockout['lockedUntil'] ?? null) ? (int) $lockout['lockedUntil'] : 0;
+            $lockoutRetryAfter = max(0, (int) ($lockout['retryAfterSeconds'] ?? 0));
+            $lockoutMinutes = $lockoutRetryAfter > 0 ? (int) ceil($lockoutRetryAfter / 60) : 0;
             ?>
             <tr<?php echo $memberFragment !== '' ? ' id="' . $escape($memberFragment) . '"' : ''; ?>>
               <td class="admin-private-members-email" data-private-member-email="<?php echo $escape((string) ($member['email'] ?? '')); ?>"><?php echo $escape((string) ($member['email'] ?? '-')); ?></td>
@@ -596,8 +602,40 @@ $statusLabels = [
               </td>
               <td class="admin-private-members-date"><?php echo $escape((string) ($member['updatedAt'] ?? '')); ?></td>
               <td class="admin-private-members-date"><?php echo $escape((string) ($member['lastLoginAt'] ?? '')); ?></td>
+              <td class="admin-private-members-login-security">
+                <?php if ($lockoutActive): ?>
+                  <span class="admin-private-members-status admin-private-members-status-suspended">
+                    <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOCKOUT_ACTIVE', 'Verrouillé')); ?>
+                  </span>
+                  <small>
+                    <?php
+                    echo $escape(
+                        $lockoutUntil > 0
+                            ? sprintf($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOCKOUT_UNTIL', 'Jusqu’au %s'), date('d/m/Y H:i', $lockoutUntil))
+                            : sprintf($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOCKOUT_RETRY_AFTER', 'Encore %d min'), $lockoutMinutes)
+                    );
+                    ?>
+                  </small>
+                <?php elseif ($statusValue === 'active'): ?>
+                  <span class="notice-muted"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOCKOUT_CLEAR', 'Aucun verrouillage')); ?></span>
+                <?php else: ?>
+                  <span class="notice-muted"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOCKOUT_NOT_APPLICABLE', 'Non concerné')); ?></span>
+                <?php endif; ?>
+              </td>
               <td class="admin-private-members-actions-cell">
                 <div class="admin-private-members-actions">
+                  <?php if ($statusValue === 'active' && $lockoutActive): ?>
+                    <form method="POST" action="<?php echo $escape($membersUrl); ?>">
+                      <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+                      <input type="hidden" name="private_member_action" value="unlock" />
+                      <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
+                      <?php if ($memberFragment !== ''): ?>
+                        <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
+                      <?php endif; ?>
+                      <button class="button-small" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_UNLOCK', 'Déverrouiller')); ?></button>
+                    </form>
+                  <?php endif; ?>
+
                   <?php if ($statusValue === 'invited'): ?>
                     <form method="POST" action="<?php echo $escape($membersUrl); ?>">
                       <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />

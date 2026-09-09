@@ -389,6 +389,44 @@ final class PrivateAuth
         return max($ipLimiter->retryAfter(), $accountLimiter->retryAfter());
     }
 
+    /**
+     * @return array{locked: bool, retryAfterSeconds: int, lockedUntil: ?int}
+     */
+    public function accountLockoutState(?string $identifier): array
+    {
+        $normalized = $this->normalizeIdentifier($identifier);
+        if ($normalized === '') {
+            return [
+                'locked' => false,
+                'retryAfterSeconds' => 0,
+                'lockedUntil' => null,
+            ];
+        }
+
+        $limiter = $this->accountLimiter($normalized);
+        $retryAfter = $limiter->retryAfter();
+        $locked = !$limiter->allow();
+
+        return [
+            'locked' => $locked,
+            'retryAfterSeconds' => $locked ? $retryAfter : 0,
+            'lockedUntil' => $locked ? time() + $retryAfter : null,
+        ];
+    }
+
+    public function unlockAccount(?string $identifier): bool
+    {
+        $normalized = $this->normalizeIdentifier($identifier);
+        if ($normalized === '') {
+            return false;
+        }
+
+        $this->accountLimiter($normalized)->clear();
+        $this->failureReason = null;
+
+        return true;
+    }
+
     private function isSupportedPasswordHash(string $hash): bool
     {
         $hashInfo = is_string($hash) ? password_get_info($hash) : [];
@@ -410,15 +448,11 @@ final class PrivateAuth
 
     private function accountLimiter(string $identifier): \FileRateLimiter
     {
-        $this->session->start();
-
         return new \FileRateLimiter('private_login_account_' . hash('sha256', $identifier), $this->accountLockoutAttempts, $this->accountLockoutSeconds);
     }
 
     private function ipLimiter(string $identifier, string $clientIp): \FileRateLimiter
     {
-        $this->session->start();
-
         $normalizedIp = $clientIp === '' ? 'unknown' : $clientIp;
 
         return new \FileRateLimiter('private_login_ip_' . hash('sha256', $normalizedIp . '|' . $identifier), $this->loginRateLimitAttempts, $this->loginRateLimitWindow);

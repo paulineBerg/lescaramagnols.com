@@ -7,7 +7,9 @@ use Caramagnols\PrivateApps\Documents\PrivateDocumentRepository;
 use Caramagnols\PrivatePortal\PrivateModuleRegistry;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
+use Caramagnols\PrivatePortal\Security\PrivateAuth;
 use Caramagnols\PrivatePortal\Security\PrivateMfaVerifier;
+use Caramagnols\PrivatePortal\Security\PrivateSession;
 use LesCaramagnols\Tests\Support\EditorialSqlTestTrait;
 use PHPUnit\Framework\TestCase;
 
@@ -19,6 +21,8 @@ final class PrivatePortalMembersTest extends TestCase
 
     /** @var array<string, mixed> */
     private array $previousAppConfig = [];
+    /** @var array<int, string> */
+    private array $temporaryDirectories = [];
 
     protected function setUp(): void
     {
@@ -33,6 +37,10 @@ final class PrivatePortalMembersTest extends TestCase
 
         $appConfig = $this->previousAppConfig;
         $this->cleanupEditorialSqlDatabase();
+        foreach ($this->temporaryDirectories as $directory) {
+            $this->removeDirectoryRecursively($directory);
+        }
+        $this->temporaryDirectories = [];
     }
 
     public function testInviteCreatesPendingUserAndHashedTokenWithoutDuplicateAccount(): void
@@ -311,6 +319,52 @@ final class PrivatePortalMembersTest extends TestCase
         $this->assertTrue($moduleRepository->userHasModuleAccess($userId, 'documents'));
     }
 
+    public function testAdminCanPreviewAndUnlockTemporarilyLockedPrivateAccount(): void
+    {
+        global $appConfig;
+
+        $rateLimitDir = sys_get_temp_dir() . '/caramagnols-private-unlock-' . bin2hex(random_bytes(6));
+        mkdir($rateLimitDir, 0700, true);
+        $this->temporaryDirectories[] = $rateLimitDir;
+        $appConfig['security']['rate_limit_dir'] = $rateLimitDir;
+        $appConfig['private']['account_lockout_attempts'] = 1;
+        $appConfig['private']['account_lockout_seconds'] = 900;
+        $appConfig['private']['login_rate_limit_attempts'] = 5;
+        $appConfig['private']['login_rate_limit_window'] = 900;
+
+        $database = $this->editorialSqlDatabase();
+        $userRepository = new PrivateUserRepository($database);
+        $moduleRepository = new PrivateModulePermissionRepository($database, new PrivateModuleRegistry());
+        $passwordHash = password_hash('StrongPassword1!', PASSWORD_ARGON2ID);
+        $this->assertIsString($passwordHash);
+        $userId = $userRepository->create('locked@example.com', $passwordHash, 'active');
+        $this->assertIsInt($userId);
+
+        $auth = new PrivateAuth(new PrivateSession('_private_member_unlock_test'), null, $userRepository);
+        $this->assertFalse($auth->login('locked@example.com', 'wrong-password', '127.0.0.1'));
+        $this->assertSame('invalid_credentials', $auth->failureReason());
+        $this->assertFalse($auth->login('locked@example.com', 'StrongPassword1!', '127.0.0.1'));
+        $this->assertSame('account_locked', $auth->failureReason());
+
+        $service = new AdminPrivateMembersService($userRepository, $moduleRepository, null, null, null, $auth);
+        $viewModel = $service->listMembersViewModel(null, 'locked@example.com');
+        $this->assertCount(1, $viewModel['members']);
+        $lockout = $viewModel['members'][0]['lockout'] ?? null;
+        $this->assertIsArray($lockout);
+        $this->assertTrue($lockout['locked'] ?? false);
+        $this->assertGreaterThan(0, (int) ($lockout['retryAfterSeconds'] ?? 0));
+
+        $result = $service->handleAction([
+            'private_member_action' => 'unlock',
+            'private_user_id' => (string) $userId,
+        ], 'admin@example.com');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('Compte privé déverrouillé.', $result['message']);
+        $this->assertFalse($auth->accountLockoutState('locked@example.com')['locked']);
+        $this->assertTrue($auth->login('locked@example.com', 'StrongPassword1!', '127.0.0.1'));
+    }
+
     public function testMfaTotpAcceptsCurrentCode(): void
     {
         global $appConfig;
@@ -379,5 +433,33 @@ final class PrivatePortalMembersTest extends TestCase
         }
 
         return $decoded;
+    }
+
+    private function removeDirectoryRecursively(string $directory): void
+    {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $items = scandir($directory);
+        if (!is_array($items)) {
+            return;
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $path = $directory . '/' . $item;
+            if (is_dir($path)) {
+                $this->removeDirectoryRecursively($path);
+                continue;
+            }
+
+            @unlink($path);
+        }
+
+        @rmdir($directory);
     }
 }

@@ -9,6 +9,8 @@ use Caramagnols\PrivateApps\WebDevelopment\Repository\WebDevelopmentProjectRepos
 use Caramagnols\PrivatePortal\Operations\PrivateDataProtectionService;
 use Caramagnols\PrivatePortal\Repository\PrivateModulePermissionRepository;
 use Caramagnols\PrivatePortal\Repository\PrivateUserRepository;
+use Caramagnols\PrivatePortal\Security\PrivateAuth;
+use Caramagnols\PrivatePortal\Security\PrivateSession;
 
 final class AdminPrivateMembersService
 {
@@ -16,19 +18,23 @@ final class AdminPrivateMembersService
     private const ALLOWED_STATUS_FILTERS = ['invited', 'active', 'suspended', 'disabled'];
 
     /** @var array<int, string> */
-    private const ALLOWED_ACTIONS = ['invite', 'resend', 'suspend', 'reactivate', 'delete_suspended', 'reset', 'modules', 'web_development_project'];
+    private const ALLOWED_ACTIONS = ['invite', 'resend', 'suspend', 'reactivate', 'delete_suspended', 'reset', 'unlock', 'modules', 'web_development_project'];
 
     private WebDevelopmentProjectRepository $webDevelopmentProjectRepository;
+    private PrivateAuth $privateAuth;
 
     public function __construct(
         private readonly PrivateUserRepository $privateUserRepository,
         private readonly PrivateModulePermissionRepository $modulePermissionRepository,
         private readonly ?AppEventLogger $eventLogger = null,
         private ?PrivateDataProtectionService $dataProtectionService = null,
-        ?WebDevelopmentProjectRepository $webDevelopmentProjectRepository = null
+        ?WebDevelopmentProjectRepository $webDevelopmentProjectRepository = null,
+        ?PrivateAuth $privateAuth = null
     ) {
         $this->webDevelopmentProjectRepository = $webDevelopmentProjectRepository
             ?? new WebDevelopmentProjectRepository($privateUserRepository->database());
+        $this->privateAuth = $privateAuth
+            ?? new PrivateAuth(new PrivateSession(), $eventLogger, $privateUserRepository);
     }
 
     /**
@@ -117,6 +123,7 @@ final class AdminPrivateMembersService
             'reactivate' => $this->reactivate($payload, $actorIdentifier),
             'delete_suspended' => $this->deleteSuspended($payload, $actorIdentifier),
             'reset' => $this->resetPassword($payload, $actorIdentifier, $clientIp, $userAgent),
+            'unlock' => $this->unlock($payload, $actorIdentifier),
             'modules' => $this->assignModules($payload, $actorIdentifier),
             'web_development_project' => $this->configureWebDevelopmentProject($payload, $actorIdentifier),
             default => $this->result(false, null, 'Action privée inconnue.'),
@@ -157,6 +164,11 @@ final class AdminPrivateMembersService
         $member['moduleStates'] = $this->modulePermissionRepository->listModuleStatesForUser($id);
         $member['moduleDataCounts'] = $this->modulePermissionRepository->moduleDataCountsForUser($id);
         $member['deletionBackup'] = $id > 0 ? $this->dataProtectionService()->latestDeletionBackupForUser($id) : null;
+        $email = is_string($member['email'] ?? null) ? (string) $member['email'] : '';
+        $status = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
+        $member['lockout'] = $status === 'active'
+            ? $this->privateAuth->accountLockoutState($email)
+            : ['locked' => false, 'retryAfterSeconds' => 0, 'lockedUntil' => null];
 
         return $member;
     }
@@ -520,6 +532,65 @@ final class AdminPrivateMembersService
         );
 
         return $this->result(true, 'Demande de réinitialisation envoyée.', null);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array{success: bool, message: ?string, error: ?string}
+     */
+    private function unlock(array $payload, ?string $actorIdentifier): array
+    {
+        $member = $this->memberFromPayload($payload);
+        if ($member === null) {
+            return $this->result(false, null, 'Compte privé introuvable.');
+        }
+
+        $userId = (int) $member['id'];
+        $email = (string) $member['email'];
+        $accountStatus = $this->normalizeStatusFilter((string) ($member['status'] ?? ''));
+        if ($accountStatus !== 'active') {
+            $this->logAction(
+                'admin.private.member_unlock_blocked',
+                $actorIdentifier,
+                $userId,
+                $email,
+                'warning',
+                ['reason' => 'account_not_active', 'account_status' => $accountStatus !== '' ? $accountStatus : 'unknown']
+            );
+
+            return $this->result(false, null, 'Seul un compte actif peut être déverrouillé.');
+        }
+
+        $lockout = $this->privateAuth->accountLockoutState($email);
+        if (empty($lockout['locked'])) {
+            $this->logAction(
+                'admin.private.member_unlock_skipped',
+                $actorIdentifier,
+                $userId,
+                $email,
+                'info',
+                ['reason' => 'not_locked']
+            );
+
+            return $this->result(true, 'Aucun verrouillage temporaire actif pour ce compte.', null);
+        }
+
+        if (!$this->privateAuth->unlockAccount($email)) {
+            $this->logAction('admin.private.member_unlock_failed', $actorIdentifier, $userId, $email, 'warning');
+
+            return $this->result(false, null, 'Impossible de déverrouiller ce compte privé.');
+        }
+
+        $this->logAction(
+            'admin.private.member_unlocked',
+            $actorIdentifier,
+            $userId,
+            $email,
+            'info',
+            ['retry_after_seconds_before_unlock' => (int) ($lockout['retryAfterSeconds'] ?? 0)]
+        );
+
+        return $this->result(true, 'Compte privé déverrouillé.', null);
     }
 
     /**

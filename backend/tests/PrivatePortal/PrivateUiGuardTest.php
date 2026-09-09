@@ -260,6 +260,17 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('private_member_delete_confirm" value="1"', $template);
     }
 
+    public function testAdminPrivateMemberLockoutStateIsVisibleAndUnlockUsesCsrfForm(): void
+    {
+        $template = $this->readRepoFile('backend/templates/admin/private_members_list.php');
+
+        self::assertStringContainsString('TXT_ADMIN_PRIVATE_MEMBERS_COL_LOGIN_SECURITY', $template);
+        self::assertStringContainsString('TXT_ADMIN_PRIVATE_MEMBERS_LOCKOUT_ACTIVE', $template);
+        self::assertStringContainsString('private_member_action" value="unlock"', $template);
+        self::assertStringContainsString('name="csrf_token"', $template);
+        self::assertStringContainsString('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_UNLOCK', $template);
+    }
+
     private function readRepoFile(string $relativePath): string
     {
         $path = dirname(__DIR__, 3) . '/' . $relativePath;
