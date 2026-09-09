@@ -21,6 +21,8 @@ if (!in_array($activeTab, ['members', 'email'], true)) {
 $membersUrl = is_string($adminPrivateMembersUrl ?? null) ? $adminPrivateMembersUrl : '#';
 $membersTabUrl = $membersUrl;
 $emailTabUrl = $membersUrl . (str_contains($membersUrl, '?') ? '&' : '?') . 'tab=email';
+$adminLogsUrl = is_string($adminLogsUrl ?? null) ? (string) $adminLogsUrl : (function_exists('admin_url') ? admin_url('logs') : '#');
+$privateLoginLogsUrl = $adminLogsUrl . (str_contains($adminLogsUrl, '?') ? '&' : '?') . http_build_query(['event_group' => 'private_login'], '', '&', PHP_QUERY_RFC3986);
 $privatePortalLoginUrl = is_string($adminPrivatePortalLoginUrl ?? null) && trim((string) $adminPrivatePortalLoginUrl) !== ''
     ? trim((string) $adminPrivatePortalLoginUrl)
     : (function_exists('private_portal_url') ? private_portal_url('login') : '#');
@@ -287,9 +289,14 @@ $statusLabels = [
       <span class="tag"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_TAG', 'Espace privé')); ?></span>
       <h2><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_TITLE', 'Membres de l’espace privé')); ?></h2>
     </div>
-    <a class="button-link admin-private-members-login-link" href="<?php echo $escape($privatePortalLoginUrl); ?>" target="_blank" rel="noopener noreferrer">
-      <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOGIN_LINK', 'Connexion à l’espace privé')); ?>
-    </a>
+    <div class="actions-inline admin-private-members-login-link">
+      <a class="button-link" href="<?php echo $escape($privatePortalLoginUrl); ?>" target="_blank" rel="noopener noreferrer">
+        <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOGIN_LINK', 'Connexion à l’espace privé')); ?>
+      </a>
+      <a class="button-link button-link-muted" href="<?php echo $escape($privateLoginLogsUrl); ?>">
+        <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOGIN_LOGS_LINK', 'Logs de connexion')); ?>
+      </a>
+    </div>
   </div>
   <p class="notice notice-success">
     <?php
@@ -300,6 +307,9 @@ $statusLabels = [
         )
     );
     ?>
+  </p>
+  <p class="notice-muted">
+    <?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_LOGIN_LOGS_HELP', 'Les journaux de connexion privés sont consultables dans Logs avec leur contexte complet et peuvent être supprimés par sélection ou purge filtrée.')); ?>
   </p>
 
   <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="filters-form admin-private-security-form" autocomplete="off" novalidate>

@@ -443,6 +443,23 @@ final class SqlLogStore
             }
         }
 
+        if ((string) ($filters['event_group'] ?? '') === 'private_login') {
+            $where[] = '`channel` = :private_login_channel';
+            $where[] = '(
+                `event` LIKE :private_login_event
+                OR `event` LIKE :private_session_event
+                OR `event` LIKE :private_logout_event
+                OR `event` LIKE :auth_private_event
+                OR `event` = :private_rate_limit_event
+            )';
+            $params['private_login_channel'] = 'security';
+            $params['private_login_event'] = 'private.login.%';
+            $params['private_session_event'] = 'private.session.%';
+            $params['private_logout_event'] = 'private.logout%';
+            $params['auth_private_event'] = 'auth.private.%';
+            $params['private_rate_limit_event'] = 'private.rate_limit';
+        }
+
         $search = trim((string) ($filters['q'] ?? ''));
         if ($search !== '') {
             $searchValue = '%' . $this->trimText($search, 120) . '%';

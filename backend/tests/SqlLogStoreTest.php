@@ -134,6 +134,81 @@ final class SqlLogStoreTest extends TestCase
         $this->assertSame('content', $store->listEntries([], 10)[0]['channel'] ?? null);
     }
 
+    public function testPrivateLoginEventGroupFiltersConnectionAndSessionSecurityLogs(): void
+    {
+        $store = new SqlLogStore($this->editorialSqlDatabase());
+
+        $store->insert(
+            'security',
+            'info',
+            'private.login.success',
+            ['identifier' => 'f***@example.com'],
+            new \DateTimeImmutable('2026-03-18 09:00:00')
+        );
+        $store->insert(
+            'security',
+            'warning',
+            'private.login.rejected',
+            ['reason' => 'invalid_credentials'],
+            new \DateTimeImmutable('2026-03-18 09:05:00')
+        );
+        $store->insert(
+            'security',
+            'info',
+            'private.session.restored',
+            ['scope' => 'private'],
+            new \DateTimeImmutable('2026-03-18 09:10:00')
+        );
+        $store->insert(
+            'security',
+            'info',
+            'auth.private.session_restored',
+            ['result' => 'success'],
+            new \DateTimeImmutable('2026-03-18 09:15:00')
+        );
+        $store->insert(
+            'security',
+            'warning',
+            'private.rate_limit',
+            ['status' => 429],
+            new \DateTimeImmutable('2026-03-18 09:20:00')
+        );
+        $store->insert(
+            'security',
+            'info',
+            'private.discussion.rate_limited',
+            ['status' => 429],
+            new \DateTimeImmutable('2026-03-18 09:25:00')
+        );
+        $store->insert(
+            'security',
+            'warning',
+            'admin.login.failed',
+            ['ip' => '127.0.0.1'],
+            new \DateTimeImmutable('2026-03-18 09:30:00')
+        );
+        $store->insert(
+            'content',
+            'info',
+            'private.login.success',
+            ['slug' => 'private'],
+            new \DateTimeImmutable('2026-03-18 09:35:00')
+        );
+
+        $entries = $store->listEntries(['event_group' => 'private_login'], 20);
+        $events = array_column($entries, 'event');
+
+        $this->assertCount(5, $entries);
+        $this->assertSame(5, $store->countEntries(['event_group' => 'private_login']));
+        $this->assertContains('private.login.success', $events);
+        $this->assertContains('auth.private.session_restored', $events);
+        $this->assertNotContains('private.discussion.rate_limited', $events);
+        $this->assertNotContains('admin.login.failed', $events);
+
+        $this->assertSame(5, $store->deleteByFilters(['event_group' => 'private_login']));
+        $this->assertSame(3, $store->countEntries([]));
+    }
+
     public function testPurgeOlderThanKeepsRecentAndSensitiveLogsLonger(): void
     {
         $store = new SqlLogStore($this->editorialSqlDatabase());

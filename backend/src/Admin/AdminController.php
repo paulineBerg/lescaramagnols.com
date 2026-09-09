@@ -2235,7 +2235,7 @@ final class AdminController
         $filterState = $this->resolveRememberedListFilters(
             $request,
             'logs',
-            ['q', 'channel', 'level', 'date_from', 'date_to'],
+            ['q', 'channel', 'level', 'event_group', 'date_from', 'date_to'],
             fn (array $input): array => $this->logService->normalizeFilters($input),
             $defaultFilters
         );

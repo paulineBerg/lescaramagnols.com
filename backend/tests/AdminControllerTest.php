@@ -330,6 +330,22 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('<a href="mailto:private@lescaramagnols.com">private@lescaramagnols.com</a>', $response->body);
     }
 
+    public function testPrivateMembersPageLinksPrivateLoginLogs(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'private_members',
+            $this->request('GET', '/admin/parametres/espace-prive')
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Logs de connexion', $response->body);
+        $this->assertStringContainsString('/admin/logs?event_group=private_login', $response->body);
+        $this->assertStringContainsString('peuvent être supprimés par sélection ou purge filtrée', $response->body);
+    }
+
     public function testPrivateMembersEmailTabKeepsSmtpPasswordWhenMaskIsSubmitted(): void
     {
         global $appConfig;
@@ -1734,10 +1750,29 @@ final class AdminControllerTest extends TestCase
         $this->assertStringContainsString('Debug', $response->body);
         $this->assertStringContainsString('Canal', $response->body);
         $this->assertStringContainsString('Nettoyage', $response->body);
+        $this->assertStringContainsString('Connexions espace privé', $response->body);
+        $this->assertStringContainsString('event_group=private_login', $response->body);
         $this->assertStringContainsString('class="card dashboard-kpi-card"', $response->body);
         $this->assertStringContainsString('data-log-select-all', $response->body);
         $this->assertStringContainsString('data-log-delete-selected', $response->body);
         $this->assertStringContainsString('Tout sélectionner', $response->body);
+    }
+
+    public function testLogsPrivateLoginFilterRendersActivePurgeScope(): void
+    {
+        admin_login('admin@example.com', 'topsecret');
+        $controller = $this->controller();
+
+        $response = $controller->handle(
+            'logs',
+            $this->request('GET', '/admin/logs?event_group=private_login', ['event_group' => 'private_login'])
+        );
+
+        $this->assertSame(200, $response->status);
+        $this->assertStringContainsString('Vue filtrée sur les connexions', $response->body);
+        $this->assertStringContainsString('name="filters[event_group]" value="private_login"', $response->body);
+        $this->assertStringContainsString('name="event_group" value="private_login"', $response->body);
+        $this->assertStringContainsString('Supprimer les résultats filtrés', $response->body);
     }
 
     public function testMediaPageRendersLibraryManagementScreen(): void

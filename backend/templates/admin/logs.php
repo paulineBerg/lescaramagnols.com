@@ -4,6 +4,7 @@ $filters = is_array($logsView['filters'] ?? null) ? $logsView['filters'] : [
     'q' => '',
     'channel' => '',
     'level' => '',
+    'event_group' => '',
     'date_from' => '',
     'date_to' => '',
 ];
@@ -20,7 +21,24 @@ $totalPages = (int) ($logsView['totalPages'] ?? 0);
 $hasPreviousPage = (bool) ($logsView['hasPreviousPage'] ?? false);
 $hasNextPage = (bool) ($logsView['hasNextPage'] ?? false);
 $storageMessage = is_string($logsView['storageMessage'] ?? null) ? $logsView['storageMessage'] : null;
-$cronLogsUrl = (string) ($adminLogsUrl ?? admin_url('logs')) . '?q=cron.';
+$logsBaseUrl = (string) ($adminLogsUrl ?? admin_url('logs'));
+$buildLogUrl = static function (array $params) use ($logsBaseUrl): string {
+    $query = http_build_query(
+        array_filter($params, static fn (mixed $value): bool => $value !== ''),
+        '',
+        '&',
+        PHP_QUERY_RFC3986
+    );
+
+    if ($query === '') {
+        return $logsBaseUrl;
+    }
+
+    return $logsBaseUrl . (str_contains($logsBaseUrl, '?') ? '&' : '?') . $query;
+};
+$cronLogsUrl = $buildLogUrl(['q' => 'cron.']);
+$privateLoginLogsUrl = $buildLogUrl(['event_group' => 'private_login']);
+$privateLoginLogsActive = (string) ($filters['event_group'] ?? '') === 'private_login';
 $translate = static function (string $key, string $fallback): string {
     if (function_exists('admin_translate')) {
         return admin_translate($key, $fallback);
@@ -64,6 +82,9 @@ $contextDetailLabels = [
     'action' => $translate('TXT_ADMIN_COMMON_ACTION', 'Action'),
     'reason' => $translate('TXT_ADMIN_LOGS_CONTEXT_REASON', 'Raison'),
     'retry_after' => $translate('TXT_ADMIN_LOGS_CONTEXT_RETRY_AFTER', 'Réessai'),
+    'result' => $translate('TXT_ADMIN_LOGS_CONTEXT_RESULT', 'Résultat'),
+    'scope' => $translate('TXT_ADMIN_LOGS_CONTEXT_SCOPE', 'Périmètre'),
+    'trusted_device_id' => $translate('TXT_ADMIN_LOGS_CONTEXT_TRUSTED_DEVICE', 'Appareil approuvé'),
     'error' => $translate('TXT_ADMIN_LOGS_LEVEL_ERROR', 'Erreur'),
     'exception' => $translate('TXT_ADMIN_LOGS_CONTEXT_EXCEPTION', 'Exception'),
     'path' => $translate('TXT_ADMIN_LOGS_CONTEXT_PATH', 'Chemin'),
@@ -91,7 +112,7 @@ $contextDetailLabels = [
     'message' => $translate('TXT_ADMIN_COMMON_MESSAGE', 'Message'),
     'dry_run' => 'Dry-run',
 ];
-$priorityContextKeys = ['actor', 'identifier', 'ip', 'visitor_id', 'uri', 'query', 'method', 'referer', 'user_agent', 'page', 'template', 'slug', 'job_code', 'job_name', 'script_path', 'schedule_expression', 'scheduled_at', 'status', 'action', 'exit_code', 'duration_ms', 'jobs_checked', 'jobs_due', 'jobs_executed', 'now', 'message', 'reason', 'retry_after', 'error', 'exception', 'path', 'stdout_text', 'stderr_text', 'storage', 'mode', 'lang', 'deleted_count', 'created', 'filters'];
+$priorityContextKeys = ['actor', 'identifier', 'ip', 'visitor_id', 'uri', 'query', 'method', 'referer', 'user_agent', 'page', 'template', 'slug', 'job_code', 'job_name', 'script_path', 'schedule_expression', 'scheduled_at', 'status', 'action', 'scope', 'result', 'trusted_device_id', 'exit_code', 'duration_ms', 'jobs_checked', 'jobs_due', 'jobs_executed', 'now', 'message', 'reason', 'retry_after', 'error', 'exception', 'path', 'stdout_text', 'stderr_text', 'storage', 'mode', 'lang', 'deleted_count', 'created', 'filters'];
 $escape = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 $stringifyContextValue = static function (mixed $value) use ($translate): string {
     if (is_bool($value)) {
@@ -376,9 +397,20 @@ foreach ($entries as $entry) {
     <div class="actions-inline admin-logs-filters-actions">
       <a class="button-link button-link-muted" href="<?php echo $escape((string) ($logsResetUrl ?? $adminLogsUrl ?? admin_url('logs'))); ?>"><?php echo $escape($translate('TXT_ADMIN_COMMON_RESET', 'Réinitialiser')); ?></a>
       <a class="button-link button-link-muted" href="<?php echo $escape($cronLogsUrl); ?>"><?php echo $escape($translate('TXT_ADMIN_LOGS_CRON_LINK', 'Logs cron')); ?></a>
+      <a class="button-link button-link-muted" href="<?php echo $escape($privateLoginLogsUrl); ?>"><?php echo $escape($translate('TXT_ADMIN_LOGS_PRIVATE_LOGIN_LINK', 'Connexions espace privé')); ?></a>
       <button type="submit"><?php echo $escape($translate('TXT_ADMIN_COMMON_FILTER', 'Filtrer')); ?></button>
     </div>
+
+    <?php if ($privateLoginLogsActive): ?>
+      <input type="hidden" name="event_group" value="private_login" />
+    <?php endif; ?>
   </form>
+
+  <?php if ($privateLoginLogsActive): ?>
+    <p class="notice notice-success">
+      <?php echo $escape($translate('TXT_ADMIN_LOGS_PRIVATE_LOGIN_ACTIVE', 'Vue filtrée sur les connexions, sessions, rejets et limites de l’espace privé. Les suppressions et la purge filtrée utilisent ce même périmètre.')); ?>
+    </p>
+  <?php endif; ?>
 </section>
 
 <section class="card">

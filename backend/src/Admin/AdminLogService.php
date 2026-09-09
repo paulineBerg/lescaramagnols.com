@@ -16,7 +16,7 @@ final class AdminLogService
 
     /**
      * @param array<string, mixed> $input
-     * @return array{q: string, channel: string, level: string, date_from: string, date_to: string}
+     * @return array{q: string, channel: string, level: string, event_group: string, date_from: string, date_to: string}
      */
     public function normalizeFilters(array $input): array
     {
@@ -26,6 +26,7 @@ final class AdminLogService
             'q' => $this->trimText((string) ($source['q'] ?? ''), 120),
             'channel' => $this->normalizeToken((string) ($source['channel'] ?? ''), 32, '/[^a-z0-9_-]+/'),
             'level' => $this->normalizeToken((string) ($source['level'] ?? ''), 16, '/[^a-z]+/'),
+            'event_group' => $this->normalizeEventGroup((string) ($source['event_group'] ?? '')),
             'date_from' => $this->normalizeDate((string) ($source['date_from'] ?? '')),
             'date_to' => $this->normalizeDate((string) ($source['date_to'] ?? '')),
         ];
@@ -33,7 +34,7 @@ final class AdminLogService
 
     /**
      * @param array<string, mixed> $input
-     * @return array{q: string, channel: string, level: string, date_from: string, date_to: string, page: int}
+     * @return array{q: string, channel: string, level: string, event_group: string, date_from: string, date_to: string, page: int}
      */
     public function normalizeFiltersWithPage(array $input): array
     {
@@ -84,7 +85,7 @@ final class AdminLogService
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{success: bool, message: ?string, error: ?string, deletedCount: int, filters: array{q: string, channel: string, level: string, date_from: string, date_to: string}}
+     * @return array{success: bool, message: ?string, error: ?string, deletedCount: int, filters: array{q: string, channel: string, level: string, event_group: string, date_from: string, date_to: string}}
      */
     public function deleteSelected(array $payload): array
     {
@@ -134,7 +135,7 @@ final class AdminLogService
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{success: bool, message: ?string, error: ?string, deletedCount: int, filters: array{q: string, channel: string, level: string, date_from: string, date_to: string}}
+     * @return array{success: bool, message: ?string, error: ?string, deletedCount: int, filters: array{q: string, channel: string, level: string, event_group: string, date_from: string, date_to: string}}
      */
     public function purgeFiltered(array $payload): array
     {
@@ -172,15 +173,23 @@ final class AdminLogService
     }
 
     /**
-     * @param array{q: string, channel: string, level: string, date_from: string, date_to: string} $filters
+     * @param array{q: string, channel: string, level: string, event_group?: string, date_from: string, date_to: string} $filters
      */
     public function hasActiveFilters(array $filters): bool
     {
         return $filters['q'] !== ''
             || $filters['channel'] !== ''
             || $filters['level'] !== ''
+            || ($filters['event_group'] ?? '') !== ''
             || $filters['date_from'] !== ''
             || $filters['date_to'] !== '';
+    }
+
+    private function normalizeEventGroup(string $value): string
+    {
+        $value = $this->normalizeToken($value, 32, '/[^a-z0-9_-]+/');
+
+        return in_array($value, ['private_login'], true) ? $value : '';
     }
 
     private function normalizeToken(string $value, int $maxLength, string $pattern): string
