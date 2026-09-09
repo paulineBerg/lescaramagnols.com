@@ -434,7 +434,7 @@ $privateLocalUserPasswordHash = trim((string) env('PRIVATE_LOCAL_USER_PASSWORD_H
 $privateLoginRateLimitAttempts = max(1, (int) env('PRIVATE_LOGIN_RATE_LIMIT_ATTEMPTS', 5));
 $privateLoginRateLimitWindow = max(60, (int) env('PRIVATE_LOGIN_RATE_LIMIT_WINDOW', 900));
 $privateAccountLockoutAttempts = max(1, (int) env('PRIVATE_ACCOUNT_LOCKOUT_ATTEMPTS', 3));
-$privateAccountLockoutSeconds = max(60, (int) env('PRIVATE_ACCOUNT_LOCKOUT_SECONDS', 86400));
+$privateAccountLockoutSeconds = max(60, (int) env('PRIVATE_ACCOUNT_LOCKOUT_SECONDS', 900));
 $privatePasswordMinLength = max(8, (int) env('PRIVATE_PASSWORD_MIN_LENGTH', 14));
 $privatePasswordComplexityEnabled = filter_var(
     env('PRIVATE_PASSWORD_COMPLEXITY_ENABLED', true),

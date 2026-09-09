@@ -46,7 +46,7 @@ final class PrivatePortalFrontControllerTest extends TestCase
         $appConfig['private']['login_rate_limit_attempts'] = 5;
         $appConfig['private']['login_rate_limit_window'] = 900;
         $appConfig['private']['account_lockout_attempts'] = 3;
-        $appConfig['private']['account_lockout_seconds'] = 86400;
+        $appConfig['private']['account_lockout_seconds'] = 900;
     }
 
     protected function tearDown(): void

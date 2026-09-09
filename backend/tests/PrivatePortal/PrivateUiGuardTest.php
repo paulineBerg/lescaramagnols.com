@@ -269,6 +269,21 @@ final class PrivateUiGuardTest extends TestCase
         self::assertStringContainsString('private_member_action" value="unlock"', $template);
         self::assertStringContainsString('name="csrf_token"', $template);
         self::assertStringContainsString('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_UNLOCK', $template);
+        self::assertStringContainsString('$unlockButtonDisabledAttribute', $template);
+        self::assertStringContainsString('TXT_ADMIN_PRIVATE_MEMBERS_UNLOCK_NOT_LOCKED', $template);
+        self::assertStringContainsString('admin-private-members-unlock-form', $template);
+        self::assertStringContainsString('disabled aria-disabled="true"', $template);
+    }
+
+    public function testPrivateAccountLockoutDefaultAndMessageAreFifteenMinutes(): void
+    {
+        $config = $this->readRepoFile('backend/config/config.php');
+        $envExample = $this->readRepoFile('backend/.env.example');
+        $frenchLanguage = $this->readRepoFile('backend/lang/fr/fr_structure.php');
+
+        self::assertStringContainsString("env('PRIVATE_ACCOUNT_LOCKOUT_SECONDS', 900)", $config);
+        self::assertStringContainsString('PRIVATE_ACCOUNT_LOCKOUT_SECONDS=900', $envExample);
+        self::assertStringContainsString('Compte temporairement verrouillé pendant 15 minutes', $frenchLanguage);
     }
 
     private function readRepoFile(string $relativePath): string

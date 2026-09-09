@@ -1214,7 +1214,7 @@ return [
     'TXT_PRIVATE_PASSWORD_RESET_ERROR' => 'Lien de réinitialisation invalide ou expiré.',
     'TXT_PRIVATE_NOTICE_LOGIN_ACTION' => 'Retour à la connexion',
     'TXT_PRIVATE_ERROR_CSRF' => 'Session expirée ou formulaire invalide. Rechargez la page puis réessayez.',
-    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Compte temporairement verrouillé après plusieurs tentatives échouées.',
+    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Compte temporairement verrouillé pendant 15 minutes après plusieurs tentatives échouées.',
     'TXT_PRIVATE_ERROR_RATE_LIMIT' => 'Trop de tentatives. Réessayez dans quelques minutes.',
     'TXT_PRIVATE_ERROR_MFA' => 'Code de vérification invalide ou manquant.',
     'TXT_PRIVATE_ERROR_INVALID_CREDENTIALS' => 'Identifiant ou mot de passe incorrect.',

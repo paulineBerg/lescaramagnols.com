@@ -1212,7 +1212,7 @@ return [
     'TXT_PRIVATE_PASSWORD_RESET_ERROR' => 'Passwort-Zuruecksetzungslink ist ungueltig oder abgelaufen.',
     'TXT_PRIVATE_NOTICE_LOGIN_ACTION' => 'Zur Anmeldung',
     'TXT_PRIVATE_ERROR_CSRF' => 'Sitzung abgelaufen oder Formular ungueltig. Laden Sie die Seite neu und versuchen Sie es erneut.',
-    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Konto nach mehreren fehlgeschlagenen Versuchen voruebergehend gesperrt.',
+    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Konto nach mehreren fehlgeschlagenen Versuchen fuer 15 Minuten voruebergehend gesperrt.',
     'TXT_PRIVATE_ERROR_RATE_LIMIT' => 'Zu viele Versuche. Bitte in einigen Minuten erneut versuchen.',
     'TXT_PRIVATE_ERROR_MFA' => 'Bestaetigungscode ungueltig oder fehlt.',
     'TXT_PRIVATE_ERROR_INVALID_CREDENTIALS' => 'Kennung oder Passwort ist falsch.',

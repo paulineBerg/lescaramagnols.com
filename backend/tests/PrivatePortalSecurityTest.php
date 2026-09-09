@@ -56,7 +56,7 @@ final class PrivatePortalSecurityTest extends TestCase
         $appConfig['private']['login_rate_limit_attempts'] = 5;
         $appConfig['private']['login_rate_limit_window'] = 900;
         $appConfig['private']['account_lockout_attempts'] = 3;
-        $appConfig['private']['account_lockout_seconds'] = 86400;
+        $appConfig['private']['account_lockout_seconds'] = 900;
         $appConfig['private']['inactivity_timeout_seconds'] = 3600;
         $appConfig['private']['reauth_timeout_seconds'] = 1800;
         $appConfig['private']['trust_proxy_headers'] = false;
@@ -145,6 +145,10 @@ final class PrivatePortalSecurityTest extends TestCase
         $this->assertFalse($auth->login('family@example.com', 'secret123', '127.0.0.1'));
         $this->assertSame('account_locked', $auth->failureReason());
         $this->assertFalse($auth->isAuthenticated());
+        $lockout = $auth->accountLockoutState('family@example.com');
+        $this->assertTrue($lockout['locked']);
+        $this->assertGreaterThan(0, (int) $lockout['retryAfterSeconds']);
+        $this->assertLessThanOrEqual(900, (int) $lockout['retryAfterSeconds']);
     }
 
     public function testLoginSuccessUpdatesSessionAndLogoutInvalidates(): void

@@ -548,6 +548,15 @@ $statusLabels = [
             $lockoutUntil = is_numeric($lockout['lockedUntil'] ?? null) ? (int) $lockout['lockedUntil'] : 0;
             $lockoutRetryAfter = max(0, (int) ($lockout['retryAfterSeconds'] ?? 0));
             $lockoutMinutes = $lockoutRetryAfter > 0 ? (int) ceil($lockoutRetryAfter / 60) : 0;
+            $unlockDisabledReason = '';
+            if ($statusValue !== 'active') {
+                $unlockDisabledReason = $translate('TXT_ADMIN_PRIVATE_MEMBERS_UNLOCK_NOT_ACTIVE', 'Déverrouillage réservé aux comptes actifs');
+            } elseif (!$lockoutActive) {
+                $unlockDisabledReason = $translate('TXT_ADMIN_PRIVATE_MEMBERS_UNLOCK_NOT_LOCKED', 'Aucun verrouillage temporaire actif');
+            }
+            $unlockButtonDisabledAttribute = $unlockDisabledReason !== ''
+                ? ' disabled aria-disabled="true" title="' . $escape($unlockDisabledReason) . '"'
+                : '';
             ?>
             <tr<?php echo $memberFragment !== '' ? ' id="' . $escape($memberFragment) . '"' : ''; ?>>
               <td class="admin-private-members-email" data-private-member-email="<?php echo $escape((string) ($member['email'] ?? '')); ?>"><?php echo $escape((string) ($member['email'] ?? '-')); ?></td>
@@ -624,17 +633,18 @@ $statusLabels = [
               </td>
               <td class="admin-private-members-actions-cell">
                 <div class="admin-private-members-actions">
-                  <?php if ($statusValue === 'active' && $lockoutActive): ?>
-                    <form method="POST" action="<?php echo $escape($membersUrl); ?>">
-                      <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
-                      <input type="hidden" name="private_member_action" value="unlock" />
-                      <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
-                      <?php if ($memberFragment !== ''): ?>
-                        <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
-                      <?php endif; ?>
-                      <button class="button-small" type="submit"><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_UNLOCK', 'Déverrouiller')); ?></button>
-                    </form>
-                  <?php endif; ?>
+                  <form method="POST" action="<?php echo $escape($membersUrl); ?>" class="admin-private-members-unlock-form">
+                    <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>" />
+                    <input type="hidden" name="private_member_action" value="unlock" />
+                    <input type="hidden" name="private_user_id" value="<?php echo $memberId; ?>" />
+                    <?php if ($memberFragment !== ''): ?>
+                      <input type="hidden" name="private_member_return_fragment" value="<?php echo $escape($memberFragment); ?>" />
+                    <?php endif; ?>
+                    <button class="button-small" type="submit"<?php echo $unlockButtonDisabledAttribute; ?>><?php echo $escape($translate('TXT_ADMIN_PRIVATE_MEMBERS_ACTION_UNLOCK', 'Déverrouiller')); ?></button>
+                    <?php if ($unlockDisabledReason !== ''): ?>
+                      <small class="notice-muted"><?php echo $escape($unlockDisabledReason); ?></small>
+                    <?php endif; ?>
+                  </form>
 
                   <?php if ($statusValue === 'invited'): ?>
                     <form method="POST" action="<?php echo $escape($membersUrl); ?>">

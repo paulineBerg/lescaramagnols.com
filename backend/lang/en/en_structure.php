@@ -1214,7 +1214,7 @@ return [
     'TXT_PRIVATE_PASSWORD_RESET_ERROR' => 'Password reset link is invalid or expired.',
     'TXT_PRIVATE_NOTICE_LOGIN_ACTION' => 'Back to sign in',
     'TXT_PRIVATE_ERROR_CSRF' => 'Session expired or invalid form. Reload the page and try again.',
-    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Account temporarily locked after several failed attempts.',
+    'TXT_PRIVATE_ERROR_ACCOUNT_LOCKED' => 'Account temporarily locked for 15 minutes after several failed attempts.',
     'TXT_PRIVATE_ERROR_RATE_LIMIT' => 'Too many attempts. Try again in a few minutes.',
     'TXT_PRIVATE_ERROR_MFA' => 'Invalid or missing verification code.',
     'TXT_PRIVATE_ERROR_INVALID_CREDENTIALS' => 'Incorrect identifier or password.',

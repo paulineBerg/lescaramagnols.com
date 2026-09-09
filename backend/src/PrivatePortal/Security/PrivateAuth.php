@@ -32,7 +32,7 @@ final class PrivateAuth
         $this->loginRateLimitAttempts = max(1, (int) app_config('private.login_rate_limit_attempts', 5));
         $this->loginRateLimitWindow = max(60, (int) app_config('private.login_rate_limit_window', 900));
         $this->accountLockoutAttempts = max(1, (int) app_config('private.account_lockout_attempts', 3));
-        $this->accountLockoutSeconds = max(60, (int) app_config('private.account_lockout_seconds', 86400));
+        $this->accountLockoutSeconds = max(60, (int) app_config('private.account_lockout_seconds', 900));
         $this->reauthTimeoutSeconds = max(300, min(86400, (int) app_config('private.reauth_timeout_seconds', 1800)));
     }
 
