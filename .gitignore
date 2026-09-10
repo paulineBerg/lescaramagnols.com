@@ -96,5 +96,6 @@ docs/private/agence/
 
 # Temporary multi-AI task handoff
 .ai/CURRENT_TASK*.md
+.ai/prompt-*.md
 /.ai/archive/
 /.governance/archive/
