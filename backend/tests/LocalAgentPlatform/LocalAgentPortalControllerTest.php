@@ -154,6 +154,12 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringContainsString('aucun texte n’est à recopier', $agentsResponse->body);
         $this->assertStringNotContainsString('name="installer_confirmation"', $agentsResponse->body);
         $this->assertStringContainsString('name="installation_path"', $agentsResponse->body);
+        $this->assertStringContainsString('Dossier d’installation', $agentsResponse->body);
+        $this->assertStringContainsString('Chemin par défaut:', $agentsResponse->body);
+        $this->assertStringContainsString('data-agent-install-path-default-label', $agentsResponse->body);
+        $this->assertStringContainsString('data-agent-install-path-reset', $agentsResponse->body);
+        $this->assertStringContainsString('Utiliser le chemin par défaut', $agentsResponse->body);
+        $this->assertStringContainsString('Dossier d’installation à supprimer', $agentsResponse->body);
         $this->assertStringContainsString('%LOCALAPPDATA%\\pbgestion\\agent', $agentsResponse->body);
         $this->assertStringContainsString('Supprimer l’agent local', $agentsResponse->body);
         $this->assertStringContainsString('Créer un code 30 minutes', $agentsResponse->body);
@@ -184,6 +190,9 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertStringNotContainsString('Tapez OUI pour confirmer l installation locale', $downloadResponse->body);
         $this->assertStringContainsString('Expand-PbPath', $downloadResponse->body);
         $this->assertStringContainsString('ConvertTo-Json -Depth 8', $downloadResponse->body);
+        $this->assertStringContainsString('config.bootstrap.json', $downloadResponse->body);
+        $this->assertStringContainsString('schtasks.exe /End /TN "$taskName"', $downloadResponse->body);
+        $this->assertStringContainsString('Move-Item -Force $bootstrapConfigPath $configPath', $downloadResponse->body);
         $this->assertStringContainsString('pbgestion_agent.py', $downloadResponse->body);
         $this->assertStringContainsString('pynacl', $downloadResponse->body);
         $this->assertStringContainsString('/api/pbgestion/v1/enrollment/claim', $downloadResponse->body);
@@ -205,6 +214,9 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertSame('text/x-shellscript; charset=utf-8', $linuxResponse->headers['Content-Type'] ?? null);
         $this->assertSame('attachment; filename="pbgestion-agent-install-linux.sh"', $linuxResponse->headers['Content-Disposition'] ?? null);
         $this->assertStringContainsString('#!/usr/bin/env bash', $linuxResponse->body);
+        $this->assertStringContainsString('BOOTSTRAP_CONFIG_PATH="${INSTALL_ROOT}/config.bootstrap.json"', $linuxResponse->body);
+        $this->assertStringContainsString('systemctl --user stop pbgestion-agent.timer pbgestion-agent.service', $linuxResponse->body);
+        $this->assertStringContainsString('mv "$BOOTSTRAP_CONFIG_PATH" "$CONFIG_PATH"', $linuxResponse->body);
         $this->assertStringContainsString('systemctl --user enable --now pbgestion-agent.timer', $linuxResponse->body);
 
         $uninstallResponse = $controller->handle('network_security_agents', $this->request('POST', '/private/securite-reseau/agents-installation', [
@@ -215,6 +227,16 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertSame(200, $uninstallResponse->status);
         $this->assertSame('attachment; filename="pbgestion-agent-uninstall-windows.ps1"', $uninstallResponse->headers['Content-Disposition'] ?? null);
         $this->assertStringContainsString('SUPPRESSION LOCALE PB GESTION', $uninstallResponse->body);
+
+        $customUninstallResponse = $controller->handle('network_security_agents', $this->request('POST', '/private/securite-reseau/agents-installation', [
+            'csrf_token' => $csrfToken,
+            'action' => 'download_agent_uninstaller',
+            'installer_platform' => 'linux',
+            'installation_path' => '$HOME/.local/share/caramagnols-photo-agent',
+        ]));
+        $this->assertSame(200, $customUninstallResponse->status);
+        $this->assertSame('attachment; filename="pbgestion-agent-uninstall-linux.sh"', $customUninstallResponse->headers['Content-Disposition'] ?? null);
+        $this->assertStringContainsString('INSTALL_ROOT="$HOME/.local/share/caramagnols-photo-agent"', $customUninstallResponse->body);
     }
 
     public function testPhotoAgentInstallerStaysInPhotoApplicationContextAndStoresInstallPath(): void
@@ -227,13 +249,15 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertTrue($moduleRepository->setUserModules($userId, ['photo_geo_renamer'], 'admin@example.com'));
 
         $controller = new PrivatePortalController(
-            $this->privateAuth($userRepository, 'photo-installer@example.com'),
+            $auth = $this->privateAuth($userRepository, 'photo-installer@example.com'),
             null,
             null,
             $userRepository,
             $moduleRepository,
             pbGestionRepository: $pbGestionRepository
         );
+        $_SESSION['private_user']['last_reauth_at'] = 0;
+        $this->assertFalse($auth->isReauthFresh());
 
         $response = $controller->handle('photo_geo_renamer_agents', $this->request('POST', '/private/photo-rename/agents-installation', [
             'csrf_token' => csrf_token('private_pbgestion'),
@@ -246,6 +270,7 @@ final class LocalAgentPortalControllerTest extends TestCase
 
         $this->assertSame(200, $response->status);
         $this->assertSame('attachment; filename="pbgestion-agent-install-linux.sh"', $response->headers['Content-Disposition'] ?? null);
+        $this->assertArrayNotHasKey('Location', $response->headers);
         $this->assertStringContainsString('Dossier agent: $INSTALL_ROOT', $response->body);
         $this->assertStringNotContainsString('Vue d’ensemble</a>', $response->body);
 
@@ -259,6 +284,31 @@ final class LocalAgentPortalControllerTest extends TestCase
         $this->assertIsArray($token);
         $this->assertSame('PC photos portable', $token['location_label']);
         $this->assertSame('$HOME/.local/share/caramagnols-photo-agent', $token['installation_path']);
+
+        $secondResponse = $controller->handle('photo_geo_renamer_agents', $this->request('POST', '/private/photo-rename/agents-installation', [
+            'csrf_token' => csrf_token('private_pbgestion'),
+            'action' => 'download_agent_installer',
+            'location_label' => 'PC photos bureau',
+            'installation_path' => 'D:\\Caramagnols\\PhotoAgent',
+            'installer_consent' => '1',
+            'installer_platform' => 'windows',
+        ]));
+
+        $this->assertSame(200, $secondResponse->status);
+        $this->assertSame('attachment; filename="pbgestion-agent-install-windows.ps1"', $secondResponse->headers['Content-Disposition'] ?? null);
+
+        $tokensStatement = $database->pdo()->prepare(sprintf(
+            'SELECT `location_label`, `installation_path` FROM `%s` ORDER BY `id` DESC LIMIT 2',
+            $database->table('pb_enrollment_tokens')
+        ));
+        $tokensStatement->execute();
+        $tokens = $tokensStatement->fetchAll(\PDO::FETCH_ASSOC);
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame('PC photos bureau', $tokens[0]['location_label']);
+        $this->assertSame('D:\\Caramagnols\\PhotoAgent', $tokens[0]['installation_path']);
+        $this->assertSame('PC photos portable', $tokens[1]['location_label']);
+        $this->assertSame('$HOME/.local/share/caramagnols-photo-agent', $tokens[1]['installation_path']);
     }
 
     public function testPhotoBrowserModeRunsWithoutClaimedAgent(): void

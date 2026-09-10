@@ -49,7 +49,9 @@ final class LocalAgentPortalController
     public function handle(string $page, Request $request): Response
     {
         $app = $this->appForPage($page);
-        $userId = $this->requireModuleUser($request, $app);
+        $body = $request->method() === 'POST' ? $request->body() : [];
+        $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
+        $userId = $this->requireModuleUser($request, $app, $this->requiresFreshSession($request, $action));
         if ($userId instanceof Response) {
             return $userId;
         }
@@ -65,8 +67,6 @@ final class LocalAgentPortalController
                 return $this->renderPbGestion($userId, $view, null, 'invalid_request', null, null, $app);
             }
 
-            $body = $request->body();
-            $action = is_string($body['action'] ?? null) ? strtolower(trim((string) $body['action'])) : '';
             if (!$this->actionAllowedForModule($action, (string) $app['moduleCode'])) {
                 return $this->renderPbGestion($userId, $view, null, 'invalid_request', null, null, $app);
             }
@@ -145,12 +145,12 @@ final class LocalAgentPortalController
     /**
      * @param array<string, mixed> $app
      */
-    private function requireModuleUser(Request $request, array $app): int|Response
+    private function requireModuleUser(Request $request, array $app, bool $requireFreshSession): int|Response
     {
         $required = $this->securityGuard->requireAuthenticated(
             $request,
             private_portal_url('login'),
-            strtoupper($request->method()) !== 'GET'
+            $requireFreshSession
         );
         if ($required !== null) {
             return $required;
@@ -168,6 +168,15 @@ final class LocalAgentPortalController
         }
 
         return $userId;
+    }
+
+    private function requiresFreshSession(Request $request, string $action): bool
+    {
+        if (strtoupper((string) $request->method()) !== 'POST') {
+            return false;
+        }
+
+        return !in_array($action, ['download_agent_installer', 'download_agent_uninstaller'], true);
     }
 
     private function hasAppAccess(int $userId, string $moduleCode): bool
@@ -252,10 +261,11 @@ final class LocalAgentPortalController
     private function downloadAgentUninstaller(array $body): Response
     {
         $platform = $this->installerPlatform($body['installer_platform'] ?? null);
+        $installationPath = $this->installationPathForPlatform($body['installation_path'] ?? null, $platform);
         $installer = new LocalAgentInstaller();
         $script = $platform === 'windows'
-            ? $installer->buildPowerShellUninstallScript()
-            : $installer->buildUnixUninstallScript($platform);
+            ? $installer->buildPowerShellUninstallScript($installationPath)
+            : $installer->buildUnixUninstallScript($platform, $installationPath);
         $extension = $platform === 'windows' ? 'ps1' : 'sh';
         $contentType = $platform === 'windows'
             ? 'application/x-powershell; charset=utf-8'

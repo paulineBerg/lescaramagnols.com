@@ -490,25 +490,36 @@ $commandAgents = array_values(array_filter($agents, static fn (mixed $agent): bo
               <option value="macos">macOS</option>
             </select>
           </label>
-          <label>Chemin d’installation
-            <input type="text" name="installation_path" maxlength="500" value="<?php echo $h($agentInstallPathDefaults['windows']); ?>" data-agent-install-path-input required />
+          <p class="muted" data-agent-install-path-default-label>
+            Chemin par défaut: <?php echo $h($agentInstallPathDefaults['windows']); ?>
+          </p>
+          <label>Dossier d’installation
+            <input type="text" name="installation_path" maxlength="500" value="<?php echo $h($agentInstallPathDefaults['windows']); ?>" placeholder="%LOCALAPPDATA%\pbgestion\agent" autocomplete="off" spellcheck="false" data-agent-install-path-input required />
           </label>
+          <button type="button" class="private-document-button-secondary" data-agent-install-path-reset>Utiliser le chemin par défaut</button>
           <button type="submit" class="private-create-button">Télécharger l’installeur local</button>
         </form>
       </section>
       <section class="private-dashboard-panel">
         <h3>Supprimer l’agent local</h3>
         <p class="muted">La révocation bloque l’agent côté webapp. Pour nettoyer aussi l’ordinateur, téléchargez le script de suppression adapté puis exécutez-le sur le poste concerné.</p>
-        <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools" data-private-sensitive-action="suppression agent local" data-private-confirm-message="Télécharger le script de suppression locale ?">
+        <form method="post" action="<?php echo $h($url('agents')); ?>" class="private-list-tools" data-private-sensitive-action="suppression agent local" data-private-confirm-message="Télécharger le script de suppression locale ?" data-agent-install-path-form data-agent-install-path-defaults="<?php echo $h($agentInstallPathDefaultsJson); ?>">
           <input type="hidden" name="csrf_token" value="<?php echo $h($csrfToken); ?>" />
           <input type="hidden" name="action" value="download_agent_uninstaller" />
           <label>Plateforme
-            <select name="installer_platform">
+            <select name="installer_platform" data-agent-install-platform>
               <option value="windows">Windows</option>
               <option value="linux">Linux</option>
               <option value="macos">macOS</option>
             </select>
           </label>
+          <p class="muted" data-agent-install-path-default-label>
+            Chemin par défaut: <?php echo $h($agentInstallPathDefaults['windows']); ?>
+          </p>
+          <label>Dossier d’installation à supprimer
+            <input type="text" name="installation_path" maxlength="500" value="<?php echo $h($agentInstallPathDefaults['windows']); ?>" placeholder="%LOCALAPPDATA%\pbgestion\agent" autocomplete="off" spellcheck="false" data-agent-install-path-input required />
+          </label>
+          <button type="button" class="private-document-button-secondary" data-agent-install-path-reset>Utiliser le chemin par défaut</button>
           <button type="submit" class="private-button-danger">Télécharger la suppression locale</button>
         </form>
       </section>
@@ -532,9 +543,13 @@ $commandAgents = array_values(array_filter($agents, static fn (mixed $agent): bo
             <option value="macos">macOS</option>
           </select>
         </label>
-        <label>Chemin d’installation
-          <input type="text" name="installation_path" maxlength="500" value="<?php echo $h($agentInstallPathDefaults['windows']); ?>" data-agent-install-path-input required />
+        <p class="muted" data-agent-install-path-default-label>
+          Chemin par défaut: <?php echo $h($agentInstallPathDefaults['windows']); ?>
+        </p>
+        <label>Dossier d’installation
+          <input type="text" name="installation_path" maxlength="500" value="<?php echo $h($agentInstallPathDefaults['windows']); ?>" placeholder="%LOCALAPPDATA%\pbgestion\agent" autocomplete="off" spellcheck="false" data-agent-install-path-input required />
         </label>
+        <button type="button" class="private-document-button-secondary" data-agent-install-path-reset>Utiliser le chemin par défaut</button>
         <button type="submit" class="private-create-button">Créer un code 30 minutes</button>
       </form>
       <?php if ($agents === []): ?>
@@ -610,6 +625,8 @@ $commandAgents = array_values(array_filter($agents, static fn (mixed $agent): bo
       }
       const platform = form.querySelector('[data-agent-install-platform]');
       const pathInput = form.querySelector('[data-agent-install-path-input]');
+      const defaultLabel = form.querySelector('[data-agent-install-path-default-label]');
+      const resetButton = form.querySelector('[data-agent-install-path-reset]');
       if (!(platform instanceof HTMLSelectElement) || !(pathInput instanceof HTMLInputElement)) {
         return;
       }
@@ -619,12 +636,35 @@ $commandAgents = array_values(array_filter($agents, static fn (mixed $agent): bo
       } catch (error) {
         defaults = {};
       }
-      platform.addEventListener('change', () => {
+      const defaultForPlatform = () => {
         const next = defaults[platform.value];
-        if (typeof next === 'string' && (pathInput.value.trim() === '' || Object.values(defaults).includes(pathInput.value))) {
+
+        return typeof next === 'string' ? next : '';
+      };
+      const refreshDefaultLabel = () => {
+        const next = defaultForPlatform();
+        if (defaultLabel instanceof HTMLElement && next !== '') {
+          defaultLabel.textContent = `Chemin par défaut: ${next}`;
+        }
+      };
+      platform.addEventListener('change', () => {
+        const next = defaultForPlatform();
+        if (next !== '' && (pathInput.value.trim() === '' || Object.values(defaults).includes(pathInput.value))) {
           pathInput.value = next;
         }
+        refreshDefaultLabel();
       });
+      if (resetButton instanceof HTMLButtonElement) {
+        resetButton.addEventListener('click', () => {
+          const next = defaultForPlatform();
+          if (next !== '') {
+            pathInput.value = next;
+            pathInput.focus();
+          }
+          refreshDefaultLabel();
+        });
+      }
+      refreshDefaultLabel();
     });
   })();
 </script>

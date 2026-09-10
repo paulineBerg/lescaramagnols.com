@@ -73,9 +73,11 @@ final class LocalAgentInstaller
         );
     }
 
-    public function buildPowerShellUninstallScript(): string
+    public function buildPowerShellUninstallScript(string $installPath = ''): string
     {
-        return <<<'POWERSHELL'
+        $installPathBase64 = base64_encode($this->portableInstallPath($installPath, 'windows'));
+
+        $script = <<<'POWERSHELL'
 # Suppression locale PbGestion pour Windows.
 $ErrorActionPreference = 'Stop'
 
@@ -86,8 +88,14 @@ Write-Host 'Revoquez aussi l agent dans le BO Private pour bloquer ses prochaine
 Write-Host ''
 
 $taskName = 'PbGestionAgent'
-$pbGestionRoot = Join-Path $env:LOCALAPPDATA 'pbgestion'
-$installRoot = Join-Path $pbGestionRoot 'agent'
+$installRootTemplate = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('INSTALL_PATH_BASE64_PLACEHOLDER'))
+
+function Expand-PbPath([string]$Value) {
+    $expanded = $Value.Replace('$env:LOCALAPPDATA', $env:LOCALAPPDATA).Replace('$env:USERPROFILE', $env:USERPROFILE)
+    return [Environment]::ExpandEnvironmentVariables($expanded)
+}
+
+$installRoot = Expand-PbPath $installRootTemplate
 
 $task = schtasks.exe /Query /TN "$taskName" 2>$null
 if ($LASTEXITCODE -eq 0) {
@@ -104,14 +112,14 @@ if (Test-Path $installRoot) {
 
 Write-Host 'Suppression locale terminee.'
 POWERSHELL;
+
+        return str_replace('INSTALL_PATH_BASE64_PLACEHOLDER', $installPathBase64, $script);
     }
 
-    public function buildUnixUninstallScript(string $platform): string
+    public function buildUnixUninstallScript(string $platform, string $installPath = ''): string
     {
         $platform = strtolower(trim($platform)) === 'macos' ? 'macos' : 'linux';
-        $dataRoot = $platform === 'macos'
-            ? '${HOME}/Library/Application Support/pbgestion/agent'
-            : '${HOME}/.local/share/pbgestion/agent';
+        $dataRoot = $this->portableInstallPath($installPath, $platform);
 
         return <<<BASH
 #!/usr/bin/env bash
@@ -234,9 +242,11 @@ function Expand-PbPath([string]\$Value) {
 \$installRoot = Expand-PbPath \$installRootTemplate
 \$agentPath = Join-Path \$installRoot 'pbgestion_agent.py'
 \$configPath = Join-Path \$installRoot 'config.json'
+\$bootstrapConfigPath = Join-Path \$installRoot 'config.bootstrap.json'
 \$venvPath = Join-Path \$installRoot '.venv'
 \$taskName = 'PbGestionAgent'
 
+schtasks.exe /End /TN "\$taskName" 2>\$null | Out-Null
 New-Item -ItemType Directory -Force -Path \$installRoot | Out-Null
 [IO.File]::WriteAllBytes(\$agentPath, [Convert]::FromBase64String('$agentBase64'))
 \$configText = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$configBase64'))
@@ -247,7 +257,7 @@ foreach (\$root in @(\$config.allowed_roots)) {
         \$root.path = Expand-PbPath ([string]\$root.path)
     }
 }
-[IO.File]::WriteAllText(\$configPath, (\$config | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new(\$false))
+[IO.File]::WriteAllText(\$bootstrapConfigPath, (\$config | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new(\$false))
 Write-Host "Dossier agent: \$installRoot"
 
 \$pythonLauncher = \$null
@@ -272,7 +282,8 @@ if (-not (Test-Path \$pythonExe)) {
 
 & \$pythonExe -m pip install --upgrade pip
 & \$pythonExe -m pip install pynacl
-& \$pythonExe \$agentPath enroll --config \$configPath
+& \$pythonExe \$agentPath enroll --config \$bootstrapConfigPath
+Move-Item -Force \$bootstrapConfigPath \$configPath
 
 \$taskCommand = "`"\$pythonExe`" `"\$agentPath`" run-once --config `"\$configPath`""
 \$taskArgs = "/Create /F /SC MINUTE /MO 5 /TN `"\$taskName`" /TR `"\$taskCommand`""
@@ -376,10 +387,17 @@ PY
 )"
 AGENT_PATH="\${INSTALL_ROOT}/pbgestion_agent.py"
 CONFIG_PATH="\${INSTALL_ROOT}/config.json"
+BOOTSTRAP_CONFIG_PATH="\${INSTALL_ROOT}/config.bootstrap.json"
 VENV_PATH="\${INSTALL_ROOT}/.venv"
-export INSTALL_ROOT AGENT_PATH CONFIG_PATH
+export INSTALL_ROOT AGENT_PATH CONFIG_PATH BOOTSTRAP_CONFIG_PATH
 
 mkdir -p "\$INSTALL_ROOT"
+if command -v systemctl >/dev/null 2>&1; then
+  systemctl --user stop pbgestion-agent.timer pbgestion-agent.service >/dev/null 2>&1 || true
+fi
+if [ "\$(uname -s)" = "Darwin" ]; then
+  launchctl stop "com.lescaramagnols.pbgestion-agent" >/dev/null 2>&1 || true
+fi
 python3 - <<'PY'
 import base64
 import json
@@ -394,7 +412,7 @@ config["data_root"] = str(root)
 for item in config.get("allowed_roots", []):
     if isinstance(item, dict):
         item["path"] = os.path.expandvars(os.path.expanduser(str(item.get("path", ""))))
-(root / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+Path(os.environ["BOOTSTRAP_CONFIG_PATH"]).write_text(json.dumps(config, indent=2, ensure_ascii=False, sort_keys=True), encoding="utf-8")
 PY
 echo "Dossier agent: \$INSTALL_ROOT"
 
@@ -402,7 +420,8 @@ python3 -m venv "\$VENV_PATH"
 PYTHON_EXE="\${VENV_PATH}/bin/python"
 "\$PYTHON_EXE" -m pip install --upgrade pip
 "\$PYTHON_EXE" -m pip install pynacl
-"\$PYTHON_EXE" "\$AGENT_PATH" enroll --config "\$CONFIG_PATH"
+"\$PYTHON_EXE" "\$AGENT_PATH" enroll --config "\$BOOTSTRAP_CONFIG_PATH"
+mv "\$BOOTSTRAP_CONFIG_PATH" "\$CONFIG_PATH"
 
 $serviceBlock
 
