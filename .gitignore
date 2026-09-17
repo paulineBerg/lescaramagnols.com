@@ -28,6 +28,7 @@ frontend/coverage/
 # IDE / OS
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
 .idea/
 .vscode/
 *.swp
