@@ -105,7 +105,8 @@ if (!$options['no-integrity']) {
 if (!$options['no-gc']) {
     $report['sections']['garbage_collection'] = runGarbageCollection(
         $garbageCollector,
-        $options['dry-run'] ? false : $options['delete-unreferenced']
+        $options['dry-run'] ? false : $options['delete-unreferenced'],
+        $options['dry-run']
     );
 }
 
@@ -296,9 +297,10 @@ function runIntegrityCheck(
  */
 function runGarbageCollection(
     DocumentGarbageCollector $collector,
-    bool $deleteUnreferenced
+    bool $deleteUnreferenced,
+    bool $dryRun
 ): array {
-    return $collector->run($deleteUnreferenced);
+    return $collector->run($deleteUnreferenced, 86400, 3600, $dryRun);
 }
 
 /**

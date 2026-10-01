@@ -85,7 +85,7 @@ $documentHubJobs = [
         'name' => 'Garbage Collection Document Hub',
         'description' => 'Nettoyage report-only des fichiers temporaires expirés et inventaire des objets non référencés.',
         'script_path' => 'core/tools/document_hub_gc.php',
-        'arguments' => ['args' => ['--json']],
+        'arguments' => ['args' => ['--json', '--dry-run']],
         'schedule_expression' => '45 2 * * *', // Tous les jours à 2h45
         'timeout_seconds' => 900, // 15 minutes
         'status' => 'active',

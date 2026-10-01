@@ -43,7 +43,7 @@ final class CronJobRunner
                 'stdout_text' => '',
                 'stderr_text' => '',
                 'message' => 'Dry-run: job non exécuté.',
-                'command' => array_merge([$this->phpBinary, $scriptPath], $args),
+                'command' => $this->publicCommand(array_merge([$this->phpBinary, $scriptPath], $args)),
             ];
         }
 
@@ -175,10 +175,10 @@ final class CronJobRunner
             'finished_at' => $finishedAt->format('Y-m-d H:i:s'),
             'duration_ms' => $durationMs,
             'exit_code' => $exitCode,
-            'stdout_text' => $this->truncate($stdout, 20000),
-            'stderr_text' => $this->truncate($stderr, 20000),
-            'message' => $message,
-            'command' => $command,
+            'stdout_text' => $this->truncate($this->sanitizeOutput($stdout), 20000),
+            'stderr_text' => $this->truncate($this->sanitizeOutput($stderr), 20000),
+            'message' => $this->sanitizeOutput($message),
+            'command' => $this->publicCommand($command),
         ];
     }
 
@@ -285,5 +285,30 @@ final class CronJobRunner
     private function truncate(string $value, int $maxLength): string
     {
         return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    /**
+     * @param array<int, string> $command
+     * @return array<int, string>
+     */
+    private function publicCommand(array $command): array
+    {
+        return array_map(fn (string $part): string => $this->sanitizeOutput($part), $command);
+    }
+
+    private function sanitizeOutput(string $value): string
+    {
+        $rootPath = rtrim(str_replace('\\', '/', $this->rootPath), '/');
+        if ($rootPath !== '') {
+            $value = str_replace($rootPath, '[backend]', $value);
+            $parent = dirname($rootPath);
+            if ($parent !== '' && $parent !== '.' && $parent !== '/') {
+                $value = str_replace(str_replace('\\', '/', $parent), '[app]', $value);
+            }
+        }
+
+        $value = (string) preg_replace('#/home/[A-Za-z0-9._-]+(?:/[^\s"\'<>]*)?#', '[path]', $value);
+
+        return $value;
     }
 }

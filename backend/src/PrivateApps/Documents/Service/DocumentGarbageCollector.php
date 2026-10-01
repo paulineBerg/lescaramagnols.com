@@ -23,17 +23,29 @@ final class DocumentGarbageCollector
     }
 
     /**
-     * @return array{quarantine_purged: int, exports_purged: int, unreferenced_objects: array<int, array{id: int, sha256: string, storage_key: string, created_at: string, deletion_eligible: bool}>, deleted_objects: int, young_unreferenced_objects: int}
+     * @return array{dry_run: bool, quarantine_purged: int, exports_purged: int, quarantine_eligible: int, exports_eligible: int, unreferenced_objects: array<int, array{id: int, sha256: string, storage_key: string, created_at: string, deletion_eligible: bool}>, deleted_objects: int, young_unreferenced_objects: int}
      */
-    public function run(bool $deleteUnreferencedObjects = false, int $quarantineMaxAgeSeconds = 86400, int $exportsMaxAgeSeconds = 3600): array
-    {
+    public function run(
+        bool $deleteUnreferencedObjects = false,
+        int $quarantineMaxAgeSeconds = 86400,
+        int $exportsMaxAgeSeconds = 3600,
+        bool $dryRun = false
+    ): array {
         $report = [
-            'quarantine_purged' => $this->storage->purgeQuarantine($quarantineMaxAgeSeconds),
-            'exports_purged' => $this->storage->purgeExpiredExports($exportsMaxAgeSeconds),
+            'dry_run' => $dryRun,
+            'quarantine_purged' => 0,
+            'exports_purged' => 0,
+            'quarantine_eligible' => $this->countExpiredFiles($this->storage->quarantineDirectory(), $quarantineMaxAgeSeconds),
+            'exports_eligible' => $this->countExpiredFiles($this->storage->exportsTempDirectory(), $exportsMaxAgeSeconds),
             'unreferenced_objects' => [],
             'deleted_objects' => 0,
             'young_unreferenced_objects' => 0,
         ];
+
+        if (!$dryRun) {
+            $report['quarantine_purged'] = $this->storage->purgeQuarantine($quarantineMaxAgeSeconds);
+            $report['exports_purged'] = $this->storage->purgeExpiredExports($exportsMaxAgeSeconds);
+        }
 
         foreach ($this->repository->allObjects() as $object) {
             $objectId = (int) ($object['id'] ?? 0);
@@ -60,7 +72,7 @@ final class DocumentGarbageCollector
             ];
             $report['unreferenced_objects'][] = $entry;
 
-            if ($deleteUnreferencedObjects && $deletionEligible) {
+            if (!$dryRun && $deleteUnreferencedObjects && $deletionEligible) {
                 // Revérification juste avant suppression pour limiter les courses.
                 if ($this->repository->objectReferenceCount($objectId) === 0
                     && $this->storage->deleteUnreferencedObjectFile($entry['storage_key'])
@@ -71,6 +83,29 @@ final class DocumentGarbageCollector
         }
 
         return $report;
+    }
+
+    private function countExpiredFiles(string $directory, int $maxAgeSeconds): int
+    {
+        if (!is_dir($directory)) {
+            return 0;
+        }
+
+        $expired = 0;
+        $threshold = time() - max(60, $maxAgeSeconds);
+        $entries = @scandir($directory);
+        foreach (is_array($entries) ? $entries : [] as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $path = $directory . '/' . $entry;
+            if (is_file($path) && (int) @filemtime($path) < $threshold) {
+                ++$expired;
+            }
+        }
+
+        return $expired;
     }
 
     private function isOldEnoughForObjectDeletion(string $createdAt): bool

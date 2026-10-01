@@ -44,6 +44,40 @@ final class CronJobRunnerTest extends TestCase
         $this->assertSame('Code retour 7.', $result['message']);
     }
 
+    public function testRunnerRedactsPrivatePathsFromStoredOutput(): void
+    {
+        $scriptPath = $this->tmpRoot . '/core/tools/check_env.php';
+        file_put_contents(
+            $scriptPath,
+            "<?php\n"
+            . "echo __DIR__ . \"\\n\";\n"
+            . "fwrite(STDERR, dirname(__DIR__, 2) . \"/private/storage/document-hub\\n\");\n"
+            . "exit(0);\n"
+        );
+
+        $runner = new CronJobRunner($this->tmpRoot, PHP_BINARY, $this->tmpRoot . '/locks');
+        $result = $runner->run([
+            'code' => 'check_env_paths',
+            'name' => 'Check env paths',
+            'script_path' => 'core/tools/check_env.php',
+            'arguments' => [
+                'args' => [],
+            ],
+            'timeout_seconds' => 5,
+        ]);
+
+        $serialized = json_encode([
+            'stdout_text' => $result['stdout_text'] ?? '',
+            'stderr_text' => $result['stderr_text'] ?? '',
+            'command' => $result['command'] ?? [],
+        ], JSON_UNESCAPED_SLASHES);
+
+        $this->assertIsString($serialized);
+        $this->assertStringNotContainsString($this->tmpRoot, $serialized);
+        $this->assertStringContainsString('[backend]/core/tools', (string) ($result['stdout_text'] ?? ''));
+        $this->assertStringContainsString('[backend]/core/tools/check_env.php', implode(' ', (array) ($result['command'] ?? [])));
+    }
+
     private function removeDirectoryRecursively(string $directory): void
     {
         if (!is_dir($directory)) {

@@ -18,6 +18,7 @@ $options = parse_cli_options(array_slice($argv, 1));
 $dryRun = isset($options['dry-run']);
 $jsonOutput = isset($options['json']);
 $quiet = isset($options['quiet']);
+$strict = isset($options['strict']);
 $jobCode = isset($options['job']) && is_string($options['job'])
     ? trim($options['job'])
     : null;
@@ -47,7 +48,7 @@ try {
         ROOT_PATH . '/var/locks/cron-center.lock'
     );
 
-    $result = $scheduler->run($now, $dryRun, $jobCode !== '' ? $jobCode : null);
+    $result = $scheduler->run($now, $dryRun, $jobCode !== '' ? $jobCode : null, $strict);
 
     if ($jsonOutput) {
         fwrite(STDOUT, json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL);
@@ -106,6 +107,9 @@ function render_cron_center_result(array $result): void
     fwrite(STDOUT, sprintf("- jobs vérifiés: %d\n", (int) ($result['jobs_checked'] ?? 0)));
     fwrite(STDOUT, sprintf("- jobs dus: %d\n", (int) ($result['jobs_due'] ?? 0)));
     fwrite(STDOUT, sprintf("- jobs exécutés: %d\n", (int) ($result['jobs_executed'] ?? 0)));
+    fwrite(STDOUT, sprintf("- statut: %s\n", (string) ($result['status'] ?? 'unknown')));
+    fwrite(STDOUT, sprintf("- avertissements: %d\n", (int) ($result['warnings'] ?? 0)));
+    fwrite(STDOUT, sprintf("- échecs critiques: %d\n", (int) ($result['critical_failed'] ?? 0)));
 
     $runs = is_array($result['runs'] ?? null) ? $result['runs'] : [];
     foreach ($runs as $run) {
@@ -118,7 +122,7 @@ function render_cron_center_result(array $result): void
             sprintf(
                 "- %s: %s (%s)\n",
                 (string) ($run['job_code'] ?? ''),
-                (string) ($run['status'] ?? ''),
+                (string) ($run['status'] ?? '') . (($run['failure_severity'] ?? null) === 'warning' ? '/warning' : ''),
                 (string) ($run['message'] ?? '')
             )
         );
@@ -138,13 +142,20 @@ function cron_center_exit_code(array $result): int
         return 1;
     }
 
+    if ((int) ($result['critical_failed'] ?? 0) > 0) {
+        return 2;
+    }
+
     $runs = is_array($result['runs'] ?? null) ? $result['runs'] : [];
     foreach ($runs as $run) {
         if (!is_array($run)) {
             continue;
         }
 
-        if (in_array((string) ($run['status'] ?? ''), ['failed', 'timeout'], true)) {
+        if (
+            in_array((string) ($run['status'] ?? ''), ['failed', 'timeout'], true)
+            && ($run['failure_severity'] ?? 'critical') !== 'warning'
+        ) {
             return 2;
         }
     }

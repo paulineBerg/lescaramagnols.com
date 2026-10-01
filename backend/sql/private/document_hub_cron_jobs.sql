@@ -46,7 +46,7 @@ INSERT IGNORE INTO `car_cron_jobs` (
     'GC Document Hub',
     'Nettoyage report-only des fichiers temporaires et inventaire des objets non référencés',
     'core/tools/document_hub_gc.php',
-    '{"args": ["--json"]}',
+    '{"args": ["--json", "--dry-run"]}',
     '45 2 * * *',
     'active',
     900,
